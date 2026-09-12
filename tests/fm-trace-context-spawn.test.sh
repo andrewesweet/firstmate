@@ -270,6 +270,36 @@ run_two_level() {
   [ -f "$sm/config/trace-context" ] && TL_SM_FILE=present
 }
 
+# Execute the emitted pane commands through a real shell and child process.
+# The harness probe consumes the environment without contacting a model vendor.
+verify_worker_environment() {
+  local expected_attrs expected_tp observed
+  expected_attrs=$(injected_attrs "$LAUNCH_LOG")
+  expected_tp=$(meta_traceparent "$HOME_DIR/state/$CASE_ID.meta")
+  cat > "$FAKEBIN_DIR/claude" <<'SH'
+#!/bin/sh
+printf 'TRACEPARENT=%s\nOTEL_RESOURCE_ATTRIBUTES=%s\n' "${TRACEPARENT-}" "${OTEL_RESOURCE_ATTRIBUTES-}"
+SH
+  chmod +x "$FAKEBIN_DIR/claude"
+  observed=$(env -u TRACEPARENT -u OTEL_RESOURCE_ATTRIBUTES \
+    HOME="$HOME_DIR/user-home" PATH="$FAKEBIN_DIR:$PATH" bash "$LAUNCH_LOG") \
+    || fail "the emitted pane commands must launch the harness probe"
+  [ "$observed" = "$(printf 'TRACEPARENT=%s\nOTEL_RESOURCE_ATTRIBUTES=%s' "$expected_tp" "$expected_attrs")" ] \
+    || fail "the child process must receive the recorded carrier and emitted attributes (got '$observed')"
+  if [ -n "${FM_TRACE_EVIDENCE_DIR:-}" ]; then
+    mkdir -p "$FM_TRACE_EVIDENCE_DIR"
+    {
+      printf '# Spawned worker environment: %s\n\n' "$CASE_ID"
+      printf 'Boundary: real fm-spawn, simulated tmux transport, real shell and harness environment probe.\n\n'
+      printf '## Commands delivered to the pane\n'
+      cat "$LAUNCH_LOG"
+      printf '\n## Environment observed by the child process\n%s\n' "$observed"
+      printf '\n## Persisted task metadata\n'
+      cat "$HOME_DIR/state/$CASE_ID.meta"
+    } > "$FM_TRACE_EVIDENCE_DIR/$CASE_ID.txt"
+  fi
+}
+
 test_enabled_sends_resource_attributes_matching_meta_before_launch() {
   local rec out status meta expected got tl al ll spawn_gen
   rec=$(make_spawn_case tc-attrs-on)
@@ -298,6 +328,7 @@ test_enabled_sends_resource_attributes_matching_meta_before_launch() {
   [ -n "$tl" ] && [ -n "$al" ] && [ -n "$ll" ] || fail "launch log missing TRACEPARENT/attrs/launch lines"
   [ "$tl" -lt "$al" ] || fail "the attrs export must be sent immediately after TRACEPARENT (tp=$tl attrs=$al)"
   [ "$al" -lt "$ll" ] || fail "the attrs export must be sent before the launch literal (attrs=$al launch=$ll)"
+  verify_worker_environment
   pass "enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch"
 }
 
@@ -317,6 +348,7 @@ test_disabled_sends_no_resource_attributes() {
   ! grep -q '^home=' "$meta" || fail "default-off ship metadata must retain its original shape"
   ! grep -q '^traceparent=' "$meta" || fail "default-off spawn must not write a traceparent= line to meta"
   grep -q '^export GOTMPDIR=' "$LAUNCH_LOG" || fail "the spawn should still run (GOTMPDIR is always injected)"
+  verify_worker_environment
   pass "disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input"
 }
 
@@ -337,6 +369,7 @@ test_allowlist_retains_resource_attributes_term() {
   # shellcheck disable=SC2016  # the literal ${...} expansion IS the assertion
   assert_contains "$(cat "$LAUNCH_LOG")" '${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}' \
     "an allowlisted launch must still retain TRACEPARENT"
+  verify_worker_environment
   pass "allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT"
 }
 

@@ -84,8 +84,8 @@
 #   firstmate.model          the launch model (meta model; may be empty)
 #   firstmate.effort         the launch effort (meta effort; may be empty)
 #   firstmate.spawn_gen      the incarnation token (meta spawn_gen)
-#   firstmate.secondmate.id  present ONLY for a secondmate: the agent's own
-#                            task id when the meta kind is secondmate, else the
+#   firstmate.secondmate.id  the agent's own task id when meta kind is
+#                            secondmate, else the
 #                            spawning home's .fm-secondmate-home marker id (a
 #                            routed task spawned inside a secondmate home)
 #
@@ -290,7 +290,7 @@ fm_trace_attrs_meta_value() {  # <meta-file> <key>
 # an attribute decision is omitted safely and never aborts the spawn. Values
 # derive only from the task meta and, for a routed task inside a secondmate
 # home, the spawning home's .fm-secondmate-home marker - never from task
-# prose, a prompt, or the ambient environment.
+# prose or a prompt (FM_HOME selects the marker location).
 fm_trace_attrs_render() {  # <meta-file>
   local meta=$1
   local task_id project home_dir kind harness model effort spawn_gen
