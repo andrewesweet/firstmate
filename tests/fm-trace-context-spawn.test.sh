@@ -179,6 +179,18 @@ EOF
 meta_traceparent() { sed -n 's/^traceparent=//p' "$1"; }
 injected_traceparent() { sed -n 's/^export TRACEPARENT=//p' "$1"; }
 
+# The pane's OTEL_RESOURCE_ATTRIBUTES export value: strip the literal expansion
+# prefix (which preserves any pre-existing pane value) and the quoting around
+# the rendered keys. Rendered values are percent-encoded, so the delimiter
+# pair "+' can never occur inside the value itself.
+injected_attrs() {  # <log>
+  local raw
+  raw=$(grep -F 'export OTEL_RESOURCE_ATTRIBUTES=' "$1" | tail -1)
+  [ -n "$raw" ] || return 0
+  raw=${raw#*"\"'"}
+  printf '%s' "${raw%\'}"
+}
+
 # Two-level primary -> secondmate -> worker regression for the FM_TRACE_CONTEXT
 # effective override. Drives bin/fm-spawn.sh TWICE against real homes and a real
 # worktree: first the primary launches a secondmate (capturing the exact env the
@@ -256,6 +268,74 @@ run_two_level() {
   TL_WORKER_TP=$(meta_traceparent "$sm/state/$worker_id.meta")
   TL_SM_FILE=absent
   [ -f "$sm/config/trace-context" ] && TL_SM_FILE=present
+}
+
+test_enabled_sends_resource_attributes_matching_meta_before_launch() {
+  local rec out status meta expected got tl al ll spawn_gen
+  rec=$(make_spawn_case tc-attrs-on)
+  read_case_record "$rec"
+  : > "$HOME_DIR/config/launch-env-allowlist"
+  : > "$HOME_DIR/config/trace-context"   # enable via the real config path
+  start_trace_session "$HOME_DIR"
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "enabled attrs spawn should succeed"
+  assert_contains "$out" "spawned $CASE_ID" "enabled attrs spawn should report success"
+  meta="$HOME_DIR/state/$CASE_ID.meta"
+  spawn_gen=$(sed -n 's/^spawn_gen=//p' "$meta")
+  expected="firstmate.task.id=$CASE_ID,firstmate.project=project,firstmate.home=${PROJ_DIR%/*},firstmate.task.kind=ship,firstmate.harness=claude,firstmate.model=default,firstmate.effort=default,firstmate.spawn_gen=$spawn_gen"
+  got=$(injected_attrs "$LAUNCH_LOG")
+  [ "$got" = "$expected" ] || fail "the pane export must render exactly the meta's join keys (expected '$expected', got '$got')"
+
+  # shellcheck disable=SC2016  # the literal ${...} expansion IS the assertion
+  assert_contains "$(cat "$LAUNCH_LOG")" 'export OTEL_RESOURCE_ATTRIBUTES="${OTEL_RESOURCE_ATTRIBUTES:+$OTEL_RESOURCE_ATTRIBUTES,}"' \
+    "the export must preserve any pre-existing pane value as the comma prefix"
+  tl=$(grep -n '^export TRACEPARENT=' "$LAUNCH_LOG" | tail -1 | cut -d: -f1)
+  al=$(grep -n '^export OTEL_RESOURCE_ATTRIBUTES=' "$LAUNCH_LOG" | tail -1 | cut -d: -f1)
+  ll=$(grep -n 'claude' "$LAUNCH_LOG" | tail -1 | cut -d: -f1)
+  [ -n "$tl" ] && [ -n "$al" ] && [ -n "$ll" ] || fail "launch log missing TRACEPARENT/attrs/launch lines"
+  [ "$tl" -lt "$al" ] || fail "the attrs export must be sent immediately after TRACEPARENT (tp=$tl attrs=$al)"
+  [ "$al" -lt "$ll" ] || fail "the attrs export must be sent before the launch literal (attrs=$al launch=$ll)"
+  pass "enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch"
+}
+
+test_disabled_sends_no_resource_attributes() {
+  local rec out status meta
+  rec=$(make_spawn_case tc-attrs-off)
+  read_case_record "$rec"
+  # No config/trace-context and no FM_TRACE_CONTEXT: default-off.
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "default-off attrs spawn should succeed"
+  assert_contains "$out" "spawned $CASE_ID" "default-off attrs spawn should report success"
+  meta="$HOME_DIR/state/$CASE_ID.meta"
+  ! grep -q 'OTEL_RESOURCE_ATTRIBUTES' "$LAUNCH_LOG" \
+    || fail "default-off spawn must not send an attrs export or any retention term"
+  ! grep -q '^traceparent=' "$meta" || fail "default-off spawn must not write a traceparent= line to meta"
+  grep -q '^export GOTMPDIR=' "$LAUNCH_LOG" || fail "the spawn should still run (GOTMPDIR is always injected)"
+  pass "disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input"
+}
+
+test_allowlist_retains_resource_attributes_term() {
+  local rec out status
+  rec=$(make_spawn_case tc-attrs-allowlist)
+  read_case_record "$rec"
+  printf '%s\n' 'OPENAI_API_KEY' > "$HOME_DIR/config/launch-env-allowlist"
+  : > "$HOME_DIR/config/trace-context"
+  start_trace_session "$HOME_DIR"
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "allowlist-on attrs spawn should succeed"
+  # shellcheck disable=SC2016  # the literal ${...} expansion IS the assertion
+  assert_contains "$(cat "$LAUNCH_LOG")" '${OTEL_RESOURCE_ATTRIBUTES+"OTEL_RESOURCE_ATTRIBUTES=$OTEL_RESOURCE_ATTRIBUTES"}' \
+    "an allowlisted launch must retain OTEL_RESOURCE_ATTRIBUTES exactly like TRACEPARENT"
+  # shellcheck disable=SC2016  # the literal ${...} expansion IS the assertion
+  assert_contains "$(cat "$LAUNCH_LOG")" '${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}' \
+    "an allowlisted launch must still retain TRACEPARENT"
+  pass "allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT"
 }
 
 test_enabled_records_and_injects_identical_carrier_before_launch() {
@@ -595,6 +675,9 @@ test_secondmate_carrier_and_snapshot_share_one_decision() {
 }
 
 test_enabled_records_and_injects_identical_carrier_before_launch
+test_enabled_sends_resource_attributes_matching_meta_before_launch
+test_disabled_sends_no_resource_attributes
+test_allowlist_retains_resource_attributes_term
 test_disabled_writes_and_injects_neither
 test_failed_delivery_omits_metadata_and_still_launches
 test_unsafe_delivery_refuses_to_append_launch

@@ -198,6 +198,7 @@ The optional local, gitignored `config/trace-context` presence flag enables defa
 Each locked home session resolves those inputs once, and all spawns from that home use the frozen decision until a new session starts.
 When launching a Secondmate, the primary copies the presence flag into its home and passes the primary session's frozen decision as a non-empty `FM_TRACE_CONTEXT=on|off` override for the Secondmate's own session start.
 A Secondmate on a remote route is covered the same way: the primary resolves and records that task's carrier, and the configured host exports it and receives the same enablement snapshot.
+An enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the worker's pane beside the carrier, rendered from the task metadata so harnesses that join by resource attributes carry the same join keys; `bin/fm-trace-context-lib.sh`'s header owns the fixed key list and the encoding.
 The presence flag is session-scoped enablement, so it transfers at launch and is left unchanged by live convergence into a running home.
 See [`trace-context.md`](trace-context.md) for carrier semantics, supported routes, the manual fleet-restart requirement, the session boundary, and safety limits; `bin/fm-trace-context-lib.sh`'s header owns the exact mechanics, and [`verification/trace-context.md`](verification/trace-context.md) records repeatable evidence.
 
@@ -382,6 +383,7 @@ SSH_AUTH_SOCK
 
 Firstmate retains basic home, executable search, terminal, locale, temporary-directory, and backend routing variables, plus its explicit launch assignments, its ship and scout task marker, and enabled task trace.
 [`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the exact retained names and parsing mechanics.
+The `OTEL_EXPORTER_OTLP_*` variables that decide where a worker's own OpenTelemetry instrumentation sends are the host's, like any other ambient name: an allowlisted home lists the ones it needs itself.
 Other ambient names must be listed explicitly, including custom credential-store locations, proxy settings, and certificate overrides when required by the selected tools.
 The command shell and worker may still create their own variables.
 Allowed values come from the destination pane at execution time; they are neither copied from the invoking Firstmate process nor written into the launch command.

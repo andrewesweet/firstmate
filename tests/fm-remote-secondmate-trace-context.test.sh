@@ -173,6 +173,8 @@ assert_present "$PARENT/state/ios.meta" "default-off remote spawn published no p
   || fail "default-off remote spawn must not record a traceparent= line"
 ! grep -q 'export TRACEPARENT=' "$HERDR_LOG" \
   || fail "default-off remote spawn must not export a carrier into the remote pane"
+! grep -q 'export OTEL_RESOURCE_ATTRIBUTES=' "$HERDR_LOG" \
+  || fail "default-off remote spawn must not export resource attributes into the remote pane"
 ! grep -q '^traceparent=' "$REMOTE_HOME/state/parent-route/ios.meta" \
   || fail "default-off remote spawn must not record a carrier on the remote host"
 [ "$(remote_launch_snapshot)" = off ] \
@@ -209,6 +211,31 @@ TP_LINE=$(grep -n 'export TRACEPARENT=' "$HERDR_LOG" | tail -1 | cut -d: -f1)
 LAUNCH_LINE=$(grep -n 'FM_TRACE_CONTEXT=' "$HERDR_LOG" | tail -1 | cut -d: -f1)
 [ -n "$GOTMP_LINE" ] && [ -n "$TP_LINE" ] && [ -n "$LAUNCH_LINE" ] \
   || fail "remote pane log missing GOTMPDIR/TRACEPARENT/launch lines"
+ATTRS_LINE=$(grep -F 'export OTEL_RESOURCE_ATTRIBUTES=' "$HERDR_LOG" | tail -1)
+[ -n "$ATTRS_LINE" ] || fail "an enabled remote spawn must export resource attributes into the remote pane"
+case "$ATTRS_LINE" in
+  *'firstmate.task.kind=secondmate'*) : ;;
+  *) fail "the remote render must carry kind=secondmate (got '$ATTRS_LINE')" ;;
+esac
+case "$ATTRS_LINE" in
+  *'firstmate.secondmate.id=ios'*) : ;;
+  *) fail "the remote secondmate's own resource must carry its task id as firstmate.secondmate.id (got '$ATTRS_LINE')" ;;
+esac
+case "$ATTRS_LINE" in
+  *"firstmate.project=$(basename "$REMOTE_HOME")"*) : ;;
+  *) fail "the remote render must carry the project basename (got '$ATTRS_LINE')" ;;
+esac
+# shellcheck disable=SC2016  # the literal ${...} expansion IS the assertion
+attrs_prefix_form='"${OTEL_RESOURCE_ATTRIBUTES:+$OTEL_RESOURCE_ATTRIBUTES,}"'
+case "$ATTRS_LINE" in
+  *"$attrs_prefix_form"*) : ;;
+  *) fail "the remote export must preserve any pre-existing pane value as the comma prefix (got '$ATTRS_LINE')" ;;
+esac
+ATTRS_LINE_NO=$(grep -nF 'export OTEL_RESOURCE_ATTRIBUTES=' "$HERDR_LOG" | tail -1 | cut -d: -f1)
+[ "$TP_LINE" -lt "$ATTRS_LINE_NO" ] \
+  || fail "the remote attrs export must be sent immediately after TRACEPARENT (tp=$TP_LINE attrs=$ATTRS_LINE_NO)"
+[ "$ATTRS_LINE_NO" -lt "$LAUNCH_LINE" ] \
+  || fail "the remote attrs export must be sent before the launch command (attrs=$ATTRS_LINE_NO launch=$LAUNCH_LINE)"
 [ "$TP_LINE" -gt "$GOTMP_LINE" ] \
   || fail "the remote TRACEPARENT export must ride the GOTMPDIR pre-launch site (gotmp=$GOTMP_LINE tp=$TP_LINE)"
 [ "$TP_LINE" -lt "$LAUNCH_LINE" ] \

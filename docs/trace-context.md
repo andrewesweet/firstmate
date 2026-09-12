@@ -21,6 +21,7 @@ When enabled, for each spawn Firstmate resolves one W3C `traceparent` carrier fo
 
 `TRACEPARENT` as an environment variable is a Firstmate convention carrying a W3C-formatted value: W3C Trace Context standardizes the `traceparent` HTTP header, not an env var, and OpenTelemetry SDKs do not read it from the environment automatically, so a downstream observer must explicitly read this env value or the `traceparent=` meta field.
 This feature parents no SDK span by itself.
+The same enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the pane immediately after `TRACEPARENT`, rendered from the task metadata with a fixed `firstmate.*` key list so harnesses that join by resource attributes rather than by parenting still carry the task's identity on every span they emit; `bin/fm-trace-context-lib.sh`'s header owns the key list and the percent encoding.
 
 Because the injected carrier and the recorded carrier are the same string, an observer that reads the metadata reconstructs exactly the identity the child received.
 The injection sits at the unconditional pre-launch export site, so it covers ship and scout spawns across `claude`, `codex`, `opencode`, `pi`, `pi-signed`, `grok`, `kimi`, `cursor`, `gemini`, `muse`, and `rovo`, plus Secondmate spawns across that same set except the deliberately crewmate-only `gemini`, `muse`, and `rovo` adapters.
@@ -88,13 +89,14 @@ This is a deliberate, source-owned choice:
 ## Safety
 
 - **Default-off.**
-  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing and writes no `traceparent=` line, so the generated meta and the launch environment are unchanged.
+  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` line, so the generated meta and the launch environment are unchanged.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
   A locked session start makes the one config-file check, and each spawn sources one extra library and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
   Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim; ambient `TRACEPARENT` is never read, so no caller-controlled bytes enter a new carrier.
   Exposure is bounded to that fixed-width carrier - it cannot carry a `tracestate`, an `OTEL_*` credential variable, or any arbitrary environment key, and there is no configurable or arbitrary command (only the fixed local `od`/`tr` for entropy).
+  The resource-attribute export adds exactly the fixed metadata-derived key list above - task id, project and home paths, harness, model, effort, spawn token, and a secondmate id for a secondmate - percent-encoded per the W3C Baggage rules, and reads no prompt, credential, or task prose.
 - **Fail-independent.**
   Minting is a small local entropy pipeline: it reads a few bytes from `/dev/urandom` through the fixed local `od` and `tr` (resolved from PATH).
   There is no configured provider command, no network, and no watchdog.
