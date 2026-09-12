@@ -1,0 +1,28 @@
+# Spawned worker environment: tc-attrs-off-z1
+
+Boundary: real fm-spawn, simulated tmux transport, real shell and harness environment probe.
+
+## Commands delivered to the pane
+treehouse get
+export GOTMPDIR=/tmp/fm-tc-attrs-off-z1/gotmp
+export FM_TASK_ID=tc-attrs-off-z1
+env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}' "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2BWHFYT8V3VC57DMNNT9SHZ/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-trace-context-spawn.9immrQ/tc-attrs-off/home/data/tc-attrs-off-z1/launch-brief.md')"
+
+## Environment observed by the child process
+TRACEPARENT=
+OTEL_RESOURCE_ATTRIBUTES=
+
+## Persisted task metadata
+window=firstmate:fm-tc-attrs-off-z1
+endpoint_task_id=tc-attrs-off-z1
+worktree=/tmp/fm-trace-context-spawn.9immrQ/tc-attrs-off/wt
+project=/tmp/fm-trace-context-spawn.9immrQ/tc-attrs-off/project
+harness=claude
+kind=ship
+mode=no-mistakes
+yolo=off
+tasktmp=/tmp/fm-tc-attrs-off-z1
+model=default
+effort=default
+busy_gen=g1789253779.2441957.23725
+spawn_gen=s1789253779.2441325.11894
