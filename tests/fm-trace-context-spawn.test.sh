@@ -283,8 +283,9 @@ test_enabled_sends_resource_attributes_matching_meta_before_launch() {
   expect_code 0 "$status" "enabled attrs spawn should succeed"
   assert_contains "$out" "spawned $CASE_ID" "enabled attrs spawn should report success"
   meta="$HOME_DIR/state/$CASE_ID.meta"
+  [ "$(sed -n 's/^home=//p' "$meta")" = "$HOME_DIR" ] || fail "ship metadata must record the resolved home"
   spawn_gen=$(sed -n 's/^spawn_gen=//p' "$meta")
-  expected="firstmate.task.id=$CASE_ID,firstmate.project=project,firstmate.home=${PROJ_DIR%/*},firstmate.task.kind=ship,firstmate.harness=claude,firstmate.model=default,firstmate.effort=default,firstmate.spawn_gen=$spawn_gen"
+  expected="firstmate.task.id=$CASE_ID,firstmate.project=project,firstmate.home=$HOME_DIR,firstmate.task.kind=ship,firstmate.harness=claude,firstmate.model=default,firstmate.effort=default,firstmate.spawn_gen=$spawn_gen"
   got=$(injected_attrs "$LAUNCH_LOG")
   [ "$got" = "$expected" ] || fail "the pane export must render exactly the meta's join keys (expected '$expected', got '$got')"
 
@@ -313,6 +314,7 @@ test_disabled_sends_no_resource_attributes() {
   meta="$HOME_DIR/state/$CASE_ID.meta"
   ! grep -q 'OTEL_RESOURCE_ATTRIBUTES' "$LAUNCH_LOG" \
     || fail "default-off spawn must not send an attrs export or any retention term"
+  ! grep -q '^home=' "$meta" || fail "default-off ship metadata must retain its original shape"
   ! grep -q '^traceparent=' "$meta" || fail "default-off spawn must not write a traceparent= line to meta"
   grep -q '^export GOTMPDIR=' "$LAUNCH_LOG" || fail "the spawn should still run (GOTMPDIR is always injected)"
   pass "disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input"

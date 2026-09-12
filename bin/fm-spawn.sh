@@ -3764,6 +3764,8 @@ preserve_relaunch_meta() {
   if [ "$KIND" = secondmate ]; then
     echo "home=$PROJ_ABS"
     echo "projects=$SECONDMATE_PROJECTS"
+  elif [ -n "$SPAWN_TRACEPARENT" ]; then
+    echo "home=$FM_HOME"
   fi
   if [ "$RELAUNCH" -eq 1 ]; then
     preserve_relaunch_meta

@@ -78,8 +78,7 @@
 # rendered value is one comma-joined token free of shell metacharacters.
 #   firstmate.task.id        the task id (meta endpoint_task_id)
 #   firstmate.project        basename of the meta project directory
-#   firstmate.home           the meta home directory; the project directory's
-#                            parent when the meta carries no home field
+#   firstmate.home           the resolved task home directory (meta home)
 #   firstmate.task.kind      ship | scout | secondmate (meta kind)
 #   firstmate.harness        the launch harness (meta harness)
 #   firstmate.model          the launch model (meta model; may be empty)
@@ -306,10 +305,6 @@ fm_trace_attrs_render() {  # <meta-file>
   effort=$(fm_trace_attrs_meta_value "$meta" effort)
   spawn_gen=$(fm_trace_attrs_meta_value "$meta" spawn_gen)
   [ -n "$task_id" ] || return 0
-  if [ -z "$home_dir" ] && [ -n "$project" ]; then
-    home_dir=${project%/*}
-    [ "$home_dir" = "$project" ] && home_dir=''
-  fi
   project=${project##*/}
   if [ "$kind" = secondmate ]; then
     secondmate_id=$task_id
