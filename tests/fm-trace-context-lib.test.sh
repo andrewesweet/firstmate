@@ -214,6 +214,81 @@ pass "entropy failure omits telemetry safely: mint reports failure, resolve retu
 fm_trace_context_resolve "$CFG_OFF" "$NOMETA" >/dev/null || fail "resolve must return 0 when off"
 pass "disabled resolver returns success"
 
+# --- routed-task span link: the one narrow ambient read -----------------------
+# Ambient TRACEPARENT becomes a link ONLY inside a marked secondmate home and
+# ONLY when it strictly validates; a primary home never reads it at all, and
+# the carrier resolver keeps ignoring the environment entirely, so the link
+# can never become the new task's trace carrier. Hermetic against any real
+# ambient TRACEPARENT, like the Secondmate boundary section above.
+link_saved_tp=${TRACEPARENT-__unset__}
+unset TRACEPARENT
+LINK_HOME="$WORK/link-home"
+PLAIN_HOME="$WORK/plain-home"
+mkdir -p "$LINK_HOME" "$PLAIN_HOME"
+printf 'sm-link\n' > "$LINK_HOME/.fm-secondmate-home"
+
+out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$LINK_HOME")
+[ "$out" = "$VALID" ] || fail "a marked secondmate home must resolve a valid ambient link (got '$out')"
+out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$PLAIN_HOME")
+[ -z "$out" ] || fail "a primary home must never read ambient TRACEPARENT (got '$out')"
+out=$(fm_trace_context_link_resolve "$LINK_HOME")
+[ -z "$out" ] || fail "an absent ambient must yield no link (got '$out')"
+out=$(fm_trace_context_link_resolve '')
+[ -z "$out" ] || fail "an empty home argument must yield no link (got '$out')"
+link_bad=0
+for bad in \
+  '00-00000000000000000000000000000000-00f067aa0ba902b7-01' \
+  '00-4bf92f3577b34da6a3ce929d0e0e4736-0000000000000000-01' \
+  'ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' \
+  '00-4bf92f3577b34da6a3ce929d0e0e473-00f067aa0ba902b7-01' \
+  '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7' \
+  'junk' \
+  '' ; do
+  out=$(TRACEPARENT="$bad" fm_trace_context_link_resolve "$LINK_HOME") || link_bad=1
+  { [ -z "$out" ] && [ "$link_bad" -eq 0 ]; } || fail "malformed ambient must never become a link: '$bad' (got '$out' rc=$link_bad)"
+  link_bad=0
+done
+dollar='$'
+out=$(TRACEPARENT="${dollar}(touch link-pwned-$$)" fm_trace_context_link_resolve "$LINK_HOME")
+{ [ -z "$out" ] && [ ! -e "link-pwned-$$" ]; } \
+  || fail "a command-substitution-shaped ambient must be rejected as inert data, never executed"
+SYMLINK_HOME="$WORK/sym-home"
+mkdir -p "$SYMLINK_HOME"
+ln -s "$VALID" "$SYMLINK_HOME/.fm-secondmate-home"
+out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$SYMLINK_HOME")
+[ -z "$out" ] || fail "a symlinked marker must not open the ambient read (got '$out')"
+# A marker the rest of firstmate rejects (fm_root_is_secondmate_home) is not a
+# secondmate home here either: empty, whitespace-only, or bad-character ids.
+BADMARK_HOME="$WORK/badmark-home"
+mkdir -p "$BADMARK_HOME"
+for badmark in '' '   ' 'sm;rm -rf /' 'sm/link'; do
+  printf '%s\n' "$badmark" > "$BADMARK_HOME/.fm-secondmate-home"
+  out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$BADMARK_HOME")
+  [ -z "$out" ] || fail "a malformed marker must not open the ambient read: '$badmark' (got '$out')"
+done
+pass "fm_trace_context_link_resolve: valid ambient links only inside a marked secondmate home; primary homes, absent or malformed ambient, symlinked or malformed markers never link"
+
+# The link read is orthogonal to the carrier: in the same marked home, under
+# the same ambient value, the carrier resolver still mints a fresh root.
+routed_link_a=$(TRACEPARENT="$VALID" FM_TRACE_CONTEXT=on fm_trace_context_resolve "$CFG_ON" "$WORK/link-a.meta")
+fm_trace_context_valid "$routed_link_a" || fail "resolve must still mint a valid carrier in a marked home (got '$routed_link_a')"
+[ "${routed_link_a:3:32}" != "${VALID:3:32}" ] \
+  || fail "the ambient value resolved as a link must never be adopted as the carrier (got '$routed_link_a')"
+pass "the ambient TRACEPARENT read for the link never becomes the task's trace carrier"
+
+# Recorded-link helpers mirror the carrier's recorded-wins pattern.
+LINK_META="$WORK/link.meta"
+printf 'kind=ship\ntraceparent=%s\ntrace_link=%s\n' "$ROOT_TP" "$VALID" > "$LINK_META"
+out=$(fm_trace_context_recorded_link "$LINK_META")
+[ "$out" = "$VALID" ] || fail "recorded_link must echo the recorded trace_link verbatim (got '$out')"
+out=$(fm_trace_context_recorded_link "$WORK/really-absent.meta")
+[ -z "$out" ] || fail "recorded_link on an absent meta must echo nothing (got '$out')"
+printf 'kind=ship\n' > "$WORK/nolink.meta"
+out=$(fm_trace_context_recorded_link "$WORK/nolink.meta")
+[ -z "$out" ] || fail "recorded_link without the field must echo nothing (got '$out')"
+pass "fm_trace_context_recorded_link echoes the recorded link verbatim and nothing when absent"
+[ "$link_saved_tp" = "__unset__" ] || export TRACEPARENT="$link_saved_tp"
+
 # --- secondmate inheritance wires the nested chain ---------------------------
 
 # shellcheck source=/dev/null

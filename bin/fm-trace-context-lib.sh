@@ -58,6 +58,22 @@
 #     valid recorded start. Pairs with fm_trace_context_resolve so
 #     `trace_started=` lands in the meta beside the carrier on first mint
 #     only; the span emitter reads it for the task root's start time.
+#   fm_trace_context_recorded_link <meta-file>
+#     Echoes any `trace_link=` recorded in the meta file, else nothing.
+#     No validation: callers decide with fm_trace_context_valid whether a
+#     recorded link is reusable or falls back to fm_trace_context_link_resolve.
+#   fm_trace_context_link_resolve <home>
+#     Echoes the ambient TRACEPARENT to record as a routed task's span link,
+#     or nothing when the home is not a marked secondmate home (the canonical
+#     fm_root_is_secondmate_home predicate, bin/fm-primary-scope-lib.sh), the
+#     environment carries no TRACEPARENT, or the value fails strict W3C
+#     validation. Always returns
+#     0: a link is omitted safely and never aborts the spawn. This is the
+#     ONLY function in this library that reads ambient TRACEPARENT, and it
+#     never feeds the carrier (fm_trace_context_resolve reads no
+#     environment); the recorded link says "this task was routed by that
+#     secondmate agent" and surfaces as an OTel span link on the task's
+#     teardown root, never as the task's own trace identity.
 #
 # Enablement (see docs/configuration.md for the schema):
 #   config/trace-context   presence flag under the home's config dir enables it.
@@ -120,7 +136,12 @@
 # yields is either a firstmate-MINTED random root that reads no prompt, path,
 # task prose, credential, or arbitrary environment key, or the same task's
 # previously recorded carrier reused verbatim from its own meta. Ambient
-# TRACEPARENT is never read, so no caller-controlled bytes enter a new carrier.
+# TRACEPARENT never enters a new carrier. It is read exactly once, by
+# fm_trace_context_link_resolve, ONLY inside a marked secondmate home, ONLY
+# after strict W3C validation, and ONLY into the `trace_link=` meta field that
+# documents which secondmate agent routed the task; a primary home never reads
+# ambient context, so an operator shell with a leftover TRACEPARENT cannot
+# attach unrelated tasks to anything.
 #
 # Root / recovery semantics (the trace boundary is each task):
 #   recovery - a valid traceparent already recorded in the meta file is reused
@@ -131,6 +152,20 @@
 #              spawning process's ambient TRACEPARENT is never adopted, so a
 #              persistent supervisor's environment cannot chain its unrelated
 #              routed tasks into one trace.
+#   link     - a task spawned inside a marked secondmate home additionally
+#              records the strictly validated ambient TRACEPARENT - the
+#              routing agent's own launch-time carrier - as `trace_link=`
+#              beside its carrier, and keeps the recorded value verbatim on
+#              relaunch. The link documents the routing relationship
+#              ("routed by that agent"); it never parents the task's spans,
+#              never changes the carrier, and never appears on a task spawned
+#              from a primary home. The task root emitted at teardown carries
+#              it as an OTel span link (bin/fm-trace-span-lib.sh).
+
+# fm_root_is_secondmate_home is the one definition of "marked secondmate home"
+# firstmate has; the link boundary below reuses it rather than restating it.
+# shellcheck source=bin/fm-primary-scope-lib.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-primary-scope-lib.sh"
 
 # Strict W3C traceparent validator: version 00, 32-hex trace id, 16-hex span id,
 # 2-hex flags, with neither id all-zero. The regex lives in a variable because
@@ -244,6 +279,32 @@ fm_trace_context_recorded_started() {  # <meta-file>
   [ -f "$meta" ] || return 0
   line=$(grep '^trace_started=' "$meta" 2>/dev/null | head -n1) || return 0
   printf '%s' "${line#trace_started=}"
+}
+
+# Echo any trace_link= recorded in <meta-file>, else nothing. Unvalidated:
+# the caller owns the fm_trace_context_valid decision between reusing a
+# recorded link and resolving a fresh one from the ambient environment.
+fm_trace_context_recorded_link() {  # <meta-file>
+  local meta=$1 line
+  [ -f "$meta" ] || return 0
+  line=$(grep '^trace_link=' "$meta" 2>/dev/null | head -n1) || return 0
+  printf '%s' "${line#trace_link=}"
+}
+
+# Public entry point. Echo the ambient TRACEPARENT to record as a routed
+# task's span link, or nothing. Always returns 0 so a link decision is
+# omitted safely and never aborts the spawn. The marked-secondmate-home gate
+# (fm_root_is_secondmate_home, the same predicate every other firstmate hook
+# uses) comes FIRST so a primary home never reads ambient context at all, then the
+# strict W3C validator decides over the raw environment value; neither the
+# marker id nor any other file content influences the echoed bytes.
+fm_trace_context_link_resolve() {  # <home>
+  local home=$1
+  [ -n "$home" ] || return 0
+  fm_root_is_secondmate_home "$home" || return 0
+  [ -n "${TRACEPARENT:-}" ] || return 0
+  fm_trace_context_valid "$TRACEPARENT" || return 0
+  printf '%s' "$TRACEPARENT"
 }
 
 # Mint a fresh sampled root traceparent. Echo nothing and return 1 on entropy

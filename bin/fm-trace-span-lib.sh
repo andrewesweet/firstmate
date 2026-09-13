@@ -13,7 +13,7 @@
 #
 # Public entry point:
 #   fm_trace_span_emit <meta-file> <name> <start-ms|-> <end-ms|->
-#       [--root] [--status ok|error|unset]
+#       [--root] [--status ok|error|unset] [--link <traceparent>]
 #       [key=value ...]
 #
 #   Emits one span named <name> for the task whose state/<id>.meta is
@@ -39,6 +39,16 @@
 #   --status ok maps to OTLP code 1 (OK), error to 2 (ERROR); anything else,
 #   including the default, omits the status field (UNSET).
 #
+#   --link <traceparent> records one OTel span link referencing that W3C
+#   traceparent's trace and span ids, only on a --root span and only when the
+#   value passes strict W3C validation; a child span, an empty value, or an
+#   invalid value silently omits the link, so only validated bytes can enter
+#   the links array on the task root. A link never parents the span,
+#   never changes the emitted trace id, and never adopts ambient context: the
+#   only producer of link values is the task meta's `trace_link=` field,
+#   resolved by fm_trace_context_link_resolve inside a marked secondmate home
+#   (bin/fm-trace-context-lib.sh's header owns that boundary).
+#
 #   Each key=value argument becomes one string-valued span attribute.
 #
 # Wire shape (this header is the owner; the receivers are protocol-standard):
@@ -51,7 +61,11 @@
 #   Absent metadata values are omitted; one scope named firstmate;
 #   span kind INTERNAL (1);
 #   ids as lowercase hex strings; timestamps as decimal nanosecond strings;
-#   all attribute values strings. The span catalogue as implemented:
+#   all attribute values strings. A --link value on a --root span that passes
+#   strict W3C validation adds exactly one `links` entry {"traceId","spanId"}
+#   for that traceparent's ids; a child span or an invalid or absent link
+#   omits the `links` field.
+#   The span catalogue as implemented:
 #     firstmate.spawn - bin/fm-spawn.sh, after the launch line is sent and the
 #       backlog transition committed, so a refused spawn emits nothing;
 #       attributes firstmate.relaunch, firstmate.spawn_gen,
@@ -65,7 +79,9 @@
 #       with outcome retired for a secondmate or unknown otherwise;
 #       attributes firstmate.task.outcome (done, failed, retired, unknown),
 #       firstmate.task.mode, firstmate.task.yolo, firstmate.pr.url,
-#       firstmate.teardown.forced, firstmate.spawn_gen.
+#       firstmate.teardown.forced, firstmate.spawn_gen; a routed task's
+#       recorded `trace_link=` rides the root as its span link (a primary
+#       home records none).
 #     firstmate.pr.ready - bin/fm-pr-check.sh, immediately after the validated
 #       canonical PR identity is committed to the task meta and re-verified,
 #       before the poll publish that only arms watching; a rejected request
@@ -126,11 +142,21 @@
 #       so signal is the only kind that reaches emission; the emitter's kind
 #       allowlist (signal, stale, check) and the key mapping are separate
 #       bounded checks, and heartbeat is excluded by both.
+#     firstmate.handoff - bin/fm-backlog-handoff.sh, one span per backlog key
+#       after that key's move really lands: a local route right after the
+#       atomic tasks-axi mv into the secondmate backlog succeeds, a remote
+#       route for each key the durable remote receipt names as moved in that
+#       delivery (so a merely staged, undelivered outbox emits nothing, and
+#       a resumed re-delivery of keys the remote already holds emits nothing
+#       again);
+#       child of the secondmate agent's own carrier read from the parent
+#       home's state/<id>.meta, emitted by the parent on both routes;
+#       attributes firstmate.backlog.item (the moved key) and firstmate.route
+#       (local, remote); the secondmate identity is the resource-scope
+#       firstmate.secondmate.id that agent's meta already renders.
 #   Taskless rows (heartbeats, per-poll checks, window-keyed stale rows)
 #   emit nothing, and every entry above is silent for a task without a
 #   recorded carrier.
-#   Later catalogue entries (link emission sites, handoff) are separate
-#   increments and must extend this list only when they land.
 #
 # Endpoint precedence (the OpenTelemetry SDK's own): OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
 # else ${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces, else
@@ -149,10 +175,13 @@
 # name and attributes the caller passes, and resource values JSON-escaped
 # by fm_trace_span_resource_json from the task's own meta; no prompt, credential,
 # or arbitrary environment value is read into it. Metadata-derived paths,
-# names, and the PR URL are sent as recorded, without redaction. The network
+# names, and the PR URL are sent as recorded, without redaction. A --link
+# value reaches the body only after strict W3C validation, as two fixed-shape
+# hex ids. The network
 # operation is curl, resolved from PATH, posting to the endpoint above; there is no
 # configured provider command, no tracestate, and no parentage from ambient
-# context. Because every failure is silent and bounded at one second, a
+# context (a span link references recorded, validated ids without changing
+# parentage). Because every failure is silent and bounded at one second, a
 # missing or hostile endpoint can slow one lifecycle event by at most its
 # --max-time and can never alter the caller's outcome.
 
@@ -224,16 +253,22 @@ fm_trace_span_resource_json() {  # <meta-file>
 }
 
 fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
-  #          [--root] [--status ok|error|unset] [key=value ...]
+  #          [--root] [--status ok|error|unset] [--link <traceparent>]
+  #          [key=value ...]
   local meta=$1 name=$2 start_ms=$3 end_ms=$4
   shift 4
-  local root=0 status='unset' pair
+  local root=0 status='unset' link_tp='' pair
   while [ "$#" -gt 0 ]; do
     case $1 in
       --root) root=1 ;;
       --status)
         [ "$#" -ge 2 ] || break
         status=$2
+        shift
+        ;;
+      --link)
+        [ "$#" -ge 2 ] || break
+        link_tp=$2
         shift
         ;;
       --*) : ;;                 # unknown flags are ignored, never fatal
@@ -282,13 +317,20 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
   esac
   [ -z "$tail_json" ] || tail_json=",$tail_json"
 
+  # One strictly validated span link on the task root, or none: only
+  # fixed-shape hex ids from a conformant traceparent can reach the links array.
+  local links_json=''
+  if [ "$root" = 1 ] && fm_trace_context_valid "$link_tp"; then
+    links_json=',"links":[{"traceId":"'"${link_tp:3:32}"'","spanId":"'"${link_tp:36:16}"'"}]'
+  fi
+
   local span_json
   span_json='{"traceId":"'"${carrier:3:32}"'","spanId":"'"$span_id"'",'
   [ -z "$parent_id" ] || span_json+='"parentSpanId":"'"$parent_id"'",'
   span_json+='"name":"'$(fm_trace_span_json_escape "$name")'","kind":1,'
   span_json+='"startTimeUnixNano":"'"$((start_ms * 1000000))"'",'
   span_json+='"endTimeUnixNano":"'"$((end_ms * 1000000))"'",'
-  span_json+='"attributes":['"${span_attrs_json#,}"']'"$tail_json"
+  span_json+='"attributes":['"${span_attrs_json#,}"']'"$tail_json$links_json"
   span_json+='}'
 
   command -v curl >/dev/null 2>&1 || return 0

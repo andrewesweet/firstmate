@@ -63,6 +63,9 @@ SH
   # Teardown sources the span emitter even when tracing is disabled.
   ln -s "$ROOT/bin/fm-trace-span-lib.sh" "$fake/bin/fm-trace-span-lib.sh"
   ln -s "$ROOT/bin/fm-trace-context-lib.sh" "$fake/bin/fm-trace-context-lib.sh"
+  # fm-primary-scope-lib.sh: the trace-context library sources it for the
+  # canonical secondmate-home predicate that gates trace links.
+  ln -s "$ROOT/bin/fm-primary-scope-lib.sh" "$fake/bin/fm-primary-scope-lib.sh"
   ln -s "$ROOT/bin/fm-timing-lib.sh" "$fake/bin/fm-timing-lib.sh"
   # fm-lock-lib.sh: teardown sources it for the shared lock-staleness proof.
   ln -s "$ROOT/bin/fm-lock-lib.sh" "$fake/bin/fm-lock-lib.sh"
@@ -170,6 +173,9 @@ SH
   # Teardown sources the span emitter even when tracing is disabled.
   ln -s "$ROOT/bin/fm-trace-span-lib.sh" "$fake/bin/fm-trace-span-lib.sh"
   ln -s "$ROOT/bin/fm-trace-context-lib.sh" "$fake/bin/fm-trace-context-lib.sh"
+  # fm-primary-scope-lib.sh: the trace-context library sources it for the
+  # canonical secondmate-home predicate that gates trace links.
+  ln -s "$ROOT/bin/fm-primary-scope-lib.sh" "$fake/bin/fm-primary-scope-lib.sh"
   ln -s "$ROOT/bin/fm-timing-lib.sh" "$fake/bin/fm-timing-lib.sh"
   ln -s "$ROOT/bin/fm-lock-lib.sh" "$fake/bin/fm-lock-lib.sh"
   # fm-lease-lib.sh: teardown sources it for the supervision lease guard.

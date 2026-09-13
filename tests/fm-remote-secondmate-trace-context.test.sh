@@ -280,6 +280,81 @@ fm_trace_context_valid "$SECOND_TP" \
   || fail "the second remote route's pane must receive its own recorded carrier"
 pass "boundary: each remote-routed second mate roots its own trace and never adopts the spawning environment's carrier"
 
+# --- the routed-task link works identically over the remote route -------------
+# The remote second mate's home carries the .fm-secondmate-home marker, and its
+# pane holds the parent-delivered carrier as its ambient TRACEPARENT. A routed
+# worker that agent spawns (the remote host's own bin/fm-spawn.sh) must record
+# its own fresh carrier AND trace_link= pointing at the routing agent's
+# carrier, while the agent's own parent-side meta records no link.
+RWORKER=routed-w-z1
+RPROJ="$TMP_ROOT/r-proj"; RWT="$TMP_ROOT/r-wt"
+fm_git_worktree "$RPROJ" "$RWT" wt-routed-remote
+mkdir -p "$REMOTE_HOME/data/$RWORKER" "$REMOTE_HOME/state" "$REMOTE_HOME/user-home"
+cat > "$REMOTE_HOME/data/$RWORKER/brief.md" <<EOF
+# Task
+## Captain's intent
+Exercise the remote routed-task link for $RWORKER.
+
+## Firstmate spec
+Verify the spawned process records its own carrier and the routing link.
+EOF
+printf 'claude\n' > "$REMOTE_HOME/config/crew-harness"
+printf 'tmux\n' > "$REMOTE_HOME/config/backend"
+FM_HOME="$REMOTE_HOME" "$REMOTE_ROOT/bin/fm-tasks-axi.sh" add "$RWORKER" 'remote routed link fixture' --kind ship >/dev/null \
+  || fail "the remote routed worker's backlog row could not be seeded"
+printf '%s\n' "$$" > "$REMOTE_HOME/state/.lock"
+touch "$REMOTE_HOME/state/.last-watcher-beat"
+(
+  unset FM_TRACE_CONTEXT
+  fm_trace_context_session_start "$REMOTE_HOME/config" "$REMOTE_HOME/state/.trace-context-effective"
+)
+WFAKE=$(fm_fakebin "$TMP_ROOT/r-worker-fake")
+fm_fake_exit0 "$WFAKE" treehouse
+cat > "$WFAKE/tmux" <<'SH'
+#!/usr/bin/env bash
+set -u
+case "$*" in
+  *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
+esac
+case "${1:-}" in
+  display-message)
+    for a in "$@"; do
+      case "$a" in *pane_current_command*) printf 'bash\n'; exit 0 ;; esac
+    done
+    printf 'firstmate\n'; exit 0 ;;
+  has-session|new-session|new-window|kill-window|set-window-option) exit 0 ;;
+  send-keys) exit 0 ;;
+esac
+exit 0
+SH
+chmod +x "$WFAKE/tmux"
+cat > "$WFAKE/curl" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+chmod +x "$WFAKE/curl"
+rout=$(env FM_HOME="$REMOTE_HOME" FM_ROOT_OVERRIDE="$REMOTE_ROOT" \
+  FM_STATE_OVERRIDE="$REMOTE_HOME/state" FM_DATA_OVERRIDE="$REMOTE_HOME/data" \
+  FM_PROJECTS_OVERRIDE="$REMOTE_HOME/projects" FM_CONFIG_OVERRIDE="$REMOTE_HOME/config" \
+  FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$RWT" TMUX="fake,1,0" \
+  HOME="$REMOTE_HOME/user-home" CLAUDE_CONFIG_DIR='' \
+  TRACEPARENT="$INJECTED_TP" PATH="$WFAKE:$PATH" \
+  "$REMOTE_ROOT/bin/fm-spawn.sh" "$RWORKER" "$RPROJ" --mode no-mistakes --yolo off 2>&1) \
+  || fail "the remote routed worker spawn failed: $rout"
+WORKER_TP=$(meta_traceparent "$REMOTE_HOME/state/$RWORKER.meta")
+WORKER_LINK=$(sed -n 's/^trace_link=//p' "$REMOTE_HOME/state/$RWORKER.meta")
+fm_trace_context_valid "$WORKER_TP" \
+  || fail "the remote routed worker must record a valid carrier of its own (got '$WORKER_TP')"
+[ "${WORKER_TP:3:32}" != "${PARENT_TP:3:32}" ] \
+  || fail "the remote routed worker must root its own trace, not the routing agent's (got '$WORKER_TP')"
+[ "$WORKER_LINK" = "$PARENT_TP" ] \
+  || fail "the remote routed worker must link to the routing agent's carrier (link='$WORKER_LINK' carrier='$PARENT_TP')"
+[ "$WORKER_LINK" = "$INJECTED_TP" ] \
+  || fail "the link must be the carrier the remote pane actually holds (link='$WORKER_LINK' pane='$INJECTED_TP')"
+! grep -q '^trace_link=' "$PARENT/state/ios.meta" \
+  || fail "the second mate agent's own parent-side meta must record no trace_link"
+pass "remote route: a routed worker inside the remote second mate home records its own fresh carrier plus a link to the routing agent's carrier; the agent's own meta records none"
+
 # --- the enablement flag is one allowlist, shared by both remote ends --------
 # config/trace-context reaches the remote home only because the sender and the
 # receiver derive the same declared inherited-material set. Prove the receiver

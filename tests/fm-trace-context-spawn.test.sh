@@ -221,6 +221,7 @@ EOF
 }
 
 meta_traceparent() { sed -n 's/^traceparent=//p' "$1"; }
+meta_trace_link() { sed -n 's/^trace_link=//p' "$1"; }
 meta_trace_started() { sed -n 's/^trace_started=//p' "$1" | head -1; }
 meta_spawn_gen() { sed -n 's/^spawn_gen=//p' "$1" | head -1; }
 injected_traceparent() { sed -n 's/^export TRACEPARENT=//p' "$1"; }
@@ -409,6 +410,8 @@ run_two_level() {
     "$SPAWN" "$worker_id" "$wproj" --mode no-mistakes --yolo off >/dev/null 2>&1 || true
 
   TL_WORKER_TP=$(meta_traceparent "$sm/state/$worker_id.meta")
+  TL_WORKER_LINK=$(meta_trace_link "$sm/state/$worker_id.meta")
+  TL_SM_LINK=$(meta_trace_link "$prim/state/$sm_id.meta")
   TL_SM_FILE=absent
   [ -f "$sm/config/trace-context" ] && TL_SM_FILE=present
 }
@@ -740,7 +743,11 @@ test_secondmate_env_on_file_absent_keeps_nested_worker_enabled() {
     || fail "env-on/file-absent must keep the nested worker enabled (got '$TL_WORKER_TP')"
   [ "${TL_CARRIER:3:32}" != "${TL_WORKER_TP:3:32}" ] \
     || fail "the nested worker must root its own trace, not adopt the Secondmate's trace id (secondmate='${TL_CARRIER:3:32}' worker='${TL_WORKER_TP:3:32}')"
-  pass "two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace"
+  [ -z "$TL_SM_LINK" ] \
+    || fail "the primary home must never record a trace_link for the Secondmate's own meta (got '$TL_SM_LINK')"
+  [ "$TL_WORKER_LINK" = "$TL_CARRIER" ] \
+    || fail "the nested worker's meta must link to the Secondmate's carrier (link='$TL_WORKER_LINK' carrier='$TL_CARRIER')"
+  pass "two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace that links to the routing agent"
 }
 
 # End-to-end two-level disable path: the primary is disabled by the environment
@@ -756,6 +763,8 @@ test_secondmate_env_off_file_present_keeps_nested_worker_disabled() {
     || fail "the disable case must exercise a copied config/trace-context in the secondmate home (got '$TL_SM_FILE')"
   [ -z "$TL_WORKER_TP" ] \
     || fail "env-off must keep the nested worker disabled even with the file present (got '$TL_WORKER_TP')"
+  [ -z "$TL_WORKER_LINK" ] \
+    || fail "env-off must record no nested worker link either (got '$TL_WORKER_LINK')"
   pass "two-level: env-off/file-present keeps the nested worker disabled even though the config file was copied into the secondmate home"
 }
 
@@ -774,6 +783,7 @@ test_two_routed_tasks_through_one_secondmate_root_distinct_traces() {
   mkdir -p "$sm/data" "$sm/projects" "$sm/state" "$sm/config"
   printf 'claude\n' > "$sm/config/crew-harness"
   : > "$sm/config/trace-context"
+  printf '%s\n' 'sm-routed' > "$sm/.fm-secondmate-home"
   printf '%s\n' "$$" > "$sm/state/.lock"
   touch "$sm/state/.last-watcher-beat"
   start_trace_session "$sm"
@@ -818,6 +828,12 @@ test_two_routed_tasks_through_one_secondmate_root_distinct_traces() {
     || fail "routed task B must not adopt the persistent Secondmate's trace id (got '$tp_b')"
   [ "${tp_a:3:32}" != "${tp_b:3:32}" ] \
     || fail "two unrelated routed tasks must root distinct trace ids (A='$tp_a' B='$tp_b')"
+  # Each routed task records the Secondmate's carrier as its span link, beside
+  # its own fresh carrier - never as the carrier itself.
+  link_a=$(meta_trace_link "$sm/state/$id_a.meta")
+  link_b=$(meta_trace_link "$sm/state/$id_b.meta")
+  [ "$link_a" = "$sm_tp" ] || fail "routed task A must record the Secondmate's carrier as its link (got '$link_a')"
+  [ "$link_b" = "$sm_tp" ] || fail "routed task B must record the Secondmate's carrier as its link (got '$link_b')"
 
   # Same environment, same task: a relaunch must reuse task A's recorded
   # carrier verbatim, so the per-task boundary never costs recovery identity.
@@ -830,7 +846,42 @@ test_two_routed_tasks_through_one_secondmate_root_distinct_traces() {
     || fail "task A's relaunch must keep its original carrier (first='$tp_a' relaunch='$relaunch_tp')"
   [ "$relaunch_in" = "$tp_a" ] \
     || fail "task A's relaunch must inject its original carrier (first='$tp_a' injected='$relaunch_in')"
-  pass "two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, and keep per-task identity across relaunch"
+  [ "$(meta_trace_link "$sm/state/$id_a.meta")" = "$sm_tp" ] \
+    || fail "task A's relaunch must keep its recorded link to the routing agent"
+
+  # The marked-home gate (fm_root_is_secondmate_home) covers recorded-link
+  # reuse too: once the marker is gone the home is primary, so task B's
+  # relaunch keeps its carrier but records no link, whatever its meta held.
+  rm -f "$sm/.fm-secondmate-home"
+  out=$(TRACEPARENT="$sm_tp" run_spawn "$sm" "$wt_b" "$fakebin" "$log_b" "$id_b" "$proj_b")
+  status=$?
+  expect_code 0 "$status" "routed task B relaunch without the marker should succeed"
+  [ "$(meta_traceparent "$sm/state/$id_b.meta")" = "$tp_b" ] \
+    || fail "task B's unmarked relaunch must keep its original carrier (first='$tp_b' relaunch='$(meta_traceparent "$sm/state/$id_b.meta")')"
+  [ -z "$(meta_trace_link "$sm/state/$id_b.meta")" ] \
+    || fail "a home without the marker must not reuse a recorded link on relaunch (got '$(meta_trace_link "$sm/state/$id_b.meta")')"
+  pass "two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, link to its carrier, keep per-task identity across relaunch, and drop the link once the marker is gone"
+}
+
+# A primary home has no .fm-secondmate-home marker, so an operator shell or a
+# supervisor environment holding a leftover valid TRACEPARENT must never turn
+# into a recorded link: the ship task keeps exactly its own fresh carrier.
+test_primary_home_never_records_trace_link() {
+  local rec out status meta ambient
+  rec=$(make_spawn_case tc-link-primary)
+  read_case_record "$rec"
+  : > "$HOME_DIR/config/trace-context"
+  start_trace_session "$HOME_DIR"
+  ambient='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+  out=$(TRACEPARENT="$ambient" run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "a primary-home spawn under an ambient TRACEPARENT should succeed"
+  meta="$HOME_DIR/state/$CASE_ID.meta"
+  fm_trace_context_valid "$(meta_traceparent "$meta")" \
+    || fail "the primary-home spawn must still record its own fresh carrier"
+  [ -z "$(meta_trace_link "$meta")" ] \
+    || fail "a primary home must never record trace_link=, even under a valid ambient carrier"
+  pass "primary home: an ambient TRACEPARENT never becomes a recorded link (no marker, no link)"
 }
 
 # Single-frozen-decision guarantee: for a secondmate spawn the recorded/injected
@@ -868,6 +919,7 @@ test_session_start_freezes_env_override_and_ignores_later_edits
 test_secondmate_env_on_file_absent_keeps_nested_worker_enabled
 test_secondmate_env_off_file_present_keeps_nested_worker_disabled
 test_two_routed_tasks_through_one_secondmate_root_distinct_traces
+test_primary_home_never_records_trace_link
 test_secondmate_carrier_and_snapshot_share_one_decision
 
 echo "# all fm-trace-context-spawn tests passed"

@@ -679,6 +679,127 @@ assert_grep 'route-race' "$PARENT/data/backlog.md" "route retirement stranded qu
 assert_absent "$PARENT/data/handoff/ios.outbox.md" "route retirement left an orphaned handoff outbox"
 pass "route classification serializes with retirement before staging"
 
+# --- firstmate.handoff spans over the remote route -----------------------------
+# The parent home owns the remote agent's carrier, so the parent emits one
+# firstmate.handoff span per moved key after the durable remote receipt - and
+# nothing while the outbox is merely staged or its transfer fails.
+RSPAN_CARRIER='00-77777777777777777777777777777777-6666666666666666-01'
+# The route-retirement regressions above removed the ios route; this section
+# needs it live again for the traced delivery.
+cat > "$PARENT/data/secondmates.md" <<RREG
+- ios - iOS delivery (host: remote-mac; root: $REMOTE_ROOT; home: $REMOTE; scope: iOS work; projects: alpha; added 2026-08-02)
+RREG
+printf '%s\n' "$$" > "$PARENT/state/.lock"
+printf '%s on\n' "$$" > "$PARENT/state/.trace-context-effective"
+printf 'traceparent=%s\n' "$RSPAN_CARRIER" >> "$PARENT/state/ios.meta"
+RSPANBIN="$TMP_ROOT/rspan-curl-bin"
+mkdir -p "$RSPANBIN"
+cat > "$RSPANBIN/curl" <<RSPAN
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "\$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } >> '$TMP_ROOT/rspan-curl.log'
+exit 0
+RSPAN
+chmod +x "$RSPANBIN/curl"
+# The receiver wake rides fm-send.sh, which posts its own firstmate.steer span,
+# so the handoff assertions select the firstmate.handoff bodies by name.
+rspan_bodies() {
+  [ -f "$TMP_ROOT/rspan-curl.log" ] || return 0
+  awk '
+    /^ARGS:/ { if (c) print buf; buf = ""; c = 1; next }
+    /^--BODY-END--$/ { next }
+    c { buf = buf $0 }
+    END { if (c) print buf }
+  ' "$TMP_ROOT/rspan-curl.log" | jq -c 'select(.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.handoff")'
+}
+rspan_body() { rspan_bodies | sed -n "${1}p"; }
+rspan_count() { rspan_bodies | grep -c . || true; }
+
+write_backlog '- [ ] rspan-a - first traced remote item (repo: alpha)'
+: > "$TMP_ROOT/rspan-curl.log"
+: > "$SSH_COUNT"
+set +e
+FM_FAKE_SSH_MODE=after-put PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-a \
+  > "$TMP_ROOT/rspan-staged.out" 2>&1
+rc=$?
+set -e
+[ "$rc" -ne 0 ] || fail "the staged remote handoff claimed success"
+[ "$(rspan_count)" = 0 ] \
+  || fail "a staged-but-undelivered remote handoff must emit no span (got '$(rspan_count)')"
+assert_present "$PARENT/data/handoff/ios.outbox.md" \
+  "the staged traced handoff lost its outbox: $(cat "$TMP_ROOT/rspan-staged.out")"
+assert_grep 'rspan-a' "$PARENT/data/handoff/ios.outbox.md" "the staged traced handoff lost the staged item"
+assert_no_grep 'rspan-a' "$PARENT/data/backlog.md" "the staged traced handoff left the item dispatchable"
+
+: > "$SSH_COUNT"
+# The retried delivery carries the staged item plus a fresh one, so the
+# delivered batch holds two keys and must post exactly one span per key.
+write_backlog '- [ ] rspan-b - second traced remote item (repo: alpha)'
+out=$(PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-a rspan-b) \
+  || fail "the traced remote handoff failed: $out"
+[ "$(rspan_count)" = 2 ] \
+  || fail "a delivered two-item remote handoff must post exactly two spans (got '$(rspan_count)')"
+rspan_items=
+for n in 1 2; do
+  rspan_body_json=$(rspan_body "$n")
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .name == "firstmate.handoff" and .traceId == "77777777777777777777777777777777" and .parentSpanId == "6666666666666666"' >/dev/null <<< "$rspan_body_json" \
+    || fail "remote handoff span $n must be a child of the parent-recorded agent carrier"
+  val=$(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.route")][0].value.stringValue' <<< "$rspan_body_json")
+  [ "$val" = remote ] || fail "remote handoff span $n must carry firstmate.route=remote (got '$val')"
+  val=$(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.secondmate.id")] | length' <<< "$rspan_body_json")
+  [ "$val" = 0 ] || fail "remote handoff span $n must not repeat firstmate.secondmate.id at span scope"
+  val=$(jq -r '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.secondmate.id")][0].value.stringValue' <<< "$rspan_body_json")
+  [ "$val" = ios ] || fail "remote handoff span $n resource must identify the secondmate agent (got '$val')"
+  rspan_items="$rspan_items $(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.backlog.item")][0].value.stringValue' <<< "$rspan_body_json")"
+done
+[ "$rspan_items" = ' rspan-a rspan-b' ] \
+  || fail "the two remote handoff spans must carry one moved key each, in outbox order (got '$rspan_items')"
+assert_absent "$PARENT/data/handoff/ios.outbox.md" "the traced remote handoff left its outbox behind"
+assert_grep 'rspan-a' "$REMOTE/data/backlog.md" "the traced remote handoff lost the durably received item"
+assert_grep 'rspan-b' "$REMOTE/data/backlog.md" "the traced remote handoff lost the second durably received item"
+pass "remote handoff: one span per delivered key posts after the durable receipt with route=remote, and never for a staged outbox"
+
+# A receipt whose ssh return is lost after the remote applied the batch: the
+# receipt output already names the moved keys, so their spans post once; the
+# --resume-pending re-delivery finds every key already present and posts none.
+write_backlog $'- [ ] rspan-c - lost-return item (repo: alpha)\n- [ ] rspan-d - second lost-return item (repo: alpha)'
+: > "$TMP_ROOT/rspan-curl.log"
+: > "$SSH_COUNT"
+set +e
+FM_FAKE_SSH_MODE=after-receive PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-c rspan-d \
+  > "$TMP_ROOT/rspan-lost.out" 2>&1
+rc=$?
+set -e
+[ "$rc" -ne 0 ] || fail "the lost-return remote handoff claimed success"
+assert_present "$PARENT/data/handoff/ios.outbox.md" "the lost-return handoff released its outbox"
+[ "$(rspan_count)" = 2 ] \
+  || fail "a receipt that named two moved keys before its return was lost must post exactly two spans (got '$(rspan_count)')"
+out=$(PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" --resume-pending) \
+  || fail "resuming after the lost return failed: $out"
+assert_contains "$out" 'received: ios moved=0 already=2' "the resumed re-delivery did not classify both keys as already present"
+[ "$(rspan_count)" = 2 ] \
+  || fail "re-delivering already-present keys must post no further span (got '$(rspan_count)')"
+rspan_items=
+for n in 1 2; do
+  rspan_items="$rspan_items $(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.backlog.item")][0].value.stringValue' <<< "$(rspan_body "$n")")"
+done
+[ "$rspan_items" = ' rspan-c rspan-d' ] \
+  || fail "the lost-return spans must carry one moved key each (got '$rspan_items')"
+assert_absent "$PARENT/data/handoff/ios.outbox.md" "the resumed lost-return outbox was not released"
+pass "remote handoff: a lost receipt return posts each named moved key once and the resume posts nothing"
+
+# An empty scaffold outbox (staging failed after the scaffold was seeded) resumed
+# through --resume-pending moves nothing, so it posts no span at all.
+mkdir -p "$PARENT/data/handoff"
+printf '## In flight\n\n## Queued\n\n## Done\n' > "$PARENT/data/handoff/ios.outbox.md"
+: > "$TMP_ROOT/rspan-curl.log"
+: > "$SSH_COUNT"
+PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" --resume-pending > "$TMP_ROOT/rspan-empty.out" 2>&1 \
+  || fail "resuming an empty scaffold outbox failed: $(cat "$TMP_ROOT/rspan-empty.out")"
+[ "$(rspan_count)" = 0 ] \
+  || fail "an empty resumed outbox moves nothing and must post no span (got '$(rspan_count)')"
+assert_absent "$PARENT/data/handoff/ios.outbox.md" "the empty resumed outbox was not released"
+pass "remote handoff: an empty resumed outbox posts no span"
+
 # With no handoff directory or remote route, bootstrap neither invokes SSH nor
 # emits a remote handoff line.
 FRESH="$TMP_ROOT/fresh"

@@ -184,3 +184,55 @@ fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
 
 Counts describe the dated run above; rerun the suites to refresh evidence for the current revision.
 The existing suites pass unchanged: the emitter unit suite (10 assertions), both spawn-path suites, teardown, and the other wake-drain suites, so the disabled-home byte-identical contract holds for the hold, answer, settle, and acknowledgement paths.
+
+## 2026-09-13 increment: the routed-task link and the handoff span
+
+Date: 2026-09-13.
+Shell: GNU bash 5.2.21 (Linux).
+
+The unit suite `tests/fm-trace-context-lib.test.sh` (31 assertions) gains the routed-task link regressions: `fm_trace_context_link_resolve` echoes a strictly valid ambient `TRACEPARENT` only inside a marked secondmate home as judged by the canonical `fm_root_is_secondmate_home` (a primary home, an absent or malformed or command-substitution-shaped ambient value, a symlinked marker, an empty, whitespace-only, or bad-character marker, or an empty home argument each yield nothing and the inert value is never executed); the link read is orthogonal to the carrier, so a resolve under the same ambient value still mints a fresh root with a different trace id; and `fm_trace_context_recorded_link` echoes a recorded `trace_link=` verbatim and nothing when the field or the meta is absent.
+
+The emitter suite `tests/fm-trace-span-lib.test.sh` (12 assertions) gains `--link`: on a `--root` span a valid W3C value adds exactly one `links` entry carrying that traceparent's trace and span ids while the emitted span keeps its own trace id, span id, and parentless root; a child span given `--link` keeps its carrier parent and omits the `links` field entirely; and a malformed or empty value on the root omits the `links` field while staying inert data.
+
+The spawn-path suite `tests/fm-trace-context-spawn.test.sh` (18 assertions) proves the link end to end through real `bin/fm-spawn.sh` runs: in the two-level primary -> Secondmate -> worker chain, the primary records no `trace_link=` for the Secondmate's own meta while the nested worker's meta records the Secondmate's carrier as its link beside a fresh carrier with a different trace id, and the disabled chain records neither; the persistent-Secondmate boundary regression (now seeded with the `.fm-secondmate-home` marker its real counterpart carries) shows two routed tasks each recording the agent's carrier as their link while rooting distinct traces, the relaunch keeps the original carrier and the original link, and a relaunch after the marker is removed keeps the carrier but records no link; and a primary-home ship spawn under a valid ambient `TRACEPARENT` records its fresh carrier with no link at all.
+
+The remote-route suite `tests/fm-remote-secondmate-trace-context.test.sh` (7 assertions) adds the routed worker inside the remote second mate home: driven through the remote host's own `bin/fm-spawn.sh` with the pane's parent-delivered carrier as the ambient value, the worker records its own fresh carrier plus `trace_link=` pointing at exactly that routing carrier, while the agent's own parent-side meta records no link.
+
+The teardown suite `tests/fm-teardown.test.sh` (92 assertions) gains the root-link payload: inside a genuine marked secondmate home (the same `configure_secondmate_home` fixture the parent-channel cases use) a meta recording `trace_link=` emits the task root with exactly one span link referencing the recorded ids and parentage unchanged, an invalid recorded link there emits no `links` field, a primary home with the same recorded `trace_link=` emits its root with no link at all, and every pre-existing root case now also pins that no `trace_link=` means no links.
+
+The promotion suite coverage in `tests/fm-task-delivery.test.sh` extends its successful-promotion case: the recorded carrier, mint time, and `trace_link=` survive promotion verbatim and unduplicated, because promotion rewrites only `kind=`/`mode=`/`yolo=`.
+
+The delegated-handoff suite `tests/fm-backlog-handoff.test.sh` (27 assertions) proves the `firstmate.handoff` span contract on the local route: a two-key handoff posts exactly one span per moved key, each a child of the secondmate agent's carrier carrying `firstmate.backlog.item` and `firstmate.route=local`, with no span-scope `firstmate.secondmate.id` and the resource identifying the secondmate agent by kind and id; a handoff whose receiver doorbell then fails keeps the landed key's span while still reporting the doorbell failure; and a refused non-canonical body, a dependency-stranding `tasks-axi mv` failure, and an untraced home session each post nothing.
+
+The remote-handoff suite `tests/fm-remote-backlog-handoff.test.sh` (21 assertions) proves the same span on the remote route: a staged-but-undelivered outbox (dropped transfer after a successful put) posts nothing and keeps the item staged, while the retried two-key delivery posts exactly one span per delivered key, in outbox order, after the durable remote receipt names them as moved, each a child of the parent-recorded agent carrier with `firstmate.route=remote` and the secondmate id at resource scope only, and the outbox is released; a receipt whose ssh return is lost after the remote applied a two-key batch posts each named key once and the `--resume-pending` re-delivery, which the receiver reports as already present, posts nothing further; an empty scaffold outbox resumed through `--resume-pending` moves nothing and posts no span.
+
+```console
+$ bash tests/fm-trace-context-lib.test.sh | tail -1
+# fm-trace-context-lib.test.sh: all assertions passed
+$ bash tests/fm-trace-span-lib.test.sh | tail -1
+# all fm-trace-span-lib tests passed
+$ bash tests/fm-trace-context-spawn.test.sh | tail -1
+# all fm-trace-context-spawn tests passed
+$ bash tests/fm-teardown.test.sh | tail -1
+ok - the run abort and the leaked-process reap both complete before the destructive worktree return
+$ bash tests/fm-remote-secondmate-trace-context.test.sh | tail -2
+ALL TESTS PASSED
+$ bash tests/fm-backlog-handoff.test.sh | tail -1
+ALL TESTS PASSED
+$ bash tests/fm-remote-backlog-handoff.test.sh | tail -1
+ALL TESTS PASSED
+$ bash tests/fm-task-delivery.test.sh | tail -1
+# all fm-task-delivery tests passed
+$ for t in fm-trace-context-lib fm-trace-span-lib fm-trace-context-spawn fm-teardown \
+    fm-remote-secondmate-trace-context fm-backlog-handoff fm-remote-backlog-handoff; do \
+    bash tests/$t.test.sh | grep -c '^ok -'; done
+31
+12
+18
+92
+7
+27
+21
+```
+
+`tests/fm-remote-secondmate-trace-context.test.sh` prints a pre-existing best-effort `rm -rf` notice from its exit trap after the final assertion; the suite's exit status is 0 and the notice is not a failure.

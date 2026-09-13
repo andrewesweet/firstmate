@@ -800,6 +800,72 @@ seed_public_commitment() {
     || fail "could not register the public commitment"
 }
 
+# --- firstmate.handoff spans --------------------------------------------------
+
+HANDOFF_CARRIER='00-99999999999999999999999999999999-8888888888888888-01'
+
+make_span_curl() {  # <dir> <log>
+  mkdir -p "$1"
+  cat > "$1/curl" <<SH
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "\$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } >> '$2'
+exit 0
+SH
+  chmod +x "$1/curl"
+}
+
+# The receiver wake rides fm-send.sh, which posts its own firstmate.steer span,
+# so the handoff assertions select the firstmate.handoff bodies by name.
+span_post_bodies() {  # <log> -> one firstmate.handoff request body per line
+  [ -f "$1" ] || return 0
+  awk '
+    /^ARGS:/ { if (c) print buf; buf = ""; c = 1; next }
+    /^--BODY-END--$/ { next }
+    c { buf = buf $0 }
+    END { if (c) print buf }
+  ' "$1" | jq -c 'select(.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.handoff")'
+}
+
+span_post_body() {  # <log> <1-based handoff span number>
+  span_post_bodies "$1" | sed -n "${2}p"
+}
+
+span_post_count() {  # <log>
+  span_post_bodies "$1" | grep -c . || true
+}
+
+setup_traced_handoff() {  # <home> <subhome> <curl-log> [on|off]
+  local home=$1 sub=$2 log=$3
+  setup_homes "$home" "$sub"
+  printf '%s\n' "$$" > "$home/state/.lock"
+  printf '%s %s\n' "$$" "${4:-on}" > "$home/state/.trace-context-effective"
+  printf 'traceparent=%s\n' "$HANDOFF_CARRIER" >> "$home/state/design.meta"
+  make_span_curl "$home/span-curl" "$log"
+}
+
+run_traced_handoff() {  # <home> <key>...
+  local home=$1; shift
+  local fakebin
+  fakebin=$(make_fake_tmux "$TMP_ROOT/traced-fake")
+  : > "$TMP_ROOT/traced-tmux.log"
+  FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    PATH="$home/span-curl:$fakebin:$PATH" \
+    FM_FAKE_TMUX_WINDOW='firstmate:fm-design' \
+    FM_FAKE_TMUX_LOG="$TMP_ROOT/traced-tmux.log" \
+    FM_FAKE_TMUX_CAPTURE="$TMP_ROOT/traced-fake/pane.txt" \
+    FM_SEND_SETTLE=0 FM_SEND_SLEEP=0 FM_SEND_RETRIES=1 \
+    "$ROOT/bin/fm-backlog-handoff.sh" design "$@"
+}
+
+handoff_span_attr() {  # <body> <key>: echo the span attribute value
+  jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[]
+    | select(.key == "'"$2"'")][0].value.stringValue' <<< "$1"
+}
+
+# The successful local move lands durably at tasks-axi mv, so each moved key
+# emits exactly one firstmate.handoff span: a child of the secondmate agent's
+# own carrier, carrying the moved key and the local route; the agent identity
+# lives at resource scope only.
 # A public promise binds its work by home AND id. Handing that work to a
 # secondmate leaves the binding naming a home that no longer owns it, which used
 # to go unnoticed until the promised reply was never delivered. The move itself
@@ -1344,6 +1410,146 @@ EOF
   pass "registry entry without (home: ...) fails cleanly with has no home"
 }
 
+# The successful local move lands durably at tasks-axi mv, so each moved key
+# emits exactly one firstmate.handoff span: a child of the secondmate agent's
+# own carrier, carrying the moved key and the local route; the agent identity
+# lives at resource scope only.
+test_handoff_emits_one_span_per_moved_key() {
+  local home="$TMP_ROOT/span-move-main" sub="$TMP_ROOT/span-move-sub" out body rc=0
+  local log="$TMP_ROOT/span-move-curl.log"
+  setup_traced_handoff "$home" "$sub" "$log"
+  : > "$log"
+  cat > "$home/data/backlog.md" <<'EOF'
+## Queued
+- [ ] span-a - first routed item (repo: alpha)
+- [ ] span-b - second routed item (repo: alpha)
+
+## Done
+EOF
+  printf '## Queued\n\n## Done\n' > "$sub/data/backlog.md"
+  out=$(run_traced_handoff "$home" span-a span-b) || rc=$?
+  [ "$rc" -eq 0 ] || fail "traced handoff failed: $out"
+  assert_grep 'span-a' "$sub/data/backlog.md" "the traced handoff lost span-a"
+  [ "$(span_post_count "$log")" = 2 ] \
+    || fail "a two-key local handoff must post exactly two spans (got '$(span_post_count "$log")')"
+  body=$(span_post_body "$log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .name == "firstmate.handoff" and .traceId == "99999999999999999999999999999999" and .parentSpanId == "8888888888888888"' >/dev/null <<< "$body" \
+    || fail "the handoff span must be a child of the secondmate agent's carrier"
+  [ "$(handoff_span_attr "$body" firstmate.backlog.item)" = "span-a" ] \
+    || fail "the first span must carry the moved key span-a"
+  [ "$(handoff_span_attr "$body" firstmate.route)" = "local" ] \
+    || fail "the local handoff span must carry route=local"
+  jq -e '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.secondmate.id")] | length == 0' >/dev/null <<< "$body" \
+    || fail "the handoff span must not repeat firstmate.secondmate.id at span scope"
+  jq -e '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.task.kind")][0].value.stringValue == "secondmate"' >/dev/null <<< "$body" \
+    || fail "the handoff span's resource must identify the secondmate agent"
+  jq -e '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.secondmate.id")][0].value.stringValue == "design"' >/dev/null <<< "$body" \
+    || fail "the handoff span's resource must carry the secondmate id"
+  body=$(span_post_body "$log" 2)
+  [ "$(handoff_span_attr "$body" firstmate.backlog.item)" = "span-b" ] \
+    || fail "the second span must carry the moved key span-b"
+  pass "local handoff: one firstmate.handoff span per moved key, child of the agent trace with route=local"
+}
+
+# The span records a move that LANDED. A receiver wake that fails afterwards is
+# a separate, reported failure: the key did move, so its span stays.
+test_handoff_span_survives_a_failed_receiver_wake() {
+  local home="$TMP_ROOT/span-wakefail-main" sub="$TMP_ROOT/span-wakefail-sub" out rc=0
+  local log="$TMP_ROOT/span-wakefail-curl.log"
+  setup_traced_handoff "$home" "$sub" "$log"
+  : > "$log"
+  cat > "$home/data/backlog.md" <<'EOF'
+## Queued
+- [ ] span-wakeless - routed while no receiver answers (repo: alpha)
+
+## Done
+EOF
+  printf '## Queued\n\n## Done\n' > "$sub/data/backlog.md"
+  # A rejecting tmux fake (never the host's real tmux) makes the receiver
+  # doorbell fail the advisory way: the durable move and instruction stay
+  # landed while the failure is reported.
+  local basebin rejectbin
+  basebin=$(make_fake_tmux "$TMP_ROOT/wakefail-base")
+  rejectbin="$TMP_ROOT/wakefail-reject"
+  mkdir -p "$rejectbin"
+  cat > "$rejectbin/tmux" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" != send-keys ] || exit 1
+exec "$FM_BASE_TMUX" "$@"
+SH
+  chmod +x "$rejectbin/tmux"
+  out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    PATH="$home/span-curl:$rejectbin:$basebin:$PATH" FM_BASE_TMUX="$basebin/tmux" \
+    FM_FAKE_TMUX_WINDOW='firstmate:fm-design' \
+    FM_FAKE_TMUX_LOG="$TMP_ROOT/traced-tmux.log" \
+    FM_FAKE_TMUX_CAPTURE="$TMP_ROOT/wakefail-base/pane.txt" \
+    "$ROOT/bin/fm-backlog-handoff.sh" design span-wakeless 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] || fail "an advisory doorbell failure must not fail the durable handoff: $out"
+  assert_contains "$out" "did not reach" "the unreachable receiver doorbell was not reported"
+  assert_grep 'span-wakeless' "$sub/data/backlog.md" "the failed doorbell lost the durably moved item"
+  [ "$(span_post_count "$log")" = 1 ] \
+    || fail "the landed move must emit its span even when the doorbell then fails (got '$(span_post_count "$log")')"
+  [ "$(handoff_span_attr "$(span_post_body "$log" 1)" firstmate.backlog.item)" = "span-wakeless" ] \
+    || fail "the doorbell-failure span must carry the moved key"
+  pass "local handoff: the span records the landed move even when the receiver doorbell then fails"
+}
+
+# A handoff refused before any move, a failed atomic move, and an untraced home
+# session all emit nothing.
+test_refused_or_disabled_handoff_emits_nothing() {
+  local home sub out rc=0 log
+  log="$TMP_ROOT/span-refused-curl.log"
+  home="$TMP_ROOT/span-refused-main"; sub="$TMP_ROOT/span-refused-sub"
+  setup_traced_handoff "$home" "$sub" "$log"
+  : > "$log"
+  cat > "$home/data/backlog.md" <<'EOF'
+## Queued
+- [ ] bad-item - has a non-canonical continuation (repo: alpha)
+ one-space continuation line
+
+## Done
+EOF
+  printf '## Queued\n\n## Done\n' > "$sub/data/backlog.md"
+  out=$(run_traced_handoff "$home" bad-item 2>&1) || rc=$?
+  [ "$rc" -ne 0 ] || fail "a non-canonical body must refuse the handoff"
+  [ "$(span_post_count "$log")" = 0 ] \
+    || fail "a refused handoff must emit no span (got '$(span_post_count "$log")')"
+
+  log="$TMP_ROOT/span-mvfail-curl.log"
+  home="$TMP_ROOT/span-mvfail-main"; sub="$TMP_ROOT/span-mvfail-sub"
+  setup_traced_handoff "$home" "$sub" "$log"
+  : > "$log"
+  cat > "$home/data/backlog.md" <<'EOF'
+## Queued
+- [ ] main-blocker - stays in the main backlog (repo: alpha)
+- [ ] mv-fail - would strand its blocker blocked-by: main-blocker (repo: alpha)
+
+## Done
+EOF
+  printf '## Queued\n\n## Done\n' > "$sub/data/backlog.md"
+  rc=0
+  out=$(run_traced_handoff "$home" mv-fail 2>&1) || rc=$?
+  [ "$rc" -ne 0 ] || fail "a dependency-stranding move must be refused: $out"
+  [ "$(span_post_count "$log")" = 0 ] \
+    || fail "a failed tasks-axi mv must emit no span (got '$(span_post_count "$log")')"
+
+  log="$TMP_ROOT/span-off-curl.log"
+  home="$TMP_ROOT/span-off-main"; sub="$TMP_ROOT/span-off-sub"
+  setup_traced_handoff "$home" "$sub" "$log" off
+  : > "$log"
+  cat > "$home/data/backlog.md" <<'EOF'
+## Queued
+- [ ] span-off - moved while the home session is untraced (repo: alpha)
+
+## Done
+EOF
+  printf '## Queued\n\n## Done\n' > "$sub/data/backlog.md"
+  out=$(run_traced_handoff "$home" span-off) || fail "an untraced home must still hand off normally: $out"
+  [ "$(span_post_count "$log")" = 0 ] \
+    || fail "an untraced home session must emit no span (got '$(span_post_count "$log")')"
+  pass "refused moves, failed moves, and untraced sessions emit no firstmate.handoff span"
+}
+
 test_handoff_wakes_live_local_receiver
 test_failed_wake_retries_when_the_item_is_already_present
 test_known_receiver_failure_remains_retryable_after_grace
@@ -1368,5 +1574,8 @@ test_registry_home_with_pre_home_parentheses
 test_registry_home_missing_field_fails_cleanly
 test_handoff_warns_when_a_moved_item_still_owes_a_public_reply
 test_handoff_is_silent_about_public_commitments_without_the_relay
+test_handoff_emits_one_span_per_moved_key
+test_handoff_span_survives_a_failed_receiver_wake
+test_refused_or_disabled_handoff_emits_nothing
 
 echo "ALL TESTS PASSED"

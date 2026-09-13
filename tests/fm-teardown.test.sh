@@ -724,6 +724,8 @@ troot_expect_root() {  # <case_dir> <expected-status-code> <expected-outcome>
     "the root must carry the recorded delivery mode"
   assert_contains "$body" '"firstmate.spawn_gen","value":{"stringValue":"teardown-test-task-x1"}' \
     "the root must carry the last spawn generation"
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .links? == null' >/dev/null <<< "$body" \
+    || fail "a task whose meta records no trace_link= must emit a root with no links"
 }
 
 test_task_root_span_emitted_from_recorded_ids_and_status() {
@@ -803,6 +805,75 @@ test_task_root_span_forced_attribute() {
   assert_contains "$body" '"firstmate.task.outcome","value":{"stringValue":"unknown"}' \
     "no terminal status line must read as outcome=unknown"
   pass "root span: --force carries firstmate.teardown.forced=true"
+}
+
+# The link rides the root only from a genuine marked secondmate home
+# (fm_root_is_secondmate_home): the case's home carries the marker and the
+# parent binding, exactly like the real routed-task homes above.
+test_task_root_span_carries_recorded_link() {
+  local case_dir rc body link='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+  case_dir=$(make_case troot-link)
+  configure_secondmate_home "$case_dir" local "$case_dir/parent"
+  make_traced_case "$case_dir" 'working: implementing' 'done: PR checks green'
+  printf 'trace_link=%s\n' "$link" >> "$case_dir/state/task-x1.meta"
+
+  set +e
+  FM_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "traced teardown with a recorded link should succeed: $(cat "$case_dir/stderr")"
+  [ -f "$case_dir/curl.log" ] || fail "teardown recorded no span post at all"
+  [ "$(grep -c '^ARGS:' "$case_dir/curl.log")" = 1 ] \
+    || fail "teardown must post exactly one task root span (got '$(grep -c '^ARGS:' "$case_dir/curl.log")')"
+  body=$(troot_body "$case_dir/curl.log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .spanId == "3333333333333334" and (.parentSpanId? == null) and .traceId == "11111111111111111111111111111112"' >/dev/null <<< "$body" \
+    || fail "the linked root must keep the carrier's own ids and stay parentless"
+  [ "$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].links | length' <<< "$body")" = 1 ] \
+    || fail "exactly one link entry expected on the linked root"
+  [ "$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].links[0].traceId' <<< "$body")" = "${link:3:32}" ] \
+    || fail "the root's link must reference the recorded link trace id"
+  [ "$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].links[0].spanId' <<< "$body")" = "${link:36:16}" ] \
+    || fail "the root's link must reference the recorded link span id"
+  pass "root span: a routed task's recorded trace_link= rides the root as exactly one span link, with parentage unchanged"
+}
+
+# A primary home never links, whatever its meta says: a stray trace_link= in a
+# home without the marker emits a root with no links.
+test_task_root_span_primary_home_ignores_recorded_link() {
+  local case_dir rc body link='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+  case_dir=$(make_case troot-primary-link)
+  make_traced_case "$case_dir" 'working: implementing' 'done: PR checks green'
+  printf 'trace_link=%s\n' "$link" >> "$case_dir/state/task-x1.meta"
+
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "traced teardown in a primary home should succeed"
+  [ "$(grep -c '^ARGS:' "$case_dir/curl.log")" = 1 ] \
+    || fail "teardown must still post exactly one task root span (got '$(grep -c '^ARGS:' "$case_dir/curl.log")')"
+  body=$(troot_body "$case_dir/curl.log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .links? == null' >/dev/null <<< "$body" \
+    || fail "a primary home must never export a recorded trace_link as a span link"
+  pass "root span: a primary home emits no link even when its meta records trace_link="
+}
+
+test_task_root_span_invalid_link_omitted() {
+  local case_dir rc body
+  case_dir=$(make_case troot-badlink)
+  configure_secondmate_home "$case_dir" local "$case_dir/parent"
+  make_traced_case "$case_dir" 'working: implementing' 'done: PR checks green'
+  printf 'trace_link=not-a-traceparent\n' >> "$case_dir/state/task-x1.meta"
+
+  set +e
+  FM_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "traced teardown with an invalid recorded link should still succeed: $(cat "$case_dir/stderr")"
+  body=$(troot_body "$case_dir/curl.log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .links? == null' >/dev/null <<< "$body" \
+    || fail "an invalid recorded trace_link must emit no links"
+  pass "root span: an invalid recorded trace_link= is silently omitted"
 }
 
 test_task_root_span_disabled_home_posts_nothing() {
@@ -3831,6 +3902,9 @@ test_task_root_span_emitted_from_recorded_ids_and_status
 test_task_root_span_failed_status
 test_task_root_span_tagged_terminal_status
 test_task_root_span_forced_attribute
+test_task_root_span_carries_recorded_link
+test_task_root_span_primary_home_ignores_recorded_link
+test_task_root_span_invalid_link_omitted
 test_task_root_span_disabled_home_posts_nothing
 test_teardown_closes_the_backlog_item_itself
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
