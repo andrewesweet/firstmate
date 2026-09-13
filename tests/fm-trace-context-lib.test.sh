@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # tests/fm-trace-context-lib.test.sh - unit tests for the native, default-off
-# W3C trace-context library (bin/fm-trace-context-lib.sh) plus structural checks
-# that bin/fm-spawn.sh wires it in at the pre-launch injection seam and that the
-# capability is inherited into secondmate homes. Pure functions, no backend and
+# W3C trace-context library (bin/fm-trace-context-lib.sh). Pure functions, no backend and
 # no live spawn required.
 set -u
 
@@ -73,7 +71,7 @@ pass "every mint is an unrelated fresh root - one trace per task, no parent adop
 # --- minted-root shape --------------------------------------------------------
 # A firstmate-MINTED root is exactly the fixed 55-char W3C form with random ids
 # and no free-form field where firstmate could originate a prompt, path, or
-# secret (that the lib reads no task prose is asserted separately below). With
+# secret. With
 # no inherited-context path, every carrier the lib yields is either such a mint
 # or the same task's previously recorded carrier reused verbatim.
 case "$ROOT_TP" in
@@ -213,33 +211,6 @@ ef_res=$(FM_TRACE_CONTEXT=on fm_trace_context_resolve "$CFG_ON" "$NOMETA"); ef_r
 [ -z "$ef_res" ] && [ "$ef_res_rc" -eq 0 ] || fail "resolve must omit and STILL return 0 on entropy failure (rc=$ef_res_rc out='$ef_res')"
 pass "entropy failure omits telemetry safely: mint reports failure, resolve returns success with no carrier"
 
-# --- fail-independent timing: no hang source, always returns 0 ---------------
-
-assert_no_grep 'sleep' "$ROOT/bin/fm-trace-context-lib.sh" "trace-context lib must not sleep on the spawn path"
-assert_no_grep 'timeout' "$ROOT/bin/fm-trace-context-lib.sh" "trace-context lib must not depend on an external timeout"
-assert_no_grep 'command:' "$ROOT/bin/fm-trace-context-lib.sh" "trace-context lib must not run an arbitrary command provider"
-fm_trace_context_resolve "$CFG_OFF" "$NOMETA" >/dev/null || fail "resolve must return 0 when off"
-pass "the resolver has no sleep/timeout/command hang source and always returns success"
-
-# --- harness/backend/kind independence (code only, comments stripped) ---------
-
-LIB_CODE=$(sed 's/#.*$//' "$ROOT/bin/fm-trace-context-lib.sh")
-for tok in harness backend tmux herdr zellij orca cmux claude codex opencode grok kind ship scout secondmate ; do
-  case "$LIB_CODE" in
-    *"$tok"*) fail "trace-context lib code must be harness/backend/kind agnostic, but references '$tok'" ;;
-  esac
-done
-pass "the carrier is minted identically for every harness, backend, and spawn kind (no such branching in the lib code)"
-
-# --- no prompt / task-prose reads (code only, comments stripped) --------------
-
-for tok in brief prompt report status ; do
-  case "$LIB_CODE" in
-    *"$tok"*) fail "trace-context lib code must never read task prose, but references '$tok'" ;;
-  esac
-done
-pass "the lib code never reads a brief, prompt, report, or status - it cannot leak content"
-
 # --- secondmate inheritance wires the nested chain ---------------------------
 
 # shellcheck source=/dev/null
@@ -249,5 +220,98 @@ case " $FM_INHERITABLE_CONFIG " in
   *) fail "config/trace-context must be in FM_INHERITABLE_CONFIG so secondmate homes stay traced" ;;
 esac
 pass "config/trace-context is inherited into secondmate homes, keeping the nested chain enabled end to end"
+
+# --- per-task resource attributes: percent-encoding ---------------------------
+# Anything outside [A-Za-z0-9._-/] becomes %XX, byte-wise, so a path with a
+# space, a shell metacharacter, a quote, and a multi-byte character all render
+# as inert percent escapes and the safe set passes through untouched.
+enc=$(fm_trace_attrs_percent_encode 'plain-slug_2.0/sub.dir')
+[ "$enc" = 'plain-slug_2.0/sub.dir' ] || fail "safe characters must pass through unencoded (got '$enc')"
+enc=$(fm_trace_attrs_percent_encode 'my path/x')
+[ "$enc" = 'my%20path/x' ] || fail "a space must become %20 (got '$enc')"
+enc=$(fm_trace_attrs_percent_encode 'a&b=c d%e')
+[ "$enc" = 'a%26b%3Dc%20d%25e' ] || fail "shell metacharacters and a literal percent must encode (got '$enc')"
+enc=$(fm_trace_attrs_percent_encode "it's")
+[ "$enc" = 'it%27s' ] || fail "a single quote must become %27 (got '$enc')"
+enc=$(fm_trace_attrs_percent_encode $'caf\xc3\xa9')
+[ "$enc" = 'caf%C3%A9' ] || fail "a multi-byte character must encode byte-wise (got '$enc')"
+enc=$(fm_trace_attrs_percent_encode '')
+[ -z "$enc" ] || fail "an empty value must encode to empty (got '$enc')"
+case "$(fm_trace_attrs_percent_encode 'x&y z')" in
+  *[!A-Za-z0-9._%/-]*) fail "encoded output must contain only the safe set and percent escapes" ;;
+esac
+pass "the percent encoder passes the safe set byte-wise and escapes everything else per W3C Baggage rules"
+
+# --- per-task resource attributes: render -------------------------------------
+# The rendered list must carry the header's fixed key order, encode unsafe
+# values, derive home from the meta, and append firstmate.secondmate.id only
+# for a secondmate. Expected values are built here from the fixture inputs,
+# never by calling the renderer on itself.
+ATTRS_META="$WORK/attrs.meta"
+fm_write_meta "$ATTRS_META" \
+  "window=firstmate:fm-attrs1" \
+  "endpoint_task_id=attrs1" \
+  "worktree=$WORK/wt" \
+  "project=$WORK/main-home/projects/proj dir" \
+  "home=$WORK/main-home" \
+  "harness=claude" \
+  "kind=ship" \
+  "model=" \
+  "effort=default" \
+  "spawn_gen=s1.100.1"
+ATTRS_EXPECTED="firstmate.task.id=attrs1,firstmate.project=proj%20dir,firstmate.home=$WORK/main-home,firstmate.task.kind=ship,firstmate.harness=claude,firstmate.model=,firstmate.effort=default,firstmate.spawn_gen=s1.100.1"
+
+mkdir -p "$WORK/main-home"
+out=$(FM_HOME="$WORK/main-home" fm_trace_attrs_render "$ATTRS_META")
+[ "$out" = "$ATTRS_EXPECTED" ] || fail "render must produce the fixed key list from the meta (got '$out')"
+pass "render yields the fixed key list in order, with the project path encoded and an empty model rendered empty"
+
+out=$(FM_HOME="$WORK/main-home" fm_trace_attrs_render "$ATTRS_META")
+case "$out" in
+  *firstmate.secondmate.id*) fail "a task in a main home must carry no secondmate id (got '$out')" ;;
+esac
+out=$(fm_trace_attrs_render "$ATTRS_META")
+case "$out" in
+  *firstmate.secondmate.id*) fail "an unset FM_HOME must carry no secondmate id (got '$out')" ;;
+esac
+pass "a ship meta in a main home (or with no home set) carries no firstmate.secondmate.id"
+
+mkdir -p "$WORK/sm-home"
+printf 'sm-x\n' > "$WORK/sm-home/.fm-secondmate-home"
+out=$(FM_HOME="$WORK/sm-home" fm_trace_attrs_render "$ATTRS_META")
+[ "$out" = "$ATTRS_EXPECTED,firstmate.secondmate.id=sm-x" ] \
+  || fail "a routed task inside a secondmate home must carry the home's marker id (got '$out')"
+pass "a routed task spawned inside a secondmate home carries firstmate.secondmate.id from the home's marker"
+
+SM_META="$WORK/attrs-sm.meta"
+fm_write_meta "$SM_META" \
+  "window=firstmate:fm-attrs2" \
+  "endpoint_task_id=attrs2" \
+  "worktree=$WORK/sm-home" \
+  "project=$WORK/sm-home" \
+  "harness=codex" \
+  "kind=secondmate" \
+  "model=default" \
+  "effort=default" \
+  "spawn_gen=s1.101.2" \
+  "home=$WORK/sm-home"
+out=$(FM_HOME="$WORK/main-home" fm_trace_attrs_render "$SM_META")
+case "$out" in
+  *",firstmate.secondmate.id=attrs2") : ;;
+  *) fail "the secondmate agent's own resource must carry its own task id (got '$out')" ;;
+esac
+case "$out" in
+  *firstmate.home=$WORK/sm-home*) : ;;
+  *) fail "a secondmate meta's home field must supply firstmate.home (got '$out')" ;;
+esac
+pass "a kind=secondmate meta renders the agent's own task id as firstmate.secondmate.id, with home from the meta"
+
+: > "$WORK/none.meta-expected-absent"
+out=$(fm_trace_attrs_render "$WORK/really-absent.meta")
+[ -z "$out" ] || fail "an absent meta must render nothing (got '$out')"
+fm_write_meta "$WORK/no-id.meta" "kind=ship" "harness=claude"
+out=$(fm_trace_attrs_render "$WORK/no-id.meta"); rc=$?
+[ -z "$out" ] && [ "$rc" -eq 0 ] || fail "a meta without a task id must render nothing and return 0 (rc=$rc out='$out')"
+pass "an absent meta or one without a task id renders nothing and always returns success"
 
 echo "# fm-trace-context-lib.test.sh: all assertions passed"

@@ -243,8 +243,9 @@
 #   CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID CMUX_SOCKET_PATH
 #   ZELLIJ ZELLIJ_SESSION_NAME ZELLIJ_PANE_ID FM_ZELLIJ_SESSION, plus the task
 #   marker FM_TASK_ID that ship and scout panes receive above.
-#   An enabled task trace also retains TRACEPARENT. Explicit Firstmate launch
-#   assignments still apply inside the filtered environment. Raw commands must
+#   An enabled task trace also retains TRACEPARENT and
+#   OTEL_RESOURCE_ATTRIBUTES. Explicit Firstmate launch assignments still
+#   apply inside the filtered environment. Raw commands must
 #   be POSIX sh compatible under this opt-in; the absent-file path is unchanged.
 #   This is an exec environment boundary, not a sandbox for the pane's startup
 #   shell, credential files, same-user processes, or later shell initialization.
@@ -334,15 +335,19 @@
 # compatible tasks-axi refuses before creating lifecycle state.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> [mode=<mode> yolo=<on|off>] window=<backend-target> worktree=<path>
 # A ship task records the explicit mode/yolo it was passed; a secondmate spawn records
-# mode=secondmate, yolo=off, home=, and projects=; a scout records neither, and both the
-# success line and state/<id>.meta omit them.
+# mode=secondmate, yolo=off, home=, and projects=; a scout records no mode/yolo.
+# When a carrier is resolved, ship and scout metadata also record home= as the
+# resolved spawning FM_HOME; secondmate home= names its own provisioned home.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
 # docs/configuration.md and bin/fm-trace-context-lib.sh), the meta also records
 # one W3C traceparent= carrier, the same value injected into the pane as
-# TRACEPARENT; the default-off path writes neither, leaving the generated meta
-# and launch environment unchanged.
+# TRACEPARENT, and the same pane channel carries one OTEL_RESOURCE_ATTRIBUTES
+# export rendered from the task record (bin/fm-trace-context-lib.sh's header
+# owns the key list), so attribute-joining harnesses carry the task's join
+# keys; the default-off path writes and sends neither, leaving the generated
+# meta and launch environment unchanged.
 #   --traceparent <carrier> delivers a carrier that a REMOTE parent already
 #   resolved and will record, instead of resolving one from this home's frozen
 #   decision. It is accepted only for --secondmate spawns, only as a strictly
@@ -3760,6 +3765,8 @@ preserve_relaunch_meta() {
   if [ "$KIND" = secondmate ]; then
     echo "home=$PROJ_ABS"
     echo "projects=$SECONDMATE_PROJECTS"
+  elif [ -n "$SPAWN_TRACEPARENT" ]; then
+    echo "home=$FM_HOME"
   fi
   if [ "$RELAUNCH" -eq 1 ]; then
     preserve_relaunch_meta
@@ -3989,6 +3996,30 @@ if [ -n "$SPAWN_TRACEPARENT" ]; then
     fi
     LAUNCH="unset TRACEPARENT; $LAUNCH"
   fi
+  # The per-task resource attributes every attribute-joining harness reads.
+  # Rendered from the task record just published above, on the same pane
+  # channel and subject to the same delivery contract as TRACEPARENT: a failed
+  # send still launches the task (with the variable unset in the launch command
+  # so no partial pane value reaches the child), while input that could not be
+  # cleared refuses the launch. The pane's own pre-existing value, if any, is
+  # preserved as the comma prefix; Firstmate's keys sit last and win every
+  # last-wins parse. Rendered values are percent-encoded, so the single-quoted
+  # half carries no shell metacharacter.
+  SPAWN_TRACE_ATTRS=$(fm_trace_attrs_render "$STATE/$ID.meta" || true)
+  if [ -n "$SPAWN_TRACE_ATTRS" ]; then
+    # shellcheck disable=SC2016  # ${OTEL_RESOURCE_ATTRIBUTES:+...} is the pane shell's expansion
+    SPAWN_TRACE_ATTRS_LINE='export OTEL_RESOURCE_ATTRIBUTES="${OTEL_RESOURCE_ATTRIBUTES:+$OTEL_RESOURCE_ATTRIBUTES,}"'"'$SPAWN_TRACE_ATTRS'"
+    if spawn_send_text_line "$T" "$SPAWN_TRACE_ATTRS_LINE"; then
+      :
+    else
+      ATTRS_SEND_STATUS=$?
+      if [ "$ATTRS_SEND_STATUS" -eq 2 ]; then
+        echo "error: trace-context resource-attribute input could not be cleared for $W; refusing to append the launch command" >&2
+        exit 1
+      fi
+      LAUNCH="unset OTEL_RESOURCE_ATTRIBUTES; $LAUNCH"
+    fi
+  fi
 fi
 if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   LAUNCH_ENV_PREFIX='/usr/bin/env -i'
@@ -4007,6 +4038,8 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
+    # shellcheck disable=SC2016
+    LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${OTEL_RESOURCE_ATTRIBUTES+"OTEL_RESOURCE_ATTRIBUTES=$OTEL_RESOURCE_ATTRIBUTES"}'
   fi
   LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
 fi
