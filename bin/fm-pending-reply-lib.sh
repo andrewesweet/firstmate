@@ -691,9 +691,35 @@ _fm_pending_reply_try_resolve_locked() {  # <state-dir> <corr_id> [status-file-o
   fi
   fm_pending_reply_set "$rec" resolved_epoch "$now" || return 1
   fm_pending_reply_set "$rec" resolved_via "$via" || return 1
+  fm_pending_reply_emit_settle_span "$state" "$rec" "$corr" "$via"
   # The record is resolved either way; a failed close stays retryable from the
   # watcher tick rather than turning a settled request back into a failure.
   _fm_pending_reply_close_escalation_locked "$state" "$corr" || true
+  return 0
+}
+
+# The parent-side firstmate.reply span: one per newly settled record, emitted
+# after the durable resolved_* fields are committed and never on an
+# already-resolved replay. bin/fm-trace-span-lib.sh's header owns the
+# catalogue entry; the span joins the second mate agent's task trace through
+# the parent home's own meta (the parent owns that meta on local and remote
+# routes alike) and covers the confirmed delivery through this settlement.
+# Emission is bounded and best-effort: a telemetry failure can never
+# un-resolve a settled reply.
+fm_pending_reply_emit_settle_span() {  # <state-dir> <record-path> <corr-id> <via>
+  local state=$1 rec=$2 corr=$3 via=$4 task_id delivered start_ms
+  [ -f "$_FM_PENDING_REPLY_LIB_DIR/fm-trace-span-lib.sh" ] || return 0
+  # shellcheck source=bin/fm-trace-span-lib.sh
+  . "$_FM_PENDING_REPLY_LIB_DIR/fm-trace-span-lib.sh"
+  task_id=$(fm_pending_reply_get "$rec" task_id)
+  case $task_id in '' | .* | *[!A-Za-z0-9._-]*) return 0 ;; esac
+  delivered=$(fm_pending_reply_get "$rec" delivered_epoch)
+  case $delivered in
+    '' | *[!0-9]*) start_ms=- ;;
+    *) start_ms=$((delivered * 1000)) ;;
+  esac
+  fm_trace_span_emit "$state/$task_id.meta" firstmate.reply "$start_ms" - \
+    "firstmate.corr=$corr" "firstmate.reply.via=$via"
   return 0
 }
 

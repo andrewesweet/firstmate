@@ -130,6 +130,98 @@ latest_record_body() {  # <home> <task>
 
 # --- tests ------------------------------------------------------------------
 
+# The parent-side firstmate.reply span: a newly settled record posts exactly
+# one span joining the second mate agent's task trace, covering the confirmed
+# delivery through the settlement and carrying the correlation and via; an
+# already-resolved replay, a disabled session, and a task without a recorded
+# carrier post nothing. Driven through the production settle path with a
+# recording fake curl.
+test_settle_emits_parent_reply_span_once() {
+  local home state corr fakebin body home2 state2 corr2 home3 state3 corr3
+  command -v jq >/dev/null 2>&1 || fail "jq is required for the reply-span assertions"
+  home=$(setup_parent reply-span)
+  state="$home/state"
+  fakebin="$home/fakebin"
+  mkdir -p "$fakebin"
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+  chmod +x "$fakebin/curl"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s on\n' "$$" > "$state/.trace-context-effective"
+  fm_write_meta "$state/hibit.meta" \
+    "window=firstmate:hibit" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01"
+  export FM_PENDING_REPLY_NOW=5000
+  corr=$(fm_pending_reply_create "$home" "$state" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state" "$corr"
+  printf 'done [corr=%s]: ledger clean\n' "$corr" > "$state/hibit.status"
+  FM_FAKE_CURL_LOG="$home/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state" "$corr" \
+    || fail "correlated status should resolve"
+  [ "$(phase_of "$state" "$corr")" = resolved ] || fail "phase should be resolved"
+  [ -f "$home/curl.log" ] || fail "a settled reply posted no span"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 1 ] \
+    || fail "a settlement must post exactly one reply span"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .name == "firstmate.reply" and
+    .traceId == "11111111111111111111111111111112" and
+    .parentSpanId == "3333333333333334" and
+    .startTimeUnixNano == "5000000000000"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reply span must join the second mate trace from the delivery time"
+  jq -e --arg corr "$corr" '
+    .resourceSpans[0].scopeSpans[0].spans[0].attributes as $a |
+    ([$a[] | select(.key == "firstmate.corr")][0].value.stringValue == $corr) and
+    ([$a[] | select(.key == "firstmate.reply.via")][0].value.stringValue == "status")
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reply span lost its correlation or via attribute"
+  # An already-resolved replay settles nothing new and posts nothing.
+  FM_PENDING_REPLY_NOW=6000 fm_pending_reply_try_resolve "$state" "$corr" \
+    || fail "second resolve must stay successful"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 1 ] \
+    || fail "a replayed settle must not post a second reply span"
+  # A disabled session posts nothing even when the settlement lands.
+  home2=$(setup_parent reply-span-off)
+  state2="$home2/state"
+  printf '%s\n' "$$" > "$state2/.lock"
+  printf '%s off\n' "$$" > "$state2/.trace-context-effective"
+  fm_write_meta "$state2/hibit.meta" \
+    "window=firstmate:hibit" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01"
+  corr2=$(fm_pending_reply_create "$home2" "$state2" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state2" "$corr2"
+  printf 'done [corr=%s]: ledger clean\n' "$corr2" > "$state2/hibit.status"
+  FM_FAKE_CURL_LOG="$home2/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state2" "$corr2" \
+    || fail "disabled-session settle should still resolve"
+  [ "$(phase_of "$state2" "$corr2")" = resolved ] || fail "disabled settle must resolve"
+  [ ! -f "$home2/curl.log" ] || fail "a disabled session must post no reply span"
+  # A settled task with no recorded carrier posts nothing.
+  home3=$(setup_parent reply-span-untraced)
+  state3="$home3/state"
+  printf '%s\n' "$$" > "$state3/.lock"
+  printf '%s on\n' "$$" > "$state3/.trace-context-effective"
+  corr3=$(fm_pending_reply_create "$home3" "$state3" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state3" "$corr3"
+  printf 'done [corr=%s]: ledger clean\n' "$corr3" > "$state3/hibit.status"
+  FM_FAKE_CURL_LOG="$home3/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state3" "$corr3" \
+    || fail "untraced settle should still resolve"
+  [ ! -f "$home3/curl.log" ] || fail "an untraced task must post no reply span"
+  pass "settlement posts one reply span per record, joining the second mate trace"
+}
+
 test_normal_correlated_reply_resolves_once() {
   local home state corr status rec
   home=$(setup_parent resolve-once)
@@ -1570,8 +1662,209 @@ test_escalated_undelivered_correlation_stays_retryable() {
   pass "an escalated correlation stays retryable only while undelivered"
 }
 
+# The firstmate.hold spans: every successful close path (answer, --release,
+# verified reconcile close) posts one span over the recorded hold-set time,
+# parenting on the held task's own trace, with a bounded reason and the close
+# mode; a taskless captain call, a refused answer, and a disabled session post
+# nothing. Driven through the real hold/answer/reconcile entrypoints with a
+# recording fake curl.
+test_close_paths_emit_hold_spans_over_the_recorded_hold_time() {
+  local home count body reason stamp_epoch
+  home=$(make_home hold-spans)
+  cat > "$home/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+  chmod +x "$home/fakebin/curl"
+  printf '%s\n' "$$" > "$home/state/.lock"
+  printf '%s on\n' "$$" > "$home/state/.trace-context-effective"
+  : > "$home/curl.log"
+  export FM_FAKE_CURL_LOG="$home/curl.log"
+  stamp_epoch=$(date -u -d '2026-06-01T12:00:00Z' +%s 2>/dev/null \
+    || date -u -j -f '%Y-%m-%dT%H:%M:%SZ' '2026-06-01T12:00:00Z' +%s)
+
+  tasks_in "$home" add traced-call "Traced captain question" --kind captain --repo sample --start >/dev/null \
+    || fail "could not create the traced captain call"
+  fm_write_meta "$home/state/traced-call.meta" \
+    "window=firstmate:traced-call" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01" \
+    "project=$home/projects/sample" \
+    "kind=ship" \
+    "harness=codex"
+  FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z run_captain "$home" hold traced-call \
+    --reason "captain must choose the export shape" >/dev/null \
+    || fail "could not hold the traced captain call"
+  printf 'Captain chose the wide export.\n' > "$home/wide.txt"
+  run_captain "$home" answer traced-call --decision-file "$home/wide.txt" >/dev/null \
+    || fail "could not answer the traced captain call"
+  count=$(grep -c '^ARGS:' "$home/curl.log" || true)
+  [ "$count" = 1 ] || fail "an answer must post exactly one hold span, got $count"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  jq -e --argjson start "$stamp_epoch" '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .name == "firstmate.hold" and
+    .traceId == "11111111111111111111111111111112" and
+    .parentSpanId == "3333333333333334" and
+    .startTimeUnixNano == (($start * 1000 * 1000000) | tostring)
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the hold span must join the task trace and start at the recorded hold-set time"
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0].attributes as $a |
+    ([$a[] | select(.key == "firstmate.hold.close_mode")][0].value.stringValue == "answered") and
+    ([$a[] | select(.key == "firstmate.hold.reason")][0].value.stringValue == "captain must choose the export shape")
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the hold span lost its close mode or reason"
+  # An exact answer replay is idempotent and posts again: the emitter keeps no
+  # dedup state, so an interrupted-and-repeated close may post a duplicate.
+  run_captain "$home" answer traced-call --decision-file "$home/wide.txt" >/dev/null \
+    || fail "the idempotent answer replay failed"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 2 ] \
+    || fail "the replay did not repost the hold span"
+
+  # --release lifts a held work item and posts a released span on its trace.
+  tasks_in "$home" add traced-work "Apply the captain choice" --kind ship --repo sample --start >/dev/null \
+    || fail "could not create the traced work item"
+  fm_write_meta "$home/state/traced-work.meta" \
+    "window=firstmate:traced-work" \
+    "traceparent=00-22222222222222222222222222222224-4444444444444448-01" \
+    "project=$home/projects/sample" \
+    "kind=ship" \
+    "harness=codex"
+  FM_CAPTAIN_HOLD_NOW=2026-06-02T08:30:00Z run_captain "$home" hold traced-work \
+    --reason "work resumes on the captain's go" >/dev/null \
+    || fail "could not hold the traced work item"
+  printf 'Go.\n' > "$home/go.txt"
+  run_captain "$home" answer traced-work --decision-file "$home/go.txt" --release >/dev/null \
+    || fail "could not release the traced work item"
+  body=$(awk '
+    /^ARGS:/ { count++ }
+    END { print count }
+  ' "$home/curl.log")
+  [ "$body" = 3 ] || fail "expected the release to post the third span, got $body"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    /4444444444444448/ { seen = 1 }
+    seen && /^\{"resourceSpans/ { buf = $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .traceId == "22222222222222222222222222222224" and
+    .parentSpanId == "4444444444444448"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the release span must join the released task's own trace"
+  jq -e '
+    [.resourceSpans[0].scopeSpans[0].spans[0].attributes[] |
+      select(.key == "firstmate.hold.close_mode")][0].value.stringValue == "released"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the release did not record close_mode released"
+
+  # A verified reconcile close posts a reconciled span.
+  tasks_in "$home" add traced-third "Board review outcome" --kind captain --repo sample --start >/dev/null \
+    || fail "could not create the third traced call"
+  fm_write_meta "$home/state/traced-third.meta" \
+    "window=firstmate:traced-third" \
+    "traceparent=00-33333333333333333333333333333336-555555555555555c-01" \
+    "project=$home/projects/sample" \
+    "kind=ship" \
+    "harness=codex"
+  FM_CAPTAIN_HOLD_NOW=2026-06-03T09:00:00Z run_captain "$home" hold traced-third \
+    --reason "board review pending" >/dev/null \
+    || fail "could not hold the third traced call"
+  request_reconciles "$home" board-src traced-third \
+    || fail "could not open the board reconcile request"
+  printf 'The board merged the option; the call is moot.\n' > "$home/evidence.txt"
+  run_captain "$home" reconcile close traced-third --evidence-file "$home/evidence.txt" >/dev/null \
+    || fail "could not close the call by reconciliation"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    /555555555555555c/ { seen = 1 }
+    seen && /^\{"resourceSpans/ { buf = $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .traceId == "33333333333333333333333333333336" and
+    .parentSpanId == "555555555555555c"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reconciled span must join the held task's own trace"
+  jq -e '
+    [.resourceSpans[0].scopeSpans[0].spans[0].attributes[] |
+      select(.key == "firstmate.hold.close_mode")][0].value.stringValue == "reconciled"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reconcile close did not record close_mode reconciled"
+
+  # A taskless captain call and a refused answer post nothing.
+  FM_CAPTAIN_HOLD_NOW=2026-06-04T10:00:00Z run_captain "$home" hold plain-call \
+    --title "Untraced captain question" --reason "no trace here" >/dev/null \
+    || fail "could not hold the taskless captain call"
+  printf 'Captain noted it.\n' > "$home/noted.txt"
+  run_captain "$home" answer plain-call --decision-file "$home/noted.txt" >/dev/null \
+    || fail "could not answer the taskless captain call"
+  printf 'A decision the captain never gave.\n' > "$home/drifted.txt"
+  if run_captain "$home" answer traced-call --decision-file "$home/drifted.txt" \
+    > "$home/drifted.out" 2> "$home/drifted.err"; then
+    fail "a drifted answer retry was accepted"
+  fi
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 4 ] \
+    || fail "a taskless call or a refused answer must post no hold span"
+
+  # A disabled session posts nothing even on a successful close.
+  printf '%s off\n' "$$" > "$home/state/.trace-context-effective"
+  tasks_in "$home" add traced-off "Untraced session call" --kind captain --repo sample --start >/dev/null \
+    || fail "could not create the disabled-session call"
+  fm_write_meta "$home/state/traced-off.meta" \
+    "window=firstmate:traced-off" \
+    "traceparent=00-44444444444444444444444444444448-6666666666666670-01"
+  FM_CAPTAIN_HOLD_NOW=2026-06-05T11:00:00Z run_captain "$home" hold traced-off \
+    --reason "disabled session" >/dev/null \
+    || fail "could not hold the disabled-session call"
+  printf 'Noted while disabled.\n' > "$home/off.txt"
+  run_captain "$home" answer traced-off --decision-file "$home/off.txt" >/dev/null \
+    || fail "could not answer the disabled-session call"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 4 ] \
+    || fail "a disabled session must post no hold span"
+
+  # The emitted reason field is bounded.
+  printf '%s on\n' "$$" > "$home/state/.trace-context-effective"
+  tasks_in "$home" add traced-long "Long reason call" --kind captain --repo sample --start >/dev/null \
+    || fail "could not create the long-reason call"
+  fm_write_meta "$home/state/traced-long.meta" \
+    "window=firstmate:traced-long" \
+    "traceparent=00-5555555555555555555555555555555a-7777777777777774-01"
+  reason=$(printf 'x%.0s' $(seq 1 200))
+  FM_CAPTAIN_HOLD_NOW=2026-06-06T12:00:00Z run_captain "$home" hold traced-long \
+    --reason "$reason" >/dev/null \
+    || fail "could not hold the long-reason call"
+  printf 'Captain answered the long one.\n' > "$home/long.txt"
+  run_captain "$home" answer traced-long --decision-file "$home/long.txt" >/dev/null \
+    || fail "could not answer the long-reason call"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    /7777777777777774/ { seen = 1 }
+    seen && /^\{"resourceSpans/ { buf = $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  emitted=$(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] |
+    select(.key == "firstmate.hold.reason")][0].value.stringValue' <<< "$body" 2>/dev/null)
+  [ "${#emitted}" = 160 ] \
+    || fail "the hold reason must be bounded, got ${#emitted} characters"
+  pass "hold spans cover the recorded hold time through every close path, bounded and trace-joined"
+}
+
 # --- run --------------------------------------------------------------------
 
+test_settle_emits_parent_reply_span_once
 test_normal_correlated_reply_resolves_once
 test_completed_turn_no_report_triggers_one_recovery
 test_recovery_attempt_is_never_reinjected

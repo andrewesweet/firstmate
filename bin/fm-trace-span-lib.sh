@@ -102,8 +102,27 @@
 #       recovery-grade classifier proved the stop or the agent was already
 #       gone), firstmate.control.proof (interrupt: endpoint or agent-alive),
 #       firstmate.control.result (exit: stopped or already-stopped).
-#   Later catalogue entries (link emission sites, handoff, hold, reply, wake)
-#   are separate increments and must extend this list only when they land.
+#     firstmate.hold - bin/fm-captain-hold.sh, after a successful answer,
+#       release, or verified reconcile close has been durably published;
+#       covers the recorded hold-set time through that settlement;
+#       attributes firstmate.hold.close_mode (answered, released, repaired,
+#       routed, reconciled) and firstmate.hold.reason (bounded), read from
+#       the pre-close record because the close legitimately removes them.
+#     firstmate.reply - bin/fm-pending-reply-lib.sh, once per newly settled
+#       pending-reply record in the parent home, after the durable resolved
+#       fields are committed; covers the confirmed delivery through the
+#       correlated settlement; attributes firstmate.corr,
+#       firstmate.reply.via.
+#     firstmate.wake - bin/fm-wake-drain.sh, per consumed queue row whose key
+#       maps to a home task (fm_wake_status_key_map), after the
+#       acknowledgement commit; covers the row's queue time through that
+#       acknowledgement; attributes firstmate.wake.kind (signal, stale,
+#       check - never heartbeat), firstmate.wake.seq, firstmate.wake.key.
+#   Taskless rows (heartbeats, per-poll checks, window-keyed stale rows)
+#   emit nothing, and every entry above is silent for a task without a
+#   recorded carrier.
+#   Later catalogue entries (link emission sites, handoff) are separate
+#   increments and must extend this list only when they land.
 #
 # Endpoint precedence (the OpenTelemetry SDK's own): OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
 # else ${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces, else

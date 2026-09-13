@@ -23,6 +23,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-lease-lib.sh
 . "$SCRIPT_DIR/fm-lease-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 DRAIN_TMP=
 DRAIN_VIEW_TMP=
@@ -35,6 +37,7 @@ RECOVERY_ACK_MOVED=false
 ACK_THROUGH=
 ACK_GENERATION=
 ACK_REMOVED=0
+ACK_ROWS_TMP=
 PRESENTED_MAX=0
 ACK_FINGERPRINTS=
 ACK_NOTICE_FINGERPRINTS=
@@ -614,6 +617,7 @@ cleanup() {
   local status=$?
   [ -z "$DRAIN_TMP" ] || rm -f -- "$DRAIN_TMP" 2>/dev/null || true
   [ -z "$DRAIN_VIEW_TMP" ] || rm -f -- "$DRAIN_VIEW_TMP" 2>/dev/null || true
+  [ -z "${ACK_ROWS_TMP:-}" ] || rm -f -- "$ACK_ROWS_TMP" 2>/dev/null || true
   if [ "$DRAIN_LOCK_HELD" = true ]; then
     fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   fi
@@ -623,6 +627,30 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# The firstmate.wake spans for one successful acknowledgement: after the
+# commit, one span per consumed row whose key maps to a home task, covering
+# the row's queue time through this acknowledgement. bin/fm-trace-span-lib.sh's
+# header owns the catalogue entry; fm_wake_status_key_map owns the task
+# mapping, so heartbeats, per-poll checks, and window-keyed stale rows emit
+# nothing, and a task without a recorded carrier is the same silent no-op.
+# Bounded and best-effort: a telemetry failure can never un-acknowledge a row.
+acknowledged_wake_spans() {  # <consumed-rows-file>
+  local rows=$1 epoch seq kind key payload task start_ms
+  [ -f "$rows" ] || return 0
+  while IFS=$(printf '\t') read -r epoch seq kind key payload; do
+    case $kind in signal | stale | check) ;; *) continue ;; esac
+    fm_wake_status_key_map "$key" || continue
+    task=${FM_WAKE_STATUS_KEY%.status}
+    case $epoch in
+      '' | *[!0-9]*) start_ms=- ;;
+      *) start_ms=$((epoch * 1000)) ;;
+    esac
+    fm_trace_span_emit "$STATE/$task.meta" firstmate.wake "$start_ms" - \
+      "firstmate.wake.kind=$kind" "firstmate.wake.seq=$seq" "firstmate.wake.key=$key"
+  done < "$rows"
+  rm -f -- "$rows"
+}
 
 if [ -n "$ACK_THROUGH" ]; then
   fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK"
@@ -685,6 +713,8 @@ if [ -n "$ACK_THROUGH" ]; then
   DRAIN_LOCK_HELD=true
   DRAIN_TMP=$(mktemp "$STATE/.wake-queue.ack.XXXXXX") || exit 1
   chmod 0600 "$DRAIN_TMP" || exit 1
+  ACK_ROWS_TMP=$(mktemp "$STATE/.wake-queue.ack-spans.XXXXXX") || exit 1
+  chmod 0600 "$ACK_ROWS_TMP" || exit 1
   if [ "$ACTOR" = branch ]; then
     require_branch_eligible_rows || exit 1
     # Delete a row only when its sequence is <= cutoff AND it is named in the
@@ -694,11 +724,19 @@ if [ -n "$ACK_THROUGH" ]; then
       BEGIN { while ((getline line < seqs) > 0) if (line ~ /^[0-9]+$/) keep[line] = 1 }
       NF < 5 || $2 !~ /^[0-9]+$/ || $2 > cutoff || !($2 in keep) { print }
     ' "$FM_WAKE_QUEUE" > "$DRAIN_TMP" || exit 1
+    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$ELIGIBLE_ROWS_FILE" '
+      BEGIN { while ((getline line < seqs) > 0) if (line ~ /^[0-9]+$/) keep[line] = 1 }
+      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && ($2 in keep) { print }
+    ' "$FM_WAKE_QUEUE" > "$ACK_ROWS_TMP" || exit 1
   else
     awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$MAIN_ROWS_FILE" '
       BEGIN { while ((getline line < seqs) > 0) owned[line]=1 }
       NF < 5 || $2 !~ /^[0-9]+$/ || $2 > cutoff || !($2 in owned) { print }
     ' "$FM_WAKE_QUEUE" > "$DRAIN_TMP" || exit 1
+    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$MAIN_ROWS_FILE" '
+      BEGIN { while ((getline line < seqs) > 0) owned[line]=1 }
+      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && ($2 in owned) { print }
+    ' "$FM_WAKE_QUEUE" > "$ACK_ROWS_TMP" || exit 1
     fm_wake_commit_secondmate_stall_receipts_through "$ACK_THROUGH" "$MAIN_ROWS_FILE" || {
       echo "wake drain: secondmate stall receipt could not be recorded safely" >&2
       exit 1
@@ -735,6 +773,8 @@ if [ -n "$ACK_THROUGH" ]; then
   fi
   fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   DRAIN_LOCK_HELD=false
+  acknowledged_wake_spans "$ACK_ROWS_TMP"
+  ACK_ROWS_TMP=
   if [ "$ACK_REMOVED" -eq 0 ] && [ "$PRESENTED_MAX" -gt "$ACK_THROUGH" ]; then
     # Nothing at or below the cutoff was this actor's to consume, while a
     # presented row above it is still waiting: the caller acknowledged an

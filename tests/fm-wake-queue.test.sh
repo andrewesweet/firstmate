@@ -1561,6 +1561,81 @@ test_self_announced_append_guards() {
 # forever spinning against its own pid). The same-process re-acquire must
 # reclaim the abandoned hold, while a SUBSHELL still waits on its parent's
 # live hold exactly as before.
+# Wake-span telemetry: a successful acknowledgement posts one firstmate.wake
+# span per consumed row whose key maps to a home task - covering the row's
+# queue time through the commit - and never for heartbeats, per-poll check
+# keys, or window-keyed stale rows, which map to no task. Driven through the
+# real drain executable with a recording fake curl.
+test_acknowledgement_emits_task_keyed_wake_spans_only() {
+  local dir state fakebin sequence generation body t0 count
+  command -v jq >/dev/null 2>&1 || fail "jq is required for the wake-span assertions"
+  dir=$(make_case wake-spans)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+  chmod +x "$fakebin/curl"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s on\n' "$$" > "$state/.trace-context-effective"
+  fm_write_meta "$state/traced.meta" \
+    "window=firstmate:traced" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01"
+  t0=$(date +%s)
+  append_wake "$state" signal traced.status "signal: $state/traced.status" \
+    || fail "signal wake append failed"
+  append_wake "$state" stale "firstmate:traced" "stale: firstmate:traced" \
+    || fail "stale wake append failed"
+  append_wake "$state" check startup-network "check: startup-network still pending" \
+    || fail "check wake append failed"
+  append_wake "$state" heartbeat heartbeat heartbeat \
+    || fail "heartbeat wake append failed"
+  FM_FAKE_CURL_LOG="$dir/curl.log" \
+    FM_STATE_OVERRIDE="$state" "$DRAIN" > "$dir/drain.out" 2> "$dir/drain.err" \
+    || fail "presentation drain failed"
+  [ -f "$dir/curl.log" ] && [ -s "$dir/curl.log" ] \
+    && fail "presentation posted a span before any acknowledgement"
+  sequence=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$dir/drain.err")
+  generation=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through [0-9][0-9]* --recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' "$dir/drain.err")
+  [ -n "$sequence" ] && [ -n "$generation" ] || fail "drain omitted its acknowledgement boundary"
+  FM_FAKE_CURL_LOG="$dir/curl.log" PATH="$fakebin:$PATH" \
+    FM_STATE_OVERRIDE="$state" "$DRAIN" \
+    --ack-through "$sequence" --recovery-generation "$generation" \
+    || fail "acknowledgement failed"
+  [ ! -s "$state/.wake-queue" ] || fail "acknowledged records remained queued"
+  count=$(grep -c '^ARGS:' "$dir/curl.log" || true)
+  [ "$count" = 1 ] || fail "expected exactly one task-keyed wake span, got $count"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$dir/curl.log")
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .name == "firstmate.wake" and
+    .traceId == "11111111111111111111111111111112" and
+    .parentSpanId == "3333333333333334" and
+    .kind == 1
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the wake span must parent on the task carrier in the task trace"
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0].attributes as $a |
+    ([$a[] | select(.key == "firstmate.wake.kind")][0].value.stringValue == "signal") and
+    ([$a[] | select(.key == "firstmate.wake.key")][0].value.stringValue == "traced.status") and
+    ([$a[] | select(.key == "firstmate.wake.seq")][0].value.stringValue == "1")
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the wake span lost its kind, key, or seq attributes"
+  jq -e --argjson floor "$((t0 * 1000000))" \
+    '(.resourceSpans[0].scopeSpans[0].spans[0].startTimeUnixNano | tonumber) >= $floor' \
+    >/dev/null 2>&1 <<< "$body" \
+    || fail "the wake span must start at the row's queue time, not at acknowledgement time"
+  pass "acknowledgement spans cover task-keyed rows only, from queue time to commit"
+}
+
 test_self_held_lock_reclaims_instead_of_deadlocking() {
   local dir state rc
   dir=$(make_case self-held-lock)
@@ -1920,6 +1995,7 @@ test_secondmate_stall_marker_rejects_symlink
 test_acknowledged_stall_publication_survives_pre_marker_crash
 test_empty_prefix_mate_preserves_other_mate_receipt
 test_self_announced_append_guards
+test_acknowledgement_emits_task_keyed_wake_spans_only
 test_historical_annotation_skips_announced_status
 test_concurrent_append_and_drain
 test_signal_catchup_without_running_watcher
