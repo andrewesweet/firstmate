@@ -1,0 +1,4 @@
+Real curl posted spawn and task root to local HTTP receiver.
+POST /v1/traces; Content-Type: application/json; HTTP 200.
+Both spans share trace ID; spawn parent equals parentless task root span ID.
+Strict Bash caller continued silently after real collector timeout (1.042s) and connection refusal (1.042s).

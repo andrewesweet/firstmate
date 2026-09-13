@@ -1,0 +1,15 @@
+window=firstmate:fm-tc-span-z1
+endpoint_task_id=tc-span-z1
+worktree=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.test-phase-tmp/fm-trace-context-spawn.Tybar7/tc-span/wt
+project=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.test-phase-tmp/fm-trace-context-spawn.Tybar7/tc-span/project
+harness=claude
+kind=ship
+mode=no-mistakes
+yolo=off
+tasktmp=/tmp/fm-tc-span-z1
+model=default
+effort=default
+busy_gen=g1789258741.4161941.13157
+spawn_gen=s1789258741.4161610.12078
+traceparent=00-1a27134575a8d1df6e0df3a4f84b237b-924a2453d1b63205-01
+trace_started=1789258740096

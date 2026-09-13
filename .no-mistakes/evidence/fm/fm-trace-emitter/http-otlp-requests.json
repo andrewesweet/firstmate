@@ -1,0 +1,144 @@
+[
+  {
+    "path": "/v1/traces",
+    "content_type": "application/json",
+    "body": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "task"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "my proj"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.test-phase-tmp/http-home"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "11111111111111111111111111111112",
+                  "spanId": "49efb557e72c7d71",
+                  "parentSpanId": "3333333333333334",
+                  "name": "firstmate.spawn",
+                  "kind": 1,
+                  "startTimeUnixNano": "1700000000000000000",
+                  "endTimeUnixNano": "1700000000100000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.relaunch",
+                      "value": {
+                        "stringValue": "false"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "path": "/v1/traces",
+    "content_type": "application/json",
+    "body": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "task"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "my proj"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.test-phase-tmp/http-home"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "11111111111111111111111111111112",
+                  "spanId": "3333333333333334",
+                  "name": "firstmate.task",
+                  "kind": 1,
+                  "startTimeUnixNano": "1700000000000000000",
+                  "endTimeUnixNano": "1700000000200000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.task.outcome",
+                      "value": {
+                        "stringValue": "done"
+                      }
+                    }
+                  ],
+                  "status": {
+                    "code": 1
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]
