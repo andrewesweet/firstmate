@@ -102,7 +102,8 @@
 # with the trace id and span id never all-zero (W3C rejects both). New roots use
 # RANDOM ids from /dev/urandom. The root's `01` (sampled) flag records a
 # sampling DECISION that downstream parent-based samplers honor; it does not
-# guarantee any collector stores a span, and firstmate emits no spans itself.
+# guarantee any collector stores a span. Firstmate lifecycle emission is owned
+# separately by bin/fm-trace-span-lib.sh.
 #
 # Security / trust boundary. This feature adds exactly one OTEL_* variable,
 # OTEL_RESOURCE_ATTRIBUTES - the fixed key list above, rendered only from the

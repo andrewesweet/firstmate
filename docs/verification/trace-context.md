@@ -57,7 +57,6 @@ $ bash tests/fm-remote-secondmate-trace-context.test.sh | grep -c '^ok -'
 
 Date: 2026-09-13.
 Shell: GNU bash 5.2.21 (Linux).
-Base: the `fm/fm-trace-emitter` branch carrying PR 2 of the tracing plan (the emitter library, the `trace_started=` mint, and the two lifecycle emissions).
 
 The colocated unit suite `tests/fm-trace-span-lib.test.sh` exercises the emitter through a fake curl that records its arguments and stdin body.
 It checks omission for untraced tasks and disabled sessions, child and root span identities, timestamps, status mapping, endpoint precedence, and resource attributes decoded from the emitted OTLP JSON.
@@ -67,7 +66,7 @@ Resource checks preserve spaces, punctuation, quotes, backslashes, Unicode, and 
 The spawn-path suite `tests/fm-trace-context-spawn.test.sh` grows two assertions (14 total): an enabled spawn records a numeric `trace_started=` beside the carrier, posts exactly one `firstmate.spawn` span parenting on the carrier with `firstmate.relaunch=false` and the meta's `spawn_gen`, and a formal `--relaunch` preserves both the carrier and the original mint time while posting `firstmate.relaunch=true` with `firstmate.spawn_gen.prior` naming the replaced generation; a disabled home posts nothing and records no `trace_started=`.
 The existing twelve assertions, including the default-off byte-identical meta and pane contract, pass unchanged.
 
-The teardown suite `tests/fm-teardown.test.sh` grows four assertions: a traced teardown posts exactly one `firstmate.task` root that reuses the carrier's trace id and span id parentless, starts at the recorded `trace_started=` nanoseconds, maps the last captain-relevant status line (`done:` to code 1 with `firstmate.task.outcome=done`, `failed:` to code 2 with `failed`), and carries the recorded `pr=`, `mode=`, and `spawn_gen=` values; a `--force` teardown adds `firstmate.teardown.forced=true` and reads a status file with no terminal line as `unknown`; an untraced, session-disabled home posts nothing.
+The teardown suite `tests/fm-teardown.test.sh` grows four assertions: a traced teardown posts exactly one `firstmate.task` root that reuses the carrier's trace id and span id parentless, starts at the recorded `trace_started=` epoch milliseconds converted to nanoseconds, maps the last captain-relevant status line (`done:` to code 1 with `firstmate.task.outcome=done`, `failed:` to code 2 with `failed`), and carries the recorded `pr=`, `mode=`, and `spawn_gen=` values; a `--force` teardown adds `firstmate.teardown.forced=true` and reads a status file with no terminal line as `unknown`; an untraced, session-disabled home posts nothing.
 The suite's other 84 assertions pass unchanged.
 
 The remote-route suite `tests/fm-remote-secondmate-trace-context.test.sh` (6 assertions) passes unchanged, proving a remote-routed second mate still launches end to end with the emitter library sourced on both hosts.

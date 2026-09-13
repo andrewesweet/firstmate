@@ -8,8 +8,8 @@ This document is the rationale and current-behavior guide; `docs/configuration.m
 ## Why this is a source change at all
 
 Firstmate's durable operational artifacts already let a downstream observer derive logical task identity and lifecycle.
-Two pieces cannot be reconstructed that way: the task's root span, whose id is the span id Firstmate minted into the carrier - a trace server completes a trace only when a parentless span arrives, so only Firstmate can emit it - and every lifecycle event after teardown, because `state/<id>.meta` and `state/<id>.status` are removed with the record.
-The source capability is therefore the carrier seam plus minimal first-party emission of exactly the lifecycle spans a derived view cannot cover; `bin/fm-trace-span-lib.sh`'s header owns the emission mechanics and the span catalogue.
+Firstmate emits the task root using the identity it minted and captures lifecycle data before teardown removes `state/<id>.meta` and `state/<id>.status`.
+This avoids requiring an observer to capture those ephemeral records before cleanup.
 
 ## What it does
 
@@ -20,7 +20,8 @@ When enabled, for each spawn Firstmate resolves one W3C `traceparent` carrier fo
 - records the identical value as `traceparent=` in `state/<id>.meta`.
 
 `TRACEPARENT` as an environment variable is a Firstmate convention carrying a W3C-formatted value: W3C Trace Context standardizes the `traceparent` HTTP header, not an env var, and OpenTelemetry SDKs do not read it from the environment automatically, so a downstream observer must explicitly read this env value or the `traceparent=` meta field.
-The carrier seam itself parents no SDK span on the agent's behalf; the only spans Firstmate emits are its own lifecycle actions - the `firstmate.spawn` span after a committed launch and the `firstmate.task` root at record removal - posted as one bounded OTLP/HTTP request each by the default-off emitter whose header, `bin/fm-trace-span-lib.sh`, owns the wire shape, endpoint precedence, and the catalogue.
+The carrier seam itself parents no SDK span on the agent's behalf.
+Firstmate also emits its own lifecycle spans; [`fm-trace-span-lib.sh`](../bin/fm-trace-span-lib.sh) owns the span catalogue, wire shape, endpoint configuration, and delivery contract.
 
 The same enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the pane immediately after `TRACEPARENT`, with a fixed `firstmate.*` key list for instrumentation that consumes resource attributes; `bin/fm-trace-context-lib.sh`'s header owns the key list and the percent encoding.
 
@@ -92,12 +93,12 @@ This is a deliberate, source-owned choice:
 - **Default-off.**
   With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` line, so the generated meta and the launch environment are unchanged.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
-  A locked session start makes the one config-file check, and each spawn sources one extra library and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
+  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
   Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim; ambient `TRACEPARENT` is never read, so no caller-controlled bytes enter a new carrier.
-  Exposure is bounded to that fixed-width carrier - it cannot carry a `tracestate`, an `OTEL_*` credential variable, or any arbitrary environment key - and the only external processes are the fixed local `od`/`tr` entropy pipeline and one `curl` posting the fixed OTLP shape to the endpoint the SDK environment variables name.
-
+  Carrier exposure is bounded to that fixed-width value; lifecycle emission has a broader payload governed by the emitter header's security boundary.
+  Review that payload before enabling export to a receiver outside the home's trust boundary.
   Resource attributes expose task metadata, including the project basename and home path, plus secondmate identity from metadata or the spawning home's marker, as specified in `bin/fm-trace-context-lib.sh`'s header.
   Firstmate reads no prompt, credential, or task prose to render those attributes.
   The export preserves any existing pane `OTEL_RESOURCE_ATTRIBUTES` as a comma prefix and appends Firstmate's keys; consumers determine how duplicate keys are interpreted.
@@ -111,14 +112,15 @@ This is a deliberate, source-owned choice:
   If the backend reports that failed trace input could not be cleared, Firstmate refuses to append the launch command rather than risk launching with an unknown partial carrier.
   A resource-attribute delivery failure unsets `OTEL_RESOURCE_ATTRIBUTES` in the launch command; input that cannot be cleared refuses the launch.
   If recording the carrier fails after export, Firstmate unsets `TRACEPARENT` in the launch command and still launches the task, so the child never receives an identity absent from its metadata.
-  Span emission is bounded the same way: one `curl --max-time 1` per lifecycle event, whose failure - curl absent, connection refused, timeout, non-2xx - is silent and never alters the caller's outcome.
-- **Metadata-only.**
-  The carrier lives in the ephemeral pane shell and in `state/<id>.meta`, and emission adds no durable surface: each span is posted once, never queued or retried, and teardown removes state as before, so there is no schema migration.
+  The emitter header owns the separate delivery timeout and failure contract.
+- **Ephemeral local state.**
+  The carrier lives in the pane shell and task metadata; teardown removes local trace state as before.
+  Receiver storage and retention remain outside Firstmate.
 
 ## Relationship to OpenTelemetry and later increments
 
-Firstmate learns the OTLP/HTTP wire shape and the SDK endpoint variables, and nothing further about OpenTelemetry: no collector implementation, storage, UI, vendor, or experiment concept is read or named anywhere in the feature.
-It emits the standard W3C carrier, records the same identity, and posts minimal spans for its own lifecycle actions only - the emission gate from the standing contract opened because the root-span and durability gaps became concrete - while a downstream observer owns everything else and discovers active propagation from the home session's frozen decision or the `traceparent=` field.
+Firstmate implements OTLP/HTTP emission without a collector, storage, UI, or vendor-specific experiment configuration.
+A downstream integration owns experiment routing, including MLflow experiments, and harness instrumentation; it discovers active propagation from the home session's frozen decision or the `traceparent=` field.
 Extra stable IDs, intake metadata, and any deeper OpenTelemetry integration remain deferred until a running observer demonstrates a concrete fidelity gap that the emitted spans and derived artifacts cannot cover.
 
 ## Verification

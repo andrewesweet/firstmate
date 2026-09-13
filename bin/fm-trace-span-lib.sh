@@ -2,11 +2,8 @@
 # Minimal OTLP/HTTP span emission for firstmate's own lifecycle events
 # (default-off; the carrier seam itself is bin/fm-trace-context-lib.sh).
 #
-# Why firstmate emits at all: the task root span cannot be derived by anyone
-# else - its span id is the span id firstmate minted into the carrier, and an
-# MLflow-style server completes a trace only when a parentless span arrives -
-# and the meta/status records the spans would be derived from are removed at
-# teardown. Emission is a library, not a daemon: one bounded curl per lifecycle
+# docs/trace-context.md owns the rationale for first-party lifecycle emission.
+# Emission is a library, not a daemon: one bounded curl per lifecycle
 # event, run inside the script that already owns the event, with no collector,
 # storage, UI, vendor coupling, retry, queue, or durable emission state. A
 # receiver that is absent, down, slow, or refusing is indistinguishable from
@@ -29,15 +26,15 @@
 #
 #   <start-ms>/<end-ms> are epoch milliseconds; `-` means now
 #   (fm_timing_now_ms). A non-numeric value is treated like `-`, and an end
-#   before its start is clamped so a span never has negative duration. A root
-#   span whose `trace_started=` mint time was never recorded collapses to a
-#   zero-length span, which still completes the trace.
+#   before its start is clamped so a span never has negative duration.
+#   Teardown passes `-` for a missing `trace_started=` mint time, so that root
+#   starts at emission time; start and end are resolved separately.
 #
 #   --root uses the carrier's span id as this span's id and leaves it
 #   parentless; without it a fresh random span id is minted
 #   (fm_trace_context_hex 8) and the carrier's span id becomes the parent.
-#   Exactly one task root exists per trace, so exactly one emission per task
-#   may pass --root (bin/fm-teardown.sh, at record removal).
+#   bin/fm-teardown.sh owns root emission at record removal. There is no
+#   delivery receipt or deduplication if cleanup is interrupted and repeated.
 #
 #   --status ok maps to OTLP code 1 (OK), error to 2 (ERROR); anything else,
 #   including the default, omits the status field (UNSET).
@@ -48,7 +45,7 @@
 #   One OTLP/JSON `ExportTraceServiceRequest` per call: resource attributes
 #   `service.name=firstmate` plus exactly the `firstmate.*` keys rendered by
 #   fm_trace_span_resource_json: firstmate.task.id, firstmate.project (basename),
-#   firstmate.home (metadata home's path), firstmate.task.kind,
+#   firstmate.home (parent of the metadata directory), firstmate.task.kind,
 #   firstmate.harness, firstmate.model, firstmate.effort, firstmate.spawn_gen,
 #   and firstmate.secondmate.id only for kind=secondmate (the task id).
 #   Absent metadata values are omitted; one scope named firstmate;
@@ -62,7 +59,9 @@
 #       firstmate.window.
 #     firstmate.task (root) - bin/fm-teardown.sh, immediately before the
 #       backlog record removal, with the terminal outcome read from the last
-#       captain-relevant status line before the status file is retired;
+#       done:/failed: status line before the status file is retired;
+#       done maps to OK, failed to ERROR, and no such line leaves status UNSET
+#       with outcome retired for a secondmate or unknown otherwise;
 #       attributes firstmate.task.outcome (done, failed, retired, unknown),
 #       firstmate.task.mode, firstmate.task.yolo, firstmate.pr.url,
 #       firstmate.teardown.forced, firstmate.spawn_gen.
@@ -86,8 +85,9 @@
 # Security / trust boundary. The body carries only fixed-shape ids, the span
 # name and attributes the caller passes, and resource values JSON-escaped
 # by fm_trace_span_resource_json from the task's own meta; no prompt, credential,
-# or arbitrary environment value is read into it. The only external process
-# is curl, resolved from PATH, posting to the endpoint above; there is no
+# or arbitrary environment value is read into it. Metadata-derived paths,
+# names, and the PR URL are sent as recorded, without redaction. The network
+# operation is curl, resolved from PATH, posting to the endpoint above; there is no
 # configured provider command, no tracestate, and no parentage from ambient
 # context. Because every failure is silent and bounded at one second, a
 # missing or hostile endpoint can slow one lifecycle event by at most its
