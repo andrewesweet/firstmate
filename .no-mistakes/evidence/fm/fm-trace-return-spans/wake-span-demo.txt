@@ -1,0 +1,47 @@
+### queue before presentation
+1789291733	1	signal	demo-task.status	signal: /tmp/fm-wake-demo.sCvcKF/demo/state/demo-task.status
+1789291733	2	heartbeat	heartbeat	heartbeat
+1789291733	3	check	startup-network	check: startup-network still pending
+1789291733	4	stale	firstmate:demo-task	stale: firstmate:demo-task
+
+### presentation drain (stdout / stderr)
+1789291733	1	signal	demo-task.status	signal: /tmp/fm-wake-demo.sCvcKF/demo/state/demo-task.status
+1789291733	2	heartbeat	heartbeat	heartbeat
+1789291733	3	check	startup-network	check: startup-network still pending
+1789291733	4	stale	firstmate:demo-task	stale: firstmate:demo-task
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 1954082.1789291733.0jjEL2
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+curl calls during presentation: 0
+
+### acknowledge --ack-through 4
+exit=0
+queue rows after ack: 0
+
+### spans posted (one per task-keyed row; heartbeat/check/stale emit nothing)
+curl -sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://127.0.0.1:4318/v1/traces
+{
+  "name": "firstmate.wake",
+  "traceId": "0123456789abcdef0123456789abcdef",
+  "parentSpanId": "fedcba9876543210",
+  "startTimeUnixNano": "1789291733000000000",
+  "endTimeUnixNano": "1789291736459000000",
+  "attributes": {
+    "firstmate.wake.kind": "signal",
+    "firstmate.wake.seq": "1",
+    "firstmate.wake.key": "demo-task.status"
+  }
+}
+
+### replay of the same acknowled/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2CZGQJ34SD8Z1J3Y209285E/bin/fm-wake-lib.sh: line 559: [: : integer expression expected
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2CZGQJ34SD8Z1J3Y209285E/tests/wake-helpers.sh: line 47: 1913220 Segmentation fault      (core dumped) FM_STATE_OVERRIDE="$state" bash -c '
+    # shellcheck disable=SC1090,SC1091
+    . "$1"
+    fm_wake_append "$2" "$3" "$4"
+  ' _ "$lib" "$kind" "$key" "$payload"

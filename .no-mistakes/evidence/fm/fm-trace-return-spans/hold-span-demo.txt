@@ -1,0 +1,22 @@
+### hold at 2026-06-01T12:00:00Z
+demo-call
+
+### answer
+answered: demo-call
+
+### span posted by the answer (start = recorded hold-set time)
+curl -sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://127.0.0.1:4318/v1/traces
+{
+  "name": "firstmate.hold",
+  "traceId": "0123456789abcdef0123456789abcdef",
+  "parentSpanId": "fedcba9876543210",
+  "start": "2026-06-01T12:00:00Z",
+  "attributes": {
+    "firstmate.hold.close_mode": "answered",
+    "firstmate.hold.reason": "captain must choose the export shape"
+  }
+}
+
+### idempotent answer replay
+answered: demo-call
+curl calls total: 1
