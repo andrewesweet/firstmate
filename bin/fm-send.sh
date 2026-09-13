@@ -245,6 +245,8 @@ fi
 . "$SCRIPT_DIR/fm-task-inbox-lib.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 FM_GUARD_CONTINUE_LINE='This is a supervision warning only; the requested message WILL still be sent.' "$SCRIPT_DIR/fm-guard.sh" || true
 
@@ -252,6 +254,26 @@ fm_send_id_from_meta() {  # <meta-file>
   local base
   base=${1##*/}
   printf '%s' "${base%.meta}"
+}
+
+# Emit the firstmate.steer span for a completed send, on the exit-0 paths
+# after durable delivery and on the --key path after verified delivery
+# (bin/fm-trace-span-lib.sh's header owns the catalogue entry). A disabled
+# home, an untraced task, or an explicit backend target without task metadata
+# is a silent no-op, and no emission failure can change the send's outcome:
+# the emitter always returns 0 and never types anything, so message success
+# semantics are untouched.
+fm_send_trace_steer() {  # <meta-file> <plane> [extra key=value...]
+  local meta=$1 plane=$2
+  [ -n "$meta" ] || return 0
+  shift 2
+  local -a span_attrs=("firstmate.plane=$plane")
+  [ -z "${PENDING_REPLY_CORR:-}" ] || span_attrs+=("firstmate.corr=$PENDING_REPLY_CORR")
+  [ -z "${RESOLVE_KEYS:-}" ] \
+    || span_attrs+=("firstmate.decision.key=$(printf '%s' "$RESOLVE_KEYS" | tr ' ' ',')")
+  [ -z "${FIRE_AND_FORGET_ID:-}" ] || span_attrs+=("firstmate.fire_and_forget=true")
+  span_attrs+=("$@")
+  fm_trace_span_emit "$meta" firstmate.steer - - "${span_attrs[@]}"
 }
 
 # fm_send_clear_after_interrupt: muse RESTORES the interrupted prompt back into
@@ -721,6 +743,9 @@ if [ "${1:-}" = "--key" ]; then
   fi
   fm_send_clear_after_interrupt "$semantic_key" || exit 1
   fm_send_record_interrupt "$semantic_key" || exit 1
+  # The key was delivered and its follow-ups completed; that is the key
+  # plane's verified delivery (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" key
 else
   MESSAGE=$*
   if [ "$TARGET_BACKEND" = remote ]; then
@@ -926,6 +951,10 @@ else
       fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
       fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
     fi
+    # The remote record is durable delivery; the span is emitted by this
+    # parent home against the parent-owned carrier (the remote record's own
+    # sequence lives in the remote home, so no firstmate.inbox.seq here).
+    fm_send_trace_steer "$TARGET_META" inbox
     exit 0
   fi
   if [ "$INBOX_PLANE" = 1 ]; then
@@ -1003,6 +1032,10 @@ else
       fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
       fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
     fi
+    # Durable enqueue is this plane's delivery; the record name carries the
+    # sequence the span reports (bin/fm-trace-span-lib.sh's catalogue).
+    INBOX_SPAN_SEQ=${INBOX_RECORD##*/}
+    fm_send_trace_steer "$TARGET_META" inbox "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}"
     # Ring the doorbell, best-effort: no ring outcome changes the exit status,
     # because the watcher owns loss detection from here, either through its
     # bounded re-ring ladder or direct unavailable-endpoint recovery.
@@ -1101,6 +1134,9 @@ else
     fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
     fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
   fi
+  # Confirmed submit is the typed plane's delivery
+  # (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" typed
   # Submit landed with exact empty. Confirmation only proves the text was
   # accepted; the harness still needs a beat to spin up the
   # turn before its busy footer shows. Pause so an immediate peek catches the

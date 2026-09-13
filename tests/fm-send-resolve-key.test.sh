@@ -636,6 +636,59 @@ test_unclosable_reserved_key_refuses_before_send() {
   pass "fm-send --resolve-key: a reserved key this send cannot close refuses loudly before anything is sent"
 }
 
+# The answerer-closes span: a delivered answer posts one firstmate.steer span
+# carrying each resolved key, while a refused answer (mistyped key, nothing
+# sent) posts none.
+test_span_carries_decision_keys_and_refusal_posts_none() {
+  local dir fb log home rc body
+  dir="$TMP_ROOT/span-keys"; mkdir -p "$dir"
+  fb=$(make_stubs "$dir"); log="$dir/send.log"
+  home=$(setup_home span-keys)
+  cat > "$dir/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit "${FM_FAKE_CURL_EXIT:-0}"
+SH
+  chmod +x "$dir/fakebin/curl"
+  fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  printf 'traceparent=%s\n' '00-11111111111111111111111111111112-3333333333333334-01' \
+    >> "$home/state/t1.meta"
+  printf '%s\n' $$ > "$home/state/.lock"
+  printf '%s on\n' $$ > "$home/state/.trace-context-effective"
+  printf 'needs-decision [key=api-shape]: pick REST or RPC\n' > "$home/state/t1.status"
+  printf 'needs-decision [key=port-choice]: pick a port\n' >> "$home/state/t1.status"
+
+  export FM_FAKE_CURL_LOG="$dir/curl.log"
+  run_send "$fb" "$home" "$log" \
+    t1 --resolve-key api-shape --resolve-key port-choice "one answer covering both"; rc=$?
+  expect_code 0 "$rc" "the two-key answer should succeed"
+  body=$(awk '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == 1) exit; next }
+    c == 1 { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$dir/curl.log")
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.steer"' >/dev/null <<< "$body" \
+    || fail "the answer send must post a firstmate.steer span"
+  jq -er '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.decision.key") | .value.stringValue' <<< "$body" \
+    | grep -qx 'api-shape,port-choice' \
+    || fail "the span must carry both resolved keys comma-joined"
+  case "$body" in
+    *"one answer covering both"*) fail "the span must never carry the answer text" ;;
+  esac
+
+  # A mistyped key refuses before anything is sent: no record, no span.
+  : > "$dir/curl.log"
+  run_send "$fb" "$home" "$log" \
+    t1 --resolve-key no-such-key "an answer to nowhere"; rc=$?
+  [ "$rc" -ne 0 ] || fail "a mistyped key must refuse"
+  [ ! -e "$home/state/t1.inbox/002.msg" ] || fail "a refused answer must not enqueue"
+  [ ! -s "$dir/curl.log" ] || fail "a refused answer must post no span"
+  unset FM_FAKE_CURL_LOG
+  pass "fm-send --resolve-key: the posted steer span carries the resolved keys, and a refusal posts none"
+}
+
 test_long_decision_key_refuses_before_send() {
   local dir fb log home err key rc out
   dir="$TMP_ROOT/long-key"; mkdir -p "$dir"
@@ -739,3 +792,6 @@ test_unclosable_reserved_key_refuses_before_send
 test_long_decision_key_refuses_before_send
 test_failed_close_recovery_command_is_shell_safe
 test_remote_reserved_pending_reply_key_closes_locally
+test_span_carries_decision_keys_and_refusal_posts_none
+
+echo "# all fm-send-resolve-key tests passed"

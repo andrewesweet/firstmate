@@ -110,3 +110,43 @@ ok - one merged span per published canonical outcome across self, poll, and dedu
 ```
 
 Both suites exit 0; `tests/fm-pr-check-security.test.sh` and `tests/fm-pr-merge.test.sh` end with one `ok - ...` line per case rather than a footer, so check exit status and full output when refreshing this evidence.
+
+## 2026-09-13 increment: the steer, promote, and control spans
+
+Date: 2026-09-13.
+Shell: GNU bash 5.2.21 (Linux).
+Base: `main` at `4c9abf4`.
+
+The emitter's span catalogue in [`bin/fm-trace-span-lib.sh`](../../bin/fm-trace-span-lib.sh)'s header grows its three lifecycle-owner entries, and each owner emits on its already-verified success path only, so a disabled home, an untraced task, or a failing emitter leaves every send, promotion, and control verb byte-identical in outcome:
+
+- `bin/fm-send.sh` posts `firstmate.steer` on each exit-0 delivery path (local inbox enqueue, remote inbox leg, typed submit confirmation) and after the `--key` path's verified delivery, carrying `firstmate.plane`, the durable record's `firstmate.inbox.seq` on local inbox sends, a marked request's `firstmate.corr`, the comma-joined `--resolve-key` keys as `firstmate.decision.key`, and `firstmate.fire_and_forget=true`; never the message content.
+- `bin/fm-promote.sh` posts `firstmate.promote` after the promoted record is published, carrying `firstmate.task.kind.prior=scout`, `firstmate.task.mode`, and `firstmate.task.yolo`.
+- `bin/fm-control.sh` posts `firstmate.control` at the interrupt and exit verb dispatch sites after the verified postcondition, carrying the verb, the adapter-owned cancellation claim (`firstmate.control.confirmed`), the interrupt proof, and the exit result; the dispatch-site placement keeps a relaunch's internal stop from emitting, which the replacement launch's spawn span already covers.
+
+The behavioral suites drive the real executables with a fake curl that records the OTLP request, and cover enabled, disabled, and emitter-failure paths plus the remote ownership boundary:
+
+- `tests/fm-promote.test.sh` (new, 3 assertions): the published promotion posts exactly one span parenting on the task's carrier with the contract-flip attributes and the published `kind=ship` in the resource; a disabled home promotes identically and posts nothing; a refused collector cannot fail the promotion.
+- `tests/fm-send-inbox.test.sh` (17 assertions, 5 new): a delivered inbox steer posts one span with the record sequence and no message content; a marked secondmate request's span carries its correlation id; fire-and-forget is flagged without its delivery id; a disabled home and a failing emitter leave the send untouched; the typed and `--key` planes each post their own span.
+- `tests/fm-send-resolve-key.test.sh` (21 assertions, 1 new): a two-key answer's span carries both keys comma-joined and never the answer text, while a mistyped key refuses before anything is sent and posts no span.
+- `tests/fm-send-remote-delivery.test.sh` (17 assertions, 1 new): a remote secondmate steer's span is emitted by the parent home against the parent-owned carrier, with the correlation and no inbox sequence (the record's sequence lives in the remote home); the remote leg posts none.
+- `tests/fm-control.test.sh` (38 assertions, 3 new): a verified interrupt posts one span with verb, cancellation claim (`confirmed=false` for Claude's acknowledgement-free adapter), and `agent-alive` proof; verified exits post `confirmed=true` with result `stopped` or `already-stopped`; a disabled home and a failing emitter leave the verb's outcome untouched.
+- `tests/fm-control-relaunch.test.sh` (54 assertions, 1 new): a traced relaunch posts exactly the replacement's `firstmate.spawn` span (`firstmate.relaunch=true`) and no control span.
+
+```console
+$ bash tests/fm-promote.test.sh | tail -1
+# all fm-promote tests passed
+$ bash tests/fm-send-resolve-key.test.sh | tail -1
+# all fm-send-resolve-key tests passed
+$ bash tests/fm-send-remote-delivery.test.sh | tail -1
+all fm-send-remote-delivery tests passed
+$ for t in fm-send-inbox fm-send-resolve-key fm-send-remote-delivery fm-control fm-control-relaunch fm-promote; do printf '%s: ' "$t"; bash tests/$t.test.sh | grep -c '^ok -'; done
+fm-send-inbox: 17
+fm-send-resolve-key: 21
+fm-send-remote-delivery: 17
+fm-control: 38
+fm-control-relaunch: 54
+fm-promote: 3
+```
+
+`tests/fm-send-inbox.test.sh`, `tests/fm-control.test.sh`, and `tests/fm-control-relaunch.test.sh` end on their last `ok - ...` line rather than a footer; check each suite's exit status and `ok` count when refreshing this evidence.
+The pre-existing suites that pin each owner's delivery, promotion, and control contracts pass unchanged, as do the earlier trace suites (`tests/fm-trace-span-lib.test.sh`, `tests/fm-trace-context-lib.test.sh`, `tests/fm-trace-context-spawn.test.sh`, `tests/fm-teardown.test.sh`, `tests/fm-remote-secondmate-trace-context.test.sh`).

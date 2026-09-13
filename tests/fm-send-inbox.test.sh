@@ -22,6 +22,11 @@
 #      retryable send failure that could duplicate the durable instruction.
 #   9. An unwritable inbox is a real local failure: nonzero exit, nothing
 #      typed, and a just-created pending-reply expectation is discarded.
+#  10. Tracing: a delivered steer posts one firstmate.steer span with the
+#      plane and inbox sequence and never the message content; a marked
+#      request adds its corr; fire-and-forget is flagged; a disabled home or
+#      failing emitter changes nothing about the send; the typed and --key
+#      planes post their own spans.
 # Every case below that passes a literal `$...` message quotes it on purpose
 # (the point is sending an unexpanded `$` line), so SC2016 is disabled.
 # shellcheck disable=SC2016
@@ -112,6 +117,160 @@ run_send() {  # <case-dir> <err-file> [env...] -- <fm-send args...>
 
 record_body() {  # <record>
   bash -c '. "$1"; fm_task_inbox_body "$2"' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$2"
+}
+
+# --- tracing fixtures --------------------------------------------------------
+
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+# Fake curl recording the OTLP request fm-send would post.
+add_fake_curl() {  # <case-dir>
+  cat > "$1/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit "${FM_FAKE_CURL_EXIT:-0}"
+SH
+  chmod +x "$1/fakebin/curl"
+}
+
+# Turn tracing on for the case's home and task: a frozen effective decision
+# plus a recorded carrier in the task meta.
+enable_trace() {  # <case-dir> <task-id>
+  printf '%s\n' $$ > "$1/home/state/.lock"
+  printf '%s on\n' $$ > "$1/home/state/.trace-context-effective"
+  printf 'traceparent=%s\n' "$CARRIER" >> "$1/home/state/$2.meta"
+}
+
+span_requests() {  # <case-dir>
+  if [ -f "$1/curl.log" ]; then
+    grep -c '^ARGS:' "$1/curl.log" || true
+  else
+    printf '0\n'
+  fi
+}
+
+span_body() {  # <case-dir> <1-based request number>
+  awk -v n="$2" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$1/curl.log"
+}
+
+span0() {  # <jq-filter> <body>: true when the filter holds on the first span
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | '"$1" >/dev/null 2>&1 <<< "$2"
+}
+
+span_attr() {  # <key> <body>
+  jq -er --arg k "$1" \
+    '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == $k) | .value.stringValue' \
+    <<< "$2"
+}
+
+test_inbox_steer_emits_span_with_sequence() {
+  local dir err rc body
+  dir=$(setup_case trace-inbox); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" t1
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "please rebase onto main"; rc=$?
+  expect_code 0 "$rc" "the traced send should still exit 0"
+  [ "$(span_requests "$dir")" = 1 ] || fail "exactly one span request expected"
+  body=$(span_body "$dir" 1)
+  span0 '.name == "firstmate.steer"' "$body" || fail "the span must be firstmate.steer"
+  span0 ".traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" "$body" \
+    || fail "the span must ride the target task's trace under its carrier"
+  [ "$(span_attr firstmate.plane "$body")" = inbox ] || fail "the plane must be inbox"
+  [ "$(span_attr firstmate.inbox.seq "$body")" = 001 ] \
+    || fail "the span must carry the durable record's sequence"
+  case "$body" in
+    *"rebase"*) fail "the span must never carry message content" ;;
+  esac
+  pass "fm-send inbox: a delivered steer posts one span with plane and record sequence, never the message"
+}
+
+test_secondmate_steer_span_carries_corr() {
+  local dir err body corr
+  dir=$(setup_case trace-corr); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" domain
+  fm_write_secondmate_meta "$dir/home/state/domain.meta" "$dir/home" "sess:fm-domain"
+  printf 'traceparent=%s\n' "$CARRIER" >> "$dir/home/state/domain.meta"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- fm-domain "please summarize fleet health" \
+    || fail "the marked secondmate steer should succeed"
+  corr=$(printf '%s' "$(record_body _ "$dir/home/state/domain.inbox/001.msg")" \
+    | grep -oE 'corr=[a-f0-9]{16}' | head -1 | cut -d= -f2)
+  [ -n "$corr" ] || fail "precondition: no corr token in the recorded body"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.corr "$body")" = "$corr" ] \
+    || fail "the span must carry the request's correlation id"
+  pass "fm-send inbox: a marked request's span carries its correlation id"
+}
+
+test_fire_and_forget_span_is_flagged() {
+  local dir err body delivery_id
+  dir=$(setup_case trace-ff); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" domain
+  fm_write_secondmate_meta "$dir/home/state/domain.meta" "$dir/home" "sess:fm-domain"
+  printf 'traceparent=%s\n' "$CARRIER" >> "$dir/home/state/domain.meta"
+  delivery_id=abcdef0123456789
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- fm-domain \
+    --fire-and-forget "$delivery_id" "one-way instruction" \
+    || fail "the fire-and-forget steer should succeed"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.fire_and_forget "$body")" = true ] \
+    || fail "a fire-and-forget delivery must be flagged on the span"
+  case "$body" in
+    *"$delivery_id"*) fail "the delivery id must not ride the span" ;;
+  esac
+  pass "fm-send inbox: a fire-and-forget delivery is flagged without its delivery id"
+}
+
+test_traced_disabled_home_and_failed_emitter() {
+  local dir err rc
+  # A disabled home (no frozen decision) posts nothing, with or without curl.
+  dir=$(setup_case trace-disabled); err="$dir/send.err"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "no telemetry here"; rc=$?
+  expect_code 0 "$rc" "an untraced send must still succeed"
+  [ "$(span_requests "$dir")" = 0 ] || fail "a disabled home must post no span"
+  # An emitter failure cannot alter the send's success.
+  dir=$(setup_case trace-curlfail); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" t1
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" FM_FAKE_CURL_EXIT=7 \
+    -- t1 "deliver through a dead collector"; rc=$?
+  expect_code 0 "$rc" "a refused collector must not fail the send"
+  [ -f "$dir/home/state/t1.inbox/001.msg" ] || fail "the steer must still be recorded"
+  pass "fm-send inbox: a disabled home and a failing emitter leave the send untouched"
+}
+
+test_typed_and_key_planes_emit_their_spans() {
+  local dir err body
+  # A harness-native slash invocation rides the typed plane.
+  dir=$(setup_case trace-typed); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" t1
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "/no-mistakes" \
+    || fail "the typed slash send should succeed"
+  [ "$(span_requests "$dir")" = 1 ] || fail "the typed send must post exactly one span"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.plane "$body")" = typed ] || fail "the plane must be typed"
+  jq -e '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.inbox.seq")] | length == 0' \
+    >/dev/null <<< "$body" \
+    || fail "a typed send has no inbox record"
+  # The --key path posts the key plane after verified delivery.
+  dir=$(setup_case trace-key); err="$dir/send.err"
+  add_fake_curl "$dir"
+  enable_trace "$dir" t1
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 --key Enter \
+    || fail "the key send should succeed"
+  [ "$(span_requests "$dir")" = 1 ] || fail "the key send must post exactly one span"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.plane "$body")" = key ] || fail "the plane must be key"
+  [ ! -d "$dir/home/state/t1.inbox" ] || fail "the key path must not write an inbox"
+  pass "fm-send planes: the typed and --key planes each post their own steer span"
 }
 
 test_text_steer_rides_inbox() {
@@ -350,3 +509,8 @@ test_secondmate_marker_and_enqueue_delivery
 test_post_enqueue_bookkeeping_failure_is_not_retryable
 test_meta_lock_contention_fails_bounded
 test_unwritable_inbox_fails_loudly
+test_inbox_steer_emits_span_with_sequence
+test_secondmate_steer_span_carries_corr
+test_fire_and_forget_span_is_flagged
+test_traced_disabled_home_and_failed_emitter
+test_typed_and_key_planes_emit_their_spans

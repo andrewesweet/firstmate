@@ -79,9 +79,30 @@
 #       new; a failed publication emits nothing. Attributes firstmate.pr.url,
 #       firstmate.merge.origin (self, poll), firstmate.merge.authority
 #       (yolo, away-grant, attended, external; omitted when none is known).
-#   Later catalogue entries (steer, promote, control, link
-#   emission sites, handoff, hold, reply, wake) are separate increments and
-#   must extend this list only when they land.
+#     firstmate.steer - bin/fm-send.sh, on each exit-0 path after the steer
+#       is durably delivered (local inbox enqueue, remote inbox leg, typed
+#       submit confirmation) and after the --key path's verified delivery;
+#       attributes firstmate.plane (inbox, typed, key), firstmate.inbox.seq
+#       (local inbox sends only - a remote record's sequence lives in the
+#       remote home), firstmate.corr (a marked secondmate request's
+#       correlation id), firstmate.decision.key (each --resolve-key,
+#       comma-joined), firstmate.fire_and_forget=true for an explicit
+#       fire-and-forget delivery. Never the message content.
+#     firstmate.promote - bin/fm-promote.sh after the promoted task record is
+#       published; attributes firstmate.task.kind.prior (always scout -
+#       promotion only runs on kind=scout), firstmate.task.mode,
+#       firstmate.task.yolo.
+#     firstmate.control - bin/fm-control.sh after a verified interrupt or
+#       exit postcondition, at the verb dispatch site so a relaunch's
+#       internal stop emits nothing (the replacement launch already emits
+#       firstmate.spawn); attributes firstmate.control.verb (interrupt,
+#       exit), firstmate.control.confirmed (interrupt: the adapter-owned
+#       cancellation claim as true/false; exit: always true - the
+#       recovery-grade classifier proved the stop or the agent was already
+#       gone), firstmate.control.proof (interrupt: endpoint or agent-alive),
+#       firstmate.control.result (exit: stopped or already-stopped).
+#   Later catalogue entries (link emission sites, handoff, hold, reply, wake)
+#   are separate increments and must extend this list only when they land.
 #
 # Endpoint precedence (the OpenTelemetry SDK's own): OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
 # else ${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces, else

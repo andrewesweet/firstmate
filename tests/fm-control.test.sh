@@ -914,3 +914,119 @@ test_grok_interrupt_without_acknowledgement_reports_unconfirmed
 test_grok_idle_footer_does_not_confirm_cancellation
 test_secondmate_control_command_carries_no_marker
 test_fm_send_still_marks_the_same_secondmate_task
+
+# --- 7. tracing: the control span --------------------------------------------
+
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+# Turn tracing on for the case's home and task, with a fake curl recording
+# the OTLP request the verified postcondition would post.
+enable_trace() {  # <case-dir> <task-id>
+  printf 'traceparent=%s\n' "$CARRIER" >> "$1/home/state/$2.meta"
+  printf '%s\n' $$ > "$1/home/state/.lock"
+  printf '%s on\n' $$ > "$1/home/state/.trace-context-effective"
+  cat > "$1/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit "${FM_FAKE_CURL_EXIT:-0}"
+SH
+  chmod +x "$1/fakebin/curl"
+}
+
+span_body() {  # <case-dir> <1-based request number>
+  awk -v n="$2" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$1/curl.log"
+}
+
+span_requests() {  # <case-dir>
+  if [ -f "$1/curl.log" ]; then
+    grep -c '^ARGS:' "$1/curl.log" || true
+  else
+    printf '0\n'
+  fi
+}
+
+span_attr() {  # <key> <body>
+  jq -er --arg k "$1" \
+    '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == $k) | .value.stringValue' \
+    <<< "$2"
+}
+
+test_control_span_posts_on_verified_interrupt() {
+  local dir out rc body
+  dir=$(new_case span-int)
+  add_task "$dir" t1 claude
+  enable_trace "$dir" t1
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 interrupt); rc=$?
+  expect_code 0 "$rc" "the traced interrupt should succeed"$'\n'"$out"
+  [ "$(span_requests "$dir")" = 1 ] || fail "the verified interrupt must post exactly one span"
+  body=$(span_body "$dir" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.control"' >/dev/null <<< "$body" \
+    || fail "the span must be firstmate.control"
+  jq -e ".resourceSpans[0].scopeSpans[0].spans[0] | .traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" >/dev/null <<< "$body" \
+    || fail "the span must ride the task's trace under its carrier"
+  [ "$(span_attr firstmate.control.verb "$body")" = interrupt ] || fail "the verb must be interrupt"
+  # Claude exposes no cancellation acknowledgement, so the claim is unconfirmed.
+  [ "$(span_attr firstmate.control.confirmed "$body")" = false ] \
+    || fail "claude's unconfirmed cancellation must post confirmed=false"
+  [ "$(span_attr firstmate.control.proof "$body")" = agent-alive ] \
+    || fail "the interrupt proof must name the verified agent state"
+  pass "fm-control tracing: a verified interrupt posts one span with its verb, claim, and proof"
+}
+
+test_control_span_posts_on_verified_exit() {
+  local dir out rc body
+  # A live agent stops: result=stopped.
+  dir=$(new_case span-exit)
+  add_task "$dir" t1 claude
+  enable_trace "$dir" t1
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "the traced exit should succeed"$'\n'"$out"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.control.verb "$body")" = exit ] || fail "the verb must be exit"
+  [ "$(span_attr firstmate.control.confirmed "$body")" = true ] \
+    || fail "a classifier-proven stop must post confirmed=true"
+  [ "$(span_attr firstmate.control.result "$body")" = stopped ] \
+    || fail "the result must be stopped"
+  # An already-stopped agent is the same verified fact: result=already-stopped.
+  dir=$(new_case span-already)
+  add_task "$dir" t2 claude
+  enable_trace "$dir" t2
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t2 exit); rc=$?
+  expect_code 0 "$rc" "the idempotent exit should succeed"$'\n'"$out"
+  body=$(span_body "$dir" 1)
+  [ "$(span_attr firstmate.control.result "$body")" = already-stopped ] \
+    || fail "an idempotent exit must post result=already-stopped"
+  pass "fm-control tracing: verified exits post their verb with the proven stop result"
+}
+
+test_control_disabled_home_and_failing_emitter() {
+  local dir out rc
+  # A disabled home (no frozen decision) posts nothing.
+  dir=$(new_case span-off)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "the untraced exit should succeed"$'\n'"$out"
+  [ "$(span_requests "$dir")" = 0 ] || fail "a disabled home must post no span"
+  # A refused collector cannot alter the verb's outcome.
+  dir=$(new_case span-curlfail)
+  add_task "$dir" t1 claude
+  enable_trace "$dir" t1
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" FM_FAKE_CURL_EXIT=7 run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "a refused collector must not fail the exit"$'\n'"$out"
+  assert_contains "$out" "stopped t1" "the exit must still report its verified stop"
+  pass "fm-control tracing: a disabled home and a failing emitter leave the verb untouched"
+}
+
+test_control_span_posts_on_verified_interrupt
+test_control_span_posts_on_verified_exit
+test_control_disabled_home_and_failing_emitter

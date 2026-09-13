@@ -42,6 +42,7 @@ muse's session log records `terminal=cancelled` for the interrupted run, so the 
 An interrupt is not complete until the composer is empty.
 muse is the one verified adapter that restores the cancelled prompt back into its composer as real text, so its interrupt key is followed by a Ctrl+U clear; without it the next submitted line - including this plane's own exit command - would concatenate onto the restored prompt and submit both as one line.
 The clear is refused before anything is sent when the recorded backend cannot deliver it.
+When the home's tracing is enabled, a verified `interrupt` or `exit` also posts one `firstmate.control` span onto the task's trace; [`bin/fm-trace-span-lib.sh`](../bin/fm-trace-span-lib.sh) owns the span catalogue, and `relaunch` posts none of its own because the replacement launch already emits the spawn span.
 
 **Teardown and discard are not verbs and will not become verbs.**
 `exit` stops an agent and preserves everything else.

@@ -1558,11 +1558,53 @@ test_relaunch_moves_a_drifted_item_back_in_flight() {
   pass "relaunch heals an item that drifted out of In flight while the task stayed live"
 }
 
+# Relaunch owns no control span of its own: the replacement launch is already
+# represented by fm-spawn's firstmate.spawn span (relaunch=true), so a traced
+# relaunch must post exactly that one span and no firstmate.control span.
+test_relaunch_posts_the_spawn_span_and_no_control_span() {
+  local dir out rc=0 body span_names
+  dir=$(new_case span-rl rl51)
+  add_ship_task "$dir" rl51 claude
+  printf 'traceparent=%s\n' '00-11111111111111111111111111111112-3333333333333334-01' \
+    >> "$dir/home/state/rl51.meta"
+  printf '%s\n' $$ > "$dir/home/state/.lock"
+  printf '%s on\n' $$ > "$dir/home/state/.trace-context-effective"
+  cat > "$dir/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit "${FM_FAKE_CURL_EXIT:-0}"
+SH
+  chmod +x "$dir/fakebin/curl"
+
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" rl51 relaunch --note "traced replacement") || rc=$?
+  expect_code 0 "$rc" "a traced relaunch should succeed"$'\n'"$out"
+  [ -f "$dir/curl.log" ] || fail "a traced relaunch must post the spawn span"
+  [ "$(grep -c '^ARGS:' "$dir/curl.log")" = 1 ] \
+    || fail "a traced relaunch must post exactly one span, got $(grep -c '^ARGS:' "$dir/curl.log")"
+  body=$(awk '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == 1) exit; next }
+    c == 1 { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$dir/curl.log")
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.spawn"' >/dev/null <<< "$body" \
+    || fail "the posted span must be the replacement's firstmate.spawn"
+  [ "$(jq -er '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.relaunch") | .value.stringValue' <<< "$body")" = true ] \
+    || fail "the spawn span must carry firstmate.relaunch=true"
+  span_names=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].name' <<< "$body")
+  case "$span_names" in
+    *control*) fail "relaunch must not post a firstmate.control span: $span_names" ;;
+  esac
+  pass "relaunch tracing: the replacement launch posts the spawn span and no control span"
+}
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_preserves_durable_task_metadata
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
+test_relaunch_posts_the_spawn_span_and_no_control_span
 test_relaunch_appends_the_progress_note_to_the_instructions
 test_relaunch_requires_a_note_for_a_ship_task
 test_harness_switch_moves_the_record_and_clears_prior_wiring
