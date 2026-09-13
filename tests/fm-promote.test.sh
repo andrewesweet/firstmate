@@ -24,26 +24,11 @@ TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
 
 CARRIER='00-11111111111111111111111111111113-4444444444444445-01'
 
-# Fake curl: records one ARGS line plus the raw stdin body per request, then
-# exits with FM_FAKE_CURL_EXIT (default 0).
-make_fakebin() {  # <dir>
-  local fakebin
-  fakebin=$(fm_fakebin "$1")
-  cat > "$fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$fakebin/curl"
-  printf '%s\n' "$fakebin"
-}
-
 setup_case() {  # <name> [on|off] -> echoes case dir
   local name=$1 effective=${2:-on} dir
   dir="$TMP_ROOT/$name"
   mkdir -p "$dir/home/state" "$dir/home/data/sc1"
-  make_fakebin "$dir" >/dev/null
+  fm_test_otlp_capture_install "$(fm_fakebin "$dir")"
   fm_write_meta "$dir/home/state/sc1.meta" \
     "window=fmses:fm-sc1" \
     "endpoint_task_id=sc1" \
@@ -52,8 +37,7 @@ setup_case() {  # <name> [on|off] -> echoes case dir
     "harness=claude" \
     "kind=scout" \
     "model=default" \
-    "effort=default" \
-    "traceparent=$CARRIER"
+    "effort=default"
   {
     echo "# Task"
     echo "## Captain's intent"
@@ -62,8 +46,7 @@ setup_case() {  # <name> [on|off] -> echoes case dir
     echo "## Firstmate spec"
     echo "Carry the reproduced bug in as a regression test."
   } > "$dir/home/data/sc1/brief.md"
-  printf '%s\n' $$ > "$dir/home/state/.lock"
-  printf '%s %s\n' "$$" "$effective" > "$dir/home/state/.trace-context-effective"
+  fm_test_otlp_trace_enable "$dir/home" sc1 "$CARRIER" "$effective"
   printf '%s\n' "$dir"
 }
 
@@ -81,33 +64,6 @@ run_promote() {  # <case-dir> [extra env...] -- <args...>
     "$PROMOTE" "$@" 2>"$dir/promote.err"
 }
 
-request_count() {  # <log>
-  if [ -f "$1" ]; then
-    grep -c '^ARGS:' "$1" || true
-  else
-    printf '0\n'
-  fi
-}
-
-curl_body() {  # <log> <1-based request number>
-  awk -v n="$2" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$1"
-}
-
-span0() {  # <jq-filter> <body>
-  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | '"$1" >/dev/null 2>&1 <<< "$2"
-}
-
-span_attr() {  # <key> <body>
-  jq -er --arg k "$1" \
-    '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == $k) | .value.stringValue' \
-    <<< "$2"
-}
-
 test_promotion_emits_span_with_contract_attributes() {
   local dir body rc
   dir=$(setup_case promote-span)
@@ -115,20 +71,20 @@ test_promotion_emits_span_with_contract_attributes() {
   expect_code 0 "$rc" "promotion should succeed"$'\n'"$(cat "$dir/promote.err")"
   grep -q '^kind=ship$' "$dir/home/state/sc1.meta" \
     || fail "promotion did not publish kind=ship"
-  [ "$(request_count "$dir/curl.log")" = 1 ] \
-    || fail "exactly one span request expected, got $(request_count "$dir/curl.log")"
-  body=$(curl_body "$dir/curl.log" 1)
-  span0 '.name == "firstmate.promote" and .kind == 1' "$body" \
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "exactly one span request expected, got $(fm_test_otlp_request_count "$dir/curl.log")"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.promote" and .kind == 1' "$body" \
     || fail "the span must be firstmate.promote with INTERNAL kind"
-  span0 ".traceId == \"${CARRIER:3:32}\"" "$body" \
+  fm_test_otlp_span_matches ".traceId == \"${CARRIER:3:32}\"" "$body" \
     || fail "the span must ride the task's trace"
-  span0 ".parentSpanId == \"${CARRIER:36:16}\"" "$body" \
+  fm_test_otlp_span_matches ".parentSpanId == \"${CARRIER:36:16}\"" "$body" \
     || fail "the span must parent on the task's carrier span id"
-  [ "$(span_attr firstmate.task.kind.prior "$body")" = scout ] \
+  [ "$(fm_test_otlp_span_attr firstmate.task.kind.prior "$body")" = scout ] \
     || fail "the span must record the prior kind"
-  [ "$(span_attr firstmate.task.mode "$body")" = no-mistakes ] \
+  [ "$(fm_test_otlp_span_attr firstmate.task.mode "$body")" = no-mistakes ] \
     || fail "the span must record the promoted mode"
-  [ "$(span_attr firstmate.task.yolo "$body")" = off ] \
+  [ "$(fm_test_otlp_span_attr firstmate.task.yolo "$body")" = off ] \
     || fail "the span must record the promoted yolo posture"
   jq -e '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.task.kind")][0].value.stringValue == "ship"' \
     >/dev/null <<< "$body" \
@@ -143,7 +99,7 @@ test_disabled_home_promotes_without_span() {
   expect_code 0 "$rc" "promotion should succeed while tracing is disabled"$'\n'"$(cat "$dir/promote.err")"
   grep -q '^kind=ship$' "$dir/home/state/sc1.meta" \
     || fail "a disabled home must still promote"
-  [ "$(request_count "$dir/curl.log")" = 0 ] \
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 0 ] \
     || fail "a disabled home must post no span"
   pass "fm-promote: a disabled home promotes identically and posts nothing"
 }

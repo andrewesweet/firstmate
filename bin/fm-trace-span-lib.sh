@@ -79,14 +79,16 @@
 #       new; a failed publication emits nothing. Attributes firstmate.pr.url,
 #       firstmate.merge.origin (self, poll), firstmate.merge.authority
 #       (yolo, away-grant, attended, external; omitted when none is known).
-#     firstmate.steer - bin/fm-send.sh, on each exit-0 path after the steer
-#       is durably delivered (local inbox enqueue, remote inbox leg, typed
-#       submit confirmation) and after the --key path's verified delivery;
+#     firstmate.steer - bin/fm-send.sh, immediately after the steer is durably
+#       delivered (local inbox enqueue, remote inbox leg, typed submit
+#       confirmation) and after the --key path's verified delivery, before
+#       later bookkeeping;
 #       attributes firstmate.plane (inbox, typed, key), firstmate.inbox.seq
 #       (local inbox sends only - a remote record's sequence lives in the
 #       remote home), firstmate.corr (a marked secondmate request's
 #       correlation id), firstmate.decision.key (each --resolve-key,
 #       comma-joined), firstmate.fire_and_forget=true for an explicit
+#       fire-and-forget delivery, firstmate.delivery.id for a remote
 #       fire-and-forget delivery. Never the message content.
 #     firstmate.promote - bin/fm-promote.sh after the promoted task record is
 #       published; attributes firstmate.task.kind.prior (always scout -

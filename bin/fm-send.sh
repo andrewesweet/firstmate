@@ -256,8 +256,8 @@ fm_send_id_from_meta() {  # <meta-file>
   printf '%s' "${base%.meta}"
 }
 
-# Emit the firstmate.steer span for a completed send, on the exit-0 paths
-# after durable delivery and on the --key path after verified delivery
+# Emit the firstmate.steer span immediately after durable delivery and after
+# the --key path's verified delivery
 # (bin/fm-trace-span-lib.sh's header owns the catalogue entry). A disabled
 # home, an untraced task, or an explicit backend target without task metadata
 # is a silent no-op, and no emission failure can change the send's outcome:
@@ -741,11 +741,11 @@ if [ "${1:-}" = "--key" ]; then
     echo "error: key '$key' not sent to $T ($TARGET_BACKEND send failed; tried $RESOLUTION_TRIED)" >&2
     exit 1
   fi
+  # The key was delivered; that is the key plane's verified delivery
+  # (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" key
   fm_send_clear_after_interrupt "$semantic_key" || exit 1
   fm_send_record_interrupt "$semantic_key" || exit 1
-  # The key was delivered and its follow-ups completed; that is the key
-  # plane's verified delivery (bin/fm-trace-span-lib.sh's catalogue).
-  fm_send_trace_steer "$TARGET_META" key
 else
   MESSAGE=$*
   if [ "$TARGET_BACKEND" = remote ]; then
@@ -935,6 +935,11 @@ else
       exit 1
     fi
     # The remote record is durable delivery, exactly as a local enqueue is.
+    if [ -n "$FIRE_AND_FORGET_ID" ]; then
+      fm_send_trace_steer "$TARGET_META" inbox "firstmate.delivery.id=$FIRE_AND_FORGET_ID"
+    else
+      fm_send_trace_steer "$TARGET_META" inbox
+    fi
     if [ -n "$PENDING_REPLY_CORR" ]; then
       if fm_pending_reply_confirm_delivery "$STATE" "$PENDING_REPLY_CORR"; then
         :
@@ -951,10 +956,6 @@ else
       fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
       fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
     fi
-    # The remote record is durable delivery; the span is emitted by this
-    # parent home against the parent-owned carrier (the remote record's own
-    # sequence lives in the remote home, so no firstmate.inbox.seq here).
-    fm_send_trace_steer "$TARGET_META" inbox
     exit 0
   fi
   if [ "$INBOX_PLANE" = 1 ]; then
@@ -1003,6 +1004,10 @@ else
       exit 1
     fi
     fm_lock_release "$INBOX_META_LOCK"
+    # Durable enqueue is this plane's delivery; the record name carries the
+    # sequence the span reports (bin/fm-trace-span-lib.sh's catalogue).
+    INBOX_SPAN_SEQ=${INBOX_RECORD##*/}
+    fm_send_trace_steer "$TARGET_META" inbox "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}"
     # Enqueue IS durable delivery to the task's record: mark the pending
     # expectation delivered now, without resolving it - only a correlated
     # parent report acknowledges the request.
@@ -1032,10 +1037,6 @@ else
       fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
       fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
     fi
-    # Durable enqueue is this plane's delivery; the record name carries the
-    # sequence the span reports (bin/fm-trace-span-lib.sh's catalogue).
-    INBOX_SPAN_SEQ=${INBOX_RECORD##*/}
-    fm_send_trace_steer "$TARGET_META" inbox "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}"
     # Ring the doorbell, best-effort: no ring outcome changes the exit status,
     # because the watcher owns loss detection from here, either through its
     # bounded re-ring ladder or direct unavailable-endpoint recovery.
@@ -1113,6 +1114,9 @@ else
       exit 1
       ;;
   esac
+  # Confirmed submit is the typed plane's delivery
+  # (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" typed
   # Delivery confirmed. Mark the pending expectation delivered without resolving
   # it: only a correlated parent report acknowledges the request.
   if [ -n "$PENDING_REPLY_CORR" ]; then
@@ -1134,9 +1138,6 @@ else
     fm_send_close_resolved_keys "$RESOLVE_ANSWER_TEXT" || exit 1
     fm_send_feed_resolved_holds "$RESOLVE_ANSWER_TEXT" || exit 1
   fi
-  # Confirmed submit is the typed plane's delivery
-  # (bin/fm-trace-span-lib.sh's catalogue).
-  fm_send_trace_steer "$TARGET_META" typed
   # Submit landed with exact empty. Confirmation only proves the text was
   # accepted; the harness still needs a beat to spin up the
   # turn before its busy footer shows. Pause so an immediate peek catches the

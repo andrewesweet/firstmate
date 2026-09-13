@@ -3041,7 +3041,9 @@ merge_trace_span_name() {  # <case_dir> <number>
 }
 
 merge_trace_span_attr() {  # <case_dir> <number> <key>
-  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
+  local body
+  body=$(fm_test_otlp_request_body "$1/curl.log" "$2")
+  fm_test_otlp_span_attr "$3" "$body"
 }
 
 test_merge_outcome_spans_follow_publication() {

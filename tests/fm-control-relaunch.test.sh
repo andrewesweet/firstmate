@@ -1565,32 +1565,19 @@ test_relaunch_posts_the_spawn_span_and_no_control_span() {
   local dir out rc=0 body span_names
   dir=$(new_case span-rl rl51)
   add_ship_task "$dir" rl51 claude
-  printf 'traceparent=%s\n' '00-11111111111111111111111111111112-3333333333333334-01' \
-    >> "$dir/home/state/rl51.meta"
-  printf '%s\n' $$ > "$dir/home/state/.lock"
-  printf '%s on\n' $$ > "$dir/home/state/.trace-context-effective"
-  cat > "$dir/fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$dir/fakebin/curl"
+  fm_test_otlp_trace_enable "$dir/home" rl51 \
+    '00-11111111111111111111111111111112-3333333333333334-01'
+  fm_test_otlp_capture_install "$dir/fakebin"
 
   out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" rl51 relaunch --note "traced replacement") || rc=$?
   expect_code 0 "$rc" "a traced relaunch should succeed"$'\n'"$out"
   [ -f "$dir/curl.log" ] || fail "a traced relaunch must post the spawn span"
-  [ "$(grep -c '^ARGS:' "$dir/curl.log")" = 1 ] \
-    || fail "a traced relaunch must post exactly one span, got $(grep -c '^ARGS:' "$dir/curl.log")"
-  body=$(awk '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == 1) exit; next }
-    c == 1 { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$dir/curl.log")
-  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.spawn"' >/dev/null <<< "$body" \
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "a traced relaunch must post exactly one span, got $(fm_test_otlp_request_count "$dir/curl.log")"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.spawn"' "$body" \
     || fail "the posted span must be the replacement's firstmate.spawn"
-  [ "$(jq -er '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.relaunch") | .value.stringValue' <<< "$body")" = true ] \
+  [ "$(fm_test_otlp_span_attr firstmate.relaunch "$body")" = true ] \
     || fail "the spawn span must carry firstmate.relaunch=true"
   span_names=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].name' <<< "$body")
   case "$span_names" in

@@ -41,6 +41,7 @@ SEND="$ROOT/bin/fm-send.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-send-resolve-key)
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
 
 # Stub tmux: logs literal typed text to FM_SEND_LOG and lets the submit path
 # reach a clean "empty" verdict (numeric cursor_y, empty bordered composer).
@@ -644,18 +645,9 @@ test_span_carries_decision_keys_and_refusal_posts_none() {
   dir="$TMP_ROOT/span-keys"; mkdir -p "$dir"
   fb=$(make_stubs "$dir"); log="$dir/send.log"
   home=$(setup_home span-keys)
-  cat > "$dir/fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$dir/fakebin/curl"
+  fm_test_otlp_capture_install "$dir/fakebin"
   fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
-  printf 'traceparent=%s\n' '00-11111111111111111111111111111112-3333333333333334-01' \
-    >> "$home/state/t1.meta"
-  printf '%s\n' $$ > "$home/state/.lock"
-  printf '%s on\n' $$ > "$home/state/.trace-context-effective"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
   printf 'needs-decision [key=api-shape]: pick REST or RPC\n' > "$home/state/t1.status"
   printf 'needs-decision [key=port-choice]: pick a port\n' >> "$home/state/t1.status"
 
@@ -663,16 +655,10 @@ SH
   run_send "$fb" "$home" "$log" \
     t1 --resolve-key api-shape --resolve-key port-choice "one answer covering both"; rc=$?
   expect_code 0 "$rc" "the two-key answer should succeed"
-  body=$(awk '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == 1) exit; next }
-    c == 1 { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$dir/curl.log")
-  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.steer"' >/dev/null <<< "$body" \
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.steer"' "$body" \
     || fail "the answer send must post a firstmate.steer span"
-  jq -er '.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.decision.key") | .value.stringValue' <<< "$body" \
-    | grep -qx 'api-shape,port-choice' \
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = api-shape,port-choice ] \
     || fail "the span must carry both resolved keys comma-joined"
   case "$body" in
     *"one answer covering both"*) fail "the span must never carry the answer text" ;;
@@ -718,21 +704,29 @@ test_long_decision_key_refuses_before_send() {
 }
 
 test_failed_close_recovery_command_is_shell_safe() {
-  local dir fb log home err marker answer rc diagnostic manual out
+  local dir fb log home err marker answer rc diagnostic manual out body
   dir="$TMP_ROOT/manual-close"; mkdir -p "$dir"
   fb=$(make_stubs "$dir"); log="$dir/send.log"; err="$dir/send.err"
   home=$(setup_home "manual close")
   marker="$dir/injected"
   answer="ok'; touch $marker; echo '"
   fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  fm_test_otlp_capture_install "$fb"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
   printf 'needs-decision [key=quote-safety]: choose safely\n' > "$home/state/t1.status"
   chmod 0400 "$home/state/t1.status"
 
   env PATH="$fb:$PATH" \
     FM_ROOT_OVERRIDE="$home" FM_HOME="$home" FM_SEND_LOG="$log" FM_SEND_SETTLE=0 \
+    FM_FAKE_CURL_LOG="$dir/curl.log" \
     "$SEND" t1 --resolve-key quote-safety "$answer" >/dev/null 2>"$err"; rc=$?
   chmod 0600 "$home/state/t1.status"
   [ "$rc" -ne 0 ] || fail "a delivered answer with a failed close append should fail loudly"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "a delivered answer must post its steer span before close bookkeeping fails"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = quote-safety ] \
+    || fail "the delivered answer span must retain its decision key"
   diagnostic=$(cat "$err")
   assert_contains "$diagnostic" "Close it manually with:" "the close failure should provide recovery guidance"
   manual=${diagnostic#*Close it manually with: }
