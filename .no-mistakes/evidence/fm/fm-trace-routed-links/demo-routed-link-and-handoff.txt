@@ -1,0 +1,34 @@
+=== 1. Link resolution: marked secondmate home vs primary home ===
+ambient TRACEPARENT=00-99999999999999999999999999999999-8888888888888888-01
+secondmate home link : '00-99999999999999999999999999999999-8888888888888888-01'
+primary home link    : ''
+malformed ambient link: ''
+fresh task carrier   : 00-8bbf11f878ff0c1dd5a802fe7ca29b2c-c753aed8ebbd5ec4-01
+carrier trace id differs from ambient: OK (never adopted)
+
+=== 2. Task root span carries link (secondmate meta); child span never links ===
+--- root span (name, traceId, parent, links):
+{"name":"firstmate.task","traceId":"8bbf11f878ff0c1dd5a802fe7ca29b2c","parentSpanId":null,"links":[{"traceId":"99999999999999999999999999999999","spanId":"8888888888888888"}]}
+--- child span given --link (links must be absent):
+{"name":"firstmate.spawn","traceId":"8bbf11f878ff0c1dd5a802fe7ca29b2c","parentSpanId":"c753aed8ebbd5ec4","links":null}
+--- root span with invalid --link (links must be absent):
+{"name":"firstmate.task","traceId":"8bbf11f878ff0c1dd5a802fe7ca29b2c","links":null}
+
+=== 3. Real bin/fm-backlog-handoff.sh: one firstmate.handoff span per moved key ===
+handed off 2 item(s) to design: demo-a demo-b
+  into /tmp/tmp.wDNmg9n0Wd/sub/data/backlog.md
+--- secondmate backlog after handoff:
+## Queued
+- [ ] demo-a - first routed item (repo: alpha)
+- [ ] demo-b - second routed item (repo: alpha)
+
+## Done
+## In flight
+--- OTLP posts: 2
+{"secondmate":"design","span":{"name":"firstmate.handoff","traceId":"99999999999999999999999999999999","parentSpanId":"8888888888888888","attrs":{"firstmate.backlog.item":"demo-a","firstmate.route":"local"}}}
+{"secondmate":"design","span":{"name":"firstmate.handoff","traceId":"99999999999999999999999999999999","parentSpanId":"8888888888888888","attrs":{"firstmate.backlog.item":"demo-b","firstmate.route":"local"}}}
+
+=== 4. Same handoff with tracing off: no span posted ===
+handed off 1 item(s) to design: demo-c
+  into /tmp/tmp.wDNmg9n0Wd/sub/data/backlog.md
+--- OTLP posts: 0
