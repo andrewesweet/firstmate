@@ -1,0 +1,15 @@
+### td-secondmate-link: kind=secondmate marker=present trace_link='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+### meta before teardown:
+traceparent=00-11111111111111111111111111111112-3333333333333334-01
+trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+### teardown rc=0; stdout: teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.hjvepX/td-secondmate-link/wt)|Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/fm-teardown-tests.hjvepX/td-secondmate-link/data/backlog.md). Update /tmp/fm-teardown-tests.hjvepX/td-secondmate-link/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.|
+### td-primary-link: kind=primary marker=absent trace_link='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+### meta before teardown:
+traceparent=00-11111111111111111111111111111112-3333333333333334-01
+trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+### teardown rc=0; stdout: teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.hjvepX/td-primary-link/wt)|Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/fm-teardown-tests.hjvepX/td-primary-link/data/backlog.md). Update /tmp/fm-teardown-tests.hjvepX/td-primary-link/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.|
+### td-secondmate-badlink: kind=secondmate marker=present trace_link='not-a-traceparent'
+### meta before teardown:
+traceparent=00-11111111111111111111111111111112-3333333333333334-01
+trace_link=not-a-traceparent
+### teardown rc=0; stdout: teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.hjvepX/td-secondmate-badlink/wt)|Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/fm-teardown-tests.hjvepX/td-secondmate-badlink/data/backlog.md). Update /tmp/fm-teardown-tests.hjvepX/td-secondmate-badlink/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.|

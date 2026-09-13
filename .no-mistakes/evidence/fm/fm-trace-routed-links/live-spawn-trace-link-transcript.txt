@@ -1,0 +1,24 @@
+### sp-marked: home=marked ambient TRACEPARENT='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+rc=0
+meta traceparent=00-790313fc2f1b6f09129a2535a934d1d6-2c9b760862863107-01
+meta trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+pane export TRACEPARENT=00-790313fc2f1b6f09129a2535a934d1d6-2c9b760862863107-01
+pane mentions ambient? 0
+### sp-primary: home=primary ambient TRACEPARENT='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+rc=0
+meta traceparent=00-41fd87c0f83624979807032db87863ae-d038cb3c703773b9-01
+meta trace_link=
+pane export TRACEPARENT=00-41fd87c0f83624979807032db87863ae-d038cb3c703773b9-01
+pane mentions ambient? 0
+### sp-marked-bad: home=marked ambient TRACEPARENT='00-4bf92f3577b34da6a3ce929d0e0e4736-0000000000000000-01'
+rc=0
+meta traceparent=00-0ca2b8461e7fd8f18debebf230691851-f7216eb096390e91-01
+meta trace_link=
+pane export TRACEPARENT=00-0ca2b8461e7fd8f18debebf230691851-f7216eb096390e91-01
+pane mentions ambient? 0
+### sp-marked-none: home=marked ambient TRACEPARENT=''
+rc=0
+meta traceparent=00-25e6612fab7eec2ae345be3a9b844247-6b60af6d3e6891a9-01
+meta trace_link=
+pane export TRACEPARENT=00-25e6612fab7eec2ae345be3a9b844247-6b60af6d3e6891a9-01
+pane mentions ambient? 0
