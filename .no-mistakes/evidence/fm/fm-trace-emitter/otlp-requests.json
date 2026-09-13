@@ -1,0 +1,228 @@
+[
+  {
+    "path": "/v1/traces",
+    "content_type": "application/json",
+    "body": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "http-lifecycle-z1"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "project"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/home"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              },
+              {
+                "key": "firstmate.harness",
+                "value": {
+                  "stringValue": "claude"
+                }
+              },
+              {
+                "key": "firstmate.model",
+                "value": {
+                  "stringValue": "default"
+                }
+              },
+              {
+                "key": "firstmate.effort",
+                "value": {
+                  "stringValue": "default"
+                }
+              },
+              {
+                "key": "firstmate.spawn_gen",
+                "value": {
+                  "stringValue": "s1789267905.1445148.15224"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "ebdacbb1355261edb24eff41d6988797",
+                  "spanId": "9b45946898447c82",
+                  "parentSpanId": "946e8171565d99cd",
+                  "name": "firstmate.spawn",
+                  "kind": 1,
+                  "startTimeUnixNano": "1789267905697000000",
+                  "endTimeUnixNano": "1789267906446000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.relaunch",
+                      "value": {
+                        "stringValue": "false"
+                      }
+                    },
+                    {
+                      "key": "firstmate.spawn_gen",
+                      "value": {
+                        "stringValue": "s1789267905.1445148.15224"
+                      }
+                    },
+                    {
+                      "key": "firstmate.backend",
+                      "value": {
+                        "stringValue": "tmux"
+                      }
+                    },
+                    {
+                      "key": "firstmate.window",
+                      "value": {
+                        "stringValue": "firstmate:fm-http-lifecycle-z1"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "path": "/v1/traces",
+    "content_type": "application/json",
+    "body": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "http-lifecycle-z1"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "project"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/home"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              },
+              {
+                "key": "firstmate.harness",
+                "value": {
+                  "stringValue": "claude"
+                }
+              },
+              {
+                "key": "firstmate.model",
+                "value": {
+                  "stringValue": "default"
+                }
+              },
+              {
+                "key": "firstmate.effort",
+                "value": {
+                  "stringValue": "default"
+                }
+              },
+              {
+                "key": "firstmate.spawn_gen",
+                "value": {
+                  "stringValue": "s1789267905.1445148.15224"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "ebdacbb1355261edb24eff41d6988797",
+                  "spanId": "946e8171565d99cd",
+                  "name": "firstmate.task",
+                  "kind": 1,
+                  "startTimeUnixNano": "1789267905368000000",
+                  "endTimeUnixNano": "1789267907802000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.task.outcome",
+                      "value": {
+                        "stringValue": "done"
+                      }
+                    },
+                    {
+                      "key": "firstmate.task.mode",
+                      "value": {
+                        "stringValue": "local-only"
+                      }
+                    },
+                    {
+                      "key": "firstmate.task.yolo",
+                      "value": {
+                        "stringValue": "off"
+                      }
+                    },
+                    {
+                      "key": "firstmate.spawn_gen",
+                      "value": {
+                        "stringValue": "s1789267905.1445148.15224"
+                      }
+                    }
+                  ],
+                  "status": {
+                    "code": 1
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

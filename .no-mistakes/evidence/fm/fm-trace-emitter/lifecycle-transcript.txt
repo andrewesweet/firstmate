@@ -1,0 +1,17 @@
+Real fm-spawn.sh and fm-teardown.sh; fake tmux/treehouse, real git fixture and curl/HTTP receiver. No live harness or MLflow server.
+
+$ fm-spawn.sh http-lifecycle-z1 <isolated-project> --mode local-only --yolo off
+warning: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/home/data/http-lifecycle-z1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: http-lifecycle-z1 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned http-lifecycle-z1 harness=claude kind=ship mode=local-only yolo=off window=firstmate:fm-http-lifecycle-z1 worktree=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/wt
+$ fm-teardown.sh http-lifecycle-z1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+teardown http-lifecycle-z1 complete (window firstmate:fm-http-lifecycle-z1, worktree /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/wt)
+Backlog: http-lifecycle-z1 just finished (config/backlog-backend selects manual editing). Update /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/home/data/backlog.md - move http-lifecycle-z1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Task metadata removed after cleanup.

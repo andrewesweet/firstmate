@@ -1,0 +1,20 @@
+[
+  {
+    "name": "firstmate.spawn",
+    "traceId": "ebdacbb1355261edb24eff41d6988797",
+    "spanId": "9b45946898447c82",
+    "parentSpanId": "946e8171565d99cd",
+    "startTimeUnixNano": "1789267905697000000",
+    "endTimeUnixNano": "1789267906446000000"
+  },
+  {
+    "name": "firstmate.task",
+    "traceId": "ebdacbb1355261edb24eff41d6988797",
+    "spanId": "946e8171565d99cd",
+    "startTimeUnixNano": "1789267905368000000",
+    "endTimeUnixNano": "1789267907802000000",
+    "status": {
+      "code": 1
+    }
+  }
+]

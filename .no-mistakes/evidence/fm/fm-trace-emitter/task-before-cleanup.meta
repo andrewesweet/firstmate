@@ -1,0 +1,16 @@
+window=firstmate:fm-http-lifecycle-z1
+endpoint_task_id=http-lifecycle-z1
+worktree=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/wt
+project=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/project
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+tasktmp=/tmp/fm-http-lifecycle-z1
+model=default
+effort=default
+busy_gen=g1789267905.1445485.30335
+spawn_gen=s1789267905.1445148.15224
+home=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2C1KGAKKTR8Y4NANKN9WHEQ/.phase-tmp/fm-trace-context-spawn.QsXyBP/http-lifecycle/home
+traceparent=00-ebdacbb1355261edb24eff41d6988797-946e8171565d99cd-01
+trace_started=1789267905368
