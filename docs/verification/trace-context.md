@@ -85,3 +85,28 @@ ALL TESTS PASSED
 ```
 
 `tests/fm-teardown.test.sh` ends with one `ok - ...` line rather than a footer; check the suite's exit status and complete output when refreshing this evidence.
+
+## 2026-09-13 increment: the PR-ready and merged spans
+
+Date: 2026-09-13.
+Shell: GNU bash 5.2.21 (Linux).
+
+The PR suite `tests/fm-pr-check-security.test.sh` gains three cases that drive the real scripts with a recording fake curl and assert the emitted OTLP JSON: a validated registration emits one `firstmate.pr.ready` span childing the task's recorded carrier with the canonical URL and forge head, each validated registration emits its own span, a rejected URL emits nothing, a disabled home emits nothing despite a recorded carrier, and a failed export leaves the `armed:` success line intact; a self merge emits one `firstmate.pr.merged` span with `origin=self` and `authority=attended` and its absorbed duplicate poll observation emits nothing; and poll-detected merges carry `origin=poll` with the persisted `yolo`, persisted `away-grant`, or `external` authority read the same way the ledger row reads it.
+
+The merge suite `tests/fm-pr-merge.test.sh` gains two cases: a confirmed self merge emits exactly one `firstmate.pr.merged` span (the wrapper's own `pr=` recording emits the ready span) while a failed forge merge emits none, and a direct `fm_merge_outcome_report` drive proves one span for the first publication with nothing more from the already-recorded dedup return or a rejected origin.
+
+```console
+$ bash tests/fm-pr-check-security.test.sh > /dev/null; echo $?
+0
+$ bash tests/fm-pr-check-security.test.sh 2>&1 | tail -5
+ok - post-rename poll validation faults revoke both names and allow a clean retry
+ok - bootstrap does not rewrite unauthenticated checks or emit retired migration diagnostics
+ok - watcher signals promptly stop custom checks and clean private state
+ok - returned custom check descendants are drained on installed and fallback timeout paths
+ok - teardown removes safe poll artifacts and refuses directory-shaped check files without traversal
+$ bash tests/fm-pr-merge.test.sh 2>&1 | tail -2
+ok - confirmed merges publish one merged span; failed merges publish none
+ok - one merged span per published canonical outcome across self, poll, and dedup paths
+```
+
+Both suites exit 0; `tests/fm-pr-check-security.test.sh` and `tests/fm-pr-merge.test.sh` end with one `ok - ...` line per case rather than a footer, so check exit status and full output when refreshing this evidence.

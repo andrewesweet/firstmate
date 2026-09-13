@@ -31,6 +31,8 @@ _FM_MERGE_OUTCOME_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-parent-channel-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$_FM_MERGE_OUTCOME_LIB_DIR/fm-trace-span-lib.sh"
 
 # shellcheck disable=SC2034 # Public result consumed by sourcing callers.
 FM_MERGE_OUTCOME_ALREADY_RECORDED=false
@@ -58,6 +60,7 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   local authority=${6-} suffix=
   local self_rc=0 destination='' line lock status=0
   local provider host path number
+  local MERGE_SPAN_ATTRS
   # shellcheck disable=SC2034 # Sourced wake helpers consume these scoped globals.
   local STATE FM_WAKE_QUEUE FM_WAKE_QUEUE_LOCK
   FM_MERGE_OUTCOME_ALREADY_RECORDED=false
@@ -108,5 +111,15 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
       "$provider" "$host" "$path" "$number" || status=1
   fi
   fm_lock_release "$lock"
+  if [ "$status" -eq 0 ]; then
+    # The one shared merge-span emission point: a self-performed merge and a
+    # poll-detected merge publish the same canonical outcome here, so both
+    # origins emit the identical span, while the already-recorded dedup return
+    # above emits nothing new. Emission is silent and never changes the
+    # return (bin/fm-trace-span-lib.sh's header owns the catalogue entry).
+    MERGE_SPAN_ATTRS=("firstmate.pr.url=$FM_PR_URL" "firstmate.merge.origin=$origin")
+    [ -z "$authority" ] || MERGE_SPAN_ATTRS+=("firstmate.merge.authority=$authority")
+    fm_trace_span_emit "$state/$id.meta" firstmate.pr.merged - - "${MERGE_SPAN_ATTRS[@]}"
+  fi
   return "$status"
 }
