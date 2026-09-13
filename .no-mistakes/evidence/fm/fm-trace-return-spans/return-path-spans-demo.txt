@@ -1,0 +1,240 @@
+$ fm-captain-hold.sh hold traced-call --reason "captain must choose the export shape"   # at 2026-06-01T12:00:00Z
+traced-call
+posts so far: 0   # hold itself emits nothing
+$ fm-captain-hold.sh answer traced-call --decision-file wide.txt
+answered: traced-call
+
+### firstmate.hold after answer (curl log: 1 POST(s))
+curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-call"
+            }
+          },
+          {
+            "key": "firstmate.project",
+            "value": {
+              "stringValue": "sample"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/hold"
+            }
+          },
+          {
+            "key": "firstmate.task.kind",
+            "value": {
+              "stringValue": "ship"
+            }
+          },
+          {
+            "key": "firstmate.harness",
+            "value": {
+              "stringValue": "codex"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "11111111111111111111111111111112",
+              "spanId": "e50cdc4e1eb72b71",
+              "parentSpanId": "3333333333333334",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780315200000000000",
+              "endTimeUnixNano": "1789283796246000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "answered"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "captain must choose the export shape"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+$ fm-captain-hold.sh answer traced-call --decision-file wide.txt   # idempotent replay
+answered: traced-call
+posts after replay: 1   # replay emits no second span
+
+$ secondmate hibit writes status: done [corr=3aff6bcce80b8a55]: ledger clean; parent runs fm_pending_reply_try_resolve
+resolved: phase=
+
+### firstmate.reply after settlement (curl log: 1 POST(s))
+curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "hibit"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/reply"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+              "spanId": "6ade698d9465273a",
+              "parentSpanId": "bbbbbbbbbbbbbbbc",
+              "name": "firstmate.reply",
+              "kind": 1,
+              "startTimeUnixNano": "5000000000000",
+              "endTimeUnixNano": "1789283796937000000",
+              "attributes": [
+                {
+                  "key": "firstmate.corr",
+                  "value": {
+                    "stringValue": "3aff6bcce80b8a55"
+                  }
+                },
+                {
+                  "key": "firstmate.reply.via",
+                  "value": {
+                    "stringValue": "status"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+posts after resolve replay: 1
+
+$ cat state/.wake-queue
+1789283797	1	signal	traced.status	signal: /tmp/fm-return-path-demo.4zRWfh/wake/state/traced.status
+1789283797	2	stale	firstmate:traced	stale: firstmate:traced
+1789283797	3	check	startup-network	check: startup-network still pending
+1789283797	4	heartbeat	heartbeat	heartbeat
+$ fm-wake-drain.sh   # presentation
+1789283797	1	signal	traced.status	signal: /tmp/fm-return-path-demo.4zRWfh/wake/state/traced.status
+1789283797	2	stale	firstmate:traced	stale: firstmate:traced
+1789283797	3	check	startup-network	check: startup-network still pending
+1789283797	4	heartbeat	heartbeat	heartbeat
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 4168336.1789283797.cREH9z
+posts after presentation: 0   # per-poll presentation emits nothing
+$ fm-wake-drain.sh --ack-through 4 --recovery-generation 4168336.1789283797.cREH9z
+queue after ack: 0 bytes
+
+### firstmate.wake after acknowledgement (1 of 4 rows task-keyed; stale/check/heartbeat silent) (curl log: 1 POST(s))
+curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/wake"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "cccccccccccccccccccccccccccccccd",
+              "spanId": "bae13120c4be9d0a",
+              "parentSpanId": "dddddddddddddddd",
+              "name": "firstmate.wake",
+              "kind": 1,
+              "startTimeUnixNano": "1789283797000000000",
+              "endTimeUnixNano": "1789283797687000000",
+              "attributes": [
+                {
+                  "key": "firstmate.wake.kind",
+                  "value": {
+                    "stringValue": "signal"
+                  }
+                },
+                {
+                  "key": "firstmate.wake.seq",
+                  "value": {
+                    "stringValue": "1"
+                  }
+                },
+                {
+                  "key": "firstmate.wake.key",
+                  "value": {
+                    "stringValue": "traced.status"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
