@@ -47,8 +47,9 @@
 #                       every state/*.meta, a bounded state/*.status tail,
 #                       the away posture (state/.afk-contract and the legacy
 #                       state/.afk daemon flag), and a cheap per-task
-#                       endpoint-liveness read:
-#                       read-only, always runs.
+#                       endpoint-liveness read, each bounded and crash-
+#                       isolated so one task's read can never abort the
+#                       digest: read-only, always runs.
 #   7. network checks - the result of the deferred network stage started back at
 #                       step 1, harvested WITHOUT waiting for it.
 #   8. context digest - data/projects.md, data/secondmates.md, data/captain.md,
@@ -59,7 +60,9 @@
 #                       block and deliberately never arms the watcher itself.
 #
 # Those nine names are also the runtime-bound stage list below, so a truncated
-# startup can name exactly which of them never ran.
+# startup can name exactly which of them never ran - and the parent banners
+# EVERY nonzero child exit, not only the bound: a child that dies or is killed
+# mid-stage must never truncate the digest silently (the 2026-09-13 outage).
 #
 # NO NETWORK ON THE BLOCKING PATH. This digest runs on a session-open hook that
 # blocks session initialization, so anything it waits for is time the captain
@@ -305,7 +308,12 @@ if [ -z "${FM_SESSION_START_STAGE_FILE:-}" ]; then
       "$SCRIPT_DIR/fm-session-start.sh"
   fi
   SESSION_START_RC=$?
-  if [ "$SESSION_START_RC" -eq 124 ]; then
+  # ANY nonzero child exit is a truncation: the banner contract promises that
+  # a stage that cannot print is named. Exit 124 is the bound firing; any
+  # other status means the child died or was killed mid-stage, which is the
+  # silent-truncation shape the 2026-09-13 outage actually took - the parent
+  # must banner it, never exit 0 around it.
+  if [ "$SESSION_START_RC" -ne 0 ]; then
     SESSION_START_LAST_STAGE=$(cat "$SESSION_START_STAGE_FILE" 2>/dev/null) || SESSION_START_LAST_STAGE=
     [ -n "$SESSION_START_LAST_STAGE" ] || SESSION_START_LAST_STAGE=unknown
     SESSION_START_PENDING=$(
@@ -315,7 +323,11 @@ if [ -z "${FM_SESSION_START_STAGE_FILE:-}" ]; then
     [ -n "${SESSION_START_PENDING# }" ] || SESSION_START_PENDING='(unknown - the digest may be incomplete anywhere)'
     BAR='●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
     printf '\n%s\n' "$BAR"
-    printf '●  STARTUP TRUNCATED - SESSION START HIT ITS %ss RUNTIME BOUND\n' "$SESSION_START_BUDGET"
+    if [ "$SESSION_START_RC" -eq 124 ]; then
+      printf '●  STARTUP TRUNCATED - SESSION START HIT ITS %ss RUNTIME BOUND\n' "$SESSION_START_BUDGET"
+    else
+      printf '●  STARTUP TRUNCATED - SESSION START DIED UNEXPECTEDLY (exit %s, not its runtime bound)\n' "$SESSION_START_RC"
+    fi
     printf '●  It stopped during the "%s" stage, so everything above is COMPLETE\n' "$SESSION_START_LAST_STAGE"
     printf '●  only up to that point.\n'
     printf '●  RECONCILE these stages before acting on anything they would have shown:\n'
@@ -357,6 +369,12 @@ STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-5}
 case "$STATUS_TAIL" in ''|*[!0-9]*) STATUS_TAIL=5 ;; esac
 QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-20}
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=20 ;; esac
+# One per-task endpoint read may never outlive this bound: a hung backend CLI
+# becomes that task's endpoint: error line instead of the digest's whole
+# runtime budget. A non-positive or non-numeric value falls back to the
+# default rather than disabling the bound.
+ENDPOINT_TIMEOUT=${FM_SESSION_START_ENDPOINT_TIMEOUT:-10}
+case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*|0) ENDPOINT_TIMEOUT=10 ;; esac
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
 RULE='================================================================================'
@@ -534,6 +552,24 @@ print_status_tail() {
   while IFS= read -r line || [ -n "$line" ]; do
     fm_cap_line "$line"
   done < <(tail -n "$STATUS_TAIL" "$status")
+}
+
+# fm_session_start_endpoint_read <backend> <target> [expected-label]: ONE
+# bounded, crash-isolated endpoint-liveness read. The read runs in its own
+# bash under fm_run_timed's bound instead of in this digest process, because
+# the 2026-09-13 outage truncated the whole digest here: a per-task herdr
+# liveness read died mid-read and took every later stage with it. Isolation
+# turns any death, hang, or nonzero surprise in one task's read into that
+# task's own endpoint line - never a silently missing rest of digest. The
+# inner bash re-sources fm-backend.sh per read; that cost is a few
+# milliseconds per task and buys the isolation.
+fm_session_start_endpoint_read() {  # <backend> <target> [expected-label]
+  local backend=$1 target=$2 label=${3:-}
+  # shellcheck disable=SC2016  # Positional parameters expand inside the child bash, not here.
+  fm_run_timed "$ENDPOINT_TIMEOUT" bash -c '
+    . "$1"
+    fm_backend_target_exists "$2" "$3" "$4"
+  ' _ "$SCRIPT_DIR/fm-backend.sh" "$backend" "$target" "$label"
 }
 
 hash_file_sha256() {
@@ -842,11 +878,14 @@ for meta in "$STATE"/*.meta; do
   target=$(fm_backend_target_of_meta "$meta")
   if [ -n "$window" ]; then
     backend=$(fm_backend_of_meta "$meta")
-    if fm_backend_target_exists "$backend" "${target:-$window}" "fm-$id"; then
-      printf 'endpoint: alive (backend=%s window=%s)\n' "$backend" "$window"
-    else
-      printf 'endpoint: dead (backend=%s window=%s)\n' "$backend" "$window"
-    fi
+    endpoint_rc=0
+    fm_session_start_endpoint_read "$backend" "${target:-$window}" "fm-$id" || endpoint_rc=$?
+    case "$endpoint_rc" in
+      0) printf 'endpoint: alive (backend=%s window=%s)\n' "$backend" "$window" ;;
+      1) printf 'endpoint: dead (backend=%s window=%s)\n' "$backend" "$window" ;;
+      *) printf 'endpoint: error (backend=%s window=%s - the endpoint read died or hit its %ss bound; the digest continued past it)\n' \
+        "$backend" "$window" "$ENDPOINT_TIMEOUT" ;;
+    esac
   else
     printf 'endpoint: unknown (no window recorded)\n'
   fi

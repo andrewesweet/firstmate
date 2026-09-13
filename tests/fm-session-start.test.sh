@@ -501,6 +501,50 @@ SH
   chmod +x "$fakebin/herdr"
 }
 
+# make_fake_herdr_deadly_read <fakebin> <live-pane> <kill-pane>: like
+# make_fake_herdr, but `pane get <kill-pane>` KILLs the shell running the
+# endpoint read. The read's shell is the fake's grandparent (fm_backend_herdr_cli's
+# stderr-capture subshell sits in between), so the fake walks one /proc hop
+# above $PPID. This is the 2026-09-13 digest-death shape: a per-task herdr
+# liveness read whose process died mid-read, which used to take the whole
+# session-start digest with it.
+make_fake_herdr_deadly_read() {
+  local fakebin=$1 live=$2 killpane=$3
+  cat > "$fakebin/herdr" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = pane ] && [ "\${2:-}" = get ]; then
+  if [ "\${3:-}" = "$killpane" ]; then
+    read_shell=\$(sed 's/^[^)]*) //' /proc/\$PPID/stat 2>/dev/null | awk '{print \$2}')
+    kill -KILL "\$read_shell" 2>/dev/null
+    exit 137
+  fi
+  [ "\${3:-}" = "$live" ] && exit 0
+  exit 1
+fi
+exit 1
+SH
+  chmod +x "$fakebin/herdr"
+}
+
+# make_fake_herdr_hanging_read <fakebin> <live-pane> <hang-pane>: like
+# make_fake_herdr, but `pane get <hang-pane>` never returns - the backend-CLI
+# hang shape the per-task read bound must turn into an error line.
+make_fake_herdr_hanging_read() {
+  local fakebin=$1 live=$2 hangpane=$3
+  cat > "$fakebin/herdr" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = pane ] && [ "\${2:-}" = get ]; then
+  [ "\${3:-}" = "$hangpane" ] && sleep 300
+  [ "\${3:-}" = "$live" ] && exit 0
+  exit 1
+fi
+exit 1
+SH
+  chmod +x "$fakebin/herdr"
+}
+
 # run_session_start <home> <root> <path>
 # Drop every harness env marker from bin/fm-harness.sh detect_own so the
 # surrounding interactive shell cannot leak past the suite's fake ps harness.
@@ -1360,6 +1404,148 @@ EOF
   assert_contains "$out" "endpoint: dead (backend=herdr window=sess:p-dead)" "dead herdr endpoint not reported dead"
 
   pass "herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one"
+}
+
+test_endpoint_read_death_is_isolated_and_reported() {
+  local rec root home fakebin out status=0
+  rec=$(new_world endpoint-death)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  make_fake_herdr_deadly_read "$fakebin" "p-live" "p-doom"
+
+  printf 'window=sess:p-doom\nkind=ship\nbackend=herdr\n' > "$home/state/task-a-doom.meta"
+  printf 'working: doomed task marker\n' > "$home/state/task-a-doom.status"
+  printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
+
+  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=9 \
+    run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+
+  expect_code 0 "$status" "one killed endpoint read must not fail the digest"
+  assert_contains "$out" \
+    "endpoint: error (backend=herdr window=sess:p-doom - the endpoint read died or hit its 9s bound; the digest continued past it)" \
+    "a killed endpoint read was not reported as that task's own error line"
+  assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" \
+    "the digest did not continue past the killed read to the next task"
+  assert_contains "$out" "working: doomed task marker" \
+    "the doomed task's status tail was lost along with its endpoint read"
+  assert_contains "$out" "$(printf '\nCONTEXT\n')" \
+    "a killed endpoint read cost the digest its context section"
+  assert_contains "$out" "NEXT STEP" \
+    "a killed endpoint read cost the digest its closing reminder"
+  assert_not_contains "$out" "STARTUP TRUNCATED - SESSION START" \
+    "an isolated endpoint-read death raised the truncation banner"
+  assert_present "$home/state/.session-start-complete" \
+    "a digest that survived a killed endpoint read did not record completion"
+
+  pass "a killed per-task endpoint read becomes that task's error line and the digest completes"
+}
+
+test_endpoint_read_hang_is_bounded_and_reported() {
+  local rec root home fakebin out status=0 stray
+  rec=$(new_world endpoint-hang)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  make_fake_herdr_hanging_read "$fakebin" "p-live" "p-slow"
+
+  printf 'window=sess:p-slow\nkind=ship\nbackend=herdr\n' > "$home/state/task-a-slow.meta"
+  printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
+
+  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=2 \
+    run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+
+  expect_code 0 "$status" "a hung endpoint read must not fail the digest"
+  assert_contains "$out" \
+    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 2s bound; the digest continued past it)" \
+    "a hung endpoint read was not bounded into that task's own error line"
+  assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" \
+    "the digest did not continue past the hung read to the next task"
+  assert_contains "$out" "$(printf '\nCONTEXT\n')" \
+    "a hung endpoint read cost the digest its context section"
+  assert_not_contains "$out" "STARTUP TRUNCATED - SESSION START" \
+    "a bounded endpoint-read hang raised the whole-digest truncation banner"
+
+  stray=$(pgrep -f "$fakebin/herdr" 2>/dev/null | wc -l | tr -d ' ')
+  [ "$stray" -eq 0 ] || fail "the per-task read bound left $stray hung herdr process(es) behind"
+
+  pass "a hung per-task endpoint read hits its own bound, reports the task, and leaves nothing stuck"
+}
+
+test_abnormal_digest_death_banners_and_exits_zero() {
+  local rec root home fakebin out status=0
+  rec=$(new_world digest-death-banner)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  # Replace the harness ps with one that TERMs the digest process itself when
+  # fm-lock.sh invokes it: the 2026-09-13 shape where the digest child dies
+  # mid-stage from something other than its runtime bound, which the parent
+  # used to swallow silently (no banner, exit 0, rest of the digest gone).
+  # ps sits below fm-lock.sh below the digest bash, so walk /proc upward.
+  # Flattened cmdline matching alone is useless: timeout's bash -c inner shell
+  # and the timeout wrapper carry the script path as an ARGV element, and the
+  # lock stage's own command substitution leaves a subshell whose argv is
+  # still `fm-session-start.sh` - only the topmost match is the digest bash
+  # itself. That digest child is the topmost ancestor whose ENVIRON carries
+  # FM_SESSION_START_STAGE_FILE: the parent wrapper mktemps the file and hands
+  # it over with env (which never keeps it for itself), the bash -c inner
+  # shell and timeout sit BELOW env, and the parent wrapper never holds it -
+  # so the env marker stops the walk above the digest child and below the
+  # wrapper whose death would skip the banner entirely. Kill that topmost
+  # marker carrier: the digest bash whose death the parent must banner.
+  mv "$fakebin/ps" "$fakebin/ps.real"
+  cat > "$fakebin/ps" <<SH
+#!/usr/bin/env bash
+set -u
+case "\$(tr '\\0' ' ' < /proc/\$PPID/cmdline 2>/dev/null)" in
+  *fm-lock.sh*)
+    pid=\$PPID
+    target=
+    matched=0
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+      [ -n "\$pid" ] && [ "\$pid" != 1 ] || break
+      if tr '\\0' '\\n' < /proc/\$pid/environ 2>/dev/null | grep -q '^FM_SESSION_START_STAGE_FILE=' \
+        && case "\$(tr '\\0' ' ' < /proc/\$pid/cmdline 2>/dev/null)" in *fm-session-start.sh*) true ;; *) false ;; esac; then
+        target=\$pid
+        matched=1
+      elif [ "\$matched" -eq 1 ]; then
+        break
+      fi
+      pid=\$(sed 's/^[^)]*) //' /proc/\$pid/stat 2>/dev/null | awk '{print \$2}')
+    done
+    [ -n "\$target" ] && kill -TERM "\$target" 2>/dev/null
+    ;;
+esac
+exec "$fakebin/ps.real" "\$@"
+SH
+  chmod +x "$fakebin/ps"
+
+  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+
+  expect_code 0 "$status" "a digest child that died mid-stage must still let the session open (parent exits 0)"
+  assert_contains "$out" \
+    "STARTUP TRUNCATED - SESSION START DIED UNEXPECTEDLY (exit 143, not its runtime bound)" \
+    "a digest child killed mid-stage did not name its abnormal death"
+  assert_contains "$out" 'stopped during the "lock" stage' \
+    "the abnormal-death banner did not name the stage that never finished"
+  assert_contains "$out" \
+    "wake-queue supervision-instructions read-once fleet-state network-checks context next-step" \
+    "the abnormal-death banner did not list every stage that never ran"
+  assert_not_contains "$out" "RUNTIME BOUND" \
+    "an abnormal death was misreported as the runtime bound firing"
+  assert_not_contains "$out" "NEXT STEP" \
+    "a digest that died mid-stage claimed to have reached its closing reminder"
+  assert_absent "$home/state/.session-start-complete" \
+    "a digest that died mid-stage recorded itself as complete"
+
+  pass "a digest child killed mid-stage is bannered by the parent, which still exits 0"
 }
 
 # --- composition: real scripts run, not reimplemented ------------------------
@@ -2647,6 +2833,9 @@ test_status_tail_line_cap
 test_orphan_status_logs_are_printed
 test_endpoint_liveness_tmux
 test_endpoint_liveness_herdr
+test_endpoint_read_death_is_isolated_and_reported
+test_endpoint_read_hang_is_bounded_and_reported
+test_abnormal_digest_death_banners_and_exits_zero
 test_composition_invokes_real_scripts
 test_branch_outcome_replay_respects_captain_barrier_and_lease_sweep
 test_non_pi_session_start_leaves_branch_state_untouched
