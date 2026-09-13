@@ -66,7 +66,20 @@
 #       attributes firstmate.task.outcome (done, failed, retired, unknown),
 #       firstmate.task.mode, firstmate.task.yolo, firstmate.pr.url,
 #       firstmate.teardown.forced, firstmate.spawn_gen.
-#   Later catalogue entries (steer, promote, control, PR, merge, link
+#     firstmate.pr.ready - bin/fm-pr-check.sh, immediately after the validated
+#       canonical PR identity is committed to the task meta and re-verified,
+#       before the poll publish that only arms watching; a rejected request
+#       exits before any emission. Attributes firstmate.pr.url,
+#       firstmate.pr.head (present only when the forge supplied one).
+#     firstmate.pr.merged - fm_merge_outcome_report in
+#       bin/fm-merge-outcome-lib.sh, after the canonical outcome publication
+#       and its dedup marker commit succeed, so a self-performed merge
+#       (bin/fm-pr-merge.sh) and a poll-detected merge (bin/fm-watch.sh) share
+#       one emission point and the already-recorded dedup return emits nothing
+#       new; a failed publication emits nothing. Attributes firstmate.pr.url,
+#       firstmate.merge.origin (self, poll), firstmate.merge.authority
+#       (yolo, away-grant, attended, external; omitted when none is known).
+#   Later catalogue entries (steer, promote, control, link
 #   emission sites, handoff, hold, reply, wake) are separate increments and
 #   must extend this list only when they land.
 #

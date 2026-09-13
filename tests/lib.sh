@@ -7,8 +7,8 @@
 #
 # It provides the boilerplate every test file used to re-roll: ok/not-ok
 # reporters, a self-cleaning temp root, fakebin/PATH-shim helpers, deterministic
-# git identity and fixture builders, state/<id>.meta writers, and the common
-# string/exit-code/file assertions. Shared fake-toolchain and spawn-world
+# git identity and fixture builders, OTLP capture helpers, state/<id>.meta
+# writers, and common assertions. Shared fake-toolchain and spawn-world
 # builders live in tests/fixtures.sh; wake-queue mocks in wake-helpers.sh;
 # secondmate-lifecycle mocks in secondmate-helpers.sh. Suite-specific fakes
 # that encode a single test's terminal or lifecycle assumptions still belong
@@ -411,6 +411,65 @@ fi
 exit 0
 SH
   chmod +x "$fakebin/$tool"
+}
+
+# --- OTLP/HTTP capture ------------------------------------------------------
+
+# fm_test_otlp_capture_install <fakebin>: install a fake curl that records each
+# argument list and stdin body in FM_FAKE_CURL_LOG and honors FM_FAKE_CURL_EXIT.
+fm_test_otlp_capture_install() {
+  local fakebin=$1
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit "${FM_FAKE_CURL_EXIT:-0}"
+SH
+  chmod +x "$fakebin/curl"
+}
+
+# fm_test_otlp_request_count <log>: count recorded OTLP requests.
+fm_test_otlp_request_count() {
+  if [ -f "$1" ]; then
+    grep -c '^ARGS:' "$1" || true
+  else
+    printf '0\n'
+  fi
+}
+
+# fm_test_otlp_request_body <log> <number>: print one recorded stdin body.
+fm_test_otlp_request_body() {
+  awk -v n="$2" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$1"
+}
+
+# fm_test_otlp_request_endpoint <log> <number>: print the final curl argument.
+fm_test_otlp_request_endpoint() {
+  awk -v n="$2" '/^ARGS:/ { c++; if (c == n) { v=$NF; gsub(/^</, "", v); gsub(/>$/, "", v); print v; exit } }' "$1"
+}
+
+# fm_test_otlp_span_matches <log> <number> <jq-filter>: test the first span.
+fm_test_otlp_span_matches() {
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | '"$3" >/dev/null 2>&1 \
+    <<< "$(fm_test_otlp_request_body "$1" "$2")"
+}
+
+# fm_test_otlp_span_value <log> <number> <jq-filter>: read from the first span.
+fm_test_otlp_span_value() {
+  jq -r '.resourceSpans[0].scopeSpans[0].spans[0] | '"$3" \
+    <<< "$(fm_test_otlp_request_body "$1" "$2")"
+}
+
+# fm_test_otlp_span_attr <log> <number> <key>: read a string attribute.
+fm_test_otlp_span_attr() {
+  jq -r --arg k "$3" \
+    '.resourceSpans[0].scopeSpans[0].spans[0].attributes
+     | map(select(.key == $k))[0].value.stringValue // "absent"' \
+    <<< "$(fm_test_otlp_request_body "$1" "$2")"
 }
 
 # --- portable file timestamps -----------------------------------------------

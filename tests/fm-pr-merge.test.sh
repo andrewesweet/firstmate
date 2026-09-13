@@ -3006,6 +3006,139 @@ test_allow_red_refused_on_gitlab() {
   pass "fm-pr-merge refuses --allow-red on GitLab"
 }
 
+# --- PR-ready and merge trace spans -----------------------------------------
+# The span catalogue is owned by bin/fm-trace-span-lib.sh; these cases pin the
+# merge-side emission: one merged span per published canonical outcome, none
+# for a failed merge, none for a rejected request, and exactly one across the
+# already-recorded dedup path.
+
+MERGE_TRACE_CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+install_merge_trace_fixture() {  # <case_dir>: tracing on with a recording curl
+  local case_dir=$1 state
+  state="$case_dir/state"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s %s\n' "$$" on > "$state/.trace-context-effective"
+  fm_write_meta "$state/task-x1.meta" \
+    "window=fm-task-x1" \
+    "worktree=$case_dir/wt" \
+    "project=$case_dir/project" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "traceparent=$MERGE_TRACE_CARRIER" \
+    "trace_started=1700000000000"
+  fm_test_otlp_capture_install "$case_dir/fakebin"
+  export FM_FAKE_CURL_LOG="$case_dir/curl.log"
+  : > "$FM_FAKE_CURL_LOG"
+}
+
+merge_trace_request_count() {  # <case_dir>: span-export requests so far
+  fm_test_otlp_request_count "$1/curl.log"
+}
+
+merge_trace_span_name() {  # <case_dir> <number>
+  fm_test_otlp_span_value "$1/curl.log" "$2" '.name'
+}
+
+merge_trace_span_attr() {  # <case_dir> <number> <key>
+  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
+}
+
+test_merge_outcome_spans_follow_publication() {
+  local case_dir rc url
+  url=https://github.com/example/repo/pull/9
+
+  # A confirmed self merge publishes exactly one merged span with its origin,
+  # authority, and canonical URL, parented on the task's carrier.
+  case_dir=$(make_case trace-merged-span)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" deadbeefcafefeed0000000000000000deadbeef
+  install_merge_trace_fixture "$case_dir"
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$url" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "trace-merged-span: fm-pr-merge should succeed"
+  [ "$(merge_trace_request_count "$case_dir")" -eq 2 ] \
+    || fail "trace-merged-span: expected the recording ready span plus one merged span"
+  [ "$(merge_trace_span_name "$case_dir" 1)" = firstmate.pr.ready ] \
+    || fail "trace-merged-span: the wrapper's pr= recording must emit the ready span"
+  [ "$(merge_trace_span_name "$case_dir" 2)" = firstmate.pr.merged ] \
+    || fail "trace-merged-span: the confirmed merge must emit the merged span"
+  [ "$(merge_trace_span_attr "$case_dir" 2 firstmate.merge.origin)" = self ] \
+    || fail "trace-merged-span: a self merge must be origin=self"
+  [ "$(merge_trace_span_attr "$case_dir" 2 firstmate.merge.authority)" = attended ] \
+    || fail "trace-merged-span: an attended merge must carry authority=attended"
+  [ "$(merge_trace_span_attr "$case_dir" 2 firstmate.pr.url)" = "$url" ] \
+    || fail "trace-merged-span: the merged span must carry the canonical URL"
+
+  # A failed forge merge lands no outcome and so emits no merged span.
+  case_dir=$(make_case trace-merge-fails-span)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks_merge_fails "$case_dir"
+  install_merge_trace_fixture "$case_dir"
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/13 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "trace-merge-fails-span: the merge failure should propagate"
+  [ "$(merge_trace_request_count "$case_dir")" -eq 1 ] \
+    || fail "trace-merge-fails-span: a failed merge must emit only its recording ready span"
+
+  pass "confirmed merges publish one merged span; failed merges publish none"
+}
+
+test_merge_outcome_report_emits_once_per_merge() {
+  local case_dir state home fakebin rc
+  # shellcheck source=/dev/null
+  . "$ROOT/bin/fm-merge-outcome-lib.sh"
+  case_dir=$(make_case trace-report-dedup)
+  state="$case_dir/state"
+  home="$case_dir/home"
+  install_merge_trace_fixture "$case_dir"
+  fakebin=$case_dir/fakebin
+
+  # First publication emits one span; the already-recorded dedup return and a
+  # rejected request emit nothing.
+  set +e
+  PATH="$fakebin:$PATH" fm_merge_outcome_report "$home" "$state" task-x1 \
+    https://github.com/example/repo/pull/9 self yolo
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "trace-report-dedup: the first report should succeed"
+  [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = false ] \
+    || fail "trace-report-dedup: the first report claimed an already-recorded outcome"
+  [ "$(merge_trace_request_count "$case_dir")" -eq 1 ] \
+    || fail "trace-report-dedup: the first publication must emit exactly one span"
+  [ "$(merge_trace_span_attr "$case_dir" 1 firstmate.merge.origin)" = self ] \
+    || fail "trace-report-dedup: the span must carry origin=self"
+  [ "$(merge_trace_span_attr "$case_dir" 1 firstmate.merge.authority)" = yolo ] \
+    || fail "trace-report-dedup: the span must carry authority=yolo"
+
+  set +e
+  PATH="$fakebin:$PATH" fm_merge_outcome_report "$home" "$state" task-x1 \
+    https://github.com/example/repo/pull/9 poll yolo
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "trace-report-dedup: the duplicate report should stay successful"
+  [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ] \
+    || fail "trace-report-dedup: the duplicate was not recognized as already recorded"
+  [ "$(merge_trace_request_count "$case_dir")" -eq 1 ] \
+    || fail "trace-report-dedup: the already-recorded path must emit nothing"
+
+  set +e
+  PATH="$fakebin:$PATH" fm_merge_outcome_report "$home" "$state" task-x1 \
+    https://github.com/example/repo/pull/9 sideways >/dev/null 2>&1
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "trace-report-dedup: an invalid origin must be rejected"
+  [ "$(merge_trace_request_count "$case_dir")" -eq 1 ] \
+    || fail "trace-report-dedup: a rejected request must emit nothing"
+
+  pass "one merged span per published canonical outcome across self, poll, and dedup paths"
+}
+
 test_gitlab_head_override_args_refuse_before_recording
 test_secondmate_merge_reports_upward_once
 test_secondmate_merge_reports_on_the_local_route
@@ -3045,3 +3178,5 @@ test_away_record_cannot_change_between_the_authority_read_and_the_merge
 test_a_grant_revoked_before_the_merge_refuses_it
 test_merge_refuses_when_the_away_record_cannot_be_locked
 test_allow_red_refused_on_gitlab
+test_merge_outcome_spans_follow_publication
+test_merge_outcome_report_emits_once_per_merge

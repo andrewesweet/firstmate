@@ -2252,6 +2252,198 @@ test_merged_poll_row_names_no_authority_when_no_record_grants_one() {
   pass "poll distinguishes attended authorization from external landing"
 }
 
+# --- PR-ready and merge trace spans -----------------------------------------
+# The spans are owned by bin/fm-trace-span-lib.sh's catalogue; these cases pin
+# the PR identity emission points: one ready span per validated registration,
+# one shared merged span per published canonical outcome (self and poll
+# origins, dedup absorbed silently), and nothing for rejected requests,
+# failed publications, duplicate observations, disabled homes, or failed
+# exports.
+
+TRACE_CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+install_trace_fixture() {  # <dir> [<id>]: turn tracing on for one case home
+  # with the full task meta written and a recording fake curl first in PATH.
+  local dir=$1 id=${2:-task-a} state
+  state="$dir/home/state"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s %s\n' "$$" on > "$state/.trace-context-effective"
+  fm_write_meta "$state/$id.meta" \
+    "window=firstmate:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$dir/wt" \
+    "project=$dir/project" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "traceparent=$TRACE_CARRIER" \
+    "trace_started=1700000000000"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  export FM_FAKE_CURL_LOG="$dir/curl.log"
+  : > "$FM_FAKE_CURL_LOG"
+}
+
+trace_request_count() {  # <dir>: span-export requests recorded so far
+  fm_test_otlp_request_count "$1/curl.log"
+}
+
+trace_span_attr() {  # <dir> <number> <key>: the span attribute value or absent
+  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
+}
+
+trace_span() {  # <dir> <number> <jq-filter>: true when the filter holds
+  fm_test_otlp_span_matches "$1/curl.log" "$2" "$3"
+}
+
+test_pr_ready_trace_span_records_validated_identity() {
+  local dir state url expected rc
+  url=https://github.com/my-org/repo_name.with-dots/pull/37
+  expected=0123456789abcdef0123456789abcdef01234567
+
+  dir=$(make_case trace-pr-ready)
+  state="$dir/home/state"
+  install_trace_fixture "$dir"
+  FM_TEST_GH_HEAD=$expected run_check_entry "$dir" task-a "$url" \
+    > "$dir/stdout" 2> "$dir/stderr" || fail "traced valid check failed"
+  [ "$(trace_request_count "$dir")" -eq 1 ] \
+    || fail "a valid check must emit exactly one span"
+  trace_span "$dir" 1 '.name == "firstmate.pr.ready" and .kind == 1' \
+    || fail "the emitted span must be firstmate.pr.ready with INTERNAL kind"
+  trace_span "$dir" 1 ".traceId == \"${TRACE_CARRIER:3:32}\" and .parentSpanId == \"${TRACE_CARRIER:36:16}\"" \
+    || fail "the ready span must child the task's recorded carrier"
+  [ "$(trace_span_attr "$dir" 1 firstmate.pr.url)" = "$url" ] \
+    || fail "the ready span must carry the canonical URL"
+  [ "$(trace_span_attr "$dir" 1 firstmate.pr.head)" = "$expected" ] \
+    || fail "the ready span must carry the forge head"
+  [ "$(trace_span_attr "$dir" 1 firstmate.merge.origin)" = absent ] \
+    || fail "a ready span must not carry merge attributes"
+
+  FM_TEST_GH_HEAD=$expected run_check_entry "$dir" task-a "$url" \
+    >/dev/null 2>&1 || fail "traced duplicate registration failed"
+  [ "$(trace_request_count "$dir")" -eq 2 ] \
+    || fail "each validated registration records its own ready span"
+
+  set +e
+  run_check_entry "$dir" task-a 'https://github.com/o(/r/pull/1' >/dev/null 2>&1
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "the malformed URL was accepted"
+  [ "$(trace_request_count "$dir")" -eq 2 ] \
+    || fail "a rejected request must emit nothing"
+
+  dir=$(make_case trace-pr-ready-disabled)
+  install_trace_fixture "$dir"
+  rm -f "$dir/home/state/.trace-context-effective"
+  FM_TEST_GH_HEAD=$expected run_check_entry "$dir" task-a "$url" \
+    >/dev/null 2>&1 || fail "the disabled-trace check failed"
+  [ "$(trace_request_count "$dir")" -eq 0 ] \
+    || fail "a disabled home must emit nothing"
+
+  printf '%s %s\n' "$$" on > "$dir/home/state/.trace-context-effective"
+  FM_FAKE_CURL_EXIT=7 FM_TEST_GH_HEAD=$expected \
+    run_check_entry "$dir" task-a "$url" \
+    > "$dir/stdout" 2> "$dir/stderr" \
+    || fail "a failed span export must not fail the registration"
+  assert_grep 'armed: state/task-a.check.sh' "$dir/stdout" \
+    "a failed span export broke the check's own contract"
+  [ "$(trace_request_count "$dir")" -eq 1 ] \
+    || fail "the failed export must still have been attempted once"
+
+  pass "validated PR registrations emit ready spans; rejections, disabled homes, and export failures stay silent"
+}
+
+test_merge_trace_spans_share_one_publication() {
+  local dir state url expected
+  url=https://github.com/my-org/repo_name.with-dots/pull/37
+  expected=0123456789abcdef0123456789abcdef01234567
+
+  dir=$(make_case trace-merge-shared)
+  state="$dir/home/state"
+  install_trace_fixture "$dir"
+  FM_TEST_GH_HEAD=$expected run_check_entry "$dir" task-a "$url" \
+    >/dev/null 2>&1 || fail "traced check failed"
+  [ "$(trace_request_count "$dir")" -eq 1 ] \
+    || fail "the explicit check must emit exactly one ready span"
+  run_merge_entry "$dir" task-a "$url" -- --merge >/dev/null 2>&1 \
+    || fail "traced merge failed"
+  # The merge wrapper records pr= by running bin/fm-pr-check.sh, so its own
+  # validated recording emits one ready span; the confirmed merge then adds
+  # exactly one merged span.
+  [ "$(trace_request_count "$dir")" -eq 3 ] \
+    || fail "a self merge must add its recording ready span and one merged span"
+  trace_span "$dir" 3 '.name == "firstmate.pr.merged"' \
+    || fail "the merge span must be firstmate.pr.merged"
+  [ "$(trace_span_attr "$dir" 3 firstmate.merge.origin)" = self ] \
+    || fail "a self merge must be origin=self"
+  [ "$(trace_span_attr "$dir" 3 firstmate.merge.authority)" = attended ] \
+    || fail "an attended merge must carry authority=attended"
+  [ "$(trace_span_attr "$dir" 3 firstmate.pr.url)" = "$url" ] \
+    || fail "the merged span must carry the canonical URL"
+
+  # The self-published outcome wakes the queue; drain it, then the poll's own
+  # MERGED observation is the absorbed duplicate and must emit nothing.
+  ack_watcher_cycle "$state" || fail "could not drain the self-merge outcome"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_STATE=MERGED run_watcher_bounded "$dir/home" "$dir/fakebin" \
+    > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "absorbed poll cycle failed: $(cat "$dir/watch.err")"
+  [ "$(trace_request_count "$dir")" -eq 3 ] \
+    || fail "an absorbed duplicate poll observation must emit nothing"
+  assert_poll_absent "$state" task-a
+
+  pass "self and poll merge observations share one publication-owned merged span"
+}
+
+test_merged_poll_trace_spans_carry_origin_and_authority() {
+  local dir state url expected expected_count posture
+  url=https://github.com/o/r/pull/1
+
+  for posture in yolo grant external; do
+    dir=$(make_case "trace-poll-merge-$posture")
+    state="$dir/home/state"
+    install_trace_fixture "$dir"
+    if [ "$posture" = external ]; then
+      fm_write_meta "$state/task-a.meta" \
+        "window=fm-task-a" \
+        "yolo=on" \
+        "traceparent=$TRACE_CARRIER" \
+        "trace_started=1700000000000" \
+        "pr=$url"
+      write_away_record "$dir"
+      seed_canonical_poll "$dir" task-a "$url"
+      expected=external
+      expected_count=1
+    else
+      if [ "$posture" = yolo ]; then
+        printf 'yolo=on\n' >> "$state/task-a.meta"
+        write_away_record "$dir"
+        expected=yolo
+      else
+        write_away_record "$dir" --grant task-a
+        expected=away-grant
+      fi
+      run_check_entry "$dir" task-a "$url" >/dev/null 2>&1 \
+        || fail "$posture: could not arm the merge poll"
+      queue_merge "$dir" "$url"
+      archive_away_record "$dir"
+      # ready at check, ready again at the merge wrapper's own pr= recording
+      expected_count=3
+    fi
+    run_merged_poll_cycle "$dir"
+    [ "$(trace_request_count "$dir")" -eq "$expected_count" ] \
+      || fail "$posture: expected $expected_count spans, saw $(trace_request_count "$dir")"
+    trace_span "$dir" "$expected_count" '.name == "firstmate.pr.merged"' \
+      || fail "$posture: the poll merge must emit firstmate.pr.merged"
+    [ "$(trace_span_attr "$dir" "$expected_count" firstmate.merge.origin)" = poll ] \
+      || fail "$posture: a poll detection must be origin=poll"
+    [ "$(trace_span_attr "$dir" "$expected_count" firstmate.merge.authority)" = "$expected" ] \
+      || fail "$posture: the merged span must carry authority=$expected"
+    [ "$(trace_span_attr "$dir" "$expected_count" firstmate.pr.url)" = "$url" ] \
+      || fail "$posture: the merged span must carry the canonical URL"
+  done
+
+  pass "poll-detected merges carry origin and the persisted or external authority"
+}
+
 test_authority_persistence_refuses_rebound_metadata() {
   local dir state url_a url_b rc
   url_a=https://github.com/o/r/pull/1
@@ -2425,6 +2617,9 @@ test_merged_poll_retries_a_failed_upward_report
 test_self_merge_and_poll_publish_one_outcome
 test_merged_poll_row_carries_the_merge_authority
 test_merged_poll_row_names_no_authority_when_no_record_grants_one
+test_pr_ready_trace_span_records_validated_identity
+test_merge_trace_spans_share_one_publication
+test_merged_poll_trace_spans_carry_origin_and_authority
 test_authority_persistence_refuses_rebound_metadata
 test_authority_persists_before_control_unlock
 test_teardown_cannot_race_authority_consumption

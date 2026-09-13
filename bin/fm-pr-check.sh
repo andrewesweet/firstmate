@@ -19,6 +19,8 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 . "$SCRIPT_DIR/fm-parent-channel-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 if [ "$#" -ne 2 ]; then
   echo "error: invalid PR check request" >&2
@@ -129,6 +131,13 @@ fm_pr_metadata_identity_parse "$META" || exit 1
   && [ "$FM_PR_META_NUMBER" = "$NUMBER" ] || exit 1
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
+# The validated canonical PR identity is now durably recorded and re-verified in
+# the task meta, so this is the PR-ready emission point, ahead of the poll
+# publish that only arms watching (bin/fm-trace-span-lib.sh's header owns the
+# catalogue entry). Emission is silent and never changes this script's outcome.
+PR_READY_SPAN_ATTRS=("firstmate.pr.url=$URL")
+[ -z "$PR_HEAD" ] || PR_READY_SPAN_ATTRS+=("firstmate.pr.head=$PR_HEAD")
+fm_trace_span_emit "$META" firstmate.pr.ready - - "${PR_READY_SPAN_ATTRS[@]}"
 
 fm_pr_poll_publish_prepared || {
   echo "error: could not publish PR poll" >&2
