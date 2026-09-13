@@ -134,20 +134,16 @@ The behavioral suites drive the real executables with the shared `tests/lib.sh` 
 - `tests/fm-control-relaunch.test.sh` (54 assertions, 1 new): a traced relaunch posts exactly the replacement's `firstmate.spawn` span (`firstmate.relaunch=true`) and no control span.
 
 ```console
-$ bash tests/fm-promote.test.sh | tail -1
-# all fm-promote tests passed
-$ bash tests/fm-send-resolve-key.test.sh | tail -1
-# all fm-send-resolve-key tests passed
-$ bash tests/fm-send-remote-delivery.test.sh | tail -1
-all fm-send-remote-delivery tests passed
-$ for t in fm-send-inbox fm-send-resolve-key fm-send-remote-delivery fm-control fm-control-relaunch fm-promote; do printf '%s: ' "$t"; bash tests/$t.test.sh | grep -c '^ok -'; done
-fm-send-inbox: 18
-fm-send-resolve-key: 22
-fm-send-remote-delivery: 17
-fm-control: 39
-fm-control-relaunch: 54
-fm-promote: 3
+$ bin/fm-test-run.sh \
+    tests/fm-promote.test.sh \
+    tests/fm-send-inbox.test.sh \
+    tests/fm-send-resolve-key.test.sh \
+    tests/fm-send-remote-delivery.test.sh \
+    tests/fm-control.test.sh \
+    tests/fm-control-relaunch.test.sh \
+    >/dev/null && printf '%s\n' 'lifecycle tracing suites passed'
+lifecycle tracing suites passed
 ```
 
-`tests/fm-send-inbox.test.sh`, `tests/fm-control.test.sh`, and `tests/fm-control-relaunch.test.sh` end on their last `ok - ...` line rather than a footer; check each suite's exit status and `ok` count when refreshing this evidence.
+The runner preserves every selected suite's nonzero exit, so refresh this evidence through the same command without piping individual suite output.
 The pre-existing suites that pin each owner's delivery, promotion, and control contracts pass unchanged, as do the earlier trace suites (`tests/fm-trace-span-lib.test.sh`, `tests/fm-trace-context-lib.test.sh`, `tests/fm-trace-context-spawn.test.sh`, `tests/fm-teardown.test.sh`, `tests/fm-remote-secondmate-trace-context.test.sh`).
