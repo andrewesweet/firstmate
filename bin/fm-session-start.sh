@@ -49,7 +49,10 @@
 #                       state/.afk daemon flag), and a cheap per-task
 #                       endpoint-liveness read, each bounded and crash-
 #                       isolated so one task's read can never abort the
-#                       digest: read-only, always runs.
+#                       digest: read-only, always runs. The per-task reads
+#                       run serially, so with a wedged backend the stage's
+#                       ceiling is tasks x FM_SESSION_START_ENDPOINT_TIMEOUT
+#                       and can itself reach the digest's runtime bound.
 #   7. network checks - the result of the deferred network stage started back at
 #                       step 1, harvested WITHOUT waiting for it.
 #   8. context digest - data/projects.md, data/secondmates.md, data/captain.md,
@@ -333,8 +336,13 @@ if [ -z "${FM_SESSION_START_STAGE_FILE:-}" ]; then
     printf '●  RECONCILE these stages before acting on anything they would have shown:\n'
     printf '●    %s\n' "${SESSION_START_PENDING% }"
     printf '●  Rerun bin/fm-session-start.sh now to finish taking the helm. If it truncates\n'
-    printf '●  again, raise FM_SESSION_START_TIMEOUT and report the slow stage - a stage that\n'
-    printf '●  cannot finish inside the bound is a fleet problem, not a reporting detail.\n'
+    if [ "$SESSION_START_RC" -eq 124 ]; then
+      printf '●  again, raise FM_SESSION_START_TIMEOUT and report the slow stage - a stage that\n'
+      printf '●  cannot finish inside the bound is a fleet problem, not a reporting detail.\n'
+    else
+      printf '●  again, report the exit status and the stage - raising the runtime bound\n'
+      printf '●  cannot help a digest that died, and a stage that dies is a fleet problem.\n'
+    fi
     printf '%s\n' "$BAR"
   fi
   rm -f "$SESSION_START_STAGE_FILE" 2>/dev/null || true
