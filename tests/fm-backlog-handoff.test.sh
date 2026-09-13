@@ -814,17 +814,24 @@ SH
   chmod +x "$1/curl"
 }
 
-span_post_body() {  # <log> <1-based request number>
-  awk -v n="$2" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$1"
+# The receiver wake rides fm-send.sh, which posts its own firstmate.steer span,
+# so the handoff assertions select the firstmate.handoff bodies by name.
+span_post_bodies() {  # <log> -> one firstmate.handoff request body per line
+  [ -f "$1" ] || return 0
+  awk '
+    /^ARGS:/ { if (c) print buf; buf = ""; c = 1; next }
+    /^--BODY-END--$/ { next }
+    c { buf = buf $0 }
+    END { if (c) print buf }
+  ' "$1" | jq -c 'select(.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.handoff")'
+}
+
+span_post_body() {  # <log> <1-based handoff span number>
+  span_post_bodies "$1" | sed -n "${2}p"
 }
 
 span_post_count() {  # <log>
-  if [ -f "$1" ]; then grep -c '^ARGS:' "$1" || true; else printf '0\n'; fi
+  span_post_bodies "$1" | grep -c . || true
 }
 
 setup_traced_handoff() {  # <home> <subhome> <curl-log> [on|off]

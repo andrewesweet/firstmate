@@ -700,15 +700,19 @@ cat > "$RSPANBIN/curl" <<RSPAN
 exit 0
 RSPAN
 chmod +x "$RSPANBIN/curl"
-rspan_body() {
-  awk -v n="$1" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$TMP_ROOT/rspan-curl.log"
+# The receiver wake rides fm-send.sh, which posts its own firstmate.steer span,
+# so the handoff assertions select the firstmate.handoff bodies by name.
+rspan_bodies() {
+  [ -f "$TMP_ROOT/rspan-curl.log" ] || return 0
+  awk '
+    /^ARGS:/ { if (c) print buf; buf = ""; c = 1; next }
+    /^--BODY-END--$/ { next }
+    c { buf = buf $0 }
+    END { if (c) print buf }
+  ' "$TMP_ROOT/rspan-curl.log" | jq -c 'select(.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.handoff")'
 }
-rspan_count() { [ -f "$TMP_ROOT/rspan-curl.log" ] && grep -c '^ARGS:' "$TMP_ROOT/rspan-curl.log" || true; }
+rspan_body() { rspan_bodies | sed -n "${1}p"; }
+rspan_count() { rspan_bodies | grep -c . || true; }
 
 write_backlog '- [ ] rspan-a - first traced remote item (repo: alpha)'
 : > "$TMP_ROOT/rspan-curl.log"
