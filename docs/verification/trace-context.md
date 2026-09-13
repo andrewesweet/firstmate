@@ -232,7 +232,7 @@ $ for t in fm-trace-context-lib fm-trace-span-lib fm-trace-context-spawn fm-tear
 92
 7
 27
-20
+21
 ```
 
 `tests/fm-remote-secondmate-trace-context.test.sh` prints a pre-existing best-effort `rm -rf` notice from its exit trap after the final assertion; the suite's exit status is 0 and the notice is not a failure.

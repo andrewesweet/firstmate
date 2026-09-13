@@ -14,6 +14,12 @@
 # for its own backlog or delivered lock whose pid is dead and whose mtime is at
 # least 30 seconds old. No live or uncertain lock is touched. On confirmed
 # receipt the delivered scratch file is removed; no other path is deletable.
+#
+# Receipt output (read by the parent's bin/fm-backlog-handoff.sh across hosts):
+# one `received: <id> moved=<n> already=<m>` summary line, then one
+# `moved: <key>` line per key this delivery moved, so a resumed re-delivery of
+# already-present keys names none and the parent emits no duplicate
+# firstmate.handoff span for them.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
