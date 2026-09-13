@@ -42,10 +42,12 @@ On a run-tier harness the nudge cannot also fire: `resume`, `reload`, and `fork`
 
 The run tier blocks either hook-driven session initialization or Pi's first provider preflight while the digest runs, so `bin/fm-session-start.sh` bounds itself rather than betting on an unbounded prerequisite.
 The digest makes no external-network call at all: every one it owes runs off the blocking path in the separately bounded deferred stage owned by `bin/fm-startup-network.sh`, so an unreachable host can no longer consume this budget.
-Tool version probes, the backlog listing, and the per-task endpoint reads remain local but unbounded subprocesses, so the whole digest still runs as one bounded child, default 120s via `FM_SESSION_START_TIMEOUT`.
+Tool version probes and the backlog listing remain local but unbounded subprocesses, so the whole digest still runs as one bounded child, default 120s via `FM_SESSION_START_TIMEOUT`.
+Each per-task endpoint liveness read runs serially in its own crash-isolated child under a fixed 10s bound, so a read that hangs or dies becomes that task's own `endpoint: error` line and the digest continues; with a wedged backend the stage's ceiling is tasks times 10s and can itself reach the digest bound.
 The per-item backlog row reads inside bootstrap's reconcile and close-replay sweeps are the exception: each is bounded by `FM_BACKLOG_ROW_TIMEOUT_SECS` (default 10s) through `bin/fm-backlog-transition-lib.sh`, and the first bound hit latches the sweep so later reads return immediately while still naming their own item.
 The shared timeout owner falls back to a pure-Bash process-group watchdog when timeout, gtimeout, and perl are unavailable, so no supported host runs the digest unbounded.
-Because the child streams into the native transport as it runs, everything emitted before the bound was hit is retained for delivery; the parent then prints a `STARTUP TRUNCATED` banner naming the stage that did not finish and the stages that were therefore never emitted, and still exits 0.
+Because the child streams into the native transport as it runs, everything emitted before the child stopped is retained for delivery; the parent then prints a `STARTUP TRUNCATED` banner on any nonzero child exit, not only the bound, naming the stage that did not finish, the stages that were therefore never emitted, and whether the child hit its bound or died unexpectedly with its exit status, and still exits 0.
+The regression evidence for both shapes is in [`docs/verification/supervision.md`](verification/supervision.md#per-task-endpoint-reads-cannot-truncate-the-digest).
 The registered hook timeouts sit above that budget so the harness never preempts the banner.
 The deferred startup stage deliberately runs in its own process group under its own deadline, so a truncated digest neither kills the network checks and inactive-outcome scan it was not waiting for nor orphans unbounded network work.
 
