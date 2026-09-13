@@ -16,7 +16,7 @@
 #
 # Public entry point:
 #   fm_trace_span_emit <meta-file> <name> <start-ms|-> <end-ms|->
-#       [--root] [--status ok|error|unset] [--link <traceparent>]
+#       [--root] [--status ok|error|unset]
 #       [key=value ...]
 #
 #   Emits one span named <name> for the task whose state/<id>.meta is
@@ -42,18 +42,17 @@
 #   --status ok maps to OTLP code 1 (OK), error to 2 (ERROR); anything else,
 #   including the default, omits the status field (UNSET).
 #
-#   --link <traceparent> attaches one OTel span link to that carrier; without
-#   it a `trace_link=` recorded in the meta is used when present. At most one
-#   link is emitted, and an invalid link value is silently dropped.
-#
 #   Each key=value argument becomes one string-valued span attribute.
 #
 # Wire shape (this header is the owner; the receivers are protocol-standard):
 #   One OTLP/JSON `ExportTraceServiceRequest` per call: resource attributes
 #   `service.name=firstmate` plus exactly the `firstmate.*` keys rendered by
-#   fm_trace_attrs_render (bin/fm-trace-context-lib.sh, the same function the
-#   OTEL_RESOURCE_ATTRIBUTES pane export uses, so both receivers see identical
-#   keys and values); one scope named `firstmate`; span kind INTERNAL (1);
+#   fm_trace_span_resource_json: firstmate.task.id, firstmate.project (basename),
+#   firstmate.home (metadata home's path), firstmate.task.kind,
+#   firstmate.harness, firstmate.model, firstmate.effort, firstmate.spawn_gen,
+#   and firstmate.secondmate.id only for kind=secondmate (the task id).
+#   Absent metadata values are omitted; one scope named firstmate;
+#   span kind INTERNAL (1);
 #   ids as lowercase hex strings; timestamps as decimal nanosecond strings;
 #   all attribute values strings. The span catalogue as implemented:
 #     firstmate.spawn - bin/fm-spawn.sh, after the launch line is sent and the
@@ -85,8 +84,8 @@
 # firstmate's own process, so config/launch-env-allowlist is unaffected.
 #
 # Security / trust boundary. The body carries only fixed-shape ids, the span
-# name and attributes the caller passes, and resource values percent-encoded
-# by fm_trace_attrs_render from the task's own meta; no prompt, credential,
+# name and attributes the caller passes, and resource values JSON-escaped
+# by fm_trace_span_resource_json from the task's own meta; no prompt, credential,
 # or arbitrary environment value is read into it. The only external process
 # is curl, resolved from PATH, posting to the endpoint above; there is no
 # configured provider command, no tracestate, and no parentage from ambient
@@ -102,18 +101,20 @@
 # shellcheck source=bin/fm-timing-lib.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-timing-lib.sh"
 
-# Private: escape one string for inclusion inside a JSON string literal.
-# Values in practice are ids, enumerations, paths, and URLs, so the two
-# characters JSON requires escaping of in that set are handled here; control
-# characters cannot appear in firstmate meta values.
 fm_trace_span_json_escape() {  # <string>
-  local s=$1 out='' i ch
+  local s=$1 out='' i ch code
   for ((i = 0; i < ${#s}; i++)); do
     ch=${s:i:1}
     case $ch in
       "\\") out+=$ch$ch ;;
       '"') out+="\\$ch" ;;
-      *) out+=$ch ;;
+      *)
+        printf -v code '%d' "'$ch"
+        if [ "$code" -lt 32 ]; then
+          printf -v ch '\\u%04x' "$code"
+        fi
+        out+=$ch
+        ;;
     esac
   done
   printf '%s' "$out"
@@ -133,11 +134,37 @@ fm_trace_span_attr_json() {  # <key=value>
     "$(fm_trace_span_json_escape "$k")" "$(fm_trace_span_json_escape "$v")"
 }
 
+fm_trace_span_resource_json() {  # <meta-file>
+  local meta=$1 id kind v key out=''
+  [ -f "$meta" ] || return 0
+  id=$(sed -n 's/^endpoint_task_id=//p' "$meta" 2>/dev/null | head -n 1)
+  [ -n "$id" ] || id=$(basename "$meta" .meta)
+  out=$(fm_trace_span_attr_json "firstmate.task.id=$id")
+  v=$(sed -n 's/^project=//p' "$meta" 2>/dev/null | head -n 1)
+  if [ -n "$v" ]; then
+    out+="$(fm_trace_span_attr_json "firstmate.project=${v##*/}")"
+  fi
+  out+="$(fm_trace_span_attr_json "firstmate.home=$(dirname "$(dirname "$meta")")")"
+  kind=$(sed -n 's/^kind=//p' "$meta" 2>/dev/null | head -n 1)
+  if [ -n "$kind" ]; then
+    out+="$(fm_trace_span_attr_json "firstmate.task.kind=$kind")"
+    if [ "$kind" = secondmate ]; then
+      out+="$(fm_trace_span_attr_json "firstmate.secondmate.id=$id")"
+    fi
+  fi
+  for key in harness model effort spawn_gen; do
+    v=$(sed -n "s/^${key}=//p" "$meta" 2>/dev/null | head -n 1)
+    [ -n "$v" ] || continue
+    out+="$(fm_trace_span_attr_json "firstmate.${key}=$v")"
+  done
+  printf '%s\n' "$out"
+}
+
 fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
-  #          [--root] [--status ok|error|unset] [--link <traceparent>] [key=value ...]
+  #          [--root] [--status ok|error|unset] [key=value ...]
   local meta=$1 name=$2 start_ms=$3 end_ms=$4
   shift 4
-  local root=0 status='unset' link='' pair
+  local root=0 status='unset' pair
   while [ "$#" -gt 0 ]; do
     case $1 in
       --root) root=1 ;;
@@ -146,13 +173,6 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
         status=$2
         shift
         ;;
-      --status=*) status=${1#--status=} ;;
-      --link)
-        [ "$#" -ge 2 ] || break
-        link=$2
-        shift
-        ;;
-      --link=*) link=${1#--link=} ;;
       --*) : ;;                 # unknown flags are ignored, never fatal
       *) break ;;               # attribute arguments begin
     esac
@@ -176,11 +196,6 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
     parent_id=${carrier:36:16}
   fi
 
-  if [ -z "$link" ]; then
-    link=$(sed -n 's/^trace_link=//p' "$meta" 2>/dev/null | head -n 1)
-  fi
-  fm_trace_context_valid "$link" || link=''
-
   case $start_ms in
     '' | *[!0-9]*) start_ms=$(fm_timing_now_ms) ;;
   esac
@@ -189,22 +204,8 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
   esac
   [ "$end_ms" -ge "$start_ms" ] || end_ms=$start_ms
 
-  local attrs_json='' rendered
-  attrs_json='{"key":"service.name","value":{"stringValue":"firstmate"}}'
-  rendered=$(fm_trace_attrs_render "$meta")
-  while [ -n "$rendered" ]; do
-    case $rendered in
-      *,*)
-        pair=${rendered%%,*}
-        rendered=${rendered#*,}
-        ;;
-      *)
-        pair=$rendered
-        rendered=''
-        ;;
-    esac
-    attrs_json+="$(fm_trace_span_attr_json "$pair")"
-  done
+  local attrs_json='{"key":"service.name","value":{"stringValue":"firstmate"}}'
+  attrs_json+="$(fm_trace_span_resource_json "$meta")"
 
   local span_attrs_json=''
   for pair in "$@"; do
@@ -216,9 +217,6 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
     ok) tail_json='"status":{"code":1}' ;;
     error) tail_json='"status":{"code":2}' ;;
   esac
-  if [ -n "$link" ]; then
-    tail_json+="${tail_json:+,}\"links\":[{\"traceId\":\"${link:3:32}\",\"spanId\":\"${link:36:16}\"}]"
-  fi
   [ -z "$tail_json" ] || tail_json=",$tail_json"
 
   local span_json
@@ -237,6 +235,6 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
   fi
   [ -n "$endpoint" ] || endpoint='http://127.0.0.1:4318/v1/traces'
   printf '%s' '{"resourceSpans":[{"resource":{"attributes":['"$attrs_json"']},"scopeSpans":[{"scope":{"name":"firstmate"},"spans":['"$span_json"']}]}]}' \
-    | curl -sS --max-time 1 -o /dev/null -H 'Content-Type: application/json' --data-binary @- "$endpoint" >/dev/null 2>&1
+    | curl -sS --max-time 1 -o /dev/null -H 'Content-Type: application/json' --data-binary @- "$endpoint" >/dev/null 2>&1 || true
   return 0
 }

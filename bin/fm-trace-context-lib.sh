@@ -58,16 +58,6 @@
 #     valid recorded start. Pairs with fm_trace_context_resolve so
 #     `trace_started=` lands in the meta beside the carrier on first mint
 #     only; the span emitter reads it for the task root's start time.
-#   fm_trace_attrs_render <meta-file>
-#     Echoes the OTEL_RESOURCE_ATTRIBUTES attribute body for the task whose
-#     meta is <meta-file>: one comma-separated `key=value` list with values
-#     percent-encoded by fm_trace_attrs_encode. The key list is owned here:
-#     firstmate.task.id, firstmate.project, firstmate.home, firstmate.task.kind,
-#     firstmate.harness, firstmate.model, firstmate.effort, firstmate.spawn_gen,
-#     and firstmate.secondmate.id only for kind=secondmate (equal to the task
-#     id, the Secondmate agent's own identity); a key whose meta source is
-#     absent is omitted. The pane export and the span emitter's resource block
-#     both use this one rendering so every receiver sees identical keys.
 #
 # Enablement (see docs/configuration.md for the schema):
 #   config/trace-context   presence flag under the home's config dir enables it.
@@ -298,53 +288,6 @@ fm_trace_context_started_resolve() {  # <config-dir> <meta-file>
     return 0
   fi
   fm_timing_now_ms
-}
-
-# Percent-encode one attribute value per the W3C Baggage rules the pane
-# export contract uses: every character outside [A-Za-z0-9._-/] becomes %XX
-# from the character's code point. Deterministic and dependency-free.
-fm_trace_attrs_encode() {  # <string>
-  local s=$1 out='' i ch
-  for ((i = 0; i < ${#s}; i++)); do
-    ch=${s:i:1}
-    case $ch in
-      [A-Za-z0-9._~/-]) out+=$ch ;;
-      *) printf -v out '%s%%%02X' "$out" "'$ch" ;;
-    esac
-  done
-  printf '%s\n' "$out"
-}
-
-# Public entry point. Echo the shared firstmate.* resource-attribute body for
-# the task whose meta is <meta-file>, one comma-separated key=value list, or
-# nothing for an absent meta. The key list is owned by this file's header.
-# firstmate.home is the firstmate home that owns the meta, derived from the
-# meta's state-dir parent so the rendering never depends on the caller's
-# exported FM_HOME; firstmate.project is the recorded project's basename.
-fm_trace_attrs_render() {  # <meta-file>
-  local meta=$1 id kind v key out=''
-  [ -f "$meta" ] || return 0
-  id=$(sed -n 's/^endpoint_task_id=//p' "$meta" 2>/dev/null | head -n 1)
-  [ -n "$id" ] || id=$(basename "$meta" .meta)
-  out="firstmate.task.id=$(fm_trace_attrs_encode "$id")"
-  v=$(sed -n 's/^project=//p' "$meta" 2>/dev/null | head -n 1)
-  if [ -n "$v" ]; then
-    out+=",firstmate.project=$(fm_trace_attrs_encode "${v##*/}")"
-  fi
-  out+=",firstmate.home=$(fm_trace_attrs_encode "$(dirname "$(dirname "$meta")")")"
-  kind=$(sed -n 's/^kind=//p' "$meta" 2>/dev/null | head -n 1)
-  if [ -n "$kind" ]; then
-    out+=",firstmate.task.kind=$(fm_trace_attrs_encode "$kind")"
-    if [ "$kind" = secondmate ]; then
-      out+=",firstmate.secondmate.id=$(fm_trace_attrs_encode "$id")"
-    fi
-  fi
-  for key in harness model effort spawn_gen; do
-    v=$(sed -n "s/^${key}=//p" "$meta" 2>/dev/null | head -n 1)
-    [ -n "$v" ] || continue
-    out+=",firstmate.${key}=$(fm_trace_attrs_encode "$v")"
-  done
-  printf '%s\n' "$out"
 }
 
 # --- per-task resource attributes (OTEL_RESOURCE_ATTRIBUTES) -----------------

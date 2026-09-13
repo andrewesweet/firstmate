@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # tests/fm-trace-span-lib.test.sh - unit regressions for the OTLP/HTTP span
 # emitter (bin/fm-trace-span-lib.sh): gate and carrier omission, wire shape
-# validated as real JSON, root versus child span ids, status and link
-# mapping, endpoint precedence, silent failure on a failing or slow curl,
-# and the resource block rendered identical to fm_trace_attrs_render.
+# validated as real JSON, root versus child span ids, status
+# mapping, endpoint precedence, silent failure on collector refusal or timeout,
+# and resource values preserved in the emitted JSON.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -14,10 +14,9 @@ set -u
 TMP_ROOT=$(fm_test_tmproot fm-trace-span-lib)
 
 CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
-LINK_CARRIER='00-22222222222222222222222222222223-4444444444444445-01'
 
 # Fake curl: appends one "ARGS: ..." line plus the raw stdin body fenced by
-# --BODY-END-- markers to FM_FAKE_CURL_LOG, then optionally sleeps and exits
+# --BODY-END-- markers to FM_FAKE_CURL_LOG, then exits
 # with FM_FAKE_CURL_EXIT. Assertions read the OTLP JSON that would be sent.
 make_fakebin() {  # <dir>
   local fakebin
@@ -26,7 +25,6 @@ make_fakebin() {  # <dir>
 #!/usr/bin/env bash
 { printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
   >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-if [ -n "${FM_FAKE_CURL_SLEEP:-}" ]; then sleep "$FM_FAKE_CURL_SLEEP"; fi
 exit "${FM_FAKE_CURL_EXIT:-0}"
 SH
   chmod +x "$fakebin/curl"
@@ -213,95 +211,69 @@ test_endpoint_precedence() {
   pass "endpoint precedence: traces endpoint, base endpoint, loopback default"
 }
 
-test_curl_failure_and_slow_curl_stay_silent() {
-  local home rc start elapsed
+test_curl_failure_stays_silent_under_errexit() {
+  local home rc output exit_code
   home=$(make_home curl-fails)
   write_span_meta "$home/state/x1.meta"
-  FM_FAKE_CURL_EXIT=7 emit "$home" firstmate.spawn - -
-  rc=$?
-  [ "$rc" = 0 ] || fail "a failing curl must still return 0 (got $rc)"
-  FM_FAKE_CURL_SLEEP=2 emit "$home" firstmate.spawn - -
-  rc=$?
-  [ "$rc" = 0 ] || fail "a slow curl must still return 0 (got $rc)"
+  for exit_code in 7 28; do
+    output=$(FM_FAKE_CURL_LOG="$home/curl.log" FM_FAKE_CURL_EXIT="$exit_code" \
+      PATH="$home/fake/fakebin:$PATH" bash -e -u -o pipefail -c '
+        . "$1/bin/fm-trace-span-lib.sh"
+        fm_trace_span_emit "$2/state/x1.meta" firstmate.spawn - -
+        printf "continued"
+      ' _ "$ROOT" "$home" 2>&1)
+    rc=$?
+    [ "$rc" = 0 ] && [ "$output" = continued ] \
+      || fail "curl exit $exit_code must preserve strict caller execution silently (rc=$rc output=$output)"
+  done
   [ "$(request_count "$home/curl.log")" = 2 ] || fail "both attempts must be recorded"
-  pass "curl exit 7 and a slow curl both return 0 silently"
+  pass "curl refusal and timeout preserve caller execution under errexit and pipefail"
 }
 
-test_resource_identical_to_attrs_render() {
-  local home body rendered from_body
-  home=$(make_home resource-render)
-  write_span_meta "$home/state/x1.meta"
-  emit "$home" firstmate.spawn - -
-  body=$(curl_body "$home/curl.log" 1)
-  rendered=$(fm_trace_attrs_render "$home/state/x1.meta")
-  from_body=$(jq -r '.resourceSpans[0].resource.attributes[1:] | map(.key + "=" + .value.stringValue) | join(",")' <<< "$body")
-  [ "$from_body" = "$rendered" ] \
-    || fail "resource attributes must equal fm_trace_attrs_render (body='$from_body' render='$rendered')"
-  pass "resource block after service.name is exactly fm_trace_attrs_render"
-}
-
-test_link_from_meta_and_explicit_flag() {
-  local home body
-  home=$(make_home links)
+test_resource_values() {
+  local home body project
+  home=$(make_home resource-values)
+  project=$'my proj,=50% "quoted" \\ café\tend'
   fm_write_meta "$home/state/x1.meta" \
     "endpoint_task_id=x1" \
-    "traceparent=$CARRIER" \
-    "trace_link=$LINK_CARRIER"
-  emit "$home" firstmate.task - - --root
-  body=$(curl_body "$home/curl.log" 1)
-  span0 '.links[0].traceId == "22222222222222222222222222222223" and .links[0].spanId == "4444444444444445"' "$body" \
-    || fail "a recorded trace_link= must become one span link"
-  emit "$home" firstmate.task - - --root --link '00-33333333333333333333333333333334-5555555555555556-01'
-  body=$(curl_body "$home/curl.log" 2)
-  span0 '.links[0].spanId == "5555555555555556"' "$body" \
-    || fail "an explicit --link must override the meta link"
-  fm_write_meta "$home/state/x1.meta" \
-    "endpoint_task_id=x1" \
-    "traceparent=$CARRIER" \
-    "trace_link=not-a-carrier"
-  emit "$home" firstmate.task - - --root
-  body=$(curl_body "$home/curl.log" 3)
-  span0 '(.links? == null)' "$body" \
-    || fail "an invalid link value must be silently dropped"
-  pass "links: meta trace_link, explicit --link override, invalid dropped"
-}
-
-test_attrs_encode_and_render_keys() {
-  local out meta
-  out=$(fm_trace_attrs_encode 'my path/x, y')
-  [ "$out" = 'my%20path/x%2C%20y' ] || fail "encode got '$out'"
-  out=$(fm_trace_attrs_encode 'safe._-~/plain')
-  [ "$out" = 'safe._-~/plain' ] || fail "the allowed charset must pass through (got '$out')"
-  mkdir -p "$TMP_ROOT/state"
-  meta="$TMP_ROOT/state/render-ship.meta"
-  fm_write_meta "$meta" \
-    "endpoint_task_id=x1" \
-    "project=/tmp/spans/my proj" \
+    "project=/tmp/$project" \
     "kind=ship" \
     "harness=claude" \
-    "spawn_gen=s9.8.7"
-  out=$(fm_trace_attrs_render "$meta")
-  [ "$out" = 'firstmate.task.id=x1,firstmate.project=my%20proj,firstmate.home='"$(fm_trace_attrs_encode "$TMP_ROOT")"',firstmate.task.kind=ship,firstmate.harness=claude,firstmate.spawn_gen=s9.8.7' ] \
-    || fail "render keys/order got '$out'"
-  case $out in
-    *firstmate.secondmate.id*) fail "a ship render must not carry secondmate.id" ;;
-  esac
-  meta="$TMP_ROOT/state/render-sm.meta"
-  fm_write_meta "$meta" \
-    "endpoint_task_id=sm-1" \
-    "kind=secondmate" \
-    "model=default"
-  out=$(fm_trace_attrs_render "$meta")
-  case $out in
-    *firstmate.secondmate.id=sm-1*) : ;;
-    *) fail "a secondmate render must carry firstmate.secondmate.id=<task id> (got '$out')" ;;
-  esac
-  case $out in
-    *firstmate.harness*) fail "an absent key must be omitted (got '$out')" ;;
-  esac
-  out=$(fm_trace_attrs_render "$TMP_ROOT/state/render-absent.meta")
-  [ -z "$out" ] || fail "an absent meta must render nothing (got '$out')"
-  pass "render: key list, encoding, secondmate id only for kind=secondmate"
+    "model=opus" \
+    "effort=low" \
+    "spawn_gen=s9.8.7" \
+    "traceparent=$CARRIER"
+  emit "$home" firstmate.spawn - -
+  body=$(curl_body "$home/curl.log" 1)
+  jq -e --arg project "$project" --arg home "$home" '
+    .resourceSpans[0].resource.attributes |
+    map({key: .key, value: .value.stringValue}) | from_entries |
+    . == {
+      "service.name": "firstmate",
+      "firstmate.task.id": "x1",
+      "firstmate.project": $project,
+      "firstmate.home": $home,
+      "firstmate.task.kind": "ship",
+      "firstmate.harness": "claude",
+      "firstmate.model": "opus",
+      "firstmate.effort": "low",
+      "firstmate.spawn_gen": "s9.8.7"
+    }' >/dev/null <<< "$body" || fail "resource JSON must preserve original metadata values"
+  fm_write_meta "$home/state/x1.meta" \
+    "endpoint_task_id=sm-1" "kind=secondmate" "traceparent=$CARRIER"
+  emit "$home" firstmate.spawn - -
+  body=$(curl_body "$home/curl.log" 2)
+  jq -e --arg home "$home" '
+    .resourceSpans[0].resource.attributes |
+    map({key: .key, value: .value.stringValue}) | from_entries |
+    . == {
+      "service.name": "firstmate",
+      "firstmate.task.id": "sm-1",
+      "firstmate.home": $home,
+      "firstmate.task.kind": "secondmate",
+      "firstmate.secondmate.id": "sm-1"
+    }' >/dev/null <<< "$body" || fail "secondmate identity and omitted metadata must match"
+  pass "resource JSON preserves values, includes secondmate identity, omits absent keys"
 }
 
 test_absent_meta_is_silent_no_op() {
@@ -320,10 +292,8 @@ test_root_uses_carrier_span_id
 test_status_mapping
 test_clamped_and_now_timestamps
 test_endpoint_precedence
-test_curl_failure_and_slow_curl_stay_silent
-test_resource_identical_to_attrs_render
-test_link_from_meta_and_explicit_flag
-test_attrs_encode_and_render_keys
+test_curl_failure_stays_silent_under_errexit
+test_resource_values
 test_absent_meta_is_silent_no_op
 
 echo "# all fm-trace-span-lib tests passed"
