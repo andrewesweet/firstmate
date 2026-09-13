@@ -46,6 +46,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-secondmate-parent-lib.sh"
 # shellcheck source=bin/fm-secondmate-registry-lib.sh
 . "$SCRIPT_DIR/fm-secondmate-registry-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 MODE=
 YOLO=
@@ -209,6 +211,12 @@ fi
 TMP=
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
+# Promotion published: the span marks the contract flip on the task's own
+# trace (bin/fm-trace-span-lib.sh's header owns the catalogue entry). The
+# meta already reads kind=ship, so the prior kind rides the span attribute;
+# a disabled home or emitter failure cannot fail the promotion.
+fm_trace_span_emit "$META" firstmate.promote - - \
+  "firstmate.task.kind.prior=scout" "firstmate.task.mode=$MODE" "firstmate.task.yolo=$YOLO"
 
 HOME_Q=$(printf '%q' "$FM_HOME")
 INSTRUCTIONS_Q=$(printf '%q' "$INSTRUCTIONS")

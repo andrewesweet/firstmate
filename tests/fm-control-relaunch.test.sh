@@ -17,6 +17,8 @@
 #   6. fm-spawn --relaunch refuses on its own: a live agent, a contradicting
 #      flag, an extra positional, or a backend that cannot prove the previous
 #      agent exited.
+#   7. Tracing: relaunch posts only the replacement spawn span, marked as a
+#      relaunch, and never a control span for its internal stop.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -1558,11 +1560,40 @@ test_relaunch_moves_a_drifted_item_back_in_flight() {
   pass "relaunch heals an item that drifted out of In flight while the task stayed live"
 }
 
+# Relaunch owns no control span of its own: the replacement launch is already
+# represented by fm-spawn's firstmate.spawn span (relaunch=true), so a traced
+# relaunch must post exactly that one span and no firstmate.control span.
+test_relaunch_posts_the_spawn_span_and_no_control_span() {
+  local dir out rc=0 body span_names
+  dir=$(new_case span-rl rl51)
+  add_ship_task "$dir" rl51 claude
+  fm_test_otlp_trace_enable "$dir/home" rl51 \
+    '00-11111111111111111111111111111112-3333333333333334-01'
+  fm_test_otlp_capture_install "$dir/fakebin"
+
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" rl51 relaunch --note "traced replacement") || rc=$?
+  expect_code 0 "$rc" "a traced relaunch should succeed"$'\n'"$out"
+  [ -f "$dir/curl.log" ] || fail "a traced relaunch must post the spawn span"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "a traced relaunch must post exactly one span, got $(fm_test_otlp_request_count "$dir/curl.log")"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.spawn"' "$body" \
+    || fail "the posted span must be the replacement's firstmate.spawn"
+  [ "$(fm_test_otlp_span_attr firstmate.relaunch "$body")" = true ] \
+    || fail "the spawn span must carry firstmate.relaunch=true"
+  span_names=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].name' <<< "$body")
+  case "$span_names" in
+    *control*) fail "relaunch must not post a firstmate.control span: $span_names" ;;
+  esac
+  pass "relaunch tracing: the replacement launch posts the spawn span and no control span"
+}
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_preserves_durable_task_metadata
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
+test_relaunch_posts_the_spawn_span_and_no_control_span
 test_relaunch_appends_the_progress_note_to_the_instructions
 test_relaunch_requires_a_note_for_a_ship_task
 test_harness_switch_moves_the_record_and_clears_prior_wiring

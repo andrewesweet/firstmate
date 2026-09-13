@@ -245,6 +245,8 @@ fi
 . "$SCRIPT_DIR/fm-task-inbox-lib.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 FM_GUARD_CONTINUE_LINE='This is a supervision warning only; the requested message WILL still be sent.' "$SCRIPT_DIR/fm-guard.sh" || true
 
@@ -252,6 +254,28 @@ fm_send_id_from_meta() {  # <meta-file>
   local base
   base=${1##*/}
   printf '%s' "${base%.meta}"
+}
+
+# Emit the firstmate.steer span immediately after durable inbox delivery or
+# verified-only typed submit and --key delivery
+# (bin/fm-trace-span-lib.sh's header owns the catalogue entry). A disabled
+# home, an untraced task, or an explicit backend target without task metadata
+# is a silent no-op, and no emission failure can change the send's outcome:
+# the emitter always returns 0 and never types anything, so message success
+# semantics are untouched.
+fm_send_trace_steer() {  # <meta-file> <plane> [extra key=value...]
+  local meta=$1 plane=$2 decision_keys
+  [ -n "$meta" ] || return 0
+  shift 2
+  local -a span_attrs=("firstmate.plane=$plane")
+  [ -z "${PENDING_REPLY_CORR:-}" ] || span_attrs+=("firstmate.corr=$PENDING_REPLY_CORR")
+  if [ -n "${RESOLVE_KEYS:-}" ]; then
+    decision_keys=${RESOLVE_KEYS// /,}
+    span_attrs+=("firstmate.decision.key=$decision_keys")
+  fi
+  [ -z "${FIRE_AND_FORGET_ID:-}" ] || span_attrs+=("firstmate.fire_and_forget=true")
+  span_attrs+=("$@")
+  fm_trace_span_emit "$meta" firstmate.steer - - "${span_attrs[@]}"
 }
 
 # fm_send_clear_after_interrupt: muse RESTORES the interrupted prompt back into
@@ -719,6 +743,9 @@ if [ "${1:-}" = "--key" ]; then
     echo "error: key '$key' not sent to $T ($TARGET_BACKEND send failed; tried $RESOLUTION_TRIED)" >&2
     exit 1
   fi
+  # The key was delivered; that is the key plane's verified delivery
+  # (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" key
   fm_send_clear_after_interrupt "$semantic_key" || exit 1
   fm_send_record_interrupt "$semantic_key" || exit 1
 else
@@ -874,6 +901,14 @@ else
       fm_run_timed "$FM_SEND_REMOTE_BUDGET" "$SCRIPT_DIR/fm-on.sh" "$TARGET_REMOTE_ID" \
         fm-remote-secondmate-control.sh send "${REMOTE_SEND_ARGS[@]}" < /dev/null || remote_rc=$?
     fi
+    if [ "$remote_rc" -eq 0 ]; then
+      if [ -n "$FIRE_AND_FORGET_ID" ]; then
+        fm_send_trace_steer "$TARGET_META" inbox \
+          "firstmate.delivery.id=$FIRE_AND_FORGET_ID" || true
+      else
+        fm_send_trace_steer "$TARGET_META" inbox || true
+      fi
+    fi
     fm_lock_release "$REMOTE_META_LOCK"
     if [ "$remote_rc" -ne 0 ] && [ "$remote_completion_unknown" -eq 1 ]; then
       if [ -n "$FIRE_AND_FORGET_ID" ]; then
@@ -973,6 +1008,11 @@ else
       echo "error: steer not sent to $INBOX_TASK_ID: its inbox record could not be written under $STATE/$INBOX_TASK_ID.inbox" >&2
       exit 1
     fi
+    # Durable enqueue is this plane's delivery; the record name carries the
+    # sequence the span reports (bin/fm-trace-span-lib.sh's catalogue).
+    INBOX_SPAN_SEQ=${INBOX_RECORD##*/}
+    fm_send_trace_steer "$TARGET_META" inbox \
+      "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}" || true
     fm_lock_release "$INBOX_META_LOCK"
     # Enqueue IS durable delivery to the task's record: mark the pending
     # expectation delivered now, without resolving it - only a correlated
@@ -1080,6 +1120,9 @@ else
       exit 1
       ;;
   esac
+  # Confirmed submit is the typed plane's delivery
+  # (bin/fm-trace-span-lib.sh's catalogue).
+  fm_send_trace_steer "$TARGET_META" typed
   # Delivery confirmed. Mark the pending expectation delivered without resolving
   # it: only a correlated parent report acknowledges the request.
   if [ -n "$PENDING_REPLY_CORR" ]; then

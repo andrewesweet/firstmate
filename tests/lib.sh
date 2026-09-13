@@ -428,6 +428,15 @@ SH
   chmod +x "$fakebin/curl"
 }
 
+# fm_test_otlp_trace_enable <home> <task-id> <traceparent> [on|off]: record a
+# carrier and freeze the test home's session tracing decision.
+fm_test_otlp_trace_enable() {
+  local home=$1 task_id=$2 carrier=$3 effective=${4:-on}
+  printf 'traceparent=%s\n' "$carrier" >> "$home/state/$task_id.meta"
+  printf '%s\n' $$ > "$home/state/.lock"
+  printf '%s %s\n' "$$" "$effective" > "$home/state/.trace-context-effective"
+}
+
 # fm_test_otlp_request_count <log>: count recorded OTLP requests.
 fm_test_otlp_request_count() {
   if [ -f "$1" ]; then
@@ -452,10 +461,9 @@ fm_test_otlp_request_endpoint() {
   awk -v n="$2" '/^ARGS:/ { c++; if (c == n) { v=$NF; gsub(/^</, "", v); gsub(/>$/, "", v); print v; exit } }' "$1"
 }
 
-# fm_test_otlp_span_matches <log> <number> <jq-filter>: test the first span.
+# fm_test_otlp_span_matches <jq-filter> <body>: test the first span.
 fm_test_otlp_span_matches() {
-  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | '"$3" >/dev/null 2>&1 \
-    <<< "$(fm_test_otlp_request_body "$1" "$2")"
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | '"$1" >/dev/null 2>&1 <<< "$2"
 }
 
 # fm_test_otlp_span_value <log> <number> <jq-filter>: read from the first span.
@@ -464,14 +472,13 @@ fm_test_otlp_span_value() {
     <<< "$(fm_test_otlp_request_body "$1" "$2")"
 }
 
-# fm_test_otlp_span_attr <log> <number> <key>: read a string attribute.
+# fm_test_otlp_span_attr <key> <body>: read a string attribute.
 fm_test_otlp_span_attr() {
-  jq -r --arg k "$3" \
+  jq -r --arg k "$1" \
     '.resourceSpans[0].scopeSpans[0].spans[0].attributes
      | map(select(.key == $k))[0].value.stringValue // "absent"' \
-    <<< "$(fm_test_otlp_request_body "$1" "$2")"
+    <<< "$2"
 }
-
 # --- portable file timestamps -----------------------------------------------
 
 # fm_touch_epoch <epoch> <path> [path...]: set each path's modification time to

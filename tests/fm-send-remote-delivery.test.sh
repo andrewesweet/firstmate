@@ -29,6 +29,9 @@
 #      slash) keeps its exit-3 delivered-unconfirmed contract, never closes a
 #      --resolve-key decision unconfirmed, and keeps a marked expectation
 #      armed.
+#   9. Tracing: the parent posts only proven remote deliveries, carrying its
+#      correlation or validated fire-and-forget delivery id as applicable;
+#      the remote leg posts no duplicate span.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -45,6 +48,7 @@ DRAIN="$ROOT/bin/fm-wake-drain.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-send-remote-delivery)
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
 
 # Stub tmux for the local typed-plane legs: logs literal typed text to
 # FM_SEND_LOG. The default composer reads empty (clean submit);
@@ -372,18 +376,23 @@ test_remote_retry_failure_preserves_ambiguous_expectation() {
 }
 
 test_remote_fire_and_forget_never_arms_reply_recovery() {
-  local dir fb ssh_log home rhome rc count delivery action
+  local dir fb ssh_log home rhome rc count delivery action body
   dir="$TMP_ROOT/remote-fire-and-forget"; mkdir -p "$dir"
   fb=$(make_stubs "$dir"); ssh_log="$dir/ssh.log"; : > "$ssh_log"
   rhome=$(setup_remote_secondmate_home remote-fire-and-forget)
   home=$(setup_remote_parent_home remote-fire-and-forget "$rhome")
   delivery=0123456789abcdef
+  fm_test_otlp_capture_install "$fb"
+  fm_test_otlp_trace_enable "$home" rsm "$CARRIER"
+  export FM_FAKE_CURL_LOG="$dir/curl.log"
 
   rc=0
   send_env "$fb" "$home" "$ssh_log" FM_FAKE_SSH_AFTER_AMBIGUOUS_RC=1 \
     "$SEND" rsm --fire-and-forget "$delivery" "reconcile your own books" \
     >"$dir/out" 2>"$dir/err" || rc=$?
   expect_code 3 "$rc" "an ambiguous fire-and-forget delivery must report unconfirmed"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 0 ] \
+    || fail "an unconfirmed fire-and-forget delivery must not post a span"
   [ "$(find "$home/state/pending-replies" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')" = 0 ] \
     || fail "fire-and-forget delivery created a pending-reply expectation"
   count=$(find "$rhome/state/parent-route/rsm.inbox" -name '*.msg' | wc -l | tr -d ' ')
@@ -400,6 +409,12 @@ test_remote_fire_and_forget_never_arms_reply_recovery() {
   [ "$count" = 1 ] || fail "the same fire-and-forget delivery id created a duplicate remote record"
   grep -F "delivery=$delivery" "$(remote_inbox_records "$rhome" | head -1)" >/dev/null \
     || fail "the remote record omitted its fire-and-forget delivery identity"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "the confirmed fire-and-forget retry must post exactly one span"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.delivery.id "$body")" = "$delivery" ] \
+    || fail "the remote fire-and-forget span must carry its delivery identity"
+  unset FM_FAKE_CURL_LOG
   pass "fm-send remote: fire-and-forget delivery is idempotent without reply recovery"
 }
 
@@ -707,6 +722,46 @@ test_remote_send_budget_bounds_busy_lane() {
   pass "fm-send remote: the remote leg is budget-bounded and stays idempotent across the bound"
 }
 
+# Remote ownership: a remote secondmate's steer span is emitted by THIS
+# parent home against the parent-owned carrier, because the parent owns the
+# task record and its trace identity. The remote leg writes only the remote
+# inbox record and never posts a span of its own.
+test_remote_steer_span_is_emitted_by_the_parent() {
+  local dir fb ssh_log home rhome rc err body corr
+  dir="$TMP_ROOT/remote-span"; mkdir -p "$dir"
+  fb=$(make_stubs "$dir"); ssh_log="$dir/ssh.log"; : > "$ssh_log"
+  rhome=$(setup_remote_secondmate_home remote-span)
+  home=$(setup_remote_parent_home remote-span "$rhome")
+  fm_test_otlp_capture_install "$fb"
+  export FM_FAKE_CURL_LOG="$dir/curl.log"
+  # The parent owns the task record and its carrier; freeze the session
+  # decision on so the parent posts the span.
+  fm_test_otlp_trace_enable "$home" rsm "$CARRIER"
+
+  rc=0
+  send_env "$fb" "$home" "$ssh_log" \
+    "$SEND" rsm "please rename the metric" >"$dir/out" 2>"$dir/err" || rc=$?
+  err=$(cat "$dir/err")
+  expect_code 0 "$rc" "the remote steer must be durably delivered: $err"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "exactly one span must be posted, by the parent"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.steer"' "$body" \
+    || fail "the parent must post a firstmate.steer span"
+  [ "$(fm_test_otlp_span_attr firstmate.plane "$body")" = inbox ] \
+    || fail "the remote steer's plane must be inbox"
+  jq -e '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.inbox.seq")] | length == 0' \
+    >/dev/null <<< "$body" \
+    || fail "the remote record's sequence lives in the remote home and must not be claimed"
+  corr=$(printf '%s' "$(cat "$(remote_inbox_records "$rhome" | head -1)")" \
+    | grep -oE 'corr=[a-f0-9]{16}' | head -1 | cut -d= -f2)
+  [ -n "$corr" ] || fail "precondition: no corr token in the remote record"
+  [ "$(fm_test_otlp_span_attr firstmate.corr "$body")" = "$corr" ] \
+    || fail "the parent's span must carry the request correlation"
+  unset FM_FAKE_CURL_LOG
+  pass "fm-send remote: the parent posts the steer span on the parent-owned carrier; the remote leg posts none"
+}
+
 test_local_secondmate_pending_keeps_expectation_armed() {
   local dir fb log home rc rec corr
   dir="$TMP_ROOT/local-pending-expectation"; mkdir -p "$dir"
@@ -801,5 +856,6 @@ test_remote_send_budget_bounds_busy_lane
 test_local_pending_reports_delivered_unconfirmed
 test_local_pending_does_not_close_resolve_key
 test_local_secondmate_pending_keeps_expectation_armed
+test_remote_steer_span_is_emitted_by_the_parent
 
 echo "all fm-send-remote-delivery tests passed"

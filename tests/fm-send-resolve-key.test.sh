@@ -30,6 +30,8 @@
 #      (the operator path the OPEN DECISIONS hint names), while an unrelated
 #      writer's answered: note still cannot hijack or clear that key. A reserved
 #      key this send cannot close refuses before anything is sent.
+#   9. Tracing: delivered answers carry decision keys without content and post
+#      before later close failures; telemetry formatting cannot alter closure.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -41,6 +43,7 @@ SEND="$ROOT/bin/fm-send.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-send-resolve-key)
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
 
 # Stub tmux: logs literal typed text to FM_SEND_LOG and lets the submit path
 # reach a clean "empty" verdict (numeric cursor_y, empty bordered composer).
@@ -636,6 +639,82 @@ test_unclosable_reserved_key_refuses_before_send() {
   pass "fm-send --resolve-key: a reserved key this send cannot close refuses loudly before anything is sent"
 }
 
+# The answerer-closes span: a delivered answer posts one firstmate.steer span
+# carrying each resolved key, while a refused answer (mistyped key, nothing
+# sent) posts none.
+test_span_carries_decision_keys_and_refusal_posts_none() {
+  local dir fb log home rc body
+  dir="$TMP_ROOT/span-keys"; mkdir -p "$dir"
+  fb=$(make_stubs "$dir"); log="$dir/send.log"
+  home=$(setup_home span-keys)
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
+  printf 'needs-decision [key=api-shape]: pick REST or RPC\n' > "$home/state/t1.status"
+  printf 'needs-decision [key=port-choice]: pick a port\n' >> "$home/state/t1.status"
+
+  export FM_FAKE_CURL_LOG="$dir/curl.log"
+  run_send "$fb" "$home" "$log" \
+    t1 --resolve-key api-shape --resolve-key port-choice "one answer covering both"; rc=$?
+  expect_code 0 "$rc" "the two-key answer should succeed"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.steer"' "$body" \
+    || fail "the answer send must post a firstmate.steer span"
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = api-shape,port-choice ] \
+    || fail "the span must carry both resolved keys comma-joined"
+  case "$body" in
+    *"one answer covering both"*) fail "the span must never carry the answer text" ;;
+  esac
+
+  # A mistyped key refuses before anything is sent: no record, no span.
+  : > "$dir/curl.log"
+  run_send "$fb" "$home" "$log" \
+    t1 --resolve-key no-such-key "an answer to nowhere"; rc=$?
+  [ "$rc" -ne 0 ] || fail "a mistyped key must refuse"
+  [ ! -e "$home/state/t1.inbox/002.msg" ] || fail "a refused answer must not enqueue"
+  [ ! -s "$dir/curl.log" ] || fail "a refused answer must post no span"
+  unset FM_FAKE_CURL_LOG
+  pass "fm-send --resolve-key: the posted steer span carries the resolved keys, and a refusal posts none"
+}
+
+test_trace_key_formatting_cannot_change_delivery() {
+  local dir fb log home err real_tr rc out body
+  dir="$TMP_ROOT/span-key-format"; mkdir -p "$dir"
+  fb=$(make_stubs "$dir"); log="$dir/send.log"; err="$dir/send.err"
+  home=$(setup_home span-key-format)
+  fm_test_otlp_capture_install "$fb"
+  fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
+  printf 'needs-decision [key=api-shape]: pick REST or RPC\n' > "$home/state/t1.status"
+  printf 'needs-decision [key=port-choice]: pick a port\n' >> "$home/state/t1.status"
+  real_tr=$(command -v tr)
+  cat > "$fb/tr" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 2 ] && [ "$1" = ' ' ] && [ "$2" = ',' ]; then
+  exit 17
+fi
+exec "${FM_REAL_TR:?FM_REAL_TR required}" "$@"
+SH
+  chmod +x "$fb/tr"
+
+  rc=0
+  env PATH="$fb:$PATH" FM_REAL_TR="$real_tr" \
+    FM_ROOT_OVERRIDE="$home" FM_HOME="$home" FM_SEND_LOG="$log" FM_SEND_SETTLE=0 \
+    FM_FAKE_CURL_LOG="$dir/curl.log" \
+    "$SEND" t1 --resolve-key api-shape --resolve-key port-choice \
+      "one answer covering both" >/dev/null 2>"$err" || rc=$?
+  expect_code 0 "$rc" "telemetry key formatting must not fail a delivered answer$(cat "$err")"
+  [ -f "$home/state/t1.inbox/001.msg" ] || fail "the answer must remain durably delivered"
+  out=$(drain_out "$home")
+  case "$out" in
+    *"OPEN DECISIONS"*) fail "telemetry key formatting left delivered decisions open: $out" ;;
+  esac
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = api-shape,port-choice ] \
+    || fail "the span must carry the shell-formatted decision keys"
+  pass "fm-send --resolve-key: telemetry key formatting cannot alter delivery or closure"
+}
+
 test_long_decision_key_refuses_before_send() {
   local dir fb log home err key rc out
   dir="$TMP_ROOT/long-key"; mkdir -p "$dir"
@@ -665,21 +744,29 @@ test_long_decision_key_refuses_before_send() {
 }
 
 test_failed_close_recovery_command_is_shell_safe() {
-  local dir fb log home err marker answer rc diagnostic manual out
+  local dir fb log home err marker answer rc diagnostic manual out body
   dir="$TMP_ROOT/manual-close"; mkdir -p "$dir"
   fb=$(make_stubs "$dir"); log="$dir/send.log"; err="$dir/send.err"
   home=$(setup_home "manual close")
   marker="$dir/injected"
   answer="ok'; touch $marker; echo '"
   fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  fm_test_otlp_capture_install "$fb"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
   printf 'needs-decision [key=quote-safety]: choose safely\n' > "$home/state/t1.status"
   chmod 0400 "$home/state/t1.status"
 
   env PATH="$fb:$PATH" \
     FM_ROOT_OVERRIDE="$home" FM_HOME="$home" FM_SEND_LOG="$log" FM_SEND_SETTLE=0 \
+    FM_FAKE_CURL_LOG="$dir/curl.log" \
     "$SEND" t1 --resolve-key quote-safety "$answer" >/dev/null 2>"$err"; rc=$?
   chmod 0600 "$home/state/t1.status"
   [ "$rc" -ne 0 ] || fail "a delivered answer with a failed close append should fail loudly"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "a delivered answer must post its steer span before close bookkeeping fails"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = quote-safety ] \
+    || fail "the delivered answer span must retain its decision key"
   diagnostic=$(cat "$err")
   assert_contains "$diagnostic" "Close it manually with:" "the close failure should provide recovery guidance"
   manual=${diagnostic#*Close it manually with: }
@@ -739,3 +826,7 @@ test_unclosable_reserved_key_refuses_before_send
 test_long_decision_key_refuses_before_send
 test_failed_close_recovery_command_is_shell_safe
 test_remote_reserved_pending_reply_key_closes_locally
+test_span_carries_decision_keys_and_refusal_posts_none
+test_trace_key_formatting_cannot_change_delivery
+
+echo "# all fm-send-resolve-key tests passed"

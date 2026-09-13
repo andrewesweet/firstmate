@@ -2287,11 +2287,15 @@ trace_request_count() {  # <dir>: span-export requests recorded so far
 }
 
 trace_span_attr() {  # <dir> <number> <key>: the span attribute value or absent
-  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
+  local body
+  body=$(fm_test_otlp_request_body "$1/curl.log" "$2")
+  fm_test_otlp_span_attr "$3" "$body"
 }
 
 trace_span() {  # <dir> <number> <jq-filter>: true when the filter holds
-  fm_test_otlp_span_matches "$1/curl.log" "$2" "$3"
+  local body
+  body=$(fm_test_otlp_request_body "$1/curl.log" "$2")
+  fm_test_otlp_span_matches "$3" "$body"
 }
 
 test_pr_ready_trace_span_records_validated_identity() {

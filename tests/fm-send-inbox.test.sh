@@ -22,6 +22,12 @@
 #      retryable send failure that could duplicate the durable instruction.
 #   9. An unwritable inbox is a real local failure: nonzero exit, nothing
 #      typed, and a just-created pending-reply expectation is discarded.
+#  10. Tracing: a delivered steer posts one firstmate.steer span with the
+#      plane and inbox sequence and never the message content; a marked
+#      request adds its corr; fire-and-forget is flagged; a disabled home or
+#      failing emitter changes nothing about the send; the typed and --key
+#      planes post their own spans; the task identity lock protects the carrier
+#      through emission against concurrent cleanup.
 # Every case below that passes a literal `$...` message quotes it on purpose
 # (the point is sending an unexpanded `$` line), so SC2016 is disabled.
 # shellcheck disable=SC2016
@@ -112,6 +118,188 @@ run_send() {  # <case-dir> <err-file> [env...] -- <fm-send args...>
 
 record_body() {  # <record>
   bash -c '. "$1"; fm_task_inbox_body "$2"' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$2"
+}
+
+# --- tracing fixtures --------------------------------------------------------
+
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+test_inbox_steer_emits_span_with_sequence() {
+  local dir err rc body
+  dir=$(setup_case trace-inbox); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "please rebase onto main"; rc=$?
+  expect_code 0 "$rc" "the traced send should still exit 0"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] || fail "exactly one span request expected"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches '.name == "firstmate.steer"' "$body" || fail "the span must be firstmate.steer"
+  fm_test_otlp_span_matches ".traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" "$body" \
+    || fail "the span must ride the target task's trace under its carrier"
+  [ "$(fm_test_otlp_span_attr firstmate.plane "$body")" = inbox ] || fail "the plane must be inbox"
+  [ "$(fm_test_otlp_span_attr firstmate.inbox.seq "$body")" = 001 ] \
+    || fail "the span must carry the durable record's sequence"
+  case "$body" in
+    *"rebase"*) fail "the span must never carry message content" ;;
+  esac
+  pass "fm-send inbox: a delivered steer posts one span with plane and record sequence, never the message"
+}
+
+test_secondmate_steer_span_carries_corr() {
+  local dir err body corr
+  dir=$(setup_case trace-corr); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_write_secondmate_meta "$dir/home/state/domain.meta" "$dir/home" "sess:fm-domain"
+  fm_test_otlp_trace_enable "$dir/home" domain "$CARRIER"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- fm-domain "please summarize fleet health" \
+    || fail "the marked secondmate steer should succeed"
+  corr=$(printf '%s' "$(record_body _ "$dir/home/state/domain.inbox/001.msg")" \
+    | grep -oE 'corr=[a-f0-9]{16}' | head -1 | cut -d= -f2)
+  [ -n "$corr" ] || fail "precondition: no corr token in the recorded body"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.corr "$body")" = "$corr" ] \
+    || fail "the span must carry the request's correlation id"
+  pass "fm-send inbox: a marked request's span carries its correlation id"
+}
+
+test_fire_and_forget_span_is_flagged() {
+  local dir err body delivery_id
+  dir=$(setup_case trace-ff); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_write_secondmate_meta "$dir/home/state/domain.meta" "$dir/home" "sess:fm-domain"
+  fm_test_otlp_trace_enable "$dir/home" domain "$CARRIER"
+  delivery_id=abcdef0123456789
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- fm-domain \
+    --fire-and-forget "$delivery_id" "one-way instruction" \
+    || fail "the fire-and-forget steer should succeed"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.fire_and_forget "$body")" = true ] \
+    || fail "a fire-and-forget delivery must be flagged on the span"
+  case "$body" in
+    *"$delivery_id"*) fail "the delivery id must not ride the span" ;;
+  esac
+  pass "fm-send inbox: a fire-and-forget delivery is flagged without its delivery id"
+}
+
+test_traced_disabled_home_and_failed_emitter() {
+  local dir err rc lock
+  # A disabled home (no frozen decision) posts nothing, with or without curl.
+  dir=$(setup_case trace-disabled); err="$dir/send.err"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "no telemetry here"; rc=$?
+  expect_code 0 "$rc" "an untraced send must still succeed"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 0 ] || fail "a disabled home must post no span"
+  # An emitter failure cannot alter the send's success.
+  dir=$(setup_case trace-curlfail); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" FM_FAKE_CURL_EXIT=7 \
+    -- t1 "deliver through a dead collector"; rc=$?
+  expect_code 0 "$rc" "a refused collector must not fail the send"
+  [ -f "$dir/home/state/t1.inbox/001.msg" ] || fail "the steer must still be recorded"
+  lock="$dir/home/state/.meta-t1.lock"
+  FM_TASK_INBOX_LOCK_WAIT_SECS=0 bash -c '
+    . "$1"
+    fm_task_inbox_lock_acquire "$2" || exit 1
+    fm_lock_release "$2"
+  ' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$lock" \
+    || fail "a failed emitter must release the task identity lock"
+  pass "fm-send inbox: a disabled home and a failing emitter leave the send untouched"
+}
+
+test_trace_holds_identity_through_emission() {
+  local dir err meta lock ready decided blocked removed real_grep cleanup_pid rc body
+  dir=$(setup_case trace-retire-race); err="$dir/send.err"
+  meta="$dir/home/state/t1.meta"
+  lock="$dir/home/state/.meta-t1.lock"
+  ready="$dir/trace-read-ready"
+  decided="$dir/cleanup-decision"
+  blocked="$dir/cleanup-blocked"
+  removed="$dir/removed-before-trace-read"
+  real_grep=$(command -v grep)
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  cat > "$dir/fakebin/grep" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 2 ] && [ "$1" = '^traceparent=' ] && [ "$2" = "$FM_TRACE_RACE_META" ]; then
+  : > "$FM_TRACE_RACE_READY"
+  i=0
+  while [ ! -e "$FM_TRACE_RACE_DECIDED" ] && [ "$i" -lt 500 ]; do
+    /bin/sleep 0.01
+    i=$((i + 1))
+  done
+  [ -e "$FM_TRACE_RACE_DECIDED" ] || exit 92
+fi
+exec "$FM_REAL_GREP" "$@"
+SH
+  chmod +x "$dir/fakebin/grep"
+  bash -c '
+    . "$1"
+    i=0
+    while [ ! -e "$3" ] && [ "$i" -lt 500 ]; do
+      sleep 0.01
+      i=$((i + 1))
+    done
+    [ -e "$3" ] || exit 90
+    if FM_TASK_INBOX_LOCK_WAIT_SECS=0 fm_task_inbox_lock_acquire "$2"; then
+      rm -f "$7"
+      : > "$6"
+      : > "$4"
+      fm_lock_release "$2"
+    else
+      : > "$5"
+      : > "$4"
+      fm_lock_acquire_wait "$2" || exit 91
+      rm -f "$7"
+      fm_lock_release "$2"
+    fi
+  ' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$lock" "$ready" "$decided" \
+    "$blocked" "$removed" "$meta" &
+  cleanup_pid=$!
+
+  rc=0
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" \
+    FM_REAL_GREP="$real_grep" FM_TRACE_RACE_META="$meta" \
+    FM_TRACE_RACE_READY="$ready" FM_TRACE_RACE_DECIDED="$decided" \
+    -- t1 "preserve trace identity through cleanup" || rc=$?
+  wait "$cleanup_pid" || fail "the concurrent identity cleanup did not complete"
+  expect_code 0 "$rc" "concurrent cleanup must not fail a durably delivered steer"
+  [ -e "$blocked" ] || fail "cleanup reached task identity before steer emission"
+  [ ! -e "$removed" ] || fail "cleanup erased task identity before steer emission"
+  [ ! -e "$meta" ] || fail "cleanup did not retire task identity after emission"
+  [ -f "$dir/home/state/t1.inbox/001.msg" ] || fail "the steer was not durably recorded"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "the delivered steer lost its span during concurrent cleanup"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches ".traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" "$body" \
+    || fail "the steer span lost the protected task carrier"
+  pass "fm-send inbox: task identity remains locked through steer emission"
+}
+
+test_typed_and_key_planes_emit_their_spans() {
+  local dir err body
+  # A harness-native slash invocation rides the typed plane.
+  dir=$(setup_case trace-typed); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "/no-mistakes" \
+    || fail "the typed slash send should succeed"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] || fail "the typed send must post exactly one span"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.plane "$body")" = typed ] || fail "the plane must be typed"
+  jq -e '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.inbox.seq")] | length == 0' \
+    >/dev/null <<< "$body" \
+    || fail "a typed send has no inbox record"
+  # The --key path posts the key plane after verified delivery.
+  dir=$(setup_case trace-key); err="$dir/send.err"
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 --key Enter \
+    || fail "the key send should succeed"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] || fail "the key send must post exactly one span"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.plane "$body")" = key ] || fail "the plane must be key"
+  [ ! -d "$dir/home/state/t1.inbox" ] || fail "the key path must not write an inbox"
+  pass "fm-send planes: the typed and --key planes each post their own steer span"
 }
 
 test_text_steer_rides_inbox() {
@@ -350,3 +538,9 @@ test_secondmate_marker_and_enqueue_delivery
 test_post_enqueue_bookkeeping_failure_is_not_retryable
 test_meta_lock_contention_fails_bounded
 test_unwritable_inbox_fails_loudly
+test_inbox_steer_emits_span_with_sequence
+test_secondmate_steer_span_carries_corr
+test_fire_and_forget_span_is_flagged
+test_traced_disabled_home_and_failed_emitter
+test_trace_holds_identity_through_emission
+test_typed_and_key_planes_emit_their_spans

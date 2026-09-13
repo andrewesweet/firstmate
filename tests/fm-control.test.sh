@@ -17,6 +17,8 @@
 #   6. Marker non-regression: a control command to a kind=secondmate task
 #      carries NO from-firstmate marker and opens no pending-reply expectation,
 #      while fm-send's marking of the same task is untouched.
+#   7. Tracing: verified interrupt and exit results post their lifecycle span
+#      before fallible success output; disabled and failing emitters are inert.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -914,3 +916,107 @@ test_grok_interrupt_without_acknowledgement_reports_unconfirmed
 test_grok_idle_footer_does_not_confirm_cancellation
 test_secondmate_control_command_carries_no_marker
 test_fm_send_still_marks_the_same_secondmate_task
+
+# --- 7. tracing: the control span --------------------------------------------
+
+CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+test_control_span_posts_on_verified_interrupt() {
+  local dir out rc body
+  dir=$(new_case span-int)
+  add_task "$dir" t1 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 interrupt); rc=$?
+  expect_code 0 "$rc" "the traced interrupt should succeed"$'\n'"$out"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] || fail "the verified interrupt must post exactly one span"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0].name == "firstmate.control"' >/dev/null <<< "$body" \
+    || fail "the span must be firstmate.control"
+  jq -e ".resourceSpans[0].scopeSpans[0].spans[0] | .traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" >/dev/null <<< "$body" \
+    || fail "the span must ride the task's trace under its carrier"
+  [ "$(fm_test_otlp_span_attr firstmate.control.verb "$body")" = interrupt ] || fail "the verb must be interrupt"
+  # Claude exposes no cancellation acknowledgement, so the claim is unconfirmed.
+  [ "$(fm_test_otlp_span_attr firstmate.control.confirmed "$body")" = false ] \
+    || fail "claude's unconfirmed cancellation must post confirmed=false"
+  [ "$(fm_test_otlp_span_attr firstmate.control.proof "$body")" = agent-alive ] \
+    || fail "the interrupt proof must name the verified agent state"
+  pass "fm-control tracing: a verified interrupt posts one span with its verb, claim, and proof"
+}
+
+test_control_span_posts_on_verified_exit() {
+  local dir out rc body
+  # A live agent stops: result=stopped.
+  dir=$(new_case span-exit)
+  add_task "$dir" t1 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "the traced exit should succeed"$'\n'"$out"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.control.verb "$body")" = exit ] || fail "the verb must be exit"
+  [ "$(fm_test_otlp_span_attr firstmate.control.confirmed "$body")" = true ] \
+    || fail "a classifier-proven stop must post confirmed=true"
+  [ "$(fm_test_otlp_span_attr firstmate.control.result "$body")" = stopped ] \
+    || fail "the result must be stopped"
+  # An already-stopped agent is the same verified fact: result=already-stopped.
+  dir=$(new_case span-already)
+  add_task "$dir" t2 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t2 "$CARRIER"
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t2 exit); rc=$?
+  expect_code 0 "$rc" "the idempotent exit should succeed"$'\n'"$out"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.control.result "$body")" = already-stopped ] \
+    || fail "an idempotent exit must post result=already-stopped"
+  pass "fm-control tracing: verified exits post their verb with the proven stop result"
+}
+
+test_control_disabled_home_and_failing_emitter() {
+  local dir out rc
+  # A disabled home (no frozen decision) posts nothing.
+  dir=$(new_case span-off)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "the untraced exit should succeed"$'\n'"$out"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 0 ] || fail "a disabled home must post no span"
+  # A refused collector cannot alter the verb's outcome.
+  dir=$(new_case span-curlfail)
+  add_task "$dir" t1 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  alive_as "$dir" claude
+  out=$(FM_FAKE_CURL_LOG="$dir/curl.log" FM_FAKE_CURL_EXIT=7 run_control "$dir" t1 exit); rc=$?
+  expect_code 0 "$rc" "a refused collector must not fail the exit"$'\n'"$out"
+  assert_contains "$out" "stopped t1" "the exit must still report its verified stop"
+  pass "fm-control tracing: a disabled home and a failing emitter leave the verb untouched"
+}
+
+test_control_span_precedes_fallible_success_output() {
+  local dir rc reader
+  dir=$(new_case span-output-fail)
+  add_task "$dir" t1 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  alive_as "$dir" claude
+  mkfifo "$dir/output"
+  : < "$dir/output" &
+  reader=$!
+  rc=0
+  FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit > "$dir/output" || rc=$?
+  wait "$reader" || true
+  [ "$rc" -ne 0 ] || fail "a closed success-output stream should fail the final report"
+  [ "$(cat "$dir/fake/command")" = zsh ] \
+    || fail "the agent should already be verified stopped when success output fails"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "the verified exit must post its span before fallible success output"
+  pass "fm-control tracing: verified exit posts before fallible success output"
+}
+
+test_control_span_posts_on_verified_interrupt
+test_control_span_posts_on_verified_exit
+test_control_disabled_home_and_failing_emitter
+test_control_span_precedes_fallible_success_output
