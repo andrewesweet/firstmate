@@ -94,8 +94,37 @@ MAIN_BACKLOG="$DATA/backlog.md"
 . "$SCRIPT_DIR/fm-public-followup-lib.sh"
 # shellcheck source=bin/fm-pending-reply-lib.sh
 . "$SCRIPT_DIR/fm-pending-reply-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 RECEIVER_WAKE_MESSAGE='New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task.'
+
+# One firstmate.handoff span per successfully moved backlog key, a child of
+# the target secondmate agent's own trace (the carrier recorded in THIS
+# home's state/<id>.meta), emitted by this home on local and remote routes
+# alike. Routing actions join the agent trace; the routed task's own trace
+# stays separate and links back only at its teardown root
+# (docs/trace-context.md). Best-effort and default-off like every lifecycle
+# emission: a disabled home or an untraced agent emits nothing and the move
+# outcome is never affected. bin/fm-trace-span-lib.sh's header owns the
+# catalogue entry.
+emit_handoff_spans() {  # <secondmate-id> <local|remote> <key>...
+  local id=$1 route=$2 key
+  shift 2
+  [ "$#" -gt 0 ] || return 0
+  for key in "$@"; do
+    fm_trace_span_emit "$STATE/$id.meta" firstmate.handoff - - \
+      "firstmate.backlog.item=$key" \
+      "firstmate.secondmate.id=$id" \
+      "firstmate.route=$route"
+  done
+  return 0
+}
+
+# Echo the backlog item keys contained in <outbox-path>, in file order.
+outbox_keys() {  # <outbox-path>
+  awk '/^- \[[ x]\] / { print $4 }' "$1"
+}
 
 ACTIVE_HANDOFF_LOCK=
 ACTIVE_REGISTRY_LOCK=
@@ -640,6 +669,11 @@ remote_deliver_outbox() { # <secondmate-id> <outbox-path>
     echo "error: handoff receipt by $id was unavailable or completion is unknown; outbox preserved at $outbox" >&2
     return 1
   fi
+  # The durable remote receipt is the moment this batch's moves land, so each
+  # moved key gets its firstmate.handoff span here - including a resumed
+  # delivery of a previously staged outbox. A staged-but-undelivered outbox
+  # emits nothing (bin/fm-trace-span-lib.sh's header owns the entry).
+  emit_handoff_spans "$id" remote "$(outbox_keys "$outbox")"
   marker="$STATE/.backlog-handoff-$id.wake-pending"
   if [ "$RECEIVER_WAKE_IGNORE_ID" = "$id" ]; then
     wake_state=dropped
@@ -1007,6 +1041,12 @@ if ! MV_OUT=$(tasks-axi mv "${TO_MOVE[@]}" --file "$MAIN_BACKLOG" --to "$SUB_BAC
   echo "error: tasks-axi mv failed; nothing was moved." >&2
   exit 1
 fi
+
+# The atomic move is the moment these keys land in the secondmate's own
+# backlog, so each gets its firstmate.handoff span now, before the best-effort
+# receiver wake (whose outcome is separate; bin/fm-trace-span-lib.sh's header
+# owns the entry).
+emit_handoff_spans "$ID" local "${TO_MOVE[@]}"
 
 echo "handed off ${#TO_MOVE[@]} item(s) to $ID: ${TO_MOVE[*]}"
 echo "  into $SUB_BACKLOG"

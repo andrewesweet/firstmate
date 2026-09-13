@@ -50,8 +50,13 @@ The point of these rules is one trace per task: never merge unrelated tasks, and
   Adopting it would chain every routed task into one ever-growing trace per Secondmate; instead each routed task roots its own trace.
 - **Recovery** - a valid `traceparent=` already recorded in the task's meta is reused verbatim, so a relaunched or recovered task keeps one stable identity across restarts rather than starting a second trace.
   A corrupt recorded value is re-minted as a fresh root rather than propagated.
+- **Link** - a task spawned inside a marked Secondmate home (the `.fm-secondmate-home` marker) also records the ambient `TRACEPARENT` it launched under as `trace_link=` beside its carrier, after strict W3C validation and only while tracing is enabled.
+  That value is the routing agent's own carrier, and the link records exactly one fact: this task was routed by that agent.
+  The link never parents the task's spans, never replaces or changes the carrier, and never reaches the pane; the task root emitted at teardown carries it as an OpenTelemetry span link, and each routing action lands as a span on the agent's own trace (`firstmate.handoff`, owned by `bin/fm-trace-span-lib.sh`'s catalogue).
+  A recorded link is reused verbatim on relaunch, exactly like the carrier, and a corrupt one is re-resolved rather than propagated.
 
-Because ambient `TRACEPARENT` is never read, the environment a supervisor happens to run under - a Secondmate's launch-time carrier, or an operator shell with a leftover `TRACEPARENT` - cannot leak into new task identities.
+Apart from that one link read inside a marked Secondmate home, ambient `TRACEPARENT` is never read, so the environment a supervisor happens to run under cannot leak into new task identities.
+A primary home has no Secondmate marker and never reads ambient context at all, so an operator shell with a leftover `TRACEPARENT` cannot attach unrelated tasks to anything.
 Disabling propagation is an intentional trace boundary: a disabled home injects no carrier into a newly launched or relaunched agent even when the task meta already contains a valid `traceparent=`.
 An actual disabled relaunch regenerates the task meta without `traceparent=`, so a later enabled relaunch roots a new trace instead of resuming the identity from before the boundary; reusing an already-alive remote endpoint is not a relaunch and preserves the carrier that agent already holds.
 
@@ -96,8 +101,9 @@ This is a deliberate, source-owned choice:
   A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
-  Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim; ambient `TRACEPARENT` is never read, so no caller-controlled bytes enter a new carrier.
-  Carrier exposure is bounded to that fixed-width value; lifecycle emission has a broader payload governed by the emitter header's security boundary.
+  Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim, so no caller-controlled bytes enter a new carrier.
+  The one ambient read is the routed-task link: recorded only inside a marked Secondmate home, only after strict W3C validation, and only as a link that never parents a span, changes a carrier, or reaches a pane.
+  Carrier exposure is bounded to that fixed-width value; lifecycle emission has a broader payload governed by the emitter header's security boundary, including a routed task's recorded link as one span link on its teardown root.
   Review that payload before enabling export to a receiver outside the home's trust boundary.
   Resource attributes expose task metadata, including the project basename and home path, plus secondmate identity from metadata or the spawning home's marker, as specified in `bin/fm-trace-context-lib.sh`'s header.
   Firstmate reads no prompt, credential, or task prose to render those attributes.

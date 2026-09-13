@@ -347,7 +347,11 @@
 # export rendered from the task record (bin/fm-trace-context-lib.sh's header
 # owns the key list), so attribute-joining harnesses carry the task's join
 # keys; the default-off path writes and sends neither, leaving the generated
-# meta and launch environment unchanged.
+# meta and launch environment unchanged. A task spawned inside a marked
+# secondmate home also records trace_link=, the strictly validated ambient
+# TRACEPARENT of the routing agent, beside its carrier - never as the carrier
+# itself; a primary home records no trace_link= (bin/fm-trace-context-lib.sh's
+# header owns the link boundary).
 #   --traceparent <carrier> delivers a carrier that a REMOTE parent already
 #   resolved and will record, instead of resolving one from this home's frozen
 #   decision. It is accepted only for --secondmate spawns, only as a strictly
@@ -3704,6 +3708,19 @@ else
     SPAWN_TRACEPARENT=
   fi
 fi
+# The routed-task span link (bin/fm-trace-context-lib.sh's header owns the
+# boundary): only inside a marked secondmate home, only for a traced spawn,
+# and only as a link - the ambient TRACEPARENT of the routing agent never
+# becomes this task's carrier. A recorded link wins so recovery keeps one
+# stable routing relationship, exactly like the carrier; a fresh spawn
+# resolves the ambient value, which a primary home never reads at all.
+SPAWN_TRACE_LINK=
+if [ "$SPAWN_TRACE_EFFECTIVE" = on ] && [ -n "$SPAWN_TRACEPARENT" ]; then
+  SPAWN_TRACE_LINK=$(fm_trace_context_recorded_link "$STATE/$ID.meta")
+  if ! fm_trace_context_valid "$SPAWN_TRACE_LINK"; then
+    SPAWN_TRACE_LINK=$(fm_trace_context_link_resolve "$FM_HOME" || true)
+  fi
+fi
 # The prior generation is read before the relaunch rebuild drops owned keys,
 # so the spawn span can report the generation this launch replaced.
 SPAWN_SPAN_GEN_PRIOR=
@@ -3729,7 +3746,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent trace_started backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent trace_started trace_link backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -3958,9 +3975,12 @@ spawn_record_traceparent() {
   # trace_started is written beside the carrier on the first mint only and is
   # preserved verbatim from the old record on recovery, so the task root's
   # start time survives every relaunch; the filter below drops any stale line
-  # first so a record always carries at most one.
+  # first so a record always carries at most one. trace_link follows the same
+  # recorded-wins pattern: written on a traced spawn, carried forward
+  # verbatim on relaunch, and never more than one line.
   record="traceparent=$SPAWN_TRACEPARENT"
   [ -z "$SPAWN_TRACE_STARTED" ] || record+=$'\n'"trace_started=$SPAWN_TRACE_STARTED"
+  [ -z "$SPAWN_TRACE_LINK" ] || record+=$'\n'"trace_link=$SPAWN_TRACE_LINK"
   # Fresh publication still owns the lock. Relaunch deliberately uses a short
   # independent critical section so other metadata interfaces can serialize.
   if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
@@ -3971,7 +3991,7 @@ spawn_record_traceparent() {
   fi
   SPAWN_META_TMP="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] \
-     || ! awk -F= '$1 != "traceparent" && $1 != "trace_started"' "$meta" > "$SPAWN_META_TMP" \
+     || ! awk -F= '$1 != "traceparent" && $1 != "trace_started" && $1 != "trace_link"' "$meta" > "$SPAWN_META_TMP" \
      || ! printf '%s\n' "$record" >> "$SPAWN_META_TMP" \
      || ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$meta" "task record" "$STATE"; then
     status=1

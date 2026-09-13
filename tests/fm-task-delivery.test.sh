@@ -219,6 +219,7 @@ test_promote_requires_and_records_the_delivery_contract() {
 
   write_scout_meta() {
     printf 'window=fm-promote-d1\nkind=scout\nworktree=/tmp/wt\n' > "$meta"
+    printf 'traceparent=00-11111111111111111111111111111112-3333333333333334-01\ntrace_started=1700000000000\ntrace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\n' >> "$meta"
   }
 
   write_scout_meta
@@ -267,9 +268,19 @@ test_promote_requires_and_records_the_delivery_contract() {
   assert_grep 'kind=ship' "$meta" "promotion did not restore ship teardown protection"
   assert_grep 'mode=direct-PR' "$meta" "promotion did not record the decided delivery mode"
   assert_grep 'yolo=on' "$meta" "promotion did not record the decided merge posture"
+  # Trace identity and the routed-task link are meta passthrough: promotion
+  # rewrites only kind/mode/yolo, so the carrier, its mint time, and the link
+  # survive verbatim with provenance unchanged.
+  assert_grep 'traceparent=00-11111111111111111111111111111112-3333333333333334-01' "$meta" \
+    "promotion lost the recorded trace carrier"
+  assert_grep 'trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' "$meta" \
+    "promotion lost the recorded routed-task link"
+  assert_grep 'trace_started=1700000000000' "$meta" "promotion lost the trace mint time"
+  [ "$(grep -c '^traceparent=' "$meta")" = 1 ] || fail "promotion duplicated the carrier line"
+  [ "$(grep -c '^trace_link=' "$meta")" = 1 ] || fail "promotion duplicated the link line"
   assert_contains "$out" "ship instructions for mode=direct-PR" "promotion hint did not carry the decided mode"
   [ "$(grep -c '^mode=' "$meta")" = 1 ] || fail "promotion left more than one mode= line in the task record"
-  pass "fm-promote: promotion requires the delivery contract and records it exactly once"
+  pass "fm-promote: promotion requires the delivery contract, records it exactly once, and preserves trace identity verbatim"
 }
 
 # A symlink at state/<id>.meta is the containment hazard the shared publisher

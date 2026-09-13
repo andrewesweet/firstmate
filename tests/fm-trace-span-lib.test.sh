@@ -141,6 +141,46 @@ test_root_uses_carrier_span_id() {
   pass "root: carrier span id, parentless, ok status"
 }
 
+LINK='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+
+test_link_records_validated_reference() {
+  local home body
+  home=$(make_home link-ref)
+  write_span_meta "$home/state/x1.meta"
+  emit "$home" firstmate.task 1700000000000 1700000001000 --root --status ok --link "$LINK" firstmate.task.outcome=done
+  body=$(curl_body "$home/curl.log" 1)
+  span0 '.traceId == "11111111111111111111111111111112"' "$body" \
+    || fail "the link must not change the emitted trace id"
+  span0 '.spanId == "3333333333333334" and (.parentSpanId? == null)' "$body" \
+    || fail "the linked root must keep its carrier ids and stay parentless"
+  [ "$(span_value '.links | length' "$body")" = 1 ] || fail "exactly one link entry expected"
+  [ "$(span_value '.links[0].traceId' "$body")" = "${LINK:3:32}" ] \
+    || fail "the link must reference the given trace id"
+  [ "$(span_value '.links[0].spanId' "$body")" = "${LINK:36:16}" ] \
+    || fail "the link must reference the given span id"
+  # A child span with a link keeps its carrier parent and gains the reference.
+  emit "$home" firstmate.spawn - - --link "$LINK"
+  body=$(curl_body "$home/curl.log" 2)
+  [ "$(span_value '.parentSpanId' "$body")" = "${CARRIER:36:16}" ] \
+    || fail "a linked child must still parent on the carrier's span id"
+  [ "$(span_value '.links[0].traceId' "$body")" = "${LINK:3:32}" ] \
+    || fail "a linked child must carry the link reference"
+  pass "link: a valid --link adds exactly one links entry referencing the given ids without changing parentage"
+}
+
+test_link_invalid_value_omitted() {
+  local home body
+  home=$(make_home link-bad)
+  write_span_meta "$home/state/x1.meta"
+  emit "$home" firstmate.spawn - - --link '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; touch span-pwned' \
+    --link '' firstmate.relaunch=false
+  body=$(curl_body "$home/curl.log" 1)
+  span0 '(.links? == null)' "$body" \
+    || fail "a malformed or empty link must omit the links field entirely"
+  [ ! -e "span-pwned" ] || fail "a link value must stay inert data, never executed"
+  pass "link: malformed or empty values are silently omitted and stay inert data"
+}
+
 test_status_mapping() {
   local home body
   home=$(make_home status-map)
@@ -271,6 +311,8 @@ test_no_carrier_posts_nothing
 test_session_off_posts_nothing
 test_child_body_shape
 test_root_uses_carrier_span_id
+test_link_records_validated_reference
+test_link_invalid_value_omitted
 test_status_mapping
 test_clamped_and_now_timestamps
 test_endpoint_precedence

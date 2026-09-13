@@ -679,6 +679,70 @@ assert_grep 'route-race' "$PARENT/data/backlog.md" "route retirement stranded qu
 assert_absent "$PARENT/data/handoff/ios.outbox.md" "route retirement left an orphaned handoff outbox"
 pass "route classification serializes with retirement before staging"
 
+# --- firstmate.handoff spans over the remote route -----------------------------
+# The parent home owns the remote agent's carrier, so the parent emits one
+# firstmate.handoff span per moved key after the durable remote receipt - and
+# nothing while the outbox is merely staged or its transfer fails.
+RSPAN_CARRIER='00-77777777777777777777777777777777-6666666666666666-01'
+# The route-retirement regressions above removed the ios route; this section
+# needs it live again for the traced delivery.
+cat > "$PARENT/data/secondmates.md" <<RREG
+- ios - iOS delivery (host: remote-mac; root: $REMOTE_ROOT; home: $REMOTE; scope: iOS work; projects: alpha; added 2026-08-02)
+RREG
+printf '%s\n' "$$" > "$PARENT/state/.lock"
+printf '%s on\n' "$$" > "$PARENT/state/.trace-context-effective"
+printf 'traceparent=%s\n' "$RSPAN_CARRIER" >> "$PARENT/state/ios.meta"
+RSPANBIN="$TMP_ROOT/rspan-curl-bin"
+mkdir -p "$RSPANBIN"
+cat > "$RSPANBIN/curl" <<RSPAN
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "\$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } >> '$TMP_ROOT/rspan-curl.log'
+exit 0
+RSPAN
+chmod +x "$RSPANBIN/curl"
+rspan_body() {
+  awk -v n="$1" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$TMP_ROOT/rspan-curl.log"
+}
+rspan_count() { [ -f "$TMP_ROOT/rspan-curl.log" ] && grep -c '^ARGS:' "$TMP_ROOT/rspan-curl.log" || true; }
+
+write_backlog '- [ ] rspan-a - first traced remote item (repo: alpha)'
+: > "$TMP_ROOT/rspan-curl.log"
+: > "$SSH_COUNT"
+set +e
+FM_FAKE_SSH_MODE=after-put PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-a \
+  > "$TMP_ROOT/rspan-staged.out" 2>&1
+rc=$?
+set -e
+[ "$rc" -ne 0 ] || fail "the staged remote handoff claimed success"
+[ "$(rspan_count)" = 0 ] \
+  || fail "a staged-but-undelivered remote handoff must emit no span (got '$(rspan_count)')"
+assert_present "$PARENT/data/handoff/ios.outbox.md" \
+  "the staged traced handoff lost its outbox: $(cat "$TMP_ROOT/rspan-staged.out")"
+assert_grep 'rspan-a' "$PARENT/data/handoff/ios.outbox.md" "the staged traced handoff lost the staged item"
+assert_no_grep 'rspan-a' "$PARENT/data/backlog.md" "the staged traced handoff left the item dispatchable"
+
+: > "$SSH_COUNT"
+out=$(PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-a) \
+  || fail "the traced remote handoff failed: $out"
+[ "$(rspan_count)" = 1 ] \
+  || fail "a delivered remote handoff must post exactly one span (got '$(rspan_count)')"
+rspan_body_json=$(rspan_body 1)
+jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .name == "firstmate.handoff" and .traceId == "77777777777777777777777777777777" and .parentSpanId == "6666666666666666"' >/dev/null <<< "$rspan_body_json" \
+  || fail "the remote handoff span must be a child of the parent-recorded agent carrier"
+for kv in 'firstmate.backlog.item=rspan-a' 'firstmate.secondmate.id=ios' 'firstmate.route=remote'; do
+  key=${kv%%=*}
+  val=$(jq -r "[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == \"$key\")][0].value.stringValue" <<< "$rspan_body_json")
+  [ "$val" = "${kv#*=}" ] || fail "the remote handoff span must carry $kv (got '$val')"
+done
+assert_absent "$PARENT/data/handoff/ios.outbox.md" "the traced remote handoff left its outbox behind"
+assert_grep 'rspan-a' "$REMOTE/data/backlog.md" "the traced remote handoff lost the durably received item"
+pass "remote handoff: the span posts after the durable receipt with route=remote, and never for a staged outbox"
+
 # With no handoff directory or remote route, bootstrap neither invokes SSH nor
 # emits a remote handoff line.
 FRESH="$TMP_ROOT/fresh"
