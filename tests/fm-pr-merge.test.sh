@@ -3027,40 +3027,21 @@ install_merge_trace_fixture() {  # <case_dir>: tracing on with a recording curl
     "mode=no-mistakes" \
     "traceparent=$MERGE_TRACE_CARRIER" \
     "trace_started=1700000000000"
-  cat > "$case_dir/fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$case_dir/fakebin/curl"
+  fm_test_otlp_capture_install "$case_dir/fakebin"
   export FM_FAKE_CURL_LOG="$case_dir/curl.log"
   : > "$FM_FAKE_CURL_LOG"
 }
 
 merge_trace_request_count() {  # <case_dir>: span-export requests so far
-  grep -c '^ARGS:' "$1/curl.log" 2>/dev/null || true
-}
-
-merge_trace_body() {  # <case_dir> <1-based request number>
-  awk -v n="$2" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$1/curl.log"
+  fm_test_otlp_request_count "$1/curl.log"
 }
 
 merge_trace_span_name() {  # <case_dir> <number>
-  jq -r '.resourceSpans[0].scopeSpans[0].spans[0].name' \
-    <(merge_trace_body "$1" "$2")
+  fm_test_otlp_span_value "$1/curl.log" "$2" '.name'
 }
 
 merge_trace_span_attr() {  # <case_dir> <number> <key>
-  jq -r --arg k "$3" \
-    '.resourceSpans[0].scopeSpans[0].spans[0].attributes
-     | map(select(.key == $k))[0].value.stringValue // "absent"' \
-    <(merge_trace_body "$1" "$2")
+  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
 }
 
 test_merge_outcome_spans_follow_publication() {

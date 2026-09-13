@@ -15,19 +15,10 @@ TMP_ROOT=$(fm_test_tmproot fm-trace-span-lib)
 
 CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
 
-# Fake curl: appends one "ARGS: ..." line plus the raw stdin body fenced by
-# --BODY-END-- markers to FM_FAKE_CURL_LOG, then exits
-# with FM_FAKE_CURL_EXIT. Assertions read the OTLP JSON that would be sent.
 make_fakebin() {  # <dir>
   local fakebin
   fakebin=$(fm_fakebin "$1")
-  cat > "$fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$fakebin/curl"
+  fm_test_otlp_capture_install "$fakebin"
   printf '%s\n' "$fakebin"
 }
 
@@ -66,24 +57,15 @@ emit() {  # <home> <emit-args...>: one emission through the fake curl
 }
 
 request_count() {  # <log>
-  if [ -f "$1" ]; then
-    grep -c '^ARGS:' "$1" || true
-  else
-    printf '0\n'
-  fi
+  fm_test_otlp_request_count "$1"
 }
 
 curl_body() {  # <log> <1-based request number>: the recorded stdin body
-  awk -v n="$2" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$1"
+  fm_test_otlp_request_body "$1" "$2"
 }
 
 curl_endpoint() {  # <log> <1-based request number>: the final URL argument
-  awk -v n="$2" '/^ARGS:/ { c++; if (c == n) { v=$NF; gsub(/^</, "", v); gsub(/>$/, "", v); print v; exit } }' "$1"
+  fm_test_otlp_request_endpoint "$1" "$2"
 }
 
 span0() {  # <jq-filter> <body>: true when the filter holds on the first span

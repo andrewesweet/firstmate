@@ -2277,39 +2277,21 @@ install_trace_fixture() {  # <dir> [<id>]: turn tracing on for one case home
     "mode=no-mistakes" \
     "traceparent=$TRACE_CARRIER" \
     "trace_started=1700000000000"
-  cat > "$dir/fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
-  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
-exit "${FM_FAKE_CURL_EXIT:-0}"
-SH
-  chmod +x "$dir/fakebin/curl"
+  fm_test_otlp_capture_install "$dir/fakebin"
   export FM_FAKE_CURL_LOG="$dir/curl.log"
   : > "$FM_FAKE_CURL_LOG"
 }
 
 trace_request_count() {  # <dir>: span-export requests recorded so far
-  grep -c '^ARGS:' "$1/curl.log" 2>/dev/null || true
-}
-
-trace_body() {  # <dir> <1-based request number>: the recorded stdin body
-  awk -v n="$2" '
-    /^ARGS:/ { c++; next }
-    /^--BODY-END--$/ { if (c == n) exit; next }
-    c == n { buf = buf $0 }
-    END { printf "%s", buf }
-  ' "$1/curl.log"
+  fm_test_otlp_request_count "$1/curl.log"
 }
 
 trace_span_attr() {  # <dir> <number> <key>: the span attribute value or absent
-  jq -r --arg k "$3" \
-    '.resourceSpans[0].scopeSpans[0].spans[0].attributes
-     | map(select(.key == $k))[0].value.stringValue // "absent"' \
-    <(trace_body "$1" "$2")
+  fm_test_otlp_span_attr "$1/curl.log" "$2" "$3"
 }
 
 trace_span() {  # <dir> <number> <jq-filter>: true when the filter holds
-  jq -e "$3" <(jq '.resourceSpans[0].scopeSpans[0].spans[0]' <<< "$(trace_body "$1" "$2")") >/dev/null
+  fm_test_otlp_span_matches "$1/curl.log" "$2" "$3"
 }
 
 test_pr_ready_trace_span_records_validated_identity() {
