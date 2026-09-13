@@ -51,7 +51,7 @@
 #                       isolated so one task's read can never abort the
 #                       digest: read-only, always runs. The per-task reads
 #                       run serially, so with a wedged backend the stage's
-#                       ceiling is tasks x FM_SESSION_START_ENDPOINT_TIMEOUT
+#                       ceiling is tasks x the fixed 10s per-read bound
 #                       and can itself reach the digest's runtime bound.
 #   7. network checks - the result of the deferred network stage started back at
 #                       step 1, harvested WITHOUT waiting for it.
@@ -379,10 +379,8 @@ QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-20}
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=20 ;; esac
 # One per-task endpoint read may never outlive this bound: a hung backend CLI
 # becomes that task's endpoint: error line instead of the digest's whole
-# runtime budget. A non-positive or non-numeric value falls back to the
-# default rather than disabling the bound.
-ENDPOINT_TIMEOUT=${FM_SESSION_START_ENDPOINT_TIMEOUT:-10}
-case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*|0) ENDPOINT_TIMEOUT=10 ;; esac
+# runtime budget.
+ENDPOINT_TIMEOUT=10
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
 RULE='================================================================================'

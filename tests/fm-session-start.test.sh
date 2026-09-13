@@ -1420,12 +1420,11 @@ EOF
   printf 'working: doomed task marker\n' > "$home/state/task-a-doom.status"
   printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
 
-  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=9 \
-    run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
 
   expect_code 0 "$status" "one killed endpoint read must not fail the digest"
   assert_contains "$out" \
-    "endpoint: error (backend=herdr window=sess:p-doom - the endpoint read died or hit its 9s bound; the digest continued past it)" \
+    "endpoint: error (backend=herdr window=sess:p-doom - the endpoint read died or hit its 10s bound; the digest continued past it)" \
     "a killed endpoint read was not reported as that task's own error line"
   assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" \
     "the digest did not continue past the killed read to the next task"
@@ -1456,12 +1455,11 @@ EOF
   printf 'window=sess:p-slow\nkind=ship\nbackend=herdr\n' > "$home/state/task-a-slow.meta"
   printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
 
-  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=2 \
-    run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
 
   expect_code 0 "$status" "a hung endpoint read must not fail the digest"
   assert_contains "$out" \
-    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 2s bound; the digest continued past it)" \
+    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 10s bound; the digest continued past it)" \
     "a hung endpoint read was not bounded into that task's own error line"
   assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" \
     "the digest did not continue past the hung read to the next task"
@@ -1474,6 +1472,23 @@ EOF
   [ "$stray" -eq 0 ] || fail "the per-task read bound left $stray hung herdr process(es) behind"
 
   pass "a hung per-task endpoint read hits its own bound, reports the task, and leaves nothing stuck"
+}
+
+test_perl_timeout_fallback_reports_signal_death_nonzero() {
+  local toolbin cmd rc=0
+  toolbin=$(mktemp -d "${TMPDIR:-/tmp}/fm-perl-timeout.XXXXXX")
+  for cmd in bash perl sleep kill cat rm mktemp; do
+    command -v "$cmd" >/dev/null 2>&1 && ln -s "$(command -v "$cmd")" "$toolbin/$cmd"
+  done
+  PATH="$toolbin" bash -c '
+    . "$1/bin/fm-timeout-lib.sh"
+    [ "$(fm_timeout_mechanism)" = perl ] || { echo "mechanism: $(fm_timeout_mechanism)" >&2; exit 99; }
+    fm_run_timed 5 bash -c "kill -KILL \$\$"
+  ' _ "$ROOT" || rc=$?
+  rm -rf "$toolbin"
+  expect_code 137 "$rc" "the perl timeout fallback did not report a SIGKILLed child as 128+9"
+
+  pass "the perl timeout fallback reports a signal death as a nonzero status"
 }
 
 test_abnormal_digest_death_banners_and_exits_zero() {
@@ -2839,6 +2854,7 @@ test_endpoint_liveness_tmux
 test_endpoint_liveness_herdr
 test_endpoint_read_death_is_isolated_and_reported
 test_endpoint_read_hang_is_bounded_and_reported
+test_perl_timeout_fallback_reports_signal_death_nonzero
 test_abnormal_digest_death_banners_and_exits_zero
 test_composition_invokes_real_scripts
 test_branch_outcome_replay_respects_captain_barrier_and_lease_sweep

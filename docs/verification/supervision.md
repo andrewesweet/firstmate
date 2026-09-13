@@ -206,7 +206,7 @@ The detailed reconciliation and task chronology stay in the private audit report
 ### Per-task endpoint reads cannot truncate the digest
 
 On 2026-09-13 a real outage truncated a live session-start digest silently: a per-task Herdr endpoint liveness read died mid-read inside the digest process, every later stage vanished, and the parent wrapper bannered nothing because it named only the runtime-bound exit.
-The digest now runs each per-task endpoint read in its own bounded child (`FM_SESSION_START_ENDPOINT_TIMEOUT`, default 10s) whose death, hang, or nonzero surprise becomes that task's own `endpoint: error` line, and the parent wrapper banners ANY nonzero child exit, naming the stage and the abnormal exit status.
+The digest now runs each per-task endpoint read in its own bounded child (fixed 10s bound) whose death, hang, or nonzero surprise becomes that task's own `endpoint: error` line, and the parent wrapper banners ANY nonzero child exit, naming the stage and the abnormal exit status.
 Verified on 2026-09-13 with the deterministic process-tree tests that reproduce both failure shapes with real processes and no harness:
 
 ```sh
