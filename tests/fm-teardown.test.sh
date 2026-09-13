@@ -758,7 +758,7 @@ test_task_root_span_failed_status() {
 
 test_task_root_span_tagged_terminal_status() {
   local case_dir rc verb code
-  for verb in done failed; do
+  for verb in 'done' failed; do
     case_dir=$(make_case "troot-tagged-$verb")
     make_traced_case "$case_dir" 'done: earlier success' 'failed: earlier failure'       "$verb [corr=0123456789abcdef]: final result"       'working [corr=fedcba9876543210]: later nonterminal update'
     rc=0
