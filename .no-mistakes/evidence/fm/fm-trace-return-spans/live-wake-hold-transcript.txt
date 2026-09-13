@@ -1,0 +1,69 @@
+### SCENARIO wake: presentation captures, ack emits task-keyed spans only
+--- queue before presentation:
+1789295671	1	signal	traced.status	signal: /tmp/nm-live.CjDHbj/live-wake/state/traced.status
+1789295671	2	signal	gone.status	signal: /tmp/nm-live.CjDHbj/live-wake/state/gone.status
+1789295671	3	stale	firstmate:traced	stale: firstmate:traced
+1789295671	4	check	startup-network	check: startup-network still pending
+1789295672	5	heartbeat	heartbeat	heartbeat
+--- presentation stdout:
+1789295671	1	signal	traced.status	signal: /tmp/nm-live.CjDHbj/live-wake/state/traced.status
+1789295671	2	signal	gone.status	signal: /tmp/nm-live.CjDHbj/live-wake/state/gone.status
+1789295671	3	stale	firstmate:traced	stale: firstmate:traced
+1789295671	4	check	startup-network	check: startup-network still pending
+1789295672	5	heartbeat	heartbeat	heartbeat
+--- presentation stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 3479714.1789295671.NhQQPM
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+--- spans received after presentation: 0
+--- captures written:
+-rw------- 1 andre andre 100 Sep 13 11:34 /tmp/nm-live.CjDHbj/live-wake/state/.wake-trace.gone
+-rw------- 1 andre andre 156 Sep 13 11:34 /tmp/nm-live.CjDHbj/live-wake/state/.wake-trace.traced
+traceparent=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbc-01
+kind=ship
+endpoint_task_id=gone
+--- teardown removes gone.meta before ack
+ack rc=0
+--- queue after ack: 0 bytes
+--- captures after ack:
+ls: cannot access '/tmp/nm-live.CjDHbj/live-wake/state/.wake-trace.*': No such file or directory
+--- spans received after ack: 2
+{"name":"firstmate.wake","traceId":"11111111111111111111111111111112","parentSpanId":"3333333333333334","startTimeUnixNano":"1789295671000000000","endTimeUnixNano":"1789295672474000000","attrs":{"firstmate.wake.kind":"signal","firstmate.wake.seq":"1","firstmate.wake.key":"traced.status"}}
+{"name":"firstmate.wake","traceId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab","parentSpanId":"bbbbbbbbbbbbbbbc","startTimeUnixNano":"1789295671000000000","endTimeUnixNano":"1789295672474000000","attrs":{"firstmate.wake.kind":"signal","firstmate.wake.seq":"2","firstmate.wake.key":"gone.status"}}
+--- replay ack (must emit nothing new)
+replay rc=0
+--- spans received after replay: 2
+
+### SCENARIO wake: unreachable receiver never blocks acknowledgement
+ack rc=0 stderr_bytes=0 elapsed_ms=219 queue_bytes=0
+
+### SCENARIO wake: disabled home emits nothing
+ack rc=0 captures=0 spans_before=2 spans_after=2
+
+### SCENARIO hold: answer / release / origin-linked emit firstmate.hold; replay emits nothing
+traced-call
+answered: traced-call
+answer rc=0
+--- replay answer:
+answered: traced-call
+replay rc=0
+origin-call
+answered: origin-call
+traced-work
+released: traced-work
+--- hold spans received (expected 3: answered, answered(origin trace), released; replay none):
+{"name":"firstmate.hold","traceId":"11111111111111111111111111111112","parentSpanId":"3333333333333334","start_utc":"2026-06-01T12:00:00Z","attrs":{"firstmate.hold.close_mode":"answered","firstmate.hold.reason":"captain must choose the export shape"}}
+{"name":"firstmate.hold","traceId":"66666666666666666666666666666667","parentSpanId":"8888888888888889","start_utc":"2026-06-01T13:00:00Z","attrs":{"firstmate.hold.close_mode":"answered","firstmate.hold.reason":"origin needs a ruling"}}
+{"name":"firstmate.hold","traceId":"22222222222222222222222222222224","parentSpanId":"4444444444444448","start_utc":"2026-06-02T08:30:00Z","attrs":{"firstmate.hold.close_mode":"released","firstmate.hold.reason":"len=160"}}
+--- resource of last span:
+{"service.name":"firstmate","firstmate.task.id":"traced-work","firstmate.home":"/tmp/nm-live.CjDHbj/live-hold","firstmate.task.kind":"ship"}
+--- refused answer (unknown task) emits nothing:
+fm-captain-hold: captain-held task no-such-task is absent from this home's configured backlog (data directory /tmp/nm-live.CjDHbj/live-hold/data)
+refused rc=1
+spans_before=5 spans_after=5

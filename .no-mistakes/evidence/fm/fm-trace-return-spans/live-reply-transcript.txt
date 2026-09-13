@@ -1,0 +1,57 @@
+### SCENARIO reply: delivered secondmate request settles on correlated reply, emits firstmate.reply on the secondmate trace
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell not typed because the agent in sess:fm-hibit has exited; the steer is durably recorded at /tmp/nm-live-reply.jhwRzB/parent/state/hibit.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+--- pending-reply record after send:
+schema=fm-pending-reply.v1
+corr_id=531b8a385a440d60
+task_id=hibit
+parent_home=/tmp/nm-live-reply.jhwRzB/parent
+parent_status=/tmp/nm-live-reply.jhwRzB/parent/state/hibit.status
+parent_status_scan_signature=
+request_summary=audit the build
+created_epoch=1789295743
+phase=awaiting_report
+turn_seen_busy=0
+request_turn_completed_epoch=
+recovery_attempted_epoch=
+recovery_sender_pid=
+recovery_sender_identity=
+recovery_sent_epoch=
+recovery_delivery_outcome=
+recovery_turn_seen_busy=0
+recovery_turn_completed_epoch=
+escalated_epoch=
+resolved_epoch=
+resolved_via=
+wrong_home_hits=0
+wrong_home_first_sighting=
+wrong_home_sightings=
+wrong_home_scan_signature=
+grace_secs=0
+delivered_epoch=1789295743
+--- spans so far: 1
+--- secondmate replies with correlated status line
+--- watcher tick (fm_pending_reply_tick, as bin/fm-watch.sh calls it)
+tick rc=0
+--- record after settlement:
+delivered_epoch=1789295743
+phase=resolved
+resolved_epoch=1789295743
+resolved_via=status
+--- spans received: 2
+{"name":"firstmate.steer","traceId":"11111111111111111111111111111112","parentSpanId":"3333333333333334","start_utc":"2026-09-13T10:35:43Z","end_utc":"2026-09-13T10:35:43Z","attrs":{"firstmate.plane":"inbox","firstmate.corr":"531b8a385a440d60","firstmate.inbox.seq":"001"}}
+{"name":"firstmate.reply","traceId":"11111111111111111111111111111112","parentSpanId":"3333333333333334","start_utc":"2026-09-13T10:35:43Z","end_utc":"2026-09-13T10:35:43Z","attrs":{"firstmate.corr":"531b8a385a440d60","firstmate.reply.via":"status"}}
+{"service.name":"firstmate","firstmate.task.id":"hibit","firstmate.project":"sm","firstmate.home":"/tmp/nm-live-reply.jhwRzB/parent","firstmate.task.kind":"secondmate","firstmate.secondmate.id":"hibit","firstmate.harness":"echo"}
+{"service.name":"firstmate","firstmate.task.id":"hibit","firstmate.project":"sm","firstmate.home":"/tmp/nm-live-reply.jhwRzB/parent","firstmate.task.kind":"secondmate","firstmate.secondmate.id":"hibit","firstmate.harness":"echo"}
+record delivered_epoch=1789295743 span_start_ms=1789295743629000000
+1789295743000 corr=531b8a385a440d60
+--- second tick (replay) must emit nothing
+tick rc=0 spans=2
+--- adversarial: receiver down, settlement still lands
+tick rc=0 elapsed_ms=307 phase=resolved
