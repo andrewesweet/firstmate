@@ -1,240 +1,190 @@
-$ fm-captain-hold.sh hold traced-call --reason "captain must choose the export shape"   # at 2026-06-01T12:00:00Z
+
+===== firstmate.hold: hold -> answer on a traced captain call =====
+$ fm-captain-hold.sh hold traced-call --reason "captain must choose the export shape"   (at 2026-06-01T12:00:00Z)
 traced-call
-posts so far: 0   # hold itself emits nothing
+posted so far:
+  (no span posted)
 $ fm-captain-hold.sh answer traced-call --decision-file wide.txt
 answered: traced-call
-
-### firstmate.hold after answer (curl log: 1 POST(s))
-curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
-{
-  "resourceSpans": [
+  span #1:
     {
       "resource": {
-        "attributes": [
-          {
-            "key": "service.name",
-            "value": {
-              "stringValue": "firstmate"
-            }
-          },
-          {
-            "key": "firstmate.task.id",
-            "value": {
-              "stringValue": "traced-call"
-            }
-          },
-          {
-            "key": "firstmate.project",
-            "value": {
-              "stringValue": "sample"
-            }
-          },
-          {
-            "key": "firstmate.home",
-            "value": {
-              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/hold"
-            }
-          },
-          {
-            "key": "firstmate.task.kind",
-            "value": {
-              "stringValue": "ship"
-            }
-          },
-          {
-            "key": "firstmate.harness",
-            "value": {
-              "stringValue": "codex"
-            }
-          }
-        ]
+        "service.name": "firstmate",
+        "firstmate.task.id": "traced-call",
+        "firstmate.project": "sample",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/hold",
+        "firstmate.task.kind": "ship",
+        "firstmate.harness": "codex"
       },
-      "scopeSpans": [
-        {
-          "scope": {
-            "name": "firstmate"
-          },
-          "spans": [
-            {
-              "traceId": "11111111111111111111111111111112",
-              "spanId": "e50cdc4e1eb72b71",
-              "parentSpanId": "3333333333333334",
-              "name": "firstmate.hold",
-              "kind": 1,
-              "startTimeUnixNano": "1780315200000000000",
-              "endTimeUnixNano": "1789283796246000000",
-              "attributes": [
-                {
-                  "key": "firstmate.hold.close_mode",
-                  "value": {
-                    "stringValue": "answered"
-                  }
-                },
-                {
-                  "key": "firstmate.hold.reason",
-                  "value": {
-                    "stringValue": "captain must choose the export shape"
-                  }
-                }
-              ]
-            }
-          ]
+      "span": {
+        "name": "firstmate.hold",
+        "traceId": "11111111111111111111111111111112",
+        "parentSpanId": "3333333333333334",
+        "startTimeUnixNano": "1780315200000000000",
+        "endTimeUnixNano": "1789290326522000000",
+        "attributes": {
+          "firstmate.hold.close_mode": "answered",
+          "firstmate.hold.reason": "captain must choose the export shape"
         }
-      ]
+      }
     }
-  ]
-}
-$ fm-captain-hold.sh answer traced-call --decision-file wide.txt   # idempotent replay
+$ fm-captain-hold.sh answer traced-call --decision-file wide.txt   (idempotent replay)
 answered: traced-call
-posts after replay: 1   # replay emits no second span
+span count after replay: 1
 
-$ secondmate hibit writes status: done [corr=3aff6bcce80b8a55]: ledger clean; parent runs fm_pending_reply_try_resolve
-resolved: phase=
-
-### firstmate.reply after settlement (curl log: 1 POST(s))
-curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
-{
-  "resourceSpans": [
+===== firstmate.hold: --origin call joins the origin task's trace; --release close mode =====
+$ fm-captain-hold.sh hold origin-call --title "Question from the origin" --origin traced-origin --reason "origin needs a ruling"
+origin-call
+$ fm-captain-hold.sh answer origin-call --decision-file ruled.txt
+answered: origin-call
+  span #1:
     {
       "resource": {
-        "attributes": [
-          {
-            "key": "service.name",
-            "value": {
-              "stringValue": "firstmate"
-            }
-          },
-          {
-            "key": "firstmate.task.id",
-            "value": {
-              "stringValue": "hibit"
-            }
-          },
-          {
-            "key": "firstmate.home",
-            "value": {
-              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/reply"
-            }
-          }
-        ]
+        "service.name": "firstmate",
+        "firstmate.task.id": "traced-origin",
+        "firstmate.project": "sample",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/hold",
+        "firstmate.task.kind": "ship",
+        "firstmate.harness": "codex"
       },
-      "scopeSpans": [
-        {
-          "scope": {
-            "name": "firstmate"
-          },
-          "spans": [
-            {
-              "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
-              "spanId": "6ade698d9465273a",
-              "parentSpanId": "bbbbbbbbbbbbbbbc",
-              "name": "firstmate.reply",
-              "kind": 1,
-              "startTimeUnixNano": "5000000000000",
-              "endTimeUnixNano": "1789283796937000000",
-              "attributes": [
-                {
-                  "key": "firstmate.corr",
-                  "value": {
-                    "stringValue": "3aff6bcce80b8a55"
-                  }
-                },
-                {
-                  "key": "firstmate.reply.via",
-                  "value": {
-                    "stringValue": "status"
-                  }
-                }
-              ]
-            }
-          ]
+      "span": {
+        "name": "firstmate.hold",
+        "traceId": "66666666666666666666666666666667",
+        "parentSpanId": "8888888888888889",
+        "startTimeUnixNano": "1780318800000000000",
+        "endTimeUnixNano": "1789290328997000000",
+        "attributes": {
+          "firstmate.hold.close_mode": "answered",
+          "firstmate.hold.reason": "origin needs a ruling"
         }
-      ]
+      }
     }
-  ]
-}
-posts after resolve replay: 1
+$ fm-captain-hold.sh hold traced-origin --reason "pause"; answer traced-origin --decision-file go.txt --release
+traced-origin
+released: traced-origin
+  span #1:
+    {
+      "resource": {
+        "service.name": "firstmate",
+        "firstmate.task.id": "traced-origin",
+        "firstmate.project": "sample",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/hold",
+        "firstmate.task.kind": "ship",
+        "firstmate.harness": "codex"
+      },
+      "span": {
+        "name": "firstmate.hold",
+        "traceId": "66666666666666666666666666666667",
+        "parentSpanId": "8888888888888889",
+        "startTimeUnixNano": "1780322400000000000",
+        "endTimeUnixNano": "1789290330923000000",
+        "attributes": {
+          "firstmate.hold.close_mode": "released",
+          "firstmate.hold.reason": "pause"
+        }
+      }
+    }
 
-$ cat state/.wake-queue
-1789283797	1	signal	traced.status	signal: /tmp/fm-return-path-demo.4zRWfh/wake/state/traced.status
-1789283797	2	stale	firstmate:traced	stale: firstmate:traced
-1789283797	3	check	startup-network	check: startup-network still pending
-1789283797	4	heartbeat	heartbeat	heartbeat
-$ fm-wake-drain.sh   # presentation
-1789283797	1	signal	traced.status	signal: /tmp/fm-return-path-demo.4zRWfh/wake/state/traced.status
-1789283797	2	stale	firstmate:traced	stale: firstmate:traced
-1789283797	3	check	startup-network	check: startup-network still pending
-1789283797	4	heartbeat	heartbeat	heartbeat
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 4168336.1789283797.cREH9z
-posts after presentation: 0   # per-poll presentation emits nothing
-$ fm-wake-drain.sh --ack-through 4 --recovery-generation 4168336.1789283797.cREH9z
+===== firstmate.reply: delivered secondmate request -> correlated settlement in parent home =====
+created pending reply corr=14206d315f5c1427 (created at epoch 5000)
+marked delivered at epoch 5100
+secondmate status line: done [corr=14206d315f5c1427]: ledger clean
+resolve: ok, phase=resolved
+  span #1:
+    {
+      "resource": {
+        "service.name": "firstmate",
+        "firstmate.task.id": "hibit",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/parent"
+      },
+      "span": {
+        "name": "firstmate.reply",
+        "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+        "parentSpanId": "cccccccccccccccd",
+        "startTimeUnixNano": "5100000000000",
+        "endTimeUnixNano": "1789290331070000000",
+        "attributes": {
+          "firstmate.corr": "14206d315f5c1427",
+          "firstmate.reply.via": "status"
+        }
+      }
+    }
+span count after already-resolved replay: 1
+
+===== firstmate.wake: task-keyed rows only, one shared acknowledgement instant, teardown survival =====
+queued rows:
+  1789290331	1	signal	traced.status	signal: /tmp/fm-return-span-demo.Uj4v4j/wake/state/traced.status
+  1789290331	2	stale	firstmate:traced	stale: firstmate:traced
+  1789290331	3	check	startup-network	check: startup-network still pending
+  1789290331	4	heartbeat	heartbeat	heartbeat
+  1789290331	5	signal	gone.status	signal: /tmp/fm-return-span-demo.Uj4v4j/wake/state/gone.status
+$ fm-wake-drain.sh   (presentation)
+  stdout: 1789290331	1	signal	traced.status	signal: /tmp/fm-return-span-demo.Uj4v4j/wake/state/traced.status
+  stdout: 1789290331	2	stale	firstmate:traced	stale: firstmate:traced
+  stdout: 1789290331	3	check	startup-network	check: startup-network still pending
+  stdout: 1789290331	4	heartbeat	heartbeat	heartbeat
+  stdout: 1789290331	5	signal	gone.status	signal: /tmp/fm-return-span-demo.Uj4v4j/wake/state/gone.status
+  stderr: WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 334901.1789290331.EZHqRo
+  stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  stderr: ●  WATCHER DOWN - SUPERVISION IS OFF
+  stderr: ●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  stderr: ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  stderr: ●  This is a supervision warning only; the guarded operation WILL still run.
+  stderr: ●  After draining queued wakes, watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  stderr: WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+spans posted by presentation: 0
+capture files beside queue: .wake-trace.gone .wake-trace.traced 
+tearing down task 'gone' before acknowledgement: rm /tmp/fm-return-span-demo.Uj4v4j/wake/state/gone.meta
+$ fm-wake-drain.sh --ack-through 5 --recovery-generation 334901.1789290331.EZHqRo
+  exit=0
 queue after ack: 0 bytes
-
-### firstmate.wake after acknowledgement (1 of 4 rows task-keyed; stale/check/heartbeat silent) (curl log: 1 POST(s))
-curl <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
-{
-  "resourceSpans": [
+capture files after ack: ''
+  span #1:
     {
       "resource": {
-        "attributes": [
-          {
-            "key": "service.name",
-            "value": {
-              "stringValue": "firstmate"
-            }
-          },
-          {
-            "key": "firstmate.task.id",
-            "value": {
-              "stringValue": "traced"
-            }
-          },
-          {
-            "key": "firstmate.home",
-            "value": {
-              "stringValue": "/tmp/fm-return-path-demo.4zRWfh/wake"
-            }
-          }
-        ]
+        "service.name": "firstmate",
+        "firstmate.task.id": "traced",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/wake"
       },
-      "scopeSpans": [
-        {
-          "scope": {
-            "name": "firstmate"
-          },
-          "spans": [
-            {
-              "traceId": "cccccccccccccccccccccccccccccccd",
-              "spanId": "bae13120c4be9d0a",
-              "parentSpanId": "dddddddddddddddd",
-              "name": "firstmate.wake",
-              "kind": 1,
-              "startTimeUnixNano": "1789283797000000000",
-              "endTimeUnixNano": "1789283797687000000",
-              "attributes": [
-                {
-                  "key": "firstmate.wake.kind",
-                  "value": {
-                    "stringValue": "signal"
-                  }
-                },
-                {
-                  "key": "firstmate.wake.seq",
-                  "value": {
-                    "stringValue": "1"
-                  }
-                },
-                {
-                  "key": "firstmate.wake.key",
-                  "value": {
-                    "stringValue": "traced.status"
-                  }
-                }
-              ]
-            }
-          ]
+      "span": {
+        "name": "firstmate.wake",
+        "traceId": "11111111111111111111111111111112",
+        "parentSpanId": "3333333333333334",
+        "startTimeUnixNano": "1789290331000000000",
+        "endTimeUnixNano": "1789290331836000000",
+        "attributes": {
+          "firstmate.wake.kind": "signal",
+          "firstmate.wake.seq": "1",
+          "firstmate.wake.key": "traced.status"
         }
-      ]
+      }
     }
-  ]
-}
+  span #2:
+    {
+      "resource": {
+        "service.name": "firstmate",
+        "firstmate.task.id": "gone",
+        "firstmate.home": "/tmp/fm-return-span-demo.Uj4v4j/wake"
+      },
+      "span": {
+        "name": "firstmate.wake",
+        "traceId": "99999999999999999999999999999990",
+        "parentSpanId": "7777777777777770",
+        "startTimeUnixNano": "1789290331000000000",
+        "endTimeUnixNano": "1789290331836000000",
+        "attributes": {
+          "firstmate.wake.kind": "signal",
+          "firstmate.wake.seq": "5",
+          "firstmate.wake.key": "gone.status"
+        }
+      }
+    }
+distinct endTimeUnixNano across batch: 1
+$ fm-wake-drain.sh --ack-through 5 --recovery-generation 334901.1789290331.EZHqRo   (replay)
+  exit=0
+span count after replay: 2
+
+===== default-off: session decision off -> byte-identical behaviour, no span =====
+ack exit=0 queue bytes=0
+  (no span posted)
