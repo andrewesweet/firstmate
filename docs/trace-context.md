@@ -116,6 +116,7 @@ This is a deliberate, source-owned choice:
   The emitter header owns the separate delivery timeout and failure contract.
 - **Ephemeral local state.**
   The carrier lives in the pane shell and task metadata; teardown removes local trace state as before.
+  The one exception is the telemetry-only wake capture `state/.wake-trace.<task>`, a copy of the carrier and resource lines that presentation writes so a task torn down before its wake is acknowledged still gets its `firstmate.wake` span; acknowledgement discards it, and `bin/fm-wake-drain.sh` owns its contract.
   Receiver storage and retention remain outside Firstmate.
 
 ## Relationship to OpenTelemetry and later increments
