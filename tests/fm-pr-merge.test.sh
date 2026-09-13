@@ -3090,7 +3090,7 @@ test_merge_outcome_spans_follow_publication() {
 }
 
 test_merge_outcome_report_emits_once_per_merge() {
-  local case_dir state home fakebin rc out
+  local case_dir state home fakebin rc
   # shellcheck source=/dev/null
   . "$ROOT/bin/fm-merge-outcome-lib.sh"
   case_dir=$(make_case trace-report-dedup)
@@ -3128,8 +3128,8 @@ test_merge_outcome_report_emits_once_per_merge() {
     || fail "trace-report-dedup: the already-recorded path must emit nothing"
 
   set +e
-  out=$(PATH="$fakebin:$PATH" fm_merge_outcome_report "$home" "$state" task-x1 \
-    https://github.com/example/repo/pull/9 sideways 2>&1)
+  PATH="$fakebin:$PATH" fm_merge_outcome_report "$home" "$state" task-x1 \
+    https://github.com/example/repo/pull/9 sideways >/dev/null 2>&1
   rc=$?
   set -e
   expect_code 2 "$rc" "trace-report-dedup: an invalid origin must be rejected"
