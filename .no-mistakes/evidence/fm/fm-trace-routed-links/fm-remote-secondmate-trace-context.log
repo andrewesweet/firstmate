@@ -6,4 +6,4 @@ ok - remote route: a routed worker inside the remote second mate home records it
 ok - allowlist: the remote receiver accepts exactly the declared inherited-material set, including the enablement flag
 ok - delivery: a parent-supplied carrier is accepted only for a secondmate launch and only as a strict W3C value
 ALL TESTS PASSED
-rm: cannot remove '/tmp/fm-remote-trace-context.v1VkKQ': Directory not empty
+rm: cannot remove '/tmp/fm-remote-trace-context.jJCJaZ/remote-jobs': Directory not empty

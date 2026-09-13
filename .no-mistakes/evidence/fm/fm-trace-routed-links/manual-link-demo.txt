@@ -1,0 +1,14 @@
+### 1. Ambient TRACEPARENT read only as link, only in marked secondmate home
+primary home   -> link=''
+secondmate home-> link='00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01'
+secondmate home, malformed ambient -> link=''
+### 2. Fresh task carrier never adopts ambient
+task carrier=00-70da6ba18fee518806af9fa95f02cd6f-d49afc5beef32391-01
+trace id differs from ambient: YES
+### 3. Task root span carries link (OTLP body from captured curl POST)
+secondmate root span:
+{"name":"firstmate.task","traceId":"70da6ba18fee518806af9fa95f02cd6f","spanId":"d49afc5beef32391","parentSpanId":null,"links":[{"traceId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","spanId":"bbbbbbbbbbbbbbbb"}]}
+child span given --link (link rejected, not root):
+{"name":"firstmate.spawn","parentSpanId":"d49afc5beef32391","links":null}
+### 4. Trace off by default: same meta without effective on -> nothing posted
+bytes posted: 0
