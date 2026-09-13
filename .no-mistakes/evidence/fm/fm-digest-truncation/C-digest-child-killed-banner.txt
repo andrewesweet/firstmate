@@ -1,0 +1,21 @@
+# scenario C: digest child SIGTERMed mid-lock-stage
+# parent exit=0 complete-marker=absent
+
+================================================================================
+SESSION START - /tmp/fm-session-start-tests.q3aVv5/ev-die/home
+================================================================================
+
+LOCK
+--------------------------------------------------------------------------------
+Terminated
+
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  STARTUP TRUNCATED - SESSION START DIED UNEXPECTEDLY (exit 143, not its runtime bound)
+●  It stopped during the "lock" stage, so everything above is COMPLETE
+●  only up to that point.
+●  RECONCILE these stages before acting on anything they would have shown:
+●    lock bootstrap wake-queue supervision-instructions read-once fleet-state network-checks context next-step
+●  Rerun bin/fm-session-start.sh now to finish taking the helm. If it truncates
+●  again, report the exit status and the stage - raising the runtime bound
+●  cannot help a digest that died, and a stage that dies is a fleet problem.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,23 @@
+# Timeline of a digest with one wedged herdr pane (fake `herdr pane get p-slow` sleeps 300s),
+# GNU timeout mechanism, target b4badf9. Fake herdr logged every call; digest output timestamped.
+# Baseline digest with a healthy fake herdr: 1s. With the wedged pane: 71s.
+
+19:48:00 3462966 herdr pane get p-slow --session sess   <- pre-existing bin/fm-home-summary-refresh.sh best-effort worker
+19:48:00 3462968 herdr pane get p-live --session sess      (fm-fleet-snapshot under its own 60s FM_HOME_SUMMARY_TIMEOUT; unchanged by this branch)
+19:49:00 3468738 herdr pane get p-slow --session sess   <- per-task endpoint read (this change), bounded at 10s
+19:49:10 3468920 herdr pane get p-live --session sess
+
+19:48:00 LOCK
+19:49:00 BOOTSTRAP
+19:49:00 WAKE QUEUE
+19:49:00 FLEET STATE
+19:49:00 --- task-a-slow ---
+19:49:10 endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 10s bound; the digest continued past it)
+19:49:10 --- task-z-live ---
+19:49:10 endpoint: alive (backend=herdr window=sess:p-live)
+19:49:10 NETWORK CHECKS
+19:49:10 CONTEXT
+19:49:10 NEXT STEP
+
+# Per-task bound holds exactly (10s). The additional 60s is the pre-existing home-summary
+# worker's own bound hitting the same wedged backend before the fleet-state stage.

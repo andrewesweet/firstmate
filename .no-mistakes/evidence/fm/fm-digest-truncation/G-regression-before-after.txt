@@ -1,0 +1,20 @@
+# The four new tests in tests/fm-session-start.test.sh, run against the BASE
+# commit's bin/ (1e9441e, tree extracted via git archive) and the TARGET (b4badf9).
+
+## base 1e9441e (bin/ before the fix)
+not ok - a killed endpoint read was not reported as that task's own error line (missing: 'endpoint: error (backend=herdr window=sess:p-doom - the endpoint read died or hit its 10s bound; the digest continued past it)')
+not ok - a hung endpoint read was not bounded into that task's own error line (missing: 'endpoint: error (backend=herdr window=sess:p-slow - ...)')
+        (base output instead: STARTUP TRUNCATED - SESSION START HIT ITS 120s RUNTIME BOUND, stopped during "fleet-state")
+not ok - the perl timeout fallback did not report a SIGKILLed child as 128+9: expected exit 137, got 0
+not ok - a digest child killed mid-stage did not name its abnormal death (missing: 'STARTUP TRUNCATED - SESSION START DIED UNEXPECTEDLY (exit 143, not its runtime bound)')
+        (base output instead: digest stopped after LOCK header, no banner, parent exit 0 - the 2026-09-13 shape)
+
+## target b4badf9
+ok - herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one
+ok - a killed per-task endpoint read becomes that task's error line and the digest completes
+ok - a hung per-task endpoint read hits its own bound, reports the task, and leaves nothing stuck
+ok - the perl timeout fallback reports a signal death as a nonzero status
+ok - a digest child killed mid-stage is bannered by the parent, which still exits 0
+ok - the pure-Bash watchdog bounds session start, kills its hung grandchild, and emits the truncation contract
+ok - the portable timeout path force-kills a command that ignores TERM
+ok - a session start inside its budget prints no truncation banner

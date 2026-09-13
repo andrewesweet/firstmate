@@ -1,0 +1,9 @@
+# scenario D: fm_run_timed on the perl fallback (PATH has no timeout/gtimeout); target commit b4badf9
+mechanism: perl
+child SIGKILL  -> rc=137  (expect 137)
+child SIGTERM  -> rc=143  (expect 143)
+child exit 3   -> rc=3  (expect 3)
+child exit 0   -> rc=0  (expect 0)
+child hang     -> rc=124  (expect 124)
+# same probe against base commit 1e9441e:
+child SIGKILL  -> rc=0  (base bug: 0)
