@@ -1,0 +1,50 @@
+=== durable inbox steer ===
+$ FM_HOME=<home> bin/fm-send.sh steer "private steering text"
+exit=0
+durable_record=001.msg
+typed_terminal=: Firstmate instruction waiting: list '/tmp/lifecycle-trace-e2e.RMt7wk/steer/home/state/steer.inbox'/*.msg and, in numeric order, read and act on each, then mv each handled file to '/tmp/lifecycle-trace-e2e.RMt7wk/steer/home/state/steer.inbox'/handled/.
+{
+  "name": "firstmate.steer",
+  "traceId": "11111111111111111111111111111112",
+  "parentSpanId": "3333333333333334",
+  "attributes": {
+    "firstmate.plane": "inbox",
+    "firstmate.inbox.seq": "001"
+  }
+}
+privacy_check=PASS: message content absent from OTLP body
+
+=== published scout promotion ===
+$ FM_HOME=<home> bin/fm-promote.sh scout --mode no-mistakes --yolo off
+promoted scout to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /tmp/lifecycle-trace-e2e.RMt7wk/promote/home/data/scout/ship-instructions.md
+next: FM_HOME=/tmp/lifecycle-trace-e2e.RMt7wk/promote/home bin/fm-send.sh fm-scout "$(cat /tmp/lifecycle-trace-e2e.RMt7wk/promote/home/data/scout/ship-instructions.md)"
+published_meta=kind=ship mode=no-mistakes yolo=off 
+{
+  "name": "firstmate.promote",
+  "traceId": "11111111111111111111111111111112",
+  "parentSpanId": "3333333333333334",
+  "attributes": {
+    "firstmate.task.kind.prior": "scout",
+    "firstmate.task.mode": "no-mistakes",
+    "firstmate.task.yolo": "off"
+  }
+}
+
+=== verified agent exit ===
+$ FM_HOME=<home> bin/fm-control.sh control exit
+stopped control harness=claude backend=tmux endpoint=session:fm-control worktree=/tmp/lifecycle-trace-e2e.RMt7wk/control/worktree
+delivered_command=/exit
+verified_process_after=zsh
+{
+  "name": "firstmate.control",
+  "traceId": "11111111111111111111111111111112",
+  "parentSpanId": "3333333333333334",
+  "attributes": {
+    "firstmate.control.verb": "exit",
+    "firstmate.control.confirmed": "true",
+    "firstmate.control.result": "stopped"
+  }
+}
+
+RESULT=PASS: real CLI paths produced child lifecycle spans after their product success conditions.
