@@ -29,6 +29,9 @@
 #      slash) keeps its exit-3 delivered-unconfirmed contract, never closes a
 #      --resolve-key decision unconfirmed, and keeps a marked expectation
 #      armed.
+#   9. Tracing: the parent posts only proven remote deliveries, carrying its
+#      correlation or validated fire-and-forget delivery id as applicable;
+#      the remote leg posts no duplicate span.
 set -u
 
 # shellcheck source=tests/lib.sh

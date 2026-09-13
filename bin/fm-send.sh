@@ -264,13 +264,15 @@ fm_send_id_from_meta() {  # <meta-file>
 # the emitter always returns 0 and never types anything, so message success
 # semantics are untouched.
 fm_send_trace_steer() {  # <meta-file> <plane> [extra key=value...]
-  local meta=$1 plane=$2
+  local meta=$1 plane=$2 decision_keys
   [ -n "$meta" ] || return 0
   shift 2
   local -a span_attrs=("firstmate.plane=$plane")
   [ -z "${PENDING_REPLY_CORR:-}" ] || span_attrs+=("firstmate.corr=$PENDING_REPLY_CORR")
-  [ -z "${RESOLVE_KEYS:-}" ] \
-    || span_attrs+=("firstmate.decision.key=$(printf '%s' "$RESOLVE_KEYS" | tr ' ' ',')")
+  if [ -n "${RESOLVE_KEYS:-}" ]; then
+    decision_keys=${RESOLVE_KEYS// /,}
+    span_attrs+=("firstmate.decision.key=$decision_keys")
+  fi
   [ -z "${FIRE_AND_FORGET_ID:-}" ] || span_attrs+=("firstmate.fire_and_forget=true")
   span_attrs+=("$@")
   fm_trace_span_emit "$meta" firstmate.steer - - "${span_attrs[@]}"

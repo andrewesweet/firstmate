@@ -30,6 +30,8 @@
 #      (the operator path the OPEN DECISIONS hint names), while an unrelated
 #      writer's answered: note still cannot hijack or clear that key. A reserved
 #      key this send cannot close refuses before anything is sent.
+#   9. Tracing: delivered answers carry decision keys without content and post
+#      before later close failures; telemetry formatting cannot alter closure.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -675,6 +677,44 @@ test_span_carries_decision_keys_and_refusal_posts_none() {
   pass "fm-send --resolve-key: the posted steer span carries the resolved keys, and a refusal posts none"
 }
 
+test_trace_key_formatting_cannot_change_delivery() {
+  local dir fb log home err real_tr rc out body
+  dir="$TMP_ROOT/span-key-format"; mkdir -p "$dir"
+  fb=$(make_stubs "$dir"); log="$dir/send.log"; err="$dir/send.err"
+  home=$(setup_home span-key-format)
+  fm_test_otlp_capture_install "$fb"
+  fm_write_meta "$home/state/t1.meta" "window=sess:fm-t1" "kind=ship"
+  fm_test_otlp_trace_enable "$home" t1 "$CARRIER"
+  printf 'needs-decision [key=api-shape]: pick REST or RPC\n' > "$home/state/t1.status"
+  printf 'needs-decision [key=port-choice]: pick a port\n' >> "$home/state/t1.status"
+  real_tr=$(command -v tr)
+  cat > "$fb/tr" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 2 ] && [ "$1" = ' ' ] && [ "$2" = ',' ]; then
+  exit 17
+fi
+exec "${FM_REAL_TR:?FM_REAL_TR required}" "$@"
+SH
+  chmod +x "$fb/tr"
+
+  rc=0
+  env PATH="$fb:$PATH" FM_REAL_TR="$real_tr" \
+    FM_ROOT_OVERRIDE="$home" FM_HOME="$home" FM_SEND_LOG="$log" FM_SEND_SETTLE=0 \
+    FM_FAKE_CURL_LOG="$dir/curl.log" \
+    "$SEND" t1 --resolve-key api-shape --resolve-key port-choice \
+      "one answer covering both" >/dev/null 2>"$err" || rc=$?
+  expect_code 0 "$rc" "telemetry key formatting must not fail a delivered answer$(cat "$err")"
+  [ -f "$home/state/t1.inbox/001.msg" ] || fail "the answer must remain durably delivered"
+  out=$(drain_out "$home")
+  case "$out" in
+    *"OPEN DECISIONS"*) fail "telemetry key formatting left delivered decisions open: $out" ;;
+  esac
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  [ "$(fm_test_otlp_span_attr firstmate.decision.key "$body")" = api-shape,port-choice ] \
+    || fail "the span must carry the shell-formatted decision keys"
+  pass "fm-send --resolve-key: telemetry key formatting cannot alter delivery or closure"
+}
+
 test_long_decision_key_refuses_before_send() {
   local dir fb log home err key rc out
   dir="$TMP_ROOT/long-key"; mkdir -p "$dir"
@@ -787,5 +827,6 @@ test_long_decision_key_refuses_before_send
 test_failed_close_recovery_command_is_shell_safe
 test_remote_reserved_pending_reply_key_closes_locally
 test_span_carries_decision_keys_and_refusal_posts_none
+test_trace_key_formatting_cannot_change_delivery
 
 echo "# all fm-send-resolve-key tests passed"

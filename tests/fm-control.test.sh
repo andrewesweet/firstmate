@@ -17,6 +17,8 @@
 #   6. Marker non-regression: a control command to a kind=secondmate task
 #      carries NO from-firstmate marker and opens no pending-reply expectation,
 #      while fm-send's marking of the same task is untouched.
+#   7. Tracing: verified interrupt and exit results post their lifecycle span
+#      before fallible success output; disabled and failing emitters are inert.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -993,6 +995,28 @@ test_control_disabled_home_and_failing_emitter() {
   pass "fm-control tracing: a disabled home and a failing emitter leave the verb untouched"
 }
 
+test_control_span_precedes_fallible_success_output() {
+  local dir rc reader
+  dir=$(new_case span-output-fail)
+  add_task "$dir" t1 claude
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  alive_as "$dir" claude
+  mkfifo "$dir/output"
+  : < "$dir/output" &
+  reader=$!
+  rc=0
+  FM_FAKE_CURL_LOG="$dir/curl.log" run_control "$dir" t1 exit > "$dir/output" || rc=$?
+  wait "$reader" || true
+  [ "$rc" -ne 0 ] || fail "a closed success-output stream should fail the final report"
+  [ "$(cat "$dir/fake/command")" = zsh ] \
+    || fail "the agent should already be verified stopped when success output fails"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "the verified exit must post its span before fallible success output"
+  pass "fm-control tracing: verified exit posts before fallible success output"
+}
+
 test_control_span_posts_on_verified_interrupt
 test_control_span_posts_on_verified_exit
 test_control_disabled_home_and_failing_emitter
+test_control_span_precedes_fallible_success_output

@@ -17,6 +17,8 @@
 #   6. fm-spawn --relaunch refuses on its own: a live agent, a contradicting
 #      flag, an extra positional, or a backend that cannot prove the previous
 #      agent exited.
+#   7. Tracing: relaunch posts only the replacement spawn span, marked as a
+#      relaunch, and never a control span for its internal stop.
 set -u
 
 # shellcheck source=tests/lib.sh

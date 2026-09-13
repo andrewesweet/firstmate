@@ -874,7 +874,6 @@ case "$VERB" in
     esac
     CONTROL_SPAN_START=$(fm_timing_now_ms)
     proof=$(do_interrupt)
-    echo "interrupt-delivered $ID harness=$HARNESS backend=$BACKEND verified=$proof"
     # The verified postcondition is the span's event
     # (bin/fm-trace-span-lib.sh's header owns the catalogue entry); a disabled
     # home or emitter failure cannot change the verb's outcome.
@@ -885,17 +884,18 @@ case "$VERB" in
     fm_trace_span_emit "$META" firstmate.control "$CONTROL_SPAN_START" - \
       "firstmate.control.verb=interrupt" "firstmate.control.confirmed=$CONTROL_SPAN_CONFIRMED" \
       "firstmate.control.proof=${proof%% cancel=*}"
+    echo "interrupt-delivered $ID harness=$HARNESS backend=$BACKEND verified=$proof"
     ;;
   exit)
     CONTROL_SPAN_START=$(fm_timing_now_ms)
     result=$(do_exit)
-    echo "$result $ID harness=$HARNESS backend=$BACKEND endpoint=$T worktree=$WT"
     # do_exit returned, so the stop is proven or the agent was already gone;
     # the verb dispatch site keeps a relaunch's internal stop from emitting
     # (the replacement launch already emits firstmate.spawn).
     fm_trace_span_emit "$META" firstmate.control "$CONTROL_SPAN_START" - \
       "firstmate.control.verb=exit" "firstmate.control.confirmed=true" \
       "firstmate.control.result=$result"
+    echo "$result $ID harness=$HARNESS backend=$BACKEND endpoint=$T worktree=$WT"
     ;;
   relaunch)
     do_relaunch

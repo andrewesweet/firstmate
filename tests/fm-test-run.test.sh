@@ -101,6 +101,7 @@ init_changed_fixture_repo() {
     fm-test-isolation-proof.test.sh \
     fm-test-run.test.sh \
     fm-test-fixtures.test.sh \
+    fm-promote.test.sh \
     fm-cd-pretool-check.test.sh \
     fm-daemon.test.sh \
     fm-harness-adapter-instructions-live-e2e.test.sh \
@@ -132,6 +133,7 @@ init_changed_fixture_repo() {
   : >"$repo/bin/fm-procevent-quota.sh"
   : >"$repo/bin/fm-quota-axi-lib.sh"
   : >"$repo/bin/fm-quota-choose.sh"
+  : >"$repo/bin/fm-promote.sh"
   : >"$repo/bin/unmapped-source.sh"
   # A shared helper with no curated family of its own, named by exactly ONE
   # script of the expensive real-Herdr family and consumed by one curated
@@ -299,6 +301,15 @@ test_changed_dependency_selection_and_unmapped_failure() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-changed.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
+
+  printf '\n' >>"$repo/bin/fm-promote.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-promote.test.sh" \
+    "promotion source selects its dedicated behavior coverage"
+  assert_contains "$listed" "tests/fm-brief.test.sh" \
+    "promotion source keeps its pure-contract family coverage"
+  git -C "$repo" add bin/fm-promote.sh
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm promote-change
 
   printf '\n' >>"$repo/tests/lib.sh"
   listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
