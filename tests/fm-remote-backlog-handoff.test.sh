@@ -758,6 +758,35 @@ assert_grep 'rspan-a' "$REMOTE/data/backlog.md" "the traced remote handoff lost 
 assert_grep 'rspan-b' "$REMOTE/data/backlog.md" "the traced remote handoff lost the second durably received item"
 pass "remote handoff: one span per delivered key posts after the durable receipt with route=remote, and never for a staged outbox"
 
+# A receipt whose ssh return is lost after the remote applied the batch: the
+# receipt output already names the moved keys, so their spans post once; the
+# --resume-pending re-delivery finds every key already present and posts none.
+write_backlog $'- [ ] rspan-c - lost-return item (repo: alpha)\n- [ ] rspan-d - second lost-return item (repo: alpha)'
+: > "$TMP_ROOT/rspan-curl.log"
+: > "$SSH_COUNT"
+set +e
+FM_FAKE_SSH_MODE=after-receive PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" ios rspan-c rspan-d \
+  > "$TMP_ROOT/rspan-lost.out" 2>&1
+rc=$?
+set -e
+[ "$rc" -ne 0 ] || fail "the lost-return remote handoff claimed success"
+assert_present "$PARENT/data/handoff/ios.outbox.md" "the lost-return handoff released its outbox"
+[ "$(rspan_count)" = 2 ] \
+  || fail "a receipt that named two moved keys before its return was lost must post exactly two spans (got '$(rspan_count)')"
+out=$(PATH="$RSPANBIN:$PATH" handoff_env "$ROOT/bin/fm-backlog-handoff.sh" --resume-pending) \
+  || fail "resuming after the lost return failed: $out"
+assert_contains "$out" 'received: ios moved=0 already=2' "the resumed re-delivery did not classify both keys as already present"
+[ "$(rspan_count)" = 2 ] \
+  || fail "re-delivering already-present keys must post no further span (got '$(rspan_count)')"
+rspan_items=
+for n in 1 2; do
+  rspan_items="$rspan_items $(jq -r '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.backlog.item")][0].value.stringValue' <<< "$(rspan_body "$n")")"
+done
+[ "$rspan_items" = ' rspan-c rspan-d' ] \
+  || fail "the lost-return spans must carry one moved key each (got '$rspan_items')"
+assert_absent "$PARENT/data/handoff/ios.outbox.md" "the resumed lost-return outbox was not released"
+pass "remote handoff: a lost receipt return posts each named moved key once and the resume posts nothing"
+
 # An empty scaffold outbox (staging failed after the scaffold was seeded) resumed
 # through --resume-pending moves nothing, so it posts no span at all.
 mkdir -p "$PARENT/data/handoff"

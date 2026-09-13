@@ -145,8 +145,10 @@
 #     firstmate.handoff - bin/fm-backlog-handoff.sh, one span per backlog key
 #       after that key's move really lands: a local route right after the
 #       atomic tasks-axi mv into the secondmate backlog succeeds, a remote
-#       route right after the durable remote receipt confirms the delivered
-#       outbox (so a merely staged, undelivered outbox emits nothing);
+#       route for each key the durable remote receipt names as moved in that
+#       delivery (so a merely staged, undelivered outbox emits nothing, and
+#       a resumed re-delivery of keys the remote already holds emits nothing
+#       again);
 #       child of the secondmate agent's own carrier read from the parent
 #       home's state/<id>.meta, emitted by the parent on both routes;
 #       attributes firstmate.backlog.item (the moved key) and firstmate.route

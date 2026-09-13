@@ -185,3 +185,4 @@ rm -f -- "$DELIVERED" || die "receipt succeeded but delivered scratch cleanup fa
 fm_lock_release "$TRANSFER_LOCK" || die "receipt succeeded but transfer lock cleanup failed"
 trap - EXIT
 printf 'received: %s moved=%s already=%s\n' "$(basename "$REL" .outbox.md)" "${#TO_MOVE[@]}" "${#ALREADY[@]}"
+for key in ${TO_MOVE[@]+"${TO_MOVE[@]}"}; do printf 'moved: %s\n' "$key"; done

@@ -120,20 +120,6 @@ emit_handoff_spans() {  # <secondmate-id> <local|remote> <key>...
   return 0
 }
 
-# Echo the backlog item keys contained in <outbox-path>, one per line in file
-# order, parsed from item headers exactly as backlog_key_section does.
-outbox_keys() {  # <outbox-path>
-  awk '
-    /^- \[[ x]\] / {
-      rest = $0
-      sub(/^- \[[ x]\] +/, "", rest)
-      id = rest
-      sub(/[ \t].*/, "", id)
-      if (id != "") print id
-    }
-  ' "$1"
-}
-
 ACTIVE_HANDOFF_LOCK=
 ACTIVE_REGISTRY_LOCK=
 RECEIVER_WAKE_IGNORE_ID=
@@ -634,7 +620,7 @@ outbox_item_count() { # <path>
 }
 
 remote_deliver_outbox() { # <secondmate-id> <outbox-path>
-  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending key moved_keys
+  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending key moved_keys receive_rc
   [ -f "$outbox" ] && [ ! -L "$outbox" ] || {
     echo "error: pending outbox is unavailable or unsafe: $outbox" >&2
     return 1
@@ -671,21 +657,25 @@ remote_deliver_outbox() { # <secondmate-id> <outbox-path>
     return 1
   fi
   rm -f -- "$snapshot"
-  if ! receive_out=$("$SCRIPT_DIR/fm-on.sh" "$id" fm-backlog-receive.sh \
-    "$remote_rel" "$bytes" "$hash" "$generation" < /dev/null 2>&1); then
+  receive_rc=0
+  receive_out=$("$SCRIPT_DIR/fm-on.sh" "$id" fm-backlog-receive.sh \
+    "$remote_rel" "$bytes" "$hash" "$generation" < /dev/null 2>&1) || receive_rc=$?
+  # The receiver names each key it moved in THIS delivery, so only those keys
+  # get a firstmate.handoff span: a resumed re-delivery of keys the remote
+  # already holds reports them as already-present and emits nothing again. A
+  # receipt whose return was lost after its output arrived still names durable
+  # moves; a receipt that never arrived (or an older receiver that prints only
+  # counts) emits nothing (bin/fm-trace-span-lib.sh's header owns the entry).
+  moved_keys=()
+  while IFS= read -r key; do
+    case "$key" in 'moved: '?*) moved_keys+=("${key#moved: }") ;; esac
+  done <<< "$receive_out"
+  emit_handoff_spans "$id" remote ${moved_keys[@]+"${moved_keys[@]}"}
+  if [ "$receive_rc" -ne 0 ]; then
     [ -z "$receive_out" ] || printf '%s\n' "$receive_out" >&2
     echo "error: handoff receipt by $id was unavailable or completion is unknown; outbox preserved at $outbox" >&2
     return 1
   fi
-  # The durable remote receipt is the moment this batch's moves land, so each
-  # moved key gets its firstmate.handoff span here - including a resumed
-  # delivery of a previously staged outbox. A staged-but-undelivered outbox
-  # emits nothing (bin/fm-trace-span-lib.sh's header owns the entry).
-  moved_keys=()
-  while IFS= read -r key; do
-    moved_keys+=("$key")
-  done < <(outbox_keys "$outbox")
-  emit_handoff_spans "$id" remote ${moved_keys[@]+"${moved_keys[@]}"}
   marker="$STATE/.backlog-handoff-$id.wake-pending"
   if [ "$RECEIVER_WAKE_IGNORE_ID" = "$id" ]; then
     wake_state=dropped
