@@ -3509,9 +3509,13 @@ TEARDOWN_SPAN_VAL=$(fm_meta_get "$META" spawn_gen)
 [ -z "$TEARDOWN_SPAN_VAL" ] || TEARDOWN_SPAN_ATTRS+=("firstmate.spawn_gen=$TEARDOWN_SPAN_VAL")
 # A routed task's link: the meta's trace_link= (the strictly validated routing
 # agent carrier recorded at spawn) rides the task root as an OTel span link;
-# the emitter re-validates and silently omits anything else. A primary home's
-# meta records no trace_link=, so its root carries no link.
-TEARDOWN_SPAN_LINK=$(fm_meta_get "$META" trace_link)
+# the emitter re-validates and silently omits anything else. Only a marked
+# secondmate home (canonical fm_root_is_secondmate_home) exports it, so a
+# primary home's root carries no link whatever its meta says.
+TEARDOWN_SPAN_LINK=
+if fm_root_is_secondmate_home "$FM_HOME"; then
+  TEARDOWN_SPAN_LINK=$(fm_meta_get "$META" trace_link)
+fi
 teardown_span_link_args=()
 [ -z "$TEARDOWN_SPAN_LINK" ] || teardown_span_link_args=(--link "$TEARDOWN_SPAN_LINK")
 fm_trace_span_emit "$META" firstmate.task "$TEARDOWN_SPAN_START" - --root --status "$TEARDOWN_SPAN_STATUS" \

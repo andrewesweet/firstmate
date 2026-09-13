@@ -848,7 +848,19 @@ test_two_routed_tasks_through_one_secondmate_root_distinct_traces() {
     || fail "task A's relaunch must inject its original carrier (first='$tp_a' injected='$relaunch_in')"
   [ "$(meta_trace_link "$sm/state/$id_a.meta")" = "$sm_tp" ] \
     || fail "task A's relaunch must keep its recorded link to the routing agent"
-  pass "two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, link to its carrier, and keep per-task identity across relaunch"
+
+  # The marked-home gate (fm_root_is_secondmate_home) covers recorded-link
+  # reuse too: once the marker is gone the home is primary, so task B's
+  # relaunch keeps its carrier but records no link, whatever its meta held.
+  rm -f "$sm/.fm-secondmate-home"
+  out=$(TRACEPARENT="$sm_tp" run_spawn "$sm" "$wt_b" "$fakebin" "$log_b" "$id_b" "$proj_b")
+  status=$?
+  expect_code 0 "$status" "routed task B relaunch without the marker should succeed"
+  [ "$(meta_traceparent "$sm/state/$id_b.meta")" = "$tp_b" ] \
+    || fail "task B's unmarked relaunch must keep its original carrier (first='$tp_b' relaunch='$(meta_traceparent "$sm/state/$id_b.meta")')"
+  [ -z "$(meta_trace_link "$sm/state/$id_b.meta")" ] \
+    || fail "a home without the marker must not reuse a recorded link on relaunch (got '$(meta_trace_link "$sm/state/$id_b.meta")')"
+  pass "two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, link to its carrier, keep per-task identity across relaunch, and drop the link once the marker is gone"
 }
 
 # A primary home has no .fm-secondmate-home marker, so an operator shell or a

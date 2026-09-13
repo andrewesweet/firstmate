@@ -50,10 +50,10 @@ The point of these rules is one trace per task: never merge unrelated tasks, and
   Adopting it would chain every routed task into one ever-growing trace per Secondmate; instead each routed task roots its own trace.
 - **Recovery** - a valid `traceparent=` already recorded in the task's meta is reused verbatim, so a relaunched or recovered task keeps one stable identity across restarts rather than starting a second trace.
   A corrupt recorded value is re-minted as a fresh root rather than propagated.
-- **Link** - a task spawned inside a marked Secondmate home (the `.fm-secondmate-home` marker) also records the ambient `TRACEPARENT` it launched under as `trace_link=` beside its carrier, after strict W3C validation and only while tracing is enabled.
+- **Link** - a task spawned inside a marked Secondmate home (the `.fm-secondmate-home` marker, judged by the same `fm_root_is_secondmate_home` predicate every Firstmate hook uses) also records the ambient `TRACEPARENT` it launched under as `trace_link=` beside its carrier, after strict W3C validation and only while tracing is enabled.
   That value is the routing agent's own carrier, and the link records exactly one fact: this task was routed by that agent.
   The link never parents the task's spans, never replaces or changes the carrier, and never reaches the pane; the task root emitted at teardown carries it as an OpenTelemetry span link, and each routing action lands as a span on the agent's own trace (`firstmate.handoff`, owned by `bin/fm-trace-span-lib.sh`'s catalogue).
-  A recorded link is reused verbatim on relaunch, exactly like the carrier, and a corrupt one is re-resolved rather than propagated.
+  A recorded link is reused verbatim on relaunch, exactly like the carrier, and a corrupt one is re-resolved rather than propagated; a home that has lost its marker is a primary home again, so it neither reuses nor exports a recorded link.
 
 Apart from that one link read inside a marked Secondmate home, ambient `TRACEPARENT` is never read, so the environment a supervisor happens to run under cannot leak into new task identities.
 A primary home has no Secondmate marker and never reads ambient context at all, so an operator shell with a leftover `TRACEPARENT` cannot attach unrelated tasks to anything.

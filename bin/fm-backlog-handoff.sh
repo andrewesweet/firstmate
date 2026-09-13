@@ -115,15 +115,23 @@ emit_handoff_spans() {  # <secondmate-id> <local|remote> <key>...
   for key in "$@"; do
     fm_trace_span_emit "$STATE/$id.meta" firstmate.handoff - - \
       "firstmate.backlog.item=$key" \
-      "firstmate.secondmate.id=$id" \
       "firstmate.route=$route"
   done
   return 0
 }
 
-# Echo the backlog item keys contained in <outbox-path>, in file order.
+# Echo the backlog item keys contained in <outbox-path>, one per line in file
+# order, parsed from item headers exactly as backlog_key_section does.
 outbox_keys() {  # <outbox-path>
-  awk '/^- \[[ x]\] / { print $4 }' "$1"
+  awk '
+    /^- \[[ x]\] / {
+      rest = $0
+      sub(/^- \[[ x]\] +/, "", rest)
+      id = rest
+      sub(/[ \t].*/, "", id)
+      if (id != "") print id
+    }
+  ' "$1"
 }
 
 ACTIVE_HANDOFF_LOCK=
@@ -626,7 +634,7 @@ outbox_item_count() { # <path>
 }
 
 remote_deliver_outbox() { # <secondmate-id> <outbox-path>
-  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending
+  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending key moved_keys
   [ -f "$outbox" ] && [ ! -L "$outbox" ] || {
     echo "error: pending outbox is unavailable or unsafe: $outbox" >&2
     return 1
@@ -673,7 +681,11 @@ remote_deliver_outbox() { # <secondmate-id> <outbox-path>
   # moved key gets its firstmate.handoff span here - including a resumed
   # delivery of a previously staged outbox. A staged-but-undelivered outbox
   # emits nothing (bin/fm-trace-span-lib.sh's header owns the entry).
-  emit_handoff_spans "$id" remote "$(outbox_keys "$outbox")"
+  moved_keys=()
+  while IFS= read -r key; do
+    moved_keys+=("$key")
+  done < <(outbox_keys "$outbox")
+  emit_handoff_spans "$id" remote ${moved_keys[@]+"${moved_keys[@]}"}
   marker="$STATE/.backlog-handoff-$id.wake-pending"
   if [ "$RECEIVER_WAKE_IGNORE_ID" = "$id" ]; then
     wake_state=dropped

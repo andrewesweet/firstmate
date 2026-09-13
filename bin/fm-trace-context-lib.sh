@@ -64,9 +64,10 @@
 #     recorded link is reusable or falls back to fm_trace_context_link_resolve.
 #   fm_trace_context_link_resolve <home>
 #     Echoes the ambient TRACEPARENT to record as a routed task's span link,
-#     or nothing when the home is not a marked secondmate home (no regular
-#     non-symlink `.fm-secondmate-home` marker), the environment carries no
-#     TRACEPARENT, or the value fails strict W3C validation. Always returns
+#     or nothing when the home is not a marked secondmate home (the canonical
+#     fm_root_is_secondmate_home predicate, bin/fm-primary-scope-lib.sh), the
+#     environment carries no TRACEPARENT, or the value fails strict W3C
+#     validation. Always returns
 #     0: a link is omitted safely and never aborts the spawn. This is the
 #     ONLY function in this library that reads ambient TRACEPARENT, and it
 #     never feeds the carrier (fm_trace_context_resolve reads no
@@ -160,6 +161,11 @@
 #              never changes the carrier, and never appears on a task spawned
 #              from a primary home. The task root emitted at teardown carries
 #              it as an OTel span link (bin/fm-trace-span-lib.sh).
+
+# fm_root_is_secondmate_home is the one definition of "marked secondmate home"
+# firstmate has; the link boundary below reuses it rather than restating it.
+# shellcheck source=bin/fm-primary-scope-lib.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-primary-scope-lib.sh"
 
 # Strict W3C traceparent validator: version 00, 32-hex trace id, 16-hex span id,
 # 2-hex flags, with neither id all-zero. The regex lives in a variable because
@@ -288,13 +294,14 @@ fm_trace_context_recorded_link() {  # <meta-file>
 # Public entry point. Echo the ambient TRACEPARENT to record as a routed
 # task's span link, or nothing. Always returns 0 so a link decision is
 # omitted safely and never aborts the spawn. The marked-secondmate-home gate
-# comes FIRST so a primary home never reads ambient context at all, then the
+# (fm_root_is_secondmate_home, the same predicate every other firstmate hook
+# uses) comes FIRST so a primary home never reads ambient context at all, then the
 # strict W3C validator decides over the raw environment value; neither the
 # marker id nor any other file content influences the echoed bytes.
 fm_trace_context_link_resolve() {  # <home>
   local home=$1
   [ -n "$home" ] || return 0
-  [ -f "$home/.fm-secondmate-home" ] && [ ! -L "$home/.fm-secondmate-home" ] || return 0
+  fm_root_is_secondmate_home "$home" || return 0
   [ -n "${TRACEPARENT:-}" ] || return 0
   fm_trace_context_valid "$TRACEPARENT" || return 0
   printf '%s' "$TRACEPARENT"

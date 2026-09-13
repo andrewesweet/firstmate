@@ -257,7 +257,16 @@ mkdir -p "$SYMLINK_HOME"
 ln -s "$VALID" "$SYMLINK_HOME/.fm-secondmate-home"
 out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$SYMLINK_HOME")
 [ -z "$out" ] || fail "a symlinked marker must not open the ambient read (got '$out')"
-pass "fm_trace_context_link_resolve: valid ambient links only inside a marked secondmate home; primary homes, absent or malformed ambient, and symlinked markers never link"
+# A marker the rest of firstmate rejects (fm_root_is_secondmate_home) is not a
+# secondmate home here either: empty, whitespace-only, or bad-character ids.
+BADMARK_HOME="$WORK/badmark-home"
+mkdir -p "$BADMARK_HOME"
+for badmark in '' '   ' 'sm;rm -rf /' 'sm/link'; do
+  printf '%s\n' "$badmark" > "$BADMARK_HOME/.fm-secondmate-home"
+  out=$(TRACEPARENT="$VALID" fm_trace_context_link_resolve "$BADMARK_HOME")
+  [ -z "$out" ] || fail "a malformed marker must not open the ambient read: '$badmark' (got '$out')"
+done
+pass "fm_trace_context_link_resolve: valid ambient links only inside a marked secondmate home; primary homes, absent or malformed ambient, symlinked or malformed markers never link"
 
 # The link read is orthogonal to the carrier: in the same marked home, under
 # the same ambient value, the carrier resolver still mints a fresh root.

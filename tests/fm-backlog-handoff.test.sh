@@ -857,7 +857,8 @@ handoff_span_attr() {  # <body> <key>: echo the span attribute value
 
 # The successful local move lands durably at tasks-axi mv, so each moved key
 # emits exactly one firstmate.handoff span: a child of the secondmate agent's
-# own carrier, carrying the moved key, the agent id, and the local route.
+# own carrier, carrying the moved key and the local route; the agent identity
+# lives at resource scope only.
 # A public promise binds its work by home AND id. Handing that work to a
 # secondmate leaves the binding naming a home that no longer owns it, which used
 # to go unnoticed until the promised reply was never delivered. The move itself
@@ -1404,7 +1405,8 @@ EOF
 
 # The successful local move lands durably at tasks-axi mv, so each moved key
 # emits exactly one firstmate.handoff span: a child of the secondmate agent's
-# own carrier, carrying the moved key, the agent id, and the local route.
+# own carrier, carrying the moved key and the local route; the agent identity
+# lives at resource scope only.
 test_handoff_emits_one_span_per_moved_key() {
   local home="$TMP_ROOT/span-move-main" sub="$TMP_ROOT/span-move-sub" out body rc=0
   local log="$TMP_ROOT/span-move-curl.log"
@@ -1428,12 +1430,14 @@ EOF
     || fail "the handoff span must be a child of the secondmate agent's carrier"
   [ "$(handoff_span_attr "$body" firstmate.backlog.item)" = "span-a" ] \
     || fail "the first span must carry the moved key span-a"
-  [ "$(handoff_span_attr "$body" firstmate.secondmate.id)" = "design" ] \
-    || fail "the handoff span must carry the secondmate id"
   [ "$(handoff_span_attr "$body" firstmate.route)" = "local" ] \
     || fail "the local handoff span must carry route=local"
+  jq -e '[.resourceSpans[0].scopeSpans[0].spans[0].attributes[] | select(.key == "firstmate.secondmate.id")] | length == 0' >/dev/null <<< "$body" \
+    || fail "the handoff span must not repeat firstmate.secondmate.id at span scope"
   jq -e '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.task.kind")][0].value.stringValue == "secondmate"' >/dev/null <<< "$body" \
     || fail "the handoff span's resource must identify the secondmate agent"
+  jq -e '[.resourceSpans[0].resource.attributes[] | select(.key == "firstmate.secondmate.id")][0].value.stringValue == "design"' >/dev/null <<< "$body" \
+    || fail "the handoff span's resource must carry the secondmate id"
   body=$(span_post_body "$log" 2)
   [ "$(handoff_span_attr "$body" firstmate.backlog.item)" = "span-b" ] \
     || fail "the second span must carry the moved key span-b"

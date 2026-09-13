@@ -3711,11 +3711,14 @@ fi
 # The routed-task span link (bin/fm-trace-context-lib.sh's header owns the
 # boundary): only inside a marked secondmate home, only for a traced spawn,
 # and only as a link - the ambient TRACEPARENT of the routing agent never
-# becomes this task's carrier. A recorded link wins so recovery keeps one
-# stable routing relationship, exactly like the carrier; a fresh spawn
-# resolves the ambient value, which a primary home never reads at all.
+# becomes this task's carrier. The canonical fm_root_is_secondmate_home gate
+# covers recorded-link reuse too, so a home that lost its marker relaunches
+# without a link. A recorded link wins so recovery keeps one stable routing
+# relationship, exactly like the carrier; a fresh spawn resolves the ambient
+# value, which a primary home never reads at all.
 SPAWN_TRACE_LINK=
-if [ "$SPAWN_TRACE_EFFECTIVE" = on ] && [ -n "$SPAWN_TRACEPARENT" ]; then
+if [ "$SPAWN_TRACE_EFFECTIVE" = on ] && [ -n "$SPAWN_TRACEPARENT" ] \
+   && fm_root_is_secondmate_home "$FM_HOME"; then
   SPAWN_TRACE_LINK=$(fm_trace_context_recorded_link "$STATE/$ID.meta")
   if ! fm_trace_context_valid "$SPAWN_TRACE_LINK"; then
     SPAWN_TRACE_LINK=$(fm_trace_context_link_resolve "$FM_HOME" || true)

@@ -40,9 +40,10 @@
 #   including the default, omits the status field (UNSET).
 #
 #   --link <traceparent> records one OTel span link referencing that W3C
-#   traceparent's trace and span ids, when the value passes strict W3C
-#   validation; an empty or invalid value is silently omitted, so only
-#   validated bytes can enter the links array. A link never parents the span,
+#   traceparent's trace and span ids, only on a --root span and only when the
+#   value passes strict W3C validation; a child span, an empty value, or an
+#   invalid value silently omits the link, so only validated bytes can enter
+#   the links array on the task root. A link never parents the span,
 #   never changes the emitted trace id, and never adopts ambient context: the
 #   only producer of link values is the task meta's `trace_link=` field,
 #   resolved by fm_trace_context_link_resolve inside a marked secondmate home
@@ -60,9 +61,10 @@
 #   Absent metadata values are omitted; one scope named firstmate;
 #   span kind INTERNAL (1);
 #   ids as lowercase hex strings; timestamps as decimal nanosecond strings;
-#   all attribute values strings. A --link value that passes strict W3C
-#   validation adds exactly one `links` entry {"traceId","spanId"} for that
-#   traceparent's ids; an invalid or absent link omits the `links` field.
+#   all attribute values strings. A --link value on a --root span that passes
+#   strict W3C validation adds exactly one `links` entry {"traceId","spanId"}
+#   for that traceparent's ids; a child span or an invalid or absent link
+#   omits the `links` field.
 #   The span catalogue as implemented:
 #     firstmate.spawn - bin/fm-spawn.sh, after the launch line is sent and the
 #       backlog transition committed, so a refused spawn emits nothing;
@@ -147,8 +149,9 @@
 #       outbox (so a merely staged, undelivered outbox emits nothing);
 #       child of the secondmate agent's own carrier read from the parent
 #       home's state/<id>.meta, emitted by the parent on both routes;
-#       attributes firstmate.backlog.item (the moved key),
-#       firstmate.secondmate.id, firstmate.route (local, remote).
+#       attributes firstmate.backlog.item (the moved key) and firstmate.route
+#       (local, remote); the secondmate identity is the resource-scope
+#       firstmate.secondmate.id that agent's meta already renders.
 #   Taskless rows (heartbeats, per-poll checks, window-keyed stale rows)
 #   emit nothing, and every entry above is silent for a task without a
 #   recorded carrier.
@@ -314,10 +317,10 @@ fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
   esac
   [ -z "$tail_json" ] || tail_json=",$tail_json"
 
-  # One strictly validated span link, or none: only fixed-shape hex ids from a
-  # conformant traceparent can reach the links array.
+  # One strictly validated span link on the task root, or none: only
+  # fixed-shape hex ids from a conformant traceparent can reach the links array.
   local links_json=''
-  if fm_trace_context_valid "$link_tp"; then
+  if [ "$root" = 1 ] && fm_trace_context_valid "$link_tp"; then
     links_json=',"links":[{"traceId":"'"${link_tp:3:32}"'","spanId":"'"${link_tp:36:16}"'"}]'
   fi
 

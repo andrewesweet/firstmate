@@ -158,22 +158,25 @@ test_link_records_validated_reference() {
     || fail "the link must reference the given trace id"
   [ "$(span_value '.links[0].spanId' "$body")" = "${LINK:36:16}" ] \
     || fail "the link must reference the given span id"
-  # A child span with a link keeps its carrier parent and gains the reference.
-  emit "$home" firstmate.spawn - - --link "$LINK"
+  # Only the task root carries a link: a child span ignores --link entirely.
+  emit "$home" firstmate.spawn - - --link "$LINK" firstmate.relaunch=false
   body=$(curl_body "$home/curl.log" 2)
   [ "$(span_value '.parentSpanId' "$body")" = "${CARRIER:36:16}" ] \
-    || fail "a linked child must still parent on the carrier's span id"
-  [ "$(span_value '.links[0].traceId' "$body")" = "${LINK:3:32}" ] \
-    || fail "a linked child must carry the link reference"
-  pass "link: a valid --link adds exactly one links entry referencing the given ids without changing parentage"
+    || fail "a child span must still parent on the carrier's span id"
+  span0 '(.links? == null)' "$body" \
+    || fail "a child span must omit the links field even when --link is given"
+  [ "$(span_value '.attributes[0].value.stringValue' "$body")" = false ] \
+    || fail "a child span's attributes must still be recorded after an ignored --link"
+  pass "link: a valid --link adds exactly one links entry on the root only, without changing parentage"
 }
 
 test_link_invalid_value_omitted() {
   local home body
   home=$(make_home link-bad)
   write_span_meta "$home/state/x1.meta"
-  emit "$home" firstmate.spawn - - --link '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; touch span-pwned' \
-    --link '' firstmate.relaunch=false
+  emit "$home" firstmate.task 1700000000000 1700000001000 --root \
+    --link '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; touch span-pwned' \
+    --link '' firstmate.task.outcome=done
   body=$(curl_body "$home/curl.log" 1)
   span0 '(.links? == null)' "$body" \
     || fail "a malformed or empty link must omit the links field entirely"
