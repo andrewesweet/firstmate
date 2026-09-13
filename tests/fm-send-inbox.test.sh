@@ -26,7 +26,8 @@
 #      plane and inbox sequence and never the message content; a marked
 #      request adds its corr; fire-and-forget is flagged; a disabled home or
 #      failing emitter changes nothing about the send; the typed and --key
-#      planes post their own spans.
+#      planes post their own spans; the task identity lock protects the carrier
+#      through emission against concurrent cleanup.
 # Every case below that passes a literal `$...` message quotes it on purpose
 # (the point is sending an unexpanded `$` line), so SC2016 is disabled.
 # shellcheck disable=SC2016
@@ -181,7 +182,7 @@ test_fire_and_forget_span_is_flagged() {
 }
 
 test_traced_disabled_home_and_failed_emitter() {
-  local dir err rc
+  local dir err rc lock
   # A disabled home (no frozen decision) posts nothing, with or without curl.
   dir=$(setup_case trace-disabled); err="$dir/send.err"
   run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" -- t1 "no telemetry here"; rc=$?
@@ -195,7 +196,83 @@ test_traced_disabled_home_and_failed_emitter() {
     -- t1 "deliver through a dead collector"; rc=$?
   expect_code 0 "$rc" "a refused collector must not fail the send"
   [ -f "$dir/home/state/t1.inbox/001.msg" ] || fail "the steer must still be recorded"
+  lock="$dir/home/state/.meta-t1.lock"
+  FM_TASK_INBOX_LOCK_WAIT_SECS=0 bash -c '
+    . "$1"
+    fm_task_inbox_lock_acquire "$2" || exit 1
+    fm_lock_release "$2"
+  ' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$lock" \
+    || fail "a failed emitter must release the task identity lock"
   pass "fm-send inbox: a disabled home and a failing emitter leave the send untouched"
+}
+
+test_trace_holds_identity_through_emission() {
+  local dir err meta lock ready decided blocked removed real_grep cleanup_pid rc body
+  dir=$(setup_case trace-retire-race); err="$dir/send.err"
+  meta="$dir/home/state/t1.meta"
+  lock="$dir/home/state/.meta-t1.lock"
+  ready="$dir/trace-read-ready"
+  decided="$dir/cleanup-decision"
+  blocked="$dir/cleanup-blocked"
+  removed="$dir/removed-before-trace-read"
+  real_grep=$(command -v grep)
+  fm_test_otlp_capture_install "$dir/fakebin"
+  fm_test_otlp_trace_enable "$dir/home" t1 "$CARRIER"
+  cat > "$dir/fakebin/grep" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 2 ] && [ "$1" = '^traceparent=' ] && [ "$2" = "$FM_TRACE_RACE_META" ]; then
+  : > "$FM_TRACE_RACE_READY"
+  i=0
+  while [ ! -e "$FM_TRACE_RACE_DECIDED" ] && [ "$i" -lt 500 ]; do
+    /bin/sleep 0.01
+    i=$((i + 1))
+  done
+  [ -e "$FM_TRACE_RACE_DECIDED" ] || exit 92
+fi
+exec "$FM_REAL_GREP" "$@"
+SH
+  chmod +x "$dir/fakebin/grep"
+  bash -c '
+    . "$1"
+    i=0
+    while [ ! -e "$3" ] && [ "$i" -lt 500 ]; do
+      sleep 0.01
+      i=$((i + 1))
+    done
+    [ -e "$3" ] || exit 90
+    if FM_TASK_INBOX_LOCK_WAIT_SECS=0 fm_task_inbox_lock_acquire "$2"; then
+      rm -f "$7"
+      : > "$6"
+      : > "$4"
+      fm_lock_release "$2"
+    else
+      : > "$5"
+      : > "$4"
+      fm_lock_acquire_wait "$2" || exit 91
+      rm -f "$7"
+      fm_lock_release "$2"
+    fi
+  ' _ "$ROOT/bin/fm-task-inbox-lib.sh" "$lock" "$ready" "$decided" \
+    "$blocked" "$removed" "$meta" &
+  cleanup_pid=$!
+
+  rc=0
+  run_send "$dir" "$err" FM_FAKE_CURL_LOG="$dir/curl.log" \
+    FM_REAL_GREP="$real_grep" FM_TRACE_RACE_META="$meta" \
+    FM_TRACE_RACE_READY="$ready" FM_TRACE_RACE_DECIDED="$decided" \
+    -- t1 "preserve trace identity through cleanup" || rc=$?
+  wait "$cleanup_pid" || fail "the concurrent identity cleanup did not complete"
+  expect_code 0 "$rc" "concurrent cleanup must not fail a durably delivered steer"
+  [ -e "$blocked" ] || fail "cleanup reached task identity before steer emission"
+  [ ! -e "$removed" ] || fail "cleanup erased task identity before steer emission"
+  [ ! -e "$meta" ] || fail "cleanup did not retire task identity after emission"
+  [ -f "$dir/home/state/t1.inbox/001.msg" ] || fail "the steer was not durably recorded"
+  [ "$(fm_test_otlp_request_count "$dir/curl.log")" = 1 ] \
+    || fail "the delivered steer lost its span during concurrent cleanup"
+  body=$(fm_test_otlp_request_body "$dir/curl.log" 1)
+  fm_test_otlp_span_matches ".traceId == \"${CARRIER:3:32}\" and .parentSpanId == \"${CARRIER:36:16}\"" "$body" \
+    || fail "the steer span lost the protected task carrier"
+  pass "fm-send inbox: task identity remains locked through steer emission"
 }
 
 test_typed_and_key_planes_emit_their_spans() {
@@ -465,4 +542,5 @@ test_inbox_steer_emits_span_with_sequence
 test_secondmate_steer_span_carries_corr
 test_fire_and_forget_span_is_flagged
 test_traced_disabled_home_and_failed_emitter
+test_trace_holds_identity_through_emission
 test_typed_and_key_planes_emit_their_spans

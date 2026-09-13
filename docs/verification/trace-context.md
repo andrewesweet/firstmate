@@ -120,13 +120,14 @@ Base: `main` at `4c9abf4`.
 The emitter's span catalogue in [`bin/fm-trace-span-lib.sh`](../../bin/fm-trace-span-lib.sh)'s header grows its three lifecycle-owner entries, and each owner emits on its already-verified success path only, so a disabled home, an untraced task, or a failing emitter leaves every send, promotion, and control verb byte-identical in outcome:
 
 - `bin/fm-send.sh` posts `firstmate.steer` immediately after positive delivery proof on each plane, before later fallible bookkeeping, carrying `firstmate.plane`, the durable record's `firstmate.inbox.seq` on local inbox sends, a marked request's `firstmate.corr`, the shell-native comma-joined `--resolve-key` keys as `firstmate.decision.key`, `firstmate.fire_and_forget=true`, and the validated `firstmate.delivery.id` on remote fire-and-forget sends; never the message content.
+  Local and remote inbox emission remains inside the target metadata lock, so concurrent teardown cannot retire the carrier between proven delivery and emission.
 - `bin/fm-promote.sh` posts `firstmate.promote` after the promoted record is published, carrying `firstmate.task.kind.prior=scout`, `firstmate.task.mode`, and `firstmate.task.yolo`.
 - `bin/fm-control.sh` posts `firstmate.control` at the interrupt and exit verb dispatch sites immediately after the verified postcondition and before fallible success output, carrying the verb, the adapter-owned cancellation claim (`firstmate.control.confirmed`), the interrupt proof, and the exit result; the dispatch-site placement keeps a relaunch's internal stop from emitting, which the replacement launch's spawn span already covers.
 
 The behavioral suites drive the real executables with the shared `tests/lib.sh` fake curl and OTLP parsers, and cover enabled, disabled, and emitter-failure paths plus the remote ownership boundary:
 
 - `tests/fm-promote.test.sh` (new, 3 assertions): the published promotion posts exactly one span parenting on the task's carrier with the contract-flip attributes and the published `kind=ship` in the resource; a disabled home promotes identically and posts nothing; a refused collector cannot fail the promotion.
-- `tests/fm-send-inbox.test.sh` (17 assertions, 5 new): a delivered inbox steer posts one span with the record sequence and no message content; a marked secondmate request's span carries its correlation id; fire-and-forget is flagged without its delivery id; a disabled home and a failing emitter leave the send untouched; the typed and `--key` planes each post their own span.
+- `tests/fm-send-inbox.test.sh` (18 assertions, 6 new): a delivered inbox steer posts one span with the record sequence and no message content; a marked secondmate request's span carries its correlation id; fire-and-forget is flagged without its delivery id; a disabled home and a failing emitter leave the send untouched and release the identity lock; concurrent cleanup cannot retire metadata until the span reads its carrier; the typed and `--key` planes each post their own span.
 - `tests/fm-send-resolve-key.test.sh` (22 assertions, 2 new): a delivered answer posts its span before later decision-close bookkeeping can fail, a two-key answer carries both keys comma-joined without answer text, a mistyped key refuses before delivery and posts no span, and failure of the former external formatting operation cannot change delivery, decision closure, or span attributes.
 - `tests/fm-send-remote-delivery.test.sh` (17 assertions, 1 new): a remote secondmate steer's span is emitted by the parent home against the parent-owned carrier, with the correlation and no inbox sequence (the record's sequence lives in the remote home); a confirmed fire-and-forget span carries its validated delivery id while an unconfirmed attempt posts nothing; the remote leg posts no span.
 - `tests/fm-control.test.sh` (39 assertions, 4 new): a verified interrupt posts one span with verb, cancellation claim (`confirmed=false` for Claude's acknowledgement-free adapter), and `agent-alive` proof; verified exits post `confirmed=true` with result `stopped` or `already-stopped`; a disabled home and a failing emitter leave the verb's outcome untouched; and a verified exit posts before a failed success-output write.
@@ -140,7 +141,7 @@ $ bash tests/fm-send-resolve-key.test.sh | tail -1
 $ bash tests/fm-send-remote-delivery.test.sh | tail -1
 all fm-send-remote-delivery tests passed
 $ for t in fm-send-inbox fm-send-resolve-key fm-send-remote-delivery fm-control fm-control-relaunch fm-promote; do printf '%s: ' "$t"; bash tests/$t.test.sh | grep -c '^ok -'; done
-fm-send-inbox: 17
+fm-send-inbox: 18
 fm-send-resolve-key: 22
 fm-send-remote-delivery: 17
 fm-control: 39

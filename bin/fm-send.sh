@@ -901,6 +901,14 @@ else
       fm_run_timed "$FM_SEND_REMOTE_BUDGET" "$SCRIPT_DIR/fm-on.sh" "$TARGET_REMOTE_ID" \
         fm-remote-secondmate-control.sh send "${REMOTE_SEND_ARGS[@]}" < /dev/null || remote_rc=$?
     fi
+    if [ "$remote_rc" -eq 0 ]; then
+      if [ -n "$FIRE_AND_FORGET_ID" ]; then
+        fm_send_trace_steer "$TARGET_META" inbox \
+          "firstmate.delivery.id=$FIRE_AND_FORGET_ID" || true
+      else
+        fm_send_trace_steer "$TARGET_META" inbox || true
+      fi
+    fi
     fm_lock_release "$REMOTE_META_LOCK"
     if [ "$remote_rc" -ne 0 ] && [ "$remote_completion_unknown" -eq 1 ]; then
       if [ -n "$FIRE_AND_FORGET_ID" ]; then
@@ -937,11 +945,6 @@ else
       exit 1
     fi
     # The remote record is durable delivery, exactly as a local enqueue is.
-    if [ -n "$FIRE_AND_FORGET_ID" ]; then
-      fm_send_trace_steer "$TARGET_META" inbox "firstmate.delivery.id=$FIRE_AND_FORGET_ID"
-    else
-      fm_send_trace_steer "$TARGET_META" inbox
-    fi
     if [ -n "$PENDING_REPLY_CORR" ]; then
       if fm_pending_reply_confirm_delivery "$STATE" "$PENDING_REPLY_CORR"; then
         :
@@ -1005,11 +1008,12 @@ else
       echo "error: steer not sent to $INBOX_TASK_ID: its inbox record could not be written under $STATE/$INBOX_TASK_ID.inbox" >&2
       exit 1
     fi
-    fm_lock_release "$INBOX_META_LOCK"
     # Durable enqueue is this plane's delivery; the record name carries the
     # sequence the span reports (bin/fm-trace-span-lib.sh's catalogue).
     INBOX_SPAN_SEQ=${INBOX_RECORD##*/}
-    fm_send_trace_steer "$TARGET_META" inbox "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}"
+    fm_send_trace_steer "$TARGET_META" inbox \
+      "firstmate.inbox.seq=${INBOX_SPAN_SEQ%.msg}" || true
+    fm_lock_release "$INBOX_META_LOCK"
     # Enqueue IS durable delivery to the task's record: mark the pending
     # expectation delivered now, without resolving it - only a correlated
     # parent report acknowledges the request.
