@@ -208,6 +208,27 @@ pass "later generations cannot invalidate an unacknowledged ingested result"
 # and the cursor advances so the channel cannot wedge on a line it once refused.
 # shellcheck source=bin/fm-pending-reply-lib.sh
 . "$ROOT/bin/fm-pending-reply-lib.sh"
+# The parent-side firstmate.reply span: with the parent home's frozen tracing
+# decision on, the second mate's meta carrying its carrier, and a recording
+# curl first on PATH, settling this delivered request through the mirrored
+# delta posts exactly one span joining the ios task trace from the delivery
+# time, with the correlation and the settlement path.
+CURLBIN="$TMP_ROOT/curlbin"
+mkdir -p "$CURLBIN"
+cat > "$CURLBIN/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+chmod +x "$CURLBIN/curl"
+printf '%s\n' "$$" > "$PARENT/state/.lock"
+printf '%s on\n' "$$" > "$PARENT/state/.trace-context-effective"
+fm_write_meta "$PARENT/state/ios.meta" \
+  "window=firstmate:ios" \
+  "traceparent=00-11111111111111111111111111111112-3333333333333334-01" \
+  "kind=secondmate"
+FM_PENDING_REPLY_DELIVERED_AT=$(date +%s)
 PENDING_CORR=$(fm_pending_reply_create "$PARENT" "$PARENT/state" ios 'audit the release chain')
 [ -n "$PENDING_CORR" ] || fail "could not create the parent pending-reply record"
 fm_pending_reply_mark_delivered "$PARENT/state" "$PENDING_CORR" \
@@ -217,7 +238,10 @@ fm_pending_reply_mark_delivered "$PARENT/state" "$PENDING_CORR" \
   printf 'needs-decision [key=rough-cut-version]: implement --version or retire the tool\n'
   printf 'done [corr=%s]: release chain audited\n' "$PENDING_CORR"
 } >> "$REMOTE/state/parent-replies.status"
-remote_env "$ROOT/bin/fm-procevent.sh" start "$SID" >/dev/null \
+# The settle happens inside the runner's own autohandle of the captured delta,
+# so the tracing seam rides the capture command's environment.
+FM_FAKE_CURL_LOG="$TMP_ROOT/reply-span.log" PATH="$CURLBIN:$PATH" \
+  remote_env "$ROOT/bin/fm-procevent.sh" start "$SID" >/dev/null \
   || fail "the mirrored status stream was not captured"
 RESULT_FOUR="$PARENT/state/procevent-inbox/$SID.4.result"
 remote_env "$ADAPTER" handle ios 4 "$RESULT_FOUR" > "$TMP_ROOT/handle-mirror.out" 2>&1 \
@@ -240,6 +264,35 @@ printf '%s' "$OPEN" | grep -q '^rough-cut-version	needs-decision	' \
 [ "$(fm_pending_reply_get "$PARENT/state/pending-replies/$PENDING_CORR" phase)" = resolved ] \
   || fail "the correlated answer in the same delta did not settle its pending-reply record"
 pass "a remote mate's new decision folds open exactly as a local mate's does"
+
+# The parent home, not the remote host, emitted the reply span for the
+# settlement above, joined to the second mate's own trace.
+command -v jq >/dev/null 2>&1 || fail "jq is required for the reply-span assertion"
+[ -f "$TMP_ROOT/reply-span.log" ] \
+  || fail "the remote settlement posted no parent reply span"
+[ "$(grep -c '^ARGS:' "$TMP_ROOT/reply-span.log")" = 1 ] \
+  || fail "the remote settlement must post exactly one reply span"
+REPLY_BODY=$(awk '
+  /^ARGS:/ { next }
+  /^--BODY-END--$/ { exit }
+  { buf = buf $0 }
+  END { printf "%s", buf }
+' "$TMP_ROOT/reply-span.log")
+jq -e '
+  .resourceSpans[0].scopeSpans[0].spans[0] |
+  .name == "firstmate.reply" and
+  .traceId == "11111111111111111111111111111112" and
+  .parentSpanId == "3333333333333334"
+' >/dev/null 2>&1 <<< "$REPLY_BODY" \
+  || fail "the reply span must join the second mate's trace from the parent home"
+jq -e --arg corr "$PENDING_CORR" --argjson floor "$((FM_PENDING_REPLY_DELIVERED_AT * 1000000))" '
+  .resourceSpans[0].scopeSpans[0].spans[0] as $s |
+  ([$s.attributes[] | select(.key == "firstmate.corr")][0].value.stringValue == $corr) and
+  ([$s.attributes[] | select(.key == "firstmate.reply.via")][0].value.stringValue == "status") and
+  (($s.startTimeUnixNano | tonumber) >= $floor)
+' >/dev/null 2>&1 <<< "$REPLY_BODY" \
+  || fail "the reply span lost its correlation, via, or delivery-time start"
+pass "the parent home emits the reply span joining the second mate's trace"
 
 # Ingesting the same generation again is idempotent: no duplicated lines and no
 # cursor movement, so a replay can never wedge or double-count the stream.

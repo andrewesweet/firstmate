@@ -130,6 +130,98 @@ latest_record_body() {  # <home> <task>
 
 # --- tests ------------------------------------------------------------------
 
+# The parent-side firstmate.reply span: a newly settled record posts exactly
+# one span joining the second mate agent's task trace, covering the confirmed
+# delivery through the settlement and carrying the correlation and via; an
+# already-resolved replay, a disabled session, and a task without a recorded
+# carrier post nothing. Driven through the production settle path with a
+# recording fake curl.
+test_settle_emits_parent_reply_span_once() {
+  local home state corr fakebin body home2 state2 corr2 home3 state3 corr3
+  command -v jq >/dev/null 2>&1 || fail "jq is required for the reply-span assertions"
+  home=$(setup_parent reply-span)
+  state="$home/state"
+  fakebin="$home/fakebin"
+  mkdir -p "$fakebin"
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+  chmod +x "$fakebin/curl"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s on\n' "$$" > "$state/.trace-context-effective"
+  fm_write_meta "$state/hibit.meta" \
+    "window=firstmate:hibit" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01"
+  export FM_PENDING_REPLY_NOW=5000
+  corr=$(fm_pending_reply_create "$home" "$state" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state" "$corr"
+  printf 'done [corr=%s]: ledger clean\n' "$corr" > "$state/hibit.status"
+  FM_FAKE_CURL_LOG="$home/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state" "$corr" \
+    || fail "correlated status should resolve"
+  [ "$(phase_of "$state" "$corr")" = resolved ] || fail "phase should be resolved"
+  [ -f "$home/curl.log" ] || fail "a settled reply posted no span"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 1 ] \
+    || fail "a settlement must post exactly one reply span"
+  body=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { exit }
+    { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$home/curl.log")
+  jq -e '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .name == "firstmate.reply" and
+    .traceId == "11111111111111111111111111111112" and
+    .parentSpanId == "3333333333333334" and
+    .startTimeUnixNano == "5000000000000"
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reply span must join the second mate trace from the delivery time"
+  jq -e --arg corr "$corr" '
+    .resourceSpans[0].scopeSpans[0].spans[0].attributes as $a |
+    ([$a[] | select(.key == "firstmate.corr")][0].value.stringValue == $corr) and
+    ([$a[] | select(.key == "firstmate.reply.via")][0].value.stringValue == "status")
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the reply span lost its correlation or via attribute"
+  # An already-resolved replay settles nothing new and posts nothing.
+  FM_PENDING_REPLY_NOW=6000 fm_pending_reply_try_resolve "$state" "$corr" \
+    || fail "second resolve must stay successful"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 1 ] \
+    || fail "a replayed settle must not post a second reply span"
+  # A disabled session posts nothing even when the settlement lands.
+  home2=$(setup_parent reply-span-off)
+  state2="$home2/state"
+  printf '%s\n' "$$" > "$state2/.lock"
+  printf '%s off\n' "$$" > "$state2/.trace-context-effective"
+  fm_write_meta "$state2/hibit.meta" \
+    "window=firstmate:hibit" \
+    "traceparent=00-11111111111111111111111111111112-3333333333333334-01"
+  corr2=$(fm_pending_reply_create "$home2" "$state2" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state2" "$corr2"
+  printf 'done [corr=%s]: ledger clean\n' "$corr2" > "$state2/hibit.status"
+  FM_FAKE_CURL_LOG="$home2/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state2" "$corr2" \
+    || fail "disabled-session settle should still resolve"
+  [ "$(phase_of "$state2" "$corr2")" = resolved ] || fail "disabled settle must resolve"
+  [ ! -f "$home2/curl.log" ] || fail "a disabled session must post no reply span"
+  # A settled task with no recorded carrier posts nothing.
+  home3=$(setup_parent reply-span-untraced)
+  state3="$home3/state"
+  printf '%s\n' "$$" > "$state3/.lock"
+  printf '%s on\n' "$$" > "$state3/.trace-context-effective"
+  corr3=$(fm_pending_reply_create "$home3" "$state3" "hibit" "audit the ledger")
+  fm_pending_reply_mark_delivered "$state3" "$corr3"
+  printf 'done [corr=%s]: ledger clean\n' "$corr3" > "$state3/hibit.status"
+  FM_FAKE_CURL_LOG="$home3/curl.log" PATH="$fakebin:$PATH" \
+    fm_pending_reply_try_resolve "$state3" "$corr3" \
+    || fail "untraced settle should still resolve"
+  [ ! -f "$home3/curl.log" ] || fail "an untraced task must post no reply span"
+  pass "settlement posts one reply span per record, joining the second mate trace"
+}
+
 test_normal_correlated_reply_resolves_once() {
   local home state corr status rec
   home=$(setup_parent resolve-once)
@@ -1572,6 +1664,7 @@ test_escalated_undelivered_correlation_stays_retryable() {
 
 # --- run --------------------------------------------------------------------
 
+test_settle_emits_parent_reply_span_once
 test_normal_correlated_reply_resolves_once
 test_completed_turn_no_report_triggers_one_recovery
 test_recovery_attempt_is_never_reinjected

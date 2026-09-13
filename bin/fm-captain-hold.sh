@@ -220,6 +220,9 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/fm-parent-channel-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 
 PARENT_HOLD_PUBLISHED=0
 publish_parent_hold() {  # <task-id> <occurrence> <verb> <note>
@@ -998,8 +1001,42 @@ remove_interrupted_answer_stamp() {  # <task-id>
   rm -f -- "$tmp"
 }
 
+# The firstmate.hold span: emitted once, after a close path durably published
+# a settlement it performed, covering the recorded hold-set time through that
+# settlement; an idempotent replay of an already-completed close emits nothing.
+# bin/fm-trace-span-lib.sh's header owns the catalogue entry; this script owns
+# the metadata reads. A separate captain call created with --origin has no
+# meta of its own and joins the same-home origin task's trace through the
+# "Origin:" provenance line the hold recorded. The stamp is read from the body
+# captured before the close because a successful close legitimately removes
+# it, and the hold reason from the show output captured while the hold was
+# still live. Emission is bounded and best-effort; a telemetry failure never
+# changes the close.
+emit_hold_close_span() {  # <task-id> <pre-close-shown-body> <close-mode> <hold-reason>
+  local id=$1 body=$2 mode=$3 reason=${4:-} meta="$STATE/$1.meta"
+  local stamp stamp_s start_ms='' origin
+  body=$(decode_shown_value "$body") || body=''
+  if [ ! -f "$meta" ]; then
+    origin=$(printf '%s\n' "$body" | sed -n 's/^Origin: \([A-Za-z0-9._-]*\)$/\1/p' | head -1)
+    [ -n "$origin" ] && [ -f "$STATE/$origin.meta" ] || return 0
+    meta="$STATE/$origin.meta"
+  fi
+  stamp=$(body_hold_set_timestamp "$body")
+  if [ -n "$stamp" ]; then
+    case $stamp in
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) stamp="$stamp"T00:00:00Z ;;
+    esac
+    stamp_s=$(fm_utc_iso_to_epoch "$stamp") && start_ms=$((stamp_s * 1000))
+  fi
+  [ -n "$start_ms" ] || start_ms=-
+  reason=$(sanitize_field "$reason")
+  local -a hold_attrs=("firstmate.hold.close_mode=$mode")
+  [ -n "$reason" ] && hold_attrs+=("firstmate.hold.reason=${reason:0:160}")
+  fm_trace_span_emit "$meta" firstmate.hold "$start_ms" - "${hold_attrs[@]}"
+}
+
 command_answer() {
-  local id=${1:-} decision_file='' release=0 show state hold_kind body outcome recorded_mode occurrence
+  local id=${1:-} decision_file='' release=0 show state hold_kind hold_reason body outcome recorded_mode occurrence
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -1018,6 +1055,7 @@ command_answer() {
   show=$TASK_SHOW_OUTPUT
   state=$(show_field "$show" state)
   hold_kind=$(show_field_value "$show" hold_kind)
+  hold_reason=$(show_field_value "$show" hold_reason)
   body=$(show_field "$show" body)
   if [ "$release" = 1 ]; then outcome=released; else outcome=answered; fi
   # The occurrence the parent line names: the record about to be written is
@@ -1057,6 +1095,7 @@ command_answer() {
     body_has_resolution_record "$(show_field "$show" body)" \
       || fail "captain-held task $id did not retain its durable resolution record"
     publish_parent_resolution_then_retire "$id" "$occurrence" "answered (repaired)"
+    emit_hold_close_span "$id" "$body" repaired "$hold_reason"
     printf 'repaired: %s\n' "$id"
     return 0
   fi
@@ -1081,6 +1120,7 @@ command_answer() {
       fi
       remove_interrupted_answer_stamp "$id"
       publish_parent_resolution_then_retire "$id" $((occurrence - 1)) "$outcome"
+      emit_hold_close_span "$id" "$body" "$outcome" "$hold_reason"
       printf '%s: %s\n' "$outcome" "$id"
       return 0
     fi
@@ -1094,6 +1134,7 @@ command_answer() {
     body_has_resolution_record "$(show_field "$show" body)" \
       || fail "captain-held task $id did not retain its durable resolution record"
     publish_parent_resolution_then_retire "$id" "$occurrence" "$outcome"
+    emit_hold_close_span "$id" "$body" "$outcome" "$hold_reason"
     printf '%s: %s\n' "$outcome" "$id"
     return 0
   fi
@@ -1503,7 +1544,7 @@ reconcile_list() {
 # The moot outcome. The evidence is what closes the call, and the `reconciled`
 # resolution mode is what keeps the record from claiming the captain answered.
 reconcile_close() {
-  local id=${1:-} evidence_file='' show state hold_kind body occurrence recorded_mode
+  local id=${1:-} evidence_file='' show state hold_kind hold_reason body occurrence recorded_mode
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -1523,6 +1564,7 @@ reconcile_close() {
   task_show_or_fail "$id" "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
   state=$(show_field "$show" state)
   hold_kind=$(show_field_value "$show" hold_kind)
+  hold_reason=$(show_field_value "$show" hold_reason)
   body=$(show_field "$show" body)
   occurrence=$(( $(resolution_record_count "$body") + 1 ))
   if [ "$state" = "done" ]; then
@@ -1562,6 +1604,7 @@ reconcile_close() {
   publish_parent_hold "$id" "$occurrence" resolved reconciled
   [ "$PARENT_HOLD_PUBLISHED" = 1 ] \
     || fail "could not publish the reconciled captain-held task $id to its parent"
+  emit_hold_close_span "$id" "$body" reconciled "$hold_reason"
   reconcile_request_retire "$id"
   printf 'reconciled: %s\n' "$id"
 }
