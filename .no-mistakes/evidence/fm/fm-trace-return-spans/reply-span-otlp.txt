@@ -1,0 +1,62 @@
+# firstmate.reply span posted by fm_pending_reply_try_resolve settlement (parent home, recording fake curl)
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "hibit"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-pending-reply.gQ3Fps/reply-span-10087"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "11111111111111111111111111111112",
+              "spanId": "65eae217324840ec",
+              "parentSpanId": "3333333333333334",
+              "name": "firstmate.reply",
+              "kind": 1,
+              "startTimeUnixNano": "5000000000000",
+              "endTimeUnixNano": "1789285719579000000",
+              "attributes": [
+                {
+                  "key": "firstmate.corr",
+                  "value": {
+                    "stringValue": "805cb57f9f81c27a"
+                  }
+                },
+                {
+                  "key": "firstmate.reply.via",
+                  "value": {
+                    "stringValue": "status"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

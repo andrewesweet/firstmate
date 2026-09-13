@@ -1,0 +1,11 @@
+ok - no recorded carrier -> no request
+ok - frozen session decision off -> no request
+ok - child body: valid OTLP/JSON shape with hex ids, parent, nanos, scope
+ok - root: carrier span id, parentless, ok status
+ok - status mapping: error -> 2, omitted -> unset field
+ok - timestamps: dash means now and end-before-start clamps
+ok - endpoint precedence: traces endpoint, base endpoint, loopback default
+ok - curl refusal and timeout preserve caller execution under errexit and pipefail
+ok - resource JSON preserves values, includes secondmate identity, omits absent keys
+ok - absent meta file -> silent no-op
+# all fm-trace-span-lib tests passed

@@ -1,0 +1,378 @@
+# firstmate.hold spans posted by hold->answer, hold->--release, hold->reconcile close, --origin-linked call (from tests/fm-captain-hold-lifecycle.test.sh span case, real fm-captain-hold.sh + tasks-axi backend, recording fake curl)
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-call"
+            }
+          },
+          {
+            "key": "firstmate.project",
+            "value": {
+              "stringValue": "sample"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-captain-hold.AxxmYX/hold-spans"
+            }
+          },
+          {
+            "key": "firstmate.task.kind",
+            "value": {
+              "stringValue": "ship"
+            }
+          },
+          {
+            "key": "firstmate.harness",
+            "value": {
+              "stringValue": "codex"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "11111111111111111111111111111112",
+              "spanId": "eeaa076663d22eb7",
+              "parentSpanId": "3333333333333334",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780315200000000000",
+              "endTimeUnixNano": "1789285706673000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "answered"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "captain must choose the export shape"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-origin"
+            }
+          },
+          {
+            "key": "firstmate.project",
+            "value": {
+              "stringValue": "sample"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-captain-hold.AxxmYX/hold-spans"
+            }
+          },
+          {
+            "key": "firstmate.task.kind",
+            "value": {
+              "stringValue": "ship"
+            }
+          },
+          {
+            "key": "firstmate.harness",
+            "value": {
+              "stringValue": "codex"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "66666666666666666666666666666667",
+              "spanId": "5860ff953e21e294",
+              "parentSpanId": "8888888888888889",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780318800000000000",
+              "endTimeUnixNano": "1789285709170000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "answered"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "origin needs a ruling"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-work"
+            }
+          },
+          {
+            "key": "firstmate.project",
+            "value": {
+              "stringValue": "sample"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-captain-hold.AxxmYX/hold-spans"
+            }
+          },
+          {
+            "key": "firstmate.task.kind",
+            "value": {
+              "stringValue": "ship"
+            }
+          },
+          {
+            "key": "firstmate.harness",
+            "value": {
+              "stringValue": "codex"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "22222222222222222222222222222224",
+              "spanId": "ff7f850a18996530",
+              "parentSpanId": "4444444444444448",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780389000000000000",
+              "endTimeUnixNano": "1789285711065000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "released"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "work resumes on the captain's go"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-third"
+            }
+          },
+          {
+            "key": "firstmate.project",
+            "value": {
+              "stringValue": "sample"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-captain-hold.AxxmYX/hold-spans"
+            }
+          },
+          {
+            "key": "firstmate.task.kind",
+            "value": {
+              "stringValue": "ship"
+            }
+          },
+          {
+            "key": "firstmate.harness",
+            "value": {
+              "stringValue": "codex"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "33333333333333333333333333333336",
+              "spanId": "3d2e2b973cb6f6c8",
+              "parentSpanId": "555555555555555c",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780477200000000000",
+              "endTimeUnixNano": "1789285713363000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "reconciled"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "board review pending"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+POST <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced-long"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-captain-hold.AxxmYX/hold-spans"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "5555555555555555555555555555555a",
+              "spanId": "76e6fb2f687843fd",
+              "parentSpanId": "7777777777777774",
+              "name": "firstmate.hold",
+              "kind": 1,
+              "startTimeUnixNano": "1780747200000000000",
+              "endTimeUnixNano": "1789285719354000000",
+              "attributes": [
+                {
+                  "key": "firstmate.hold.close_mode",
+                  "value": {
+                    "stringValue": "answered"
+                  }
+                },
+                {
+                  "key": "firstmate.hold.reason",
+                  "value": {
+                    "stringValue": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

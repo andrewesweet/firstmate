@@ -1,0 +1,98 @@
+# queue: one task-keyed signal, one window-keyed stale, one taskless check, one heartbeat
+
+# presentation drain (no curl expected)
+1789285667	1	signal	traced.status	signal: /tmp/fm-wake-demo.NoL9yI/demo/state/traced.status
+1789285667	2	stale	firstmate:traced	stale: firstmate:traced
+1789285667	3	check	startup-network	check: startup-network still pending
+1789285667	4	heartbeat	heartbeat	heartbeat
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 2283914.1789285667.fiONqE
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+curl calls after presentation: 0
+
+# teardown traced task before ack (meta removed); capture present:
+/tmp/fm-wake-demo.NoL9yI/demo/state/.wake-trace.traced
+traceparent=00-11111111111111111111111111111112-3333333333333334-01
+endpoint_task_id=traced
+
+# acknowledgement: fm-wake-drain.sh --ack-through 4 --recovery-generation 2283914.1789285667.fiONqE
+ack exit=0; queue bytes: 0
+capture discarded: yes
+
+# OTLP posts (fake curl log): 1 span(s)
+curl -sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://127.0.0.1:4318/v1/traces
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "firstmate"
+            }
+          },
+          {
+            "key": "firstmate.task.id",
+            "value": {
+              "stringValue": "traced"
+            }
+          },
+          {
+            "key": "firstmate.home",
+            "value": {
+              "stringValue": "/tmp/fm-wake-demo.NoL9yI/demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "firstmate"
+          },
+          "spans": [
+            {
+              "traceId": "11111111111111111111111111111112",
+              "spanId": "fb67931118cb28c6",
+              "parentSpanId": "3333333333333334",
+              "name": "firstmate.wake",
+              "kind": 1,
+              "startTimeUnixNano": "1789285667000000000",
+              "endTimeUnixNano": "1789285668196000000",
+              "attributes": [
+                {
+                  "key": "firstmate.wake.kind",
+                  "value": {
+                    "stringValue": "signal"
+                  }
+                },
+                {
+                  "key": "firstmate.wake.seq",
+                  "value": {
+                    "stringValue": "1"
+                  }
+                },
+                {
+                  "key": "firstmate.wake.key",
+                  "value": {
+                    "stringValue": "traced.status"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+# replay same ack
+replay exit=0 posts total: 1

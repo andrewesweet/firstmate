@@ -14,28 +14,28 @@ ok - self-announced appends suppress only their own bytes and fail toward waking
 ok - acknowledgement spans cover task-keyed rows only, from queue time to commit
 ok - wake spans outlive task teardown, share one acknowledgement instant, and fail open
 ok - historical annotations replay nothing already announced and keep everything new
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 4029005.1789283680.UzSEBL
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2204068.1789285612.CMg76k
 ok - concurrent append plus drain preserves durable records through acknowledgement
 ok - signal written while no watcher runs is caught on next run
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 4050351.1789283690.x6wirP
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2224420.1789285621.r2pI8z
 WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
 ok - stale wake is queued before suppressor state is advanced
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 4052808.1789283691.fCF9rK
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2227054.1789285623.ku0NKe
 WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
 ok - a not-provably-working stale wake is queued before its suppressor is advanced
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 4054765.1789283692.nEDIx9
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2229158.1789285624.zvo5qL
 WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
 ok - registered custom check output is queued before cadence suppression
 ok - concurrent drains replay until one post-handling acknowledgement consumes records
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 4057498.1789283693.UOLbIr
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 2231357.1789285625.sIvtd9
 ok - drain collapses obvious duplicate heartbeat and signal records
 ok - drain asserts watcher liveness: warns on a lapse, stays silent for a live watcher with a fresh beacon
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 8 --recovery-generation 4059055.1789283694.sSbQrA
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 8 --recovery-generation 2232761.1789285626.FJTCpO
 ok - structural signal enrichment is separate, deduped, home-local, and tier-zero for other wakes
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 13 --recovery-generation 4060881.1789283695.BpX7gn
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 13 --recovery-generation 2234632.1789285627.xdhAZM
 ok - every readable unread status line is annotated in full while invalid status files preserve their raw wakes
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 4064802.1789283697.LNJPOy
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 4064802.1789283697.LNJPOy
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2239539.1789285629.hI7Cdk
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 2239539.1789285629.hI7Cdk
 ok - slow annotation releases the append lock and a deleted status file fails open
 ok - a branch-actor scoped ack never swallows an unacked main-owned row, and main's later drain sees exactly what remains
 ok - main drain and acknowledgement exclude an active branch grant
@@ -53,5 +53,4 @@ ok - wake drain: a stale acknowledgement cannot retire or consume a newer recove
 ok - wake drain: an acknowledgement that consumes nothing says so and names the exact command for the current wake
 ok - wake drain: a branch acknowledgement that consumes nothing names the exact command for its granted wake
 ok - wake drain: recovery acknowledgement failures are explicit and retryable
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 4088551.1789283711.Mov2I6
 ok - interruptions preserve durable rows until post-handling acknowledgement
