@@ -1,0 +1,52 @@
+
+===== 1. spawn inside a MARKED secondmate home with ambient TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01 =====
+warning: /tmp/fm-trace-context-spawn.H1NNnk/demo-sm/home/data/demo-sm-z1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned demo-sm-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-demo-sm-z1 worktree=/tmp/fm-trace-context-spawn.H1NNnk/demo-sm/wt
+--- state/demo-sm-z1.meta (trace fields):
+traceparent=00-37d24640b09f17ea7ae7056d701155ec-6f57cae8ddcbf721-01
+trace_started=1789288510565
+trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+--- TRACEPARENT injected into the task pane:
+00-37d24640b09f17ea7ae7056d701155ec-6f57cae8ddcbf721-01
+--- fresh carrier trace id != ambient trace id: YES
+
+===== 2. same spawn from a PRIMARY home (no marker) with the same ambient TRACEPARENT =====
+spawned demo-primary-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-demo-primary-z1 worktree=/tmp/fm-trace-context-spawn.H1NNnk/demo-primary/wt
+--- state/demo-primary-z1.meta (trace fields):
+traceparent=00-97482522846f0fb091c8a76d8f8da7f3-1438bbe881b91316-01
+--- trace_link present? NO
+
+===== 3. local handoff of two backlog items to secondmate 'design' (agent carrier ) =====
+agent carrier in state/design.meta: 00-99999999999999999999999999999999-8888888888888888-01
+$ bin/fm-backlog-handoff.sh design item-a item-b
+handed off 2 item(s) to design: item-a item-b
+  into /tmp/fm-backlog-handoff.E6baHo/demo-sub/data/backlog.md
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- OTLP posts captured: 2
+--- span 1:
+{"resource":[{"key":"firstmate.task.kind","value":{"stringValue":"secondmate"}},{"key":"firstmate.secondmate.id","value":{"stringValue":"design"}}],"span":{"name":"firstmate.handoff","traceId":"99999999999999999999999999999999","parentSpanId":"8888888888888888","attributes":{"firstmate.backlog.item":"item-a","firstmate.route":"local"}}}
+--- span 2:
+{"resource":[{"key":"firstmate.task.kind","value":{"stringValue":"secondmate"}},{"key":"firstmate.secondmate.id","value":{"stringValue":"design"}}],"span":{"name":"firstmate.handoff","traceId":"99999999999999999999999999999999","parentSpanId":"8888888888888888","attributes":{"firstmate.backlog.item":"item-b","firstmate.route":"local"}}}
+
+===== 4. teardown of a routed task in a marked secondmate home: root span carries the link =====
+--- state/task-x1.meta trace fields:
+traceparent=00-11111111111111111111111111111112-3333333333333334-01
+trace_link=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+$ bin/fm-teardown.sh task-x1
+teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.LrS4Um/demo-link/wt)
+Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/fm-teardown-tests.LrS4Um/demo-link/data/backlog.md). Update /tmp/fm-teardown-tests.LrS4Um/demo-link/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+--- OTLP task root span:
+{"name":"firstmate.task","traceId":"11111111111111111111111111111112","spanId":"3333333333333334","parentSpanId":null,"links":[{"traceId":"4bf92f3577b34da6a3ce929d0e0e4736","spanId":"00f067aa0ba902b7"}],"status":{"code":1}}
+
+===== 5. same teardown from a PRIMARY home (meta still records trace_link=): no link exported =====
+{"name":"firstmate.task","traceId":"11111111111111111111111111111112","spanId":"3333333333333334","has_links":false}
+
+===== 6. telemetry stays default-off: same teardown with trace context disabled posts nothing =====
+teardown rc=0
+curl.log exists? NO
