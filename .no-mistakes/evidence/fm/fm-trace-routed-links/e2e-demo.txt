@@ -1,0 +1,60 @@
+
+=== 1. Marked secondmate home: routed task spawned under ambient TRACEPARENT=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbb-01 ===
+spawned routed-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-routed-z1 worktree=/tmp/e2e-demo.cM8TLn/sm/wt
+--- state/routed-z1.meta (trace fields):
+traceparent=00-1fff0840bd70e3321605abdbcfaa0732-7f51ff0347cea32f-01
+trace_started=1789281243816
+trace_link=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbb-01
+--- TRACEPARENT exported into the task pane:
+export TRACEPARENT=00-1fff0840bd70e3321605abdbcfaa0732-7f51ff0347cea32f-01
+CHECK: task carrier trace id differs from agent trace id (fresh trace)  OK
+CHECK: trace_link == ambient agent carrier  OK
+
+=== 2. Task root at teardown (real emitter with the recorded trace_link): OTLP body ===
+{
+  "traceId": "1fff0840bd70e3321605abdbcfaa0732",
+  "spanId": "7f51ff0347cea32f",
+  "parentSpanId": null,
+  "name": "firstmate.task",
+  "links": [
+    {
+      "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+      "spanId": "bbbbbbbbbbbbbbbb"
+    }
+  ]
+}
+
+=== 3. Relaunch after the marker is removed: carrier kept, link dropped ===
+spawned routed-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-routed-z1 worktree=/tmp/e2e-demo.cM8TLn/sm/wt
+traceparent=00-1fff0840bd70e3321605abdbcfaa0732-7f51ff0347cea32f-01
+CHECK: no trace_link= after marker removal  OK
+
+=== 4. Primary home (no marker) under the same ambient TRACEPARENT: fresh carrier, no link ===
+spawned primary-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-primary-z1 worktree=/tmp/e2e-demo.cM8TLn/primary/wt
+traceparent=00-2e34794f93586bd0d18cf71f7ee6fb31-c806127423ecea7c-01
+CHECK: primary home records no trace_link=  OK
+
+=== 5. Default-off home: same spawn, nothing recorded ===
+spawned off-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-off-z1 worktree=/tmp/e2e-demo.cM8TLn/off/wt
+CHECK: no traceparent/trace_link recorded, 0 spans posted  OK
+
+=== 6. Local handoff of two backlog items -> real bin/fm-backlog-handoff.sh, one firstmate.handoff span each ===
+handed off 2 item(s) to design: item-a item-b
+  into /tmp/e2e-demo.cM8TLn/h-sub/data/backlog.md
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- secondmate backlog now:
+## Queued
+- [ ] item-a - first routed item (repo: alpha)
+- [ ] item-b - second routed item (repo: alpha)
+
+## Done
+## In flight
+--- OTLP posts: 2
+{"resource":[{"key":"firstmate.task.kind","value":{"stringValue":"secondmate"}},{"key":"firstmate.secondmate.id","value":{"stringValue":"design"}}],"span":{"traceId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab","parentSpanId":"bbbbbbbbbbbbbbbb","name":"firstmate.handoff","attributes":{"firstmate.backlog.item":"item-a","firstmate.route":"local"}}}
+{"resource":[{"key":"firstmate.task.kind","value":{"stringValue":"secondmate"}},{"key":"firstmate.secondmate.id","value":{"stringValue":"design"}}],"span":{"traceId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab","parentSpanId":"bbbbbbbbbbbbbbbb","name":"firstmate.handoff","attributes":{"firstmate.backlog.item":"item-b","firstmate.route":"local"}}}
