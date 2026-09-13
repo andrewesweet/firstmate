@@ -155,8 +155,6 @@
 #   Taskless rows (heartbeats, per-poll checks, window-keyed stale rows)
 #   emit nothing, and every entry above is silent for a task without a
 #   recorded carrier.
-#   Later catalogue entries (link emission sites) are separate
-#   increments and must extend this list only when they land.
 #
 # Endpoint precedence (the OpenTelemetry SDK's own): OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
 # else ${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces, else
