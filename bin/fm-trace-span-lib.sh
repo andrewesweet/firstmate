@@ -79,10 +79,9 @@
 #       new; a failed publication emits nothing. Attributes firstmate.pr.url,
 #       firstmate.merge.origin (self, poll), firstmate.merge.authority
 #       (yolo, away-grant, attended, external; omitted when none is known).
-#     firstmate.steer - bin/fm-send.sh, immediately after the steer is durably
-#       delivered (local inbox enqueue, remote inbox leg, typed submit
-#       confirmation) and after the --key path's verified delivery, before
-#       later bookkeeping;
+#     firstmate.steer - bin/fm-send.sh, immediately after durable inbox
+#       delivery (local enqueue or remote inbox leg), or after verified-only
+#       typed submit and --key delivery, before later bookkeeping;
 #       attributes firstmate.plane (inbox, typed, key), firstmate.inbox.seq
 #       (local inbox sends only - a remote record's sequence lives in the
 #       remote home), firstmate.corr (a marked secondmate request's

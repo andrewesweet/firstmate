@@ -256,8 +256,8 @@ fm_send_id_from_meta() {  # <meta-file>
   printf '%s' "${base%.meta}"
 }
 
-# Emit the firstmate.steer span immediately after durable delivery and after
-# the --key path's verified delivery
+# Emit the firstmate.steer span immediately after durable inbox delivery or
+# verified-only typed submit and --key delivery
 # (bin/fm-trace-span-lib.sh's header owns the catalogue entry). A disabled
 # home, an untraced task, or an explicit backend target without task metadata
 # is a silent no-op, and no emission failure can change the send's outcome:
