@@ -121,8 +121,11 @@
 #       acknowledgement commit; covers the row's queue time through the one
 #       acknowledgement instant shared by the batch, from the live meta or
 #       the minimum context presentation captured for a task since torn
-#       down; attributes firstmate.wake.kind (signal, stale, check - never
-#       heartbeat), firstmate.wake.seq, firstmate.wake.key.
+#       down; attributes firstmate.wake.kind, firstmate.wake.seq,
+#       firstmate.wake.key. Only signal rows carry task status keys today,
+#       so signal is the only kind that reaches emission; the emitter's kind
+#       allowlist (signal, stale, check) and the key mapping are separate
+#       bounded checks, and heartbeat is excluded by both.
 #   Taskless rows (heartbeats, per-poll checks, window-keyed stale rows)
 #   emit nothing, and every entry above is silent for a task without a
 #   recorded carrier.

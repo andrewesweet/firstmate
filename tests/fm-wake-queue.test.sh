@@ -1678,6 +1678,8 @@ SH
   grep -q '^traceparent=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbc-01$' "$state/.wake-trace.gone" \
     || fail "the capture lost the task carrier"
   [ ! -e "$state/.wake-trace.kept" ] || fail "an unwritable capture must be skipped, not written"
+  ! grep -q 'wake-trace' "$dir/drain.err" \
+    || fail "an unwritable capture must stay silent on the presentation's stderr: $(cat "$dir/drain.err")"
   sequence=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$dir/drain.err")
   generation=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through [0-9][0-9]* --recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' "$dir/drain.err")
   [ -n "$sequence" ] && [ -n "$generation" ] || fail "drain omitted its acknowledgement boundary"

@@ -661,7 +661,7 @@ capture_presented_wake_traces() {  # <presented-rows>
     if ! awk -v task="$task" '
         /^(endpoint_task_id|traceparent|project|kind|harness|model|effort|spawn_gen)=/ { print }
         END { print "endpoint_task_id=" task }
-      ' "$meta" > "$capture.tmp" 2>/dev/null \
+      ' "$meta" 2>/dev/null > "$capture.tmp" \
       || ! chmod 0600 "$capture.tmp" 2>/dev/null \
       || ! mv -f -- "$capture.tmp" "$capture" 2>/dev/null; then
       rm -f -- "$capture.tmp" 2>/dev/null || true
