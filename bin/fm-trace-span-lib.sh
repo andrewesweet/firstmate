@@ -59,7 +59,8 @@
 #       firstmate.window.
 #     firstmate.task (root) - bin/fm-teardown.sh, immediately before the
 #       backlog record removal, with the terminal outcome read from the last
-#       done:/failed: status line before the status file is retired;
+#       done/failed event recognized by status_line_verb before the status
+#       file is retired (including tagged terminal events);
 #       done maps to OK, failed to ERROR, and no such line leaves status UNSET
 #       with outcome retired for a secondmate or unknown otherwise;
 #       attributes firstmate.task.outcome (done, failed, retired, unknown),

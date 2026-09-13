@@ -66,8 +66,8 @@ Resource checks preserve spaces, punctuation, quotes, backslashes, Unicode, and 
 The spawn-path suite `tests/fm-trace-context-spawn.test.sh` grows two assertions (14 total): an enabled spawn records a numeric `trace_started=` beside the carrier, posts exactly one `firstmate.spawn` span parenting on the carrier with `firstmate.relaunch=false` and the meta's `spawn_gen`, and a formal `--relaunch` preserves both the carrier and the original mint time while posting `firstmate.relaunch=true` with `firstmate.spawn_gen.prior` naming the replaced generation; a disabled home posts nothing and records no `trace_started=`.
 The existing twelve assertions, including the default-off byte-identical meta and pane contract, pass unchanged.
 
-The teardown suite `tests/fm-teardown.test.sh` grows four assertions: a traced teardown posts exactly one `firstmate.task` root that reuses the carrier's trace id and span id parentless, starts at the recorded `trace_started=` epoch milliseconds converted to nanoseconds, maps the last captain-relevant status line (`done:` to code 1 with `firstmate.task.outcome=done`, `failed:` to code 2 with `failed`), and carries the recorded `pr=`, `mode=`, and `spawn_gen=` values; a `--force` teardown adds `firstmate.teardown.forced=true` and reads a status file with no terminal line as `unknown`; an untraced, session-disabled home posts nothing.
-The suite's other 84 assertions pass unchanged.
+The teardown suite `tests/fm-teardown.test.sh` checks the task-root contract owned by [`fm-trace-span-lib.sh`](../../bin/fm-trace-span-lib.sh): recorded identity and start time, terminal outcome, final metadata attributes, forced teardown, and disabled emission.
+Its `test_task_root_span_tagged_terminal_status` regression covers bracketed and unbracketed correlation tags, a final line without a newline, and later nonterminal events that must not replace the last terminal outcome.
 
 The remote-route suite `tests/fm-remote-secondmate-trace-context.test.sh` (6 assertions) passes unchanged, proving a remote-routed second mate still launches end to end with the emitter library sourced on both hosts.
 
@@ -84,4 +84,4 @@ $ bash tests/fm-remote-secondmate-trace-context.test.sh | tail -2
 ALL TESTS PASSED
 ```
 
-`tests/fm-teardown.test.sh` ends with one `ok - ...` line rather than a footer; run it with `| grep -c '^ok -'` (88 on this base) to confirm every assertion ran.
+`tests/fm-teardown.test.sh` ends with one `ok - ...` line rather than a footer; check the suite's exit status and complete output when refreshing this evidence.
