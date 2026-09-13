@@ -1,0 +1,242 @@
+# shellcheck shell=bash
+# Minimal OTLP/HTTP span emission for firstmate's own lifecycle events
+# (default-off; the carrier seam itself is bin/fm-trace-context-lib.sh).
+#
+# Why firstmate emits at all: the task root span cannot be derived by anyone
+# else - its span id is the span id firstmate minted into the carrier, and an
+# MLflow-style server completes a trace only when a parentless span arrives -
+# and the meta/status records the spans would be derived from are removed at
+# teardown. Emission is a library, not a daemon: one bounded curl per lifecycle
+# event, run inside the script that already owns the event, with no collector,
+# storage, UI, vendor coupling, retry, queue, or durable emission state. A
+# receiver that is absent, down, slow, or refusing is indistinguishable from
+# the capability being off: every failure is silent.
+#
+# Usage: . bin/fm-trace-span-lib.sh
+#
+# Public entry point:
+#   fm_trace_span_emit <meta-file> <name> <start-ms|-> <end-ms|->
+#       [--root] [--status ok|error|unset] [--link <traceparent>]
+#       [key=value ...]
+#
+#   Emits one span named <name> for the task whose state/<id>.meta is
+#   <meta-file>, and ALWAYS returns 0: telemetry is omitted safely and never
+#   aborts the caller. It returns before any work when the meta records no
+#   valid `traceparent=` carrier or when the home's frozen trace-context
+#   session decision (fm_trace_context_session_effective) is off, so a
+#   disabled home emits nothing and an enabled one cannot outlive its
+#   session's decision.
+#
+#   <start-ms>/<end-ms> are epoch milliseconds; `-` means now
+#   (fm_timing_now_ms). A non-numeric value is treated like `-`, and an end
+#   before its start is clamped so a span never has negative duration. A root
+#   span whose `trace_started=` mint time was never recorded collapses to a
+#   zero-length span, which still completes the trace.
+#
+#   --root uses the carrier's span id as this span's id and leaves it
+#   parentless; without it a fresh random span id is minted
+#   (fm_trace_context_hex 8) and the carrier's span id becomes the parent.
+#   Exactly one task root exists per trace, so exactly one emission per task
+#   may pass --root (bin/fm-teardown.sh, at record removal).
+#
+#   --status ok maps to OTLP code 1 (OK), error to 2 (ERROR); anything else,
+#   including the default, omits the status field (UNSET).
+#
+#   --link <traceparent> attaches one OTel span link to that carrier; without
+#   it a `trace_link=` recorded in the meta is used when present. At most one
+#   link is emitted, and an invalid link value is silently dropped.
+#
+#   Each key=value argument becomes one string-valued span attribute.
+#
+# Wire shape (this header is the owner; the receivers are protocol-standard):
+#   One OTLP/JSON `ExportTraceServiceRequest` per call: resource attributes
+#   `service.name=firstmate` plus exactly the `firstmate.*` keys rendered by
+#   fm_trace_attrs_render (bin/fm-trace-context-lib.sh, the same function the
+#   OTEL_RESOURCE_ATTRIBUTES pane export uses, so both receivers see identical
+#   keys and values); one scope named `firstmate`; span kind INTERNAL (1);
+#   ids as lowercase hex strings; timestamps as decimal nanosecond strings;
+#   all attribute values strings. The span catalogue as implemented:
+#     firstmate.spawn - bin/fm-spawn.sh, after the launch line is sent and the
+#       backlog transition committed, so a refused spawn emits nothing;
+#       attributes firstmate.relaunch, firstmate.spawn_gen,
+#       firstmate.spawn_gen.prior (relaunch only), firstmate.backend,
+#       firstmate.window.
+#     firstmate.task (root) - bin/fm-teardown.sh, immediately before the
+#       backlog record removal, with the terminal outcome read from the last
+#       captain-relevant status line before the status file is retired;
+#       attributes firstmate.task.outcome (done, failed, retired, unknown),
+#       firstmate.task.mode, firstmate.task.yolo, firstmate.pr.url,
+#       firstmate.teardown.forced, firstmate.spawn_gen.
+#   Later catalogue entries (steer, promote, control, PR, merge, link
+#   emission sites, handoff, hold, reply, wake) are separate increments and
+#   must extend this list only when they land.
+#
+# Endpoint precedence (the OpenTelemetry SDK's own): OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+# else ${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces, else
+# http://127.0.0.1:4318/v1/traces. These variables are read from the
+# firstmate process's own environment at emission time; a home that runs a
+# local collector needs no configuration, and one that does not pays a single
+# refused loopback connection per lifecycle event.
+#
+# Delivery: one `curl -sS --max-time 1 -o /dev/null
+# -H 'Content-Type: application/json' --data-binary @- <endpoint>`; stdin is
+# the JSON body; the exit status is ignored. curl absent, connection refused,
+# timeout, and non-2xx are all the same silent no-op. Emission runs inside
+# firstmate's own process, so config/launch-env-allowlist is unaffected.
+#
+# Security / trust boundary. The body carries only fixed-shape ids, the span
+# name and attributes the caller passes, and resource values percent-encoded
+# by fm_trace_attrs_render from the task's own meta; no prompt, credential,
+# or arbitrary environment value is read into it. The only external process
+# is curl, resolved from PATH, posting to the endpoint above; there is no
+# configured provider command, no tracestate, and no parentage from ambient
+# context. Because every failure is silent and bounded at one second, a
+# missing or hostile endpoint can slow one lifecycle event by at most its
+# --max-time and can never alter the caller's outcome.
+
+# Dependencies are pure function-definition libraries, so re-sourcing is
+# idempotent and this lib works both beside its usual hosts (fm-spawn.sh
+# already sources fm-trace-context-lib.sh) and standalone in tests.
+# shellcheck source=bin/fm-trace-context-lib.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-trace-context-lib.sh"
+# shellcheck source=bin/fm-timing-lib.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-timing-lib.sh"
+
+# Private: escape one string for inclusion inside a JSON string literal.
+# Values in practice are ids, enumerations, paths, and URLs, so the two
+# characters JSON requires escaping of in that set are handled here; control
+# characters cannot appear in firstmate meta values.
+fm_trace_span_json_escape() {  # <string>
+  local s=$1 out='' i ch
+  for ((i = 0; i < ${#s}; i++)); do
+    ch=${s:i:1}
+    case $ch in
+      "\\") out+=$ch$ch ;;
+      '"') out+="\\$ch" ;;
+      *) out+=$ch ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+# Private: echo a leading-comma OTLP JSON string-attribute pair for one
+# key=value argument, or nothing for a malformed pair, so a caller appends
+# attributes in one pass and drops the first comma at assembly.
+fm_trace_span_attr_json() {  # <key=value>
+  local pair=$1 k v
+  case $pair in
+    *=*) k=${pair%%=*} v=${pair#*=} ;;
+    *) return 0 ;;
+  esac
+  [ -n "$k" ] || return 0
+  printf ',{"key":"%s","value":{"stringValue":"%s"}}' \
+    "$(fm_trace_span_json_escape "$k")" "$(fm_trace_span_json_escape "$v")"
+}
+
+fm_trace_span_emit() {  # <meta-file> <name> <start-ms|-> <end-ms|->
+  #          [--root] [--status ok|error|unset] [--link <traceparent>] [key=value ...]
+  local meta=$1 name=$2 start_ms=$3 end_ms=$4
+  shift 4
+  local root=0 status='unset' link='' pair
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --root) root=1 ;;
+      --status)
+        [ "$#" -ge 2 ] || break
+        status=$2
+        shift
+        ;;
+      --status=*) status=${1#--status=} ;;
+      --link)
+        [ "$#" -ge 2 ] || break
+        link=$2
+        shift
+        ;;
+      --link=*) link=${1#--link=} ;;
+      --*) : ;;                 # unknown flags are ignored, never fatal
+      *) break ;;               # attribute arguments begin
+    esac
+    shift
+  done
+
+  # Gate on the frozen session decision first, then the recorded carrier; a
+  # disabled home and an untraced task are the same silent no-op.
+  local state_dir=${meta%/*}
+  [ "$state_dir" = "$meta" ] && state_dir=.
+  [ "$(fm_trace_context_session_effective "$state_dir/.trace-context-effective")" = on ] || return 0
+  local carrier
+  carrier=$(fm_trace_context_recorded "$meta")
+  fm_trace_context_valid "$carrier" || return 0
+
+  local span_id parent_id=''
+  if [ "$root" = 1 ]; then
+    span_id=${carrier:36:16}
+  else
+    span_id=$(fm_trace_context_hex 8) || return 0
+    parent_id=${carrier:36:16}
+  fi
+
+  if [ -z "$link" ]; then
+    link=$(sed -n 's/^trace_link=//p' "$meta" 2>/dev/null | head -n 1)
+  fi
+  fm_trace_context_valid "$link" || link=''
+
+  case $start_ms in
+    '' | *[!0-9]*) start_ms=$(fm_timing_now_ms) ;;
+  esac
+  case $end_ms in
+    '' | *[!0-9]*) end_ms=$(fm_timing_now_ms) ;;
+  esac
+  [ "$end_ms" -ge "$start_ms" ] || end_ms=$start_ms
+
+  local attrs_json='' rendered
+  attrs_json='{"key":"service.name","value":{"stringValue":"firstmate"}}'
+  rendered=$(fm_trace_attrs_render "$meta")
+  while [ -n "$rendered" ]; do
+    case $rendered in
+      *,*)
+        pair=${rendered%%,*}
+        rendered=${rendered#*,}
+        ;;
+      *)
+        pair=$rendered
+        rendered=''
+        ;;
+    esac
+    attrs_json+="$(fm_trace_span_attr_json "$pair")"
+  done
+
+  local span_attrs_json=''
+  for pair in "$@"; do
+    span_attrs_json+="$(fm_trace_span_attr_json "$pair")"
+  done
+
+  local tail_json=''
+  case $status in
+    ok) tail_json='"status":{"code":1}' ;;
+    error) tail_json='"status":{"code":2}' ;;
+  esac
+  if [ -n "$link" ]; then
+    tail_json+="${tail_json:+,}\"links\":[{\"traceId\":\"${link:3:32}\",\"spanId\":\"${link:36:16}\"}]"
+  fi
+  [ -z "$tail_json" ] || tail_json=",$tail_json"
+
+  local span_json
+  span_json='{"traceId":"'"${carrier:3:32}"'","spanId":"'"$span_id"'",'
+  [ -z "$parent_id" ] || span_json+='"parentSpanId":"'"$parent_id"'",'
+  span_json+='"name":"'$(fm_trace_span_json_escape "$name")'","kind":1,'
+  span_json+='"startTimeUnixNano":"'"$((start_ms * 1000000))"'",'
+  span_json+='"endTimeUnixNano":"'"$((end_ms * 1000000))"'",'
+  span_json+='"attributes":['"${span_attrs_json#,}"']'"$tail_json"
+  span_json+='}'
+
+  command -v curl >/dev/null 2>&1 || return 0
+  local endpoint=${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+  if [ -z "$endpoint" ] && [ -n "${OTEL_EXPORTER_OTLP_ENDPOINT:-}" ]; then
+    endpoint="${OTEL_EXPORTER_OTLP_ENDPOINT%/}/v1/traces"
+  fi
+  [ -n "$endpoint" ] || endpoint='http://127.0.0.1:4318/v1/traces'
+  printf '%s' '{"resourceSpans":[{"resource":{"attributes":['"$attrs_json"']},"scopeSpans":[{"scope":{"name":"firstmate"},"spans":['"$span_json"']}]}]}' \
+    | curl -sS --max-time 1 -o /dev/null -H 'Content-Type: application/json' --data-binary @- "$endpoint" >/dev/null 2>&1
+  return 0
+}

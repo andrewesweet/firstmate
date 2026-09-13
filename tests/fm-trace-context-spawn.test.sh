@@ -36,9 +36,23 @@ case "$*" in
   *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
 esac
 case "${1:-}" in
-  display-message) printf 'firstmate\n'; exit 0 ;;
+  display-message)
+    # The relaunch readiness classifier reads the pane's current command; a
+    # bare shell answer proves the endpoint agent-free. Every other format
+    # keeps the generic pane answer.
+    for a in "$@"; do
+      case "$a" in
+        *pane_current_command*) printf 'bash\n'; exit 0 ;;
+      esac
+    done
+    printf 'firstmate\n'; exit 0 ;;
   list-windows)
     [ -z "${FM_FAKE_DUPLICATE_WINDOW:-}" ] || printf '%s\n' "$FM_FAKE_DUPLICATE_WINDOW"
+    # FM_FAKE_WINDOWS lists the windows an endpoint inventory should report,
+    # so the relaunch path can prove its recorded endpoint exists.
+    if [ -n "${FM_FAKE_WINDOWS:-}" ]; then
+      printf '%s\n' $FM_FAKE_WINDOWS
+    fi
     exit 0
     ;;
   has-session|new-session|new-window|kill-window) exit 0 ;;
@@ -90,6 +104,16 @@ exit 0
 SH
   chmod +x "$fakebin/tmux"
   fm_fake_exit0 "$fakebin" treehouse
+  # Fake OTLP receiver: records the arguments and stdin body of every curl
+  # the span emitter posts. With no log configured it discards silently, so
+  # cases that never assert spans are unaffected.
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:-/dev/null}"
+exit 0
+SH
+  chmod +x "$fakebin/curl"
   printf '%s\n' "$fakebin"
 }
 
@@ -120,28 +144,48 @@ run_spawn() {
   local home=$1 wt=$2 fakebin=$3 launchlog=$4
   shift 4
   : > "$launchlog"
+  : > "${launchlog}.curl"
   # A claude spawn pre-registers workspace trust in the launching user's own
   # store (bin/fm-claude-trust.sh), so it runs against a throwaway HOME;
   # without it this suite would write the developer's real ~/.claude.json.
   mkdir -p "$home/user-home"
-  env -u FM_TRACE_CONTEXT \
-    FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$home/user-home" CLAUDE_CONFIG_DIR='' \
-    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
-    FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
-    FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX="fake,1,0" \
-    FM_FAKE_TRACEPARENT_SEND_FAIL="${FM_FAKE_TRACEPARENT_SEND_FAIL:-0}" \
-    FM_FAKE_TRACEPARENT_SEND_UNSAFE="${FM_FAKE_TRACEPARENT_SEND_UNSAFE:-0}" \
-    FM_FAKE_TRACE_METADATA_APPEND_FAIL="${FM_FAKE_TRACE_METADATA_APPEND_FAIL:-0}" \
-    FM_FAKE_META_PATH="$home/state/$1.meta" \
-    FM_FAKE_LAUNCH_LOG="$launchlog" PATH="$fakebin:$PATH" \
-    "$SPAWN" "$@" --mode no-mistakes --yolo off 2>&1
+  # --relaunch reuses the recorded mode and refuses --mode/--yolo overrides, so
+  # a relaunch call signals FM_TEST_SPAWN_NO_MODE=1 to skip those arguments.
+  if [ "${FM_TEST_SPAWN_NO_MODE:-0}" = 1 ]; then
+    env -u FM_TRACE_CONTEXT \
+      FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$home/user-home" CLAUDE_CONFIG_DIR='' \
+      FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+      FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
+      FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX="fake,1,0" \
+      FM_FAKE_TRACEPARENT_SEND_FAIL="${FM_FAKE_TRACEPARENT_SEND_FAIL:-0}" \
+      FM_FAKE_TRACEPARENT_SEND_UNSAFE="${FM_FAKE_TRACEPARENT_SEND_UNSAFE:-0}" \
+      FM_FAKE_TRACE_METADATA_APPEND_FAIL="${FM_FAKE_TRACE_METADATA_APPEND_FAIL:-0}" \
+      FM_FAKE_META_PATH="$home/state/$1.meta" \
+      FM_FAKE_LAUNCH_LOG="$launchlog" FM_FAKE_CURL_LOG="${launchlog}.curl" PATH="$fakebin:$PATH" \
+      "$SPAWN" "$@" 2>&1
+  else
+    env -u FM_TRACE_CONTEXT \
+      FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$home/user-home" CLAUDE_CONFIG_DIR='' \
+      FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+      FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
+      FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX="fake,1,0" \
+      FM_FAKE_TRACEPARENT_SEND_FAIL="${FM_FAKE_TRACEPARENT_SEND_FAIL:-0}" \
+      FM_FAKE_TRACEPARENT_SEND_UNSAFE="${FM_FAKE_TRACEPARENT_SEND_UNSAFE:-0}" \
+      FM_FAKE_TRACE_METADATA_APPEND_FAIL="${FM_FAKE_TRACE_METADATA_APPEND_FAIL:-0}" \
+      FM_FAKE_META_PATH="$home/state/$1.meta" \
+      FM_FAKE_LAUNCH_LOG="$launchlog" FM_FAKE_CURL_LOG="${launchlog}.curl" PATH="$fakebin:$PATH" \
+      "$SPAWN" "$@" --mode no-mistakes --yolo off 2>&1
+  fi
 }
 
+# --relaunch reuses the recorded mode, so a relaunch call must not append the
+# fresh-spawn mode arguments; the caller signals that with FM_TEST_SPAWN_NO_MODE.
 # Same, but with an explicit FM_TRACE_CONTEXT override, to prove the env decides.
 run_spawn_tc() {
   local tc=$1 home=$2 wt=$3 fakebin=$4 launchlog=$5
   shift 5
   : > "$launchlog"
+  : > "${launchlog}.curl"
   # A claude spawn pre-registers workspace trust in the launching user's own
   # store (bin/fm-claude-trust.sh), so it runs against a throwaway HOME;
   # without it this suite would write the developer's real ~/.claude.json.
@@ -151,7 +195,7 @@ run_spawn_tc() {
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
     FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX="fake,1,0" \
-    FM_FAKE_LAUNCH_LOG="$launchlog" PATH="$fakebin:$PATH" \
+    FM_FAKE_LAUNCH_LOG="$launchlog" FM_FAKE_CURL_LOG="${launchlog}.curl" PATH="$fakebin:$PATH" \
     "$SPAWN" "$@" --mode no-mistakes --yolo off 2>&1
 }
 
@@ -177,6 +221,8 @@ EOF
 }
 
 meta_traceparent() { sed -n 's/^traceparent=//p' "$1"; }
+meta_trace_started() { sed -n 's/^trace_started=//p' "$1" | head -1; }
+meta_spawn_gen() { sed -n 's/^spawn_gen=//p' "$1" | head -1; }
 injected_traceparent() { sed -n 's/^export TRACEPARENT=//p' "$1"; }
 
 # The pane's OTEL_RESOURCE_ATTRIBUTES export value: strip the literal expansion
@@ -189,6 +235,103 @@ injected_attrs() {  # <log>
   [ -n "$raw" ] || return 0
   raw=${raw#*"\"'"}
   printf '%s' "${raw%\'}"
+}
+
+span_request_count() {  # <curl-log>: how many span posts the fake curl recorded
+  if [ -f "$1" ]; then
+    grep -c '^ARGS:' "$1" || true
+  else
+    printf '0\n'
+  fi
+}
+
+curl_body() {  # <curl-log> <1-based request number>: the recorded OTLP body
+  awk -v n="$2" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$1"
+}
+
+# PR 2 emitter: the mint records trace_started= beside the carrier, the span
+# emitter posts exactly one firstmate.spawn span per successful launch with
+# the relaunch attributes, and a relaunch preserves both the original mint
+# time and the carrier while naming the generation it replaced.
+test_trace_started_recorded_preserved_and_spawn_span_posted() {
+  local rec out status meta mtp started curl_log gen1 gen2 body
+  rec=$(make_spawn_case tc-span)
+  read_case_record "$rec"
+  : > "$HOME_DIR/config/trace-context"
+  start_trace_session "$HOME_DIR"
+  meta="$HOME_DIR/state/$CASE_ID.meta"
+  curl_log="$LAUNCH_LOG.curl"
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "first traced spawn should succeed"
+  assert_contains "$out" "spawned $CASE_ID" "first traced spawn should report success"
+  mtp=$(meta_traceparent "$meta")
+  fm_trace_context_valid "$mtp" || fail "first spawn must record a valid carrier (got '$mtp')"
+  started=$(meta_trace_started "$meta")
+  case $started in
+    '' | *[!0-9]*) fail "the first spawn must record a numeric trace_started= beside the carrier (got '$started')" ;;
+  esac
+  [ "$(span_request_count "$curl_log")" = 1 ] \
+    || fail "an enabled spawn must post exactly one span (got '$(span_request_count "$curl_log")')"
+  body=$(curl_body "$curl_log" 1)
+  assert_contains "$body" '"name":"firstmate.spawn"' "the spawn span must be posted"
+  assert_contains "$body" '"traceId":"'"${mtp:3:32}"'"' "the spawn span must ride the task's trace"
+  assert_contains "$body" '"parentSpanId":"'"${mtp:36:16}"'"' "the spawn span must parent on the carrier's span id"
+  assert_contains "$body" '"firstmate.relaunch","value":{"stringValue":"false"}' \
+    "a first spawn must report firstmate.relaunch=false"
+  gen1=$(meta_spawn_gen "$meta")
+  assert_contains "$body" '"firstmate.spawn_gen","value":{"stringValue":"'"$gen1"'"}' \
+    "the spawn span must carry the meta's spawn_gen"
+  assert_not_contains "$body" 'firstmate.spawn_gen.prior' \
+    "a first spawn must not carry a prior generation"
+
+  # Each run_spawn truncates its curl log, so after the relaunch the log
+  # holds exactly that launch's own posts.
+  out=$(FM_FAKE_WINDOWS="fm-$CASE_ID" FM_TEST_SPAWN_NO_MODE=1 \
+    run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" --relaunch)
+  status=$?
+  expect_code 0 "$status" "traced relaunch should succeed"
+  assert_contains "$out" "spawned $CASE_ID" "traced relaunch should report success"
+  [ "$(meta_traceparent "$meta")" = "$mtp" ] \
+    || fail "relaunch must keep the recorded carrier"
+  [ "$(meta_trace_started "$meta")" = "$started" ] \
+    || fail "relaunch must preserve the original trace_started= (first='$started' got='$(meta_trace_started "$meta")')"
+  [ "$(span_request_count "$curl_log")" = 1 ] \
+    || fail "a relaunch must post exactly one span (got '$(span_request_count "$curl_log")')"
+  body=$(curl_body "$curl_log" 1)
+  gen2=$(meta_spawn_gen "$meta")
+  [ "$gen2" != "$gen1" ] || fail "a relaunch must mint a new generation for prior to name"
+  assert_contains "$body" '"firstmate.relaunch","value":{"stringValue":"true"}' \
+    "a relaunch must report firstmate.relaunch=true"
+  assert_contains "$body" '"firstmate.spawn_gen.prior","value":{"stringValue":"'"$gen1"'"}' \
+    "a relaunch must name the generation it replaced"
+  assert_contains "$body" '"firstmate.spawn_gen","value":{"stringValue":"'"$gen2"'"}' \
+    "a relaunch must carry its own generation"
+  pass "trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes"
+}
+
+test_disabled_home_posts_no_spans() {
+  local rec out status meta curl_log
+  rec=$(make_spawn_case tc-nospan)
+  read_case_record "$rec"
+  # No config/trace-context and no FM_TRACE_CONTEXT: default-off.
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$CASE_ID" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "default-off spawn should succeed"
+  meta="$HOME_DIR/state/$CASE_ID.meta"
+  curl_log="$LAUNCH_LOG.curl"
+  [ "$(span_request_count "$curl_log")" = 0 ] \
+    || fail "a disabled home must post no spans"
+  ! grep -q '^trace_started=' "$meta" \
+    || fail "a disabled home must not record trace_started="
+  pass "disabled: no span posted and no trace_started recorded"
 }
 
 # Two-level primary -> secondmate -> worker regression for the FM_TRACE_CONTEXT
@@ -713,6 +856,8 @@ test_enabled_records_and_injects_identical_carrier_before_launch
 test_enabled_sends_resource_attributes_matching_meta_before_launch
 test_disabled_sends_no_resource_attributes
 test_allowlist_retains_resource_attributes_term
+test_trace_started_recorded_preserved_and_spawn_span_posted
+test_disabled_home_posts_no_spans
 test_disabled_writes_and_injects_neither
 test_failed_delivery_omits_metadata_and_still_launches
 test_unsafe_delivery_refuses_to_append_launch

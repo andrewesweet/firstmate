@@ -52,3 +52,34 @@ $ bash tests/fm-trace-context-spawn.test.sh | grep -c '^ok -'
 $ bash tests/fm-remote-secondmate-trace-context.test.sh | grep -c '^ok -'
 6
 ```
+
+## 2026-09-13 increment: the OTLP span emitter, the task root, and the spawn span
+
+Date: 2026-09-13.
+Shell: GNU bash 5.2.21 (Linux).
+Base: the `fm/fm-trace-emitter` branch carrying PR 2 of the tracing plan (the emitter library, the `trace_started=` mint, and the two lifecycle emissions).
+
+The colocated unit suite `tests/fm-trace-span-lib.test.sh` (12 assertions) exercises the emitter through a fake curl that records its arguments and stdin body: an untraced meta and a frozen-off session decision each post nothing; a child span carries a fresh random span id parenting on the carrier's span id with the given nanosecond timestamps, `kind: 1`, scope `firstmate`, and `service.name=firstmate`; the root reuses the carrier's span id parentless; `--status ok` maps to OTLP code 1 and `error` to 2 while the default omits the status field; a dash timestamp means now and an end before its start clamps; the endpoint precedence is `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, then `${OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces` with a trailing slash stripped, then the loopback default; a fake curl exiting 7 and one sleeping past its budget both return 0; the resource block after `service.name` is byte-identical to `fm_trace_attrs_render`; a recorded `trace_link=`, an explicit `--link`, and an invalid link value behave as specified; and the renderer's key list, percent-encoding, and secondmate-only id key are pinned.
+
+The spawn-path suite `tests/fm-trace-context-spawn.test.sh` grows two assertions (14 total): an enabled spawn records a numeric `trace_started=` beside the carrier, posts exactly one `firstmate.spawn` span parenting on the carrier with `firstmate.relaunch=false` and the meta's `spawn_gen`, and a formal `--relaunch` preserves both the carrier and the original mint time while posting `firstmate.relaunch=true` with `firstmate.spawn_gen.prior` naming the replaced generation; a disabled home posts nothing and records no `trace_started=`.
+The existing twelve assertions, including the default-off byte-identical meta and pane contract, pass unchanged.
+
+The teardown suite `tests/fm-teardown.test.sh` grows four assertions: a traced teardown posts exactly one `firstmate.task` root that reuses the carrier's trace id and span id parentless, starts at the recorded `trace_started=` nanoseconds, maps the last captain-relevant status line (`done:` to code 1 with `firstmate.task.outcome=done`, `failed:` to code 2 with `failed`), and carries the recorded `pr=`, `mode=`, and `spawn_gen=` values; a `--force` teardown adds `firstmate.teardown.forced=true` and reads a status file with no terminal line as `unknown`; an untraced, session-disabled home posts nothing.
+The suite's other 84 assertions pass unchanged.
+
+The remote-route suite `tests/fm-remote-secondmate-trace-context.test.sh` (6 assertions) passes unchanged, proving a remote-routed second mate still launches end to end with the emitter library sourced on both hosts.
+
+```console
+$ bash tests/fm-trace-span-lib.test.sh | tail -1
+# all fm-trace-span-lib tests passed
+$ bash tests/fm-trace-context-lib.test.sh | tail -1
+# fm-trace-context-lib.test.sh: all assertions passed
+$ bash tests/fm-trace-context-spawn.test.sh | tail -1
+# all fm-trace-context-spawn tests passed
+$ bash tests/fm-teardown.test.sh | tail -1
+ok - the run abort and the leaked-process reap both complete before the destructive worktree return
+$ bash tests/fm-remote-secondmate-trace-context.test.sh | tail -2
+ALL TESTS PASSED
+```
+
+`tests/fm-teardown.test.sh` ends with one `ok - ...` line rather than a footer; run it with `| grep -c '^ok -'` (88 on this base) to confirm every assertion ran.
