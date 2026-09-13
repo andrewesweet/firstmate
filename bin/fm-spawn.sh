@@ -484,6 +484,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-dod-lib.sh"
 # shellcheck source=bin/fm-trace-context-lib.sh
 . "$SCRIPT_DIR/fm-trace-context-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 # shellcheck source=bin/fm-remote-readiness-lib.sh
 . "$SCRIPT_DIR/fm-remote-readiness-lib.sh"
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
@@ -3687,6 +3689,7 @@ fi
 # carrier, and this host only delivers it. The validated --traceparent value
 # then IS the decision, so the enablement snapshot handed to the new Secondmate
 # agrees with the carrier it receives exactly as on the local path.
+SPAWN_TRACE_STARTED=
 if [ "$TRACEPARENT_SET" -eq 1 ]; then
   SPAWN_TRACE_EFFECTIVE=on
   SPAWN_TRACEPARENT=$TRACEPARENT_ARG
@@ -3694,11 +3697,19 @@ else
   SPAWN_TRACE_EFFECTIVE=$(fm_trace_context_session_effective "$STATE/.trace-context-effective")
   if [ "$SPAWN_TRACE_EFFECTIVE" = on ]; then
     SPAWN_TRACEPARENT=$(FM_TRACE_CONTEXT=on fm_trace_context_resolve "$CONFIG" "$STATE/$ID.meta" || true)
+    if [ -n "$SPAWN_TRACEPARENT" ]; then
+      SPAWN_TRACE_STARTED=$(FM_TRACE_CONTEXT=on fm_trace_context_started_resolve "$CONFIG" "$STATE/$ID.meta")
+    fi
   else
     SPAWN_TRACEPARENT=
   fi
 fi
-
+# The prior generation is read before the relaunch rebuild drops owned keys,
+# so the spawn span can report the generation this launch replaced.
+SPAWN_SPAN_GEN_PRIOR=
+if [ "$RELAUNCH" -eq 1 ]; then
+  SPAWN_SPAN_GEN_PRIOR=$(fm_meta_get "$RELAUNCH_META" spawn_gen)
+fi
 META_WINDOW=$T
 [ "$BACKEND" = orca ] && META_WINDOW=$W
 SPAWN_GEN="s$(date +%s).${BASHPID:-$$}.$RANDOM"
@@ -3718,7 +3729,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent trace_started backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -3943,7 +3954,13 @@ if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
 fi
 
 spawn_record_traceparent() {
-  local meta="$STATE/$ID.meta" status=0 acquired=0
+  local meta="$STATE/$ID.meta" status=0 acquired=0 record
+  # trace_started is written beside the carrier on the first mint only and is
+  # preserved verbatim from the old record on recovery, so the task root's
+  # start time survives every relaunch; the filter below drops any stale line
+  # first so a record always carries at most one.
+  record="traceparent=$SPAWN_TRACEPARENT"
+  [ -z "$SPAWN_TRACE_STARTED" ] || record+=$'\n'"trace_started=$SPAWN_TRACE_STARTED"
   # Fresh publication still owns the lock. Relaunch deliberately uses a short
   # independent critical section so other metadata interfaces can serialize.
   if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
@@ -3954,8 +3971,8 @@ spawn_record_traceparent() {
   fi
   SPAWN_META_TMP="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] \
-     || ! awk -F= '$1 != "traceparent"' "$meta" > "$SPAWN_META_TMP" \
-     || ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >> "$SPAWN_META_TMP" \
+     || ! awk -F= '$1 != "traceparent" && $1 != "trace_started"' "$meta" > "$SPAWN_META_TMP" \
+     || ! printf '%s\n' "$record" >> "$SPAWN_META_TMP" \
      || ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$meta" "task record" "$STATE"; then
     status=1
     rm -f "$SPAWN_META_TMP" 2>/dev/null || true
@@ -3971,6 +3988,9 @@ spawn_record_traceparent() {
 # Export GOTMPDIR into the crewmate's pane shell so the agent and every child
 # process (go build, go test, ...) inherit it. Sent before the launch command so
 # the env is set when the agent starts; the brief sleep lets the export land.
+# The spawn span's pre-launch start time is captured here, at the first pane
+# delivery, so it spans the whole delivery including the readiness waits.
+SPAWN_SPAN_START=$(fm_timing_now_ms)
 spawn_send_text_line "$T" "export GOTMPDIR=$TASK_TMP/gotmp"
 # Mark the pane as a task worker so bin/fm-test-run.sh can refuse to run the
 # suite in the repository's primary checkout. Ship and scout workers are the
@@ -4172,6 +4192,17 @@ if [ -n "$SPAWN_DEFERRED_SIGNAL" ]; then
   echo "error: spawn of $ID was interrupted after launch delivery began; $SPAWN_PRESERVED_CLAIM" >&2
   exit "$SPAWN_DEFERRED_SIGNAL_STATUS"
 fi
+# The spawn span is emitted only here, after the launch line was sent and the
+# backlog transition committed, so a refused or rolled-back spawn emits
+# nothing (bin/fm-trace-span-lib.sh's header owns the catalogue entry).
+SPAWN_SPAN_RELAUNCH=false
+if [ "$RELAUNCH" -eq 1 ]; then
+  SPAWN_SPAN_RELAUNCH=true
+fi
+SPAWN_SPAN_ATTRS=("firstmate.relaunch=$SPAWN_SPAN_RELAUNCH" "firstmate.spawn_gen=$SPAWN_GEN")
+[ -z "$SPAWN_SPAN_GEN_PRIOR" ] || SPAWN_SPAN_ATTRS+=("firstmate.spawn_gen.prior=$SPAWN_SPAN_GEN_PRIOR")
+SPAWN_SPAN_ATTRS+=("firstmate.backend=$BACKEND" "firstmate.window=$META_WINDOW")
+fm_trace_span_emit "$STATE/$ID.meta" firstmate.spawn "$SPAWN_SPAN_START" - "${SPAWN_SPAN_ATTRS[@]}"
 fm_lock_release "$SPAWN_META_LOCK"
 SPAWN_META_LOCK_HELD=0
 

@@ -52,3 +52,36 @@ $ bash tests/fm-trace-context-spawn.test.sh | grep -c '^ok -'
 $ bash tests/fm-remote-secondmate-trace-context.test.sh | grep -c '^ok -'
 6
 ```
+
+## 2026-09-13 increment: the OTLP span emitter, the task root, and the spawn span
+
+Date: 2026-09-13.
+Shell: GNU bash 5.2.21 (Linux).
+
+The colocated unit suite `tests/fm-trace-span-lib.test.sh` exercises the emitter through a fake curl that records its arguments and stdin body.
+It checks omission for untraced tasks and disabled sessions, child and root span identities, timestamps, status mapping, endpoint precedence, and resource attributes decoded from the emitted OTLP JSON.
+Collector refusal and timeout exit codes are exercised in a separate Bash process with errexit and pipefail enabled, asserting that execution continues silently.
+Resource checks preserve spaces, punctuation, quotes, backslashes, Unicode, and tabs, and cover secondmate identity and absent metadata keys.
+
+The spawn-path suite `tests/fm-trace-context-spawn.test.sh` grows two assertions (14 total): an enabled spawn records a numeric `trace_started=` beside the carrier, posts exactly one `firstmate.spawn` span parenting on the carrier with `firstmate.relaunch=false` and the meta's `spawn_gen`, and a formal `--relaunch` preserves both the carrier and the original mint time while posting `firstmate.relaunch=true` with `firstmate.spawn_gen.prior` naming the replaced generation; a disabled home posts nothing and records no `trace_started=`.
+The existing twelve assertions, including the default-off byte-identical meta and pane contract, pass unchanged.
+
+The teardown suite `tests/fm-teardown.test.sh` checks the task-root contract owned by [`fm-trace-span-lib.sh`](../../bin/fm-trace-span-lib.sh): recorded identity and start time, terminal outcome, final metadata attributes, forced teardown, and disabled emission.
+Its `test_task_root_span_tagged_terminal_status` regression covers bracketed and unbracketed correlation tags, a final line without a newline, and later nonterminal events that must not replace the last terminal outcome.
+
+The remote-route suite `tests/fm-remote-secondmate-trace-context.test.sh` (6 assertions) passes unchanged, proving a remote-routed second mate still launches end to end with the emitter library sourced on both hosts.
+
+```console
+$ bash tests/fm-trace-span-lib.test.sh | tail -1
+# all fm-trace-span-lib tests passed
+$ bash tests/fm-trace-context-lib.test.sh | tail -1
+# fm-trace-context-lib.test.sh: all assertions passed
+$ bash tests/fm-trace-context-spawn.test.sh | tail -1
+# all fm-trace-context-spawn tests passed
+$ bash tests/fm-teardown.test.sh | tail -1
+ok - the run abort and the leaked-process reap both complete before the destructive worktree return
+$ bash tests/fm-remote-secondmate-trace-context.test.sh | tail -2
+ALL TESTS PASSED
+```
+
+`tests/fm-teardown.test.sh` ends with one `ok - ...` line rather than a footer; check the suite's exit status and complete output when refreshing this evidence.

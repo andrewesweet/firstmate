@@ -200,6 +200,7 @@ When launching a Secondmate, the primary copies the presence flag into its home 
 A Secondmate on a remote route is covered the same way: the primary resolves and records that task's carrier, and the configured host exports it and receives the same enablement snapshot.
 An enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the worker's pane beside the carrier, for harnesses that consume resource attributes; `bin/fm-trace-context-lib.sh`'s header owns the fixed key list and the encoding.
 The presence flag is session-scoped enablement, so it transfers at launch and is left unchanged by live convergence into a running home.
+When enabled, Firstmate also posts its own lifecycle spans over OTLP/HTTP; [`fm-trace-span-lib.sh`](../bin/fm-trace-span-lib.sh) owns endpoint configuration, exported fields, and delivery limits.
 See [`trace-context.md`](trace-context.md) for carrier semantics, supported routes, the manual fleet-restart requirement, the session boundary, and safety limits; `bin/fm-trace-context-lib.sh`'s header owns the exact mechanics, and [`verification/trace-context.md`](verification/trace-context.md) records repeatable evidence.
 
 ## Turn-end pane-churn absorb (config/turnend-churn-absorb)

@@ -94,6 +94,14 @@ SH
 # tmux kill-window etc.: succeed silently.
 exit 0
 SH
+  # Fake OTLP receiver: the span emitter's curl posts land here, one request
+  # per record, so the task-root span assertions read the body that would be
+  # sent instead of trusting the silent no-op.
+  cat > "$fakebin/curl" <<SH
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "\$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } >> '$case_dir/curl.log'
+exit 0
+SH
   # Default gh-axi mock: no PR is associated with the branch, and viewing any PR
   # number fails. This keeps the landed-work check hermetic (never reaching the real
   # gh-axi) and represents the common "no GitHub PR" baseline. Tests that need a
@@ -165,7 +173,7 @@ case "${1:-}" in
 esac
 exit 0
 SH
-  chmod +x "$fakebin/treehouse" "$fakebin/tmux" "$fakebin/gh-axi" "$fakebin/gh" "$fakebin/no-mistakes"
+  chmod +x "$fakebin/treehouse" "$fakebin/tmux" "$fakebin/curl" "$fakebin/gh-axi" "$fakebin/gh" "$fakebin/no-mistakes"
 
   # Bare origin so the clone has an `origin` remote and origin/HEAD.
   git init -q --bare "$case_dir/origin.git"
@@ -662,6 +670,158 @@ make_path_without_lsof() {  # <case-dir>
     case "$resolved" in /*) ln -sf "$resolved" "$path_dir/$cmd" ;; esac
   done
   printf '%s\n' "$path_dir"
+}
+
+# --- PR 2 task root span ----------------------------------------------------
+
+TROOT_CARRIER='00-11111111111111111111111111111112-3333333333333334-01'
+
+# Fetch the Nth recorded OTLP body from a fake-curl log.
+troot_body() {  # <log> <1-based request number>
+  awk -v n="$2" '
+    /^ARGS:/ { c++; next }
+    /^--BODY-END--$/ { if (c == n) exit; next }
+    c == n { buf = buf $0 }
+    END { printf "%s", buf }
+  ' "$1"
+}
+
+# Seed the trace-context gate state and the traced meta fields, then land the
+# task's work on a fork so teardown takes the ordinary ALLOW path.
+make_traced_case() {  # <name> <status-line>... (written to the task's status file)
+  local case_dir=$1
+  shift
+  write_meta "$case_dir" local-only ship
+  printf '%s\n' \
+    "traceparent=$TROOT_CARRIER" \
+    'trace_started=1700000000000' \
+    'pr=https://github.com/example/repo/pull/7' \
+    >> "$case_dir/state/task-x1.meta"
+  printf '%s\n' "$@" > "$case_dir/state/task-x1.status"
+  printf '%s\n' "$$" > "$case_dir/state/.lock"
+  printf '%s on\n' "$$" > "$case_dir/state/.trace-context-effective"
+  wt_commit "$case_dir" "fix the thing"
+  add_fork_with_pushed_branch "$case_dir"
+}
+
+troot_expect_root() {  # <case_dir> <expected-status-code> <expected-outcome>
+  local case_dir=$1 code=$2 outcome=$3 body
+  [ -f "$case_dir/curl.log" ] || fail "teardown recorded no span post at all"
+  [ "$(grep -c '^ARGS:' "$case_dir/curl.log")" = 1 ] \
+    || fail "teardown must post exactly one task root span (got '$(grep -c '^ARGS:' "$case_dir/curl.log")')"
+  body=$(troot_body "$case_dir/curl.log" 1)
+  jq -e '.resourceSpans[0].scopeSpans[0].spans[0] | .name == "firstmate.task" and .spanId == "3333333333333334" and (.parentSpanId? == null) and .traceId == "11111111111111111111111111111112"' >/dev/null <<< "$body" \
+    || fail "the root span must reuse the carrier's trace id and span id with no parent"
+  [ "$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].startTimeUnixNano' <<< "$body")" = 1700000000000000000 ] \
+    || fail "the root's start must be the recorded trace_started= mint time"
+  [ "$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].status.code' <<< "$body")" = "$code" ] \
+    || fail "the terminal status line must map to OTLP code $code"
+  assert_contains "$body" '"firstmate.task.outcome","value":{"stringValue":"'"$outcome"'"}' \
+    "the root must carry the outcome attribute"
+  assert_contains "$body" '"firstmate.pr.url","value":{"stringValue":"https://github.com/example/repo/pull/7"}' \
+    "the root must carry the recorded PR URL"
+  assert_contains "$body" '"firstmate.task.mode","value":{"stringValue":"local-only"}' \
+    "the root must carry the recorded delivery mode"
+  assert_contains "$body" '"firstmate.spawn_gen","value":{"stringValue":"teardown-test-task-x1"}' \
+    "the root must carry the last spawn generation"
+}
+
+test_task_root_span_emitted_from_recorded_ids_and_status() {
+  local case_dir rc
+  case_dir=$(make_case troot-done)
+  make_traced_case "$case_dir" 'working: implementing' 'done: PR checks green'
+
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "traced teardown should succeed"
+  troot_expect_root "$case_dir" 1 "done"
+  assert_not_contains "$(cat "$case_dir/curl.log")" 'firstmate.teardown.forced' \
+    "an ordinary teardown must not claim force"
+  pass "root span: recorded ids, start from trace_started, done: -> ok/outcome=done"
+}
+
+test_task_root_span_failed_status() {
+  local case_dir rc
+  case_dir=$(make_case troot-failed)
+  make_traced_case "$case_dir" 'failed: worker hit an unrecoverable error'
+
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "traced failed teardown should succeed"
+  troot_expect_root "$case_dir" 2 "failed"
+  pass "root span: failed: -> error/outcome=failed"
+}
+
+test_task_root_span_tagged_terminal_status() {
+  local case_dir rc verb code
+  for verb in 'done' failed; do
+    case_dir=$(make_case "troot-tagged-$verb")
+    make_traced_case "$case_dir" 'done: earlier success' 'failed: earlier failure'       "$verb [corr=0123456789abcdef]: final result"       'working [corr=fedcba9876543210]: later nonterminal update'
+    rc=0
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+    expect_code 0 "$rc" "teardown with tagged $verb should succeed"
+    code=1
+    [ "$verb" != failed ] || code=2
+    troot_expect_root "$case_dir" "$code" "$verb"
+  done
+  case_dir=$(make_case troot-unbracketed-failed)
+  make_traced_case "$case_dir" 'done: earlier success'
+  printf '%s' 'failed corr=0123456789abcdef: final failure' >> "$case_dir/state/task-x1.status"
+  rc=0
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 0 "$rc" "teardown with unbracketed failure should succeed"
+  troot_expect_root "$case_dir" 2 failed
+  pass "root span uses last tagged terminal event, including unterminated status lines"
+}
+
+test_task_root_span_forced_attribute() {
+  local case_dir rc body
+  case_dir=$(make_case troot-forced)
+  write_meta "$case_dir" local-only ship
+  printf '%s\n' \
+    "traceparent=$TROOT_CARRIER" \
+    'trace_started=1700000000000' \
+    >> "$case_dir/state/task-x1.meta"
+  printf '%s\n' 'working: implementing' > "$case_dir/state/task-x1.status"
+  printf '%s\n' "$$" > "$case_dir/state/.lock"
+  printf '%s on\n' "$$" > "$case_dir/state/.trace-context-effective"
+  wt_commit "$case_dir" "fix the thing"
+
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "forced teardown should succeed"
+  [ -f "$case_dir/curl.log" ] || fail "forced teardown recorded no span post"
+  body=$(troot_body "$case_dir/curl.log" 1)
+  assert_contains "$body" '"firstmate.teardown.forced","value":{"stringValue":"true"}' \
+    "a --force teardown must carry the forced attribute"
+  assert_contains "$body" '"firstmate.task.outcome","value":{"stringValue":"unknown"}' \
+    "no terminal status line must read as outcome=unknown"
+  pass "root span: --force carries firstmate.teardown.forced=true"
+}
+
+test_task_root_span_disabled_home_posts_nothing() {
+  local case_dir rc
+  case_dir=$(make_case troot-off)
+  write_meta "$case_dir" local-only ship
+  wt_commit "$case_dir" "fix the thing"
+  add_fork_with_pushed_branch "$case_dir"
+  # No .lock / .trace-context-effective in the case state: the frozen session
+  # decision is off, and the meta records no carrier either.
+
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "untraced teardown should succeed"
+  [ ! -f "$case_dir/curl.log" ] || ! grep -q '^ARGS:' "$case_dir/curl.log" \
+    || fail "an untraced teardown must post no span"
+  pass "root span: disabled home posts nothing"
 }
 
 test_local_only_fork_remote_allows() {
@@ -3667,6 +3827,11 @@ EOF
 }
 
 test_local_only_fork_remote_allows
+test_task_root_span_emitted_from_recorded_ids_and_status
+test_task_root_span_failed_status
+test_task_root_span_tagged_terminal_status
+test_task_root_span_forced_attribute
+test_task_root_span_disabled_home_posts_nothing
 test_teardown_closes_the_backlog_item_itself
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
 test_local_only_truly_unpushed_refuses

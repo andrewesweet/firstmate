@@ -286,6 +286,8 @@ SUB_HOME_PARENT_MARKER=".fm-secondmate-parent"
 . "$SCRIPT_DIR/fm-pending-reply-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
 . "$SCRIPT_DIR/fm-nm-run-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$SCRIPT_DIR/fm-trace-span-lib.sh"
 if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
   echo "error: invalid teardown request" >&2
   exit 2
@@ -3451,6 +3453,19 @@ fm_backend_clear_transition "$BACKEND" "$STATE" "$T" || true
 [ -n "$TASK_TMP" ] && rm -rf "$TASK_TMP"
 remove_pr_poll_artifacts "$STATE" "$ID" || exit 1
 retire_busy_state "$STATE" "$ID" "$BUSY_GEN" || exit 1
+# The terminal outcome is read here, before the status file is retired below:
+# the last captain-relevant done:/failed: line decides the task root span's
+# OTLP status and outcome attribute (bin/fm-trace-span-lib.sh's header owns
+# the catalogue entry emitted just before the backlog record removal).
+TEARDOWN_SPAN_OUTCOME=
+if [ -f "$STATE/$ID.status" ]; then
+  while IFS= read -r TEARDOWN_SPAN_LINE || [ -n "$TEARDOWN_SPAN_LINE" ]; do
+    TEARDOWN_SPAN_VERB=$(status_line_verb "$TEARDOWN_SPAN_LINE")
+    case $TEARDOWN_SPAN_VERB in
+      done|failed) TEARDOWN_SPAN_OUTCOME=$TEARDOWN_SPAN_VERB ;;
+    esac
+  done < "$STATE/$ID.status"
+fi
 status_retire_presentation_task "$STATE" "$ID" || exit 1
 rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
   "$STATE/$ID.pi-ext.ts" "$STATE/$ID.omp-ext.ts" "$STATE/$ID.grok-turnend-token" \
@@ -3464,6 +3479,35 @@ rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
 # retired endpoint; teardown only runs after landing is confirmed, so any
 # leftover unhandled steer here is moot rather than unlanded work.
 rm -rf "$STATE/$ID.inbox"
+# The task root span: emitted immediately before the backlog record removal,
+# carrying the final meta values and the outcome captured above.
+TEARDOWN_SPAN_START=$(fm_meta_get "$META" trace_started)
+[ -n "$TEARDOWN_SPAN_START" ] || TEARDOWN_SPAN_START=-
+TEARDOWN_SPAN_STATUS="unset"
+case $TEARDOWN_SPAN_OUTCOME in
+  done) TEARDOWN_SPAN_STATUS=ok ;;
+  failed) TEARDOWN_SPAN_STATUS=error ;;
+  *)
+    if [ "$KIND" = secondmate ]; then
+      TEARDOWN_SPAN_OUTCOME=retired
+    else
+      TEARDOWN_SPAN_OUTCOME=unknown
+    fi
+    ;;
+esac
+TEARDOWN_SPAN_ATTRS=("firstmate.task.outcome=$TEARDOWN_SPAN_OUTCOME")
+TEARDOWN_SPAN_VAL=$(fm_meta_get "$META" mode)
+[ -z "$TEARDOWN_SPAN_VAL" ] || TEARDOWN_SPAN_ATTRS+=("firstmate.task.mode=$TEARDOWN_SPAN_VAL")
+TEARDOWN_SPAN_VAL=$(fm_meta_get "$META" yolo)
+[ -z "$TEARDOWN_SPAN_VAL" ] || TEARDOWN_SPAN_ATTRS+=("firstmate.task.yolo=$TEARDOWN_SPAN_VAL")
+TEARDOWN_SPAN_VAL=$(fm_meta_get "$META" pr)
+[ -z "$TEARDOWN_SPAN_VAL" ] || TEARDOWN_SPAN_ATTRS+=("firstmate.pr.url=$TEARDOWN_SPAN_VAL")
+if [ "$FORCE" = --force ]; then
+  TEARDOWN_SPAN_ATTRS+=("firstmate.teardown.forced=true")
+fi
+TEARDOWN_SPAN_VAL=$(fm_meta_get "$META" spawn_gen)
+[ -z "$TEARDOWN_SPAN_VAL" ] || TEARDOWN_SPAN_ATTRS+=("firstmate.spawn_gen=$TEARDOWN_SPAN_VAL")
+fm_trace_span_emit "$META" firstmate.task "$TEARDOWN_SPAN_START" - --root --status "$TEARDOWN_SPAN_STATUS" "${TEARDOWN_SPAN_ATTRS[@]}"
 # The record is gone, so the backlog must not still show this task in flight
 # when teardown reports success. Still under this task's meta lock, so a steer
 # racing the same id stays serialized exactly as it was before. A captain-held

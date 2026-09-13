@@ -8,8 +8,8 @@ This document is the rationale and current-behavior guide; `docs/configuration.m
 ## Why this is a source change at all
 
 Firstmate's durable operational artifacts already let a downstream observer derive logical task identity and lifecycle.
-The source capability an observer cannot reconstruct after launch is a task-scoped trace id delivered in the agent's environment before launch and recorded under the same identity in task metadata.
-This feature delivers that carrier and resource attributes at the same launch boundary.
+Firstmate emits the task root using the identity it minted and captures lifecycle data before teardown removes `state/<id>.meta` and `state/<id>.status`.
+This avoids requiring an observer to capture those ephemeral records before cleanup.
 
 ## What it does
 
@@ -20,7 +20,9 @@ When enabled, for each spawn Firstmate resolves one W3C `traceparent` carrier fo
 - records the identical value as `traceparent=` in `state/<id>.meta`.
 
 `TRACEPARENT` as an environment variable is a Firstmate convention carrying a W3C-formatted value: W3C Trace Context standardizes the `traceparent` HTTP header, not an env var, and OpenTelemetry SDKs do not read it from the environment automatically, so a downstream observer must explicitly read this env value or the `traceparent=` meta field.
-This feature parents no SDK span by itself.
+The carrier seam itself parents no SDK span on the agent's behalf.
+Firstmate also emits its own lifecycle spans; [`fm-trace-span-lib.sh`](../bin/fm-trace-span-lib.sh) owns the span catalogue, wire shape, endpoint configuration, and delivery contract.
+
 The same enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the pane immediately after `TRACEPARENT`, with a fixed `firstmate.*` key list for instrumentation that consumes resource attributes; `bin/fm-trace-context-lib.sh`'s header owns the key list and the percent encoding.
 
 Because the injected carrier and the recorded carrier are the same string, an observer that reads the metadata reconstructs exactly the identity the child received.
@@ -82,7 +84,7 @@ This is a deliberate, source-owned choice:
   Recovery reuses the task's recorded carrier byte-for-byte, flags included, so a task's sampling decision is stable across restarts.
   Firstmate chooses the flag only when it mints a *root*, which is the only way a new carrier is created.
 - **Cost and privacy consequence.**
-  `01` records a sampling *decision*, and a conforming downstream parent-based sampler will honor it - but it does not by itself guarantee that any collector stores a span, and Firstmate emits no spans of its own; it only sets the flag on the carrier.
+  `01` records a sampling *decision*, and a conforming downstream parent-based sampler will honor it - but it does not by itself guarantee that any collector stores a span: the flag rides the carrier, and Firstmate's own emitter contributes at most the small catalogue of lifecycle spans per task.
   An operator who enables the capability and points sampling-respecting instrumentation at it should expect on the order of one trace per task to be recorded, at whatever cardinality and retention that instrumentation is configured for.
   An operator who wants unsampled roots or head-sampling owns that downstream or via a later, explicitly-scoped option; Firstmate does not embed a sampler.
 
@@ -91,11 +93,12 @@ This is a deliberate, source-owned choice:
 - **Default-off.**
   With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` line, so the generated meta and the launch environment are unchanged.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
-  A locked session start makes the one config-file check, and each spawn sources one extra library and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
+  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
   Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim; ambient `TRACEPARENT` is never read, so no caller-controlled bytes enter a new carrier.
-  Carrier exposure is bounded to that fixed-width value - it cannot carry a `tracestate`, an `OTEL_*` credential variable, or any arbitrary environment key, and there is no configurable or arbitrary command (only the fixed local `od`/`tr` for entropy).
+  Carrier exposure is bounded to that fixed-width value; lifecycle emission has a broader payload governed by the emitter header's security boundary.
+  Review that payload before enabling export to a receiver outside the home's trust boundary.
   Resource attributes expose task metadata, including the project basename and home path, plus secondmate identity from metadata or the spawning home's marker, as specified in `bin/fm-trace-context-lib.sh`'s header.
   Firstmate reads no prompt, credential, or task prose to render those attributes.
   The export preserves any existing pane `OTEL_RESOURCE_ATTRIBUTES` as a comma prefix and appends Firstmate's keys; consumers determine how duplicate keys are interpreted.
@@ -109,14 +112,16 @@ This is a deliberate, source-owned choice:
   If the backend reports that failed trace input could not be cleared, Firstmate refuses to append the launch command rather than risk launching with an unknown partial carrier.
   A resource-attribute delivery failure unsets `OTEL_RESOURCE_ATTRIBUTES` in the launch command; input that cannot be cleared refuses the launch.
   If recording the carrier fails after export, Firstmate unsets `TRACEPARENT` in the launch command and still launches the task, so the child never receives an identity absent from its metadata.
-- **Metadata-only.**
-  The value lives in the ephemeral pane shell and in `state/<id>.meta`; teardown removes state as before, so there is no new durable surface and no schema migration.
+  The emitter header owns the separate delivery timeout and failure contract.
+- **Ephemeral local state.**
+  The carrier lives in the pane shell and task metadata; teardown removes local trace state as before.
+  Receiver storage and retention remain outside Firstmate.
 
 ## Relationship to OpenTelemetry and later increments
 
-Firstmate sets resource attributes but configures no exporter, collector, storage, UI, or MLflow experiment.
-It emits a standard W3C carrier and records the same identity; a downstream observer owns everything else and discovers active propagation from the home session's frozen decision or the `traceparent=` field.
-Native lifecycle-event emission, extra stable IDs, intake metadata, and any embedded OTLP are deliberately deferred until a running observer demonstrates a concrete fidelity gap that the derived artifacts cannot cover.
+Firstmate implements OTLP/HTTP emission without a collector, storage, UI, or vendor-specific experiment configuration.
+A downstream integration owns experiment routing, including MLflow experiments, and harness instrumentation; it discovers active propagation from the home session's frozen decision or the `traceparent=` field.
+Extra stable IDs, intake metadata, and any deeper OpenTelemetry integration remain deferred until a running observer demonstrates a concrete fidelity gap that the emitted spans and derived artifacts cannot cover.
 
 ## Verification
 

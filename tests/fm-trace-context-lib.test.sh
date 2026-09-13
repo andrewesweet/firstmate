@@ -211,6 +211,9 @@ ef_res=$(FM_TRACE_CONTEXT=on fm_trace_context_resolve "$CFG_ON" "$NOMETA"); ef_r
 [ -z "$ef_res" ] && [ "$ef_res_rc" -eq 0 ] || fail "resolve must omit and STILL return 0 on entropy failure (rc=$ef_res_rc out='$ef_res')"
 pass "entropy failure omits telemetry safely: mint reports failure, resolve returns success with no carrier"
 
+fm_trace_context_resolve "$CFG_OFF" "$NOMETA" >/dev/null || fail "resolve must return 0 when off"
+pass "disabled resolver returns success"
+
 # --- secondmate inheritance wires the nested chain ---------------------------
 
 # shellcheck source=/dev/null
