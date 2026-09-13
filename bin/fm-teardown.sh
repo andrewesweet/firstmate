@@ -3457,7 +3457,15 @@ retire_busy_state "$STATE" "$ID" "$BUSY_GEN" || exit 1
 # the last captain-relevant done:/failed: line decides the task root span's
 # OTLP status and outcome attribute (bin/fm-trace-span-lib.sh's header owns
 # the catalogue entry emitted just before the backlog record removal).
-TEARDOWN_SPAN_OUTCOME=$(awk '/^(done|failed):/ { v=$1; sub(/:$/, "", v) } END { print v }' "$STATE/$ID.status" 2>/dev/null || true)
+TEARDOWN_SPAN_OUTCOME=
+if [ -f "$STATE/$ID.status" ]; then
+  while IFS= read -r TEARDOWN_SPAN_LINE || [ -n "$TEARDOWN_SPAN_LINE" ]; do
+    TEARDOWN_SPAN_VERB=$(status_line_verb "$TEARDOWN_SPAN_LINE")
+    case $TEARDOWN_SPAN_VERB in
+      done|failed) TEARDOWN_SPAN_OUTCOME=$TEARDOWN_SPAN_VERB ;;
+    esac
+  done < "$STATE/$ID.status"
+fi
 status_retire_presentation_task "$STATE" "$ID" || exit 1
 rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
   "$STATE/$ID.pi-ext.ts" "$STATE/$ID.omp-ext.ts" "$STATE/$ID.grok-turnend-token" \

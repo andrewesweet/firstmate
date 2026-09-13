@@ -756,6 +756,28 @@ test_task_root_span_failed_status() {
   pass "root span: failed: -> error/outcome=failed"
 }
 
+test_task_root_span_tagged_terminal_status() {
+  local case_dir rc verb code
+  for verb in done failed; do
+    case_dir=$(make_case "troot-tagged-$verb")
+    make_traced_case "$case_dir" 'done: earlier success' 'failed: earlier failure'       "$verb [corr=0123456789abcdef]: final result"       'working [corr=fedcba9876543210]: later nonterminal update'
+    rc=0
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+    expect_code 0 "$rc" "teardown with tagged $verb should succeed"
+    code=1
+    [ "$verb" != failed ] || code=2
+    troot_expect_root "$case_dir" "$code" "$verb"
+  done
+  case_dir=$(make_case troot-unbracketed-failed)
+  make_traced_case "$case_dir" 'done: earlier success'
+  printf '%s' 'failed corr=0123456789abcdef: final failure' >> "$case_dir/state/task-x1.status"
+  rc=0
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 0 "$rc" "teardown with unbracketed failure should succeed"
+  troot_expect_root "$case_dir" 2 failed
+  pass "root span uses last tagged terminal event, including unterminated status lines"
+}
+
 test_task_root_span_forced_attribute() {
   local case_dir rc body
   case_dir=$(make_case troot-forced)
@@ -3807,6 +3829,7 @@ EOF
 test_local_only_fork_remote_allows
 test_task_root_span_emitted_from_recorded_ids_and_status
 test_task_root_span_failed_status
+test_task_root_span_tagged_terminal_status
 test_task_root_span_forced_attribute
 test_task_root_span_disabled_home_posts_nothing
 test_teardown_closes_the_backlog_item_itself
