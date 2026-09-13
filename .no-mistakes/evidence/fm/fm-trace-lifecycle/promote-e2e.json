@@ -1,0 +1,103 @@
+{
+  "command": "bin/fm-promote.sh sc1 --mode no-mistakes --yolo off",
+  "exit_code": 0,
+  "output": "promoted sc1 to ship mode=no-mistakes yolo=off (teardown protection restored)\nwrote ship instructions for mode=no-mistakes: /tmp/fm-promote.e0QkaT/reviewer-evidence/home/data/sc1/ship-instructions.md\nnext: FM_HOME=/tmp/fm-promote.e0QkaT/reviewer-evidence/home bin/fm-send.sh fm-sc1 \"$(cat /tmp/fm-promote.e0QkaT/reviewer-evidence/home/data/sc1/ship-instructions.md)\"",
+  "published_task_kind": "ship",
+  "telemetry_request_count": 1,
+  "otlp": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "firstmate"
+              }
+            },
+            {
+              "key": "firstmate.task.id",
+              "value": {
+                "stringValue": "sc1"
+              }
+            },
+            {
+              "key": "firstmate.project",
+              "value": {
+                "stringValue": "proj"
+              }
+            },
+            {
+              "key": "firstmate.home",
+              "value": {
+                "stringValue": "/tmp/fm-promote.e0QkaT/reviewer-evidence/home"
+              }
+            },
+            {
+              "key": "firstmate.task.kind",
+              "value": {
+                "stringValue": "ship"
+              }
+            },
+            {
+              "key": "firstmate.harness",
+              "value": {
+                "stringValue": "claude"
+              }
+            },
+            {
+              "key": "firstmate.model",
+              "value": {
+                "stringValue": "default"
+              }
+            },
+            {
+              "key": "firstmate.effort",
+              "value": {
+                "stringValue": "default"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "firstmate"
+            },
+            "spans": [
+              {
+                "traceId": "11111111111111111111111111111113",
+                "spanId": "f461a263d35f0c56",
+                "parentSpanId": "4444444444444445",
+                "name": "firstmate.promote",
+                "kind": 1,
+                "startTimeUnixNano": "1789281982865000000",
+                "endTimeUnixNano": "1789281982865000000",
+                "attributes": [
+                  {
+                    "key": "firstmate.task.kind.prior",
+                    "value": {
+                      "stringValue": "scout"
+                    }
+                  },
+                  {
+                    "key": "firstmate.task.mode",
+                    "value": {
+                      "stringValue": "no-mistakes"
+                    }
+                  },
+                  {
+                    "key": "firstmate.task.yolo",
+                    "value": {
+                      "stringValue": "off"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

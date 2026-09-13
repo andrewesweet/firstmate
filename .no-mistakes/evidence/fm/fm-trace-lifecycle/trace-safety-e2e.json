@@ -1,0 +1,15 @@
+{
+  "default_off": {
+    "exit_code": 0,
+    "output": "promoted sc1 to ship mode=direct-PR yolo=on (teardown protection restored)\nwrote ship instructions for mode=direct-PR: /tmp/fm-promote.H4kXhe/reviewer-off/home/data/sc1/ship-instructions.md\nnext: FM_HOME=/tmp/fm-promote.H4kXhe/reviewer-off/home bin/fm-send.sh fm-sc1 \"$(cat /tmp/fm-promote.H4kXhe/reviewer-off/home/data/sc1/ship-instructions.md)\"",
+    "published_task_kind": "ship",
+    "telemetry_requests": 0
+  },
+  "collector_exit_7": {
+    "exit_code": 0,
+    "output": "promoted sc1 to ship mode=local-only yolo=off (teardown protection restored)\nwrote ship instructions for mode=local-only: /tmp/fm-promote.H4kXhe/reviewer-emitter-fail/home/data/sc1/ship-instructions.md\nnext: FM_HOME=/tmp/fm-promote.H4kXhe/reviewer-emitter-fail/home bin/fm-send.sh fm-sc1 \"$(cat /tmp/fm-promote.H4kXhe/reviewer-emitter-fail/home/data/sc1/ship-instructions.md)\"",
+    "published_task_kind": "ship",
+    "telemetry_attempts": 1,
+    "curl_invocation": "ARGS: <-sS> <--max-time> <1> <-o> </dev/null> <-H> <Content-Type: application/json> <--data-binary> <@-> <http://127.0.0.1:4318/v1/traces>"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "command": "bin/fm-control.sh t1 exit",
+  "exit_code": 0,
+  "output": "stopped t1 harness=claude backend=tmux endpoint=fmses:fm-t1 worktree=/tmp/fm-control.xqhDHq/reviewer-evidence-4974/wt-t1",
+  "verified_process_after": "zsh",
+  "telemetry_request_count": 1,
+  "otlp": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "firstmate"
+              }
+            },
+            {
+              "key": "firstmate.task.id",
+              "value": {
+                "stringValue": "t1"
+              }
+            },
+            {
+              "key": "firstmate.project",
+              "value": {
+                "stringValue": "proj-t1"
+              }
+            },
+            {
+              "key": "firstmate.home",
+              "value": {
+                "stringValue": "/tmp/fm-control.xqhDHq/reviewer-evidence-4974/home"
+              }
+            },
+            {
+              "key": "firstmate.task.kind",
+              "value": {
+                "stringValue": "ship"
+              }
+            },
+            {
+              "key": "firstmate.harness",
+              "value": {
+                "stringValue": "claude"
+              }
+            },
+            {
+              "key": "firstmate.model",
+              "value": {
+                "stringValue": "default"
+              }
+            },
+            {
+              "key": "firstmate.effort",
+              "value": {
+                "stringValue": "default"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "firstmate"
+            },
+            "spans": [
+              {
+                "traceId": "11111111111111111111111111111112",
+                "spanId": "84a2c92fc51ddba3",
+                "parentSpanId": "3333333333333334",
+                "name": "firstmate.control",
+                "kind": 1,
+                "startTimeUnixNano": "1789281996530000000",
+                "endTimeUnixNano": "1789281996719000000",
+                "attributes": [
+                  {
+                    "key": "firstmate.control.verb",
+                    "value": {
+                      "stringValue": "exit"
+                    }
+                  },
+                  {
+                    "key": "firstmate.control.confirmed",
+                    "value": {
+                      "stringValue": "true"
+                    }
+                  },
+                  {
+                    "key": "firstmate.control.result",
+                    "value": {
+                      "stringValue": "stopped"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "command": "bin/fm-send.sh t1 <reviewer-demo payload>",
+  "exit_code": 0,
+  "delivery": {
+    "record": "state/t1.inbox/001.msg",
+    "persisted_body": "reviewer-demo steering payload",
+    "terminal_input": ": Firstmate instruction waiting: list '/tmp/fm-send-inbox.6Mv66e/reviewer-evidence/home/state/t1.inbox'/*.msg and, in numeric order, read and act on each, then mv each handled file to '/tmp/fm-send-inbox.6Mv66e/reviewer-evidence/home/state/t1.inbox'/handled/."
+  },
+  "telemetry_request_count": 1,
+  "telemetry_contains_message": false,
+  "otlp": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "firstmate"
+              }
+            },
+            {
+              "key": "firstmate.task.id",
+              "value": {
+                "stringValue": "t1"
+              }
+            },
+            {
+              "key": "firstmate.home",
+              "value": {
+                "stringValue": "/tmp/fm-send-inbox.6Mv66e/reviewer-evidence/home"
+              }
+            },
+            {
+              "key": "firstmate.task.kind",
+              "value": {
+                "stringValue": "ship"
+              }
+            },
+            {
+              "key": "firstmate.harness",
+              "value": {
+                "stringValue": "claude"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "firstmate"
+            },
+            "spans": [
+              {
+                "traceId": "11111111111111111111111111111112",
+                "spanId": "3223350e7817c9d7",
+                "parentSpanId": "3333333333333334",
+                "name": "firstmate.steer",
+                "kind": 1,
+                "startTimeUnixNano": "1789281970959000000",
+                "endTimeUnixNano": "1789281970960000000",
+                "attributes": [
+                  {
+                    "key": "firstmate.plane",
+                    "value": {
+                      "stringValue": "inbox"
+                    }
+                  },
+                  {
+                    "key": "firstmate.inbox.seq",
+                    "value": {
+                      "stringValue": "001"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

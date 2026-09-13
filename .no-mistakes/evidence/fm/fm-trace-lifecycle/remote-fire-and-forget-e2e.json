@@ -1,0 +1,100 @@
+{
+  "command": "bin/fm-send.sh rsm --fire-and-forget 0123456789abcdef <reviewer-demo payload>",
+  "unconfirmed_attempt": {
+    "exit_code": 3,
+    "stderr": "notice: doorbell not typed because the agent in fm-remote:p1 has exited; the steer is durably recorded at /tmp/fm-send-remote-delivery.ADtawv/reviewer-evidence-rhome/state/parent-route/rsm.inbox/001.msg for recovery\nerror: fire-and-forget steer to remote secondmate rsm is unconfirmed (delivery-id=0123456789abcdef); retry only with the same delivery id",
+    "telemetry_requests": 0
+  },
+  "confirmed_retry": {
+    "exit_code": 0,
+    "stderr": "notice: doorbell not typed because the agent in fm-remote:p1 has exited; the steer is durably recorded at /tmp/fm-send-remote-delivery.ADtawv/reviewer-evidence-rhome/state/parent-route/rsm.inbox/001.msg for recovery",
+    "remote_inbox_records": 1,
+    "delivery_id_attribute": "0123456789abcdef",
+    "telemetry_requests": 1,
+    "telemetry_contains_message": false
+  },
+  "otlp": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "firstmate"
+              }
+            },
+            {
+              "key": "firstmate.task.id",
+              "value": {
+                "stringValue": "rsm"
+              }
+            },
+            {
+              "key": "firstmate.home",
+              "value": {
+                "stringValue": "/tmp/fm-send-remote-delivery.ADtawv/reviewer-evidence-21727"
+              }
+            },
+            {
+              "key": "firstmate.task.kind",
+              "value": {
+                "stringValue": "secondmate"
+              }
+            },
+            {
+              "key": "firstmate.secondmate.id",
+              "value": {
+                "stringValue": "rsm"
+              }
+            },
+            {
+              "key": "firstmate.harness",
+              "value": {
+                "stringValue": "claude"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "firstmate"
+            },
+            "spans": [
+              {
+                "traceId": "11111111111111111111111111111112",
+                "spanId": "907917eb5c134d43",
+                "parentSpanId": "3333333333333334",
+                "name": "firstmate.steer",
+                "kind": 1,
+                "startTimeUnixNano": "1789282022244000000",
+                "endTimeUnixNano": "1789282022244000000",
+                "attributes": [
+                  {
+                    "key": "firstmate.plane",
+                    "value": {
+                      "stringValue": "inbox"
+                    }
+                  },
+                  {
+                    "key": "firstmate.fire_and_forget",
+                    "value": {
+                      "stringValue": "true"
+                    }
+                  },
+                  {
+                    "key": "firstmate.delivery.id",
+                    "value": {
+                      "stringValue": "0123456789abcdef"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
