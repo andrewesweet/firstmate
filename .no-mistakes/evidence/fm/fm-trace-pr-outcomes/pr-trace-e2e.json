@@ -1,0 +1,256 @@
+{
+  "scenario": "attended, green GitHub PR merged through the real Firstmate merge entrypoint",
+  "command": "bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/9",
+  "exitCode": 0,
+  "stdout": "armed: state/task-x1.check.sh\nverified: https://github.com/example/repo/pull/9 is merged (state=MERGED, merged=true, isInMergeQueue=false)\n",
+  "stderr": "●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n●  WATCHER DOWN - SUPERVISION IS OFF\n●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n●  This is a supervision warning only; the guarded operation WILL still run.\n●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.\n●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nverified: https://github.com/example/repo/pull/9 is open and mergeable, with every required check green at head deadbeefcafefeed0000000000000000deadbeef\n",
+  "forgeCalls": "pr view https://github.com/example/repo/pull/9 --json headRefOid -q .headRefOid\npr view https://github.com/example/repo/pull/9 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup\npr merge 9 --repo example/repo --match-head-commit deadbeefcafefeed0000000000000000deadbeef --squash\napi graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=9 --jq .data.repository.pullRequest | \"state=\" + (.state // \"\"), \"merged=\" + (.merged | tostring), \"queued=\" + (.isInMergeQueue | tostring), \"base=\" + (.baseRefName // \"\")\n",
+  "recordedTaskMetadata": "window=fm-task-x1\nworktree=/tmp/tmp.bcywJJ2t3R/wt\nproject=/tmp/tmp.bcywJJ2t3R/project\nkind=ship\nmode=no-mistakes\nyolo=off\ntraceparent=00-11111111111111111111111111111112-3333333333333334-01\ntrace_started=1700000000000\npr=https://github.com/example/repo/pull/9\npr_head=deadbeefcafefeed0000000000000000deadbeef\n",
+  "durableMergePublication": {
+    "wakeQueue": "1789277585\t1\tcheck\tmerged-task-x1-https://github.com/example/repo/pull/9\tcheck: merge landed: task-x1 https://github.com/example/repo/pull/9\n",
+    "dedupMarker": "fm-pr-poll-merge-notified-v1\ngithub\ngithub.com\nexample/repo\n9\n"
+  },
+  "duplicatePollPublicationAttempt": "rc=0 already_recorded=true\n",
+  "traceRequestCountAfterDuplicate": 2,
+  "otlpRequests": {
+    "ready": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "task-x1"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "project"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/tmp/tmp.bcywJJ2t3R"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "11111111111111111111111111111112",
+                  "spanId": "bf460f9c9dada716",
+                  "parentSpanId": "3333333333333334",
+                  "name": "firstmate.pr.ready",
+                  "kind": 1,
+                  "startTimeUnixNano": "1789277585028000000",
+                  "endTimeUnixNano": "1789277585029000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.pr.url",
+                      "value": {
+                        "stringValue": "https://github.com/example/repo/pull/9"
+                      }
+                    },
+                    {
+                      "key": "firstmate.pr.head",
+                      "value": {
+                        "stringValue": "deadbeefcafefeed0000000000000000deadbeef"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "merged": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "task-x1"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "project"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/tmp/tmp.bcywJJ2t3R"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "11111111111111111111111111111112",
+                  "spanId": "4cce05b3e7d84699",
+                  "parentSpanId": "3333333333333334",
+                  "name": "firstmate.pr.merged",
+                  "kind": 1,
+                  "startTimeUnixNano": "1789277585846000000",
+                  "endTimeUnixNano": "1789277585846000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.pr.url",
+                      "value": {
+                        "stringValue": "https://github.com/example/repo/pull/9"
+                      }
+                    },
+                    {
+                      "key": "firstmate.merge.origin",
+                      "value": {
+                        "stringValue": "self"
+                      }
+                    },
+                    {
+                      "key": "firstmate.merge.authority",
+                      "value": {
+                        "stringValue": "attended"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "transport": {
+    "readyCurlArgs": "-sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://collector.test/v1/traces\n",
+    "mergedCurlArgs": "-sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://collector.test/v1/traces\n"
+  },
+  "defaultOffRegistration": {
+    "exitCode": 0,
+    "stdout": "armed: state/task-x1.check.sh\n",
+    "traceRequestsBefore": 2,
+    "traceRequestsAfter": 2
+  },
+  "collectorFailureBestEffort": {
+    "configuredCurlExitCode": 7,
+    "registrationExitCode": 0,
+    "stdout": "armed: state/task-x1.check.sh\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n",
+    "curlArgs": "-sS --max-time 1 -o /dev/null -H Content-Type: application/json --data-binary @- http://collector.test/v1/traces\n",
+    "attemptedOtlpRequest": {
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "stringValue": "firstmate"
+                }
+              },
+              {
+                "key": "firstmate.task.id",
+                "value": {
+                  "stringValue": "task-x1"
+                }
+              },
+              {
+                "key": "firstmate.project",
+                "value": {
+                  "stringValue": "project"
+                }
+              },
+              {
+                "key": "firstmate.home",
+                "value": {
+                  "stringValue": "/tmp/tmp.bcywJJ2t3R"
+                }
+              },
+              {
+                "key": "firstmate.task.kind",
+                "value": {
+                  "stringValue": "ship"
+                }
+              }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "scope": {
+                "name": "firstmate"
+              },
+              "spans": [
+                {
+                  "traceId": "11111111111111111111111111111112",
+                  "spanId": "0e7bb5081a60b32e",
+                  "parentSpanId": "3333333333333334",
+                  "name": "firstmate.pr.ready",
+                  "kind": 1,
+                  "startTimeUnixNano": "1789277639059000000",
+                  "endTimeUnixNano": "1789277639060000000",
+                  "attributes": [
+                    {
+                      "key": "firstmate.pr.url",
+                      "value": {
+                        "stringValue": "https://github.com/example/repo/pull/9"
+                      }
+                    },
+                    {
+                      "key": "firstmate.pr.head",
+                      "value": {
+                        "stringValue": "deadbeefcafefeed0000000000000000deadbeef"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
