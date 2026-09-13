@@ -1001,18 +1001,26 @@ remove_interrupted_answer_stamp() {  # <task-id>
   rm -f -- "$tmp"
 }
 
-# The firstmate.hold span: emitted after a close path durably published its
-# resolution, covering the recorded hold-set time through that settlement.
+# The firstmate.hold span: emitted once, after a close path durably published
+# a settlement it performed, covering the recorded hold-set time through that
+# settlement; an idempotent replay of an already-completed close emits nothing.
 # bin/fm-trace-span-lib.sh's header owns the catalogue entry; this script owns
-# the metadata reads. The stamp is read from the body captured before the
-# close because a successful close legitimately removes it, and the hold
-# reason from the show output captured while the hold was still live. Emission
-# is bounded and best-effort; a telemetry failure never changes the close.
+# the metadata reads. A separate captain call created with --origin has no
+# meta of its own and joins the same-home origin task's trace through the
+# "Origin:" provenance line the hold recorded. The stamp is read from the body
+# captured before the close because a successful close legitimately removes
+# it, and the hold reason from the show output captured while the hold was
+# still live. Emission is bounded and best-effort; a telemetry failure never
+# changes the close.
 emit_hold_close_span() {  # <task-id> <pre-close-shown-body> <close-mode> <hold-reason>
   local id=$1 body=$2 mode=$3 reason=${4:-} meta="$STATE/$1.meta"
-  local stamp stamp_s start_ms=''
-  [ -f "$meta" ] || return 0
+  local stamp stamp_s start_ms='' origin
   body=$(decode_shown_value "$body") || body=''
+  if [ ! -f "$meta" ]; then
+    origin=$(printf '%s\n' "$body" | sed -n 's/^Origin: \([A-Za-z0-9._-]*\)$/\1/p' | head -1)
+    [ -n "$origin" ] && [ -f "$STATE/$origin.meta" ] || return 0
+    meta="$STATE/$origin.meta"
+  fi
   stamp=$(body_hold_set_timestamp "$body")
   if [ -n "$stamp" ]; then
     case $stamp in
@@ -1070,7 +1078,6 @@ command_answer() {
       else
         publish_parent_resolution_then_retire "$id" $((occurrence - 1)) answered
       fi
-      emit_hold_close_span "$id" "$body" "${recorded_mode:-answered}" "$hold_reason"
       printf 'answered: %s\n' "$id"
       return 0
     fi
@@ -1141,7 +1148,6 @@ command_answer() {
       || fail "task $id records this answer with mode ${recorded_mode:-unknown}; replay requires matching --release"
     remove_interrupted_answer_stamp "$id"
     publish_parent_resolution_then_retire "$id" $((occurrence - 1)) released
-    emit_hold_close_span "$id" "$body" released "$hold_reason"
     printf 'released: %s\n' "$id"
     return 0
   fi
@@ -1354,7 +1360,6 @@ command_answers() {
           released) publish_parent_resolution_then_retire "$id" "$occurrence" released ;;
           *) publish_parent_resolution_then_retire "$id" "$occurrence" answered ;;
         esac
-        emit_hold_close_span "$id" "$body" "${recorded_mode:-answered}" "$hold_reason"
         printf 'closed: %s\n' "$id"
         closed=$((closed + 1))
         continue
@@ -1578,7 +1583,6 @@ reconcile_close() {
     [ "$PARENT_HOLD_PUBLISHED" = 1 ] \
       || fail "could not publish the reconciled captain-held task $id to its parent"
     reconcile_request_retire "$id"
-    emit_hold_close_span "$id" "$body" reconciled "$hold_reason"
     printf 'reconciled: %s\n' "$id"
     return 0
   fi
@@ -1601,8 +1605,8 @@ reconcile_close() {
   publish_parent_hold "$id" "$occurrence" resolved reconciled
   [ "$PARENT_HOLD_PUBLISHED" = 1 ] \
     || fail "could not publish the reconciled captain-held task $id to its parent"
-  reconcile_request_retire "$id"
   emit_hold_close_span "$id" "$body" reconciled "$hold_reason"
+  reconcile_request_retire "$id"
   printf 'reconciled: %s\n' "$id"
 }
 

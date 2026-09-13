@@ -262,12 +262,40 @@ SH
     ([$a[] | select(.key == "firstmate.hold.reason")][0].value.stringValue == "captain must choose the export shape")
   ' >/dev/null 2>&1 <<< "$body" \
     || fail "the hold span lost its close mode or reason"
-  # An exact answer replay is idempotent and posts again: the emitter keeps no
-  # dedup state, so an interrupted-and-repeated close may post a duplicate.
+  # An exact answer replay of the completed close settles nothing and posts
+  # nothing: a replay-time span would fake a second, zero-length hold.
   run_captain "$home" answer traced-call --decision-file "$home/wide.txt" >/dev/null \
     || fail "the idempotent answer replay failed"
-  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 2 ] \
-    || fail "the replay did not repost the hold span"
+  [ "$(grep -c '^ARGS:' "$home/curl.log")" = 1 ] \
+    || fail "the completed-close replay must not repost the hold span"
+
+  # A separate captain call created with --origin has no meta of its own and
+  # joins the same-home origin task's trace.
+  tasks_in "$home" add traced-origin "Origin work" --kind ship --repo sample --start >/dev/null \
+    || fail "could not create the traced origin task"
+  fm_write_meta "$home/state/traced-origin.meta" \
+    "window=firstmate:traced-origin" \
+    "traceparent=00-66666666666666666666666666666667-8888888888888889-01" \
+    "project=$home/projects/sample" \
+    "kind=ship" \
+    "harness=codex"
+  FM_CAPTAIN_HOLD_NOW=2026-06-01T13:00:00Z run_captain "$home" hold origin-call \
+    --title "Question from the origin" --origin traced-origin --reason "origin needs a ruling" >/dev/null \
+    || fail "could not hold the origin-linked captain call"
+  printf 'Ruled.\n' > "$home/ruled.txt"
+  run_captain "$home" answer origin-call --decision-file "$home/ruled.txt" >/dev/null \
+    || fail "could not answer the origin-linked captain call"
+  count=$(grep -c '^ARGS:' "$home/curl.log" || true)
+  [ "$count" = 2 ] || fail "expected the origin-linked answer to post the second span, got $count"
+  body=$(hold_span_body 2)
+  jq -e --argjson start "$((stamp_epoch + 3600))" '
+    .resourceSpans[0].scopeSpans[0].spans[0] |
+    .name == "firstmate.hold" and
+    .traceId == "66666666666666666666666666666667" and
+    .parentSpanId == "8888888888888889" and
+    .startTimeUnixNano == (($start * 1000 * 1000000) | tostring)
+  ' >/dev/null 2>&1 <<< "$body" \
+    || fail "the origin-linked hold span must join the origin task's trace at the call's own hold-set time"
 
   # --release lifts a held work item and posts a released span on its trace.
   tasks_in "$home" add traced-work "Apply the captain choice" --kind ship --repo sample --start >/dev/null \

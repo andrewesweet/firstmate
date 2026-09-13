@@ -1636,6 +1636,83 @@ SH
   pass "acknowledgement spans cover task-keyed rows only, from queue time to commit"
 }
 
+# The presentation-to-acknowledgement window: a task legitimately torn down
+# while its wake is handled loses its meta before the ack, so the drain keeps
+# the minimum trace context it captured at presentation and still posts every
+# consumed row's span, all sharing the one acknowledgement instant; the capture
+# is discarded afterwards. A capture that cannot be written is silent, blocks
+# neither presentation nor acknowledgement, and leaves the live-meta span path
+# intact. An already-acknowledged batch replays nothing.
+test_wake_spans_survive_teardown_and_share_one_acknowledgement_instant() {
+  local dir state fakebin sequence generation count ends traces
+  command -v jq >/dev/null 2>&1 || fail "jq is required for the wake-span assertions"
+  dir=$(make_case wake-spans-teardown)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+{ printf 'ARGS:'; printf ' <%s>' "$@"; printf '\n'; cat; printf '\n--BODY-END--\n'; } \
+  >> "${FM_FAKE_CURL_LOG:?FM_FAKE_CURL_LOG required}"
+exit 0
+SH
+  chmod +x "$fakebin/curl"
+  printf '%s\n' "$$" > "$state/.lock"
+  printf '%s on\n' "$$" > "$state/.trace-context-effective"
+  fm_write_meta "$state/gone.meta" \
+    "window=firstmate:gone" \
+    "traceparent=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbc-01" \
+    "kind=ship"
+  fm_write_meta "$state/kept.meta" \
+    "window=firstmate:kept" \
+    "traceparent=00-cccccccccccccccccccccccccccccccd-dddddddddddddddd-01"
+  mkdir -p "$state/.wake-trace.kept"
+  append_wake "$state" signal gone.status "signal: $state/gone.status" \
+    || fail "first signal wake append failed"
+  append_wake "$state" check gone.status "check: $state/gone.status" \
+    || fail "check wake append failed"
+  append_wake "$state" signal kept.status "signal: $state/kept.status" \
+    || fail "second signal wake append failed"
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$dir/drain.out" 2> "$dir/drain.err" \
+    || fail "presentation drain failed"
+  [ -f "$state/.wake-trace.gone" ] || fail "presentation did not capture the traced task's context"
+  grep -q '^traceparent=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbc-01$' "$state/.wake-trace.gone" \
+    || fail "the capture lost the task carrier"
+  [ ! -e "$state/.wake-trace.kept.tmp" ] || fail "an unwritable capture left its staging file behind"
+  sequence=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$dir/drain.err")
+  generation=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through [0-9][0-9]* --recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' "$dir/drain.err")
+  [ -n "$sequence" ] && [ -n "$generation" ] || fail "drain omitted its acknowledgement boundary"
+  rm -f -- "$state/gone.meta"
+  FM_FAKE_CURL_LOG="$dir/curl.log" PATH="$fakebin:$PATH" \
+    FM_STATE_OVERRIDE="$state" "$DRAIN" \
+    --ack-through "$sequence" --recovery-generation "$generation" \
+    || fail "acknowledgement failed after the task was torn down"
+  [ ! -s "$state/.wake-queue" ] || fail "acknowledged records remained queued"
+  count=$(grep -c '^ARGS:' "$dir/curl.log" || true)
+  [ "$count" = 3 ] || fail "expected one span per consumed task-keyed row, got $count"
+  traces=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { print buf; buf = ""; next }
+    { buf = buf $0 }
+  ' "$dir/curl.log" | jq -r '.resourceSpans[0].scopeSpans[0].spans[0].traceId' | LC_ALL=C sort | uniq -c | tr -s ' ')
+  [ "$traces" = " 2 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+ 1 cccccccccccccccccccccccccccccccd" ] \
+    || fail "spans must join the torn-down task's captured trace and the kept task's live trace, got: $traces"
+  ends=$(awk '
+    /^ARGS:/ { next }
+    /^--BODY-END--$/ { print buf; buf = ""; next }
+    { buf = buf $0 }
+  ' "$dir/curl.log" | jq -r '.resourceSpans[0].scopeSpans[0].spans[0].endTimeUnixNano' | LC_ALL=C sort -u | wc -l | tr -d ' ')
+  [ "$ends" = 1 ] || fail "every span of one acknowledgement must share its end instant, got $ends distinct"
+  [ ! -e "$state/.wake-trace.gone" ] || fail "the capture must be discarded once acknowledged"
+  FM_FAKE_CURL_LOG="$dir/curl.log" PATH="$fakebin:$PATH" \
+    FM_STATE_OVERRIDE="$state" "$DRAIN" \
+    --ack-through "$sequence" --recovery-generation "$generation" \
+    || fail "acknowledgement replay failed"
+  [ "$(grep -c '^ARGS:' "$dir/curl.log")" = 3 ] \
+    || fail "an already-acknowledged batch must not repost wake spans"
+  pass "wake spans outlive task teardown, share one acknowledgement instant, and fail open"
+}
+
 test_self_held_lock_reclaims_instead_of_deadlocking() {
   local dir state rc
   dir=$(make_case self-held-lock)
@@ -1996,6 +2073,7 @@ test_acknowledged_stall_publication_survives_pre_marker_crash
 test_empty_prefix_mate_preserves_other_mate_receipt
 test_self_announced_append_guards
 test_acknowledgement_emits_task_keyed_wake_spans_only
+test_wake_spans_survive_teardown_and_share_one_acknowledgement_instant
 test_historical_annotation_skips_announced_status
 test_concurrent_append_and_drain
 test_signal_catchup_without_running_watcher

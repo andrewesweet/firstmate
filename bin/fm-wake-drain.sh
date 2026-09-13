@@ -37,7 +37,7 @@ RECOVERY_ACK_MOVED=false
 ACK_THROUGH=
 ACK_GENERATION=
 ACK_REMOVED=0
-ACK_ROWS_TMP=
+ACK_ROWS=
 PRESENTED_MAX=0
 ACK_FINGERPRINTS=
 ACK_NOTICE_FINGERPRINTS=
@@ -617,7 +617,6 @@ cleanup() {
   local status=$?
   [ -z "$DRAIN_TMP" ] || rm -f -- "$DRAIN_TMP" 2>/dev/null || true
   [ -z "$DRAIN_VIEW_TMP" ] || rm -f -- "$DRAIN_VIEW_TMP" 2>/dev/null || true
-  [ -z "${ACK_ROWS_TMP:-}" ] || rm -f -- "$ACK_ROWS_TMP" 2>/dev/null || true
   if [ "$DRAIN_LOCK_HELD" = true ]; then
     fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   fi
@@ -630,26 +629,84 @@ trap 'exit 143' TERM
 
 # The firstmate.wake spans for one successful acknowledgement: after the
 # commit, one span per consumed row whose key maps to a home task, covering
-# the row's queue time through this acknowledgement. bin/fm-trace-span-lib.sh's
-# header owns the catalogue entry; fm_wake_status_key_map owns the task
-# mapping, so heartbeats, per-poll checks, and window-keyed stale rows emit
-# nothing, and a task without a recorded carrier is the same silent no-op.
-# Bounded and best-effort: a telemetry failure can never un-acknowledge a row.
-acknowledged_wake_spans() {  # <consumed-rows-file>
-  local rows=$1 epoch seq kind key payload task start_ms
-  [ -f "$rows" ] || return 0
+# the row's queue time through the one acknowledgement instant shared by the
+# whole batch. bin/fm-trace-span-lib.sh's header owns the catalogue entry;
+# fm_wake_status_key_map owns the task mapping, so heartbeats, per-poll
+# checks, and window-keyed stale rows emit nothing, and a task without a
+# recorded carrier is the same silent no-op.
+#
+# A task legitimately torn down while its wake was being handled has no meta
+# left by the time the queue is acknowledged, so presentation captures the
+# minimum trace context (carrier plus the resource lines the span lib reads)
+# beside the queue as $STATE/.wake-trace.<task>, and acknowledgement
+# falls back to that capture, then discards it. The capture is telemetry
+# only: it is never authoritative for the queue, guarantees no delivery, and
+# every failure to write, read, or remove it is silent. Bounded and
+# best-effort: a telemetry failure can never un-acknowledge a row.
+wake_trace_capture_path() {  # <task>
+  printf '%s/.wake-trace.%s\n' "$STATE" "$1"
+}
+
+capture_presented_wake_traces() {  # <presented-rows>
+  local epoch seq kind key payload task meta capture
+  [ -n "$1" ] || return 0
+  [ "$(fm_trace_context_session_effective "$STATE/.trace-context-effective")" = on ] || return 0
   while IFS=$(printf '\t') read -r epoch seq kind key payload; do
     case $kind in signal | stale | check) ;; *) continue ;; esac
     fm_wake_status_key_map "$key" || continue
     task=${FM_WAKE_STATUS_KEY%.status}
+    meta="$STATE/$task.meta"
+    fm_trace_context_valid "$(fm_trace_context_recorded "$meta")" || continue
+    capture=$(wake_trace_capture_path "$task")
+    if ! {
+      grep -E '^(endpoint_task_id|traceparent|project|kind|harness|model|effort|spawn_gen)=' "$meta"
+      printf 'endpoint_task_id=%s\n' "$task"
+    } > "$capture.tmp" 2>/dev/null \
+      || ! chmod 0600 "$capture.tmp" 2>/dev/null \
+      || ! mv -f -- "$capture.tmp" "$capture" 2>/dev/null; then
+      rm -f -- "$capture.tmp" 2>/dev/null || true
+    fi
+  done <<< "$1"
+  return 0
+}
+
+acknowledged_wake_spans() {  # <consumed-rows>
+  local rows=$1 end_ms epoch seq kind key payload task meta start_ms captures=''
+  [ -n "$rows" ] || return 0
+  end_ms=$(fm_timing_now_ms)
+  while IFS=$(printf '\t') read -r epoch seq kind key payload; do
+    case $kind in signal | stale | check) ;; *) continue ;; esac
+    fm_wake_status_key_map "$key" || continue
+    task=${FM_WAKE_STATUS_KEY%.status}
+    meta="$STATE/$task.meta"
+    [ -f "$meta" ] || meta=$(wake_trace_capture_path "$task")
+    captures="$captures$(wake_trace_capture_path "$task")"$'\n'
     case $epoch in
       '' | *[!0-9]*) start_ms=- ;;
       *) start_ms=$((epoch * 1000)) ;;
     esac
-    fm_trace_span_emit "$STATE/$task.meta" firstmate.wake "$start_ms" - \
+    fm_trace_span_emit "$meta" firstmate.wake "$start_ms" "$end_ms" \
       "firstmate.wake.kind=$kind" "firstmate.wake.seq=$seq" "firstmate.wake.key=$key"
-  done < "$rows"
-  rm -f -- "$rows"
+  done <<< "$rows"
+  while IFS= read -r meta; do
+    [ -z "$meta" ] || rm -f -- "$meta" 2>/dev/null || true
+  done <<< "$captures"
+  return 0
+}
+
+# One pass partitions the queue for this actor's acknowledgement: a row is
+# consumed only when its sequence is <= cutoff AND it is named in the actor's
+# row set (the extension's eligible snapshot for branch, main's claim for
+# main); every other row - including one whose sequence is below cutoff but
+# not in the set - is retained untouched. Retained rows become the new queue
+# (<retained-file>); consumed rows go to stdout for the span emission and are
+# never read back into queue state.
+partition_acknowledged_rows() {  # <actor-rows-file> <retained-file>
+  awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$1" -v retained="$2" '
+    BEGIN { while ((getline line < seqs) > 0) if (line ~ /^[0-9]+$/) owned[line] = 1 }
+    NF < 5 || $2 !~ /^[0-9]+$/ || $2 > cutoff || !($2 in owned) { print > retained; next }
+    { print }
+  ' "$FM_WAKE_QUEUE"
 }
 
 if [ -n "$ACK_THROUGH" ]; then
@@ -713,30 +770,11 @@ if [ -n "$ACK_THROUGH" ]; then
   DRAIN_LOCK_HELD=true
   DRAIN_TMP=$(mktemp "$STATE/.wake-queue.ack.XXXXXX") || exit 1
   chmod 0600 "$DRAIN_TMP" || exit 1
-  ACK_ROWS_TMP=$(mktemp "$STATE/.wake-queue.ack-spans.XXXXXX") || exit 1
-  chmod 0600 "$ACK_ROWS_TMP" || exit 1
   if [ "$ACTOR" = branch ]; then
     require_branch_eligible_rows || exit 1
-    # Delete a row only when its sequence is <= cutoff AND it is named in the
-    # extension's eligible snapshot; every other row - including one whose
-    # sequence is below cutoff but not in the snapshot - is kept untouched.
-    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$ELIGIBLE_ROWS_FILE" '
-      BEGIN { while ((getline line < seqs) > 0) if (line ~ /^[0-9]+$/) keep[line] = 1 }
-      NF < 5 || $2 !~ /^[0-9]+$/ || $2 > cutoff || !($2 in keep) { print }
-    ' "$FM_WAKE_QUEUE" > "$DRAIN_TMP" || exit 1
-    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$ELIGIBLE_ROWS_FILE" '
-      BEGIN { while ((getline line < seqs) > 0) if (line ~ /^[0-9]+$/) keep[line] = 1 }
-      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && ($2 in keep) { print }
-    ' "$FM_WAKE_QUEUE" > "$ACK_ROWS_TMP" || exit 1
+    ACK_ROWS=$(partition_acknowledged_rows "$ELIGIBLE_ROWS_FILE" "$DRAIN_TMP") || exit 1
   else
-    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$MAIN_ROWS_FILE" '
-      BEGIN { while ((getline line < seqs) > 0) owned[line]=1 }
-      NF < 5 || $2 !~ /^[0-9]+$/ || $2 > cutoff || !($2 in owned) { print }
-    ' "$FM_WAKE_QUEUE" > "$DRAIN_TMP" || exit 1
-    awk -F '\t' -v cutoff="$ACK_THROUGH" -v seqs="$MAIN_ROWS_FILE" '
-      BEGIN { while ((getline line < seqs) > 0) owned[line]=1 }
-      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && ($2 in owned) { print }
-    ' "$FM_WAKE_QUEUE" > "$ACK_ROWS_TMP" || exit 1
+    ACK_ROWS=$(partition_acknowledged_rows "$MAIN_ROWS_FILE" "$DRAIN_TMP") || exit 1
     fm_wake_commit_secondmate_stall_receipts_through "$ACK_THROUGH" "$MAIN_ROWS_FILE" || {
       echo "wake drain: secondmate stall receipt could not be recorded safely" >&2
       exit 1
@@ -773,8 +811,7 @@ if [ -n "$ACK_THROUGH" ]; then
   fi
   fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   DRAIN_LOCK_HELD=false
-  acknowledged_wake_spans "$ACK_ROWS_TMP"
-  ACK_ROWS_TMP=
+  acknowledged_wake_spans "$ACK_ROWS"
   if [ "$ACK_REMOVED" -eq 0 ] && [ "$PRESENTED_MAX" -gt "$ACK_THROUGH" ]; then
     # Nothing at or below the cutoff was this actor's to consume, while a
     # presented row above it is still waiting: the caller acknowledged an
@@ -889,6 +926,7 @@ esac
 if [ -n "$RAW_ROWS" ]; then
   printf '%s\n' "$RAW_ROWS" || exit "$?"
 fi
+capture_presented_wake_traces "$RAW_ROWS"
 fm_recovery_marker_snapshot "$RECOVERY_MARKER" || exit 1
 RECOVERY_MARKER_TOKEN=$FM_RECOVERY_MARKER_TOKEN
 case "$RECOVERY_MARKER_TOKEN" in
