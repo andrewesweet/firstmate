@@ -658,10 +658,10 @@ capture_presented_wake_traces() {  # <presented-rows>
     meta="$STATE/$task.meta"
     fm_trace_context_valid "$(fm_trace_context_recorded "$meta")" || continue
     capture=$(wake_trace_capture_path "$task")
-    if ! {
-      grep -E '^(endpoint_task_id|traceparent|project|kind|harness|model|effort|spawn_gen)=' "$meta"
-      printf 'endpoint_task_id=%s\n' "$task"
-    } > "$capture.tmp" 2>/dev/null \
+    if ! awk -v task="$task" '
+        /^(endpoint_task_id|traceparent|project|kind|harness|model|effort|spawn_gen)=/ { print }
+        END { print "endpoint_task_id=" task }
+      ' "$meta" > "$capture.tmp" 2>/dev/null \
       || ! chmod 0600 "$capture.tmp" 2>/dev/null \
       || ! mv -f -- "$capture.tmp" "$capture" 2>/dev/null; then
       rm -f -- "$capture.tmp" 2>/dev/null || true

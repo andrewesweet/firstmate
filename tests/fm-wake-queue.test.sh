@@ -1593,7 +1593,7 @@ SH
     || fail "check wake append failed"
   append_wake "$state" heartbeat heartbeat heartbeat \
     || fail "heartbeat wake append failed"
-  FM_FAKE_CURL_LOG="$dir/curl.log" \
+  FM_FAKE_CURL_LOG="$dir/curl.log" PATH="$fakebin:$PATH" \
     FM_STATE_OVERRIDE="$state" "$DRAIN" > "$dir/drain.out" 2> "$dir/drain.err" \
     || fail "presentation drain failed"
   [ -f "$dir/curl.log" ] && [ -s "$dir/curl.log" ] \
@@ -1665,7 +1665,7 @@ SH
   fm_write_meta "$state/kept.meta" \
     "window=firstmate:kept" \
     "traceparent=00-cccccccccccccccccccccccccccccccd-dddddddddddddddd-01"
-  mkdir -p "$state/.wake-trace.kept"
+  mkdir -p "$state/.wake-trace.kept.tmp"
   append_wake "$state" signal gone.status "signal: $state/gone.status" \
     || fail "first signal wake append failed"
   append_wake "$state" check gone.status "check: $state/gone.status" \
@@ -1677,7 +1677,7 @@ SH
   [ -f "$state/.wake-trace.gone" ] || fail "presentation did not capture the traced task's context"
   grep -q '^traceparent=00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab-bbbbbbbbbbbbbbbc-01$' "$state/.wake-trace.gone" \
     || fail "the capture lost the task carrier"
-  [ ! -e "$state/.wake-trace.kept.tmp" ] || fail "an unwritable capture left its staging file behind"
+  [ ! -e "$state/.wake-trace.kept" ] || fail "an unwritable capture must be skipped, not written"
   sequence=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$dir/drain.err")
   generation=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through [0-9][0-9]* --recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' "$dir/drain.err")
   [ -n "$sequence" ] && [ -n "$generation" ] || fail "drain omitted its acknowledgement boundary"

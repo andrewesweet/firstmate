@@ -108,7 +108,7 @@
 #       recorded hold-set time through that settlement on the held task's
 #       trace, or the same-home origin task's trace for a separate --origin
 #       call; attributes firstmate.hold.close_mode (answered, released,
-#       repaired, routed, reconciled) and firstmate.hold.reason (bounded),
+#       repaired, reconciled) and firstmate.hold.reason (bounded),
 #       read from the pre-close record because the close legitimately
 #       removes them.
 #     firstmate.reply - bin/fm-pending-reply-lib.sh, once per newly settled

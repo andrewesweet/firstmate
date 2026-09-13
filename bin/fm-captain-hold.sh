@@ -1250,7 +1250,7 @@ sanitize_reconcile_provenance() {
 }
 
 command_answers() {
-  local origin='' source='' row rest key answer label mode id show state hold_kind hold_reason body digest legacy_digest legacy_key
+  local origin='' source='' row rest key answer label mode id show state hold_kind body digest legacy_digest legacy_key
   local recorded_digest recorded_mode occurrence tmp err closed=0 skipped=0 reason release_flag tab=$'\t'
   local resolve_rc
   while [ "$#" -gt 0 ]; do
@@ -1342,7 +1342,6 @@ command_answers() {
     show=$TASK_SHOW_OUTPUT
     state=$(show_field "$show" state)
     hold_kind=$(show_field_value "$show" hold_kind)
-    hold_reason=$(show_field_value "$show" hold_reason)
     body=$(show_field "$show" body)
     recorded_digest=$(recorded_decision_digest "$body" || true)
     recorded_mode=$(recorded_resolution_mode "$body" || true)

@@ -115,6 +115,8 @@ _FM_PENDING_REPLY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/n
 . "$_FM_PENDING_REPLY_LIB_DIR/fm-tmux-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
 . "$_FM_PENDING_REPLY_LIB_DIR/fm-classify-lib.sh"
+# shellcheck source=bin/fm-trace-span-lib.sh
+. "$_FM_PENDING_REPLY_LIB_DIR/fm-trace-span-lib.sh"
 
 FM_PENDING_REPLY_SCHEMA='fm-pending-reply.v1'
 FM_PENDING_REPLY_CORR_RE='corr=[A-Fa-f0-9]{16}'
@@ -708,9 +710,6 @@ _fm_pending_reply_try_resolve_locked() {  # <state-dir> <corr_id> [status-file-o
 # un-resolve a settled reply.
 fm_pending_reply_emit_settle_span() {  # <state-dir> <record-path> <corr-id> <via>
   local state=$1 rec=$2 corr=$3 via=$4 task_id delivered start_ms
-  [ -f "$_FM_PENDING_REPLY_LIB_DIR/fm-trace-span-lib.sh" ] || return 0
-  # shellcheck source=bin/fm-trace-span-lib.sh
-  . "$_FM_PENDING_REPLY_LIB_DIR/fm-trace-span-lib.sh"
   task_id=$(fm_pending_reply_get "$rec" task_id)
   case $task_id in '' | .* | *[!A-Za-z0-9._-]*) return 0 ;; esac
   delivered=$(fm_pending_reply_get "$rec" delivered_epoch)
