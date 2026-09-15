@@ -2601,6 +2601,12 @@ EOF
   assert_contains "$out" "COMPACTED SKILLS - SUMMARIES ARE VOID" \
     "a full compact digest did not print the compacted-skills block"
 
+  # A Pi compaction on the same home has no PreCompact writer, so it must not
+  # print a record a Claude session left behind.
+  out=$(FM_FAKE_HARNESS=pi run_pi_session_start "$home" "$root" "$fakebin:$BASE_PATH" --reemit --source compact)
+  assert_not_contains "$out" "COMPACTED SKILLS" \
+    "a Pi compaction printed the Claude-owned compacted-skills record"
+
   # A clear re-emit does not print the block; the next compaction overwrites
   # the record either way.
   out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" PATH="$fakebin:$BASE_PATH" \
@@ -2617,7 +2623,7 @@ EOF
   assert_not_contains "$out" "COMPACTED SKILLS" \
     "a sourceless re-emit replayed the compacted-skills block"
 
-  pass "every compact-source digest prints the compacted-skills block; other sources never print it"
+  pass "every Claude compact-source digest prints the compacted-skills block; other harnesses and sources never print it"
 }
 
 # --- fleet-state digest: no in-flight tasks ----------------------------------

@@ -693,12 +693,16 @@ fi
 # Compaction summarizes the conversation, and a loaded skill's actual
 # procedure lived only in that conversation: AGENTS.md survives compaction,
 # so every load trigger survives, but the loaded skill bodies do not. The
-# tracked PreCompact hook (bin/fm-precompact-skills.sh, whose header owns the
-# record format) records which skills this session had loaded before the
-# compaction; every compact-source digest, re-emit or full, prints that
-# record as a loud block. Other sources never print it, and the next
-# PreCompact rewrites the record from the cumulative transcript.
-if [ "$SESSION_SOURCE" = compact ] && [ -s "$STATE/.compact-skills" ]; then
+# tracked Claude PreCompact hook (bin/fm-precompact-skills.sh, whose header
+# owns the record format) records which skills this session had loaded before
+# the compaction; every Claude compact-source digest, re-emit or full, prints
+# that record as a loud block. Only Claude writes the record, so only a Claude
+# compaction prints it: another harness's compaction on the same home would
+# otherwise print a set that session never loaded. Other sources never print
+# it, and the next PreCompact rewrites the record from the cumulative
+# transcript.
+case "$PRIMARY_HARNESS:$SESSION_SOURCE" in claude:compact) COMPACT_SKILLS_BLOCK=1 ;; *) COMPACT_SKILLS_BLOCK=0 ;; esac
+if [ "$COMPACT_SKILLS_BLOCK" -eq 1 ] && [ -s "$STATE/.compact-skills" ]; then
   section "COMPACTED SKILLS - SUMMARIES ARE VOID"
   printf 'Compaction ran while this session had the skills below loaded. Their exact\n'
   printf 'procedures lived in the conversation compaction summarized away, so what you\n'
