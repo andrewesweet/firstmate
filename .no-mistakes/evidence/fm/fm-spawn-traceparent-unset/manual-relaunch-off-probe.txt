@@ -1,0 +1,6 @@
+spawned probe-relaunch-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-probe-relaunch-z1 worktree=/tmp/fm-trace-context-spawn.kfbMZu/probe-relaunch/wt
+error: task probe-relaunch-z1's endpoint reads 'missing'; a relaunch requires a positively agent-free endpoint (stop the agent first with bin/fm-control.sh probe-relaunch-z1 exit)
+== OFF relaunch: launch line ==
+== OFF relaunch: 'unset TRACEPARENT;' occurrences ==
+  0
+== OFF relaunch: replay with ambient TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01 ==

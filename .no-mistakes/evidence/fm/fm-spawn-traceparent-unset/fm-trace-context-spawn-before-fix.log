@@ -1,0 +1,8 @@
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+not ok - the off decision must unset TRACEPARENT in the launch command
