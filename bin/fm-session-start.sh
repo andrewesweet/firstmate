@@ -695,10 +695,10 @@ fi
 # so every load trigger survives, but the loaded skill bodies do not. The
 # tracked PreCompact hook (bin/fm-precompact-skills.sh, whose header owns the
 # record format) records which skills this session had loaded before the
-# compaction; this compact-source re-emit is the one digest that prints that
-# record, as a loud block. Other sources never print it, and the next
+# compaction; every compact-source digest, re-emit or full, prints that
+# record as a loud block. Other sources never print it, and the next
 # PreCompact rewrites the record from the cumulative transcript.
-if [ "$REEMIT" -eq 1 ] && [ "$SESSION_SOURCE" = compact ] && [ -s "$STATE/.compact-skills" ]; then
+if [ "$SESSION_SOURCE" = compact ] && [ -s "$STATE/.compact-skills" ]; then
   section "COMPACTED SKILLS - SUMMARIES ARE VOID"
   printf 'Compaction ran while this session had the skills below loaded. Their exact\n'
   printf 'procedures lived in the conversation compaction summarized away, so what you\n'

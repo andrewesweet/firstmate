@@ -12,7 +12,7 @@
 # names preserving first-load order, and writes them one per line to the
 # $FM_HOME-resolved state/.compact-skills.
 #
-# The consuming side is bin/fm-session-start.sh's --reemit --source compact
+# The consuming side is bin/fm-session-start.sh's --source compact
 # path: it prints the record as a loud COMPACTED SKILLS block (summaries
 # void; re-load each skill at its next AGENTS.md trigger). Each PreCompact
 # overwrites the record from the cumulative transcript. This script's header

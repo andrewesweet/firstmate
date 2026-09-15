@@ -40,7 +40,7 @@ On a run-tier harness the nudge cannot also fire: `resume`, `reload`, and `fork`
 
 Compaction carries one extra re-emit behavior on every harness whose compaction reaches this boundary.
 The Claude `PreCompact` hook registered in `.claude/settings.json` runs `bin/fm-precompact-skills.sh`, which records the skills the session had loaded, one per line, into `state/.compact-skills` before the conversation is summarized away.
-A `--reemit --source compact` digest prints that record as the loud `COMPACTED SKILLS` block: the loaded skill summaries are void, each skill must be re-loaded at its next `AGENTS.md` trigger, and any task-scoped decision that was mid-flight needs the stow skill's open-work check.
+Every `--source compact` digest, re-emit or full, prints that record as the loud `COMPACTED SKILLS` block: the loaded skill summaries are void, each skill must be re-loaded at its next `AGENTS.md` trigger, and any task-scoped decision that was mid-flight needs the stow skill's open-work check.
 Only the `compact` source prints the block; each `PreCompact` run overwrites the record from the cumulative transcript.
 
 ## Runtime bound

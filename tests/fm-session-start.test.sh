@@ -2593,6 +2593,14 @@ EOF
   assert_contains "$out" "open-work check" \
     "the block did not point at the stow skill's open-work check"
 
+  # A full compact digest (no proven complete startup, so no --reemit) prints
+  # the block too: the record exists only because PreCompact just wrote it.
+  out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" PATH="$fakebin:$BASE_PATH" \
+    env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
+    "$SESSION_START" --source compact)
+  assert_contains "$out" "COMPACTED SKILLS - SUMMARIES ARE VOID" \
+    "a full compact digest did not print the compacted-skills block"
+
   # A clear re-emit does not print the block; the next compaction overwrites
   # the record either way.
   out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" PATH="$fakebin:$BASE_PATH" \
@@ -2609,7 +2617,7 @@ EOF
   assert_not_contains "$out" "COMPACTED SKILLS" \
     "a sourceless re-emit replayed the compacted-skills block"
 
-  pass "the compact re-emit prints the compacted-skills block; other sources never print it"
+  pass "every compact-source digest prints the compacted-skills block; other sources never print it"
 }
 
 # --- fleet-state digest: no in-flight tasks ----------------------------------
