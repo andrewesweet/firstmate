@@ -1,0 +1,16 @@
+# Scenario: PreCompact hook, manual trigger, multi-skill transcript built from real Claude tool_use lines
+# Skill calls in transcript order (with duplicates), plus one Bash tool_use and one tool-schema line:
+"name":"Skill","input":{"skill":"harness-adapters"
+"name":"Skill","input":{"skill":"stuck-crewmate-recovery"
+"name":"Skill","input":{"skill":"harness-adapters"
+"name":"Skill","input":{"skill":"ask-user-authority"
+"name":"Skill","input":{"skill":"captain-hold-lifecycle"
+"name":"Skill","input":{"skill":"stuck-crewmate-recovery"
+"name":"Bash","input":{"command":"find /home/andre -maxdepth 4 -type d -na
+# exit=0
+# state/.compact-skills (expect 4 names, de-duplicated, first-load order):
+harness-adapters
+stuck-crewmate-recovery
+ask-user-authority
+captain-hold-lifecycle
+# (end)

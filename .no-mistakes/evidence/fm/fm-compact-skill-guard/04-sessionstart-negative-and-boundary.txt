@@ -1,0 +1,32 @@
+# Adversarial: record still present: harness-adapters,stuck-crewmate-recovery,ask-user-authority,captain-hold-lifecycle,
+
+## A. Claude source=clear re-emit (record present) - block must NOT print
+header: SESSION START (CONTEXT RE-EMIT) - /tmp/fm-compact-live.59Zm7y/home
+COMPACTED lines: 0
+
+## B. Pi harness (PI_CODING_AGENT=true FM_PI_HARNESS=pi, CLAUDECODE unset) source=compact on same home - block must NOT print
+harness line: SUPERVISION OPERATING INSTRUCTIONS - primary harness: pi
+header: SESSION START (CONTEXT RE-EMIT) - /tmp/fm-compact-live.59Zm7y/home
+COMPACTED lines: 0
+
+## C. Claude source=compact with NO completed startup (state/.session-start-complete removed) - full digest must still print block
+header: SESSION START - /tmp/fm-compact-live.59Zm7y/home
+COMPACTED lines: 1
+COMPACTED SKILLS - SUMMARIES ARE VOID
+================================================================================
+Compaction ran while this session had the skills below loaded. Their exact
+procedures lived in the conversation compaction summarized away, so what you
+remember of them is a summary and is void. Re-load each one, at its next
+AGENTS.md load trigger, before following its procedure:
+
+  - harness-adapters
+  - stuck-crewmate-recovery
+  - ask-user-authority
+
+## D. Claude source=compact with EMPTY record (PreCompact saw transcript with no Skill calls) - block must NOT print
+precompact exit=0 record bytes=0
+header: SESSION START (CONTEXT RE-EMIT) - /tmp/fm-compact-live.59Zm7y/home
+COMPACTED lines: 0
+
+## E. GROK_AGENT set: settings.json PreCompact command exits 0 before the hook runs (record untouched)
+exit=0 record=sentinel

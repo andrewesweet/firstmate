@@ -1,0 +1,10 @@
+# Scenario: PreCompact hook on a REAL Claude transcript (/home/andre/.claude/projects/-home-andre/475bc20b-c073-59a4-8b2f-48491a288b24.jsonl)
+# transcript: 790 lines; real Skill tool_use calls in it:
+"name":"Skill","input":{"skill":"gnhf"
+# lines that mention "name":"Skill" as a TOOL SCHEMA (must NOT be recorded): 1
+# hook command from .claude/settings.json: [ -z "${GROK_AGENT:-}${GROK_HOOK_EVENT:-}" ] || exit 0; exec "$CLAUDE_PROJECT_DIR"/bin/fm-precompact-skills.sh
+# stdin payload: {"session_id":"475bc20b-c073-59a4-8b2f-48491a288b24","transcript_path":"/home/andre/.claude/projects/-home-andre/475bc20b-c073-59a4-8b2f-48491a288b24.jsonl","cwd":"/tmp/fm-compact-live.59Zm7y/home","permission_mode":"default","hook_event_name":"PreCompact","trigger":"auto","custom_instructions":""}
+# exit=0 stdout+stderr=[]
+# state/.compact-skills:
+gnhf
+# (end)
