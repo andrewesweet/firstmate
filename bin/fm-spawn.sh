@@ -346,8 +346,9 @@
 # TRACEPARENT, and the same pane channel carries one OTEL_RESOURCE_ATTRIBUTES
 # export rendered from the task record (bin/fm-trace-context-lib.sh's header
 # owns the key list), so attribute-joining harnesses carry the task's join
-# keys; the default-off path writes and sends neither, leaving the generated
-# meta and launch environment unchanged. A task spawned inside a marked
+# keys; the default-off path writes and sends neither and instead prefixes the
+# launch command with `unset TRACEPARENT;`, so an inherited ambient carrier
+# never reaches the worker. A task spawned inside a marked
 # secondmate home also records trace_link=, the strictly validated ambient
 # TRACEPARENT of the routing agent, beside its carrier - never as the carrier
 # itself; a primary home records no trace_link= (bin/fm-trace-context-lib.sh's
@@ -3969,9 +3970,6 @@ if [ "$KIND" = secondmate ]; then
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
 fi
-if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
-  LAUNCH="unset TRACEPARENT; $LAUNCH"
-fi
 
 spawn_record_traceparent() {
   local meta="$STATE/$ID.meta" status=0 acquired=0 record
@@ -4024,8 +4022,11 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   spawn_send_text_line "$T" "export FM_TASK_ID=$ID"
 fi
 # Send through the exact channel that already ships GOTMPDIR, so every backend
-# and harness - ship, scout, and secondmate - gets it before launch. Skipped
-# entirely when trace context is off.
+# and harness - ship, scout, and secondmate - gets it before launch. With trace
+# context on the carrier is exported first; with it off the launch command still
+# scrubs any inherited ambient TRACEPARENT (the same prefix the failed sends
+# below use), so the worker sees Firstmate's fresh carrier or none at all and
+# never a stale value the pane or daemon inherited at its own launch.
 if [ -n "$SPAWN_TRACEPARENT" ]; then
   if spawn_send_text_line "$T" "export TRACEPARENT=$SPAWN_TRACEPARENT"; then
     if ! spawn_record_traceparent; then
@@ -4063,6 +4064,8 @@ if [ -n "$SPAWN_TRACEPARENT" ]; then
       LAUNCH="unset OTEL_RESOURCE_ATTRIBUTES; $LAUNCH"
     fi
   fi
+else
+  LAUNCH="unset TRACEPARENT; $LAUNCH"
 fi
 if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   LAUNCH_ENV_PREFIX='/usr/bin/env -i'

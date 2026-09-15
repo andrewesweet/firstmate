@@ -25,6 +25,8 @@ Firstmate also emits its own lifecycle spans; [`fm-trace-span-lib.sh`](../bin/fm
 
 The same enabled spawn also exports one `OTEL_RESOURCE_ATTRIBUTES` value into the pane immediately after `TRACEPARENT`, with a fixed `firstmate.*` key list for instrumentation that consumes resource attributes; `bin/fm-trace-context-lib.sh`'s header owns the key list and the percent encoding.
 
+An off decision takes the opposite defense: the launch command itself is prefixed with `unset TRACEPARENT;`, so an ambient value the pane or daemon inherited at its own launch can never reach the worker.
+
 Because the injected carrier and the recorded carrier are the same string, an observer that reads the metadata reconstructs exactly the identity the child received.
 The injection sits at the unconditional pre-launch export site, so it covers ship and scout spawns across `claude`, `codex`, `opencode`, `pi`, `pi-signed`, `grok`, `kimi`, `cursor`, `gemini`, `muse`, and `rovo`, plus Secondmate spawns across that same set except the deliberately crewmate-only `gemini`, `muse`, and `rovo` adapters.
 This is the same coverage `GOTMPDIR` already has and requires no trace-specific `launch_template()` behavior.
@@ -96,9 +98,9 @@ This is a deliberate, source-owned choice:
 ## Safety
 
 - **Default-off.**
-  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` or `trace_link=` line, so the generated meta and the launch environment are unchanged.
+  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` or `trace_link=` line, so the generated meta is unchanged; the only launch-environment effect is the `unset TRACEPARENT;` scrub described above, which removes an inherited value rather than adding one.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
-  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
+  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but beyond that scrub nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
   Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim, so no caller-controlled bytes enter a new carrier.
