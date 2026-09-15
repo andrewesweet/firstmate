@@ -1,0 +1,34 @@
+++ mkdir -p /tmp/tmp.kU7cAObbwJ/s1
+++ printf '# tf-mut memory\n\nBuild with make.\n'
+++ ln -s AGENTS.md /tmp/tmp.kU7cAObbwJ/s1/CLAUDE.md
+++ cp /tmp/tmp.kU7cAObbwJ/s1/AGENTS.md /tmp/tmp.kU7cAObbwJ/s1.before
+++ ls -l /tmp/tmp.kU7cAObbwJ/s1
+total 4
+-rw-rw-r-- 1 andre andre 34 Sep 15 18:02 AGENTS.md
+lrwxrwxrwx 1 andre andre  9 Sep 15 18:02 CLAUDE.md -> AGENTS.md
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.kU7cAObbwJ/s1
+ok: project-owned convention in /tmp/tmp.kU7cAObbwJ/s1
+++ echo exit=0
+exit=0
+++ ls -l /tmp/tmp.kU7cAObbwJ/s1
+total 4
+-rw-rw-r-- 1 andre andre 34 Sep 15 18:02 AGENTS.md
+lrwxrwxrwx 1 andre andre  9 Sep 15 18:02 CLAUDE.md -> AGENTS.md
+++ readlink /tmp/tmp.kU7cAObbwJ/s1/CLAUDE.md
+AGENTS.md
+++ cmp /tmp/tmp.kU7cAObbwJ/s1.before /tmp/tmp.kU7cAObbwJ/s1/AGENTS.md
+++ echo 'AGENTS.md byte-identical'
+AGENTS.md byte-identical
+++ cd /tmp/tmp.kU7cAObbwJ/s1
+++ test -L CLAUDE.md
+++ cmp -s AGENTS.md CLAUDE.md
+++ echo 'check-agent-parity: PASS'
+check-agent-parity: PASS
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.kU7cAObbwJ/s1
+ok: project-owned convention in /tmp/tmp.kU7cAObbwJ/s1
+++ echo exit=0
+exit=0
+++ cmp /tmp/tmp.kU7cAObbwJ/s1.before /tmp/tmp.kU7cAObbwJ/s1/AGENTS.md
+++ echo 'AGENTS.md still byte-identical after re-run'
+AGENTS.md still byte-identical after re-run
+++ set +x

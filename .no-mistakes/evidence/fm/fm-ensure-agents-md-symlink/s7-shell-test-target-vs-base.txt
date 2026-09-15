@@ -1,0 +1,25 @@
+== target commit: tests/fm-ensure-agents-md.test.sh ==
+ok - fm-ensure-agents-md.sh: created AGENTS.md includes self-governance section
+ok - fm-ensure-agents-md.sh: fresh setup writes a real @AGENTS.md pointer
+ok - fm-ensure-agents-md.sh: promoted CLAUDE.md includes self-governance section
+ok - fm-ensure-agents-md.sh: newline-less promotion keeps a blank separator line
+ok - fm-ensure-agents-md.sh: correct CLAUDE.md symlink is a project-owned convention left alone
+ok - fm-ensure-agents-md.sh: formed AGENTS.md with a correct symlink stays untouched
+ok - fm-ensure-agents-md.sh: existing AGENTS.md without CLAUDE.md gains section and pointer
+ok - fm-ensure-agents-md.sh: AGENTS.md that already has the section stays unchanged
+ok - fm-ensure-agents-md.sh: CRLF AGENTS.md with the section stays unchanged
+ok - fm-ensure-agents-md.sh: CRLF injection preserves line endings idempotently
+ok - fm-ensure-agents-md.sh: prose and marker examples do not replace a first-line mark
+ok - fm-ensure-agents-md.sh: marked project guidance is preserved across ensure paths and line endings
+ok - fm-ensure-agents-md.sh: canonical real CLAUDE.md pointer is not a conflict
+ok - fm-ensure-agents-md.sh: refuses distinct real AGENTS.md and CLAUDE.md
+ok - fm-ensure-agents-md.sh: refuses AGENTS.md when it is a symlink
+ok - fm-ensure-agents-md.sh: refuses a CLAUDE.md symlink that does not point to AGENTS.md
+ok - fm-ensure-agents-md.sh: refuses a non-regular CLAUDE.md
+ok - fm-ensure-agents-md.sh: refuses a case-variant lowercase agents.md (issue #389)
+exit=0
+
+== new tests against base-commit script (expect not ok) ==
+not ok - project-owned CLAUDE.md symlink did not report the project-owned convention (missing: 'ok: project-owned convention')
+updated: added ## Maintaining this file to AGENTS.md and wrote CLAUDE.md @AGENTS.md pointer in /tmp/fm-ensure-agents-md.vvsH0Y/project-owned-symlink-project
+exit=1

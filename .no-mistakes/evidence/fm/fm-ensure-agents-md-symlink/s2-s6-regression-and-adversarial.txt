@@ -1,0 +1,104 @@
+++ mkdir -p /tmp/tmp.NfMWSSDEM4/s2
+++ printf '# tf-mut memory\n\nBuild with make.\n'
+++ ln -s AGENTS.md /tmp/tmp.NfMWSSDEM4/s2/CLAUDE.md
+++ /tmp/tmp.NfMWSSDEM4/base.sh /tmp/tmp.NfMWSSDEM4/s2
+updated: added ## Maintaining this file to AGENTS.md and wrote CLAUDE.md @AGENTS.md pointer in /tmp/tmp.NfMWSSDEM4/s2
+++ echo exit=0
+exit=0
+++ ls -l /tmp/tmp.NfMWSSDEM4/s2
+total 8
+-rw-rw-r-- 1 andre andre 404 Sep 15 18:02 AGENTS.md
+-rw-rw-r-- 1 andre andre  90 Sep 15 18:02 CLAUDE.md
+++ cat /tmp/tmp.NfMWSSDEM4/s2/CLAUDE.md
+<!-- Points Claude at AGENTS.md via import; edit AGENTS.md, not this file. -->
+@AGENTS.md
+++ grep -c '## Maintaining this file' /tmp/tmp.NfMWSSDEM4/s2/AGENTS.md
+++ local _cc_a
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ local _cc_bin=/home/andre/.local/share/claude/versions/2.1.272
+++ [[ -x /home/andre/.local/share/claude/versions/2.1.272 ]]
+++ [[ ! -x /home/andre/.local/share/claude/versions/2.1.272 ]]
+++ [[ -n '' ]]
+++ [[ linux-gnu == \m\s\y\s ]]
+++ [[ linux-gnu == \c\y\g\w\i\n ]]
+++ [[ linux-gnu == \w\i\n\3\2 ]]
+++ exec -a ugrep /home/andre/.local/share/claude/versions/2.1.272 -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -c '## Maintaining this file' /tmp/tmp.NfMWSSDEM4/s2/AGENTS.md
+1
+++ cd /tmp/tmp.NfMWSSDEM4/s2
+++ test -L CLAUDE.md
+++ echo 'check-agent-parity: FAIL (base commit defect reproduced)'
+check-agent-parity: FAIL (base commit defect reproduced)
+++ mkdir -p /tmp/tmp.NfMWSSDEM4/s3
+++ printf '# x\n'
+++ printf '# other\n'
+++ ln -s OTHER.md /tmp/tmp.NfMWSSDEM4/s3/CLAUDE.md
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.NfMWSSDEM4/s3
+conflict: CLAUDE.md is a symlink in /tmp/tmp.NfMWSSDEM4/s3 but does not point to AGENTS.md
+++ echo exit=1
+exit=1
+++ ls -l /tmp/tmp.NfMWSSDEM4/s3
+total 8
+-rw-rw-r-- 1 andre andre 4 Sep 15 18:02 AGENTS.md
+lrwxrwxrwx 1 andre andre 8 Sep 15 18:02 CLAUDE.md -> OTHER.md
+-rw-rw-r-- 1 andre andre 8 Sep 15 18:02 OTHER.md
+++ mkdir -p /tmp/tmp.NfMWSSDEM4/s4
+++ printf '# abs\n'
+++ ln -s /tmp/tmp.NfMWSSDEM4/s4/AGENTS.md /tmp/tmp.NfMWSSDEM4/s4/CLAUDE.md
+++ cp /tmp/tmp.NfMWSSDEM4/s4/AGENTS.md /tmp/tmp.NfMWSSDEM4/s4.before
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.NfMWSSDEM4/s4
+ok: project-owned convention in /tmp/tmp.NfMWSSDEM4/s4
+++ echo exit=0
+exit=0
+++ ls -l /tmp/tmp.NfMWSSDEM4/s4
+total 4
+-rw-rw-r-- 1 andre andre  6 Sep 15 18:02 AGENTS.md
+lrwxrwxrwx 1 andre andre 32 Sep 15 18:02 CLAUDE.md -> /tmp/tmp.NfMWSSDEM4/s4/AGENTS.md
+++ cmp /tmp/tmp.NfMWSSDEM4/s4.before /tmp/tmp.NfMWSSDEM4/s4/AGENTS.md
+++ echo 'AGENTS.md byte-identical'
+AGENTS.md byte-identical
+++ mkdir -p /tmp/tmp.NfMWSSDEM4/s5
+++ ln -s AGENTS.md /tmp/tmp.NfMWSSDEM4/s5/CLAUDE.md
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.NfMWSSDEM4/s5
+created: AGENTS.md and wrote CLAUDE.md @AGENTS.md pointer in /tmp/tmp.NfMWSSDEM4/s5
+++ echo exit=0
+exit=0
+++ ls -l /tmp/tmp.NfMWSSDEM4/s5
+total 8
+-rw-rw-r-- 1 andre andre 651 Sep 15 18:02 AGENTS.md
+-rw-rw-r-- 1 andre andre  90 Sep 15 18:02 CLAUDE.md
+++ mkdir -p /tmp/tmp.NfMWSSDEM4/s6
+++ printf '# plain\n'
+++ bin/fm-ensure-agents-md.sh /tmp/tmp.NfMWSSDEM4/s6
+updated: added ## Maintaining this file to AGENTS.md and wrote CLAUDE.md @AGENTS.md pointer in /tmp/tmp.NfMWSSDEM4/s6
+++ echo exit=0
+exit=0
+++ ls -l /tmp/tmp.NfMWSSDEM4/s6
+total 8
+-rw-rw-r-- 1 andre andre 378 Sep 15 18:02 AGENTS.md
+-rw-rw-r-- 1 andre andre  90 Sep 15 18:02 CLAUDE.md
+++ cat /tmp/tmp.NfMWSSDEM4/s6/CLAUDE.md
+<!-- Points Claude at AGENTS.md via import; edit AGENTS.md, not this file. -->
+@AGENTS.md
+++ grep -c '## Maintaining this file' /tmp/tmp.NfMWSSDEM4/s6/AGENTS.md
+++ local _cc_a
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ for _cc_a in ${1+"$@"}
+++ case "$_cc_a" in
+++ local _cc_bin=/home/andre/.local/share/claude/versions/2.1.272
+++ [[ -x /home/andre/.local/share/claude/versions/2.1.272 ]]
+++ [[ ! -x /home/andre/.local/share/claude/versions/2.1.272 ]]
+++ [[ -n '' ]]
+++ [[ linux-gnu == \m\s\y\s ]]
+++ [[ linux-gnu == \c\y\g\w\i\n ]]
+++ [[ linux-gnu == \w\i\n\3\2 ]]
+++ exec -a ugrep /home/andre/.local/share/claude/versions/2.1.272 -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -c '## Maintaining this file' /tmp/tmp.NfMWSSDEM4/s6/AGENTS.md
+1
+++ set +x
