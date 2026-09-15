@@ -38,6 +38,11 @@ On a run-tier harness the nudge cannot also fire: `resume`, `reload`, and `fork`
 
 `bin/fm-session-start.sh --reemit` owns which work a re-emit skips, its true-start AGENTS.md baseline, and its supported stale-instruction refresh pairs; its header is the single owner of those mechanics.
 
+Compaction carries one extra re-emit behavior on every harness whose compaction reaches this boundary.
+The Claude `PreCompact` hook registered in `.claude/settings.json` runs `bin/fm-precompact-skills.sh`, which records the skills the session had loaded, one per line, into `state/.compact-skills` before the conversation is summarized away.
+A `--reemit --source compact` digest prints that record once as the loud `COMPACTED SKILLS` block: the loaded skill summaries are void, each skill must be re-loaded at its next `AGENTS.md` trigger, and any task-scoped decision that was mid-flight needs the stow skill's open-work check.
+The block's digest path then consumes the record, so a later `clear` cannot replay it.
+
 ## Runtime bound
 
 The run tier blocks either hook-driven session initialization or Pi's first provider preflight while the digest runs, so `bin/fm-session-start.sh` bounds itself rather than betting on an unbounded prerequisite.

@@ -689,6 +689,30 @@ if [ "$LOCK_RC" -ne 0 ]; then
     printf '%s\n' "$BAR"
   }
 fi
+# --- 1b. compacted skills ----------------------------------------------
+# Compaction summarizes the conversation, and a loaded skill's actual
+# procedure lived only in that conversation: AGENTS.md survives compaction,
+# so every load trigger survives, but the loaded skill bodies do not. The
+# tracked PreCompact hook (bin/fm-precompact-skills.sh, whose header owns the
+# record format) records which skills this session had loaded before the
+# compaction; this compact-source re-emit is the one digest that prints that
+# record, as a loud one-time block, and then consumes it so a later clear
+# cannot replay it. Other sources never print or consume it, and a read-only
+# session leaves the record in place rather than consuming what it delivered,
+# exactly like the wake queue it sits beside.
+if [ "$REEMIT" -eq 1 ] && [ "$SESSION_SOURCE" = compact ] && [ -s "$STATE/.compact-skills" ]; then
+  section "COMPACTED SKILLS - SUMMARIES ARE VOID"
+  printf 'Compaction ran while this session had the skills below loaded. Their exact\n'
+  printf 'procedures lived in the conversation compaction summarized away, so what you\n'
+  printf 'remember of them is a summary and is void. Re-load each one, at its next\n'
+  printf 'AGENTS.md load trigger, before following its procedure:\n\n'
+  sed 's/^/  - /' "$STATE/.compact-skills"
+  printf '\nIf any task-scoped decision was mid-flight when compaction hit, run the stow\n'
+  printf "skill's open-work check for it before resuming that work.\n"
+  if [ "$READ_ONLY" -eq 0 ]; then
+    rm -f "$STATE/.compact-skills" 2>/dev/null || true
+  fi
+fi
 REBUILDING_SESSION_PID=$(fm_harness_ancestry_pid 2>/dev/null || true)
 print_agents_refresh_if_required "$REBUILDING_SESSION_PID"
 
