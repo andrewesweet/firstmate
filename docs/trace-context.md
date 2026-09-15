@@ -98,9 +98,9 @@ This is a deliberate, source-owned choice:
 ## Safety
 
 - **Default-off.**
-  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` or `trace_link=` line, so the generated meta and the launch environment are unchanged.
+  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch injects nothing - no carrier and no `OTEL_RESOURCE_ATTRIBUTES` export - and writes no `traceparent=` or `trace_link=` line, so the generated meta is unchanged; the only launch-environment effect is the `unset TRACEPARENT;` scrub described above, which removes an inherited value rather than adding one.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
-  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but nothing an agent, an observer, or the task meta can see differs.
+  A locked session start makes the one config-file check, and each spawn sources the trace libraries and reads the frozen effective-state file, so the process is not literally byte-for-byte identical, but beyond that scrub nothing an agent, an observer, or the task meta can see differs.
 - **What is and is not exposed.**
   A Firstmate-*minted* root uses a random id and reads no prompt, path, task prose, credential, or arbitrary environment key, so Firstmate never *originates* sensitive data in the carrier.
   Every carrier Firstmate injects is either such a mint or the same task's previously recorded carrier reused verbatim, so no caller-controlled bytes enter a new carrier.
