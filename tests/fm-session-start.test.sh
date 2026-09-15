@@ -2569,7 +2569,7 @@ EOF
   pass "--reemit re-verifies lock ownership and keeps repair ownership with whoever holds it"
 }
 
-test_compact_skills_block_prints_once_for_compact_only() {
+test_compact_skills_block_prints_for_compact_only() {
   local rec root home fakebin out
   rec=$(new_world compact-skills)
   IFS='|' read -r root home fakebin <<EOF
@@ -2578,9 +2578,8 @@ EOF
   make_fake_toolchain "$fakebin"
   make_fake_ps_claude "$fakebin"
 
-  # A compact re-emit prints the seeded record once, as a loud block naming the
-  # skills, their void summaries, the re-load instruction, and the stow pointer,
-  # then consumes the record.
+  # A compact re-emit prints the seeded record as a loud block naming the
+  # skills, their void summaries, the re-load instruction, and the stow pointer.
   printf 'harness-adapters\nask-user-authority\n' > "$home/state/.compact-skills"
   out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" PATH="$fakebin:$BASE_PATH" \
     env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
@@ -2593,19 +2592,14 @@ EOF
     "the block did not instruct re-loading at the next AGENTS.md trigger"
   assert_contains "$out" "open-work check" \
     "the block did not point at the stow skill's open-work check"
-  assert_absent "$home/state/.compact-skills" \
-    "the compact re-emit did not consume the record it printed"
 
-  # A clear re-emit neither prints the block nor consumes a record it never
-  # printed; the next compaction overwrites the record either way.
-  printf 'harness-adapters\n' > "$home/state/.compact-skills"
+  # A clear re-emit does not print the block; the next compaction overwrites
+  # the record either way.
   out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" PATH="$fakebin:$BASE_PATH" \
     env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
     "$SESSION_START" --reemit --source clear)
   assert_not_contains "$out" "COMPACTED SKILLS" \
     "a clear re-emit replayed the compacted-skills block"
-  [ -s "$home/state/.compact-skills" ] \
-    || fail "a clear re-emit consumed the record it never printed"
 
   # A sourceless re-emit stays silent for the block too: only the compact
   # source owns it.
@@ -2614,10 +2608,8 @@ EOF
     "$SESSION_START" --reemit)
   assert_not_contains "$out" "COMPACTED SKILLS" \
     "a sourceless re-emit replayed the compacted-skills block"
-  [ -s "$home/state/.compact-skills" ] \
-    || fail "a sourceless re-emit consumed the record it never printed"
 
-  pass "the compact re-emit prints the compacted-skills block once and consumes it; other sources never touch it"
+  pass "the compact re-emit prints the compacted-skills block; other sources never print it"
 }
 
 # --- fleet-state digest: no in-flight tasks ----------------------------------
@@ -2935,6 +2927,6 @@ test_read_only_pi_compact_refreshes_against_its_own_session_identity
 test_codex_unreachable_reset_sources_do_not_claim_instruction_refresh
 test_agents_baseline_requires_sha256_and_successful_completion
 test_reemit_keeps_repair_ownership_with_the_lock_holder
-test_compact_skills_block_prints_once_for_compact_only
+test_compact_skills_block_prints_for_compact_only
 
 echo "# fm-session-start.test.sh: all assertions passed"

@@ -13,10 +13,10 @@
 # $FM_HOME-resolved state/.compact-skills.
 #
 # The consuming side is bin/fm-session-start.sh's --reemit --source compact
-# path: it prints the record once as a loud COMPACTED SKILLS block (summaries
-# void; re-load each skill at its next AGENTS.md trigger) and then removes the
-# record so a later clear cannot replay it. This script's header owns the
-# record format; that digest path owns the print-and-consume mechanics.
+# path: it prints the record as a loud COMPACTED SKILLS block (summaries
+# void; re-load each skill at its next AGENTS.md trigger). Each PreCompact
+# overwrites the record from the cumulative transcript. This script's header
+# owns the record format; that digest path owns the print mechanics.
 #
 # Usage: fm-precompact-skills.sh
 #   A Claude/Codex-shaped JSON hook payload on stdin. A missing, empty, or
