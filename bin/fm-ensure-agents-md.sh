@@ -4,9 +4,10 @@
 # real regular file whose canonical content is the two-line @AGENTS.md pointer
 # that Claude Code inlines at load time. Creates a minimal AGENTS.md skeleton
 # when neither file exists, promotes a real CLAUDE.md file when it is the only
-# file present (unless it is already the canonical pointer), converts a correct
-# CLAUDE.md -> AGENTS.md symlink into the pointer file, and refuses to clobber
-# distinct real files or wrong symlinks.
+# file present (unless it is already the canonical pointer), leaves a correct
+# CLAUDE.md -> AGENTS.md symlink alone as a project-owned convention (no
+# maintenance section is added for it), and refuses to clobber distinct real
+# files or wrong symlinks.
 # Owns the canonical "## Maintaining this file" self-governance wording for
 # project AGENTS.md files, injecting it idempotently into created skeletons,
 # promoted CLAUDE.md files, and existing AGENTS.md files lacking both the exact
@@ -37,6 +38,8 @@ canonical section, use this exact first line of AGENTS.md (LF or CRLF):
 <!-- firstmate:maintained-by-project -->
 The mark declares retained guidance, not permission to remove governance.
 Without the first-line mark or exact canonical heading, the helper adds the section.
+A correct CLAUDE.md -> AGENTS.md symlink is a project-owned convention: it is
+left alone and the helper adds no maintenance section for it.
 EOF
 }
 
@@ -195,13 +198,9 @@ fi
 if [ -e "$AGENTS" ]; then
   if [ -L "$CLAUDE" ]; then
     if is_correct_claude_symlink; then
-      ensure_maintenance_section
-      install_claude_pointer
-      if [ "$MAINT_INJECTED" -eq 1 ]; then
-        echo "updated: added ## Maintaining this file to AGENTS.md and wrote CLAUDE.md @AGENTS.md pointer in $DIR"
-      else
-        echo "updated: replaced CLAUDE.md symlink with @AGENTS.md pointer in $DIR"
-      fi
+      # A correct CLAUDE.md -> AGENTS.md symlink is a project-owned convention;
+      # leave the link and AGENTS.md untouched.
+      echo "ok: project-owned convention in $DIR"
       exit 0
     fi
     echo "conflict: CLAUDE.md is a symlink in $DIR but does not point to AGENTS.md" >&2
