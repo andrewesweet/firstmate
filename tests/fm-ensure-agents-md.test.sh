@@ -97,60 +97,46 @@ test_promoted_claude_md_without_trailing_newline_keeps_blank_separator() {
   pass "fm-ensure-agents-md.sh: newline-less promotion keeps a blank separator line"
 }
 
-test_existing_agents_md_with_symlink_gains_self_governance() {
-  local repo agents out count
-  repo="$TMP_ROOT/existing-symlinked-project"
+test_correct_symlink_is_project_owned_convention() {
+  local repo agents out
+  repo="$TMP_ROOT/project-owned-symlink-project"
   mkdir -p "$repo"
   printf '# Existing agent memory\n\nBuild with make.\n' > "$repo/AGENTS.md"
   ln -s AGENTS.md "$repo/CLAUDE.md"
   agents="$repo/AGENTS.md"
+  cp "$agents" "$repo/.before"
   out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
-    || fail "fm-ensure-agents-md.sh failed for existing AGENTS.md with symlink"
-  assert_contains "$out" "updated:" "injection into existing AGENTS.md did not report an update"
-  assert_grep "Build with make." "$agents" "injection dropped existing AGENTS.md content"
-  assert_grep "## Maintaining this file" "$agents" "existing AGENTS.md did not gain the self-governance section"
-  count=$(grep -Fc "## Maintaining this file" "$agents")
-  [ "$count" -eq 1 ] || fail "injection wrote $count self-governance sections"
-  assert_claude_pointer "$repo/CLAUDE.md"
-  # Re-run must be a byte-exact no-op reporting unchanged.
-  cp "$agents" "$repo/.after-first"
-  cp "$repo/CLAUDE.md" "$repo/.claude-after-first"
-  out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
-    || fail "fm-ensure-agents-md.sh failed on idempotent re-run"
-  assert_contains "$out" "unchanged:" "idempotent re-run did not report unchanged"
-  diff "$repo/.after-first" "$agents" >/dev/null \
-    || fail "idempotent re-run modified AGENTS.md"
-  cmp -s "$repo/.claude-after-first" "$repo/CLAUDE.md" \
-    || fail "idempotent re-run modified CLAUDE.md"
-  pass "fm-ensure-agents-md.sh: existing symlinked AGENTS.md gains the section idempotently"
+    || fail "fm-ensure-agents-md.sh failed for a project-owned CLAUDE.md symlink"
+  assert_contains "$out" "ok: project-owned convention" \
+    "project-owned CLAUDE.md symlink did not report the project-owned convention"
+  [ -L "$repo/CLAUDE.md" ] || fail "project-owned CLAUDE.md symlink was replaced with a pointer file"
+  [ "$(readlink "$repo/CLAUDE.md")" = "AGENTS.md" ] \
+    || fail "project-owned CLAUDE.md symlink was retargeted"
+  cmp -s "$repo/.before" "$agents" \
+    || fail "project-owned convention modified AGENTS.md (maintenance section injected?)"
+  pass "fm-ensure-agents-md.sh: correct CLAUDE.md symlink is a project-owned convention left alone"
 }
 
-test_correct_symlink_migrates_to_pointer_without_clobbering_agents() {
+test_formed_agents_md_with_correct_symlink_is_left_alone() {
   local repo agents out
-  repo="$TMP_ROOT/symlink-migrate-project"
+  repo="$TMP_ROOT/formed-symlink-project"
   mkdir -p "$repo"
   printf '# Unique agent memory\n\nDo not clobber this payload.\n\n## Maintaining this file\n\nKeep this file for knowledge useful to almost every future agent session in this project.\nDo not repeat what the codebase already shows; point to the authoritative file or command instead.\nPrefer rewriting or pruning existing entries over appending new ones.\nWhen updating this file, preserve this bar for all agents and keep entries concise.\n' > "$repo/AGENTS.md"
   ln -s AGENTS.md "$repo/CLAUDE.md"
   agents="$repo/AGENTS.md"
   cp "$agents" "$repo/.before"
   out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
-    || fail "fm-ensure-agents-md.sh failed migrating a correct CLAUDE.md symlink"
-  assert_contains "$out" "updated:" "symlink migration did not report an update"
-  assert_claude_pointer "$repo/CLAUDE.md"
+    || fail "fm-ensure-agents-md.sh failed for a formed AGENTS.md with a correct CLAUDE.md symlink"
+  assert_contains "$out" "ok: project-owned convention" \
+    "formed project's correct CLAUDE.md symlink did not report the project-owned convention"
+  [ -L "$repo/CLAUDE.md" ] || fail "formed project's CLAUDE.md symlink was replaced with a pointer file"
+  [ "$(readlink "$repo/CLAUDE.md")" = "AGENTS.md" ] \
+    || fail "formed project's CLAUDE.md symlink was retargeted"
   cmp -s "$repo/.before" "$agents" \
-    || fail "symlink migration clobbered AGENTS.md"
+    || fail "formed project's AGENTS.md was modified behind a correct CLAUDE.md symlink"
   assert_grep "Do not clobber this payload." "$agents" \
-    "symlink migration lost unique AGENTS.md content"
-  cp "$agents" "$repo/.after-first"
-  cp "$repo/CLAUDE.md" "$repo/.claude-after-first"
-  out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
-    || fail "fm-ensure-agents-md.sh failed on post-migration re-run"
-  assert_contains "$out" "unchanged:" "post-migration re-run did not report unchanged"
-  cmp -s "$repo/.after-first" "$agents" \
-    || fail "post-migration re-run modified AGENTS.md"
-  cmp -s "$repo/.claude-after-first" "$repo/CLAUDE.md" \
-    || fail "post-migration re-run modified CLAUDE.md"
-  pass "fm-ensure-agents-md.sh: correct symlink migrates to pointer without clobbering AGENTS.md"
+    "formed project lost unique AGENTS.md content"
+  pass "fm-ensure-agents-md.sh: formed AGENTS.md with a correct symlink stays untouched"
 }
 
 test_existing_agents_md_without_claude_gains_section_and_pointer() {
@@ -210,13 +196,26 @@ test_marked_project_guidance_stays_unchanged() {
         || fail "ensure failed for marked project ($route)"
       cmp -s "$repo/.before" "$repo/AGENTS.md" \
         || fail "marked project guidance was modified ($route)"
-      assert_claude_pointer "$repo/CLAUDE.md"
+      case "$route" in
+        symlink)
+          [ -L "$repo/CLAUDE.md" ] || fail "marked project's CLAUDE.md symlink was replaced ($route)"
+          [ "$(readlink "$repo/CLAUDE.md")" = "AGENTS.md" ] \
+            || fail "marked project's CLAUDE.md symlink was retargeted ($route)"
+          ;;
+        *) assert_claude_pointer "$repo/CLAUDE.md" ;;
+      esac
       out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
         || fail "ensure failed on marked project re-run ($route)"
-      assert_contains "$out" "unchanged:" "marked project re-run did not report unchanged"
+      case "$route" in
+        symlink) assert_contains "$out" "ok: project-owned convention" "marked project symlink re-run did not report the project-owned convention" ;;
+        *) assert_contains "$out" "unchanged:" "marked project re-run did not report unchanged" ;;
+      esac
       cmp -s "$repo/.before" "$repo/AGENTS.md" \
         || fail "marked project re-run modified guidance ($route)"
-      assert_claude_pointer "$repo/CLAUDE.md"
+      case "$route" in
+        symlink) [ -L "$repo/CLAUDE.md" ] || fail "marked project re-run replaced the CLAUDE.md symlink ($route)" ;;
+        *) assert_claude_pointer "$repo/CLAUDE.md" ;;
+      esac
     done
   done
   pass "fm-ensure-agents-md.sh: marked project guidance is preserved across ensure paths and line endings"
@@ -289,7 +288,6 @@ test_existing_crlf_agents_md_without_section_preserves_crlf() {
     '# Existing agent memory' \
     '' \
     'Run tests with make test.' > "$repo/AGENTS.md"
-  ln -s AGENTS.md "$repo/CLAUDE.md"
   agents="$repo/AGENTS.md"
   out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
     || fail "fm-ensure-agents-md.sh failed injecting into CRLF AGENTS.md"
@@ -419,8 +417,8 @@ test_created_agents_md_includes_self_governance
 test_fresh_setup_writes_real_claude_pointer
 test_promoted_claude_md_includes_self_governance
 test_promoted_claude_md_without_trailing_newline_keeps_blank_separator
-test_existing_agents_md_with_symlink_gains_self_governance
-test_correct_symlink_migrates_to_pointer_without_clobbering_agents
+test_correct_symlink_is_project_owned_convention
+test_formed_agents_md_with_correct_symlink_is_left_alone
 test_existing_agents_md_without_claude_gains_section_and_pointer
 test_existing_agents_md_with_section_reports_unchanged
 test_existing_crlf_agents_md_with_section_stays_unchanged
