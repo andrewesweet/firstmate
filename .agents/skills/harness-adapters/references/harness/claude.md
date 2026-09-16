@@ -47,6 +47,16 @@ Styled capture stays internal to the boolean detector; `fm-peek` and model-facin
 The spawn disables Claude's `/bug` and `/feedback` model-drafted feedback flow for every Claude worker and secondmate, preventing a fleet-launched agent from queuing or submitting a bug report on the captain's behalf.
 The controls are scoped to the launched process and never modify the captain's global Claude settings; `launch_template()` in `../../../../../bin/fm-spawn.sh` owns their exact mechanics and defense-in-depth rationale.
 
+## Startup context
+
+Tracked `.claude/settings.json` carries five documented any-file-scope keys beside the hooks: `disableClaudeAiConnectors`, `deniedMcpServers` for `claude-in-chrome`, `autoMemoryEnabled: false`, `disableWorkflows`, and `disableBundledSkills`, plus a `permissions.deny` of `Artifact`, `ReportFindings`, and `ScheduleWakeup`.
+Each removes a tool schema, system-prompt section, or skill listing that no Firstmate session uses: browser and GitHub work go through `chrome-devtools-axi` and `gh-axi`, memory lives in `data/`, and the three denied tools are claude.ai UI surfaces or the `/loop` self-wake.
+`disableWorkflows` travels with `disableBundledSkills` because an allowed `Workflow` tool inlines its 22k-character authoring reference once the bundled `workflow-authoring` skill is gone.
+None of them is a delegation tool, so a linked worktree that inherits the file keeps `Agent` and `Task`; `../../../docs/subagent-guard.md` owns that boundary.
+`launch_template()` in `../../../bin/fm-spawn.sh` repeats the same keys in every worker's inline `--settings` so a worker in another project gets them too, and adds `AskUserQuestion` to the deny because crewmates never address the captain.
+Captain-specific trims - plugin agent lists, user skills, the caveman hook - belong in an untracked home-local `.claude/settings.local.json`, never in the tracked file, because they name one user's installation.
+Claude reloads project settings live, so a fast-forward that changes the tracked file changes the running primary session without a restart.
+
 ## Primary integration
 
 Primary behavior was verified 2026-07-04 on 2.1.201, preserved 2026-07-08 on 2.1.204, and Stop auto-arm revalidated 2026-07-24 on 2.1.219.
