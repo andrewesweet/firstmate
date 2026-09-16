@@ -95,7 +95,7 @@ while IFS=$'\t' read -r idx model verdict ev; do
     [ "$is_miss" -eq 0 ] || tag=" CAPTAIN MISS"
     MISMATCHES+="- record $idx ($model): label $label, verdict $verdict$tag: ${ev// /;}"$'\n'
   fi
-done < <(jq -r 'select(type == "object") | [input_line_number, (.model // "unknown"), (.verdict // "uncertain"), ((.evidence // []) | map("\(.task),\(.from // -1),\(.to // -1)") | join(" "))] | @tsv' "$LOG" 2>/dev/null)
+done < <(jq -R -r 'fromjson? | select(type == "object") | [input_line_number, (.model // "unknown"), (.verdict // "uncertain"), ((.evidence // []) | map("\(.task),\(.from // -1),\(.to // -1)") | join(" "))] | @tsv' "$LOG" 2>/dev/null)
 
 for model in "${!n[@]}"; do
   printf '| %s | %d | %d / %d / %d | %d | %d | %d | %d | %d |\n' "$model" "${n[$model]}" \

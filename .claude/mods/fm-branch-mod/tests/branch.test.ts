@@ -1,4 +1,4 @@
-// fm-branch-mod under `claude plugin test`: the version pin, the durable
+// fm-branch-mod under `claude plugin test`: the version pin, the presence switch, the durable
 // classification log, and the cover row a captain verdict writes for main.
 //
 // The world beneath the module is mocked noun by noun: the environment names a
@@ -7,7 +7,7 @@
 // script name, with a journal of every call so a test can read what the module
 // wrote and to which file.
 import { describe, expect, test, type Engine, type On } from "claude-code/testing";
-import { mock } from "claude-code/testing";
+import { mock, type MockClock } from "claude-code/testing";
 
 const HOME = "/fm/home";
 const STATE = `${HOME}/state`;
@@ -17,6 +17,7 @@ const sessionStart = { cwd: "/work", surface: "terminal" as const, isInteractive
 
 type Run = { argv: string[]; stdin?: string; env?: Record<string, string> };
 type World = {
+  clock: MockClock;
   files: Map<string, string>;
   runs: Run[];
   logs: string[];
@@ -39,7 +40,7 @@ type WorldOptions = {
 
 function world(on: On, options: WorldOptions = {}): World {
   mock.env(on, { FM_HOME: HOME, CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1" });
-  mock.clock(on);
+  const clock = mock.clock(on);
   const files = new Map<string, string>(Object.entries(options.files ?? {}));
   const runs: Run[] = [];
   const logs: string[] = [];
@@ -116,6 +117,7 @@ function world(on: On, options: WorldOptions = {}): World {
   });
 
   return {
+    clock,
     files,
     runs,
     logs,
@@ -130,11 +132,10 @@ function world(on: On, options: WorldOptions = {}): World {
 
 const CLASSIFICATIONS = `${STATE}/branch-mod-classifications.jsonl`;
 
-/** A home with the mod switched on, the classifier armed, and one signal row queued for task t1. */
+/** A home with the mod switched on by the presence of state/.branch-mod-mode and one signal row queued for task t1. */
 function armedHome(): Record<string, string> {
   return {
-    [`${STATE}/.branch-mod-mode`]: "drop\n",
-    [`${STATE}/.branch-mod-classifier`]: "",
+    [`${STATE}/.branch-mod-mode`]: "",
     [`${STATE}/.lock`]: "4242\n",
     [`${STATE}/t1.meta`]: "project=demo\nwindow=fm-t1\n",
     [`${STATE}/t1.status`]: "working: a\ndone: PR https://x/1 checks green\n",
@@ -159,8 +160,19 @@ describe("version pin", () => {
   test("loads on the pinned version and registers the report tools", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome() });
     await $.session.start(sessionStart);
-    expect(w.logs.some((l) => l.includes(`loaded (mode drop, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
     expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
+  });
+
+  test("without state/.branch-mod-mode the module loads inert and passes every wake through unclassified", async ($: Engine, on: On) => {
+    const files = armedHome();
+    delete files[`${STATE}/.branch-mod-mode`];
+    const w = world(on, { files });
+    await $.session.start(sessionStart);
+    expect(w.logs.some((l) => l.includes("loaded (inert: no state/.branch-mod-mode"))).toBe(true);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.submitted).toEqual([WAKE]);
+    expect(w.completions.length).toBe(0);
   });
 });
 
@@ -209,6 +221,36 @@ describe("classification log", () => {
     expect(w.submitted).toEqual([WAKE]);
     expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
   });
+
+  test("a passed wake main never acknowledged is re-classified and passed again once the dedupe window has elapsed", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome(), classifierAnswer: '{"verdict":"captain","reason":"terminal line"}' });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.submitted).toEqual([WAKE]);
+    // The Stop hook re-blocks with the same banner while row 12 still sits in the queue.
+    await w.clock.advance(91_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(2);
+    expect(w.submitted).toEqual([WAKE, WAKE]);
+  });
+
+  test("a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row", async ($: Engine, on: On) => {
+    const files = {
+      ...armedHome(),
+      [`${STATE}/t1.status`]: "working: a\nneeds-decision: [key=choice-1] pick one\n",
+      [`${STATE}/.wake-queue`]: "1700000000\t13\tstale\tfm-t1\tpane quiet\n",
+    };
+    const w = world(on, { files });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nstale: fm-t1\n`, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(0);
+    const evidence = w.runs.filter((r) => r.argv[1]?.endsWith("fm-wake-evidence.sh"));
+    expect(evidence.map((r) => r.argv[2])).toEqual(["t1"]);
+    const cover = w.runs.find((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append");
+    expect(cover !== undefined).toBe(true);
+    expect(cover!.argv[cover!.argv.indexOf("--task") + 1]).toBe("t1");
+    expect(w.runs.some((r) => r.argv.includes("fm-t1"))).toBe(false);
+  });
 });
 
 describe("routine wake", () => {
@@ -228,6 +270,7 @@ describe("routine wake", () => {
     expect(w.spawns[0].name).toBe("fm-branch");
     expect(w.spawns[0].background).toBe(true);
     expect(w.spawns[0].prompt?.startsWith("FIRSTMATE SUPERVISION WAKE: signal:")).toBe(true);
+    expect(w.spawns[0].prompt?.includes("No earlier outcome exists for t1")).toBe(true);
     const records = w.appended(CLASSIFICATIONS).map((line) => JSON.parse(line));
     expect(records.length).toBe(1);
     expect(records[0].verdict).toBe("routine");

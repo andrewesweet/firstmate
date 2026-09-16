@@ -111,7 +111,29 @@ test_routine_covered_lines_surface_only_under_the_mod() {
   if grep -F 't4 ' "$out" >/dev/null; then
     fail "a line covered by a CAPTAIN outcome was re-presented under the mod: $(cat "$out")"
   fi
-  pass "a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod"
+
+  printf 'done: PR https://example.test/8 checks green\nworking: cleanup\n' > "$state/t8.status"
+  set_mtime "$old" "$state/t8.status"
+  append_outcome "$state" t8 routine 'branch judged both lines routine'
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "main drain failed when the newest covered line is routine"
+  body=$(backstop_body "$out")
+  case "$body" in *'t8 done: PR https://example.test/8 checks green (covered by a ROUTINE branch outcome)'*) ;; *) fail "a covered done line behind a newer routine line was not presented: $(cat "$out")" ;; esac
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "second main drain failed for the routine-newest task"
+  if grep -F 't8 ' "$out" >/dev/null; then
+    fail "the covered done line behind a newer routine line was re-presented: $(cat "$out")"
+  fi
+
+  printf 'needs-decision: [key=pick-1] merge now or wait\n' > "$state/t9.status"
+  set_mtime "$old" "$state/t9.status"
+  append_outcome "$state" t9 routine 'branch judged the decision routine'
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" --routine-covered t9 > "$out" || fail "routine-covered listing failed for a keyed decision"
+  [ ! -s "$out" ] || fail "a keyed needs-decision line was listed as routine-covered instead of left to the OPEN DECISIONS fold: $(cat "$out")"
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "main drain failed for a keyed decision covered by a routine outcome"
+  if grep -F 'covered by a ROUTINE branch outcome' "$out" >/dev/null; then
+    fail "a keyed needs-decision line was re-presented outside the fold: $(cat "$out")"
+  fi
+  grep -F 'pick-1' "$out" >/dev/null || fail "the keyed decision did not reach the OPEN DECISIONS fold: $(cat "$out")"
+  pass "a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold"
 }
 
 test_routine_covered_lines_are_byte_exact_across_outcomes() {
@@ -145,10 +167,10 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
   {
     printf '{"t":"x","verdict":"routine","model":"haiku","evidence":[{"task":"t6","from":0,"to":56}]}\n'
     printf '{"t":"x","verdict":"captain","model":"haiku","evidence":[{"task":"t6","from":0,"to":56}]}\n'
+    printf 'not json\n'
     printf '{"t":"x","verdict":"routine","model":"haiku","evidence":[{"task":"t7","from":0,"to":11}]}\n'
     printf '{"t":"x","verdict":"uncertain","model":"haiku","evidence":[{"task":"t7","from":0,"to":11}]}\n'
     printf '{"t":"x","verdict":"routine","model":"sonnet","evidence":[{"task":"gone","from":0,"to":11}]}\n'
-    printf 'not json\n'
   } > "$state/branch-mod-classifications.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SCORE" -v > "$out" || fail "scorer failed: $(cat "$out")"
@@ -161,7 +183,7 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
 
   FM_STATE_OVERRIDE="$state" "$SCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 2 ] || fail "an absent log must print only the table header: $(cat "$out")"
-  pass "the scorer labels each record from the status bytes it judged and reports false-routine verdicts as captain misses"
+  pass "the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset

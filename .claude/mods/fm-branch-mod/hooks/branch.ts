@@ -4,7 +4,7 @@
 // header owns the module's own shape.
 //
 //   (a) prompt.submit: the Stop-hook rewake (or the continuity monitor's event)
-//       -> eligibility scope -> [classifier] -> grant -> deliver to the branch
+//       -> eligibility scope -> classifier -> grant -> deliver to the branch
 //       -> drop. Delivery is $.agent.spawn once per branch generation, then
 //       $.tool.call SendMessage to the same named agent for every later wake.
 //   (b) agents/fm-branch.md: bin/fm-branch-prompt.sh plus the hooks-module
@@ -22,12 +22,9 @@
 // every hook then passes through untouched and the session runs as if the
 // plugin were absent.
 //
-// Switches (files under the home's state directory):
-//   .branch-mod-mode        off | drop            (absent or off = log only, never route)
-//   .branch-mod-classifier  present = classifier ahead of the branch
-//   .branch-mod-index-note  present = hand the branch the deterministic
-//                           new-status-lines note on every wake (a spawn wake
-//                           always carries it, because a fresh agent has no memory)
+// Switch (a file under the home's state directory):
+//   .branch-mod-mode        present = route wakes; absent = log only, never route.
+//                           The same presence switches every bin/ piece the mod relies on.
 // Records (same directory):
 //   .branch-mod-counters            session counters keyed by the lock pid
 //   branch-mod-events.jsonl         append-only event log, size-capped
@@ -42,7 +39,7 @@ type Scope = {
   eligibleSeqs: string[]
   eligibleTasks: string[]
   corrupted: boolean
-  needsDecisionKeys: string[]
+  needsDecisionTasks: string[]
   allSeqs?: string[]
 }
 
@@ -177,16 +174,8 @@ async function ensureBound($: any): Promise<void> {
   log($, 'rebound', { cwd, generation })
 }
 
-async function flag($: any, name: string): Promise<boolean> {
-  return $.fs.exists(`${state}/${name}`)
-}
-async function readMode($: any): Promise<string> {
-  try {
-    const mode = (await $.fs.read(`${state}/.branch-mod-mode`)).trim()
-    return mode === 'drop' ? mode : 'off'
-  } catch {
-    return 'off'
-  }
+async function modeOn($: any): Promise<boolean> {
+  return $.fs.exists(`${state}/.branch-mod-mode`)
 }
 async function readConfig($: any, name: string, fallback: string): Promise<string> {
   try {
@@ -292,7 +281,7 @@ function hasOpenNeedsDecision(lines: string[]): boolean {
 }
 
 async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
-  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: true, needsDecisionKeys: [] }
+  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
   let queue = ''
   try {
     queue = await $.fs.read(`${state}/.wake-queue`)
@@ -300,7 +289,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     return unsafe
   }
   const rows = queue.split(/\r?\n/).filter((l: string) => l.length > 0)
-  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: false, needsDecisionKeys: [] }
+  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
   const metadata = new Map<string, string>()
   const taskByKey = new Map<string, string>()
   try {
@@ -326,7 +315,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
   }
   const eligibleSeqs: string[] = []
   const eligibleTasks = new Set<string>()
-  const needsDecisionKeys: string[] = []
+  const needsDecisionTasks: string[] = []
   const allSeqs: string[] = []
   const staleOwned = new Map<string, boolean>()
   for (const line of rows) {
@@ -344,11 +333,11 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     let project = ''
     let task = ''
     if (kind === 'signal') {
+      task = key.replace(/\.(?:status|turn-ended)$/, '')
       if (/^needs-decision:/.test(f[4] ?? '')) {
-        needsDecisionKeys.push(key)
+        needsDecisionTasks.push(task)
         continue
       }
-      task = key.replace(/\.(?:status|turn-ended)$/, '')
       project = metadata.get(task) ?? ''
     } else if (kind === 'stale') {
       task = taskByKey.get(key) ?? taskByKey.get(key.replace(/^fm-/, '')) ?? ''
@@ -369,7 +358,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
           staleOwned.set(statusPath, owned)
         }
         if (staleOwned.get(statusPath)) {
-          needsDecisionKeys.push(key)
+          needsDecisionTasks.push(task)
           continue
         }
       }
@@ -381,7 +370,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     eligibleSeqs.push(seq)
   }
   const eligible = eligibleSeqs.length > 0
-  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionKeys, allSeqs }
+  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
 }
 
 // Deterministic note of the status lines appended since the task's last outcome.
@@ -679,17 +668,17 @@ async function deliverToBranch($: any, prompt: string): Promise<{ ok: boolean; v
 
 // Route one watcher wake: 'dropped' when the branch took it, 'passed' when main must handle it.
 async function routeWake($: any, wakeText: string, source: string): Promise<'dropped' | 'passed'> {
-  const mode = await readMode($)
   const reasons = reasonLines(wakeText)
   const reason = reasons.join('\n')
+  const now = Number(await $.clock.now())
   // Dedupe key: the queue rows the wake resolves to, never the reason text,
   // because every wake of one task reads the same `signal: .../<task>.status`.
   let passKey = ''
   const pass = (why: string, extra: Record<string, unknown> = {}) => {
     log($, 'wake.passed', { why, reason: reason || wakeText.slice(0, 300), source, ...extra })
-    if (passKey) recentPassed.set(passKey, Date.now())
+    if (passKey) recentPassed.set(passKey, now)
     // Lines main handles become history for the classifier: advance its offset.
-    const tasks = new Set<string>([...((extra.seqsTasks as string[]) ?? []), ...(((extra.needsDecisionKeys as string[]) ?? []).map((k) => k.replace(/\.status$/, '')))])
+    const tasks = new Set<string>([...((extra.seqsTasks as string[]) ?? []), ...((extra.needsDecisionTasks as string[]) ?? [])])
     for (const t of tasks) void $.process.run(['bash', `${bin}/fm-wake-evidence.sh`, t], { cwd, env: scriptEnv(), timeoutMs: 25000 }).catch(() => {})
     // A captain-class wake main takes directly still needs a covering CAPTAIN
     // row in the outcome store: without it the branch's next wake note lists
@@ -709,17 +698,17 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     }
     return 'passed' as const
   }
-  if (mode === 'off') return pass('mode off')
+  if (!(await modeOn($))) return pass('no state/.branch-mod-mode')
   if (Date.now() < latchedUntil) return pass('latched')
   if (await $.fs.exists(`${state}/.afk`)) return pass('afk')
   if (reasons.length === 0) return pass('no actionable reason line (alarm or failure notice)')
   const heartbeat = reasons.some((r) => /^heartbeat($|:)/.test(r))
   const scope = await scopeForUnreadWake($, heartbeat)
   log($, 'wake.scope', { reason, scope, source })
-  passKey = `${scope.status}:${(scope.allSeqs ?? scope.eligibleSeqs).join(',')}:${scope.needsDecisionKeys.join(',')}`
+  passKey = `${scope.status}:${(scope.allSeqs ?? scope.eligibleSeqs).join(',')}:${scope.needsDecisionTasks.join(',')}`
   const seenAt = recentPassed.get(passKey)
-  if (seenAt !== undefined && Date.now() - seenAt < PASSED_DEDUPE_MS) {
-    log($, 'wake.passed.deduped', { passKey, source, ageMs: Date.now() - seenAt })
+  if (seenAt !== undefined && now - seenAt < PASSED_DEDUPE_MS) {
+    log($, 'wake.passed.deduped', { passKey, source, ageMs: now - seenAt })
     return 'dropped'
   }
   // An empty queue under a signal/stale/heartbeat reason means the other
@@ -730,7 +719,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     log($, 'wake.dropped.empty', { reason, source })
     return 'dropped'
   }
-  if (scope.status === 'empty' || scope.corrupted || scope.eligibleSeqs.length === 0) return pass(`scope ${scope.status}`, { needsDecisionKeys: scope.needsDecisionKeys, seqsTasks: scope.eligibleTasks })
+  if (scope.status === 'empty' || scope.corrupted || scope.eligibleSeqs.length === 0) return pass(`scope ${scope.status}`, { needsDecisionTasks: scope.needsDecisionTasks, seqsTasks: scope.eligibleTasks })
   // Dedupe: the Stop-hook arm and the monitor can both surface one wake, and a
   // wake already in the branch's hands must not be granted twice.
   if (scope.eligibleSeqs.every((s) => handledSeqs.has(s))) {
@@ -753,13 +742,10 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   }
   // Classifier ahead of the branch: only a confident routine verdict is
   // granted; captain or uncertain goes to main untouched.
-  if (await flag($, '.branch-mod-classifier')) {
-    const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
-    log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, ...c, estTokens: Math.ceil(c.promptChars / 4) })
-    if (c.verdict !== 'routine') {
-      for (const s of scope.eligibleSeqs) handledSeqs.add(s)
-      return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
-    }
+  const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
+  log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, ...c, estTokens: Math.ceil(c.promptChars / 4) })
+  if (c.verdict !== 'routine') {
+    return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
   }
   if (!(await ensureActivated($))) return pass('no lock pid / activation failed')
   const rc = await grant($, ['publish', generation, ...scope.eligibleSeqs])
@@ -767,13 +753,11 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   if (rc !== 0) return pass(rc === 3 ? 'main-owned' : `publish rc ${rc}`)
   wakeCounter += 1
   await saveCounters($)
-  // A wake that opens a fresh agent (first spawn or a rotation) always carries
-  // the index note, because that agent has no memory of earlier outcomes.
   const freshAgent = rotatePending || !branchAgentId
   const scopeNote = heartbeat
     ? ''
     : `\n\nThis wake's rows resolve to task ${scope.eligibleTasks.join(', ')} (records: ${state}/${scope.eligibleTasks[0]}.meta and ${state}/${scope.eligibleTasks[0]}.status). Report with task=${scope.eligibleTasks[0]}, never fleet.` +
-      (freshAgent || (await flag($, '.branch-mod-index-note')) ? await newStatusLinesNote($, scope.eligibleTasks) : '')
+      (await newStatusLinesNote($, scope.eligibleTasks))
   const prompt = `FIRSTMATE SUPERVISION WAKE: ${reason}\n\n(wake ${wakeCounter} of this session)\nHandle this per your operating procedure and finish with fm_branch_report.` + scopeNote
   inFlight = {
     seqs: scope.eligibleSeqs,
@@ -806,7 +790,7 @@ async function armMonitor($: any, why: string): Promise<void> {
   // Claim before the first await: the rotate event and the source-ended notice
   // of one monitor arrive within milliseconds and would otherwise arm two loops.
   armingNow = true
-  if ((await readMode($)) !== 'drop') {
+  if (!(await modeOn($))) {
     armingNow = false
     return
   }
@@ -945,9 +929,9 @@ export function register(on: On) {
     } catch (error) {
       log($, 'tool.register.error', { error: String(error) })
     }
-    const mode = await readMode($)
-    $.ui.log(`${PLUGIN}: loaded (mode ${mode}, home ${home}, Claude Code ${version})`)
-    log($, 'session.start', { cwd, home, state, mode, generation, version, classifier: await flag($, '.branch-mod-classifier'), indexNote: await flag($, '.branch-mod-index-note') })
+    const enabled = await modeOn($)
+    $.ui.log(`${PLUGIN}: loaded (${enabled ? 'enabled' : 'inert: no state/.branch-mod-mode'}, home ${home}, Claude Code ${version})`)
+    log($, 'session.start', { cwd, home, state, enabled, generation, version })
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -975,7 +959,7 @@ export function register(on: On) {
     if (kind !== 'task-notification') {
       log($, 'prompt.submit', { origin: e.origin, text: e.text.slice(0, 200) })
       // First captain prompt of the session: arm continuity from a hook frame.
-      if ((await readMode($)) === 'drop') void armMonitor($, 'first prompt')
+      if (await modeOn($)) void armMonitor($, 'first prompt')
       return next(e)
     }
     const mon = monitorEventBanner($, e.text)

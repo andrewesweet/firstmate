@@ -1055,7 +1055,9 @@ EOF
 
 # Captain-facing lines a ROUTINE branch outcome covered. Prints every
 # captain-relevant status line of <task> whose end offset lies in
-# (<from-offset>, endpoint] as "<end-offset>\t<line>", where endpoint is the
+# (<from-offset>, endpoint] as "<end-offset>\t<line>", except a needs-decision
+# or blocked line with a parseable key, which the durable OPEN DECISIONS fold
+# alone presents; endpoint is the
 # task's covering outcome recorded in $state/.<task>.branch-outcome-index and
 # the span starts at the later of <from-offset> and the previous outcome's
 # statusEndpoint, so a line an earlier outcome judged is never re-presented.
@@ -1104,6 +1106,9 @@ EOF
     }
   ' "$state/$task.status" "$from" "$endpoint" | while IFS=$(printf '\t') read -r end line; do
     status_is_captain_relevant "$line" || continue
+    case "$(status_line_verb "$line")" in
+      needs-decision|blocked) _fm_decision_key "$line" >/dev/null 2>&1 && continue ;;
+    esac
     printf '%s\t%s\n' "$end" "$line"
   done
 }

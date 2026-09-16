@@ -18,6 +18,7 @@ The mod is deliberately inert everywhere it is not asked for:
 The Claude Code protocol's Stop-hook rewake delivers every actionable watcher close into main's prompt as a `Stop hook feedback` message.
 The mod intercepts that message in `prompt.submit` before it opens a main turn, scopes the wake to the queue rows the branch may own (the same eligibility as the Pi branch: task-local `signal` and `stale` rows with no open captain decision, never a `check` row or a watcher-failure alarm), claims a wake grant, and delivers the wake to the branch agent.
 Delivery spawns the agent once per branch generation (`$.agent.spawn`, a background agent named `fm-branch`) and reaches the same agent through `SendMessage` for every later wake, so the branch keeps its context across wakes.
+Every task wake hands the branch the deterministic new-status-lines note (the status lines appended since the task's last outcome), so what keeps the branch from re-escalating is the outcome index rather than its memory.
 A delivered wake is dropped from main, which stays silent; a wake the branch may not own, or one the mod cannot deliver, passes through to main exactly as it would without the mod.
 
 The branch agent runs on the same system prompt as the Pi branch (`bin/fm-branch-prompt.sh`) plus a hooks-module addendum, generated into `agents/fm-branch.md` by `bin/fm-branch-agent-md.sh`; `bin/fm-branch-agent-md.sh --check` fails when the tracked file is stale.
@@ -38,11 +39,12 @@ It streams each watcher close that arrives while no main turn is open into `prom
 
 After every routine branch outcome, the mod runs `bin/fm-wake-evidence.sh --routine-covered <task>` from the branch's own `turn.complete` hook.
 Any captain-facing status line that a routine outcome covered, and main has not been shown, is delivered to main as a supervision backstop prompt.
-The same lines surface in main's next `bin/fm-wake-drain.sh` under `STATUS OUTCOME BACKSTOP`, marked `(covered by a ROUTINE branch outcome)`; that drain extension is switched by `state/.branch-mod-mode` and is otherwise silent, and each line is presented once.
+The same lines surface in main's next `bin/fm-wake-drain.sh` under `STATUS OUTCOME BACKSTOP`, marked `(covered by a ROUTINE branch outcome)`, even when a later routine line is the newest; that drain extension is switched by `state/.branch-mod-mode` and is otherwise silent, and each line is presented once.
+A `needs-decision:` or `blocked:` line with a parseable key is never re-presented this way, because the durable OPEN DECISIONS fold alone presents it.
 
-### Optional classifier
+### Classifier
 
-With `state/.branch-mod-classifier` present, a text-only classifier runs ahead of the branch on every eligible wake.
+A text-only classifier runs ahead of the branch on every eligible wake.
 It is one `$.model.complete` call on the model named by `config/classifier-model` (default `haiku`), with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
 Only a confident `routine` verdict lets the wake go to the branch; `captain`, `uncertain`, a malformed answer, and a failed call all pass the wake to main, and main's direct handling is covered in the outcome store so the branch and the backstop never re-escalate it.
 The offset of the last classified bundle lives in `state/.<task>.classifier-offset`, owned by `bin/fm-wake-evidence.sh` and removed by teardown.
@@ -54,12 +56,11 @@ Records whose status log was torn down count as unscorable.
 ## Opting a home in
 
 1. Install Claude Code at the pinned version (`claude --version` must print it exactly).
-2. Create `state/.branch-mod-mode` containing `drop`.
-   Remove the file to switch the mod and every `bin/` piece it switches off; do not write `off` into it, because the `bin/` pieces key on the file's presence.
-3. Optionally create `state/.branch-mod-classifier` (classifier ahead of the branch) and `state/.branch-mod-index-note` (hand the branch the deterministic new-status-lines note on every wake, not only on a spawn).
-4. Optionally write `config/classifier-model` and `config/supervision-branch-model`.
-5. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported rather than discovered when the mod refuses to load.
-6. Launch the primary with the settings below.
+2. Create `state/.branch-mod-mode`; its presence alone switches the mod and every `bin/` piece it relies on, and its content is ignored.
+   Remove the file to switch them all off together.
+3. Optionally write `config/classifier-model` and `config/supervision-branch-model`.
+4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported rather than discovered when the mod refuses to load.
+5. Launch the primary with the settings below.
 
 ## Launch settings
 
@@ -95,9 +96,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 
 `AGENTS.md` section 2 and [`configuration.md`](configuration.md) route each record to its owner; this is the list.
 
-- `state/.branch-mod-mode`: the opt-in switch, `drop`; its presence switches the drain backstop extension and the pretool escape.
-- `state/.branch-mod-classifier`: presence flag, classifier ahead of the branch.
-- `state/.branch-mod-index-note`: presence flag, index note on every wake.
+- `state/.branch-mod-mode`: the opt-in switch; its presence switches the mod, the drain backstop extension, and the pretool escape.
 - `state/.branch-mod-counters`: the session's counters (wake, spawn, send, generation, branch agent id, monitor task id) keyed by the lock pid, so a module reload re-adopts the live agent; module-owned.
 - `state/.<task>.classifier-offset`: the status byte offset of the last classified bundle; owned by `bin/fm-wake-evidence.sh`, removed by teardown.
 - `state/branch-mod-events.jsonl`: append-only event log, rotated to `.1` past 4 MB; the evidence source for every count the live test asserts.
