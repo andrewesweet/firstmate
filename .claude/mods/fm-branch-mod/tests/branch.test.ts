@@ -34,9 +34,17 @@ type World = {
 type WorldOptions = {
   version?: string;
   files?: Record<string, string>;
-  classifierAnswer?: string;
-  evidence?: string;
+  /** One answer per classifier call in order; the last one repeats. */
+  classifierAnswer?: string | string[];
+  /** One evidence bundle per fm-wake-evidence.sh run in order; the last one repeats. */
+  evidence?: string | string[];
 };
+
+function nth(values: string | string[] | undefined, index: number, fallback: string): string {
+  if (values === undefined) return fallback;
+  if (typeof values === "string") return values;
+  return values[Math.min(index, values.length - 1)] ?? fallback;
+}
 
 function world(on: On, options: WorldOptions = {}): World {
   mock.env(on, { FM_HOME: HOME, CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1" });
@@ -81,7 +89,7 @@ function world(on: On, options: WorldOptions = {}): World {
   });
   on("model.complete", async (_$, e) => {
     completions.push({ model: e.model, system: e.system, prompt: e.prompt, maxTokens: e.maxTokens });
-    return { value: options.classifierAnswer ?? '{"verdict":"routine","reason":"nothing new"}' };
+    return { value: nth(options.classifierAnswer, completions.length - 1, '{"verdict":"routine","reason":"nothing new"}') };
   });
   on("session.start", async (_$, e) => ({ cwd: e.cwd }));
   on("agent.spawn", async (_$, e) => {
@@ -110,7 +118,10 @@ function world(on: On, options: WorldOptions = {}): World {
       return answer();
     }
     const script = String(argv[1] ?? "").split("/").pop() ?? "";
-    if (script === "fm-wake-evidence.sh") return answer(options.evidence ?? `## task ${argv[2]} status bytes 0-38\ndone: PR https://x/1 checks green\n`);
+    if (script === "fm-wake-evidence.sh") {
+      const index = runs.filter((r) => r.argv[1]?.endsWith("fm-wake-evidence.sh")).length - 1;
+      return answer(nth(options.evidence, index, `## task ${argv[2]} status bytes 0-38\ndone: PR https://x/1 checks green\n`));
+    }
     if (script === "fm-wake-grant.sh") return answer();
     if (script === "fm-branch-outcome.sh") return answer("7\n");
     return answer("", 1);
@@ -222,7 +233,7 @@ describe("classification log", () => {
     expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
   });
 
-  test("a passed wake main never acknowledged is re-classified and passed again once the dedupe window has elapsed", async ($: Engine, on: On) => {
+  test("a passed wake main never acknowledged is passed again once the dedupe window has elapsed", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome(), classifierAnswer: '{"verdict":"captain","reason":"terminal line"}' });
     await $.session.start(sessionStart);
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
@@ -230,8 +241,36 @@ describe("classification log", () => {
     // The Stop hook re-blocks with the same banner while row 12 still sits in the queue.
     await w.clock.advance(91_000);
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
-    expect(w.completions.length).toBe(2);
+    expect(w.completions.length).toBe(1);
     expect(w.submitted).toEqual([WAKE, WAKE]);
+  });
+
+  test("a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now", async ($: Engine, on: On) => {
+    const w = world(on, {
+      files: armedHome(),
+      classifierAnswer: ['{"verdict":"captain","reason":"terminal line"}', '{"verdict":"routine","reason":"only a working line is new"}'],
+      evidence: ["## task t1 status bytes 0-38\nNEW\n  done: PR https://x/1 checks green\n", "## task t1 status bytes 38-49\nHISTORY\n  done: PR https://x/1 checks green\nNEW\n  working: b\n"],
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.submitted).toEqual([WAKE]);
+    expect(w.completions.length).toBe(1);
+    // Main's turn was interrupted before its drain: row 12 is still queued when
+    // the next close adds row 13, and the session restarts in between.
+    w.files.set(`${STATE}/t1.status`, "working: a\ndone: PR https://x/1 checks green\nworking: b\n");
+    w.files.set(`${STATE}/.wake-queue`, "1700000000\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n1700000060\t13\tsignal\tt1.status\tworking: b\n");
+    await w.clock.advance(91_000);
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.submitted).toEqual([WAKE, WAKE]);
+    expect(w.completions.length).toBe(1);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
+    // Once main acknowledges (the rows leave the queue) the record is pruned and the classifier runs again.
+    w.files.set(`${STATE}/.wake-queue`, "1700000120\t14\tsignal\tt1.status\tworking: c\n");
+    await w.clock.advance(91_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(2);
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-passed`) ?? "[]")).toEqual([]);
   });
 
   test("a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row", async ($: Engine, on: On) => {

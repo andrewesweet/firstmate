@@ -47,6 +47,7 @@ A `needs-decision:` or `blocked:` line with a parseable key is never re-presente
 A text-only classifier runs ahead of the branch on every eligible wake.
 It is one `$.model.complete` call on the model named by `config/classifier-model` (default `haiku`), with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
 Only a confident `routine` verdict lets the wake go to the branch; `captain`, `uncertain`, a malformed answer, and a failed call all pass the wake to main, and main's direct handling is covered in the outcome store so the branch and the backstop never re-escalate it.
+The queue rows of a passed wake are recorded in `state/.branch-mod-passed` until main acknowledges them; while one is still queued, every later wake carrying it goes back to main without a classifier call, across a module reload or a session restart, because its lines are already history to the classifier.
 The offset of the last classified bundle lives in `state/.<task>.classifier-offset`, owned by `bin/fm-wake-evidence.sh` and removed by teardown.
 
 Every classifier call appends one record to `state/branch-mod-classifications.jsonl`: the wake text, the tasks and queue sequences, the evidence byte range per task (`{"task","from","to"}`), the verdict, the reason, the model name, the elapsed milliseconds, and the model's answer.
@@ -97,6 +98,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 `AGENTS.md` section 2 and [`configuration.md`](configuration.md) route each record to its owner; this is the list.
 
 - `state/.branch-mod-mode`: the opt-in switch; its presence switches the mod, the drain backstop extension, and the pretool escape.
+- `state/.branch-mod-passed`: the queue sequences passed to main and not yet acknowledged; module-owned.
 - `state/.branch-mod-counters`: the session's counters (wake, spawn, send, generation, branch agent id, monitor task id) keyed by the lock pid, so a module reload re-adopts the live agent; module-owned.
 - `state/.<task>.classifier-offset`: the status byte offset of the last classified bundle; owned by `bin/fm-wake-evidence.sh`, removed by teardown.
 - `state/branch-mod-events.jsonl`: append-only event log, rotated to `.1` past 4 MB; the evidence source for every count the live test asserts.
