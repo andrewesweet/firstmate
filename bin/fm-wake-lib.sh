@@ -1381,7 +1381,8 @@ fm_failure_episode_reset() {
 #   - A claim is OPEN (fm_autoarm_claim_open) while its outcome is "arming",
 #     its owner pid is alive, its recorded identity successfully recomputes
 #     and matches that pid, its owner still DESCENDS from the session-lock pid
-#     (state/.lock line 1), and it is not STUCK - stuck meaning both the
+#     (state/.lock line 1, which must be numeric: a missing or malformed lock
+#     means no session can receive a rewake), and it is not STUCK - stuck meaning both the
 #     ledger entry and the watcher beacon (state/.last-watcher-beat) are older
 #     than the guard grace, which proves the owner hung mid-arm with nothing
 #     supervising (every legitimate arming phase with no watcher is bounded in
@@ -1500,9 +1501,10 @@ fm_pid_descends_from() {  # <pid> <ancestor>
 # True while the CURRENT ledger claim is open and healthy - the defer predicate
 # both Stop participants use. Open means: outcome "arming", a live owner whose
 # mandatory recorded identity recomputes and matches its pid, an owner that
-# still descends from the session-lock pid when the lock records one (an
-# orphan of an exited session cannot deliver a rewake, so deferring to it
-# leaves the home deaf), and not stuck
+# still descends from the numeric session-lock pid in state/.lock (an orphan
+# of an exited session cannot deliver a rewake, so deferring to it leaves the
+# home deaf; a home with no numeric lock pid has no session to deliver to, so
+# its claim is never open), and not stuck
 # (the contract comment above owns the stuck proof). fm_path_age reports an
 # absent beacon as ancient, which is exactly right: arming for a full grace
 # window without producing a first beat is the same hang. An identityless
@@ -1524,9 +1526,9 @@ fm_autoarm_claim_open() {  # <state-dir> [grace]
   [ "$current" = "$FM_AUTOARM_IDENTITY" ] || return 1
   lock_pid=$(sed -n '1p' "$state/.lock" 2>/dev/null || true)
   case "$lock_pid" in
-    ''|*[!0-9]*) ;;
-    *) fm_pid_descends_from "$FM_AUTOARM_OWNER" "$lock_pid" || return 1 ;;
+    ''|*[!0-9]*) return 1 ;;
   esac
+  fm_pid_descends_from "$FM_AUTOARM_OWNER" "$lock_pid" || return 1
   if [ "$(fm_path_age "$epoch")" -ge "$grace" ] \
     && [ "$(fm_path_age "$state/.last-watcher-beat")" -ge "$grace" ]; then
     return 1

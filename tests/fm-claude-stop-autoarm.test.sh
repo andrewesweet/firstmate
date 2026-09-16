@@ -1137,6 +1137,42 @@ test_orphaned_claim_from_dead_session_is_superseded_by_replacement() {
   pass "auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake"
 }
 
+# A claim with no numeric session-lock pid is never open: nothing can receive
+# its rewake (the hook itself goes silent on a missing or malformed lock), so
+# deferring to it would leave the home deaf. Same live, identity-matched,
+# fresh-beacon owner, three lock states, one predicate.
+test_claim_without_numeric_session_lock_is_not_open() {
+  local dir rc
+  dir=$(make_primary_dir "$TMP_ROOT/v2-lockless-claim")
+  : > "$dir/state/.last-watcher-beat"
+  probe() {
+    FM_STATE_OVERRIDE="$dir/state" bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        sleep 60 &
+        owner=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        printf "epoch=464 owner_pid=%s outcome=arming updated_at=1\n%s\n" "$owner" "$identity" \
+          > "$1/state/.claude-autoarm-epoch"
+        case "$2" in
+          self) printf "%s\n" "$$" > "$1/state/.lock" ;;
+          absent) rm -f "$1/state/.lock" ;;
+          *) printf "%s\n" "$2" > "$1/state/.lock" ;;
+        esac
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" 2>/dev/null
+        exit "$rc"
+      ' _ "$dir" "$1"
+  }
+  probe self; rc=$?
+  [ "$rc" -ne 97 ] || fail "could not record a v2 claim for the probe's sleeper"
+  expect_code 0 "$rc" "a live claim owned by a child of the numeric lock pid must be open"
+  probe absent; rc=$?
+  expect_code 1 "$rc" "a claim with no state/.lock at all must not be open"
+  probe not-a-pid; rc=$?
+  expect_code 1 "$rc" "a claim under a malformed state/.lock must not be open"
+  pass "auto-arm: a claim is open only under a numeric session lock its owner descends from"
+}
+
 # Identity is mandatory at read time: a bare identityless one-line arming
 # ledger naming an unrelated live pid is NOT an open claim - it must neither
 # defer the hook nor survive as the current entry, whatever the beacon says.
@@ -1323,6 +1359,7 @@ test_stopped_legacy_owner_is_reclaimed_with_term_pending
 test_open_generation_claim_defers_without_any_lock
 test_stuck_generation_claim_is_superseded_and_rearms
 test_orphaned_claim_from_dead_session_is_superseded_by_replacement
+test_claim_without_numeric_session_lock_is_not_open
 test_identityless_ledger_never_defers
 test_superseded_owner_never_reinvokes_the_arm
 test_superseded_owner_goes_silent_and_never_double_translates
