@@ -1,0 +1,21 @@
+## fm_backend_herdr_server_ensure from a polluted fleet-snapshot-child environment (no server bound)
+caller env: FM_CREW_STATE_META_OVERRIDE, FM_CREW_STATE_STATUS_OVERRIDE, FM_SESSION_START_STAGE_FILE, FM_HOME_SUMMARY_IF_IDLE, FM_HOME_SUMMARY_WORKER_BEST_EFFORT, FM_HOME, CLAUDECODE, FM_UNRELATED
+server_ensure rc=0
+
+## environment the auto-started herdr server inherited (FM_*/CLAUDE*/HERDR_SESSION)
+declare -x CLAUDE_CODE_CHILD_SESSION="1"
+declare -x CLAUDE_CODE_ENABLE_TELEMETRY="1"
+declare -x CLAUDE_CODE_ENHANCED_TELEMETRY_BETA="1"
+declare -x CLAUDE_CODE_ENTRYPOINT="sdk-cli"
+declare -x CLAUDE_CODE_EXECPATH="/home/andre/.local/share/claude/versions/2.1.273"
+declare -x CLAUDE_CODE_MESSAGING_SOCKET="/run/user/1000/cc-socks/4144685.sock"
+declare -x CLAUDE_CODE_MESSAGING_TOKEN="70dcbeca7a701b39349933a9a35ea06a"
+declare -x CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH="262144"
+declare -x CLAUDE_CODE_SESSION_ATTENDED="0"
+declare -x CLAUDE_CODE_SESSION_ID="1833f160-f672-443b-a816-8a66f3407b28"
+declare -x CLAUDE_EFFORT="medium"
+declare -x CLAUDE_PID="4144685"
+declare -x FM_SERVER_ENV="/tmp/tmp.0BESsN3iMK/server.env"
+declare -x FM_UNRELATED="keep"
+declare -x HERDR_SESSION="default"
+declare -x MLFLOW_CLAUDE_TRACING_ENABLED="true"

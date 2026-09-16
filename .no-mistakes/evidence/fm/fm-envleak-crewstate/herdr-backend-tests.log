@@ -1,0 +1,3 @@
+ok - fm_backend_herdr_cli: a plain call passes no per-call state or session-start variables to the herdr client
+ok - fm_backend_herdr_cli: a server auto-start never inherits per-call state or session-start variables
+exit=0

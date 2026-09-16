@@ -1,0 +1,35 @@
+## control: no override
+$ META_OVERRIDE= STATUS_OVERRIDE= fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+## incident shape A: leaked override for selfimprove, temp dir still present
+$ META_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/state/selfimprove.meta STATUS_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/state/selfimprove.status fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+## incident shape B: leaked override for selfimprove, temp dir gone
+$ META_OVERRIDE=/tmp/fm-fleet-tasks.VPw7YU-gone/selfimprove.meta STATUS_OVERRIDE=/tmp/fm-fleet-tasks.VPw7YU-gone/selfimprove.status fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+## adversarial near-miss basenames (must be ignored)
+$ META_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/xmytask.meta STATUS_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/xmytask.status fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+$ META_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/mytask.meta.bak STATUS_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/xmytask.status fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+## adversarial: META override swapped with a .status file of the right task
+$ META_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/state/mytask.status STATUS_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/state/mytask.meta fm-crew-state.sh mytask
+state: working · source: status-log · mytask own log line
+
+## matched basename in snapshot-style dir (must be honoured)
+$ META_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/snap/mytask.meta STATUS_OVERRIDE=/tmp/fm-crew-state.F28Qiy/live-drive/snap/mytask.status fm-crew-state.sh mytask
+state: paused · source: status-log · snapshot captured line
+
+## matched basename, relative path
+$ META_OVERRIDE=mytask.meta STATUS_OVERRIDE=mytask.status fm-crew-state.sh mytask
+state: paused · source: status-log · snapshot captured line
+
+## matched basename but file vanished (pre-existing contract: honoured, reads missing)
+$ META_OVERRIDE=/tmp/fm-fleet-tasks.VPw7YU-gone/mytask.meta STATUS_OVERRIDE=/tmp/fm-fleet-tasks.VPw7YU-gone/mytask.status fm-crew-state.sh mytask
+state: unknown · source: none · no metadata for mytask
+

@@ -1,0 +1,4 @@
+ok - current state and decision hints share one captured status observation
+ok - a partial GitHub failure degrades gracefully
+ok - projection and TOON rendering failures exit nonzero with diagnostics
+exit=0

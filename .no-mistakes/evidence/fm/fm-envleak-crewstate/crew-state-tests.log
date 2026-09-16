@@ -1,0 +1,4 @@
+ok - terminal passed run PR overrides stale task metadata
+ok - override guard: a foreign-named override is ignored and the task's own state files are read
+ok - override guard: a matching-name override still steers the read at the captured generation
+exit=0

@@ -1,0 +1,3 @@
+# base-commit code (dd80265) under new tests
+not ok - a mismatched override must be ignored: the task's own working log line wins (missing: 'state: working')
+not ok - a plain herdr CLI call leaked FM_CREW_STATE_META_OVERRIDE into the herdr client environment (unexpected: 'declare -x FM_CREW_STATE_META_OVERRIDE=')
