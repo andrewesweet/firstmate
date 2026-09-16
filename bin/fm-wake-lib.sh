@@ -1380,11 +1380,18 @@ fm_failure_episode_reset() {
 #     reused pid can never authenticate someone else's stale entry.
 #   - A claim is OPEN (fm_autoarm_claim_open) while its outcome is "arming",
 #     its owner pid is alive, its recorded identity successfully recomputes
-#     and matches that pid, and it is not STUCK - stuck meaning both the
+#     and matches that pid, its owner still DESCENDS from the session-lock pid
+#     (state/.lock line 1), and it is not STUCK - stuck meaning both the
 #     ledger entry and the watcher beacon (state/.last-watcher-beat) are older
 #     than the guard grace, which proves the owner hung mid-arm with nothing
 #     supervising (every legitimate arming phase with no watcher is bounded in
 #     seconds, while a healthy hours-long cycle keeps the beacon beating).
+#     The descent test is what makes a claim deliverable: a hook whose session
+#     exited mid-cycle stays alive, reparented to init, with no parent to
+#     receive its exit 2 (observed 2026-09-16: the replacement session's first
+#     Stop deferred to such an orphan for 14 minutes, and when the cycle closed
+#     the orphan's banner write into its dead parent's pipe killed it before
+#     its commit, leaving the home deaf until a captain turn).
 #   - Every firing DEFERS (exits 0) to an open claim; anything else - a
 #     terminal outcome, a dead or identity-mismatched owner, a stuck owner, an
 #     identityless entry, or no claim at all - lets the next firing take
@@ -1478,9 +1485,24 @@ fm_autoarm_ledger_read() {  # <state-dir>
   return 0
 }
 
+# True when <ancestor> is <pid> itself or appears in <pid>'s parent chain
+# (bounded to the same 16 hops fm_harness_ancestry_pids walks).
+fm_pid_descends_from() {  # <pid> <ancestor>
+  local pid=$1 ancestor=$2
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    [ "$pid" = "$ancestor" ] && return 0
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ -n "$pid" ] && [ "$pid" -gt 1 ] || return 1
+  done
+  return 1
+}
+
 # True while the CURRENT ledger claim is open and healthy - the defer predicate
 # both Stop participants use. Open means: outcome "arming", a live owner whose
-# mandatory recorded identity recomputes and matches its pid, and not stuck
+# mandatory recorded identity recomputes and matches its pid, an owner that
+# still descends from the session-lock pid when the lock records one (an
+# orphan of an exited session cannot deliver a rewake, so deferring to it
+# leaves the home deaf), and not stuck
 # (the contract comment above owns the stuck proof). fm_path_age reports an
 # absent beacon as ancient, which is exactly right: arming for a full grace
 # window without producing a first beat is the same hang. An identityless
@@ -1488,7 +1510,7 @@ fm_autoarm_ledger_read() {  # <state-dir>
 # build's entry gets its deference from its held role-carrying lock through
 # the legacy shim, and anything else must not defer.
 fm_autoarm_claim_open() {  # <state-dir> [grace]
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} epoch current
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} epoch current lock_pid
   epoch="$state/.claude-autoarm-epoch"
   case "$grace" in
     ''|*[!0-9]*|0) grace=300 ;;
@@ -1500,6 +1522,11 @@ fm_autoarm_claim_open() {  # <state-dir> [grace]
   current=$(fm_pid_identity "$FM_AUTOARM_OWNER" 2>/dev/null) || return 1
   [ -n "$current" ] || return 1
   [ "$current" = "$FM_AUTOARM_IDENTITY" ] || return 1
+  lock_pid=$(sed -n '1p' "$state/.lock" 2>/dev/null || true)
+  case "$lock_pid" in
+    ''|*[!0-9]*) ;;
+    *) fm_pid_descends_from "$FM_AUTOARM_OWNER" "$lock_pid" || return 1 ;;
+  esac
   if [ "$(fm_path_age "$epoch")" -ge "$grace" ] \
     && [ "$(fm_path_age "$state/.last-watcher-beat")" -ge "$grace" ]; then
     return 1
