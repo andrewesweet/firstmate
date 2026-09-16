@@ -3510,7 +3510,6 @@ export default function (pi: any) {
       model.contextWindow = GLM_FLASH_COMPACTION_WINDOW;
     }
   };
-  pi.on("session_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx));
   pi.on("before_agent_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx));
   // A native harness can make progress inside one Pi turn. This separate
   // marker prevents false wedge alarms without fabricating a completed turn.

@@ -706,7 +706,7 @@ const mod = await import(pathToFileURL(process.env.EXT_PATH).href);
 const handlers = {};
 mod.default({ on: (name, fn) => { handlers[name] = fn; } });
 const model = { provider: process.env.PROVIDER, id: process.env.MODEL_ID, contextWindow: 1000000 };
-for (const name of ["session_start", "before_agent_start"]) {
+for (const name of ["before_agent_start"]) {
   if (!handlers[name]) throw new Error("missing handler " + name);
   await handlers[name]({ type: name }, { model });
 }
