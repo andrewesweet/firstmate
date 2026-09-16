@@ -5,10 +5,15 @@
 # filled in. Ship and scout `# Task` sections have two subsections Firstmate
 # fills before dispatch: `{TASK}` under `## Captain's intent` (the captain's
 # own ask plus the context needed to read it, including the substance of any
-# report, decision, or PR the ask refers to) and `{FIRSTMATE_SPEC}`
+# report, decision, or PR the ask refers to; captain rulings that constrain
+# the design belong in that subsection so the reviewer does not re-ask them)
+# and `{FIRSTMATE_SPEC}`
 # under `## Firstmate spec` (build instructions, which are never the captain's
-# intent). bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract those
-# subsections feed; bin/fm-spawn.sh refuses leftover placeholders. Secondmate
+# intent). Ship briefs also close the `# Task` section with a standing
+# `## Reviewer note` restating that ruling rule to the pipeline reviewer; it is
+# scaffold text, not a fill site. bin/fm-dod-lib.sh owns the no-mistakes
+# `--intent` contract those subsections feed; bin/fm-spawn.sh refuses leftover
+# placeholders. Secondmate
 # charters still use a single `{TASK}` charter fill. Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
@@ -451,6 +456,9 @@ cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 $TASK_SECTION
+
+## Reviewer note
+Captain rulings that constrain the design belong in the \`## Captain's intent\` subsection above, so the reviewer does not re-ask them.
 
 $HERDR_SECTION
 

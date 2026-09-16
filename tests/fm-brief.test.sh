@@ -260,7 +260,7 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
-  assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+  assert_grep "start /no-mistakes yourself" "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
 
   # An unregistered project is not a blocker either, because nothing is looked up.
@@ -359,6 +359,29 @@ test_no_mistakes_dod_wording() {
   assert_grep "write the substance of the referenced items into \`--intent\`" "$brief" \
     "no-mistakes DOD must tell the worker to resolve report, decision, and PR references into substance"
 
+  # Retro 3 idea 2: the worker starts the pipeline itself after its commit and
+  # rebase; there is no done-then-relay hop through firstmate.
+  assert_grep "rebase onto the current default branch, then start /no-mistakes yourself" "$brief" \
+    "no-mistakes DOD must tell the worker to start validation itself after its commit"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked done: token must stay literal
+  assert_grep 'do not append `done:` and wait for firstmate' "$brief" \
+    "no-mistakes DOD must forbid the done-then-relay wait"
+  assert_grep "working: implementation committed, starting validation" "$brief" \
+    "no-mistakes DOD must keep the phase-change status line for firstmate"
+  assert_no_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+    "no-mistakes DOD still routes validation through a firstmate relay"
+  # Retro 3 idea 3: the CI-green signal names what the worker actually polls.
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked command must stay literal
+  assert_grep '`gh pr checks <n>`' "$brief" \
+    "no-mistakes DOD must state the concrete gh pr checks CI-green signal"
+  assert_grep "the two network-gated jobs skip by design" "$brief" \
+    "no-mistakes DOD must explain the skipped network-gated jobs"
+  assert_grep "poll every 60 seconds" "$brief" \
+    "no-mistakes DOD must give the polling cadence"
+  assert_no_grep 'ci_ready_at' "$brief" \
+    "no-mistakes DOD still references a field axi status never prints"
+  assert_grep 'done: PR {url} checks green' "$brief" \
+    "no-mistakes DOD lost its terminal done line"
   # The --yes ban is a fleet-wide prohibition, not a preference, and it must not
   # claim an enforcement the tool does not provide: this is instruction only.
   assert_grep "NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide." "$brief" \
@@ -370,6 +393,35 @@ test_no_mistakes_dod_wording() {
   assert_no_grep "no-mistakes refuses" "$brief" \
     "no-mistakes DOD must not claim the tool itself refuses --yes"
   pass "fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright"
+}
+
+# Retro 3 idea 4: a pipeline reviewer re-asked a question the captain had
+# already ruled on. The ship scaffold must carry a standing reviewer note tying
+# captain rulings to the Captain's intent subsection - as scaffold text that
+# survives the fill, never as a fill site or a member of either fill body, so
+# the placeholder guard still sees both subsections as placeholder-only before
+# dispatch. The scout scaffold is out of scope for the rider.
+test_ship_reviewer_note_subsection() {
+  local home brief count
+  home="$TMP_ROOT/reviewer-note-home"
+  mkdir -p "$home/data"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-reviewer-note some-proj --mode no-mistakes >/dev/null 2>&1 \
+    || fail "reviewer-note ship brief should scaffold"
+  brief="$home/data/brief-reviewer-note/brief.md"
+  assert_grep '## Reviewer note' "$brief" "ship brief missing the standing reviewer note"
+  assert_grep 'Captain rulings that constrain the design belong in the' "$brief" \
+    "reviewer note must tie captain rulings to the Captain's intent subsection"
+  assert_grep 'subsection above, so the reviewer does not re-ask them' "$brief" \
+    "reviewer note must tell the reviewer not to re-ask ruled questions"
+  count=$(grep -c -F '{TASK}' "$brief")
+  [ "$count" = 1 ] || fail "reviewer note introduced another {TASK} fill site ($count)"
+  count=$(grep -c -F '{FIRSTMATE_SPEC}' "$brief")
+  [ "$count" = 1 ] || fail "reviewer note introduced another {FIRSTMATE_SPEC} fill site ($count)"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-reviewer-note-scout some-proj --scout >/dev/null 2>&1 \
+    || fail "scout brief should scaffold"
+  assert_no_grep '## Reviewer note' "$home/data/brief-reviewer-note-scout/brief.md" \
+    "scout brief must not carry the ship reviewer note"
+  pass "fm-brief.sh: the ship scaffold carries the captain-rulings reviewer note to the reviewer"
 }
 
 test_ask_user_escalation_format() {
@@ -911,6 +963,7 @@ test_ship_mode_is_explicit_not_registry
 test_delivery_flags_are_refused_where_they_do_not_apply
 test_faster_paths_use_configured_authority_without_stacked_review
 test_no_mistakes_dod_wording
+test_ship_reviewer_note_subsection
 test_ask_user_escalation_format
 test_ship_project_memory_wording
 test_herdr_lab_contract_is_explicit_and_complete
