@@ -4,15 +4,17 @@
 # Claude Code primary in tmux, launched exactly as the docs page prescribes,
 # supervising one stand-in task in a temporary scratch home. It proves, on the
 # pinned Claude Code version only:
-#   1. the module loads (mode drop) and main takes the home's session lock;
-#   2. the first watcher wake on a routine status line is routed to a freshly
-#      spawned branch agent, which handles it and reports a routine outcome
-#      without a main turn;
-#   3. the next wake, carrying a captain-class `done:` line, reaches the same
-#      agent through SendMessage, whose captain outcome opens one processing
-#      turn on main that main acknowledges;
-#   4. across the run: one spawn, one successful send, no dropped hand-back, no
-#      backstop delivery.
+#   1. the module loads (enabled by state/.branch-mod-mode) and main takes the
+#      home's session lock;
+#   2. the first watcher wake on a routine status line passes the classifier
+#      and is routed to a freshly spawned branch agent, which handles it and
+#      reports a routine outcome without a main turn;
+#   3. the next wake, carrying a captain-class `done:` line, is passed to main
+#      by the classifier with a covering captain outcome row, main drains it,
+#      and the routine wake after it reaches the same agent through
+#      SendMessage;
+#   4. across the run: one spawn, every send successful, no dropped hand-back,
+#      no backstop delivery.
 # The pin is the module's own refusal gate: on any other Claude Code version the
 # test skips, because the module would refuse to load and the assertions would
 # be meaningless. A pin bump is landed by running this test on the new version
@@ -76,7 +78,7 @@ for f in "$ROOT"/bin/*; do ln -s "$f" "$HOME_DIR/bin/$(basename "$f")"; done
 for d in .agents docs .tasks.toml; do ln -s "$ROOT/$d" "$HOME_DIR/$d"; done
 git -C "$HOME_DIR" init -q
 printf 'tmux\n' > "$HOME_DIR/config/backend"
-printf 'drop\n' > "$STATE/.branch-mod-mode"
+: > "$STATE/.branch-mod-mode"
 cat > "$HOME_DIR/AGENTS.md" <<'MD'
 # Scratch primary for the fm-branch-mod live regression
 
@@ -222,7 +224,7 @@ count() {  # <kind> [needle]
 }
 
 # --- 1. load and lock ---------------------------------------------------------
-wait_event session.start '"mode":"drop"' 'the module loading in mode drop'
+wait_event session.start '"enabled":true' 'the module loading enabled'
 [ "$(count pin.refused)" = 0 ] || fail "the module refused its own pin"
 # The composer is up once the trust dialog is gone and the prompt glyph shows.
 i=0
@@ -238,27 +240,36 @@ sleep 0.5
 enter
 wait_event turn.complete.main '"kind":"turn.complete.main"' "main's lock turn"
 [ -s "$STATE/.lock" ] || fail "main did not take the session lock"
-pass "Claude Code $CLAUDE_VERSION loads the supervision-branch mod in mode drop and main holds the session lock"
+pass "Claude Code $CLAUDE_VERSION loads the supervision-branch mod enabled and main holds the session lock"
 
 # --- 2. routine wake: spawn ----------------------------------------------------
 "$REAL_TMUX" -L "$SOCKET" new-window -d -t "$SESSION" -n dummy -c "$HOME_DIR" "bash '$LAB/dummy.sh' '$STATE/dummy.status' 5"
+wait_event classifier '"verdict":"routine"' "the classifier's routine verdict on the working line"
 wait_event wake.delivered '"via":"spawn"' 'the first wake delivered by spawning the branch'
 wait_event report.call '"verdict":"routine"' "the branch's routine outcome"
 wait_event turn.complete.branch '"kind":"turn.complete.branch"' "the branch's first turn end"
-pass "the first routine wake spawns the branch agent, which reports it routine"
+pass "the first routine wake passes the classifier and spawns the branch agent, which reports it routine"
 
-# --- 3. captain wake: send ---------------------------------------------------
+# --- 3. captain wake: classifier pass to main, then a send -------------------
 : > "$STATE/dummy.done-request"
-wait_event wake.delivered '"via":"send"' 'the done wake delivered by SendMessage'
-wait_event report.call '"verdict":"captain"' "the branch's captain outcome"
-wait_event deliver.captain '"kind":"deliver.captain"' 'the processing request reaching main'
-wait_event processed.call '"ok":true' "main's acknowledgement of the processing request"
-pass "the captain-class wake reaches the same agent through SendMessage and main acknowledges its outcome"
+wait_event classifier '"verdict":"captain"' "the classifier's captain verdict on the done line"
+wait_event wake.passed '"why":"classifier captain"' 'the done wake passed to main'
+wait_event pass.cover '"processed":true' "the covering captain outcome row for main's direct handling"
+i=0
+while [ "$(count turn.complete.main)" -lt 2 ] && [ "$i" -lt 480 ]; do
+  answer_trust_dialog "$(screen)"
+  sleep 0.5
+  i=$((i + 1))
+done
+[ "$(count turn.complete.main)" -ge 2 ] || fail "main never finished the turn that drains the done wake: $(events turn.complete.main)"
+[ "$(count deliver.captain)" = 0 ] || fail "the branch re-escalated the done line main already handled: $(events deliver.captain)"
+wait_event wake.delivered '"via":"send"' 'the next routine wake delivered by SendMessage'
+pass "the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage"
 
 # --- 4. the whole run ----------------------------------------------------------
 [ "$(count agent.spawn)" = 1 ] || fail "expected exactly one spawn, got $(count agent.spawn): $(events agent.spawn)"
 [ "$(count handback.dropped)" = 0 ] || fail "a branch hand-back was dropped: $(events handback.dropped)"
 [ "$(count backstop.delivered)" = 0 ] || fail "the backstop re-presented a covered line: $(events backstop.delivered)"
-[ "$(count agent.send '\"success\":true')" = 1 ] || fail "expected exactly one successful send, got: $(events agent.send)"
-[ "$(count agent.send)" = 1 ] || fail "a send was retried or refused: $(events agent.send)"
-pass "one spawn, one successful send, no dropped hand-back, no backstop delivery across the run"
+[ "$(count agent.send)" -ge 1 ] || fail "no send reached the branch: $(events agent.send)"
+[ "$(count agent.send)" = "$(count agent.send '\"success\":true')" ] || fail "a send was retried or refused: $(events agent.send)"
+pass "one spawn, every send successful, no dropped hand-back, no backstop delivery across the run"

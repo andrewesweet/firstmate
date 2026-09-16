@@ -344,6 +344,34 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
     event=$FM_STATUS_SNAPSHOT_EVENT_LINE
     event_endpoint=$FM_STATUS_SNAPSHOT_EVENT_ENDPOINT
     [ "$receipt" -lt "$event_endpoint" ] || continue
+    if [ -n "$routine_covered" ]; then
+      load_branch_outcome_index "$task"
+      if [ "$BRANCH_OUTCOME_INDEX_STATE" != ok ]; then
+        rc=2
+        break
+      fi
+      if [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ]; then
+        covered_end=
+        while IFS=$(printf '\t') read -r cov_end cov_line; do
+          [ -n "$cov_end" ] || continue
+          line="$task $cov_line (covered by a ROUTINE branch outcome)"
+          fm_cap_line_var "$line" $((item_bytes - 1))
+          line=$FM_LINE_CAP_LINE
+          bytes=$(( ${#line} + 1 ))
+          if [ $((used + bytes)) -gt "$global_bytes" ]; then
+            omitted=$((omitted + 1))
+            continue
+          fi
+          output="$output$line
+"
+          covered_end=$cov_end
+          used=$((used + bytes))
+          shown=$((shown + 1))
+        done < <(backstop_routine_covered_lines "$STATE" "$task" "$receipt")
+        [ -z "$covered_end" ] || STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED="$STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED$task$(printf '\t')$covered_end
+"
+      fi
+    fi
     status_is_captain_relevant "$event" || continue
     verb=$(status_line_verb "$event")
     case "$verb" in
@@ -365,26 +393,6 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
     if [ -n "$BRANCH_OUTCOME_INDEX_ENDPOINT" ] \
       && [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ] \
       && [ "$BRANCH_OUTCOME_INDEX_ENDPOINT" -ge "$event_endpoint" ]; then
-      [ -n "$routine_covered" ] || continue
-      covered_end=
-      while IFS=$(printf '\t') read -r cov_end cov_line; do
-        [ -n "$cov_end" ] || continue
-        line="$task $cov_line (covered by a ROUTINE branch outcome)"
-        fm_cap_line_var "$line" $((item_bytes - 1))
-        line=$FM_LINE_CAP_LINE
-        bytes=$(( ${#line} + 1 ))
-        if [ $((used + bytes)) -gt "$global_bytes" ]; then
-          omitted=$((omitted + 1))
-          continue
-        fi
-        output="$output$line
-"
-        covered_end=$cov_end
-        used=$((used + bytes))
-        shown=$((shown + 1))
-      done < <(backstop_routine_covered_lines "$STATE" "$task" "$receipt")
-      [ -z "$covered_end" ] || STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED="$STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED$task$(printf '\t')$covered_end
-"
       continue
     fi
 
