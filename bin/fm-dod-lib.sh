@@ -220,7 +220,6 @@ EOF
 Delivery contract: mode=no-mistakes
 The task is complete only when committed on your branch.
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
-You may append \`working: implementation committed, starting validation\` to the status file so firstmate sees the phase change; that line must never be a \`done:\` line.
 
 You drive no-mistakes by responding to its gates, not by implementing fixes.
 Follow the guidance no-mistakes itself provides for the mechanics: it loads when you invoke /no-mistakes, and \`no-mistakes axi run --help\` plus the \`help\` lines in each \`axi\` response are authoritative and version-matched to the installed binary.
