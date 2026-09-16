@@ -699,6 +699,40 @@ test_pi_signed_threads_shared_pi_profile_and_preserves_identity() {
   pass "pi-signed shares Pi launch semantics while preserving its configured and recorded identity"
 }
 
+drive_pi_ext_window() {  # <ext-path> <provider> <model-id>
+  EXT_PATH="$1" PROVIDER="$2" MODEL_ID="$3" node --input-type=module 2>&1 <<'EOF'
+import { pathToFileURL } from "node:url";
+const mod = await import(pathToFileURL(process.env.EXT_PATH).href);
+const handlers = {};
+mod.default({ on: (name, fn) => { handlers[name] = fn; } });
+const model = { provider: process.env.PROVIDER, id: process.env.MODEL_ID, contextWindow: 1000000 };
+for (const name of ["before_agent_start"]) {
+  if (!handlers[name]) throw new Error("missing handler " + name);
+  await handlers[name]({ type: name }, { model });
+}
+console.log(model.contextWindow);
+EOF
+}
+
+test_pi_glm_flash_window_override_gates_on_the_live_session_model() {
+  local rec id ext out
+  id=profile-pi-glm-window-z8e
+  rec=$(make_spawn_case profile-pi-glm-window pi "$id")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --model openai-codex/gpt-5.6-sol)
+  expect_code 0 $? "pi spawn should succeed"
+  ext="$HOME_DIR/state/$id.pi-ext.ts"
+  out=$(drive_pi_ext_window "$ext" zai glm-5.3-flash) || fail "glm-5.3-flash drive failed: $out"
+  [ "$out" = 144000 ] || fail "a live zai/glm-5.3-flash session model must get contextWindow 144000, got '$out'"
+  out=$(drive_pi_ext_window "$ext" zai glm-5.3) || fail "glm-5.3 drive failed: $out"
+  [ "$out" = 1000000 ] || fail "a zai/glm-5.3 session model must keep its registered window, got '$out'"
+  out=$(drive_pi_ext_window "$ext" openai-codex glm-5.3-flash) || fail "other-provider drive failed: $out"
+  [ "$out" = 1000000 ] || fail "a same-id model from another provider must keep its registered window, got '$out'"
+  pass "pi worker extension caps contextWindow at 144000 only when the live session model is zai/glm-5.3-flash"
+}
+
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi() {
   local harness version rec id out status launch
   for harness in pi pi-signed; do
@@ -1324,6 +1358,7 @@ test_batch_preserves_native_ultra
 test_pi_threads_model_and_max_effort
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi
 test_pi_signed_threads_shared_pi_profile_and_preserves_identity
+test_pi_glm_flash_window_override_gates_on_the_live_session_model
 test_pi_signed_missing_binary_refuses_before_endpoint_or_metadata
 test_pi_signed_persistent_secondmate_uses_pi_extensions_and_identity
 test_batch_forwards_shared_profile_flags
