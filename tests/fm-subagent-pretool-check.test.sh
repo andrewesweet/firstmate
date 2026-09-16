@@ -245,6 +245,53 @@ test_stdin_transports_and_output_shapes() {
   pass "both stdin transports classify correctly and Claude's deny keeps stdout empty"
 }
 
+test_branch_mod_calls_are_allowed_only_under_the_mod() {
+  # The Claude supervision-branch mod (docs/claude-supervision-branch.md)
+  # dispatches, messages, and monitors its own branch agent from hook frames
+  # that pass through this guard. Its three calls are recognisable by name and
+  # allowed only while state/.branch-mod-mode exists; nothing else widens.
+  local payload rc
+  stdin_rc() {  # <payload> -> exit code of the Claude-mode guard on stdin
+    local rc=0
+    : > "$OUT"; : > "$ERR"
+    printf '%s' "$1" \
+      | FM_ROOT_OVERRIDE="$PRIMARY" FM_HOME="$PRIMARY" FM_STATE_OVERRIDE="$STATE" \
+        "$CHECK" --claude > "$OUT" 2> "$ERR" || rc=$?
+    printf '%s' "$rc"
+  }
+  local agent='{"tool_name":"Agent","tool_input":{"subagent_type":"fm-branch-mod:fm-branch","prompt":"wake"}}'
+  local task='{"tool_name":"Task","tool_input":{"subagent_type":"fm-branch-mod:fm-branch","prompt":"wake"}}'
+  local send='{"tool_name":"SendMessage","tool_input":{"to":"fm-branch-2 [0a1b2c]","message":"wake"}}'
+  local monitor='{"tool_name":"Monitor","tool_input":{"description":"fm-branch-mod watcher continuity","command":"sleep 1"}}'
+
+  rm -f "$STATE/.branch-mod-mode"
+  for payload in "$agent" "$task" "$send" "$monitor"; do
+    rc=$(stdin_rc "$payload")
+    [ "$rc" -eq 2 ] || fail "without the mod flag a branch-mod call must still deny, got exit $rc for $payload"
+  done
+
+  : > "$STATE/.branch-mod-mode"
+  for payload in "$agent" "$task" "$send" "$monitor"; do
+    rc=$(stdin_rc "$payload")
+    [ "$rc" -eq 0 ] || fail "under the mod flag the mod's own call must allow, got exit $rc for $payload: $(cat "$ERR")"
+    [ ! -s "$OUT" ] && [ ! -s "$ERR" ] || fail "a mod allow wrote output for $payload"
+  done
+  for payload in \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"go"}}' \
+    '{"tool_name":"Agent","tool_input":{"prompt":"go"}}' \
+    '{"tool_name":"SendMessage","tool_input":{"to":"reviewer","message":"hi"}}' \
+    '{"tool_name":"SendMessage","tool_input":{"to":"fm-branch-extra","message":"hi"}}' \
+    '{"tool_name":"Monitor","tool_input":{"description":"watch the build","command":"sleep 1"}}' \
+    '{"tool_name":"CronCreate","tool_input":{"description":"fm-branch-mod watcher continuity"}}' \
+    '{"tool_name":"EnterWorktree","tool_input":{"subagent_type":"fm-branch-mod:fm-branch"}}'
+  do
+    rc=$(stdin_rc "$payload")
+    [ "$rc" -eq 2 ] || fail "under the mod flag every other delegation call must still deny, got exit $rc for $payload"
+  done
+  rm -f "$STATE/.branch-mod-mode"
+  pass "the mod's own Agent, SendMessage, and Monitor calls are allowed only while state/.branch-mod-mode exists"
+}
+
 test_malformed_transport_fails_open() {
   local rc payload
   for payload in '{not-json' '' '{}' '{"tool_name":null}'; do
@@ -287,5 +334,6 @@ test_escape_hatch_allows_deliberate_use
 test_task_worktree_and_non_firstmate_repo_are_inert
 test_secondmate_home_is_in_scope
 test_stdin_transports_and_output_shapes
+test_branch_mod_calls_are_allowed_only_under_the_mod
 test_malformed_transport_fails_open
 test_missing_jq_stdin_transport_fails_open
