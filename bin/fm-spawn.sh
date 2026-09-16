@@ -269,7 +269,11 @@
 #     __TURNEND__  absolute path to state/<task-id>.turn-ended (for harnesses whose
 #                  turn-end signal rides the launch command, e.g. codex -c notify=[...])
 #     __PIEXT__    absolute path to state/<task-id>.pi-ext.ts (pi turn-end extension,
-#                  written by this script; outside the worktree to avoid pi's trust gate)
+#                  written by this script; outside the worktree to avoid pi's trust gate;
+#                  a launch whose model is exactly zai/glm-5.3-flash also bakes in a
+#                  session-local contextWindow cap of 144000 for that model, so a
+#                  worker compacts at 127,616 tokens per the context drop-off report;
+#                  never via the captain-owned ~/.pi/agent/models.json)
 #     __PITURNEND__ absolute path to .pi/extensions/fm-primary-turnend-guard.ts in a pi secondmate home
 #     __PIWATCH__   absolute path to .pi/extensions/fm-primary-pi-watch.ts in a pi secondmate home
 #     __OMPBIN__   quoted concrete omp executable path resolved from PATH
@@ -3457,6 +3461,34 @@ EOF
       # Written OUTSIDE the worktree: pi's project-trust gate fires on any extension
       # loaded from inside the project (verified live), but an explicit -e path
       # elsewhere loads without a dialog. Lives in state/, cleaned by teardown.
+      # GLM-5.3-Flash workers additionally get the compaction-window cap baked
+      # into this one extension: the block exists only when this launch's model
+      # is exactly zai/glm-5.3-flash, and the block itself re-checks the live
+      # session model before mutating, so no other model and no captain-owned
+      # Pi surface is ever touched (the supported models.json lever is refused
+      # by scope). The block's constant carries its own evidence pointer.
+      glm_window_block=
+      if [ "$MODEL" = "zai/glm-5.3-flash" ]; then
+        glm_window_block='  // GLM-5.3-Flash compaction window. Evidence: the firstmate research
+  // report data/context-dropoff-research/report.md (section 1 "Pi workers"
+  // and section 2.8): measured retrieval degrades well below the registered
+  // 1M window, so a worker on this model must compact near 128k tokens
+  // instead of effectively never. Pi auto-compacts when contextTokens >
+  // contextWindow - reserveTokens (reserveTokens default 16384), so 144000
+  // fires compaction at 127,616. The window is overridden on the live
+  // session model here, not via the models.json modelOverrides lever,
+  // because that file is a captain-owned setting and this must reach only
+  // firstmate-spawned workers.
+  const GLM_FLASH_COMPACTION_WINDOW = 144000;
+  const capGlmFlashContextWindow = (ctx: any) => {
+    const model = ctx && ctx.model;
+    if (model && model.provider === "zai" && model.id === "glm-5.3-flash") {
+      model.contextWindow = GLM_FLASH_COMPACTION_WINDOW;
+    }
+  };
+  pi.on("session_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx));
+  pi.on("before_agent_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx));'
+      fi
       cat > "$STATE/$ID.pi-ext.ts" <<EOF
 // Firstmate semantic busy-state events + turn-end notification; written by
 // fm-spawn under the contract owned by bin/fm-busy-lib.sh.
@@ -3483,6 +3515,7 @@ export default function (pi: any) {
     return busyEvent("idle", "agent-settled");
   });
   pi.on("turn_end", () => execFile("touch", ["$TURNEND"]));
+${glm_window_block}
   // A native harness can make progress inside one Pi turn. This separate
   // marker prevents false wedge alarms without fabricating a completed turn.
   let lastProgress = 0;

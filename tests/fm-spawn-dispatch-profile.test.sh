@@ -699,6 +699,39 @@ test_pi_signed_threads_shared_pi_profile_and_preserves_identity() {
   pass "pi-signed shares Pi launch semantics while preserving its configured and recorded identity"
 }
 
+test_pi_glm_flash_window_override_tracks_the_launch_model() {
+  local rec id_glm id_other ext_glm ext_other
+  id_glm=profile-pi-glm-window-z8e
+  id_other=profile-pi-other-model-z8f
+  rec=$(make_spawn_case profile-pi-glm-window pi "$id_glm" "$id_other")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id_glm" "$PROJ_DIR" \
+    --model zai/glm-5.3-flash)
+  expect_code 0 $? "pi spawn with the glm-5.3-flash model should succeed"
+  ext_glm=$(cat "$HOME_DIR/state/$id_glm.pi-ext.ts")
+  assert_contains "$ext_glm" 'const GLM_FLASH_COMPACTION_WINDOW = 144000;' \
+    "glm-5.3-flash extension lost the named compaction-window constant"
+  assert_contains "$ext_glm" 'data/context-dropoff-research/report.md' \
+    "glm-5.3-flash extension lost the evidence pointer in the constant comment"
+  assert_contains "$ext_glm" 'model.provider === "zai" && model.id === "glm-5.3-flash"' \
+    "glm-5.3-flash extension lost the live session-model identity gate"
+  assert_contains "$ext_glm" 'pi.on("session_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx))' \
+    "glm-5.3-flash extension does not cap the window at session start"
+  assert_contains "$ext_glm" 'pi.on("before_agent_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx))' \
+    "glm-5.3-flash extension does not re-assert the cap before every agent run"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id_other" "$PROJ_DIR" \
+    --model openai-codex/gpt-5.6-sol)
+  expect_code 0 $? "pi spawn with a non-glm model should succeed"
+  ext_other=$(cat "$HOME_DIR/state/$id_other.pi-ext.ts")
+  assert_not_contains "$ext_other" "GLM_FLASH_COMPACTION_WINDOW" \
+    "non-glm extension must not carry the glm compaction-window constant"
+  assert_not_contains "$ext_other" "capGlmFlashContextWindow" \
+    "non-glm extension must not carry the glm window override wiring"
+  pass "pi bakes the glm-5.3-flash compaction window into the worker extension only for that launch model"
+}
+
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi() {
   local harness version rec id out status launch
   for harness in pi pi-signed; do
@@ -1324,6 +1357,7 @@ test_batch_preserves_native_ultra
 test_pi_threads_model_and_max_effort
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi
 test_pi_signed_threads_shared_pi_profile_and_preserves_identity
+test_pi_glm_flash_window_override_tracks_the_launch_model
 test_pi_signed_missing_binary_refuses_before_endpoint_or_metadata
 test_pi_signed_persistent_secondmate_uses_pi_extensions_and_identity
 test_batch_forwards_shared_profile_flags
