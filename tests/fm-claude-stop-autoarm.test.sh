@@ -195,6 +195,20 @@ printf 'watcher: attached pid=%s (beacon 2s)\n' "$$"
 exit 0
 SH
       ;;
+    gated-actionable)
+      # Cycle whose watcher closes only when the test releases it, so a second
+      # session can fire its Stop while the cycle is still under way.
+      cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
+#!/usr/bin/env bash
+echo "$$" >> "$FM_HOME/state/arm-ran"
+while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
+printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
+touch "$FM_HOME/state/.last-watcher-beat"
+printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+printf 'signal: %s/state/tfmut-116.turn-ended\n' "$FM_HOME"
+exit 0
+SH
+      ;;
     *)
       echo "unknown arm fixture: $kind" >&2
       return 2
@@ -1007,21 +1021,31 @@ record_autoarm_v2_claim() {
 
 # A live open generation claim needs no lock to keep the gate closed: the
 # ledger alone defers a concurrent firing, however old the entry, while the
-# watcher keeps beating the beacon.
+# watcher keeps beating the beacon. The owner is a child of the lock-holding
+# session, as a real concurrent hook is; an owner outside that session is the
+# orphan case tested below.
 test_open_generation_claim_defers_without_any_lock() {
-  local dir out status pid
+  local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/v2-open-claim")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
-  record_autoarm_v2_claim "$dir" 464 "$pid" arming "$pid" || fail "could not record a v2 claim"
-  touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
   : > "$dir/state/.last-watcher-beat"
   assert_absent "$dir/state/.claude-autoarm.lock" "this case must start with no owner lock at all"
-  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  kill "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
+  out=$(printf '%s\n' '{"session_id":"sess-autoarm","stop_hook_active":false}' \
+    | FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" "$FAKE_CLAUDE" -c '
+        printf "%s\n" "$$" > "$FM_HOME/state/.lock"
+        sleep 60 &
+        owner=$!
+        identity=$(. "$FM_HOME/bin/fm-wake-lib.sh"; fm_pid_identity "$owner") || exit 97
+        printf "epoch=464 owner_pid=%s outcome=arming updated_at=1\n%s\n" "$owner" "$identity" \
+          > "$FM_HOME/state/.claude-autoarm-epoch"
+        touch -t 202001010000 "$FM_HOME/state/.claude-autoarm-epoch"
+        "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>&1
+        rc=$?
+        kill "$owner" 2>/dev/null
+        exit "$rc"
+      '); status=$?
+  [ "$status" -ne 97 ] || fail "could not record a v2 claim for the session-owned sleeper"
   expect_code 0 "$status" "a live open generation claim must keep the single-flight gate closed with no lock held"
   [ -z "$out" ] || fail "deferring to an open generation claim produced output: $out"
   assert_absent "$dir/state/arm-ran" "an open generation claim was superseded and double-armed"
@@ -1053,6 +1077,100 @@ test_stuck_generation_claim_is_superseded_and_rearms() {
   [ "$(epoch_field "$dir" owner_pid)" != "$pid" ] || fail "superseding claim left the stuck owner on the ledger"
   assert_absent "$dir/state/.claude-autoarm.lock" "the generation claim left a lock held after finishing"
   pass "auto-arm: a hung generation owner with no watcher beat is superseded so re-arming self-heals"
+}
+
+# The 2026-09-16 04:08Z main-mate restart: the dying session's Stop hook armed
+# a cycle and then the session exited, leaving the hook alive but orphaned - no
+# parent to deliver its exit 2 to. The replacement session's first Stop must NOT
+# defer to that claim: a claim is open only while its owner still descends from
+# the pid in state/.lock, so the replacement takes the next generation, attaches
+# to the same cycle, and is the hook that delivers the actionable close. The
+# orphan is superseded and goes silent. Without this the home stays deaf until a
+# captain turn, and the orphan's banner write into its dead parent's pipe leaves
+# a stranded state/.claude-autoarm-output.* holding the reason line.
+test_orphaned_claim_from_dead_session_is_superseded_by_replacement() {
+  local dir out status orphan_pid orphan_out lock_pid i
+  dir=$(make_primary_dir "$TMP_ROOT/orphaned-claim")
+  : > "$dir/state/task.meta"
+  write_arm_fixture "$dir" gated-actionable
+  orphan_out="$dir/state/orphan-out"
+  # Dying session: hold the lock, fire the hook as a background child, exit
+  # once the hook has claimed and armed, so the hook outlives its session.
+  FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+      printf "%s\n" "$$" > "$FM_HOME/state/.lock"
+      printf "%s\n" "{\"session_id\":\"sess-dying\",\"stop_hook_active\":false}" \
+        | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" > "$FM_HOME/state/orphan-out" 2>&1 &
+      printf "%s\n" "$!" > "$FM_HOME/state/orphan-hook-pid"
+      for _ in $(seq 1 250); do [ -e "$FM_HOME/state/arm-ran" ] && break; sleep 0.02; done
+    '
+  orphan_pid=$(cat "$dir/state/orphan-hook-pid")
+  kill -0 "$orphan_pid" 2>/dev/null || fail "the orphaned hook did not survive its session's exit"
+  [ "$(epoch_field "$dir" owner_pid)" = "$orphan_pid" ] || fail "the dying session's hook did not claim the ledger: $(cat "$dir/state/.claude-autoarm-epoch")"
+  [ "$(epoch_outcome "$dir")" = arming ] || fail "the orphaned claim is not arming: $(epoch_outcome "$dir")"
+
+  # Replacement session: new lock pid, first Stop fires while the orphan's
+  # cycle is still under way. Wait for it to either defer (the regression) or
+  # take the next generation and arm.
+  run_autoarm_bg "$dir" "$dir/state/replacement-out"
+  for i in $(seq 1 250); do
+    kill -0 "$RUN_AUTOARM_BG_PID" 2>/dev/null || break
+    [ "$(wc -l < "$dir/state/arm-ran")" -ge 2 ] && break
+    sleep 0.02
+  done
+  lock_pid=$(sed -n 1p "$dir/state/.lock")
+  : > "$dir/state/arm-release"
+  wait "$RUN_AUTOARM_BG_PID"; status=$?
+  out=$(cat "$dir/state/replacement-out")
+  for i in $(seq 1 250); do kill -0 "$orphan_pid" 2>/dev/null || break; sleep 0.02; done
+  kill -0 "$orphan_pid" 2>/dev/null && { kill "$orphan_pid" 2>/dev/null; fail "the orphaned hook never finished after its cycle closed"; }
+
+  expect_code 2 "$status" "the replacement session's first Stop must supersede the dead session's orphaned claim and rewake, not defer to it"
+  assert_contains "$out" "firstmate watcher wake" "the replacement's rewake must carry the wake banner"
+  assert_contains "$out" "signal: $dir/state/tfmut-116.turn-ended" "the replacement's rewake must carry the cycle's reason line"
+  [ "$(wc -l < "$dir/state/arm-ran")" -eq 2 ] || fail "the replacement did not run the arm wrapper exactly once beside the orphan's cycle: $(cat "$dir/state/arm-ran")"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the ledger must record the replacement's rewake, got: $(cat "$dir/state/.claude-autoarm-epoch")"
+  [ "$(epoch_field "$dir" owner_pid)" != "$orphan_pid" ] || fail "the orphaned hook still owns the ledger"
+  [ "$(epoch_field "$dir" session_pid)" = "$lock_pid" ] || fail "the rewake must bind the replacement session's lock pid"
+  ! grep -q 'firstmate watcher wake' "$orphan_out" || fail "the superseded orphan still delivered a banner: $(cat "$orphan_out")"
+  [ -z "$(find "$dir/state" -maxdepth 1 -name '.claude-autoarm-output.*')" ] \
+    || fail "a stranded arm output survived the cycle: $(find "$dir/state" -maxdepth 1 -name '.claude-autoarm-output.*')"
+  pass "auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake"
+}
+
+# A claim with no numeric session-lock pid is never open: nothing can receive
+# its rewake (the hook itself goes silent on a missing or malformed lock), so
+# deferring to it would leave the home deaf. Same live, identity-matched,
+# fresh-beacon owner, three lock states, one predicate.
+test_claim_without_numeric_session_lock_is_not_open() {
+  local dir rc
+  dir=$(make_primary_dir "$TMP_ROOT/v2-lockless-claim")
+  : > "$dir/state/.last-watcher-beat"
+  probe() {
+    FM_STATE_OVERRIDE="$dir/state" bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        sleep 60 &
+        owner=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        printf "epoch=464 owner_pid=%s outcome=arming updated_at=1\n%s\n" "$owner" "$identity" \
+          > "$1/state/.claude-autoarm-epoch"
+        case "$2" in
+          self) printf "%s\n" "$$" > "$1/state/.lock" ;;
+          absent) rm -f "$1/state/.lock" ;;
+          *) printf "%s\n" "$2" > "$1/state/.lock" ;;
+        esac
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" 2>/dev/null
+        exit "$rc"
+      ' _ "$dir" "$1"
+  }
+  probe self; rc=$?
+  [ "$rc" -ne 97 ] || fail "could not record a v2 claim for the probe's sleeper"
+  expect_code 0 "$rc" "a live claim owned by a child of the numeric lock pid must be open"
+  probe absent; rc=$?
+  expect_code 1 "$rc" "a claim with no state/.lock at all must not be open"
+  probe not-a-pid; rc=$?
+  expect_code 1 "$rc" "a claim under a malformed state/.lock must not be open"
+  pass "auto-arm: a claim is open only under a numeric session lock its owner descends from"
 }
 
 # Identity is mandatory at read time: a bare identityless one-line arming
@@ -1107,33 +1225,42 @@ test_superseded_owner_never_reinvokes_the_arm() {
 #      superseded and goes completely silent (exit 0, no banner, no ledger
 #      write), so one supersession episode produces exactly one translation.
 test_superseded_owner_goes_silent_and_never_double_translates() {
-  local dir a_out a_pid b_out b_status c_out c_status a_status i count
+  local dir a_out b_out b_status c_out c_status a_status count
   dir=$(make_primary_dir "$TMP_ROOT/v2-superseded-silence")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" blocking-actionable
   a_out="$dir/state/a.out"
-  run_autoarm_bg "$dir" "$a_out"
-  a_pid=$RUN_AUTOARM_BG_PID
-  i=0
-  while [ "$(epoch_outcome "$dir")" != arming ] || [ ! -e "$dir/state/arm-ran" ]; do
-    [ "$i" -lt 50 ] || fail "owner A never published its arming claim"
-    sleep 0.1
-    i=$((i + 1))
-  done
-  b_out=$(run_autoarm "$dir" 2>/dev/null); b_status=$?
+  # All three firings belong to ONE session, as concurrent Stop hooks do: the
+  # fake harness holds the lock for the whole scenario and each hook runs as
+  # its child, with exit codes and output left in state/ for the assertions.
+  FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+    printf "%s\n" "$$" > "$FM_HOME/state/.lock"
+    fire() { printf "%s\n" "{\"session_id\":\"s\",\"stop_hook_active\":false}" | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" > "$FM_HOME/state/$1.out" 2>&1; echo $? > "$FM_HOME/state/$1.rc"; }
+    fire a &
+    a_pid=$!
+    i=0
+    while ! grep -q "outcome=arming" "$FM_HOME/state/.claude-autoarm-epoch" 2>/dev/null || [ ! -e "$FM_HOME/state/arm-ran" ]; do
+      [ "$i" -lt 50 ] || { echo "owner A never published its arming claim" > "$FM_HOME/state/scenario-fail"; exit 1; }
+      sleep 0.1; i=$((i + 1))
+    done
+    fire b
+    cp "$FM_HOME/state/arm-ran" "$FM_HOME/state/arm-ran.after-b"
+    kill -0 "$a_pid" 2>/dev/null || { echo "owner A finished before the supersession could be exercised" > "$FM_HOME/state/scenario-fail"; exit 1; }
+    touch -t 202001010000 "$FM_HOME/state/.claude-autoarm-epoch"
+    touch -t 202001010000 "$FM_HOME/state/.last-watcher-beat"
+    fire c
+    wait "$a_pid"
+  '
+  [ ! -e "$dir/state/scenario-fail" ] || fail "$(cat "$dir/state/scenario-fail")"
+  b_status=$(cat "$dir/state/b.rc"); b_out=$(cat "$dir/state/b.out")
+  c_status=$(cat "$dir/state/c.rc"); c_out=$(cat "$dir/state/c.out")
+  a_status=$(cat "$dir/state/a.rc")
   expect_code 0 "$b_status" "a firing during a live open claim must defer promptly (no mutex is held across arming)"
   [ -z "$b_out" ] || fail "deferring firing produced output: $b_out"
-  count=$(wc -l < "$dir/state/arm-ran" | tr -d ' ')
+  count=$(wc -l < "$dir/state/arm-ran.after-b" | tr -d ' ')
   [ "$count" -eq 1 ] || fail "deferring firing must not arm, saw $count arms"
-  # A is still alive mid-arm; make its claim stuck-shaped.
-  kill -0 "$a_pid" 2>/dev/null || fail "owner A finished before the supersession could be exercised"
-  touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
-  touch -t 202001010000 "$dir/state/.last-watcher-beat"
-  c_out=$(run_autoarm "$dir" 2>/dev/null); c_status=$?
   expect_code 2 "$c_status" "the superseding generation must translate its own close"
   assert_contains "$c_out" "firstmate watcher wake" "the superseding generation must carry the rewake banner"
-  wait "$a_pid"
-  a_status=$?
   expect_code 0 "$a_status" "the superseded owner must exit 0 instead of double-translating"
   [ ! -s "$a_out" ] || fail "the superseded owner emitted output after losing its generation: $(cat "$a_out")"
   [ "$(epoch_field "$dir" epoch)" = 2 ] || fail "the superseded owner advanced the ledger past its successor: $(epoch_field "$dir" epoch)"
@@ -1231,6 +1358,8 @@ test_stuck_live_legacy_owner_is_retired_and_reclaimed
 test_stopped_legacy_owner_is_reclaimed_with_term_pending
 test_open_generation_claim_defers_without_any_lock
 test_stuck_generation_claim_is_superseded_and_rearms
+test_orphaned_claim_from_dead_session_is_superseded_by_replacement
+test_claim_without_numeric_session_lock_is_not_open
 test_identityless_ledger_never_defers
 test_superseded_owner_never_reinvokes_the_arm
 test_superseded_owner_goes_silent_and_never_double_translates
