@@ -1,0 +1,7 @@
+# headless claude 2.1.273 -p with a copy of the mod whose CLAUDE_CODE_PIN was set to 2.1.272
+# state/branch-mod-events.jsonl:
+{"t":"2026-09-16T10:34:36.201Z","kind":"pin.refused","data":{"version":"2.1.273","pin":"2.1.272"}}
+# debug log:
+2026-09-16T10:34:36.201Z [DEBUG] [fm-branch-mod] $.ui.log: fm-branch-mod: refusing to load on Claude Code 2.1.273; built for 2.1.272
+# model still answered:
+pong

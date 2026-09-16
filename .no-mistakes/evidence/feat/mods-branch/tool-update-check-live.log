@@ -1,0 +1,9 @@
+# real claude entry from docs/examples/watched-tools.json, real network
+published: 2.1.273
+PATH claude --version: 2.1.273 (Claude Code)
+# FM_HOME=$H bin/fm-tool-update-check.sh check:
+exit=0
+
+# same entry with a PATH claude stub printing 2.1.271 (the main home's version), real version_url:
+tool updates: claude update available: 2.1.273 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 2.1.271; claude update not in effect: PATH resolves 2.1.271 at /tmp/fm-upd.GrojZG/bin/claude but 2.1.273 is installed at /home/andre/.local/bin/claude
+exit=0

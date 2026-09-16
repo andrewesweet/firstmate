@@ -1,0 +1,5 @@
+# throwaway probe hooks module on Claude Code 2.1.273, headless -p, calling $.tool.call from a prompt.submit hook frame
+== settings: {"permissions":{"deny":["SendMessage","Monitor","Agent","Task"]},"promptSuggestionEnabled":false}
+DENY-PROBE Monitor threw: HooksError: deny-probe: $.tool.call: no tool named "Monitor" in this session | SendMessage threw: HooksError: deny-probe: $.tool.call: no tool named "SendMessage" in this session
+== settings: {"promptSuggestionEnabled":false}
+DENY-PROBE Monitor ok: {"result":{"taskId":"b69qmkr11","timeoutMs":5000,"persistent":false},"text":"Monitor started (task b69qmkr11, expires in | SendMessage ok: {"result":{"success":false,"message":"No agent named 'nobody' is reachable.\nUse ListAgents to see everyone you can mess
