@@ -174,20 +174,28 @@ test_routine_covered_lines_omitted_by_the_byte_cap_are_presented_on_the_next_dra
   printf 'done: short tail\n' >> "$state/t10.status"
   set_mtime "$old" "$state/t10.status"
   append_outcome "$state" t10 routine 'branch judged every completion routine'
+  printf 'done: uncovered tail\n' >> "$state/t10.status"
+  set_mtime "$old" "$state/t10.status"
 
   FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "main drain failed under the byte cap"
   body=$(backstop_body "$out")
   case "$body" in *'done: completion 18 '*) ;; *) fail "the covered lines under the cap were not presented: $(cat "$out")" ;; esac
   case "$body" in *'done: completion 19 '*) fail "a line past the byte cap was presented: $body" ;; esac
   case "$body" in *'done: short tail'*) fail "a later short line was presented ahead of an omitted one, which would acknowledge past it: $body" ;; esac
-  grep -q '^STATUS OUTCOME BACKSTOP: 2 more omitted (byte cap)$' "$out" || fail "the omitted lines were not counted: $(cat "$out")"
+  case "$body" in *'done: uncovered tail'*) fail "the uncovered newest line was presented ahead of an omitted covered one, which would acknowledge past it: $body" ;; esac
+  grep -q '^STATUS OUTCOME BACKSTOP: 3 more omitted (byte cap)$' "$out" || fail "the omitted lines were not counted: $(cat "$out")"
 
   FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "second main drain failed under the byte cap"
   body=$(backstop_body "$out")
   case "$body" in *'done: completion 19 '*) ;; *) fail "the line omitted by the byte cap was never presented: $(cat "$out")" ;; esac
   case "$body" in *'done: short tail'*) ;; *) fail "the short line after the omitted one was never presented: $(cat "$out")" ;; esac
+  case "$body" in *'t10 done: uncovered tail'*) ;; *) fail "the uncovered newest line was never presented: $(cat "$out")" ;; esac
   case "$body" in *'done: completion 18 '*) fail "an already presented line was re-presented: $body" ;; esac
-  pass "a routine-covered line omitted by the byte cap is presented on the next drain instead of being acknowledged past"
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" || fail "third main drain failed under the byte cap"
+  if grep -F 't10 ' "$out" >/dev/null; then
+    fail "a presented line was re-presented on the third drain: $(cat "$out")"
+  fi
+  pass "a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it"
 }
 
 test_scorer_labels_records_from_the_status_bytes_they_judged() {

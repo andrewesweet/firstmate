@@ -767,7 +767,11 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     return 'dropped'
   }
   const unacknowledged = scope.eligibleSeqs.filter((s) => passedSeqs.has(s))
-  if (unacknowledged.length > 0) return pass('already passed to main, unacknowledged', { seqs: unacknowledged })
+  if (unacknowledged.length > 0) {
+    for (const s of scope.eligibleSeqs) passedSeqs.add(s)
+    await writePassedSeqs($, passedSeqs)
+    return pass('classifier skipped: rows already passed to main, unacknowledged', { classifierReason: `row ${unacknowledged.join(', ')} of this wake was already passed to main and is not yet acknowledged`, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
+  }
   // Classifier ahead of the branch: only a confident routine verdict is
   // granted; captain or uncertain goes to main untouched.
   const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
