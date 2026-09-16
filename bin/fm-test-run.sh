@@ -677,6 +677,7 @@ tests/fm-backend-zellij.test.sh 9418
 tests/fm-backend.test.sh 20061
 tests/fm-backlog-atomicity.test.sh 161989
 tests/fm-backlog-handoff.test.sh 52291
+tests/fm-backlog-read-bound.test.sh 48034
 tests/fm-bearings-board-render.test.sh 1528
 tests/fm-bearings-board.test.sh 4195
 tests/fm-bearings-snapshot.test.sh 116374
@@ -689,12 +690,15 @@ tests/fm-branch-mod-bin.test.sh 8000
 tests/fm-branch-supervision.test.sh 5729
 tests/fm-busy-adapter-wiring.test.sh 49731
 tests/fm-busy-state.test.sh 2926
+tests/fm-calm-claude-mod-plugin.test.sh 5878
+tests/fm-calm-claude-mod.test.sh 2274
 tests/fm-calm-pi-extension.test.sh 256
 tests/fm-check-unregister.test.sh 481
 tests/fm-classify-corr-token.test.sh 38742
 tests/fm-classify-decision-key.test.sh 1167
 tests/fm-claude-stop-autoarm-live-e2e.test.sh 21
 tests/fm-claude-stop-autoarm.test.sh 60709
+tests/fm-claude-trust.test.sh 20132
 tests/fm-cmux-claude-composer-live-e2e.test.sh 23
 tests/fm-codex-continuity-live-e2e.test.sh 21
 tests/fm-composer-matrix-live-e2e.test.sh 23
@@ -717,6 +721,7 @@ tests/fm-guard-stale-banner.test.sh 32981
 tests/fm-harness-adapter-instructions-live-e2e.test.sh 20
 tests/fm-harness-adapter-references.test.sh 55
 tests/fm-harness-liveness-drift-live-e2e.test.sh 21
+tests/fm-harness-precedence.test.sh 6728
 tests/fm-herdr-attached-viewer-live-e2e.test.sh 19000
 tests/fm-herdr-session-cleanup.test.sh 6704
 tests/fm-herdr-submit-confirm-live-e2e.test.sh 23
@@ -726,6 +731,8 @@ tests/fm-inactive-reconcile.test.sh 74399
 tests/fm-kimi-harness.test.sh 18015
 tests/fm-lint-workflows.test.sh 855
 tests/fm-live-gate.test.sh 6000
+tests/fm-mail-check.test.sh 13210
+tests/fm-mail.test.sh 15194
 tests/fm-muse-harness.test.sh 55572
 tests/fm-muse-signals-live-e2e.test.sh 23
 tests/fm-no-mistakes-required.test.sh 370
@@ -742,10 +749,14 @@ tests/fm-pi-primary-live-e2e.test.sh 20
 tests/fm-pi-watch-extension.test.sh 42970
 tests/fm-pi-windows-shell-invocation.test.sh 5121
 tests/fm-pr-check-security.test.sh 172215
+tests/fm-pr-reviewers.test.sh 250
+tests/fm-pr-state.test.sh 856
+tests/fm-precompact-skills.test.sh 350
 tests/fm-procevent-quota.test.sh 1949
 tests/fm-procevent-when.test.sh 17392
 tests/fm-procevent.test.sh 69715
 tests/fm-project-origin.test.sh 137
+tests/fm-promote.test.sh 4120
 tests/fm-public-followup.test.sh 196745
 tests/fm-quota-array-dispatch-live-e2e.test.sh 21
 tests/fm-quota-choose.test.sh 1461
@@ -760,6 +771,7 @@ tests/fm-remote-secondmate-lifecycle-e2e.test.sh 209631
 tests/fm-remote-secondmate-parent-binding.test.sh 29562
 tests/fm-remote-secondmate-trace-context.test.sh 67096
 tests/fm-remote-transport-lanes.test.sh 63976
+tests/fm-rovo-harness.test.sh 26646
 tests/fm-secondmate-harness.test.sh 151589
 tests/fm-secondmate-lifecycle-e2e.test.sh 8793
 tests/fm-secondmate-liveness.test.sh 18146
@@ -767,6 +779,7 @@ tests/fm-secondmate-reconcile.test.sh 62726
 tests/fm-secondmate-restart.test.sh 119085
 tests/fm-secondmate-safety.test.sh 57689
 tests/fm-secondmate-sync.test.sh 17183
+tests/fm-send-agy-confirm.test.sh 6400
 tests/fm-send-inbox-doorbell-live-e2e.test.sh 22
 tests/fm-send-inbox.test.sh 38956
 tests/fm-send-remote-delivery.test.sh 27686
@@ -784,12 +797,14 @@ tests/fm-spawn-pool-base-freshen.test.sh 34920
 tests/fm-spawn-worktree-settle.test.sh 5687
 tests/fm-startup-memory-budget.test.sh 6964
 tests/fm-startup-network.test.sh 62274
+tests/fm-stat-shadowing.test.sh 76
 tests/fm-stow-cascade.test.sh 3101
 tests/fm-subagent-pretool-check.test.sh 1030
 tests/fm-supervision-events.test.sh 719
 tests/fm-tangle-guard.test.sh 9662
 tests/fm-task-delivery.test.sh 5952
 tests/fm-task-inbox.test.sh 25369
+tests/fm-tasks-axi.test.sh 3326
 tests/fm-teardown-endpoint-safety.test.sh 4620
 tests/fm-teardown.test.sh 97603
 tests/fm-test-fixture-cleanup.test.sh 915
@@ -799,6 +814,7 @@ tests/fm-tmux-agent-liveness.test.sh 1516
 tests/fm-tool-update-check.test.sh 14176
 tests/fm-trace-context-lib.test.sh 209
 tests/fm-trace-context-spawn.test.sh 44702
+tests/fm-trace-span-lib.test.sh 1970
 tests/fm-turnend-guard.test.sh 42565
 tests/fm-update.test.sh 5212
 tests/fm-vendor-auth-probe.test.sh 43316
