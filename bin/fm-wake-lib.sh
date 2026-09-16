@@ -1389,10 +1389,9 @@ fm_failure_episode_reset() {
 #     seconds, while a healthy hours-long cycle keeps the beacon beating).
 #     The descent test is what makes a claim deliverable: a hook whose session
 #     exited mid-cycle stays alive, reparented to init, with no parent to
-#     receive its exit 2 (observed 2026-09-16: the replacement session's first
-#     Stop deferred to such an orphan for 14 minutes, and when the cycle closed
-#     the orphan's banner write into its dead parent's pipe killed it before
-#     its commit, leaving the home deaf until a captain turn).
+#     receive its exit 2, so deferring to it leaves the home deaf until a
+#     captain turn (tests/fm-claude-stop-autoarm.test.sh,
+#     test_orphaned_claim_from_dead_session_is_superseded_by_replacement).
 #   - Every firing DEFERS (exits 0) to an open claim; anything else - a
 #     terminal outcome, a dead or identity-mismatched owner, a stuck owner, an
 #     identityless entry, or no claim at all - lets the next firing take
@@ -1501,11 +1500,10 @@ fm_pid_descends_from() {  # <pid> <ancestor>
 # True while the CURRENT ledger claim is open and healthy - the defer predicate
 # both Stop participants use. Open means: outcome "arming", a live owner whose
 # mandatory recorded identity recomputes and matches its pid, an owner that
-# still descends from the numeric session-lock pid in state/.lock (an orphan
-# of an exited session cannot deliver a rewake, so deferring to it leaves the
-# home deaf; a home with no numeric lock pid has no session to deliver to, so
-# its claim is never open), and not stuck
-# (the contract comment above owns the stuck proof). fm_path_age reports an
+# still descends from the numeric session-lock pid in state/.lock, and not
+# stuck (the contract comment above owns the descent and stuck proofs). A home
+# with no numeric lock pid has no session to deliver to, so its claim is never
+# open. fm_path_age reports an
 # absent beacon as ancient, which is exactly right: arming for a full grace
 # window without producing a first beat is the same hang. An identityless
 # entry is never open: real generation claims always record identity, a legacy
