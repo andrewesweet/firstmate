@@ -699,37 +699,38 @@ test_pi_signed_threads_shared_pi_profile_and_preserves_identity() {
   pass "pi-signed shares Pi launch semantics while preserving its configured and recorded identity"
 }
 
-test_pi_glm_flash_window_override_tracks_the_launch_model() {
-  local rec id_glm id_other ext_glm ext_other
-  id_glm=profile-pi-glm-window-z8e
-  id_other=profile-pi-other-model-z8f
-  rec=$(make_spawn_case profile-pi-glm-window pi "$id_glm" "$id_other")
+drive_pi_ext_window() {  # <ext-path> <provider> <model-id>
+  EXT_PATH="$1" PROVIDER="$2" MODEL_ID="$3" node --input-type=module 2>&1 <<'EOF'
+import { pathToFileURL } from "node:url";
+const mod = await import(pathToFileURL(process.env.EXT_PATH).href);
+const handlers = {};
+mod.default({ on: (name, fn) => { handlers[name] = fn; } });
+const model = { provider: process.env.PROVIDER, id: process.env.MODEL_ID, contextWindow: 1000000 };
+for (const name of ["session_start", "before_agent_start"]) {
+  if (!handlers[name]) throw new Error("missing handler " + name);
+  await handlers[name]({ type: name }, { model });
+}
+console.log(model.contextWindow);
+EOF
+}
+
+test_pi_glm_flash_window_override_gates_on_the_live_session_model() {
+  local rec id ext out
+  id=profile-pi-glm-window-z8e
+  rec=$(make_spawn_case profile-pi-glm-window pi "$id")
   read_case_record "$rec"
 
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id_glm" "$PROJ_DIR" \
-    --model zai/glm-5.3-flash)
-  expect_code 0 $? "pi spawn with the glm-5.3-flash model should succeed"
-  ext_glm=$(cat "$HOME_DIR/state/$id_glm.pi-ext.ts")
-  assert_contains "$ext_glm" 'const GLM_FLASH_COMPACTION_WINDOW = 144000;' \
-    "glm-5.3-flash extension lost the named compaction-window constant"
-  assert_contains "$ext_glm" 'data/context-dropoff-research/report.md' \
-    "glm-5.3-flash extension lost the evidence pointer in the constant comment"
-  assert_contains "$ext_glm" 'model.provider === "zai" && model.id === "glm-5.3-flash"' \
-    "glm-5.3-flash extension lost the live session-model identity gate"
-  assert_contains "$ext_glm" 'pi.on("session_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx))' \
-    "glm-5.3-flash extension does not cap the window at session start"
-  assert_contains "$ext_glm" 'pi.on("before_agent_start", (_event: any, ctx: any) => capGlmFlashContextWindow(ctx))' \
-    "glm-5.3-flash extension does not re-assert the cap before every agent run"
-
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id_other" "$PROJ_DIR" \
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
     --model openai-codex/gpt-5.6-sol)
-  expect_code 0 $? "pi spawn with a non-glm model should succeed"
-  ext_other=$(cat "$HOME_DIR/state/$id_other.pi-ext.ts")
-  assert_not_contains "$ext_other" "GLM_FLASH_COMPACTION_WINDOW" \
-    "non-glm extension must not carry the glm compaction-window constant"
-  assert_not_contains "$ext_other" "capGlmFlashContextWindow" \
-    "non-glm extension must not carry the glm window override wiring"
-  pass "pi bakes the glm-5.3-flash compaction window into the worker extension only for that launch model"
+  expect_code 0 $? "pi spawn should succeed"
+  ext="$HOME_DIR/state/$id.pi-ext.ts"
+  out=$(drive_pi_ext_window "$ext" zai glm-5.3-flash) || fail "glm-5.3-flash drive failed: $out"
+  [ "$out" = 144000 ] || fail "a live zai/glm-5.3-flash session model must get contextWindow 144000, got '$out'"
+  out=$(drive_pi_ext_window "$ext" zai glm-5.3) || fail "glm-5.3 drive failed: $out"
+  [ "$out" = 1000000 ] || fail "a zai/glm-5.3 session model must keep its registered window, got '$out'"
+  out=$(drive_pi_ext_window "$ext" openai-codex glm-5.3-flash) || fail "other-provider drive failed: $out"
+  [ "$out" = 1000000 ] || fail "a same-id model from another provider must keep its registered window, got '$out'"
+  pass "pi worker extension caps contextWindow at 144000 only when the live session model is zai/glm-5.3-flash"
 }
 
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi() {
@@ -1357,7 +1358,7 @@ test_batch_preserves_native_ultra
 test_pi_threads_model_and_max_effort
 test_pi_tui_mode_probe_is_safe_for_old_and_new_pi
 test_pi_signed_threads_shared_pi_profile_and_preserves_identity
-test_pi_glm_flash_window_override_tracks_the_launch_model
+test_pi_glm_flash_window_override_gates_on_the_live_session_model
 test_pi_signed_missing_binary_refuses_before_endpoint_or_metadata
 test_pi_signed_persistent_secondmate_uses_pi_extensions_and_identity
 test_batch_forwards_shared_profile_flags
