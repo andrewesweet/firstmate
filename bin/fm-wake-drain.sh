@@ -304,7 +304,14 @@ EOF
 print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
   local snapshot=$1 task endpoint ident event event_endpoint line verb key receipt store lock ready
   local output='' used=0 shown=0 omitted=0 bytes item_bytes=220 global_bytes=4000 rc=0
+  local routine_covered='' cov_end cov_line covered_end
   [ "$ACTOR" = main ] || return 0
+  # Under the Claude Code supervision-branch mod (state/.branch-mod-mode) a
+  # captain-facing line covered only by a ROUTINE branch outcome is also
+  # re-presented, because that mod's branch reports without main ever seeing
+  # the line; bin/fm-classify-lib.sh's backstop_routine_covered_lines owns the
+  # span. Homes without the mod keep the uncovered-only scan unchanged.
+  [ ! -e "$STATE/.branch-mod-mode" ] || routine_covered=1
 
   store="$STATE/branch-outcomes.jsonl"
   lock="$STATE/.branch-outcomes.lock"
@@ -358,6 +365,26 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
     if [ -n "$BRANCH_OUTCOME_INDEX_ENDPOINT" ] \
       && [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ] \
       && [ "$BRANCH_OUTCOME_INDEX_ENDPOINT" -ge "$event_endpoint" ]; then
+      [ -n "$routine_covered" ] || continue
+      covered_end=
+      while IFS=$(printf '\t') read -r cov_end cov_line; do
+        [ -n "$cov_end" ] || continue
+        line="$task $cov_line (covered by a ROUTINE branch outcome)"
+        fm_cap_line_var "$line" $((item_bytes - 1))
+        line=$FM_LINE_CAP_LINE
+        bytes=$(( ${#line} + 1 ))
+        if [ $((used + bytes)) -gt "$global_bytes" ]; then
+          omitted=$((omitted + 1))
+          continue
+        fi
+        output="$output$line
+"
+        covered_end=$cov_end
+        used=$((used + bytes))
+        shown=$((shown + 1))
+      done < <(backstop_routine_covered_lines "$STATE" "$task" "$receipt")
+      [ -z "$covered_end" ] || STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED="$STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED$task$(printf '\t')$covered_end
+"
       continue
     fi
 
@@ -387,7 +414,11 @@ EOF
     return 0
   fi
   [ "$shown" -gt 0 ] || [ "$omitted" -gt 0 ] || return 0
-  printf 'STATUS OUTCOME BACKSTOP (newest captain-facing task event has no covering branch outcome):\n' || return 1
+  if [ -n "$routine_covered" ]; then
+    printf 'STATUS OUTCOME BACKSTOP (captain-facing task event with no covering branch outcome, or covered only by a ROUTINE one):\n' || return 1
+  else
+    printf 'STATUS OUTCOME BACKSTOP (newest captain-facing task event has no covering branch outcome):\n' || return 1
+  fi
   printf '%s' "$output" || return 1
   if [ "$omitted" -gt 0 ]; then
     printf 'STATUS OUTCOME BACKSTOP: %d more omitted (byte cap)\n' "$omitted" || return 1
