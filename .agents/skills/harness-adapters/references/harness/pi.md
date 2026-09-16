@@ -39,6 +39,7 @@ The decision persists per path in `~/.pi/agent/trust.json`, so later spawns in t
 `../../../bin/fm-spawn.sh` keeps the worker turn-end extension in `state/`, outside the worktree, because project-local extension files worsen the trust gate and pollute the project.
 The extension listens for Pi's `turn_end` event, not `agent_end`, so supervision is notified after each completed turn rather than only when the whole run exits.
 Native-harness progress uses the separate generation-bound marker owned by `../../../bin/fm-busy-event.sh`; it never fabricates Pi turn completion.
+The same extension caps the live session model's `contextWindow` at 144000 when that model is `zai/glm-5.3-flash`, so such a worker compacts near 128k tokens; the check runs on the runtime model, so partial ids, thinking suffixes, and mid-session `/model` switches are covered, no other model is touched, and the captain-owned `~/.pi/agent/models.json` is never used.
 Pi sets `PI_CODING_AGENT=true` for its children as its harness-detection marker.
 
 ## Primary integration
