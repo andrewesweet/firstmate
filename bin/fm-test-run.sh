@@ -286,7 +286,7 @@ family_for_basename() {
     fm-kimi-harness.test.sh|fm-muse-harness.test.sh|fm-rovo-harness.test.sh|fm-agy-harness.test.sh|fm-omp-harness.test.sh|fm-herdr-lab.test.sh|fm-lint.test.sh|\
     fm-lint-workflows.test.sh|\
     fm-operational-input.test.sh|fm-pi-primary-types.test.sh|\
-    fm-calm-claude-mod.test.sh|\
+    fm-calm-claude-mod.test.sh|fm-branch-claude-mod.test.sh|\
     fm-harness-adapter-references.test.sh|\
     fm-send-popup-settle.test.sh|fm-send-settle.test.sh|\
     fm-subagent-pretool-check.test.sh|\
@@ -299,7 +299,7 @@ family_for_basename() {
     fm-daemon.test.sh|fm-guard-stale-banner.test.sh|fm-pi-watch-extension.test.sh|\
     fm-session-lock-ancestry.test.sh|fm-cursor-primary.test.sh|\
     fm-supervision-events.test.sh|fm-turnend-guard.test.sh|fm-wake-daemon-lifecycle-e2e.test.sh|\
-    fm-wake-drain-unread-status.test.sh|\
+    fm-wake-drain-unread-status.test.sh|fm-branch-mod-bin.test.sh|\
     fm-tool-update-check.test.sh|\
     fm-mail.test.sh|fm-mail-check.test.sh|\
     fm-wake-queue.test.sh|fm-watch-arm.test.sh|fm-watch-checkpoint.test.sh|fm-watch-recovery-loop.test.sh|\
@@ -359,6 +359,7 @@ family_for_basename() {
     fm-quota-array-dispatch-live-e2e.test.sh|fm-send-secondmate-marker-herdr-e2e.test.sh|\
     fm-send-inbox-doorbell-live-e2e.test.sh|\
     fm-calm-claude-mod-plugin.test.sh|fm-calm-claude-mod-live-e2e.test.sh|\
+    fm-branch-claude-mod-plugin.test.sh|fm-branch-claude-mod-live-e2e.test.sh|\
     fm-herdr-submit-confirm-live-e2e.test.sh)
       printf '%s\n' live-harness-optin
       ;;
@@ -681,6 +682,10 @@ tests/fm-bearings-board.test.sh 4195
 tests/fm-bearings-snapshot.test.sh 116374
 tests/fm-bootstrap-network-parallel.test.sh 8214
 tests/fm-bootstrap.test.sh 25208
+tests/fm-branch-claude-mod-live-e2e.test.sh 60
+tests/fm-branch-claude-mod-plugin.test.sh 60
+tests/fm-branch-claude-mod.test.sh 250
+tests/fm-branch-mod-bin.test.sh 8000
 tests/fm-branch-supervision.test.sh 5729
 tests/fm-busy-adapter-wiring.test.sh 49731
 tests/fm-busy-state.test.sh 2926
@@ -1453,6 +1458,13 @@ families_for_changed_path() {
       printf '%s\n' __script__:fm-calm-claude-mod.test.sh
       printf '%s\n' __script__:fm-calm-pi-extension.test.sh
       printf '%s\n' __script__:fm-pi-primary-types.test.sh
+      printf '%s\n' live-harness-optin
+      ;;
+    .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh)
+      # The Claude Code supervision-branch mod and the generator of its agent
+      # definition: the portable Node checks, then the Claude-dependent guards
+      # (strict validation, the engine-hosted suite, and the pinned live run).
+      printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' live-harness-optin
       ;;
     bin/fm-sessionstart-run.sh|.claude/settings.json|.codex/hooks.json|\
