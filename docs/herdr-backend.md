@@ -224,6 +224,8 @@ When the selected named server is not running, the adapter launches it without i
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
 An already-running server is reused without restart or environment changes.
 Explicit named-session routing and unrelated launch environment remain intact.
+A server started by the CLI from inside a fleet-snapshot child once inherited that child's per-call `FM_CREW_STATE_META_OVERRIDE` and `FM_CREW_STATE_STATUS_OVERRIDE` and passed them to every later pane, so `bin/fm-crew-state.sh` read the snapshot's captured metadata for every task.
+Two guards close that leak: `fm_backend_herdr_cli` runs every client invocation with those two overrides and the session-start-scoped `FM_SESSION_START_STAGE_FILE`, `FM_HOME_SUMMARY_IF_IDLE`, and `FM_HOME_SUMMARY_WORKER_BEST_EFFORT` unset, and `bin/fm-crew-state.sh` honours an override only when its basename is the asked task's own `.meta` or `.status` file name.
 
 Literal text and Enter are separate operations on `fm-send.sh`'s typed plane; ordinary local text steers instead use the durable steering inbox and send only its best-effort constant doorbell through this adapter.
 Spawn-time fixed commands may use Herdr's atomic run primitive.
