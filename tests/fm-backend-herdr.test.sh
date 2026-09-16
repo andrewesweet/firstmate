@@ -339,6 +339,71 @@ test_cli_helper_sets_env_and_appends_trailing_session_flag() {
   pass "fm_backend_herdr_cli: sets HERDR_SESSION AND appends a trailing --session flag on every call"
 }
 
+# make_herdr_env_dump_fakebin: a `herdr` stub that appends its whole sorted
+# exported environment to FM_HERDR_ENV_LOG for every invocation, then exits 0.
+# The 2026-09-16 override-leak regression uses it to prove
+# fm_backend_herdr_cli strips the per-call/session-start variables on both the
+# plain and the `server` auto-start paths.
+make_herdr_env_dump_fakebin() {  # <dir> -> echoes fakebin dir
+  local dir=$1 fb="$1/fakebin"
+  mkdir -p "$fb"
+  cat > "$fb/herdr" <<'SH'
+#!/usr/bin/env bash
+set -u
+export | sort >> "${FM_HERDR_ENV_LOG:?}"
+exit 0
+SH
+  chmod +x "$fb/herdr"
+  printf '%s\n' "$fb"
+}
+
+# --- fm_backend_herdr_cli: per-call state never reaches the server -----------
+#
+# 2026-09-16 override-leak incident: a herdr CLI call made from inside a
+# fleet-snapshot child auto-started the server, which inherited that child's
+# FM_CREW_STATE_*_OVERRIDE environment and passed it to every later pane.
+
+assert_env_dump_lacks_per_call_state() {  # <log> <label>
+  local log=$1 label=$2 name
+  for name in FM_CREW_STATE_META_OVERRIDE FM_CREW_STATE_STATUS_OVERRIDE \
+    FM_SESSION_START_STAGE_FILE FM_HOME_SUMMARY_IF_IDLE FM_HOME_SUMMARY_WORKER_BEST_EFFORT; do
+    assert_not_contains "$(cat "$log")" "declare -x $name=" \
+      "$label leaked $name into the herdr client environment"
+  done
+}
+
+test_cli_helper_strips_per_call_state_from_plain_calls() {
+  local dir fb log
+  dir="$TMP_ROOT/cli-env-scrub-plain"; mkdir -p "$dir"; log="$dir/env"; : > "$log"
+  fb=$(make_herdr_env_dump_fakebin "$dir")
+  PATH="$fb:$PATH" FM_HERDR_ENV_LOG="$log" FM_HERDR_SENTINEL=kept \
+    FM_CREW_STATE_META_OVERRIDE=/tmp/fm-fleet-tasks.XXXX/selfimprove.meta \
+    FM_CREW_STATE_STATUS_OVERRIDE=/tmp/fm-fleet-tasks.XXXX/selfimprove.status \
+    FM_SESSION_START_STAGE_FILE=/tmp/stage-file FM_HOME_SUMMARY_IF_IDLE=0 FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_cli fmtest status --json >/dev/null' "$ROOT"
+  expect_code 0 $? "fm_backend_herdr_cli should succeed with the polluted environment"
+  assert_env_dump_lacks_per_call_state "$log" "a plain herdr CLI call"
+  assert_contains "$(cat "$log")" "declare -x HERDR_SESSION=\"fmtest\"" "the scrub lost explicit Herdr session routing"
+  assert_contains "$(cat "$log")" "declare -x FM_HERDR_SENTINEL=\"kept\"" "the scrub removed an unrelated environment variable"
+  pass "fm_backend_herdr_cli: a plain call passes no per-call state or session-start variables to the herdr client"
+}
+
+test_cli_helper_strips_per_call_state_from_server_launch() {
+  local dir fb log
+  dir="$TMP_ROOT/cli-env-scrub-server"; mkdir -p "$dir"; log="$dir/env"; : > "$log"
+  fb=$(make_herdr_env_dump_fakebin "$dir")
+  PATH="$fb:$PATH" FM_HERDR_ENV_LOG="$log" FM_HERDR_SENTINEL=kept \
+    FM_CREW_STATE_META_OVERRIDE=/tmp/fm-fleet-tasks.XXXX/selfimprove.meta \
+    FM_CREW_STATE_STATUS_OVERRIDE=/tmp/fm-fleet-tasks.XXXX/selfimprove.status \
+    FM_SESSION_START_STAGE_FILE=/tmp/stage-file FM_HOME_SUMMARY_IF_IDLE=0 FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_cli fmtest server >/dev/null' "$ROOT"
+  expect_code 0 $? "the explicit server launch should succeed with the polluted environment"
+  assert_env_dump_lacks_per_call_state "$log" "the herdr server launch"
+  assert_contains "$(cat "$log")" "declare -x HERDR_SESSION=\"fmtest\"" "the scrub lost explicit Herdr session routing"
+  assert_contains "$(cat "$log")" "declare -x FM_HERDR_SENTINEL=\"kept\"" "the scrub removed an unrelated environment variable"
+  pass "fm_backend_herdr_cli: a server auto-start never inherits per-call state or session-start variables"
+}
+
 # --- client selection: a stale client shadowing a compatible one -------------
 #
 # Two herdr clients on PATH is a real host shape (a self-updated ~/.local/bin
@@ -5213,6 +5278,8 @@ test_workspace_label_secondmate_marker_trims_whitespace
 test_workspace_label_empty_marker_falls_back_to_primary
 test_workspace_label_different_secondmates_get_different_labels
 test_cli_helper_sets_env_and_appends_trailing_session_flag
+test_cli_helper_strips_per_call_state_from_plain_calls
+test_cli_helper_strips_per_call_state_from_server_launch
 test_agent_state_bypasses_a_stale_client_shadowing_a_compatible_one
 test_recovery_grade_read_widens_only_at_its_own_boundary
 test_stale_registration_over_a_shell_only_pane_is_agent_free

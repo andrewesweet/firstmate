@@ -387,6 +387,20 @@ fm_backend_herdr_workspace_label() {
 fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   local session=$1 rc=0 err failed_bin selected_bin client_bin=herdr
   shift
+  # Per-call fleet-state overrides and session-start-scoped variables never
+  # reach the herdr client: the server outlives its launcher and passes its
+  # startup environment to every later pane, where an inherited
+  # FM_CREW_STATE_*_OVERRIDE would make fm-crew-state.sh read the wrong task
+  # (2026-09-16 override-leak incident). Scrubbed on EVERY client invocation,
+  # not only the explicit `server` launch, because any CLI call can be the
+  # one that auto-starts the server.
+  local -a env_scrub=(
+    -u FM_CREW_STATE_META_OVERRIDE
+    -u FM_CREW_STATE_STATUS_OVERRIDE
+    -u FM_SESSION_START_STAGE_FILE
+    -u FM_HOME_SUMMARY_IF_IDLE
+    -u FM_HOME_SUMMARY_WORKER_BEST_EFFORT
+  )
   if [ "${FM_BACKEND_HERDR_CLIENT_SESSION:-}" = "$session" ]; then
     client_bin=$(fm_backend_herdr_bin)
   fi
@@ -396,18 +410,18 @@ fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   # The long-lived `server` launch is exec'd straight through: buffering its
   # stderr would hold this call open for the server's whole lifetime.
   if [ "${1:-}" = server ]; then
-    HERDR_SESSION="$session" "$client_bin" "$@" --session "$session"
+    HERDR_SESSION="$session" env "${env_scrub[@]}" "$client_bin" "$@" --session "$session"
     return $?
   fi
   failed_bin=$client_bin
-  { err=$(HERDR_SESSION="$session" "$failed_bin" "$@" --session "$session" 2>&1 1>&3 3>&-) || rc=$?; } 3>&1
+  { err=$(HERDR_SESSION="$session" env "${env_scrub[@]}" "$failed_bin" "$@" --session "$session" 2>&1 1>&3 3>&-) || rc=$?; } 3>&1
   if [ "$rc" -ne 0 ]; then
     case "$err" in
       *protocol_mismatch*)
         fm_backend_herdr_client_select "$session" force
         selected_bin=$(fm_backend_herdr_bin)
         if [ "$selected_bin" != "$failed_bin" ]; then
-          HERDR_SESSION="$session" "$selected_bin" "$@" --session "$session"
+          HERDR_SESSION="$session" env "${env_scrub[@]}" "$selected_bin" "$@" --session "$session"
           return $?
         fi
         ;;
