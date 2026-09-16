@@ -94,6 +94,18 @@ Cancelling the model picker cancels the whole command and changes neither choice
 Cancelling only the effort picker keeps the standing effort choice and still applies the model pick made in the same run, and the command's one closing message reports both choices as they will actually take effect.
 Both choices are local to each Firstmate home and are not part of secondmate inherited configuration, the same as the Calm preference; a secondmate home pins its own supervision model and effort with its own `/supervision-model`.
 
+## Claude Code supervision branch (state/.branch-mod-mode, config/classifier-model)
+
+On a Claude Code primary, the `fm-branch-mod` plugin runs the same supervision branch as a persistent background agent inside the captain's `claude` process; [docs/claude-supervision-branch.md](claude-supervision-branch.md) owns its behaviour, launch settings, version pin, and bounds.
+The mod is opt-in per home and inert everywhere else: it loads only through `--plugin-dir`, refuses to load on any Claude Code version other than its pin, and every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`.
+That file is the switch: write `drop` into it to route eligible wakes to the branch, and remove it to switch the mod and its `bin/` pieces off together, because the `bin/` pieces key on the file's presence rather than its content.
+`state/.branch-mod-classifier` (presence flag) runs a text-only classifier ahead of the branch and `state/.branch-mod-index-note` (presence flag) hands the branch the deterministic new-status-lines note on every wake; both are absent by default.
+`config/classifier-model` names the model the classifier's single `$.model.complete` call uses; absent means `haiku`, and the name in force is written into every record of `state/branch-mod-classifications.jsonl`, the durable classification log `bin/fm-branch-classifier-score.sh` scores.
+The branch agent's own model comes from `config/supervision-branch-model`, shared with the Pi branch above, defaulting to `sonnet`; `config/supervision-branch-effort` is Pi-only, because the mod runs the branch's model steps at low effort.
+`state/.branch-mod-counters`, `state/branch-mod-events.jsonl`, and `state/.<task>.classifier-offset` are the mod's own runtime records, listed with their owners in `AGENTS.md`'s `state/` inventory.
+A home running the mod should watch Claude Code through the `claude` entry documented under [Watched tool updates](#watched-tool-updates-configwatched-toolsjson), so a new release is reported instead of being discovered as a refusal to load.
+None of these files is inherited by secondmate homes.
+
 ## Backlog backend (.tasks.toml / config/backlog-backend)
 
 The tracked `.tasks.toml` pins the default `tasks-axi` markdown backend to `data/backlog.md`, with `done_keep = 10` and an archive at `data/done-archive.md`.
@@ -527,6 +539,7 @@ This section is the single owner of the canonical schema.
       "version_args": ["<optional args that make it print its version, default --version>"],
       "announce_pattern": "<optional extended regex matching the tool's own update announcement>",
       "announce_args": ["<optional args for the command that carries that announcement, default version_args>"],
+      "version_url": "<optional https URL whose body carries the newest published version>",
       "git": {
         "repo": "<optional absolute path to a local clone>",
         "remote": "<optional remote name, default origin>",
@@ -542,6 +555,19 @@ A `command` entry gives the `PATH` comparison above, and adding `announce_patter
 A tool does not always announce a new release on the command that prints its version: `no-mistakes --version` prints only the version, while its other commands carry the announcement.
 `announce_args` names the command to search for the announcement in that case, and it is asked only of the copy `PATH` resolves; without it the version probe's own output is searched.
 An `announce_pattern` that is not a usable extended regular expression stops `arm`, and during a sweep it is reported as that one tool's own check failure so one broken pattern never stops the other watched tools from being checked.
+A tool whose CLI never announces its own updates can name a `version_url` instead: the document is fetched read-only with `curl` inside the same probe bound, the first dotted number in its body is the published version, and `update available` is reported when that is newer than the version `PATH` resolves.
+Claude Code is the shipped example, because its `--version` prints only the version and its release channel is a plain-text document; the exact entry is:
+
+```json
+{
+  "name": "claude",
+  "command": "claude",
+  "version_args": ["--version"],
+  "version_url": "https://downloads.claude.ai/claude-code-releases/latest"
+}
+```
+
+A home running the Claude Code supervision-branch mod should carry that entry, because the mod refuses to load on any Claude Code version other than its pin and this check is what turns a new release into the pin-bump procedure in [`docs/claude-supervision-branch.md`](claude-supervision-branch.md).
 A `git` entry reports how many commits the local clone is behind its remote branch, and stays silent when the clone is current or ahead.
 An omitted `branch` uses the remote's default branch, taken from the clone's own record of it and otherwise asked of the remote directly, so a `--single-branch` clone still resolves.
 Both probe kinds are read-only and bounded, and a probe that cannot answer is reported as a check failure rather than assumed current.

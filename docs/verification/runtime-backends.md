@@ -1945,6 +1945,25 @@ The same guard against the pre-change extension in the same lab measured a 676.9
 Measured through the same real `fm_branch_report` tool and real `bin/` scripts with a 1 ms interval timer, the largest single block of the JavaScript thread fell from 273 ms to 2.0 ms for a routine outcome, from 286 ms to 2.0 ms for a captain outcome, and from 134 ms to 1.9 ms for main's acknowledgement, against a 1.3-2.2 ms idle-loop floor.
 Those absolute figures are specific to this host and Pi version; the guards assert the relationship (delivery must stay in the class of the same machine's own floor) rather than a remembered millisecond number.
 
+## Claude Code supervision branch
+
+The supervision-branch mod (`.claude/mods/fm-branch-mod`, [docs/claude-supervision-branch.md](../claude-supervision-branch.md)) is a Claude Code function-hooks module measured against one pinned release, and it refuses to load on any other.
+This section is the dated record the pin rests on; the "Updating the pin" procedure in the owning page refreshes it.
+
+### 2026-09-16 Claude Code 2.1.273 pin evidence
+
+Evidence produced 2026-09-16 on Linux 6.6.87.2 (WSL2) x86_64, Claude Code 2.1.273, Node v24:
+
+- Strict validation: `claude plugin validate --strict .claude/mods/fm-branch-mod` printed `✔ Validation passed` with the scan lines `./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete`, `./branch.ts env writes: nothing`, and `./branch.ts env reads: FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE`; the calls line lists `$.agent.spawn (via spawnBranch)`, `$.model.complete (via classify)`, `$.tool.call (via armMonitor, sendToBranch)`, and `$.tool.register`, and no `$.http.fetch`, `$.env.set`, or `$.ui.render`.
+  `bin/fm-test-run.sh tests/fm-branch-claude-mod-plugin.test.sh` printed `ok - Claude Code 2.1.273 (Claude Code) validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution environment`.
+- Engine-hosted suite: the same run printed `ok - Claude Code 2.1.273 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn` (`claude plugin test .claude/mods/fm-branch-mod`, `0 fail`).
+- Deny-list finding: a throwaway probe plugin launched as `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude --model haiku --plugin-dir <probe> --settings <file> --strict-mcp-config --dangerously-skip-permissions`, with the settings file `{"permissions":{"deny":["SendMessage","Monitor","Agent","Task"]},"promptSuggestionEnabled":false}`, called `$.agent.spawn` and `$.tool.call` from a `prompt.submit` hook frame.
+  Every call threw: `HooksError: <plugin>: $.tool.call: no tool named "Agent" in this session`, and the same text for `SendMessage`, `Monitor`, and `Task`.
+  Without the deny list the same probe's `$.agent.spawn` returned `{"model":"claude-haiku-4-5-20251001","agentId":"..."}`, `$.tool.call({tool:'SendMessage'})` returned `{"success":true,"message":"Message queued for delivery to probe at its next tool round.","pin":{...}}`, `$.tool.call({tool:'Monitor'})` returned `{taskId, timeoutMs, persistent:false}` with the text `Monitor started (task ...`, and `$.tool.call({tool:'Task'})` was refused by the host itself with `HooksError: ... tool.call: runs the Agent tool: that is $.agent.spawn (host check)`.
+  A `permissions.deny` list therefore removes the named tools from hook frames as well as from the model, which is why a home running the mod must not carry the Claude-only deny-list hardening and relies on the gated escape in `bin/fm-subagent-pretool-check.sh` instead (`tests/fm-subagent-pretool-check.test.sh` pins that escape).
+- Live run: `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh` (one Claude Code 2.1.273 primary on `--model sonnet` in tmux, launched with the settings the owning page lists, supervising one stand-in task in a temporary scratch home) printed `ok - Claude Code 2.1.273 loads the supervision-branch mod in mode drop and main holds the session lock`, `ok - the first routine wake spawns the branch agent, which reports it routine`, `ok - the captain-class wake reaches the same agent through SendMessage and main acknowledges its outcome`, and `ok - one spawn, one successful send, no dropped hand-back, no backstop delivery across the run`.
+  The module's event log for that run held one `agent.spawn`, one `agent.send` whose text carried `"success":true,"message":"Resuming agent fm-branch"`, two `wake.delivered` (`"via":"spawn"` then `"via":"send"` to the same agent id), two `report.call` (`routine` then `captain`), one `deliver.captain`, one `processed.call` with `"ok":true`, and no `handback.dropped` or `backstop.delivered`; the two branch turns took 10.3 s and 11.0 s and read 57,570 and 67,114 cached input tokens.
+
 ## Native Codex through Pi
 
 Verified on 2026-09-08 with Pi 0.85.1 and the installed `pi-codex-native` 0.2.1 adapter.
