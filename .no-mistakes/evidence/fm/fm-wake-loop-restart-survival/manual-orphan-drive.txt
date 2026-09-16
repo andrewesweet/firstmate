@@ -1,0 +1,18 @@
+== 1. dying session (lock pid A) fires Stop hook, hook arms, session exits
+session A pid=249562
+session A exiting
+orphan hook pid=249564 alive=yes ppid=930
+ledger: epoch=1 owner_pid=249564 outcome=arming updated_at=1789544903
+== 2. replacement session (new lock pid B) fires its first Stop while the cycle is still open
+lock now: 249746
+ledger: epoch=2 owner_pid=249750 outcome=arming updated_at=1789544903
+arm wrapper runs: 2
+== 3. release the watcher cycle (actionable signal queued)
+replacement hook exit=2
+replacement hook output:
+  | firstmate watcher wake - one supervision event needs a handling turn now.
+  | signal: /tmp/fm-claude-stop-autoarm.AU2b3D/manual-orphan/state/tfmut-116.turn-ended
+  | Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+orphan hook output: 0 bytes
+ledger: epoch=2 owner_pid=249750 outcome=rewake updated_at=1789544903 session_pid=249746 recovery_generation=fixture-generation
+stranded .claude-autoarm-output.*: 0
