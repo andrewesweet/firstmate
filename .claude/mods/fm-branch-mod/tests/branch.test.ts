@@ -261,10 +261,19 @@ describe("classification log", () => {
     w.files.set(`${STATE}/.wake-queue`, "1700000000\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n1700000060\t13\tsignal\tt1.status\tworking: b\n");
     await w.clock.advance(91_000);
     await $.session.start(sessionStart);
+    const before = w.runs.length;
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
     expect(w.submitted).toEqual([WAKE, WAKE]);
     expect(w.completions.length).toBe(1);
     expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
+    // The re-pass hands row 13 to main as a classifier pass would: its offset advances and a cover row is written.
+    const after = w.runs.slice(before);
+    expect(after.some((r) => r.argv[1]?.endsWith("fm-wake-evidence.sh") && r.argv[2] === "t1")).toBe(true);
+    const cover = after.find((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append");
+    expect(cover !== undefined).toBe(true);
+    expect(cover!.argv[cover!.argv.indexOf("--task") + 1]).toBe("t1");
+    expect(cover!.argv[cover!.argv.indexOf("--verdict") + 1]).toBe("captain");
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-passed`) ?? "[]")).toEqual(["12", "13"]);
     // Once main acknowledges (the rows leave the queue) the record is pruned and the classifier runs again.
     w.files.set(`${STATE}/.wake-queue`, "1700000120\t14\tsignal\tt1.status\tworking: c\n");
     await w.clock.advance(91_000);

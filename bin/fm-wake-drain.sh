@@ -338,6 +338,7 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
   STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED=
   while IFS=$(printf '\t') read -r task endpoint ident; do
     [ -n "$task" ] || continue
+    cov_omitted=
     receipt=$(status_outcome_backstop_cursor_offset "$STATE/$task.status") || { rc=1; break; }
     [ "$receipt" -lt "$endpoint" ] || continue
     status_snapshot_latest_event "$STATE/$task.status" "$endpoint" "$ident" || continue
@@ -352,7 +353,6 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
       fi
       if [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ]; then
         covered_end=
-        cov_omitted=
         while IFS=$(printf '\t') read -r cov_end cov_line; do
           [ -n "$cov_end" ] || continue
           line="$task $cov_line (covered by a ROUTINE branch outcome)"
@@ -395,6 +395,10 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
     if [ -n "$BRANCH_OUTCOME_INDEX_ENDPOINT" ] \
       && [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ] \
       && [ "$BRANCH_OUTCOME_INDEX_ENDPOINT" -ge "$event_endpoint" ]; then
+      continue
+    fi
+    if [ -n "$cov_omitted" ]; then
+      omitted=$((omitted + 1))
       continue
     fi
 
