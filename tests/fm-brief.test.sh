@@ -260,7 +260,7 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
-  assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+  assert_grep "start /no-mistakes yourself" "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
 
   # An unregistered project is not a blocker either, because nothing is looked up.
@@ -359,6 +359,27 @@ test_no_mistakes_dod_wording() {
   assert_grep "write the substance of the referenced items into \`--intent\`" "$brief" \
     "no-mistakes DOD must tell the worker to resolve report, decision, and PR references into substance"
 
+  # Retro 3 idea 2: the worker starts the pipeline itself after its commit and
+  # rebase; there is no done-then-relay hop through firstmate.
+  assert_grep "rebase onto the current default branch, then start /no-mistakes yourself" "$brief" \
+    "no-mistakes DOD must tell the worker to start validation itself after its commit"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked done: token must stay literal
+  assert_grep 'do not append `done:` and wait for firstmate' "$brief" \
+    "no-mistakes DOD must forbid the done-then-relay wait"
+  assert_no_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+    "no-mistakes DOD still routes validation through a firstmate relay"
+  # Retro 3 idea 3: the CI-green signal names what the worker actually polls.
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked command must stay literal
+  assert_grep '`gh pr checks <n>`' "$brief" \
+    "no-mistakes DOD must state the concrete gh pr checks CI-green signal"
+  assert_grep "the two network-gated jobs skip by design" "$brief" \
+    "no-mistakes DOD must explain the skipped network-gated jobs"
+  assert_grep "poll every 60 seconds" "$brief" \
+    "no-mistakes DOD must give the polling cadence"
+  assert_no_grep 'ci_ready_at' "$brief" \
+    "no-mistakes DOD still references a field axi status never prints"
+  assert_grep 'done: PR {url} checks green' "$brief" \
+    "no-mistakes DOD lost its terminal done line"
   # The --yes ban is a fleet-wide prohibition, not a preference, and it must not
   # claim an enforcement the tool does not provide: this is instruction only.
   assert_grep "NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide." "$brief" \

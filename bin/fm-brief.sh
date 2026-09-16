@@ -5,7 +5,9 @@
 # filled in. Ship and scout `# Task` sections have two subsections Firstmate
 # fills before dispatch: `{TASK}` under `## Captain's intent` (the captain's
 # own ask plus the context needed to read it, including the substance of any
-# report, decision, or PR the ask refers to) and `{FIRSTMATE_SPEC}`
+# report, decision, or PR the ask refers to; captain rulings that constrain
+# the design belong in that subsection so the reviewer does not re-ask them)
+# and `{FIRSTMATE_SPEC}`
 # under `## Firstmate spec` (build instructions, which are never the captain's
 # intent). bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract those
 # subsections feed; bin/fm-spawn.sh refuses leftover placeholders. Secondmate
