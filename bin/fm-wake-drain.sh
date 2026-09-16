@@ -397,6 +397,9 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
       && [ "$BRANCH_OUTCOME_INDEX_ENDPOINT" -ge "$event_endpoint" ]; then
       continue
     fi
+    # Once the global cap omitted a covered line, nothing later for this task
+    # may be acknowledged: the cursor is one offset per task, so an ack past
+    # the omitted line would lose it. It comes on the next drain instead.
     if [ -n "$cov_omitted" ]; then
       omitted=$((omitted + 1))
       continue
