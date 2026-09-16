@@ -1,4 +1,20 @@
 {
+  "disableClaudeAiConnectors": true,
+  "deniedMcpServers": [
+    {
+      "serverName": "claude-in-chrome"
+    }
+  ],
+  "autoMemoryEnabled": false,
+  "disableWorkflows": true,
+  "disableBundledSkills": true,
+  "permissions": {
+    "deny": [
+      "Artifact",
+      "ReportFindings",
+      "ScheduleWakeup"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

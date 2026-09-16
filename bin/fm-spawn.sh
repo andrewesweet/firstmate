@@ -1516,10 +1516,25 @@ launch_template() {
     # sources are not guaranteed to load that scope, so a worker would
     # otherwise run with attribution back on; carrying it per launch keeps the
     # policy in force regardless of which settings scopes end up loaded.
+    # The rest of that JSON trims the worker's startup context, measured on
+    # Claude Code 2.1.273 (data/startup-context-minimisation/report.md in the
+    # home that commissioned it): claude.ai connectors and the claude-in-chrome
+    # MCP server (workers use gh-axi and chrome-devtools-axi), Claude auto
+    # memory (data/ files are the firstmate memory), workflows and bundled
+    # skills (with bundled skills off, an allowed Workflow tool inlines its
+    # 22k-char authoring reference, so both go together), and four tools no
+    # worker can use: Artifact and ReportFindings are claude.ai UI surfaces,
+    # ScheduleWakeup is /loop's self-wake, and AskUserQuestion would park a
+    # worker on a prompt nobody answers because crewmates never address the
+    # captain (AGENTS.md hard rule 4). Delegation tools stay: the tracked
+    # deny list must not disarm a crewmate (docs/subagent-guard.md).
+    # Every key is documented "any settings file" scope and, as a flag
+    # source, outranks the project and user files, so it reaches a worker in
+    # any project without touching the captain's ~/.claude/settings.json.
     # __CLAUDEPERMFLAG__ is the permission flag config/claude-permission-mode
     # selects (header above): --dangerously-skip-permissions by default, or
     # --permission-mode auto for a captain who refuses bypass mode.
-    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ --settings '\''{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}'\'' __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ --settings '\''{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false},"disableClaudeAiConnectors":true,"deniedMcpServers":[{"serverName":"claude-in-chrome"}],"autoMemoryEnabled":false,"disableWorkflows":true,"disableBundledSkills":true,"permissions":{"deny":["Artifact","ReportFindings","ScheduleWakeup","AskUserQuestion"]}}'\'' __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     codex)
       if [ "$kind" = secondmate ]; then
         printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
@@ -1529,11 +1544,17 @@ launch_template() {
       ;;
     opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     pi|pi-signed)
+      # A crewmate's --exclude-tools drops the three tools the tracked primary
+      # extensions register (.pi/extensions/, auto-discovered in a trusted
+      # firstmate-repo worktree): their schemas and the fm_watch_arm_pi
+      # guideline line only tell a worker to arm a watcher it must never own.
+      # Pi filters the names through a set, so the flag is inert in a project
+      # that has no such extensions. A secondmate keeps them: it is a primary.
       printf '%s' '__PIBIN____PITUIMODE__'
       if [ "$kind" = secondmate ]; then
         printf '%s' ' __MODELFLAG____EFFORTFLAG__-e __PITURNEND__ -e __PIWATCH__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       else
-        printf '%s' ' __MODELFLAG____EFFORTFLAG__-e __PIEXT__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+        printf '%s' ' __MODELFLAG____EFFORTFLAG__-e __PIEXT__ --exclude-tools fm_branch_outcomes,fm_branch_processed,fm_watch_arm_pi "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       fi
       ;;
     # omp (Oh My Pi), a Pi fork. Same one-positional-brief, --model, --thinking,

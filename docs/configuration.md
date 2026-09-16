@@ -409,6 +409,8 @@ This is not a sandbox: it cannot revoke same-user access to credential files, pr
 Regression coverage executes emitted launch commands with synthetic nonsecret values in [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh).
 
 Every claude launch's inline `--settings` JSON also carries `"attribution":{"commit":"","pr":"","sessionUrl":false}`, so a spawned worker never writes a Co-Authored-By trailer, Claude-Session link, or generated-with line into a commit or PR body regardless of which settings scopes end up loaded.
+The same JSON trims the worker's startup context: it disables claude.ai connectors, the `claude-in-chrome` MCP server, auto memory, workflows, and bundled skills, and denies `Artifact`, `ReportFindings`, `ScheduleWakeup`, and `AskUserQuestion`; the [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) "Startup context" owns why each key is there.
+Pi crewmate launches carry `--exclude-tools` for the primary extension tools; the [Pi adapter reference](../.agents/skills/harness-adapters/references/harness/pi.md) owns that flag.
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
