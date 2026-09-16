@@ -304,7 +304,7 @@ EOF
 print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
   local snapshot=$1 task endpoint ident event event_endpoint line verb key receipt store lock ready
   local output='' used=0 shown=0 omitted=0 bytes item_bytes=220 global_bytes=4000 rc=0
-  local routine_covered='' cov_end cov_line covered_end
+  local routine_covered='' cov_end cov_line covered_end cov_omitted
   [ "$ACTOR" = main ] || return 0
   # Under the Claude Code supervision-branch mod (state/.branch-mod-mode) a
   # captain-facing line covered only by a ROUTINE branch outcome is also
@@ -352,14 +352,16 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
       fi
       if [ "$BRANCH_OUTCOME_INDEX_IDENT" = "$ident" ]; then
         covered_end=
+        cov_omitted=
         while IFS=$(printf '\t') read -r cov_end cov_line; do
           [ -n "$cov_end" ] || continue
           line="$task $cov_line (covered by a ROUTINE branch outcome)"
           fm_cap_line_var "$line" $((item_bytes - 1))
           line=$FM_LINE_CAP_LINE
           bytes=$(( ${#line} + 1 ))
-          if [ $((used + bytes)) -gt "$global_bytes" ]; then
+          if [ -n "$cov_omitted" ] || [ $((used + bytes)) -gt "$global_bytes" ]; then
             omitted=$((omitted + 1))
+            cov_omitted=1
             continue
           fi
           output="$output$line

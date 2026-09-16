@@ -101,7 +101,7 @@ That file's presence is the whole switch and its content is ignored: create it t
 A text-only classifier runs ahead of the branch on every eligible wake, and every task wake hands the branch the deterministic new-status-lines note; neither has a switch.
 `config/classifier-model` names the model the classifier's single `$.model.complete` call uses; absent means `haiku`, and the name in force is written into every record of `state/branch-mod-classifications.jsonl`, the durable classification log `bin/fm-branch-classifier-score.sh` scores.
 The branch agent's own model comes from `config/supervision-branch-model`, shared with the Pi branch above, defaulting to `sonnet`; `config/supervision-branch-effort` is Pi-only, because the mod runs the branch's model steps at low effort.
-`state/.branch-mod-counters`, `state/branch-mod-events.jsonl`, and `state/.<task>.classifier-offset` are the mod's own runtime records, listed with their owners in `AGENTS.md`'s `state/` inventory.
+`state/.branch-mod-counters`, `state/.branch-mod-passed`, `state/branch-mod-events.jsonl`, and `state/.<task>.classifier-offset` are the mod's own runtime records, listed with their owners in `AGENTS.md`'s `state/` inventory.
 A home running the mod should watch Claude Code through the `claude` entry documented under [Watched tool updates](#watched-tool-updates-configwatched-toolsjson), so a new release is reported instead of being discovered as a refusal to load.
 None of these files is inherited by secondmate homes.
 

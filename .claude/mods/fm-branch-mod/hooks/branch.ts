@@ -27,6 +27,7 @@
 //                           The same presence switches every bin/ piece the mod relies on.
 // Records (same directory):
 //   .branch-mod-counters            session counters keyed by the lock pid
+//   .branch-mod-passed              queue seqs passed to main with a cover row and not yet acknowledged
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
 import type { On } from 'claude-code'
@@ -183,6 +184,22 @@ async function readConfig($: any, name: string, fallback: string): Promise<strin
   } catch {
     return fallback
   }
+}
+// Queue rows the classifier already passed to main, durable across a module
+// reload or a session restart: while such a row is still queued it goes back
+// to main unclassified, because its lines are HISTORY to the classifier now.
+async function readPassedSeqs($: any): Promise<Set<string>> {
+  try {
+    const j = JSON.parse(await $.fs.read(`${state}/.branch-mod-passed`))
+    return new Set(Array.isArray(j) ? j.map(String) : [])
+  } catch {
+    return new Set()
+  }
+}
+async function writePassedSeqs($: any, seqs: Set<string>): Promise<void> {
+  try {
+    await $.fs.write(`${state}/.branch-mod-passed`, JSON.stringify([...seqs]))
+  } catch {}
 }
 async function readLockPid($: any): Promise<string> {
   try {
@@ -705,6 +722,15 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const heartbeat = reasons.some((r) => /^heartbeat($|:)/.test(r))
   const scope = await scopeForUnreadWake($, heartbeat)
   log($, 'wake.scope', { reason, scope, source })
+  const passedSeqs = await readPassedSeqs($)
+  if (scope.allSeqs || scope.status === 'empty') {
+    const queued = new Set(scope.allSeqs ?? [])
+    const gone = [...passedSeqs].filter((s) => !queued.has(s))
+    if (gone.length > 0) {
+      for (const s of gone) passedSeqs.delete(s)
+      await writePassedSeqs($, passedSeqs)
+    }
+  }
   passKey = `${scope.status}:${(scope.allSeqs ?? scope.eligibleSeqs).join(',')}:${scope.needsDecisionTasks.join(',')}`
   const seenAt = recentPassed.get(passKey)
   if (seenAt !== undefined && now - seenAt < PASSED_DEDUPE_MS) {
@@ -740,11 +766,15 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     log($, 'wake.queued', { seqs: scope.eligibleSeqs, source, inFlightSeqs: inFlight.seqs })
     return 'dropped'
   }
+  const unacknowledged = scope.eligibleSeqs.filter((s) => passedSeqs.has(s))
+  if (unacknowledged.length > 0) return pass('already passed to main, unacknowledged', { seqs: unacknowledged })
   // Classifier ahead of the branch: only a confident routine verdict is
   // granted; captain or uncertain goes to main untouched.
   const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
   log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, ...c, estTokens: Math.ceil(c.promptChars / 4) })
   if (c.verdict !== 'routine') {
+    for (const s of scope.eligibleSeqs) passedSeqs.add(s)
+    await writePassedSeqs($, passedSeqs)
     return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
   }
   if (!(await ensureActivated($))) return pass('no lock pid / activation failed')
