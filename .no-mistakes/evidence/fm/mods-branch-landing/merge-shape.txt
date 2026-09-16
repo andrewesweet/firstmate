@@ -1,0 +1,8 @@
+$ git log --format="%h %p %s" -1 06b21da
+06b21da d0c0684 8000419 Merge branch 'feat/mods-branch' into fm/mods-branch-landing
+$ git rev-parse --short feat/mods-branch
+8000419
+$ git diff --stat feat/mods-branch 06b21da^2
+(empty: second parent is feat/mods-branch tip, branch untouched)
+$ git merge-base --is-ancestor d0c0684 32fd6bd && echo fork-main-base-is-first-parent
+fork-main-base-is-first-parent

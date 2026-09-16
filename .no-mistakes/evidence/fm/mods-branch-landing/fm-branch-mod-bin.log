@@ -1,0 +1,5 @@
+ok - the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file
+ok - a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold
+ok - only the lines between the previous outcome's endpoint and the routine outcome's endpoint are listed
+ok - a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it
+ok - the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it
