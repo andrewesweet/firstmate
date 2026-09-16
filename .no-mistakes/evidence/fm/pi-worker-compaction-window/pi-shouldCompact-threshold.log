@@ -1,0 +1,6 @@
+settings: {"enabled":true,"reserveTokens":16384,"keepRecentTokens":20000} contextWindow after cap: 144000
+contextTokens 127616 compact? false | uncapped 1e6: false
+contextTokens 127617 compact? true | uncapped 1e6: false
+contextTokens 200000 compact? true | uncapped 1e6: false
+contextTokens 983616 compact? true | uncapped 1e6: false
+contextTokens 983617 compact? true | uncapped 1e6: true

@@ -1,0 +1,18 @@
+spawn flash: warning: /tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-flash/home/data/glm-live-flash/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-flash/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-flash/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned glm-live-flash harness=pi kind=ship mode=no-mistakes yolo=off window=firstmate:fm-glm-live-flash worktree=/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-flash/wt
+--- launch command (flash):
+pi '<case>/fake/fakebin/pi' --tui-mode regular --model 'zai/glm-5.3-flash' -e '<case>/home/state/glm-live-flash.pi-ext.ts' "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2M4M4PZE2X9V72PEMJ4V4S9/bin/fm-operational-input.sh' encode launch-brief < '<case>/home/data/glm-live-flash/launch-brief.md')"
+spawn partial: warning: /tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-partial/home/data/glm-live-partial/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-partial/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-partial/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned glm-live-partial harness=pi kind=ship mode=no-mistakes yolo=off window=firstmate:fm-glm-live-partial worktree=/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-partial/wt
+--- launch command (partial):
+pi '<case>/fake/fakebin/pi' --tui-mode regular --model 'glm-5.3-flash' -e '<case>/home/state/glm-live-partial.pi-ext.ts' "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2M4M4PZE2X9V72PEMJ4V4S9/bin/fm-operational-input.sh' encode launch-brief < '<case>/home/data/glm-live-partial/launch-brief.md')"
+spawn other: warning: /tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-other/home/data/glm-live-other/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-other/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-other/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned glm-live-other harness=pi kind=ship mode=no-mistakes yolo=off window=firstmate:fm-glm-live-other worktree=/tmp/fm-spawn-dispatch-profile.GCV2x6/glm-live-other/wt
+--- launch command (other):
+pi '<case>/fake/fakebin/pi' --tui-mode regular --model 'openai-codex/gpt-5.6-sol' -e '<case>/home/state/glm-live-other.pi-ext.ts' "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2M4M4PZE2X9V72PEMJ4V4S9/bin/fm-operational-input.sh' encode launch-brief < '<case>/home/data/glm-live-other/launch-brief.md')"

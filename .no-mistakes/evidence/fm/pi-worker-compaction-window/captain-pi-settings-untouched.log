@@ -1,0 +1,10 @@
+captain ~/.pi/agent/models.json before:
+813753fbbd36162f682da11e2a54801544c1b9f817cc63d32346f4ab8085e3b4  /home/andre/.pi/agent/models.json
+after:
+813753fbbd36162f682da11e2a54801544c1b9f817cc63d32346f4ab8085e3b4  /home/andre/.pi/agent/models.json
+isolated PI_CODING_AGENT_DIR contents (no models.json expected):
+auth.json
+models-store.json
+fm-spawn writes to models.json (expect none):
+3503:  // session model here, not via the models.json modelOverrides lever,
+pi files in spawn case homes:

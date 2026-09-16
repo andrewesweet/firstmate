@@ -1,0 +1,66 @@
+=== partial id --model glm-5.3-flash (ext from fm-spawn --model glm-5.3-flash)
+{
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "-e",
+    "/tmp/fm-glm-keep/partial.pi-ext.ts",
+    "--model",
+    "glm-5.3-flash"
+  ],
+  "before_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 1000000
+  },
+  "after_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 144000
+  }
+}
+=== thinking suffix --model zai/glm-5.3-flash:high
+{
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "-e",
+    "/tmp/fm-glm-keep/flash.pi-ext.ts",
+    "--model",
+    "zai/glm-5.3-flash:high"
+  ],
+  "before_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 1000000
+  },
+  "after_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 144000
+  }
+}
+=== control --model zai/glm-5.3 (same provider, other id)
+{
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "-e",
+    "/tmp/fm-glm-keep/other.pi-ext.ts",
+    "--model",
+    "zai/glm-5.3"
+  ],
+  "before_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3",
+    "contextWindow": 1000000
+  },
+  "after_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3",
+    "contextWindow": 1000000
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "glm53_after_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3",
+    "contextWindow": 1000000
+  },
+  "flash_after_switch_before_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 1000000
+  },
+  "flash_after_switch_after_prompt": {
+    "provider": "zai",
+    "id": "glm-5.3-flash",
+    "contextWindow": 144000
+  }
+}
