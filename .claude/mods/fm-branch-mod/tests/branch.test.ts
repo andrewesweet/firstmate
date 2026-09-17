@@ -12,7 +12,7 @@ import { mock, type MockClock } from "claude-code/testing";
 const HOME = "/fm/home";
 const STATE = `${HOME}/state`;
 const CONFIG = `${HOME}/config`;
-const PIN = "2.1.273";
+import { CLAUDE_CODE_PIN as PIN } from "../hooks/branch.ts";
 const sessionStart = { cwd: "/work", surface: "terminal" as const, isInteractive: true };
 
 type Run = { argv: string[]; stdin?: string; env?: Record<string, string> };
