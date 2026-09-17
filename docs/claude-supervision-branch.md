@@ -16,7 +16,7 @@ The mod is deliberately inert everywhere it is not asked for:
 ## What the mod does
 
 The Claude Code protocol's Stop-hook rewake delivers every actionable watcher close into main's prompt as a `Stop hook feedback` message.
-The mod intercepts that message in `prompt.submit` before it opens a main turn, scopes the wake to the queue rows the branch may own (the same eligibility as the Pi branch: task-local `signal` and `stale` rows with no open captain decision, never a `check` row or a watcher-failure alarm), claims a wake grant, and delivers the wake to the branch agent.
+The mod intercepts that message in `prompt.submit` before it opens a main turn, scopes the wake to the queue rows the branch may own (the same eligibility as the Pi branch: task-local `signal` and `stale` rows with no open captain decision, decided by folding the task's status log with the shell fold's v8 rules in `bin/fm-classify-lib.sh`, never a `check` row or a watcher-failure alarm), claims a wake grant, and delivers the wake to the branch agent.
 Delivery spawns the agent once per branch generation (`$.agent.spawn`, a background agent named `fm-branch`) and reaches the same agent through `SendMessage` for every later wake, so the branch keeps its context across wakes.
 Every task wake hands the branch the deterministic new-status-lines note (the status lines appended since the task's last outcome), so what keeps the branch from re-escalating is the outcome index rather than its memory.
 A delivered wake is dropped from main, which stays silent; a wake the branch may not own, or one the mod cannot deliver, passes through to main exactly as it would without the mod.

@@ -306,6 +306,72 @@ describe("classification log", () => {
   });
 });
 
+// The open-decision fold v8 rules the mod ports from bin/fm-classify-lib.sh
+// (_fm_decision_fold_line, last_status_line): a done:/failed: declaration closes
+// the whole open set for ship and scout tasks but never for a secondmate, and
+// the captain-held verdict reads the latest RECOGNIZED status event, not the
+// last non-blank line. A stale wake on an owned task is passed straight to main
+// (never classified, one covering captain outcome row); an unowned one is
+// eligible and reaches the classifier.
+describe("open-decision fold v8", () => {
+  const STALE_WAKE = `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nstale: fm-t1\n`;
+
+  function staleHome(status: string, kind?: string): Record<string, string> {
+    return {
+      [`${STATE}/.branch-mod-mode`]: "",
+      [`${STATE}/.lock`]: "4242\n",
+      [`${STATE}/t1.meta`]: `project=demo\nwindow=fm-t1\n${kind ? `kind=${kind}\n` : ""}`,
+      [`${STATE}/t1.status`]: status,
+      [`${STATE}/.wake-queue`]: "1700000000\t13\tstale\tfm-t1\tpane quiet\n",
+    };
+  }
+
+  test("a done: line closes an open decision for a ship task, so the stale wake is classified instead of passed", async ($: Engine, on: On) => {
+    const w = world(on, { files: staleHome("needs-decision: [key=c1] pick one\ndone: shipped the branch\n") });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: STALE_WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(1);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append")).toBe(false);
+  });
+
+  test("a failed: line closes an open decision for a scout task", async ($: Engine, on: On) => {
+    const w = world(on, { files: staleHome("needs-decision: [key=c1] pick one\nfailed: upstream rejected the approach\n", "scout") });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: STALE_WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(1);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append")).toBe(false);
+  });
+
+  test("a secondmate's done: line cannot close an open decision", async ($: Engine, on: On) => {
+    const w = world(on, { files: staleHome("needs-decision: [key=c1] pick one\ndone: other work finished\n", "secondmate") });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: STALE_WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(0);
+    const cover = w.runs.find((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append");
+    expect(cover !== undefined).toBe(true);
+    expect(cover!.argv[cover!.argv.indexOf("--task") + 1]).toBe("t1");
+    expect(cover!.argv[cover!.argv.indexOf("--verdict") + 1]).toBe("captain");
+  });
+
+  test("continuation prose after a captain-held: line does not un-hold the task (latest event, not last line)", async ($: Engine, on: On) => {
+    const w = world(on, { files: staleHome("needs-decision: [key=c1] pick one\ncaptain-held [key=c1]: filed for the captain\nwaiting on the captain to pick\n") });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: STALE_WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(0);
+    const cover = w.runs.find((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append");
+    expect(cover !== undefined).toBe(true);
+    expect(cover!.argv[cover!.argv.indexOf("--verdict") + 1]).toBe("captain");
+  });
+
+  test("a working: line after a captain-held: line un-holds the task", async ($: Engine, on: On) => {
+    const w = world(on, { files: staleHome("captain-held [key=c1]: filed for the captain\nworking: resumed while the captain thinks\n") });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: STALE_WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(1);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv[2] === "append")).toBe(false);
+  });
+});
+
 describe("routine wake", () => {
   test("a routine verdict grants the wake and spawns the one persistent branch agent", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome() });
