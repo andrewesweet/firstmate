@@ -281,10 +281,23 @@ function statusLineNote(line: string): string {
   const m = note.match(/^\[key=([A-Za-z0-9._-]+)\]/)
   return m ? note.slice(m[0].length).trimStart() : note
 }
-function hasOpenNeedsDecision(lines: string[]): boolean {
+function hasOpenNeedsDecision(lines: string[], kind: string): boolean {
   const open = new Map<string, string>()
   for (const line of lines) {
+    // v8 fold (bin/fm-classify-lib.sh _fm_decision_fold_line,
+    // FM_OPEN_DECISIONS_FOLD_VERSION 8): needs-decision/blocked OPEN a keyed
+    // decision, resolved/captain-held CLOSE it, and a `done:`/`failed:`
+    // declaration closes the WHOLE open set when the task's kind is ship or
+    // scout - a secondmate's terminal event may describe other work and cannot
+    // close an unrelated decision. Declaration guard first: a line holding
+    // neither a colon nor a complete "[key=...]" token is continuation prose and
+    // can never move the set.
+    if (!line.includes(':') && !/\[key=[^\]]*\]/.test(line)) continue
     const verb = statusLineVerb(line)
+    if (verb === 'done' || verb === 'failed') {
+      if (line.includes(':') && (kind === 'ship' || kind === 'scout')) open.clear()
+      continue
+    }
     if (!['needs-decision', 'blocked', 'resolved', 'captain-held'].includes(verb)) continue
     const key = decisionKey(line)
     if (!key) continue
@@ -295,6 +308,48 @@ function hasOpenNeedsDecision(lines: string[]): boolean {
     else open.delete(key)
   }
   return [...open.values()].includes('needs-decision')
+}
+
+// bin/fm-classify-lib.sh _fm_status_kind: the task kind the fold's terminal
+// done/failed rule needs, read from the task's .meta `kind=` line - ship when a
+// readable meta is silent, unknown when it cannot be read or names another
+// kind. Only ship and scout clear the open set.
+async function statusKind($: any, task: string): Promise<string> {
+  let kind = ''
+  try {
+    for (const line of (await $.fs.read(`${state}/${task}.meta`)).split(/\r?\n/)) {
+      if (line.startsWith('kind=')) kind = line.slice(5)
+    }
+  } catch {
+    return 'unknown'
+  }
+  if (!kind) kind = 'ship'
+  return ['ship', 'scout', 'secondmate'].includes(kind) ? kind : 'unknown'
+}
+
+// The recognized-event vocabulary of last_status_line / _fm_status_event_scan
+// (bin/fm-classify-lib.sh), with that lib's FM_CLASSIFY_* defaults read from it:
+// a line carrying one of these leading verbs is an event; anything else is
+// continuation prose. A bare legacy free-text line counts as an event only when
+// a captain token leads it, so prose that merely mentions one cannot hide a
+// declaration.
+const EVENT_VERBS = ['working', 'needs-decision', 'blocked', 'done', 'failed', 'note', 'paused', 'resolved', 'captain-held']
+const LEGACY_CAPTAIN_RE = /^\s*(done:|needs-decision:|blocked:|failed:|PR ready|checks green|ready in branch|merged)/i
+
+// bin/fm-classify-lib.sh last_status_line: the latest RECOGNIZED status event,
+// falling back to the last non-blank line only when the log holds no event at
+// all. Continuation prose after a `captain-held:` line must not un-hold the
+// task; a `working:` line after it must.
+function lastStatusLine(lines: string[]): string {
+  let last = ''
+  let fallback = ''
+  for (const line of lines) {
+    if (!/\S/.test(line)) continue
+    fallback = line
+    const verb = line.includes(':') ? statusLineVerb(line) : ''
+    if (EVENT_VERBS.includes(verb) || LEGACY_CAPTAIN_RE.test(line)) last = line
+  }
+  return last || fallback
 }
 
 async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
@@ -370,7 +425,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
             } catch {
               return unsafe
             }
-            owned = hasOpenNeedsDecision(lines) || statusLineVerb(lines.at(-1) ?? '') === 'captain-held'
+            owned = hasOpenNeedsDecision(lines, await statusKind($, task)) || statusLineVerb(lastStatusLine(lines)) === 'captain-held'
           }
           staleOwned.set(statusPath, owned)
         }
