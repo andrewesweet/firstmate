@@ -122,9 +122,10 @@ LAT_MS=null
 # arbitrary directory name is never mistaken for one.
 DISPATCH_LOG="$FM_HOME/data/dispatch-resolve.jsonl"
 DISPATCH_TASK_ID=''
-case ${BRIEF%/*} in
+case /${BRIEF%/*} in
   */data/*)
-    candidate=${BRIEF##*/data/}
+    candidate=/$BRIEF
+    candidate=${candidate##*/data/}
     candidate=${candidate%%/*}
     case $candidate in
       *[!a-z0-9-]*|'') DISPATCH_TASK_ID='' ;;

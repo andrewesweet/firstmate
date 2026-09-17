@@ -286,9 +286,13 @@ write_response "$RESPONSE" rule_4 0.9
 TYPESAFE_API_KEY=$KEY run code out err "$TASK_BRIEF"
 assert_equals 'task-abc-123' "$(jq -r .task <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the task id comes from the brief's data/<id> parent"
 write_response "$RESPONSE" rule_4 0.9
+_out=$(cd "$HOME_DIR" && PATH="$FAKEBIN:$BASE_PATH" FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="$KEY" "$TOOL" data/task-abc-123/brief.md --project pager 2> "$TMP_ROOT/stderr")
+expect_code 0 "$?" "a relative data/<id>/brief.md path from the home exits 0"
+assert_equals 'task-abc-123' "$(jq -r .task <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the documented relative data/<id>/brief.md invocation logs the task id"
+write_response "$RESPONSE" rule_4 0.9
 TYPESAFE_API_KEY='' run code out err "$BRIEF" --project pager
 assert_contains "$err" 'dispatch-resolve: off' "the off path still explains itself"
-assert_equals '3' "$(wc -l < "$DISPATCH_LOG")" "the off path appends nothing to the outcome log"
+assert_equals '4' "$(wc -l < "$DISPATCH_LOG")" "the off path appends nothing to the outcome log"
 
 # --- a failed log write never changes the outcome -----------------------------
 RO_HOME="$TMP_ROOT/ro-home"
