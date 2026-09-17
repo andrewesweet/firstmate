@@ -1,0 +1,21 @@
+$ ship status log: needs-decision buried under a done: line
+needs-decision [key=choice]: pick A or B
+done: PR merged
+Continuation prose.
+--- fm-crew-state.sh task:
+state: done · source: status-log · PR merged
+
+$ cleanup note appended after done:
+state: unknown · source: none · no current-state source available
+
+$ decision reopened after done:
+state: parked · source: status-log · reopened after completion
+
+$ resolved [key=new] appended:
+state: unknown · source: none · no current-state source available
+
+$ captain-held followed by continuation prose:
+state: unknown · source: none · no current-state source available
+
+$ two open decisions, newest first reported:
+state: parked · source: status-log · pick a rollout order

@@ -1,0 +1,110 @@
+FM_TEST_BEGIN 2026-09-17T09:56:51Z tests/fm-branch-mod-bin.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file
+ok - a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold
+ok - only the lines between the previous outcome's endpoint and the routine outcome's endpoint are listed
+ok - a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it
+ok - the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it
+FM_TEST_END 2026-09-17T09:57:05Z tests/fm-branch-mod-bin.test.sh exit=0 duration_ms=14031 gate_skip=false
+FM_TEST_BEGIN 2026-09-17T09:57:05Z tests/fm-branch-claude-mod.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-09-17T09:57:05Z tests/fm-trace-context-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - the mod is one hooks module and one agent, reached only through --plugin-dir, with no command, skill, or classic hook path
+ok - agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns
+FM_TEST_END 2026-09-17T09:57:05Z tests/fm-branch-claude-mod.test.sh exit=0 duration_ms=122 gate_skip=false
+ok - fm_trace_context_valid accepts a conformant W3C traceparent
+ok - fm_trace_context_valid rejects all-zero ids, ff version, uppercase, wrong length, missing field, shell metacharacters, and empty
+ok - a command-substitution-shaped value is rejected as inert data, never executed
+ok - fm_trace_context_hex yields exact-length lowercase hex, distinct per call
+ok - fm_trace_context_mint starts a valid sampled root trace
+ok - every mint is an unrelated fresh root - one trace per task, no parent adoption
+ok - a minted root is the fixed 55-char W3C form (hex and hyphens only), so firstmate originates no free-form content in the carrier
+ok - enablement is default-off; FM_TRACE_CONTEXT overrides with truthy/other precedence, and unset or empty defers to config/trace-context
+ok - session start normalizes config and environment precedence into frozen on/off state
+ok - session state is atomically published through a same-directory replacement
+ok - a stale on record is inactive when publication fails in a new locked session
+ok - missing or invalid frozen session state defaults off
+ok - resolve omits the carrier and returns success when the capability is off (byte-identical default)
+ok - resolve mints a valid traceparent when enabled
+ok - Secondmate home-session state stays off or on despite later file state; ambient TRACEPARENT is never adopted, so each routed task roots its own trace
+ok - resolve reuses a valid recorded traceparent verbatim on relaunch (stable identity across restarts)
+ok - disabling the capability omits the carrier even for a task with a recorded identity
+ok - a corrupt recorded traceparent is re-minted rather than propagated
+ok - resolve yields exactly one carrier per logical task, so the recorded and injected values are identical by construction
+ok - entropy failure omits telemetry safely: mint reports failure, resolve returns success with no carrier
+ok - disabled resolver returns success
+ok - fm_trace_context_link_resolve: valid ambient links only inside a marked secondmate home; primary homes, absent or malformed ambient, symlinked or malformed markers never link
+ok - the ambient TRACEPARENT read for the link never becomes the task's trace carrier
+ok - fm_trace_context_recorded_link echoes the recorded link verbatim and nothing when absent
+ok - config/trace-context is inherited into secondmate homes, keeping the nested chain enabled end to end
+ok - the percent encoder passes the safe set byte-wise and escapes everything else per W3C Baggage rules
+ok - render yields the fixed key list in order, with the project path encoded and an empty model rendered empty
+ok - a ship meta in a main home (or with no home set) carries no firstmate.secondmate.id
+ok - a routed task spawned inside a secondmate home carries firstmate.secondmate.id from the home's marker
+ok - a kind=secondmate meta renders the agent's own task id as firstmate.secondmate.id, with home from the meta
+ok - an absent meta or one without a task id renders nothing and always returns success
+# fm-trace-context-lib.test.sh: all assertions passed
+FM_TEST_END 2026-09-17T09:57:05Z tests/fm-trace-context-lib.test.sh exit=0 duration_ms=525 gate_skip=false
+FM_TEST_BEGIN 2026-09-17T09:57:05Z tests/fm-remote-secondmate-trace-context.test.sh family=secondmate expected_gate_skip=none
+ok - disabled: a remote-routed second mate records and receives no carrier and stays enabled-off end to end
+ok - enabled: a remote-routed second mate receives one carrier in its pane, identical to the parent's recorded identity, before launch
+ok - relaunch: a remote-routed second mate keeps one stable identity across restarts
+ok - boundary: each remote-routed second mate roots its own trace and never adopts the spawning environment's carrier
+ok - remote route: a routed worker inside the remote second mate home records its own fresh carrier plus a link to the routing agent's carrier; the agent's own meta records none
+ok - allowlist: the remote receiver accepts exactly the declared inherited-material set, including the enablement flag
+ok - delivery: a parent-supplied carrier is accepted only for a secondmate launch and only as a strict W3C value
+ALL TESTS PASSED
+FM_TEST_END 2026-09-17T09:58:28Z tests/fm-remote-secondmate-trace-context.test.sh exit=0 duration_ms=82451 gate_skip=false
+FM_TEST_BEGIN 2026-09-17T09:58:28Z tests/fm-branch-claude-mod-plugin.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - Claude Code 2.1.274 (Claude Code) validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution environment
+ok - Claude Code 2.1.274 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn
+FM_TEST_END 2026-09-17T09:58:30Z tests/fm-branch-claude-mod-plugin.test.sh exit=0 duration_ms=2241 gate_skip=false
+FM_TEST_BEGIN 2026-09-17T09:58:30Z tests/fm-trace-span-lib.test.sh family=unclassified expected_gate_skip=none
+ok - no recorded carrier -> no request
+ok - frozen session decision off -> no request
+ok - child body: valid OTLP/JSON shape with hex ids, parent, nanos, scope
+ok - root: carrier span id, parentless, ok status
+ok - link: a valid --link adds exactly one links entry on the root only, without changing parentage
+ok - link: malformed or empty values are silently omitted and stay inert data
+ok - status mapping: error -> 2, omitted -> unset field
+ok - timestamps: dash means now and end-before-start clamps
+ok - endpoint precedence: traces endpoint, base endpoint, loopback default
+ok - curl refusal and timeout preserve caller execution under errexit and pipefail
+ok - resource JSON preserves values, includes secondmate identity, omits absent keys
+ok - absent meta file -> silent no-op
+# all fm-trace-span-lib tests passed
+FM_TEST_END 2026-09-17T09:58:32Z tests/fm-trace-span-lib.test.sh exit=0 duration_ms=1615 gate_skip=false
+FM_TEST_BEGIN 2026-09-17T09:58:32Z tests/fm-trace-context-spawn.test.sh family=backend-dispatch expected_gate_skip=none
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - disabled: an inherited ambient TRACEPARENT is scrubbed from the launch, never forwarded to the worker
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+ok - duplicate secondmate preflight leaves trace-context unchanged
+ok - relaunch reuses the recorded carrier verbatim for both the meta record and the injected export
+ok - session start freezes the env override and later config or environment edits do not alter spawns
+ok - two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace that links to the routing agent
+ok - two-level: env-off/file-present keeps the nested worker disabled even though the config file was copied into the secondmate home
+ok - two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, link to its carrier, keep per-task identity across relaunch, and drop the link once the marker is gone
+ok - primary home: an ambient TRACEPARENT never becomes a recorded link (no marker, no link)
+ok - secondmate carrier and FM_TRACE_CONTEXT snapshot always agree, both derived from one frozen decision (file-decided path)
+# all fm-trace-context-spawn tests passed
+FM_TEST_END 2026-09-17T09:59:57Z tests/fm-trace-context-spawn.test.sh exit=0 duration_ms=85618 gate_skip=false
+FM_TEST_SUMMARY total=7 failed=0 skipped_gate=0 duration_ms=186949
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=85618 failed=0
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=2241 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=647 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=82451 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=1615 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=14031 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-trace-context-spawn.test.sh duration_ms=85618
+FM_TEST_SLOWEST rank=2 script=tests/fm-remote-secondmate-trace-context.test.sh duration_ms=82451
+FM_TEST_SLOWEST rank=3 script=tests/fm-branch-mod-bin.test.sh duration_ms=14031
+FM_TEST_SLOWEST rank=4 script=tests/fm-branch-claude-mod-plugin.test.sh duration_ms=2241
+FM_TEST_SLOWEST rank=5 script=tests/fm-trace-span-lib.test.sh duration_ms=1615
+FM_TEST_SLOWEST rank=6 script=tests/fm-trace-context-lib.test.sh duration_ms=525
+FM_TEST_SLOWEST rank=7 script=tests/fm-branch-claude-mod.test.sh duration_ms=122

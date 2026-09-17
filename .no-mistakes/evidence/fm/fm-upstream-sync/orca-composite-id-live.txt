@@ -1,0 +1,16 @@
+$ Orca task record with the composite worktree id Orca really returns (<uuid>::<path>)
+window=fm-orca-task
+endpoint_task_id=orca-task
+terminal=term-11
+worktree=$D/worktree
+project=$D/project
+backend=orca
+orca_worktree_id=411226f7-dc91-4d37-975d-32d412bf97a2::$D/worktree
+--- fm_backend_validate_task_endpoint <meta> orca-task:
+accepted; validated target=term-11
+
+--- adversarial ids through fm_backend_orca_worktree_id_valid:
+wt-atom -> rejected
+$'wt-a::/orca/wt\na' -> rejected
+abc::/orca/x -> accepted
+

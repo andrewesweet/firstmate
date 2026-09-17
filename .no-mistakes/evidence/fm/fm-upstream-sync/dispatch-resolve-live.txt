@@ -1,0 +1,24 @@
+# bin/fm-dispatch-resolve.sh driven live in an isolated FM_HOME (docs/examples/crew-dispatch.json copied to config/).
+# curl on PATH is a recording fake; quota-axi is a fake. No real network call.
+
+$ FM_HOME=$H bin/fm-dispatch-resolve.sh $H/data/t1/brief.md --project demo   # no key in env or .env
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and $H/.env)
+exit=0            (stdout empty; fake curl never invoked)
+
+$ .env holds TYPESAFE_API_KEY; fake curl answers 200 with a body that is NOT a rule Choice answer
+dispatch-resolve: error (response is not a rule Choice answer)
+dispatch-resolve:
+  status: error
+  reason: response is not a rule Choice answer
+exit=0
+
+$ TYPESAFE_API_KEY=env-key; config/crew-dispatch.json is a broken symlink
+error: rules file not readable: $H/config/crew-dispatch.json
+exit=2
+
+$ TYPESAFE_API_KEY=env-key; no config/crew-dispatch.json at all
+dispatch-resolve:
+  status: escalate
+  reason: no rules to match
+exit=0
+curl called: no

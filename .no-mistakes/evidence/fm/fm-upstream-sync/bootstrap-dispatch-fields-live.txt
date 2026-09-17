@@ -1,0 +1,13 @@
+$ config/crew-dispatch.json: approval=firstmate, rule floor min_percent=200 provider=CLAUDE, profile provider=Anthropic; no TYPESAFE_API_KEY anywhere
+exit=0
+
+$ same file, .env now holds TYPESAFE_API_KEY=test-key
+CREW_DISPATCH: invalid config/crew-dispatch.json - use profile model and effort must be non-empty strings, and provider must match ^[a-z0-9]+(-[a-z0-9]+)*\z when present
+exit=0
+
+$ approval=firstmate only, key present
+CREW_DISPATCH: invalid config/crew-dispatch.json - approval must be "captain" when present
+exit=0
+
+$ well-formed resolve fields, key present: silent
+exit=0

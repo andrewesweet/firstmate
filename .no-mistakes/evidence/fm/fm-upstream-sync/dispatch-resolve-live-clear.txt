@@ -1,0 +1,18 @@
+$ .env holds TYPESAFE_API_KEY; fake curl on PATH records argv, env, fd3 header; fake quota-axi (schema 5)
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 9   tokens: 100/60
+  rule: rule_2 (The task is a trivial mechanical edit such as a rote rename,)   confidence: 0.9
+  probabilities: rule_1=0.03 rule_2=0.9 rule_3=0.03 default=0.04
+  note: rule matched
+  candidate: claude:haiku  provider=claude  scope=all_models  remaining=79%  spendPriority=0.5  runway=through_reset  -> eligible
+  profile: --harness 'claude' --model 'haiku' --effort 'low'
+exit=0
+
+--- curl argv:
+-sS --max-time 5 -o /tmp/tmp.vfyAm6rSw4 -w %{http_code} -X POST https://api.typesafe.ai/v1/systemone -H Content-Type: application/json -H @/dev/fd/3 --data-binary @- 
+--- TYPESAFE_* vars visible to curl: 0; to quota-axi: 0
+--- header on fd3: Authorization: Bearer <redacted>
+--- request body keys: ["model","questions","state"]; state keys: ["task"]; question options: {"rule":{"type":"choice","instructions":"Which ONE dispatch rule best fits `task` (read `task.brief` and `task.project`)? Each option is the rule's own matching condition; pick `default` when no rule's condition is met, including when a rule's own exemption text excludes this task.","criteria":{"rule_1":"The task depends on fresh news, current events, live public facts, or recent market and produc
+--- body mentions why/use/quota: 0
+--- secret leaked into body/argv: $F/log.body:0 $F/log.argv:0 
