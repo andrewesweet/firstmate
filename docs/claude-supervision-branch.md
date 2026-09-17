@@ -67,7 +67,7 @@ Records whose status log was torn down count as unscorable.
 
 ## Launch settings
 
-Measured on Claude Code 2.1.273 (2026-09-16); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
+Measured on Claude Code 2.1.274 (2026-09-17); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
@@ -76,14 +76,14 @@ Measured on Claude Code 2.1.273 (2026-09-16); `tests/fm-branch-claude-mod-live-e
 - `--strict-mcp-config`, so only the mod's own `fm_branch_report` and `fm_branch_processed` tools reach the session beside Claude Code's built-ins.
 - No `autoCompactWindow` setting: the branch's context bound lives in the mod.
 - No `permissions.deny` entry for `SendMessage`, `Monitor`, or `Agent`.
-  On 2.1.273 a `permissions.deny` list removes the named tools from the session for hook frames too: with `["SendMessage","Monitor","Agent","Task"]` denied, `$.agent.spawn` and `$.tool.call` from a hook frame throw `HooksError: <plugin>: $.tool.call: no tool named "Agent" in this session` (likewise `SendMessage` and `Monitor`), so a home running the mod cannot carry the Claude-only deny-list hardening that [`subagent-guard.md`](subagent-guard.md) suggests for primaries.
+  On 2.1.274 a `permissions.deny` list removes the named tools from the session for hook frames too: with `["SendMessage","Monitor","Agent","Task"]` denied, `$.agent.spawn` and `$.tool.call` from a hook frame throw `HooksError: <plugin>: $.tool.call: no tool named "Agent" in this session` (likewise `SendMessage` and `Monitor`), so a home running the mod cannot carry the Claude-only deny-list hardening that [`subagent-guard.md`](subagent-guard.md) suggests for primaries.
   The guard against the primary itself delegating is instead `bin/fm-subagent-pretool-check.sh`, which, only while `state/.branch-mod-mode` exists, allows exactly the mod's three calls (an `Agent` or `Task` of type `fm-branch-mod:fm-branch`, a `SendMessage` to `fm-branch`, `fm-branch-<n>`, or either with its `[ref]`, and a `Monitor` described `fm-branch-mod watcher continuity`) and keeps denying every other delegation-shaped call.
   `$.tool.call({tool: 'Task'})` is refused by the host itself (`tool.call: runs the Agent tool: that is $.agent.spawn (host check)`), so the mod never issues it.
 - `FM_HOME` and `FM_ROOT_OVERRIDE` in the environment when the home is not the code root; the module resolves its home exactly as `bin/` does (`FM_HOME`, then `FM_ROOT_OVERRIDE`, then the code root three levels above the plugin folder) and honours `FM_STATE_OVERRIDE` and `FM_CONFIG_OVERRIDE`.
 
 ## Version pin
 
-The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.273`).
+The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.274`).
 At `session.start` it runs `claude --version`; on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version>; built for <pin>`, and passes every hook through untouched for the rest of the session.
 A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
 A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin was set) runs the unchanged Claude protocol until Claude Code is updated.
@@ -94,6 +94,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 2. Install the new version in the home that will run the test, then run the live test against it: `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh` with `CLAUDE_CODE_PIN` temporarily set to the new version.
    Run `claude plugin validate --strict .claude/mods/fm-branch-mod` and `tests/fm-branch-claude-mod-plugin.test.sh` on the same version.
 3. When all three pass, land a pin-bump PR that changes `CLAUDE_CODE_PIN`, this page's measured version, and the dated record in [`verification/runtime-backends.md`](verification/runtime-backends.md); when one fails, the mod stays pinned and the failure is the finding.
+   The plugin test suite imports its `PIN` from `hooks/branch.ts`, so `CLAUDE_CODE_PIN` is the only version value to change.
 
 ## State and configuration
 
