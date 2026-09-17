@@ -43,6 +43,23 @@
 #   existing unreadable rules file, malformed rules, or missing jq), which is
 #   actionable, never selected around.
 #
+# Outcome log (docs/configuration.md "Typed dispatch resolution" owns the
+#   operator contract): every resolved outcome (clear, ambiguous, escalate,
+#   error) appends exactly one JSON object as one line to
+#   $FM_HOME/data/dispatch-resolve.jsonl before the block prints, with fields
+#   ts (UTC ISO 8601), task (the <id> when the brief sits at a
+#   data/<id>/brief.md-shaped path, else null), project (the --project value
+#   or null), status, confidence (number or null), rule ("<choice>
+#   (<when excerpt>)" exactly as the block renders it, or null), profile (the
+#   profile line's value on clear, else null), reason (the non-clear reason,
+#   else null), latency_ms, and tokens (the usage object when the response
+#   carried one, else null). Never recorded: the API key, the brief text, and
+#   the request body. A failed append (unwritable directory, read-only home)
+#   prints one "dispatch-resolve: outcome log unwritable: <path>" line on
+#   stderr and never changes the block or the exit code; only data/ itself is
+#   created when absent. The off path and exit-2 usage or configuration
+#   errors write nothing: they are not calls.
+#
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
 #
@@ -77,6 +94,7 @@ DEFAULT_WHEN="No listed rule applies to this task."
 
 die() { printf 'error: %s\n' "$1" >&2; exit 2; }
 no_rules() {
+  log_dispatch_outcome escalate '' '' '' 'no rules to match'
   printf 'dispatch-resolve:\n  status: escalate\n  reason: no rules to match\n'
   exit 0
 }
@@ -97,6 +115,89 @@ while [ $# -gt 0 ]; do
     *) [ -z "$BRIEF" ] || die "one brief file only"; BRIEF=$1; shift ;;
   esac
 done
+
+LAT_MS=null
+# The outcome log lives beside the home's other private records; only a brief
+# sitting at a data/<id>/brief.md-shaped path contributes a task id, so an
+# arbitrary directory name is never mistaken for one.
+DISPATCH_LOG="$FM_HOME/data/dispatch-resolve.jsonl"
+DISPATCH_TASK_ID=''
+case /${BRIEF%/*} in
+  */data/*)
+    candidate=/$BRIEF
+    candidate=${candidate##*/data/}
+    candidate=${candidate%%/*}
+    case $candidate in
+      *[!a-z0-9-]*|'') DISPATCH_TASK_ID='' ;;
+      *) DISPATCH_TASK_ID=$candidate ;;
+    esac ;;
+esac
+
+# Append exactly one outcome line to the home's dispatch-resolve log. Every
+# argument is shell-controlled and already flat of newlines and tabs; a failed
+# write prints one stderr line and never changes the outcome. Only data/
+# itself is created when absent.
+dispatch_log_append() {  # <json-line>
+  { mkdir -p "${DISPATCH_LOG%/*}" && printf '%s\n' "$1" >> "$DISPATCH_LOG"; } 2>/dev/null || \
+    printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
+  return 0
+}
+
+# log_dispatch_outcome <status> <confidence> <rule-render> <profile> <reason>
+# for outcomes resolved without a parsed model answer (no rules, error):
+# confidence, rule, profile, and tokens stay null and latency is whatever the
+# call reached.
+log_dispatch_outcome() {
+  local line
+  line=$(jq -cn \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg task "$DISPATCH_TASK_ID" \
+    --arg project "$PROJECT" \
+    --arg status "$1" --arg confidence "$2" --arg rule "$3" --arg profile "$4" --arg reason "$5" \
+    --argjson latency "$LAT_MS" '
+    def n: if . == "" then null else . end;
+    {ts: $ts, task: ($task | n), project: ($project | n), status: $status,
+     confidence: ($confidence | n), rule: ($rule | n), profile: ($profile | n),
+     reason: ($reason | n), latency_ms: $latency, tokens: null}') || {
+    printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
+    return 0
+  }
+  dispatch_log_append "$line"
+}
+
+# log_dispatch_result records the resolved RESULT object's own fields; the
+# rule renders as the block renders it and the profile is the profile line's
+# value.
+log_dispatch_result() {
+  local line
+  line=$(jq -cn \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg task "$DISPATCH_TASK_ID" \
+    --arg project "$PROJECT" \
+    --argjson result "$RESULT" '
+  ($result) as $r |
+  def flat: tostring | gsub("[\t\r\n]"; " ");
+  {
+    ts: $ts,
+    task: (if $task == "" then null else $task end),
+    project: (if $project == "" then null else $project end),
+    status: $r.status,
+    confidence: $r.confidence,
+    rule: (if $r.rule then (($r.rule | flat) + " (" + ($r.rule_when | flat) + ")") else null end),
+    profile: (if $r.status == "clear" and $r.chosen then
+      "--harness " + ($r.chosen.profile.harness | @sh)
+      + (if $r.chosen.profile.model then " --model " + ($r.chosen.profile.model | @sh) else "" end)
+      + (if $r.chosen.profile.effort then " --effort " + ($r.chosen.profile.effort | @sh) else "" end)
+    else null end),
+    reason: (if $r.status == "clear" then null else ($r.reason // null) end),
+    latency_ms: $r.latency_ms,
+    tokens: $r.tokens
+  }') || {
+    printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
+    return 0
+  }
+  dispatch_log_append "$line"
+}
 
 # ---- opt-in gate ---------------------------------------------------------------
 if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
@@ -207,6 +308,7 @@ RULE_COUNT=$(jq -r '(.rules // []) | length' "$RULES")
 
 emit_error() {
   local reason=$1
+  log_dispatch_outcome error '' '' '' "$reason"
   echo "dispatch-resolve: error ($reason)" >&2
   printf 'dispatch-resolve:\n  status: error\n  reason: %s\n' "$reason"
   exit 0
@@ -219,7 +321,6 @@ fi
 RESP_FILE=$(mktemp) || die "mktemp failed"
 QUOTA=$(mktemp) || { rm -f "$RESP_FILE"; die "mktemp failed"; }
 trap 'rm -f "$RULES" "$RESP_FILE" "$QUOTA"' EXIT
-LAT_MS=null
 command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
   REQUEST=$(jq -n --rawfile brief "$BRIEF" --arg project "$PROJECT" --arg model "$TS_MODEL" \
     --arg none_criterion "$DEFAULT_WHEN" --slurpfile rules "$RULES" '
@@ -400,5 +501,6 @@ TEXT=$(jq -r '
   (if .chosen then "  profile: --harness \(.chosen.profile.harness | shell_arg)"
       + (if .chosen.profile.model then " --model \(.chosen.profile.model | shell_arg)" else "" end)
       + (if .chosen.profile.effort then " --effort \(.chosen.profile.effort | shell_arg)" else "" end) else empty end)' <<<"$RESULT") || emit_error "output rendering failed"
+log_dispatch_result
 printf '%s\n' "$TEXT"
 exit 0
