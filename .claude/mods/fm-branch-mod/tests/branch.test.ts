@@ -38,6 +38,10 @@ type WorldOptions = {
   classifierAnswer?: string | string[];
   /** One evidence bundle per fm-wake-evidence.sh run in order; the last one repeats. */
   evidence?: string | string[];
+  /** One SendMessage result per tool.call in order; the last one repeats. */
+  sendAnswer?: string | string[];
+  /** When set, every SendMessage tool.call is denied with this string instead of answered. */
+  sendDeny?: string;
 };
 
 function nth(values: string | string[] | undefined, index: number, fallback: string): string {
@@ -101,8 +105,9 @@ function world(on: On, options: WorldOptions = {}): World {
   on("agent.list", async () => ({ value: [] }));
   on("tool.call", async (_$, e) => {
     toolCalls.push(e);
+    if (options.sendDeny) return { deny: options.sendDeny };
     // No branch agent exists yet: the harness answers a send to an unknown name this way.
-    return { result: '{"success":false,"message":"no agent named fm-branch"}' };
+    return { result: nth(options.sendAnswer, toolCalls.length - 1, '{"success":false,"message":"no agent named fm-branch"}') };
   });
   on("process.run", async (_$, e) => {
     const argv = e.argv as string[];
@@ -322,5 +327,59 @@ describe("routine wake", () => {
     const records = w.appended(CLASSIFICATIONS).map((line) => JSON.parse(line));
     expect(records.length).toBe(1);
     expect(records[0].verdict).toBe("routine");
+  });
+
+  test("an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one", async ($: Engine, on: On) => {
+    // A bridge primary runs with transcript saving off, so SendMessage answers
+    // this for every later wake; the module must rotate, not re-send or pass.
+    const unresumable = '{"success":false,"message":"Agent \\"fm-branch\\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91"}';
+    const counters = { lockPid: "4242", wakeCounter: 1, spawnCount: 1, sendCount: 1, branchGeneration: 1, branchAgentId: "ade34056fb4d9ab91" };
+    const w = world(on, {
+      files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: JSON.stringify(counters) },
+      sendAnswer: unresumable,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    // Exactly one send against the dead agent, then one rotation spawn under
+    // the next generation name (branchName() suffixes every generation above
+    // 1). The kit's spawn answer carries no agentId, so the wake then passes
+    // via the rotation's own spawn failure, exactly as a failed rotation must.
+    expect(w.toolCalls.length).toBe(1);
+    expect(w.spawns.length).toBe(1);
+    expect(w.spawns[0].subagentType).toBe("fm-branch-mod:fm-branch");
+    expect(w.spawns[0].name).toBe("fm-branch-2");
+    expect(w.spawns[0].prompt?.startsWith("FIRSTMATE SUPERVISION WAKE: signal:")).toBe(true);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    const rotated = events.find((e) => e.kind === "agent.rotated");
+    expect(rotated?.data.why).toBe("unresumable");
+    expect(rotated?.data.name).toBe("fm-branch-2");
+    expect(rotated?.data.branchGeneration).toBe(2);
+    expect(rotated?.data.sendDetail).toContain("could not be resumed");
+    // The defect this pins: an unresumable agent never passes the wake to main
+    // as a failed send again; only the rotation's own spawn failure can.
+    expect(events.some((e) => e.kind === "wake.passed" && String(e.data.why).includes("delivery failed via send"))).toBe(false);
+    // The dead agent id is dropped durably and the generation advanced, so the
+    // next wake cannot re-adopt the unresumable agent.
+    const saved = JSON.parse(w.files.get(`${STATE}/.branch-mod-counters`) ?? "{}");
+    expect(saved.branchAgentId).toBe("");
+    expect(saved.branchGeneration).toBe(2);
+  });
+
+  test("a SendMessage denied with the unresumable text also rotates", async ($: Engine, on: On) => {
+    // The same resume failure surfaced as a hook deny (or thrown error) has no
+    // result text; the deny string must be classified, not the empty text.
+    const counters = { lockPid: "4242", wakeCounter: 1, spawnCount: 1, sendCount: 1, branchGeneration: 1, branchAgentId: "ade34056fb4d9ab91" };
+    const w = world(on, {
+      files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: JSON.stringify(counters) },
+      sendDeny: 'Agent "fm-branch" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91',
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.toolCalls.length).toBe(1);
+    expect(w.spawns.length).toBe(1);
+    expect(w.spawns[0].name).toBe("fm-branch-2");
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    expect(events.find((e) => e.kind === "agent.rotated")?.data.why).toBe("unresumable");
+    expect(events.some((e) => e.kind === "wake.passed" && String(e.data.why).includes("delivery failed via send"))).toBe(false);
   });
 });
