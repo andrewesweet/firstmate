@@ -603,7 +603,10 @@ async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: 
     sendCount += 1
     const text = toolText(r)
     log($, 'agent.send', { to, sendCount, attempt, text: text.slice(0, 400), deny: r?.deny, isError: r?.isError })
-    if (r?.deny || r?.isError) return { ok: false, id: '', detail: String(r?.deny ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent|could not be resumed|no transcript found/i.test(text) }
+    if (r?.deny || r?.isError) {
+      const failure = String(r?.deny ?? text)
+      return { ok: false, id: '', detail: failure.slice(0, 300), noAgent: /no agent|not found|unknown agent|could not be resumed|no transcript found/i.test(failure) }
+    }
     let j: any = {}
     try {
       j = JSON.parse(text)
