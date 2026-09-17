@@ -63,6 +63,7 @@ Each removes a tool schema, system-prompt section, or skill listing that no Firs
 `disableWorkflows` travels with `disableBundledSkills` because an allowed `Workflow` tool inlines its 22k-character authoring reference once the bundled `workflow-authoring` skill is gone.
 None of them is a delegation tool, so a linked worktree that inherits the file keeps `Agent` and `Task`; `../../../docs/subagent-guard.md` owns that boundary.
 `launch_template()` in `../../../bin/fm-spawn.sh` repeats the same keys in every worker's inline `--settings` so a worker in another project gets them too, and adds `AskUserQuestion` to the deny because crewmates never address the captain.
+Every Claude worker also launches with `autoCompactWindow` 220000 in that inline `--settings` (effective 200k window, compaction at 187k), because the default `auto` window never threshold-compacts on 1M-context models; the value is scoped to the launch flag, so the captain's own Claude sessions are untouched.
 Captain-specific trims - plugin agent lists, user skills, the caveman hook - belong in an untracked home-local `.claude/settings.local.json`, never in the tracked file, because they name one user's installation.
 Claude reloads project settings live, so a fast-forward that changes the tracked file changes the running primary session without a restart.
 
