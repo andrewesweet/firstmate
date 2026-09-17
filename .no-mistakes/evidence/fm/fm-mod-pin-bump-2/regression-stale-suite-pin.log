@@ -1,0 +1,63 @@
+
+tests/branch.test.ts:
+(fail) version pin > refuses to load on any other Claude Code version and passes every wake through [168.98ms]
+  Error: expect(received).toBe()
+  
+  Expected: true
+  Received: false
+(fail) version pin > loads on the pinned version and registers the report tools [63.44ms]
+  Error: expect(received).toBe()
+  
+  Expected: true
+  Received: false
+(fail) version pin > without state/.branch-mod-mode the module loads inert and passes every wake through unclassified [64.78ms]
+  Error: expect(received).toBe()
+  
+  Expected: true
+  Received: false
+(fail) classification log > every classifier call appends one record with task, evidence byte offsets, verdict, and model [65.70ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+(fail) classification log > the classifier model defaults to haiku when config/classifier-model is absent [43.09ms]
+  Error: undefined is not an object (evaluating 'w.completions[0].model')
+(fail) classification log > a captain verdict passes the wake to main and writes a covering captain outcome row [53.35ms]
+  Error: expect(received).toBe()
+  
+  Expected: true
+  Received: false
+(fail) classification log > a passed wake main never acknowledged is passed again once the dedupe window has elapsed [32.45ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+(fail) classification log > a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now [34.47ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+(fail) classification log > a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row [35.07ms]
+  Error: expect(received).toEqual()
+  
+  Expected: ["t1"]
+  Received: []
+(fail) routine wake > a routine verdict grants the wake and spawns the one persistent branch agent [36.62ms]
+  Error: expect(received).toBe()
+  
+  Expected: true
+  Received: false
+(fail) routine wake > an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one [35.99ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+(fail) routine wake > a SendMessage denied with the unresumable text also rotates [28.66ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+
+ 0 pass
+ 12 fail
+Ran 12 tests across 1 file. [0.90s]

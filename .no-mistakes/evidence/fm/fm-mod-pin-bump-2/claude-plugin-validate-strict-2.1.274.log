@@ -1,0 +1,10 @@
+Validating plugin manifest: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2R5MAW9D5YP70RY7Q644TZB/.claude/mods/fm-branch-mod/.claude-plugin/plugin.json
+
+Validating hooks: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2R5MAW9D5YP70RY7Q644TZB/.claude/mods/fm-branch-mod/hooks/hooks.json
+
+  ❯ ./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete
+  ❯ ./branch.ts calls: $.agent.list (via resolveBranchAgentId), $.agent.spawn (via spawnBranch), $.clock.now (via routeWake), $.env.get (via bind), $.fs.exists (via modeOn, routeWake, scopeForUnreadWake), $.fs.list (via scopeForUnreadWake), $.fs.read (via classify, newStatusLinesNote, readConfig, readLockPid, readPassedSeqs, restoreCounters, scopeForUnreadWake), $.fs.write (via saveCounters, writePassedSeqs), $.model.complete (via classify), $.process.run (via appendLine, backstopCheck, checkPin, gatherEvidence, grant, outcome, routeWake), $.prompt.submit, $.session.cwd (via ensureBound), $.tool.call (via armMonitor, sendToBranch), $.tool.register, $.ui.log
+  ❯ ./branch.ts env writes: nothing
+  ❯ ./branch.ts env reads: FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE
+
+✔ Validation passed
