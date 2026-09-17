@@ -1,0 +1,11 @@
+spawn crewmate: warning: /tmp/fm-autocompact-live.gZxBQk/crew/home/data/crew-z1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+crewmate               jq -e .autoCompactWindow => 220000
+spawn scout: /tmp/fm-autocompact-live.gZxBQk/scout/fake/fakebin/timeout: line 3: exec: 1: not found
+scout                  jq -e .autoCompactWindow => 220000
+spawn secondmate: warning: secondmate sm-z3 sync skipped before launch: primary default-branch commit cannot be resolved
+secondmate             jq -e .autoCompactWindow => 220000
+spawn codex: warning: /tmp/fm-autocompact-live.gZxBQk/codex/home/data/codex-z4/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+codex crewmate         no --settings flag in launch (harness not claude)
+codex launch line: unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --dangerously-bypass-approvals-and-sandbox -c "notify=[\"bash\",\"-c\",\"touch '
+crewmate settings keys: ["attribution","autoCompactWindow","autoMemoryEnabled","deniedMcpServers","disableBundledSkills","disableClaudeAiConnectors","disableWorkflows","feedbackDrafts","permissions"]
+RESULT: PASS
