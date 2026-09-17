@@ -29,6 +29,7 @@ The branch's own Bash calls carry the branch actor identity, so every lease-guar
 Its model steps run at low effort, and its model comes from `config/supervision-branch-model` (default `sonnet`).
 
 The branch is bounded inside the mod, not by an `autoCompactWindow` setting: when a wake's per-step request context passes 60,000 tokens, the next wake goes to a fresh agent (`fm-branch-2`, `fm-branch-3`, ...) seeded with the deterministic new-status-lines note, and the old agent simply never receives another message.
+The same rotation fires when `SendMessage` reports the agent cannot be resumed (a bridge primary runs with transcript saving off, so the agent's transcript is never written): the wake goes to the fresh agent instead of passing every later wake to main.
 A branch turn that ends in a provider error, or without a report, hands the wake back to main; two such turns in a row latch the branch off for five minutes, during which every wake goes to main.
 A branch hand-back message, and the completed background agent's own notification, are dropped so they never open a main turn.
 
