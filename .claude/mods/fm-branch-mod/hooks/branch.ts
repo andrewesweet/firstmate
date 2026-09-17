@@ -603,7 +603,7 @@ async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: 
     sendCount += 1
     const text = toolText(r)
     log($, 'agent.send', { to, sendCount, attempt, text: text.slice(0, 400), deny: r?.deny, isError: r?.isError })
-    if (r?.deny || r?.isError) return { ok: false, id: '', detail: String(r?.deny ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent/i.test(text) }
+    if (r?.deny || r?.isError) return { ok: false, id: '', detail: String(r?.deny ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent|could not be resumed|no transcript found/i.test(text) }
     let j: any = {}
     try {
       j = JSON.parse(text)
@@ -614,7 +614,7 @@ async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: 
         branchRef = hint[1]
         continue
       }
-      return { ok: false, id: '', detail: String(j.message ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent|does not resolve/i.test(text) }
+      return { ok: false, id: '', detail: String(j.message ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent|does not resolve|could not be resumed|no transcript found/i.test(text) }
     }
     if (j.pin?.ref) branchRef = j.pin.ref
     return { ok: true, id: String(j.resumedAgentId ?? j.pin?.id ?? ''), detail: text.slice(0, 200), noAgent: false }
@@ -639,18 +639,24 @@ async function spawnBranch($: any, prompt: string, model: string): Promise<{ ok:
   return { ok: true, detail: branchAgentId }
 }
 
+// One rotation per delivery: a fresh agent under the next generation name
+// takes over, and the old one simply never receives another message.
+async function rotateToFreshAgent($: any, prompt: string, model: string, why: string, sendDetail?: string): Promise<{ ok: boolean; via: 'spawn'; detail: string }> {
+  branchGeneration += 1
+  branchAgentId = ''
+  branchRef = ''
+  const s = await spawnBranch($, prompt, model)
+  log($, 'agent.rotated', { why, branchGeneration, name: branchName(), ok: s.ok, detail: s.detail, sendDetail })
+  await saveCounters($)
+  return { ok: s.ok, via: 'spawn', detail: s.detail }
+}
+
 async function deliverToBranch($: any, prompt: string): Promise<{ ok: boolean; via: 'spawn' | 'send'; detail: string }> {
   const model = await readConfig($, 'supervision-branch-model', 'sonnet')
   if (rotatePending) {
-    // The previous agent's context passed the bound: a fresh agent under a new
-    // name takes over, and the old one simply never receives another message.
+    // The previous agent's context passed the bound.
     rotatePending = false
-    branchGeneration += 1
-    branchAgentId = ''
-    branchRef = ''
-    const s = await spawnBranch($, prompt, model)
-    log($, 'agent.rotated', { branchGeneration, name: branchName(), ok: s.ok, detail: s.detail })
-    return { ok: s.ok, via: 'spawn', detail: s.detail }
+    return rotateToFreshAgent($, prompt, model, 'context bound')
   }
   if (!branchAgentId) {
     // A module reload (/reload-plugins, or a hooks file save) resets this state
@@ -674,7 +680,13 @@ async function deliverToBranch($: any, prompt: string): Promise<{ ok: boolean; v
     return { ok: spawned.ok, via: 'spawn', detail: spawned.detail }
   }
   const s = await sendToBranch($, prompt)
-  if (!s.ok) return { ok: false, via: 'send', detail: s.detail }
+  if (!s.ok) {
+    // A resumed agent whose transcript was never written (a bridge primary
+    // runs with transcript saving off) is unreachable for good: rotate to a
+    // fresh agent instead of passing every later wake to main.
+    if (!s.noAgent) return { ok: false, via: 'send', detail: s.detail }
+    return rotateToFreshAgent($, prompt, model, 'unresumable', s.detail)
+  }
   if (s.id && s.id !== branchAgentId) {
     log($, 'agent.id.changed', { from: branchAgentId, to: s.id })
     branchAgentId = s.id
