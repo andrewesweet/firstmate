@@ -1,0 +1,100 @@
+EVENTS-ROTATE-OK
+{"t":"2026-09-17T07:00:12.673Z","kind":"counters.restored","data":{"lockPid":"4242","wakeCounter":1,"spawnCount":1,"sendCount":1,"branchGeneration":1,"branchAgentId":"ade34056fb4d9ab91","reason":"same session lock pid (module reloaded)"}}
+{"t":"2026-09-17T07:00:12.675Z","kind":"session.start","data":{"cwd":"/work","home":"/fm/home","state":"/fm/home/state","enabled":true,"generation":"cc1789628412673","version":"2.1.273"}}
+{"t":"2026-09-17T07:00:12.676Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"}}
+{"t":"2026-09-17T07:00:12.679Z","kind":"wake.scope","data":{"reason":"signal: /fm/home/state/t1.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["12"],"eligibleTasks":["t1"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["12"]},"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.682Z","kind":"classifier","data":{"seqs":["12"],"tasks":["t1"],"verdict":"routine","reason":"nothing new","ms":0,"promptChars":194,"answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}","model":"haiku","estTokens":49}}
+{"t":"2026-09-17T07:00:12.684Z","kind":"grant.activate","data":{"lockPid":"4242","generation":"cc1789628412673","rc":0}}
+{"t":"2026-09-17T07:00:12.685Z","kind":"grant.publish","data":{"seqs":["12"],"rc":0}}
+{"t":"2026-09-17T07:00:12.688Z","kind":"agent.send","data":{"to":"fm-branch","sendCount":2,"attempt":0,"text":"{\"success\":false,\"message\":\"Agent \\\"fm-branch\\\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91\"}"}}
+{"t":"2026-09-17T07:00:12.690Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch-2","branchGeneration":2,"result":{"model":"sonnet"}}}
+{"t":"2026-09-17T07:00:12.690Z","kind":"agent.rotated","data":{"why":"unresumable","branchGeneration":2,"name":"fm-branch-2","ok":false,"detail":"no agentId","sendDetail":"Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91"}}
+{"t":"2026-09-17T07:00:12.691Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["12"],"ok":false,"via":"spawn","detail":"no agentId","spawnCount":1,"sendCount":2,"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.692Z","kind":"wake.passed","data":{"why":"delivery failed via spawn: no agentId","reason":"signal: /fm/home/state/t1.status","source":"stop-hook"}}
+
+COUNTERS-ROTATE-OK {"lockPid":"4242","wakeCounter":2,"spawnCount":1,"sendCount":2,"generation":"cc1789628412673","branchGeneration":2,"branchRef":"","branchAgentId":"","monitorTaskId":""}
+SUBMITTED-ROTATE-OK ["<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"]
+TOOLCALLS-2ND ["fm-branch","fm-branch-2"]
+EVENTS-2ND
+{"t":"2026-09-17T07:00:12.738Z","kind":"counters.restored","data":{"lockPid":"4242","wakeCounter":1,"spawnCount":1,"sendCount":1,"branchGeneration":1,"branchAgentId":"ade34056fb4d9ab91","reason":"same session lock pid (module reloaded)"}}
+{"t":"2026-09-17T07:00:12.740Z","kind":"session.start","data":{"cwd":"/work","home":"/fm/home","state":"/fm/home/state","enabled":true,"generation":"cc1789628412737","version":"2.1.273"}}
+{"t":"2026-09-17T07:00:12.741Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"}}
+{"t":"2026-09-17T07:00:12.744Z","kind":"wake.scope","data":{"reason":"signal: /fm/home/state/t1.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["12"],"eligibleTasks":["t1"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["12"]},"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.746Z","kind":"classifier","data":{"seqs":["12"],"tasks":["t1"],"verdict":"routine","reason":"nothing new","ms":1,"promptChars":194,"answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}","model":"haiku","estTokens":49}}
+{"t":"2026-09-17T07:00:12.747Z","kind":"grant.activate","data":{"lockPid":"4242","generation":"cc1789628412737","rc":0}}
+{"t":"2026-09-17T07:00:12.747Z","kind":"grant.publish","data":{"seqs":["12"],"rc":0}}
+{"t":"2026-09-17T07:00:12.749Z","kind":"agent.send","data":{"to":"fm-branch","sendCount":2,"attempt":0,"text":"{\"success\":false,\"message\":\"Agent \\\"fm-branch\\\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91\"}"}}
+{"t":"2026-09-17T07:00:12.750Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch-2","branchGeneration":2,"result":{"model":"sonnet"}}}
+{"t":"2026-09-17T07:00:12.750Z","kind":"agent.rotated","data":{"why":"unresumable","branchGeneration":2,"name":"fm-branch-2","ok":false,"detail":"no agentId","sendDetail":"Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91"}}
+{"t":"2026-09-17T07:00:12.751Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["12"],"ok":false,"via":"spawn","detail":"no agentId","spawnCount":1,"sendCount":2,"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.751Z","kind":"wake.passed","data":{"why":"delivery failed via spawn: no agentId","reason":"signal: /fm/home/state/t1.status","source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.752Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"}}
+{"t":"2026-09-17T07:00:12.755Z","kind":"wake.scope","data":{"reason":"signal: /fm/home/state/t1.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["12","13"],"eligibleTasks":["t1"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["12","13"]},"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.757Z","kind":"classifier","data":{"seqs":["12","13"],"tasks":["t1"],"verdict":"routine","reason":"nothing new","ms":1,"promptChars":194,"answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}","model":"haiku","estTokens":49}}
+{"t":"2026-09-17T07:00:12.758Z","kind":"grant.publish","data":{"seqs":["12","13"],"rc":0}}
+{"t":"2026-09-17T07:00:12.762Z","kind":"agent.send","data":{"to":"fm-branch-2","sendCount":3,"attempt":0,"text":"{\"success\":true,\"resumedAgentId\":\"fresh0001\"}"}}
+{"t":"2026-09-17T07:00:12.762Z","kind":"agent.adopted","data":{"agentId":"fresh0001","ref":""}}
+{"t":"2026-09-17T07:00:12.763Z","kind":"wake.delivered","data":{"wakeNo":3,"seqs":["12","13"],"ok":true,"via":"send","detail":"fresh0001","spawnCount":1,"sendCount":3,"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.764Z","kind":"wake.dropped","data":{"wakeNo":3,"source":"stop-hook"}}
+
+EVENTS-BUSY
+{"t":"2026-09-17T07:00:12.832Z","kind":"counters.restored","data":{"lockPid":"4242","wakeCounter":1,"spawnCount":1,"sendCount":1,"branchGeneration":1,"branchAgentId":"ade34056fb4d9ab91","reason":"same session lock pid (module reloaded)"}}
+{"t":"2026-09-17T07:00:12.834Z","kind":"session.start","data":{"cwd":"/work","home":"/fm/home","state":"/fm/home/state","enabled":true,"generation":"cc1789628412832","version":"2.1.273"}}
+{"t":"2026-09-17T07:00:12.835Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"}}
+{"t":"2026-09-17T07:00:12.838Z","kind":"wake.scope","data":{"reason":"signal: /fm/home/state/t1.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["12"],"eligibleTasks":["t1"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["12"]},"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.842Z","kind":"classifier","data":{"seqs":["12"],"tasks":["t1"],"verdict":"routine","reason":"nothing new","ms":1,"promptChars":194,"answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}","model":"haiku","estTokens":49}}
+{"t":"2026-09-17T07:00:12.843Z","kind":"grant.activate","data":{"lockPid":"4242","generation":"cc1789628412832","rc":0}}
+{"t":"2026-09-17T07:00:12.844Z","kind":"grant.publish","data":{"seqs":["12"],"rc":0}}
+{"t":"2026-09-17T07:00:12.847Z","kind":"agent.send","data":{"to":"fm-branch","sendCount":2,"attempt":0,"text":"{\"success\":false,\"message\":\"Agent \\\"fm-branch\\\" rejected the message: mailbox full\"}"}}
+{"t":"2026-09-17T07:00:12.847Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["12"],"ok":false,"via":"send","detail":"Agent \"fm-branch\" rejected the message: mailbox full","spawnCount":1,"sendCount":2,"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.848Z","kind":"wake.passed","data":{"why":"delivery failed via send: Agent \"fm-branch\" rejected the message: mailbox full","reason":"signal: /fm/home/state/t1.status","source":"stop-hook"}}
+
+EVENTS-DENY
+{"t":"2026-09-17T07:00:12.897Z","kind":"counters.restored","data":{"lockPid":"4242","wakeCounter":1,"spawnCount":1,"sendCount":1,"branchGeneration":1,"branchAgentId":"ade34056fb4d9ab91","reason":"same session lock pid (module reloaded)"}}
+{"t":"2026-09-17T07:00:12.898Z","kind":"session.start","data":{"cwd":"/work","home":"/fm/home","state":"/fm/home/state","enabled":true,"generation":"cc1789628412896","version":"2.1.273"}}
+{"t":"2026-09-17T07:00:12.899Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"}}
+{"t":"2026-09-17T07:00:12.901Z","kind":"wake.scope","data":{"reason":"signal: /fm/home/state/t1.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["12"],"eligibleTasks":["t1"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["12"]},"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.904Z","kind":"classifier","data":{"seqs":["12"],"tasks":["t1"],"verdict":"routine","reason":"nothing new","ms":1,"promptChars":194,"answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}","model":"haiku","estTokens":49}}
+{"t":"2026-09-17T07:00:12.905Z","kind":"grant.activate","data":{"lockPid":"4242","generation":"cc1789628412896","rc":0}}
+{"t":"2026-09-17T07:00:12.905Z","kind":"grant.publish","data":{"seqs":["12"],"rc":0}}
+{"t":"2026-09-17T07:00:12.908Z","kind":"agent.send","data":{"to":"fm-branch","sendCount":2,"attempt":0,"text":"","deny":"Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91"}}
+{"t":"2026-09-17T07:00:12.908Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["12"],"ok":false,"via":"send","detail":"Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91","spawnCount":1,"sendCount":2,"source":"stop-hook"}}
+{"t":"2026-09-17T07:00:12.909Z","kind":"wake.passed","data":{"why":"delivery failed via send: Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: ade34056fb4d9ab91","reason":"signal: /fm/home/state/t1.status","source":"stop-hook"}}
+
+
+tests/branch.test.ts:
+(pass) version pin > refuses to load on any other Claude Code version and passes every wake through [98.45ms]
+(pass) version pin > loads on the pinned version and registers the report tools [53.40ms]
+(pass) version pin > without state/.branch-mod-mode the module loads inert and passes every wake through unclassified [46.04ms]
+(pass) classification log > every classifier call appends one record with task, evidence byte offsets, verdict, and model [67.24ms]
+(pass) classification log > the classifier model defaults to haiku when config/classifier-model is absent [54.76ms]
+(pass) classification log > a captain verdict passes the wake to main and writes a covering captain outcome row [67.53ms]
+(pass) classification log > a passed wake main never acknowledged is passed again once the dedupe window has elapsed [78.60ms]
+(pass) classification log > a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now [87.86ms]
+(pass) classification log > a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row [70.84ms]
+(pass) routine wake > a routine verdict grants the wake and spawns the one persistent branch agent [73.86ms]
+(pass) routine wake > an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one [78.28ms]
+(fail) routine wake > ADV pre-fix event log: dump events for the unresumable case [74.01ms]
+  Error: expect(received).toEqual()
+  
+  Expected: []
+  Received: [
+    "<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"
+  ]
+(fail) routine wake > ADV a second wake after rotation is sent to fm-branch-2 and does not spawn again [72.37ms]
+  Error: expect(received).toEqual()
+  
+  Expected: []
+  Received: [
+    "<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: /fm/home/state/t1.status\n"
+  ]
+(pass) routine wake > ADV a send failure that is not an unresumable/unknown agent still passes to main and does not rotate [82.49ms]
+(fail) routine wake > ADV a thrown/denied SendMessage carrying the unresumable text also rotates [60.18ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+
+ 12 pass
+ 3 fail
+Ran 15 tests across 1 file. [1.31s]

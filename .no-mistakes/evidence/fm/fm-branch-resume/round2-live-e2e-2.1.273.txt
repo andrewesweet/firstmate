@@ -1,0 +1,5 @@
+ok - Claude Code 2.1.273 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage
+ok - one spawn, every send successful, no dropped hand-back, no backstop delivery across the run
+# lab logs kept at /tmp/fm-branch-claude-live-logs.TATMys

@@ -1,0 +1,17 @@
+
+tests/branch.test.ts:
+(pass) version pin > refuses to load on any other Claude Code version and passes every wake through [157.49ms]
+(pass) version pin > loads on the pinned version and registers the report tools [73.58ms]
+(pass) version pin > without state/.branch-mod-mode the module loads inert and passes every wake through unclassified [61.29ms]
+(pass) classification log > every classifier call appends one record with task, evidence byte offsets, verdict, and model [83.31ms]
+(pass) classification log > the classifier model defaults to haiku when config/classifier-model is absent [70.06ms]
+(pass) classification log > a captain verdict passes the wake to main and writes a covering captain outcome row [80.32ms]
+(pass) classification log > a passed wake main never acknowledged is passed again once the dedupe window has elapsed [71.65ms]
+(pass) classification log > a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now [66.83ms]
+(pass) classification log > a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row [49.53ms]
+(pass) routine wake > a routine verdict grants the wake and spawns the one persistent branch agent [59.95ms]
+(pass) routine wake > an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one [92.16ms]
+
+ 11 pass
+ 0 fail
+Ran 11 tests across 1 file. [1.18s]

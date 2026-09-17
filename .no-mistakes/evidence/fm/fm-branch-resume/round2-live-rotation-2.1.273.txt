@@ -1,0 +1,7 @@
+ok - Claude Code 2.1.273 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+# deleting /home/andre/.claude/projects/-tmp-fm-branch-claude-live-9bXmSS-home/20ece6da-7aa7-4014-9353-2a1add241719/subagents/agent-a3bd0fdd693ec83e7.jsonl (simulates a bridge primary that never writes it)
+ok - an unresumable branch agent rotates to fm-branch-2, which handles the wake; no wake passed to main as a failed send
+ok - the next routine wake reaches fm-branch-2 through SendMessage with no further spawn
+COUNTERS: {"lockPid":"2238587","wakeCounter":3,"spawnCount":2,"sendCount":1,"generation":"cc1789628950354","branchGeneration":2,"branchRef":"","branchAgentId":"a7489f574f7dc57eb","monitorTaskId":"bm8meoxkv"}
+# lab logs kept at /tmp/fm-branch-claude-live-logs.xmwnwx

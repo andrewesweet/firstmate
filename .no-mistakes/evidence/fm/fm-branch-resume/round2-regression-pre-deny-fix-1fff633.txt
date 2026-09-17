@@ -1,0 +1,20 @@
+tests/branch.test.ts:
+(pass) version pin > refuses to load on any other Claude Code version and passes every wake through [96.60ms]
+(pass) version pin > loads on the pinned version and registers the report tools [55.66ms]
+(pass) version pin > without state/.branch-mod-mode the module loads inert and passes every wake through unclassified [40.30ms]
+(pass) classification log > every classifier call appends one record with task, evidence byte offsets, verdict, and model [69.46ms]
+(pass) classification log > the classifier model defaults to haiku when config/classifier-model is absent [78.25ms]
+(pass) classification log > a captain verdict passes the wake to main and writes a covering captain outcome row [51.40ms]
+(pass) classification log > a passed wake main never acknowledged is passed again once the dedupe window has elapsed [48.77ms]
+(pass) classification log > a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now [56.53ms]
+(pass) classification log > a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row [38.20ms]
+(pass) routine wake > a routine verdict grants the wake and spawns the one persistent branch agent [49.82ms]
+(pass) routine wake > an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one [40.72ms]
+(fail) routine wake > a SendMessage denied with the unresumable text also rotates [46.86ms]
+  Error: expect(received).toBe()
+  
+  Expected: 1
+  Received: 0
+ 11 pass
+ 1 fail
+Ran 12 tests across 1 file. [0.91s]
