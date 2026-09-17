@@ -1,0 +1,103 @@
+
+=== 1 clear, absolute data/<id>/brief.md, --project pager ===
+$ fm-dispatch-resolve.sh $FM_HOME/data/task-live-42/brief.md --project pager
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 7   tokens: 812/60
+  rule: rule_3 (A simple bug fix with a stated root cause.)   confidence: 0.9
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.96 default=0.02
+  note: rule matched
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=91%  spendPriority=0.7  runway=through_reset  -> eligible
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:20Z","task":"task-live-42","project":"pager","status":"clear","confidence":0.9,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":"--harness 'cursor' --model 'cursor-grok-4.6-medium'","reason":null,"latency_ms":7,"tokens":{"input_tokens":812,"output_tokens":60}}
+
+=== 2 ambiguous (0.41 < 0.6), relative data/<id>/brief.md from FM_HOME ===
+$ cd $FM_HOME && fm-dispatch-resolve.sh data/task-live-42/brief.md
+dispatch-resolve:
+  status: ambiguous
+  model: jev-1.13.0   latency_ms: 16   tokens: 812/60
+  rule: rule_3 (A simple bug fix with a stated root cause.)   confidence: 0.41
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.96 default=0.02
+  reason: confidence 0.41 below floor 0.6
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=91%  spendPriority=0.7  runway=through_reset  -> eligible
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":null,"status":"ambiguous","confidence":0.41,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":null,"reason":"confidence 0.41 below floor 0.6","latency_ms":16,"tokens":{"input_tokens":812,"output_tokens":60}}
+
+=== 3 escalate: approval rule ===
+$ fm-dispatch-resolve.sh <brief> --project pager
+dispatch-resolve:
+  status: escalate
+  model: jev-1.13.0   latency_ms: 9   tokens: 812/60
+  rule: rule_2 (Genuinely very difficult design or planning work.)   confidence: 0.95
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.96 default=0.02
+  reason: rule requires the captain's explicit approval before dispatch
+  candidate: claude:fable  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4  runway=projected_exhaustion  -> eligible
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":"pager","status":"escalate","confidence":0.95,"rule":"rule_2 (Genuinely very difficult design or planning work.)","profile":null,"reason":"rule requires the captain's explicit approval before dispatch","latency_ms":9,"tokens":{"input_tokens":812,"output_tokens":60}}
+
+=== 4 error: transport failure (curl exit 7) ===
+$ FAKE_CURL_FAIL=1 fm-dispatch-resolve.sh <brief>
+dispatch-resolve: error (http 000 after 6 ms: )
+dispatch-resolve:
+  status: error
+  reason: http 000 after 6 ms: 
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":null,"status":"error","confidence":null,"rule":null,"profile":null,"reason":"http 000 after 6 ms: ","latency_ms":6,"tokens":null}
+
+=== 5 escalate: no rules file (brief outside data/) ===
+$ fm-dispatch-resolve.sh /tmp/.../brief.md
+dispatch-resolve:
+  status: escalate
+  reason: no rules to match
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:21Z","task":null,"project":null,"status":"escalate","confidence":null,"rule":null,"profile":null,"reason":"no rules to match","latency_ms":null,"tokens":null}
+
+=== 6 off path (no key) and exit-2 (missing brief) append nothing ===
+$ fm-dispatch-resolve.sh <brief>  /  fm-dispatch-resolve.sh
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-drive.3Lkw9q/home/.env)
+exit=0
+error: brief file required (see --help)
+exit=2
+lines before=5 after=5
+
+=== 7 non-id-shaped data dir name is not a task id ===
+$ fm-dispatch-resolve.sh $FM_HOME/data/Weird_Name.1/brief.md
+exit=0
+--- log tail:
+{"ts":"2026-09-17T19:12:21Z","task":null,"project":null,"status":"clear","confidence":0.9,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":"--harness 'cursor' --model 'cursor-grok-4.6-medium'","reason":null,"latency_ms":7,"tokens":{"input_tokens":812,"output_tokens":60}}
+
+=== 8 unwritable log: data is a file ===
+$ FM_HOME=<ro-home> fm-dispatch-resolve.sh <brief>
+dispatch-resolve: outcome log unwritable: /tmp/fm-drive.3Lkw9q/ro/data/dispatch-resolve.jsonl
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 9   tokens: 812/60
+  rule: rule_3 (A simple bug fix with a stated root cause.)   confidence: 0.9
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.96 default=0.02
+  note: rule matched
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=91%  spendPriority=0.7  runway=through_reset  -> eligible
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+exit=0
+
+=== 9 full log, secret and brief-text checks ===
+$ cat $FM_HOME/data/dispatch-resolve.jsonl
+{"ts":"2026-09-17T19:12:20Z","task":"task-live-42","project":"pager","status":"clear","confidence":0.9,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":"--harness 'cursor' --model 'cursor-grok-4.6-medium'","reason":null,"latency_ms":7,"tokens":{"input_tokens":812,"output_tokens":60}}
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":null,"status":"ambiguous","confidence":0.41,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":null,"reason":"confidence 0.41 below floor 0.6","latency_ms":16,"tokens":{"input_tokens":812,"output_tokens":60}}
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":"pager","status":"escalate","confidence":0.95,"rule":"rule_2 (Genuinely very difficult design or planning work.)","profile":null,"reason":"rule requires the captain's explicit approval before dispatch","latency_ms":9,"tokens":{"input_tokens":812,"output_tokens":60}}
+{"ts":"2026-09-17T19:12:21Z","task":"task-live-42","project":null,"status":"error","confidence":null,"rule":null,"profile":null,"reason":"http 000 after 6 ms: ","latency_ms":6,"tokens":null}
+{"ts":"2026-09-17T19:12:21Z","task":null,"project":null,"status":"escalate","confidence":null,"rule":null,"profile":null,"reason":"no rules to match","latency_ms":null,"tokens":null}
+{"ts":"2026-09-17T19:12:21Z","task":null,"project":null,"status":"clear","confidence":0.9,"rule":"rule_3 (A simple bug fix with a stated root cause.)","profile":"--harness 'cursor' --model 'cursor-grok-4.6-medium'","reason":null,"latency_ms":7,"tokens":{"input_tokens":812,"output_tokens":60}}
+--- every line valid JSON:
+      6 "object"
+--- key in log? 0  brief text in log? 0  gitignored? yes
+--- captain tally:
+      1 ambiguous
+      2 clear
+      1 error
+      2 escalate
