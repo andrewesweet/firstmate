@@ -6,7 +6,10 @@
 # read from file descriptor 3, and answers with a canned typesafe.ai response.
 # A fake quota-axi serves the selected schema-5 fixture. No case touches the
 # network, and the absent-key case proves the tool makes no call
-# at all.
+# at all. The outcome-log cases prove every resolved call appends exactly one
+# JSON line to the home's data/dispatch-resolve.jsonl, that the key and the
+# brief text never reach it, and that a failed write leaves the block and the
+# exit code untouched.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -19,12 +22,13 @@ FAKEBIN=$(fm_fakebin "$TMP_ROOT")
 NO_CURL_BIN="$TMP_ROOT/no-curl-bin"
 LOG="$TMP_ROOT/log"
 BRIEF="$TMP_ROOT/brief.md"
+DISPATCH_LOG="$HOME_DIR/data/dispatch-resolve.jsonl"
 BASE_RULES="$TMP_ROOT/rules.json"
 RULES="$HOME_DIR/config/crew-dispatch.json"
 QUOTA="$TMP_ROOT/quota.json"
 BASE_PATH=$PATH
 mkdir -p "$HOME_DIR/config" "$LOG" "$NO_CURL_BIN"
-for command_name in bash chmod cp dirname jq mktemp rm; do
+for command_name in bash chmod cp date dirname jq mkdir mktemp rm; do
   ln -s "$(command -v "$command_name")" "$NO_CURL_BIN/$command_name"
 done
 
@@ -245,6 +249,64 @@ assert_not_contains "$body" 'SECRET-WHY-TEXT' "why text never leaves the machine
 assert_not_contains "$body" 'spendPriority' "quota never leaves the machine"
 assert_not_contains "$body" 'cursor-grok' "use profiles never leave the machine"
 pass "clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate"
+
+# --- outcome log: one JSON line per resolved call ----------------------------
+rm -f "$DISPATCH_LOG"
+reset_log
+write_response "$RESPONSE" rule_4 0.9
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+expect_code 0 "$code" "clear with logging exits 0"
+assert_equals '1' "$(wc -l < "$DISPATCH_LOG")" "a clear outcome appends exactly one line"
+line=$(head -n 1 "$DISPATCH_LOG")
+assert_equals 'clear' "$(jq -r .status <<<"$line")" "the logged status matches the outcome"
+assert_equals '0.9' "$(jq -r .confidence <<<"$line")" "the logged confidence matches"
+assert_equals 'pager' "$(jq -r .project <<<"$line")" "the logged project is the --project value"
+assert_equals 'null' "$(jq -r .task <<<"$line")" "a brief outside a data/<id> path logs no task id"
+assert_equals 'rule_4 (A simple bug fix with a stated root cause.)' "$(jq -r .rule <<<"$line")" "the logged rule renders as the TOON block renders it"
+assert_contains "$(jq -r .profile <<<"$line")" "--harness 'cursor' --model 'cursor-grok-4.6-medium'" "a clear outcome logs the profile line's value"
+assert_equals 'null' "$(jq -r .reason <<<"$line")" "a clear outcome logs no reason"
+assert_equals 'number' "$(jq -r '.latency_ms | type' <<<"$line")" "the logged latency is a number"
+assert_equals '812' "$(jq -r .tokens.input_tokens <<<"$line")" "the logged usage carries the response input tokens"
+assert_equals '60' "$(jq -r .tokens.output_tokens <<<"$line")" "the logged usage carries the response output tokens"
+assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the logged timestamp is UTC ISO 8601"
+assert_not_contains "$(cat "$DISPATCH_LOG")" "$KEY" "the API key never reaches the log"
+assert_not_contains "$(cat "$DISPATCH_LOG")" 'off-by-one in the pager' "the brief text never reaches the log"
+write_response "$RESPONSE" rule_4 0.41
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+expect_code 0 "$code" "ambiguous with logging exits 0"
+assert_equals '2' "$(wc -l < "$DISPATCH_LOG")" "each resolved call appends exactly one more line"
+line=$(sed -n '2p' "$DISPATCH_LOG")
+assert_equals 'ambiguous' "$(jq -r .status <<<"$line")" "the ambiguous status is logged"
+assert_equals 'null' "$(jq -r .profile <<<"$line")" "a non-clear outcome logs no profile"
+assert_contains "$(jq -r .reason <<<"$line")" 'confidence 0.41 below floor 0.6' "the non-clear reason is logged"
+TASK_BRIEF="$HOME_DIR/data/task-abc-123/brief.md"
+mkdir -p "$(dirname "$TASK_BRIEF")"
+cp "$BRIEF" "$TASK_BRIEF"
+write_response "$RESPONSE" rule_4 0.9
+TYPESAFE_API_KEY=$KEY run code out err "$TASK_BRIEF"
+assert_equals 'task-abc-123' "$(jq -r .task <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the task id comes from the brief's data/<id> parent"
+write_response "$RESPONSE" rule_4 0.9
+TYPESAFE_API_KEY='' run code out err "$BRIEF" --project pager
+assert_contains "$err" 'dispatch-resolve: off' "the off path still explains itself"
+assert_equals '3' "$(wc -l < "$DISPATCH_LOG")" "the off path appends nothing to the outcome log"
+
+# --- a failed log write never changes the outcome -----------------------------
+RO_HOME="$TMP_ROOT/ro-home"
+mkdir -p "$RO_HOME/config"
+cp "$BASE_RULES" "$RO_HOME/config/crew-dispatch.json"
+printf x > "$RO_HOME/data"
+reset_log
+write_response "$RESPONSE" rule_4 0.9
+_out=$(PATH="$FAKEBIN:$BASE_PATH" FM_HOME="$RO_HOME" TYPESAFE_API_KEY="$KEY" "$TOOL" "$BRIEF" --project pager 2> "$TMP_ROOT/stderr")
+code=$?
+out=$_out
+err=$(cat "$TMP_ROOT/stderr")
+expect_code 0 "$code" "an unwritable log still exits 0"
+assert_contains "$out" '  status: clear' "an unwritable log leaves the stdout block intact"
+assert_contains "$out" "  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'" "an unwritable log keeps the profile line"
+assert_contains "$err" "dispatch-resolve: outcome log unwritable: $RO_HOME/data/dispatch-resolve.jsonl" "a failed write names the log path on stderr"
+assert_equals '1' "$(grep -c 'outcome log unwritable' <<<"$err")" "a failed write reports exactly one stderr line"
+pass "every resolved call appends one JSON outcome line, and a failed write never blocks the intake"
 
 # --- rules are snapshotted and line output is injection-safe -------------------
 MUTATED_RULES="$TMP_ROOT/mutated-rules.json"
@@ -519,11 +581,16 @@ pass "quota evidence comes from one quota-axi --json read, and its failure is an
 
 # --- API and response failures are error outcomes, exit 0 ----------------------
 reset_log
+LOG_LINES_BEFORE=$(wc -l < "$DISPATCH_LOG")
 run_without_curl code out err "$BRIEF"
 expect_code 0 "$code" "missing curl exits 0"
 assert_contains "$out" '  status: error' "missing curl is a structured error outcome"
 assert_contains "$out" '  reason: curl not installed' "missing curl is named in the TOON block"
 assert_contains "$err" 'dispatch-resolve: error (curl not installed)' "missing curl is also reported on stderr"
+assert_equals $(( $(wc -l < "$DISPATCH_LOG") - LOG_LINES_BEFORE )) '1' "an error outcome also appends exactly one line"
+assert_equals 'error' "$(jq -r .status <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the error status is logged"
+assert_equals 'curl not installed' "$(jq -r .reason <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the error reason is logged"
+assert_equals 'null' "$(jq -r .tokens <<<"$(tail -n 1 "$DISPATCH_LOG")")" "an outcome without a parsed answer logs no tokens"
 reset_log
 TYPESAFE_API_KEY=$KEY FAKE_CURL_HTTP=429 run code out err "$BRIEF"
 expect_code 0 "$code" "http 429 exits 0"
@@ -587,6 +654,7 @@ pass "API, transport, and response failures are error outcomes with exit 0"
 
 # --- configuration errors exit 2 and select nothing ----------------------------------
 reset_log
+CFG_ERR_LINES=$(wc -l < "$DISPATCH_LOG")
 TYPESAFE_API_KEY=$KEY run code out err
 expect_code 2 "$code" "missing brief exits 2"
 assert_contains "$err" 'brief file required' "missing brief is named"
@@ -633,6 +701,7 @@ expect_code 2 "$code" "unknown flag exits 2"
 run code out err --help
 expect_code 0 "$code" "--help exits 0"
 assert_contains "$out" 'Usage:' "--help prints usage"
+assert_equals "$CFG_ERR_LINES" "$(wc -l < "$DISPATCH_LOG")" "usage and configuration errors write no outcome log"
 pass "configuration errors exit 2 before any network call"
 
 printf '# all fm-dispatch-resolve tests passed\n'
