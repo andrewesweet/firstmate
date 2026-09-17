@@ -1,0 +1,16 @@
+(fail) open-decision fold v8 > a done: line closes an open decision for a ship task, so the stale wake is classified instead of passed [55.30ms]
+  Error: expect(received).toBe()
+  Expected: 1
+  Received: 0
+(fail) open-decision fold v8 > a failed: line closes an open decision for a scout task [41.86ms]
+  Error: expect(received).toBe()
+  Expected: 1
+  Received: 0
+(pass) open-decision fold v8 > a secondmate's done: line cannot close an open decision [52.97ms]
+(fail) open-decision fold v8 > continuation prose after a captain-held: line does not un-hold the task (latest event, not last line) [50.12ms]
+  Error: expect(received).toBe()
+  Expected: 0
+  Received: 1
+(pass) open-decision fold v8 > a working: line after a captain-held: line un-holds the task [55.63ms]
+ 14 pass
+ 3 fail

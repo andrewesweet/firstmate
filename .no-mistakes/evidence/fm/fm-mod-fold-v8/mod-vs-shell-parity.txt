@@ -1,0 +1,38 @@
+
+tests/parity.test.ts:
+(pass) shell v8 parity > nd-done-ship [ship] shell owned=0 [125.28ms]
+(pass) shell v8 parity > nd-done-scout [scout] shell owned=0 [51.88ms]
+(pass) shell v8 parity > nd-failed-ship [ship] shell owned=0 [71.06ms]
+(pass) shell v8 parity > nd-done-secondmate [secondmate] shell owned=1 [43.77ms]
+(fail) shell v8 parity > nd-done-nometa [NOMETA] shell owned=1 [55.16ms]
+  Error: expect(received).toBe()
+  
+  Expected: "1"
+  Received: "neither"
+(pass) shell v8 parity > nd-done-metanokind [NOKIND] shell owned=0 [51.97ms]
+(pass) shell v8 parity > nd-done-weirdkind [weird] shell owned=1 [50.50ms]
+(pass) shell v8 parity > nd-done-nocolon-key [ship] shell owned=1 [38.26ms]
+(pass) shell v8 parity > nd-done-bareword [ship] shell owned=1 [40.89ms]
+(pass) shell v8 parity > nd-Done-case [ship] shell owned=1 [58.92ms]
+(pass) shell v8 parity > nd-done-then-nd [ship] shell owned=1 [42.70ms]
+(pass) shell v8 parity > nd-resolved [ship] shell owned=0 [53.26ms]
+(pass) shell v8 parity > nd2-resolve1 [ship] shell owned=1 [41.08ms]
+(pass) shell v8 parity > nd-corr-done [ship] shell owned=0 [44.30ms]
+(pass) shell v8 parity > nd-done-prose [secondmate] shell owned=1 [53.73ms]
+(pass) shell v8 parity > held-prose [ship] shell owned=1 [40.24ms]
+(pass) shell v8 parity > held-working [ship] shell owned=0 [42.58ms]
+(pass) shell v8 parity > held-prready [ship] shell owned=0 [62.47ms]
+(pass) shell v8 parity > held-prose-mentions-done [ship] shell owned=1 [37.53ms]
+(pass) shell v8 parity > held-DONE-upper [ship] shell owned=0 [38.18ms]
+(pass) shell v8 parity > held-note [ship] shell owned=0 [48.16ms]
+(pass) shell v8 parity > held-blank-tail [ship] shell owned=1 [35.49ms]
+(pass) shell v8 parity > held-then-nd [ship] shell owned=1 [40.27ms]
+(pass) shell v8 parity > prose-only [ship] shell owned=0 [42.17ms]
+(pass) shell v8 parity > blocked-only [ship] shell owned=0 [43.80ms]
+(pass) shell v8 parity > nd-done-secondmate-then-resolved [secondmate] shell owned=0 [47.26ms]
+(pass) shell v8 parity > nd-badkey-done [ship] shell owned=0 [40.01ms]
+(pass) shell v8 parity > held-merged-legacy [ship] shell owned=0 [51.14ms]
+
+ 27 pass
+ 1 fail
+Ran 28 tests across 1 file. [1.62s]

@@ -1,0 +1,28 @@
+nd-done-ship	ship	needs-decision: [key=c1] pick one\ndone: shipped
+nd-done-scout	scout	needs-decision: [key=c1] pick one\ndone: shipped
+nd-failed-ship	ship	needs-decision: [key=c1] pick one\nfailed: bust
+nd-done-secondmate	secondmate	needs-decision: [key=c1] pick one\ndone: other work
+nd-done-nometa	NOMETA	needs-decision: [key=c1] pick one\ndone: shipped
+nd-done-metanokind	NOKIND	needs-decision: [key=c1] pick one\ndone: shipped
+nd-done-weirdkind	weird	needs-decision: [key=c1] pick one\ndone: shipped
+nd-done-nocolon-key	ship	needs-decision: [key=c1] pick one\ndone [key=c1] shipped
+nd-done-bareword	ship	needs-decision: [key=c1] pick one\ndone
+nd-Done-case	ship	needs-decision: [key=c1] pick one\nDone: shipped
+nd-done-then-nd	ship	needs-decision: [key=c1] pick one\ndone: shipped\nneeds-decision: [key=c2] again
+nd-resolved	ship	needs-decision: [key=c1] pick one\nresolved [key=c1]: chose a
+nd2-resolve1	ship	needs-decision: [key=c1] a\nneeds-decision: [key=c2] b\nresolved [key=c1]: ok
+nd-corr-done	ship	needs-decision corr=0123456789abcdef [key=c1]: q\ndone: fin
+nd-done-prose	secondmate	needs-decision: [key=c1] q\ndone: fin\n  and some continuation prose
+held-prose	ship	needs-decision: [key=c1] q\ncaptain-held [key=c1]: filed\nwaiting on the captain
+held-working	ship	captain-held [key=c1]: filed\nworking: resumed
+held-prready	ship	captain-held [key=c1]: filed\nPR ready for review
+held-prose-mentions-done	ship	captain-held [key=c1]: filed\nthe mate said done: nope
+held-DONE-upper	ship	captain-held [key=c1]: filed\nDONE: caps
+held-note	ship	captain-held [key=c1]: filed\nnote: fyi
+held-blank-tail	ship	captain-held [key=c1]: filed\n   \n\t
+held-then-nd	ship	captain-held [key=c1]: filed\nneeds-decision: [key=c2] next
+prose-only	ship	just some prose\nmore prose
+blocked-only	ship	blocked: [key=c1] waiting on infra
+nd-done-secondmate-then-resolved	secondmate	needs-decision: [key=c1] q\ndone: x\nresolved [key=c1]: ok
+nd-badkey-done	ship	needs-decision: [key=bad key!] q\ndone: x
+held-merged-legacy	ship	captain-held [key=c1]: filed\nmerged into main
