@@ -67,7 +67,7 @@ Records whose status log was torn down count as unscorable.
 
 ## Launch settings
 
-Measured on Claude Code 2.1.276 (2026-09-18); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
+Measured on Claude Code 2.1.277 (2026-09-18); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
@@ -83,7 +83,7 @@ Measured on Claude Code 2.1.276 (2026-09-18); `tests/fm-branch-claude-mod-live-e
 
 ## Version pin
 
-The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.276`).
+The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.277`).
 At `session.start` it runs `claude --version`; on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version>; built for <pin>`, and passes every hook through untouched for the rest of the session.
 A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
 A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin was set) runs the unchanged Claude protocol until Claude Code is updated.
