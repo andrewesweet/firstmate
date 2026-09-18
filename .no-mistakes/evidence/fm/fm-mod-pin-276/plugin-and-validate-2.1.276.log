@@ -1,0 +1,20 @@
+2.1.276 (Claude Code)
+Validating plugin manifest: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2T8R279NXPJ13CMZ3891K82/.claude/mods/fm-branch-mod/.claude-plugin/plugin.json
+
+Validating hooks: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2T8R279NXPJ13CMZ3891K82/.claude/mods/fm-branch-mod/hooks/hooks.json
+
+  ❯ ./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete
+  ❯ ./branch.ts calls: $.agent.list (via resolveBranchAgentId), $.agent.spawn (via spawnBranch), $.clock.now (via routeWake), $.env.get (via bind), $.fs.exists (via modeOn, routeWake, scopeForUnreadWake), $.fs.list (via scopeForUnreadWake), $.fs.read (via classify, newStatusLinesNote, readConfig, readLockPid, readPassedSeqs, restoreCounters, scopeForUnreadWake, statusKind), $.fs.write (via saveCounters, writePassedSeqs), $.model.complete (via classify), $.process.run (via appendLine, backstopCheck, checkPin, gatherEvidence, grant, outcome, routeWake), $.prompt.submit, $.session.cwd (via ensureBound), $.tool.call (via armMonitor, sendToBranch), $.tool.register, $.ui.log
+  ❯ ./branch.ts env writes: nothing
+  ❯ ./branch.ts env reads: FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE
+
+✔ Validation passed
+---
+FM_TEST_BEGIN 2026-09-18T12:46:28Z tests/fm-branch-claude-mod-plugin.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - Claude Code 2.1.276 (Claude Code) validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution environment
+ok - Claude Code 2.1.276 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn
+FM_TEST_END 2026-09-18T12:46:44Z tests/fm-branch-claude-mod-plugin.test.sh exit=0 duration_ms=16925 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=16966
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=16925 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-branch-claude-mod-plugin.test.sh duration_ms=16925
+exit=0
