@@ -1,0 +1,8 @@
+# adversarial: mod launched under Claude Code 2.1.276 (pin 2.1.277)
+$ claude --version
+2.1.276 (Claude Code)
+$ claude -p 'reply ok' --model haiku --max-turns 1 --plugin-dir $MOD
+Ready. What's the task?
+exit=0
+# /tmp/fm-pin-adv.958trW/home/state/branch-mod-events.jsonl:
+{"t":"2026-09-18T18:56:19.501Z","kind":"pin.refused","data":{"version":"2.1.276","pin":"2.1.277"}}
