@@ -144,7 +144,10 @@ RESPONSE_TELEMETRY='{}'
 # option_label maps a choice id (rule_N or default) to its offered `when` text.
 OPTION_LABEL_JQ='def option_label($c):
   if $c == "default" then $none
-  else (try ($rules[0].rules[($c | ltrimstr("rule_") | tonumber) - 1].when) catch null) end;'
+  elif ($c | type) == "string" and ($c | test("^rule_[1-9][0-9]*$"))
+       and ($c | ltrimstr("rule_") | tonumber) <= (($rules[0].rules // []) | length)
+  then $rules[0].rules[($c | ltrimstr("rule_") | tonumber) - 1].when
+  else null end;'
 # The outcome log lives beside the home's other private records; only a brief
 # sitting at a data/<id>/brief.md-shaped path contributes a task id, so an
 # arbitrary directory name is never mistaken for one.
@@ -236,7 +239,7 @@ log_dispatch_result() {
     probabilities: $r.probabilities,
     selected_option: option_label($r.rule),
     selected_probability: $selected_probability,
-    runner_up_margin: ($selected_probability - $runner_up),
+    runner_up_margin: (if $selected_probability != null and $runner_up != null then $selected_probability - $runner_up else null end),
     policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
     rules_digest: (if $rules_digest == "" then null else $rules_digest end)
   }') || {

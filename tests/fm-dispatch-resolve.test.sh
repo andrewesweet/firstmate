@@ -683,13 +683,24 @@ assert_contains "$out" '  status: error' "out-of-range confidence is an error ou
 assert_contains "$out" '  reason: response is not a rule Choice answer' "out-of-range confidence is a malformed answer"
 reset_log
 write_response "$RESPONSE" rule_9 0.9
+LOG_LINES_BEFORE=$(wc -l < "$DISPATCH_LOG")
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
 assert_contains "$out" '  status: error' "an unknown rule id is an error outcome"
 assert_contains "$out" '  reason: rule rule_9 is not in the rules file' "unknown rule id is named"
+assert_equals $(( $(wc -l < "$DISPATCH_LOG") - LOG_LINES_BEFORE )) '1' "an unknown rule id still appends one outcome line"
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'error' "$(jq -r .status <<<"$line")" "an unknown rule id logs the error outcome"
+assert_equals '["default","rule_1","rule_2","rule_3","rule_4"]' "$(jq -c '.probabilities | keys' <<<"$line")" "an unknown rule id retains the full probability vector"
+assert_equals '[null,null,null]' "$(jq -c '[.selected_option,.selected_probability,.runner_up_margin]' <<<"$line")" "an unknown rule id logs no selected option, probability, or margin"
 write_response "$RESPONSE" rule_0 0.9
+LOG_LINES_BEFORE=$(wc -l < "$DISPATCH_LOG")
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
 assert_contains "$out" '  status: error' "rule zero is an error outcome"
 assert_contains "$out" '  reason: rule rule_0 is not in the rules file' "rule zero cannot alias the final rule"
+assert_equals $(( $(wc -l < "$DISPATCH_LOG") - LOG_LINES_BEFORE )) '1' "rule zero still appends one outcome line"
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'error' "$(jq -r .status <<<"$line")" "rule zero logs the error outcome"
+assert_equals '[null,null,null]' "$(jq -c '[.selected_option,.selected_probability,.runner_up_margin]' <<<"$line")" "rule zero logs no selected option, probability, or margin"
 reset_log
 TYPESAFE_API_KEY=$KEY FAKE_CURL_HTTP=500 run code out err "$BRIEF"
 assert_contains "$out" '  status: error' "http 500 is a TOON error outcome"
