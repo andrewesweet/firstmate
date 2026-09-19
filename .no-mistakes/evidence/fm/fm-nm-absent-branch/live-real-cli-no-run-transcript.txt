@@ -1,0 +1,14 @@
+# Live drive: real no-mistakes v1.72.0, real tmux (private socket, pane runs a process named claude),
+# real git worktree /home/andre/tools/firstmate on branch main, which has no no-mistakes run.
+$ git -C /home/andre/tools/firstmate branch --show-current
+main
+$ (cd /home/andre/tools/firstmate && no-mistakes axi status | head -3)
+current_branch: main
+runs_on_current_branch: 0
+count: 10 of 49 total
+
+## BASE 6840b2b  bin/fm-crew-state.sh live-no-run-probe
+state: unknown · source: run-step · unreadable runs table; run ids: 
+
+## TARGET aaafc87  bin/fm-crew-state.sh live-no-run-probe
+state: working · source: status-log · implementation continues

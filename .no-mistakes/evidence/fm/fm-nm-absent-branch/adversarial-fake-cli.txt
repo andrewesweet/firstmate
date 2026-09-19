@@ -1,0 +1,5 @@
+other-branch zero: state: unknown · source: run-step · unreadable runs table; run ids: 
+ok - runs_on_current_branch: 0 for another branch does not short-circuit
+same-branch running: state: working · source: run-step · validating (running)
+ok - same-branch running run is not short-circuited
+adversarial checks passed
