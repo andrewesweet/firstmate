@@ -6,16 +6,23 @@
 #   fm-branch-shadow-pane.sh <task>
 #       Print one JSON line describing what the mod's own state directory and
 #       the task's recorded backend endpoint still show:
-#         {"task":"t1","tail":"...","observation":{"progressing":true,
-#          "seconds_since_last_activity":42,"busy_source":"pi-ext"}}
+#         {"task":"t1","window":"fm-t1","tail":"...","observation":
+#          {"progressing":true,"seconds_since_last_activity":42,
+#          "busy_source":"pi-ext"},"stale":{"series_index":3}}
 #       Every field is omitted when its evidence is absent, never invented:
 #       tail needs a readable pane through the recorded backend;
 #       observation.progressing and busy_source need the task's busy-state
 #       record (bin/fm-busy-lib.sh contract); seconds_since_last_activity
-#       needs state/<task>.progress (bin/fm-busy-event.sh progress marker).
-#       An unreadable endpoint or any failure prints
+#       needs state/<task>.progress (bin/fm-busy-event.sh progress marker);
+#       window is the task's recorded backend target, and stale carries the
+#       watcher's own stale-series markers for that window, read read-only:
+#       series_index is state/.count-<window-key> (consecutive identical-pane
+#       polls) and wedge_escalations is state/.wedge-escalations-<window-key>,
+#       where <window-key> is the watcher's window_key transform (bin/fm-watch.sh).
+#       An unreadable endpoint or any failure with no other evidence prints
 #       {"task":"<task>","unavailable":"<short cause>"} and exits 0, so the
-#       shadow call simply carries no pane evidence.
+#       shadow call simply carries no pane evidence; window and stale evidence
+#       survive on their own without a tail or observation.
 #
 # Read-only: this script writes nothing. Like every bin/ piece the mod relies
 # on it is inert without state/.branch-mod-mode, and the tail is bounded to
@@ -63,6 +70,27 @@ if [ -n "$tail_raw" ]; then
   tail_text=$(printf '%s' "$tail_raw" | tail -c 6000)
 fi
 
+# Pane identity and the watcher's own stale-series markers for that window,
+# read read-only from the watcher's marker files. The key transform mirrors
+# window_key() in bin/fm-watch.sh exactly; a marker absent or mid-write prints
+# nothing rather than a guessed value. These fields feed the shadow records'
+# local facts only - the mod never forwards them in a request.
+window=''
+stale=''
+key=${target//:/_}
+key=${key//\//_}
+key=${key//./_}
+series=$(tr -d '[:space:]' <"$STATE/.count-$key" 2>/dev/null || true)
+wedge=$(tr -d '[:space:]' <"$STATE/.wedge-escalations-$key" 2>/dev/null || true)
+case "$series" in '' | *[!0-9]*) series='' ;; esac
+case "$wedge" in '' | *[!0-9]*) wedge='' ;; esac
+if [ -n "$series" ] || [ -n "$wedge" ]; then
+  stale="{"
+  [ -n "$series" ] && stale="${stale}\"series_index\":$series,"
+  [ -n "$wedge" ] && stale="${stale}\"wedge_escalations\":$wedge,"
+  stale="${stale%,}}"
+fi
+
 # Structured observation from the state the mod's home already holds.
 now=$(date +%s)
 obs=''
@@ -87,12 +115,13 @@ if [ -f "$prog" ]; then
 fi
 obs=${obs%,}
 
-if [ -z "$tail_text" ] && [ -z "$obs" ]; then
+if [ -z "$tail_text" ] && [ -z "$obs" ] && [ -z "$stale" ]; then
   printf '{"task":"%s","unavailable":"no readable pane evidence"}\n' "$task"
   exit 0
 fi
 
-out="{\"task\":\"$task\""
+out="{\"task\":\"$task\",\"window\":$(jq_json_str "$target")"
+[ -n "$stale" ] && out="$out,\"stale\":$stale"
 [ -n "$tail_text" ] && out="$out,\"tail\":$(jq_json_str "$tail_text")"
 [ -n "$obs" ] && out="$out,\"observation\":{$(printf '%s' "$obs")}"
 printf '%s}\n' "$out"
