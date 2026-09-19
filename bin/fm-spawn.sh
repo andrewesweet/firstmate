@@ -1775,11 +1775,16 @@ launch_template() {
   # session-start digest, and cd/arm seatbelts are exactly those project hooks
   # (docs/turnend-guard.md, docs/sessionstart-nudge.md, docs/cd-guard.md), so the
   # secondmate launch deliberately keeps hooks on.
+  # Codex's notify is one program, so the -c notify= override REPLACES the
+  # operator's own notify (on this host the @mlflow/codex notify-hook, the
+  # only MLflow trace lane Codex has). The launch chains it: touch the turn-end
+  # file, then exec the host's program with codex's payload argv appended
+  # (__CODEXNOTIFYCHAIN__, resolved from the host config at launch time).
   codex)
     if [ "$kind" = secondmate ]; then
       printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     else
-      printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+      printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch __TURNEND____CODEXNOTIFYCHAIN__]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     fi
     ;;
   opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
@@ -2232,6 +2237,23 @@ muse_worker_meta_api_key_present() {
 muse_credential_present() {
   local auth=$1
   [ -s "$auth" ] || muse_worker_meta_api_key_present
+}
+
+# The tail of the crewmate/scout codex notify array after the `touch` program
+# text: empty when the host config sets no notify, else `; exec "$@"` plus the
+# host's own notify elements so its program still runs after every turn with
+# codex's JSON payload as the last argument. Escaped for the launch's
+# double-quoted -c value (TOML \" inside shell "..." is \\\").
+# ponytail: reads only a single-line `notify = [...]`; a multi-line array
+# leaves the host lane unchained rather than mis-parsed.
+codex_notify_chain() {
+  local line
+  line=$(grep -m1 -E '^[[:space:]]*notify[[:space:]]*=[[:space:]]*\[.*\]' \
+    "${CODEX_HOME:-$HOME/.codex}/config.toml" 2>/dev/null) || return 0
+  line=${line#*[}
+  line=${line%]*}
+  line=${line//\"/\\\"}
+  printf '%s' '; exec \\\"\$@\\\"\",\"_\",'"$line"
 }
 
 model_flag_for_harness() {
@@ -4476,6 +4498,10 @@ if [ "$HARNESS" = rovo ]; then
 fi
 LAUNCH=${LAUNCH//__BRIEF__/$sq_brief}
 LAUNCH=${LAUNCH//__TURNEND__/$sq_turnend}
+if [ "$HARNESS" = codex ]; then
+  CODEXNOTIFYCHAIN=$(codex_notify_chain)
+  LAUNCH=${LAUNCH//__CODEXNOTIFYCHAIN__/"${CODEXNOTIFYCHAIN:-\\\"}"}
+fi
 LAUNCH=${LAUNCH//__PIEXT__/$sq_piext}
 LAUNCH=${LAUNCH//__PITURNEND__/$sq_piturnend}
 LAUNCH=${LAUNCH//__PIWATCH__/$sq_piwatch}

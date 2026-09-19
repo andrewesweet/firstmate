@@ -136,10 +136,13 @@ Every harness Firstmate launches keeps its own session file and reports per-requ
 - Pi: the session file under `~/.pi/agent/sessions/` carries `message.usage.cost.total` per assistant message, and the host-managed global extension `~/.pi/agent/extensions/pi-otel.ts` exports one span per turn with `pi.usage.cost.total` and the `gen_ai.usage.*` token counts to the collector.
   Pi loads global extensions on every start; Firstmate's `-e` adds its own task extension beside them and never passes `--no-extensions`, so the lane is on for every Pi launch.
 - Codex: rollouts are saved under `~/.codex/sessions/`, and the `[otel]` table in `~/.codex/config.toml` sends logs, traces, and metrics to the collector for the interactive CLI and `codex exec` lanes.
-  Firstmate's Codex launch passes `--disable hooks` and a `notify` override only, never an `otel.*` override, so the table applies to every Codex launch.
+  Firstmate's Codex launch never passes an `otel.*` override, so the table applies to every Codex launch.
+  Codex's MLflow lane is the host-managed `notify` program in the same file (`/usr/local/bin/mlflow-codex notify-hook`, the official `@mlflow/codex` integration), which turns each completed turn's rollout into one MLflow trace with token usage.
+  Codex runs exactly one `notify` program, and a crewmate or scout launch must override it to carry Firstmate's turn-end signal, so `bin/fm-spawn.sh` chains rather than replaces: the override touches the turn-end file and then `exec`s the host's own `notify` program with Codex's payload appended, read from the single-line `notify = [...]` entry in `~/.codex/config.toml` (or `$CODEX_HOME`) at launch time.
+  A host with no `notify` entry gets the bare turn-end touch; a secondmate launch never overrides `notify`.
 
-No MLflow-equivalent trace lane exists for Pi or Codex: MLflow's Claude tracing reads Claude's transcript, and nothing reads the Pi or Codex session files.
-Building one means a per-harness importer from the session file into an MLflow experiment (one script per harness plus a scheduled or turn-end trigger), which is new infrastructure and is not built here; the collector lane above already carries per-request cost for both.
+No MLflow-equivalent trace lane exists for Pi: MLflow's Claude tracing reads Claude's transcript, Codex's reads the rollout through the `notify` hook above, and nothing reads the Pi session files.
+Building one means an importer from the Pi session file into an MLflow experiment (a script plus a turn-end trigger from the `pi-otel.ts` extension), which is new infrastructure and is not built here; the collector lane above already carries per-request cost for Pi.
 
 ## Relationship to OpenTelemetry and later increments
 

@@ -478,6 +478,83 @@ test_codex_crewmate_launch_disables_the_hook_layer() {
   pass "a codex crewmate launches with no hook layer and keeps its turn-end signal"
 }
 
+# Codex runs one notify program, so the crewmate launch's -c notify= override
+# would silently replace the operator's own (the @mlflow/codex notify-hook that
+# is Codex's only MLflow trace lane). Drive the emitted launch through a stand-in
+# codex that runs the notify program exactly as codex does - payload JSON as the
+# last argument - and check both the turn-end file and the host program fire.
+run_codex_notify_program() {
+  local launch=$1 fakebin=$2 payload=$3
+  cat > "$fakebin/codex" <<'SH'
+#!/usr/bin/env bash
+while [ $# -gt 0 ]; do
+  if [ "$1" = -c ] && [ "${2#notify=}" != "$2" ]; then
+    printf '%s\n' "${2#notify=}" > "$FM_TEST_NOTIFY_TOML"
+    exit 0
+  fi
+  shift
+done
+exit 1
+SH
+  chmod +x "$fakebin/codex"
+  (
+    PATH="$fakebin:$PATH" eval "$launch"
+  ) || return 1
+  FM_TEST_NOTIFY_PAYLOAD="$payload" python3 - "$FM_TEST_NOTIFY_TOML" <<'PY2'
+import os, subprocess, sys, tomllib
+prog = tomllib.loads("notify = " + open(sys.argv[1]).read())["notify"]
+sys.exit(subprocess.run(prog + [os.environ["FM_TEST_NOTIFY_PAYLOAD"]]).returncode)
+PY2
+}
+
+test_codex_crewmate_notify_override_chains_the_host_notify_program() {
+  local rec id out status launch host_log payload
+  id=profile-codex-notify-chain-z4e
+  rec=$(make_spawn_case profile-codex-notify-chain codex "$id")
+  read_case_record "$rec"
+  host_log=$CASE_DIR/host-notify.log
+  mkdir -p "$HOME_DIR/user-home/.codex"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > %s\n' "$host_log" > "$CASE_DIR/host-notify"
+  chmod +x "$CASE_DIR/host-notify"
+  printf 'notify = ["%s", "notify-hook"]\n' "$CASE_DIR/host-notify" > "$HOME_DIR/user-home/.codex/config.toml"
+  rm -f "$HOME_DIR/state/$id.turn-ended"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "codex crewmate spawn should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  payload='{"type":"agent-turn-complete","turn-id":"t1"}'
+  export FM_TEST_NOTIFY_TOML=$CASE_DIR/notify.toml
+  run_codex_notify_program "$launch" "$FAKEBIN_DIR" "$payload" \
+    || fail "the codex crewmate notify program did not run cleanly"
+  [ -e "$HOME_DIR/state/$id.turn-ended" ] \
+    || fail "the chained notify program lost the turn-end signal"
+  [ -s "$host_log" ] || fail "the host notify program never ran after the turn-end touch"
+  assert_equals "notify-hook"$'\n'"$payload" "$(cat "$host_log")" \
+    "the host notify program did not receive its own arguments plus codex's payload"
+  pass "a codex crewmate's notify override still runs the operator's notify program"
+}
+
+test_codex_crewmate_notify_override_without_host_notify_only_touches() {
+  local rec id out status launch payload
+  id=profile-codex-notify-plain-z4f
+  rec=$(make_spawn_case profile-codex-notify-plain codex "$id")
+  read_case_record "$rec"
+  rm -f "$HOME_DIR/state/$id.turn-ended"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "codex crewmate spawn should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  payload='{"type":"agent-turn-complete"}'
+  export FM_TEST_NOTIFY_TOML=$CASE_DIR/notify.toml
+  run_codex_notify_program "$launch" "$FAKEBIN_DIR" "$payload" \
+    || fail "the plain codex crewmate notify program did not run cleanly"
+  [ -e "$HOME_DIR/state/$id.turn-ended" ] \
+    || fail "the plain notify program lost the turn-end signal"
+  pass "a codex crewmate without a host notify program keeps the bare turn-end touch"
+}
+
 test_codex_secondmate_launch_keeps_the_hook_layer() {
   local rec id sm out status launch
   id=profile-codex-secondmate-hooks-z4d
@@ -1469,6 +1546,8 @@ test_codex_threads_model_and_effort
 test_codex_threads_model_and_max_effort
 test_codex_omits_max_effort_for_unsupported_model
 test_codex_crewmate_launch_disables_the_hook_layer
+test_codex_crewmate_notify_override_chains_the_host_notify_program
+test_codex_crewmate_notify_override_without_host_notify_only_touches
 test_codex_secondmate_launch_keeps_the_hook_layer
 test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
