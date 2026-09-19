@@ -22,7 +22,9 @@
 # compatibility handoff that keeps a session start from paying for that verdict
 # twice.
 # Dedicated transcript-suppression cases pin the TRANSCRIPT_SUPPRESSION
-# contract: fires only for a claude primary, one line per environment cause
+# contract: fires only for a claude primary, reads the markers from the
+# primary process named by CLAUDE_PID and never from the hook's own
+# environment (where claude always injects CLAUDE_CODE_CHILD_SESSION=1), one line per environment cause
 # claude's transcript gate honors, every marker read with claude's bool parser
 # (only 1/true/yes/on is true), CLAUDE_CODE_FORCE_SESSION_PERSISTENCE
 # defeats only the nested-marker cause, and
@@ -51,7 +53,7 @@ export FM_BACKEND_CMUX_BUNDLE_BIN="$TMP_ROOT/no-bundled-cmux"
 unset TMUX TMUX_PANE HERDR_ENV HERDR_PANE_ID HERDR_SESSION HERDR_SOCKET_PATH \
   CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_SOCKET_PATH CMUX_TAB_ID CMUX_PANEL_ID \
   CLAUDECODE CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_SKIP_PROMPT_HISTORY \
-  CLAUDE_CODE_FORCE_SESSION_PERSISTENCE 2>/dev/null || true
+  CLAUDE_CODE_FORCE_SESSION_PERSISTENCE CLAUDE_PID 2>/dev/null || true
 
 # A fake toolchain where every required tool is present and gh is authenticated.
 # treehouse's `get --help` advertises --lease only when FM_FAKE_TREEHOUSE_LEASE_HELP=1.
@@ -1290,28 +1292,59 @@ SH
   chmod +x "$fakebin/tmux"
 }
 
-run_transcript_case() { # <name> <extra env assignments...>; output in $out
-  local name=$1
+# Holds a process whose /proc/<pid>/environ is exactly the given assignments,
+# standing in for the primary claude process the check reads through
+# CLAUDE_PID. Waits until the sleep image is live so the environ read never
+# races the fork. Prints the pid; the caller kills it.
+transcript_primary_holder() { # <env assignments...>
+  local pid i
+  { exec env -i "$@" sleep 300; } >/dev/null 2>&1 &
+  pid=$!
+  for i in $(seq 1 100); do
+    [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = sleep ] && break
+    sleep 0.05
+  done
+  [ "$i" -lt 100 ] || fail "primary holder process never reached its sleep image"
+  printf '%s' "$pid"
+}
+
+# Runs the detect-only bootstrap the way claude's SessionStart hook does: the
+# hook's own environment always carries CLAUDECODE=1 and
+# CLAUDE_CODE_CHILD_SESSION=1 (claude injects both into every child), and the
+# primary's real markers live only in the holder process named by CLAUDE_PID.
+# --tmux <mode> installs the fake tmux and sets TMUX so the ambient probe runs.
+run_transcript_case() { # <name> [--tmux <mode>] <primary env assignments...>; output in $out
+  local name=$1 tmux_mode='' pid
   shift
+  if [ "${1:-}" = --tmux ]; then
+    tmux_mode=$2
+    shift 2
+  fi
   local case_dir fakebin
   case_dir="$TMP_ROOT/transcript-$name"
   mkdir -p "$case_dir/home"
   fakebin=$(make_fake_toolchain "$case_dir")
   blind_ancestry_bin "$case_dir" >/dev/null
-  out=$(env -u TMUX -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SKIP_PROMPT_HISTORY \
+  [ -n "$tmux_mode" ] && add_transcript_tmux "$fakebin" "$tmux_mode"
+  pid=$(transcript_primary_holder "$@")
+  out=$(env -u TMUX -u CLAUDE_CODE_SKIP_PROMPT_HISTORY \
     -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
     -u GEMINI_CLI -u ATLASSIAN_AGENT_TYPE -u ROVODEV_CLI -u FM_OMP_HARNESS \
     -u PI_CODING_AGENT -u GROK_AGENT \
+    ${tmux_mode:+TMUX=/tmp/fake-tmux,123,0} \
     PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
-    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 "$@" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 \
+    CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_PID="$pid" \
     "$ROOT/bin/fm-bootstrap.sh")
+  kill "$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
 }
 
 TRANSCRIPT_CHILD_LINE='TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session'\''s transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1'
 TRANSCRIPT_SKIP_LINE='TRANSCRIPT_SUPPRESSION: CLAUDE_CODE_SKIP_PROMPT_HISTORY suppresses this primary session'\''s transcript and the MLflow traces read from it; CLAUDE_CODE_FORCE_SESSION_PERSISTENCE does not defeat this cause - relaunch the primary without it'
 
 test_primary_transcript_suppression() {
-  local case_dir fakebin expected_two
+  local case_dir fakebin expected_two pid
   # A claude primary with the inherited nested-session marker and no override
   # is suppressed; the line names the probe verdict and the remedy.
   run_transcript_case child-suppressed CLAUDE_CODE_CHILD_SESSION=1
@@ -1348,51 +1381,41 @@ test_primary_transcript_suppression() {
   # The tmux ambient probe mirrors the binary: marker in the server's global
   # environment is ambient and silent; a missing marker is absent (suppressed)
   # and a broken tmux is unknown (suppressed).
-  case_dir="$TMP_ROOT/transcript-tmux-ambient"
-  mkdir -p "$case_dir/home"
-  fakebin=$(make_fake_toolchain "$case_dir")
-  blind_ancestry_bin "$case_dir" >/dev/null
-  add_transcript_tmux "$fakebin" ambient
-  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
-    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
-    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
-    "$ROOT/bin/fm-bootstrap.sh")
+  run_transcript_case tmux-ambient --tmux ambient CLAUDE_CODE_CHILD_SESSION=1
   [ -z "$out" ] || fail "ambient tmux marker must stay silent, got: $out"
-  case_dir="$TMP_ROOT/transcript-tmux-absent"
-  mkdir -p "$case_dir/home"
-  fakebin=$(make_fake_toolchain "$case_dir")
-  blind_ancestry_bin "$case_dir" >/dev/null
-  add_transcript_tmux "$fakebin" absent
-  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
-    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
-    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
-    "$ROOT/bin/fm-bootstrap.sh")
+  run_transcript_case tmux-absent --tmux absent CLAUDE_CODE_CHILD_SESSION=1
   printf '%s' "$out" | grep -Fq '(tmux ambient probe: absent)' || fail "tmux without the marker must read absent, got: $out"
-  case_dir="$TMP_ROOT/transcript-tmux-fail"
-  mkdir -p "$case_dir/home"
-  fakebin=$(make_fake_toolchain "$case_dir")
-  blind_ancestry_bin "$case_dir" >/dev/null
-  add_transcript_tmux "$fakebin" fail
-  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
-    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
-    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
-    "$ROOT/bin/fm-bootstrap.sh")
+  run_transcript_case tmux-fail --tmux fail CLAUDE_CODE_CHILD_SESSION=1
   printf '%s' "$out" | grep -Fq '(tmux ambient probe: unknown)' || fail "broken tmux must read unknown, got: $out"
   pass "the tmux ambient probe mirrors the binary's absent/ambient/unknown verdicts"
 
   # Only a claude primary is reportable: the same markers under a pi primary
-  # are inert inherited noise, and no markers at all stays silent.
+  # are inert inherited noise. A healthy claude primary stays silent even
+  # though the hook's own environment carries the injected child marker, and
+  # a hook that cannot name its primary process reports nothing.
   case_dir="$TMP_ROOT/transcript-pi-primary"
   mkdir -p "$case_dir/home"
   fakebin=$(make_fake_toolchain "$case_dir")
   blind_ancestry_bin "$case_dir" >/dev/null
+  pid=$(transcript_primary_holder CLAUDE_CODE_CHILD_SESSION=1)
   out=$(env -u CLAUDECODE -u TMUX -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
     PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
-    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 PI_CODING_AGENT=true CLAUDE_CODE_CHILD_SESSION=1 \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 PI_CODING_AGENT=true CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_PID="$pid" \
     "$ROOT/bin/fm-bootstrap.sh")
+  kill "$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
   [ -z "$out" ] || fail "non-claude primary must stay silent, got: $out"
   run_transcript_case clean-claude
-  [ -z "$out" ] || fail "claude primary without markers must stay silent, got: $out"
+  [ -z "$out" ] || fail "claude primary without markers must stay silent despite the hook's injected marker, got: $out"
+  case_dir="$TMP_ROOT/transcript-no-pid"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  out=$(env -u TMUX -u CLAUDE_PID -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 \
+    "$ROOT/bin/fm-bootstrap.sh")
+  [ -z "$out" ] || fail "hook without CLAUDE_PID must stay silent, got: $out"
   pass "the check gates on the claude primary and stays silent when healthy"
 }
 

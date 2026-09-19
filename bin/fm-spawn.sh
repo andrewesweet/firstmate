@@ -1732,10 +1732,12 @@ launch_template() {
   # its per-request cost traces. Workers inherit the marker whenever their
   # pane's server was itself started inside a bridge-launched claude session -
   # a `herdr server` started under such a session passes the marker to every
-  # pane it creates. The override is claude's own escape hatch for exactly
-  # this suppression cause (the first condition of the nested-session gate in
-  # the 2.1.276-2.1.278 binaries) and nothing else: the marker's other
-  # nested-session behaviors are left untouched. CLAUDE_CODE_SKIP_PROMPT_HISTORY,
+  # pane it creates. The override short-circuits the whole nested-session
+  # persistence gate in the 2.1.276-2.1.278 binaries, which re-enables the
+  # three things that gate suppresses - the transcript, prompt-history
+  # recording, and session-registry naming - and nothing else: the marker's
+  # other behaviors, keyed on the raw marker rather than on that gate, are
+  # left untouched. CLAUDE_CODE_SKIP_PROMPT_HISTORY,
   # a separate suppression cause the override does not defeat, is unset at the
   # launch boundary below (the `env -u` prefix); in the binary that variable
   # also feeds the "did a person run this command" heuristic behind
