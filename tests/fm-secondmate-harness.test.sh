@@ -1028,7 +1028,7 @@ new_world() {
     [ "$dispatch_ignore" = no ] || printf 'config/crew-dispatch.json\n'
     printf 'config/crew-harness\nconfig/secondmate-harness\nconfig/backlog-backend\n'
     printf 'config/backend\nconfig/herdr-presentation-spaces\nconfig/startup-memory-budget\n'
-    printf 'config/claude-permission-mode\n'
+    printf 'config/claude-permission-mode\nconfig/claude-function-hooks\n'
   } > "$w/main/.gitignore"
   printf 'v1\n' > "$w/main/AGENTS.md"
   printf 'r1\n' > "$w/main/README.md"
@@ -1437,6 +1437,30 @@ test_spawn_secondmate_claude_permission_mode_auto() {
   pass "C2b spawn: config/claude-permission-mode=auto reaches a Claude secondmate launch"
 }
 
+# config/claude-function-hooks presence reaches a Claude SECONDMATE launch too:
+# the same environment-prefix substitution as a crewmate, model/effort untouched.
+test_spawn_secondmate_claude_function_hooks_flag() {
+  local w sm meta launch out status
+  w="$TMP_ROOT/spawn-claude-hooksflag"
+  sm="$w/sm"
+  launchlog="$w/launch.log"
+  mkdir -p "$w/home/config"
+  printf 'claude opus\n' > "$w/home/config/secondmate-harness"
+  printf 'content is ignored\n' > "$w/home/config/claude-function-hooks"
+  make_seeded_home "$sm" sm
+
+  out=$(spawn_secondmate_capture "$w" sm "$sm" "$launchlog" 2>&1); status=$?
+  expect_code 0 "$status" "claude secondmate spawn with claude-function-hooks present should succeed"
+
+  meta="$w/home/state/sm.meta"
+  [ "$(meta_field "$meta" harness)" = claude ] || fail "hooksflag: meta harness not claude"
+  launch=$(cat "$launchlog")
+  assert_contains "$launch" "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1" \
+    "hooksflag: secondmate launch did not carry the function-hooks environment prefix"
+  assert_contains "$launch" "--model 'opus'" "hooksflag: secondmate launch lost the configured model"
+  pass "C2c spawn: config/claude-function-hooks presence reaches a Claude secondmate launch"
+}
+
 # The file is a captain-wide safety preference, so it inherits like
 # config/backend: present values converge exactly and primary absence mirrors.
 test_claude_permission_mode_inheritance_present_and_absent() {
@@ -1457,6 +1481,28 @@ test_claude_permission_mode_inheritance_present_and_absent() {
   expect_code 0 "$status" "claude-permission-mode absence push should succeed"
   [ -e "$w/sm/config/claude-permission-mode" ] && fail "claude-permission-mode not removed on primary absence"
   pass "B12c claude-permission-mode inheritance: present values and primary absence converge exactly"
+}
+
+# The file is a captain-wide preference, so it inherits like
+# config/claude-permission-mode: presence converges exactly and primary absence mirrors.
+test_claude_function_hooks_inheritance_present_and_absent() {
+  local w head out err status
+  w=$(new_world hooksflag-inherit)
+  head=$(git -C "$w/main" rev-parse HEAD)
+  add_sm_worktree "$w" sm "$head"
+
+  printf 'present\n' > "$w/home/config/claude-function-hooks"
+  err="$w/hooksflag-inherit.err"
+  out=$(run_config_push "$w" 2>"$err"); status=$?
+  expect_code 0 "$status" "claude-function-hooks present push should succeed"
+  assert_contains "$out" "claude-function-hooks: pushed" "present file should report pushed"
+  [ -e "$w/sm/config/claude-function-hooks" ] || fail "claude-function-hooks not pushed"
+
+  rm -f "$w/home/config/claude-function-hooks"
+  out=$(run_config_push "$w" 2>"$err"); status=$?
+  expect_code 0 "$status" "claude-function-hooks absence push should succeed"
+  [ -e "$w/sm/config/claude-function-hooks" ] && fail "claude-function-hooks not removed on primary absence"
+  pass "B12d claude-function-hooks inheritance: presence and primary absence converge exactly"
 }
 
 test_backend_inheritance_present_and_absent() {
@@ -2658,6 +2704,8 @@ test_bootstrap_sweep_materializes_and_inherits_memory_default
 test_backend_inheritance_present_and_absent
 test_spawn_secondmate_claude_permission_mode_auto
 test_claude_permission_mode_inheritance_present_and_absent
+test_spawn_secondmate_claude_function_hooks_flag
+test_claude_function_hooks_inheritance_present_and_absent
 test_presentation_inheritance_default_on_and_opt_out
 test_bootstrap_sweep_surfaces_config_propagation_failure
 test_bootstrap_rereads_after_partial_propagation
