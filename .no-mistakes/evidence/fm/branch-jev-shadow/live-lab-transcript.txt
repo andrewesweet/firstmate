@@ -1,0 +1,54 @@
+ok - Claude Code 2.1.278 (Claude Code) loaded the mod enabled with config/classifier-shadow=jev; main holds the lock
+# first wake.delivered at 2026-09-19T16:13:29.352Z
+ok - shadow records appended while the wake spawned, was handled, reported routine, and later wakes were sent
+# events: 3 classifier, 2 wake.delivered, 1 wake.passed, 0 shadow.error, 0 shadow.log.error
+# shadow records: 8
+# fake curl calls: 8; key on any argv: 0; key in child env: no; headers: Authorization: Bearer sk-lab-fake-typesafe-key
+# first shadow records (variant/repeat/unavailable/ms/model/route):
+{"t":"2026-09-19T16:13:39.460Z","wake":"signal: /tmp/fm-shadow-live.IxQ4Jo/home/state/dummy.status","variant":"full","repeat":1,"control":false,"unavailable":"helper failed: HooksError: fm-branch-mod: $.process.run(bash) aborted: still running after 10000ms","ms":10007,"model":null,"route":null,"requestBytes":4505}
+{"t":"2026-09-19T16:13:39.483Z","wake":"signal: /tmp/fm-shadow-live.IxQ4Jo/home/state/dummy.status","variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"ms":20,"model":"jev-1.13.0","route":"routine","requestBytes":4382}
+{"t":"2026-09-19T16:13:39.506Z","wake":"signal: /tmp/fm-shadow-live.IxQ4Jo/home/state/dummy.status","variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":null,"ms":20,"model":"jev-1.13.0","route":"routine","requestBytes":4505}
+{"t":"2026-09-19T16:13:39.529Z","wake":"signal: /tmp/fm-shadow-live.IxQ4Jo/home/state/dummy.status","variant":"without_pane_tail","repeat":1,"control":false,"unavailable":null,"ms":20,"model":"jev-1.13.0","route":"routine","requestBytes":3477}
+{"t":"2026-09-19T16:14:04.799Z","wake":"signal: /tmp/fm-shadow-live.IxQ4Jo/home/state/dummy.status","variant":"full","repeat":1,"control":false,"unavailable":null,"ms":21,"model":"jev-1.13.0","route":"routine","requestBytes":4490}
+# state keys per variant in the first four requests:
+{"model":"jev-latest","state_keys":["current_state","fresh_status","pane","unread_status","wake"],"questions":["no_new_outcome","phase","route","severity"],"pane_tail_head":["17:11:56 tick","17:11:58 tick"]}
+{"model":"jev-latest","state_keys":["fresh_status","pane","unread_status","wake"],"questions":["no_new_outcome","phase","route","severity"],"pane_tail_head":["17:11:56 tick","17:11:58 tick"]}
+{"model":"jev-latest","state_keys":["current_state","fresh_status","pane","unread_status","wake"],"questions":["no_new_outcome","phase","route","severity"],"pane_tail_head":["17:11:56 tick","17:11:58 tick"]}
+{"model":"jev-latest","state_keys":["current_state","fresh_status","unread_status","wake"],"questions":["no_new_outcome","phase","route","severity"],"pane_tail_head":[]}
+# slow first call: delivered=2026-09-19T16:13:29.352Z first-record-t=2026-09-19T16:13:39.460Z
+# scorer over the live logs:
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 1/1 | 1 (100.0%) | 1 (100.0%) | 0 | 0 (0.0%) | 1 |
+| without_current_state | 2/2 | 2 (100.0%) | 2 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2/2 | 2 (100.0%) | 2 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_pane_tail | 2/2 | 2 (100.0%) | 2 (100.0%) | 0 | 0 (0.0%) | 0 |
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | working=1 | 0 (0.0%) | 1 |
+| without_current_state | 2 | working=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | working=2 | 0 (0.0%) | 0 |
+| without_pane_tail | 2 | working=2 | 0 (0.0%) | 0 |
+
+### severity (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | 0=1 | 1 (100.0%) | 1 |
+| without_current_state | 2 | 0=2 | 2 (100.0%) | 0 |
+| without_prior_outcomes | 2 | 0=2 | 2 (100.0%) | 0 |
+| without_pane_tail | 2 | 0=2 | 2 (100.0%) | 0 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | false=1 | 0 (0.0%) | 1 |
+| without_current_state | 2 | false=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | false=2 | 0 (0.0%) | 0 |
+| without_pane_tail | 2 | false=2 | 0 (0.0%) | 0 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|

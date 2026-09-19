@@ -1,0 +1,34 @@
+$ bin/fm-branch-shadow-pane.sh t1   # meta has no window= yet
+{"task":"t1","unavailable":"no backend target in meta"}
+exit=0
+
+$ bin/fm-branch-shadow-pane.sh t1   # window=lab:fm-t1 on a real tmux server, no busy-state/progress
+{
+  "task": "t1",
+  "tail": "worker line 1\nworker line 2\nrunning tests..."
+}
+
+$ bin/fm-branch-shadow-pane.sh t1   # plus busy-state record and a 90 s old progress marker
+{
+  "task": "t1",
+  "tail": "worker line 1\nworker line 2\nrunning tests...",
+  "observation": {
+    "progressing": true,
+    "busy_source": "pi-ext",
+    "seconds_since_last_activity": 90
+  }
+}
+
+$ bin/fm-branch-shadow-pane.sh t1   # tmux server gone: tail dropped, observation kept
+{"task":"t1","observation":{"progressing":true,"busy_source":"pi-ext","seconds_since_last_activity":90}}
+
+$ bin/fm-branch-shadow-pane.sh t1   # nothing readable at all
+{"task":"t1","unavailable":"no readable pane evidence"}
+exit=0
+
+$ bin/fm-branch-shadow-pane.sh "t1;rm"   # bad task id
+usage: fm-branch-shadow-pane.sh <task>
+exit=2
+
+$ bin/fm-branch-shadow-pane.sh t1   # mod switch absent
+exit=1

@@ -1,0 +1,68 @@
+$ bin/fm-branch-shadow-score.sh   # fixture: wake A labelled main, wake B routine, wake C unlabelled; torn line in each log; repeat control on wake B; record 5 carries policy floor 0.99
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 2/3 | 2 (100.0%) | 1 (50.0%) | 0 | 1 (33.3%) | 0 |
+| without_current_state | 1/1 | 1 (100.0%) | 0 (0.0%) | 0 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0/0 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 1 |
+| without_pane_tail | 1/1 | 0 (0.0%) | 0 (0.0%) | 1 | 0 (0.0%) | 0 |
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | working=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0 | | 0 (0.0%) | 1 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | true=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0 | | 0 (0.0%) | 1 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+| route | 1 | 0 |
+
+$ bin/fm-branch-shadow-score.sh -v
+# wake	label	variant	question	raw	policy	unavailable
+signal: A	main	full	route	main	main	-
+signal: A	main	full	phase	working	uncertain	-
+signal: A	main	full	no_new_outcome	true	uncertain	-
+signal: A	main	without_current_state	route	main	uncertain	-
+signal: A	main	without_prior_outcomes	UNAVAILABLE	-	-	http 503
+signal: A	main	without_pane_tail	route	routine	routine	-
+signal: B	routine	full	route	routine	uncertain	-
+signal: B	routine	full	route	main	main	-
+signal: C	unlabeled	full	route	routine	routine	-
+
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 2/3 | 2 (100.0%) | 1 (50.0%) | 0 | 1 (33.3%) | 0 |
+| without_current_state | 1/1 | 1 (100.0%) | 0 (0.0%) | 0 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0/0 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 1 |
+| without_pane_tail | 1/1 | 0 (0.0%) | 0 (0.0%) | 1 | 0 (0.0%) | 0 |
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | working=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0 | | 0 (0.0%) | 1 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | true=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 0 | | 0 (0.0%) | 1 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+| route | 1 | 0 |
+
+$ bin/fm-branch-shadow-score.sh /absent.jsonl
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+exit=0

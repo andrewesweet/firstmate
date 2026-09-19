@@ -1,0 +1,32 @@
+$ printf "$REQ" | bin/fm-branch-shadow-jev.sh    # no key anywhere
+{"ok":false,"unavailable":"key absent","model":"jev"}
+exit=0 curl-called=no
+
+$ echo "{\"model\":\"x\"}" | bin/fm-branch-shadow-jev.sh    # request lacks state/questions
+{"ok":false,"unavailable":"request lacks state/questions","model":"jev"}
+exit=0
+
+$ : | bin/fm-branch-shadow-jev.sh    # empty stdin
+{"ok":false,"unavailable":"empty request","model":"jev"}
+exit=0
+
+$ ... | PATH=fakecurl bin/fm-branch-shadow-jev.sh    # key in FM_HOME/.env, 200 with answers
+{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.91,"probabilities":{"main":0.91,"routine":0.09}}}}
+exit=0
+fd-3 header seen by curl: Authorization: Bearer sk-live-lab-secret
+key on curl argv: 0   key in curl env: no
+argv: -sS --max-time 8 -o /tmp/fm-branch-shadow-jev.k2qoNn -w %{http_code} -X POST https://api.typesafe.ai/v1/systemone -H Content-Type: application/json -H @/dev/fd/3 --data-binary @- 
+body forwarded byte-exact: yes
+
+$ ... key via environment only, empty .env, 503
+{"ok":false,"unavailable":"http 503","model":"jev"}
+exit=0  header: Authorization: Bearer sk-env-key
+
+$ ... 200 but answers is not an object
+{"ok":false,"unavailable":"malformed response","model":"jev"}
+exit=0
+
+$ ... 200 with non-JSON body
+{"ok":false,"unavailable":"malformed response","model":"jev"}
+exit=0
+
