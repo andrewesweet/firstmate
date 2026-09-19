@@ -14,6 +14,7 @@ const STATE = `${HOME}/state`;
 const CONFIG = `${HOME}/config`;
 import { CLAUDE_CODE_PIN as PIN } from "../hooks/branch.ts";
 const sessionStart = { cwd: "/work", surface: "terminal" as const, isInteractive: true };
+const SESSION_ID = "0f3a9c2e-kit-session";
 
 type Run = { argv: string[]; stdin?: string; env?: Record<string, string> };
 type World = {
@@ -33,7 +34,11 @@ type World = {
 
 type WorldOptions = {
   version?: string;
+  /** What the running-binary version probe answers; "" simulates a host without /proc. Defaults to `version`. */
+  runningBinaryVersion?: string;
   files?: Record<string, string>;
+  /** Extra environment variables the module reads beyond the kit's own. */
+  env?: Record<string, string>;
   /** One answer per classifier call in order; the last one repeats. */
   classifierAnswer?: string | string[];
   /** One evidence bundle per fm-wake-evidence.sh run in order; the last one repeats. */
@@ -51,7 +56,7 @@ function nth(values: string | string[] | undefined, index: number, fallback: str
 }
 
 function world(on: On, options: WorldOptions = {}): World {
-  mock.env(on, { FM_HOME: HOME, CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1" });
+  mock.env(on, { FM_HOME: HOME, CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1", ...options.env });
   const clock = mock.clock(on);
   const files = new Map<string, string>(Object.entries(options.files ?? {}));
   const runs: Run[] = [];
@@ -63,6 +68,7 @@ function world(on: On, options: WorldOptions = {}): World {
   const spawns: World["spawns"] = [];
   const toolCalls: Record<string, unknown>[] = [];
   const version = options.version ?? PIN;
+  const runningBinary = options.runningBinaryVersion !== undefined ? options.runningBinaryVersion : version;
 
   on("fs.read", async (_$, e) => {
     // The classifier system prompt is read from the plugin's own folder.
@@ -96,6 +102,7 @@ function world(on: On, options: WorldOptions = {}): World {
     return { value: nth(options.classifierAnswer, completions.length - 1, '{"verdict":"routine","reason":"nothing new"}') };
   });
   on("session.start", async (_$, e) => ({ cwd: e.cwd }));
+  on("session.id", async () => ({ value: SESSION_ID }));
   on("agent.spawn", async (_$, e) => {
     // The event is Agent-tool shaped: subagent_type and run_in_background.
     spawns.push({ subagentType: e.subagent_type, name: e.name, model: e.model, background: e.run_in_background, prompt: e.prompt });
@@ -117,6 +124,13 @@ function world(on: On, options: WorldOptions = {}): World {
     const answer = (stdout = "", exitCode = 0) => ({ value: { exitCode, stdout, stderr: "" } });
     if (argv[0] === "claude" && argv[1] === "--version") return answer(`${version} (Claude Code)\n`);
     if (argv[0] === "sh" && argv[1] === "-c") {
+      // The running-binary version probe: the binary hosting the fake session,
+      // which can differ from PATH `claude`; "" answers like a host without
+      // /proc so the module must fall back.
+      if (String(argv[2] ?? "").includes("/proc/$PPID/exe")) {
+        if (runningBinary === "") return answer("", 1);
+        return answer(`${runningBinary} (Claude Code)\n`);
+      }
       // The module's own append: record the line under the target path.
       const path = argv[4];
       appends.set(path, [...(appends.get(path) ?? []), String(init.stdin ?? "")]);
@@ -161,6 +175,9 @@ function armedHome(): Record<string, string> {
 
 const WAKE = `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: ${STATE}/t1.status\n`;
 
+const startEvent = (w: World) =>
+  w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).find((e) => e.kind === "session.start");
+
 describe("version pin", () => {
   test("refuses to load on any other Claude Code version and passes every wake through", async ($: Engine, on: On) => {
     const w = world(on, { version: "2.1.271", files: armedHome() });
@@ -180,6 +197,45 @@ describe("version pin", () => {
     expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
   });
 
+  test("the binary hosting the session decides the pin when PATH claude differs", async ($: Engine, on: On) => {
+    // The launcher execs the pinned binary by absolute path while the installer
+    // symlink moved on: PATH answers a later release, the running binary the pin.
+    const w = world(on, { version: "2.1.999", runningBinaryVersion: PIN, files: armedHome() });
+    await $.session.start(sessionStart);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
+    // The probe is issued first and answers, so PATH claude is never asked.
+    expect(w.runs[0]?.argv).toEqual(["sh", "-c", 'exec "$(readlink /proc/$PPID/exe)" --version']);
+    expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(false);
+    // The load record names the source that decided and the probe's raw answer.
+    const start = startEvent(w);
+    expect(start?.data.version).toBe(PIN);
+    expect(start?.data.pinSource).toBe("running binary");
+    expect(start?.data.probe).toBe(`${PIN} (Claude Code)`);
+  });
+
+  test("a refusal records which source decided against the pin", async ($: Engine, on: On) => {
+    const w = world(on, { version: PIN, runningBinaryVersion: "2.1.1", files: armedHome() });
+    await $.session.start(sessionStart);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    const refused = events.find((e) => e.kind === "pin.refused");
+    expect(refused?.data).toEqual({ version: "2.1.1", pin: PIN, pinSource: "running binary", probe: "2.1.1 (Claude Code)" });
+    expect(w.registered).toEqual([]);
+  });
+
+  test("PATH claude decides when the running binary's version is unavailable", async ($: Engine, on: On) => {
+    // /proc is Linux-only: on a host without it the probe fails and the old
+    // PATH call must still carry the pin check.
+    const w = world(on, { version: PIN, runningBinaryVersion: "", files: armedHome() });
+    await $.session.start(sessionStart);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.runs[0]?.argv[2]).toContain("/proc/$PPID/exe");
+    expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(true);
+    const start = startEvent(w);
+    expect(start?.data.pinSource).toBe("PATH claude");
+    expect(start?.data.probe).toBe("");
+  });
+
   test("without state/.branch-mod-mode the module loads inert and passes every wake through unclassified", async ($: Engine, on: On) => {
     const files = armedHome();
     delete files[`${STATE}/.branch-mod-mode`];
@@ -189,6 +245,31 @@ describe("version pin", () => {
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
     expect(w.submitted).toEqual([WAKE]);
     expect(w.completions.length).toBe(0);
+  });
+});
+
+describe("transcript persistence log", () => {
+  const persistence = (w: World) => {
+    const start = startEvent(w);
+    return { on: start?.data.persistenceOn, cause: start?.data.persistenceCause };
+  };
+
+  test("session.start logs the persistence state and its cause", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome() });
+    await $.session.start(sessionStart);
+    expect(persistence(w)).toEqual({ on: true, cause: "default" });
+  });
+
+  test("an inherited CLAUDE_CODE_CHILD_SESSION marker logs persistence off", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome(), env: { CLAUDE_CODE_CHILD_SESSION: "1" } });
+    await $.session.start(sessionStart);
+    expect(persistence(w)).toEqual({ on: false, cause: "inherited CLAUDE_CODE_CHILD_SESSION marker" });
+  });
+
+  test("CLAUDE_CODE_FORCE_SESSION_PERSISTENCE logs persistence on over the marker", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome(), env: { CLAUDE_CODE_CHILD_SESSION: "1", CLAUDE_CODE_FORCE_SESSION_PERSISTENCE: "1" } });
+    await $.session.start(sessionStart);
+    expect(persistence(w)).toEqual({ on: true, cause: "CLAUDE_CODE_FORCE_SESSION_PERSISTENCE" });
   });
 });
 
@@ -417,6 +498,11 @@ describe("routine wake", () => {
     expect(w.spawns[0].prompt?.startsWith("FIRSTMATE SUPERVISION WAKE: signal:")).toBe(true);
     const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
     const rotated = events.find((e) => e.kind === "agent.rotated");
+    // The send log names the resume target: the dead agent's id and the
+    // primary session whose transcript resume would read.
+    const send = events.find((e) => e.kind === "agent.send");
+    expect(send?.data.agentId).toBe("ade34056fb4d9ab91");
+    expect(send?.data.sessionId).toBe(SESSION_ID);
     expect(rotated?.data.why).toBe("unresumable");
     expect(rotated?.data.name).toBe("fm-branch-2");
     expect(rotated?.data.branchGeneration).toBe(2);

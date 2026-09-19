@@ -19,8 +19,9 @@
 //       watcher close as a task-notification into prompt.submit.
 //
 // The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
-// every hook then passes through untouched and the session runs as if the
-// plugin were absent.
+// the version is read from the binary hosting the session (PATH `claude` is only
+// the fallback), every hook passes through untouched on a mismatch, and the
+// session runs as if the plugin were absent.
 //
 // Switch (a file under the home's state directory):
 //   .branch-mod-mode        present = route wakes; absent = log only, never route.
@@ -647,6 +648,7 @@ function toolText(r: any): string {
 // the pinned ref is learned from that text and the send retried once.
 async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: string; detail: string; noAgent: boolean }> {
   const name = branchName()
+  const sessionId = await sessionTranscriptId($)
   for (let attempt = 0; attempt < 2; attempt++) {
     const to = branchRef ? `${name} [${branchRef}]` : name
     let r: any
@@ -657,7 +659,7 @@ async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: 
     }
     sendCount += 1
     const text = toolText(r)
-    log($, 'agent.send', { to, sendCount, attempt, text: text.slice(0, 400), deny: r?.deny, isError: r?.isError })
+    log($, 'agent.send', { to, agentId: branchAgentId, sessionId, sendCount, attempt, text: text.slice(0, 400), deny: r?.deny, isError: r?.isError })
     if (r?.deny || r?.isError) {
       const failure = String(r?.deny ?? text)
       return { ok: false, id: '', detail: failure.slice(0, 300), noAgent: /no agent|not found|unknown agent|could not be resumed|no transcript found/i.test(failure) }
@@ -974,27 +976,78 @@ function bashRewrite(e: any, holder: string): any {
 
 // The version pin: the module is measured against one Claude Code release and
 // refuses every other one, so a silent engine change cannot reroute wakes.
-async function checkPin($: any): Promise<string> {
-  let version = ''
+// The binary actually hosting this session decides: the launcher execs the
+// pinned release by absolute path to survive the installer symlink moving, so
+// PATH can name a different release than the one running here. The probe runs
+// the host binary's own `--version` through /proc (Linux only); the PATH call
+// stays as the fallback, and a probe answer without a version shape is treated
+// as unavailable so a misresolved executable can never cause a false refusal.
+// The answer names which source decided and the probe's raw output, so a split
+// between the two is one log line.
+type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
+
+async function checkPin($: any): Promise<PinCheck> {
+  let probe = ''
+  try {
+    const r = await $.process.run(['sh', '-c', 'exec "$(readlink /proc/$PPID/exe)" --version'], { timeoutMs: 10000 })
+    probe = String(r.stdout ?? '').trim().slice(0, 200)
+    const version = probe.split(/\s+/)[0] ?? ''
+    if (/^\d+\.\d+\.\d+/.test(version)) return { version, source: 'running binary', probe }
+  } catch (error) {
+    probe = `unreadable (${String(error)})`
+  }
   try {
     const r = await $.process.run(['claude', '--version'], { timeoutMs: 10000 })
-    version = String(r.stdout ?? '').trim().split(/\s+/)[0] ?? ''
+    return { version: String(r.stdout ?? '').trim().split(/\s+/)[0] ?? '', source: 'PATH claude', probe }
   } catch (error) {
-    version = `unreadable (${String(error)})`
+    return { version: `unreadable (${String(error)})`, source: 'PATH claude', probe }
   }
-  return version
+}
+
+// Row 3 of the branch-reuse RCA (2026-09-19): the next transcript regression
+// must be one log line instead of a scout. Persistence is off when the session
+// inherited the CLAUDE_CODE_CHILD_SESSION marker (a Herdr server started inside
+// a Claude session hands it to every pane) and back on when
+// CLAUDE_CODE_FORCE_SESSION_PERSISTENCE is set; the launch-option and test-env
+// disable causes are not visible to a hook, so their absence reads as default.
+async function transcriptPersistence($: any): Promise<{ on: boolean; cause: string }> {
+  // Literal names only: strict validation lists the variables a module reads.
+  let force = ''
+  let marker = ''
+  try {
+    force = String(await $.env.get('CLAUDE_CODE_FORCE_SESSION_PERSISTENCE') ?? '')
+  } catch {}
+  try {
+    marker = String(await $.env.get('CLAUDE_CODE_CHILD_SESSION') ?? '')
+  } catch {}
+  if (force) return { on: true, cause: 'CLAUDE_CODE_FORCE_SESSION_PERSISTENCE' }
+  if (marker) return { on: false, cause: 'inherited CLAUDE_CODE_CHILD_SESSION marker' }
+  return { on: true, cause: 'default' }
+}
+
+// The primary session's transcript id: resume reads the branch agent's
+// transcript under it (<session>/subagents/agent-<id>.jsonl), so a send log
+// naming both is the resume target the next regression needs; where the engine
+// does not expose it the reason is logged in its place.
+async function sessionTranscriptId($: any): Promise<string> {
+  try {
+    return String(await $.session.id() ?? '')
+  } catch (error) {
+    return `unavailable (${String(error)})`
+  }
 }
 
 export function register(on: On) {
   on('session.start', async ($, e, next) => {
     await bind($, e.cwd)
-    const version = await checkPin($)
+    const { version, source: pinSource, probe } = await checkPin($)
     if (version !== CLAUDE_CODE_PIN) {
       refused = true
-      $.ui.log(`${PLUGIN}: refusing to load on Claude Code ${version || 'unknown'}; built for ${CLAUDE_CODE_PIN}`)
-      log($, 'pin.refused', { version, pin: CLAUDE_CODE_PIN })
+      $.ui.log(`${PLUGIN}: refusing to load on Claude Code ${version || 'unknown'} (${pinSource}); built for ${CLAUDE_CODE_PIN}`)
+      log($, 'pin.refused', { version, pin: CLAUDE_CODE_PIN, pinSource, probe })
       return next(e)
     }
+    const persistence = await transcriptPersistence($)
     refused = false
     generation = `cc${Date.now()}`
     activated = false
@@ -1035,7 +1088,7 @@ export function register(on: On) {
     }
     const enabled = await modeOn($)
     $.ui.log(`${PLUGIN}: loaded (${enabled ? 'enabled' : 'inert: no state/.branch-mod-mode'}, home ${home}, Claude Code ${version})`)
-    log($, 'session.start', { cwd, home, state, enabled, generation, version })
+    log($, 'session.start', { cwd, home, state, enabled, generation, version, pinSource, probe, persistenceOn: persistence.on, persistenceCause: persistence.cause })
     return next(e)
   }).catch(($, e, next) => next(e))
 
