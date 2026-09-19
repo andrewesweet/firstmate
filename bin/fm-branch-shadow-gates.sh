@@ -34,7 +34,11 @@
 #     read at scoring time so this signal is task-scoped, not wake-scoped),
 #     and, for stale wakes, a worker incarnation newer than the wake (the
 #     busy-state gen) as the stale repair; teardown is not a repair, since
-#     every task is torn down once it finishes.
+#     every task is torn down once it finishes. Teardown also removes the
+#     meta, pr-poll and busy-state records these two signals are read from,
+#     so the tables are only trustworthy while the trial's tasks are live:
+#     wakes whose task records are gone are counted and noted below the
+#     table, and their PR-arm and stale-repair truth reads as absent.
 #
 # The gates, fired on a full record's facts and answers at a floor F:
 #   absorb-no-new-outcome   no_new_outcome Noul >= F and zero new status bytes
@@ -579,9 +583,19 @@ for gate in "${GATES[@]}"; do
     "${WRONG_DELAY[$gate]:-0}" "${WRONG_LOSS[$gate]:-0}" "$miss"
 done
 unmatched=0
+torn=0
 for i in "${!R_WK[@]}"; do
-  [ -n "${WK_SEEN[${R_WK[$i]}]:-}" ] || unmatched=$((unmatched + 1))
+  [ -n "${WK_SEEN[${R_WK[$i]}]:-}" ] || { unmatched=$((unmatched + 1)); continue; }
+  for t in ${WK_TASKS[${R_WK[$i]}]:-}; do
+    case "$t" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
+    if [ ! -f "$STATE/$t.meta" ]; then torn=$((torn + 1)); break; fi
+  done
 done
+if [ "$torn" -gt 0 ]; then
+  word=records
+  [ "$torn" -eq 1 ] && word=record
+  printf 'torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): %s %s\n' "$torn" "$word"
+fi
 if [ "$unmatched" -gt 0 ]; then
   word=records
   [ "$unmatched" -eq 1 ] && word=record

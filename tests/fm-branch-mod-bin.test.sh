@@ -154,6 +154,8 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "the ordering gate must apply only to compound wakes, count the dropped captain candidate as a loss and the matched order as correct: $(grep '^| candidate-order' "$out")"
   grep -Fx 'unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record' "$out" \
     || fail "the record with no outcome rows must be reported as unmatched, not scored: $(grep unmatched "$out")"
+  grep -Fx 'torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record' "$out" \
+    || fail "the record whose task was torn down must be noted, since its derivable actions are no longer readable: $(grep 'torn down' "$out")"
   grep -Fx '| absorb-no-new-outcome | 0.96 | 0 | 0.0% |' "$out" \
     || fail "the no-new-outcome sweep must find its clean floor above the backstop-covered Noul: $(grep '^| absorb-no-new-outcome | 0' "$out")"
   grep -Fx '| stale-active-suppress | 0.91 | 0 | 0.0% |' "$out" \

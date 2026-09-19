@@ -722,8 +722,7 @@ function shadowFacts(
 ): ShadowFacts {
   const facts: ShadowFacts = { wake_key: a.wakeKey, new_status_bytes: {}, authoritative_pr: { present: false }, severity_classes: [] }
   for (const b of a.evidence) if (b.from >= 0 && b.to >= b.from) facts.new_status_bytes[b.task] = b.to - b.from
-  const paneId = paneExtras?.window ?? (st.pane ? String((st.pane as any).task ?? '') : '')
-  if (paneId) facts.pane = paneId
+  if (paneExtras?.window) facts.pane = paneExtras.window
   if (paneExtras?.stale) facts.stale_series = paneExtras.stale
   const obs = st.pane ? (st.pane as any).observation : undefined
   if (obs && typeof obs === 'object') facts.pane_observation = obs as Record<string, unknown>
