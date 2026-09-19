@@ -193,9 +193,6 @@ if [ "$VERBOSE" = 1 ]; then
 fi
 
 for q in "${QORDER[@]}"; do
-  case "$q" in
-    full | without_current_state | without_prior_outcomes | without_pane_tail) continue ;;
-  esac
   if [ "$q" = route ]; then
     printf '### route (label: the joined branch outcome verdict)\n'
     printf '| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |\n|---|---|---|---|---|---|---|\n'
@@ -236,9 +233,6 @@ if [ "${#CTRL1[@]}" -gt 0 ]; then
   printf '### repeat control (full variant run twice on one wake; raw call agreement)\n'
   printf '| question | full pairs | identical answers |\n|---|---|---|\n'
   for q in "${QORDER[@]}"; do
-    case "$q" in
-      full | without_current_state | without_prior_outcomes | without_pane_tail | UNAVAILABLE | NO_ANSWERS) continue ;;
-    esac
     IFS=$'\t' read -r cq pairs same < <(control_pairs "$q")
     [ "${pairs:-0}" -gt 0 ] || continue
     printf '| %s | %s | %s |\n' "$cq" "$pairs" "$same"

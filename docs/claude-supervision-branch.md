@@ -72,7 +72,7 @@ Every call appends one record to `state/branch-mod-shadow.jsonl`: the durable wa
 A shadow record whose wake key is absent or matches no outcome row is reported as unmatched, separately, and is never counted as a verdict; `-v` dumps the per-wake join for manual adjudication.
 `route` is the only question with a durable label in the outcome record, so the other questions are scored as distributions with policy-uncertainty shares read from each record's policy floors.
 The repeat-control table counts identical raw answers across the paired full calls; the repeat is not counted as a per-variant sample, so the full row stays one sample per wake like every ablation row.
-A torn or malformed log line is skipped, never fatal, and `-v` dumps the per-wake join for manual adjudication of the unlabelled rest.
+A torn or malformed log line is skipped, never fatal.
 
 ## Opting a home in
 

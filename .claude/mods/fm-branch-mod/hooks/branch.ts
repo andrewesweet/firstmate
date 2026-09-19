@@ -401,7 +401,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
   const staleOwned = new Map<string, boolean>()
   for (const line of rows) {
     const f = line.split('\t')
-    if (f.length < 5 || !/^[0-9]+$/.test(f[1])) return unsafe
+    if (f.length < 5 || !/^[0-9]+$/.test(f[0]) || !/^[0-9]+$/.test(f[1])) return unsafe
     const seq = f[1]
     allSeqs.push(seq)
     const kind = f[2]
@@ -538,7 +538,7 @@ async function serveReport($: any, e: any, agentId: string | undefined) {
   }
   const args = ['append', '--task', task, '--verdict', verdict, '--summary', summary, '--silent', String(silent)]
   if (wake) args.push('--wake', wake)
-  if (p?.wakeKey) args.push('--wake-key', p.wakeKey)
+  if (p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey)) args.push('--wake-key', p.wakeKey)
   const appended = await outcome($, args)
   if (!appended.ok) return textResult(`outcome store append failed (nothing merged): ${appended.detail}`, true)
   const seq = Number(appended.stdout)
