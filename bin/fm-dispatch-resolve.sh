@@ -59,11 +59,11 @@
 #   runner_up_margin, policy (version and confidence_floor), and rules_digest
 #   (the SHA-256 of the rules snapshot). Response-derived fields are null when
 #   the response did not supply them. Never recorded: the API key, the brief
-#   text, and the request body. A failed append (unwritable directory, read-only home)
-#   prints one "dispatch-resolve: outcome log unwritable: <path>" line on
-#   stderr and never changes the block or the exit code; only data/ itself is
-#   created when absent. The off path and exit-2 usage or configuration
-#   errors write nothing: they are not calls.
+#   text, and the request body. A failed append (unwritable directory,
+#   read-only home) prints one "dispatch-resolve: outcome log unwritable:
+#   <path>" line on stderr and never changes the block or the exit code; only
+#   data/ itself is created when absent. The off path and exit-2 usage or
+#   configuration errors write nothing: they are not calls.
 #
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
