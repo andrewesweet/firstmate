@@ -18,6 +18,7 @@ SCORE="$ROOT/bin/fm-branch-classifier-score.sh"
 JEV="$ROOT/bin/fm-branch-shadow-jev.sh"
 PANE="$ROOT/bin/fm-branch-shadow-pane.sh"
 SSCORE="$ROOT/bin/fm-branch-shadow-score.sh"
+GATES="$ROOT/bin/fm-branch-shadow-gates.sh"
 # shellcheck disable=SC2034 # make_case reads it
 TMP_ROOT=$(fm_test_tmproot fm-branch-mod-bin-tests)
 
@@ -36,6 +37,165 @@ backstop_body() {  # <drain-output>
     in_section && /^(OPEN DECISIONS|RECORD DIVERGENCE|UNREAD STATUS|WAKE_ACK_REQUIRED)/ { exit }
     in_section { print }
   ' "$1"
+}
+
+test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
+  local dir state out
+  dir=$(make_case gates-scorer)
+  state="$dir/state"
+  out="$dir/gates.out"
+  local sev_classes='["False alarm or no functional impact","Routine recoverable interruption or non-blocking failure","Task blocked or failed after normal recovery","Security, privacy, data-loss, irreversible, credential, or external-publication impact"]'
+  local base_t=1700000000
+
+  append_wake_outcome() {  # <state> <task> <verdict> <summary> <wakeKey>
+    FM_STATE_OVERRIDE="$1" "$OUTCOMES" append \
+      --task "$2" --verdict "$3" --summary "$4" --wake-key "$5" >/dev/null
+  }
+
+  fact() {  # <wk> <bytes-json> <pane> <pr-json> [extra-json-fields]
+    printf '{"wake_key":"%s","new_status_bytes":%s,"pane":"%s","authoritative_pr":%s,"severity_classes":%s%s}' \
+      "$1" "$2" "$3" "$4" "$sev_classes" "${5:+,$5}"
+  }
+  obs_prog='{"progressing":true,"busy_source":"tmux","seconds_since_last_activity":5}'
+  stale_extra="\"stale_series\":{\"series_index\":3},\"pane_observation\":$obs_prog"
+  rec() {  # <wakeKey> <t-offset> <wake> <tasks-json> <answers-json> <facts-json-or-null>
+    printf '%s\n' "{\"t\":\"$(date -u -d "@$((base_t + $2))" +%Y-%m-%dT%H:%M:%SZ)\",\"kind\":\"shadow\",\"wake\":\"$3\",\"seqs\":[\"1\"],\"wakeKey\":\"$1\",\"tasks\":$4,\"wakeNo\":1,\"variant\":\"full\",\"repeat\":1,\"control\":false,\"unavailable\":null,\"requestBytes\":10,\"ms\":5,\"policy\":{\"choice_confidence_floor\":0.85,\"noul_grant_below\":0.15,\"noul_pass_above\":0.85},\"answers\":$5,\"facts\":$6}"
+  }
+
+  # Task fixtures: metas for every task (t1 carries a recorded PR), plain
+  # status logs so the appender's endpoints are the whole log.
+  printf 'id=t1\nwindow=fm-t1\nbackend=tmux\npr=https://github.com/ow/repo/pull/7\n' > "$state/t1.meta"
+  printf 'id=t2\nwindow=fm-t2\nbackend=tmux\n' > "$state/t2.meta"
+  printf 'id=t3\nwindow=fm-t3\nbackend=tmux\n' > "$state/t3.meta"
+  printf 'id=t4\nwindow=fm-t4\nbackend=tmux\n' > "$state/t4.meta"
+  printf 'id=t5\nwindow=fm-t5\nbackend=tmux\n' > "$state/t5.meta"
+  printf 'id=t6\nwindow=fm-t6\nbackend=tmux\n' > "$state/t6.meta"
+  printf 'working: on it\n' > "$state/t1.status"
+  printf 'working: t2\n' > "$state/t2.status"
+  printf 'working: t3\n' > "$state/t3.status"
+  printf 'working: t5\n' > "$state/t5.status"
+  printf 'working: t6\n' > "$state/t6.status"
+  printf 'id=t7\nwindow=fm-t7\nbackend=tmux\n' > "$state/t7.meta"
+  printf 'working: t7\n' > "$state/t7.status"
+  printf 'id=t8\nwindow=fm-t8\nbackend=tmux\n' > "$state/t8.meta"
+  # A captain line presented before the mod's first row on t8: the first
+  # row's span is never scanned, so it is not a backstop surfacing.
+  printf 'done: t8 finished before the trial\n' > "$state/t8.status"
+  # A worker incarnation newer than the 1700:10 stale wake: the derivable
+  # stale-repair signal for the suppression gate.
+  printf 'v1 gen=g%s.4242.17 seq=1 state=busy source=tmux event=turn-end ts=%s\n' "$((base_t + 50))" "$((base_t + 50))" > "$state/t5.busy-state"
+
+  # Ground truth rows, in an order that also fixes first-reported ordering
+  # for the candidate-order gate.
+  append_wake_outcome "$state" t1 routine 'signal noted' 1700:1
+  append_wake_outcome "$state" t1 routine 'signal noted' 1700:2
+  append_wake_outcome "$state" t1 captain 'escalated to main' 1700:3
+  printf 'done: PR https://github.com/ow/repo/pull/77 checks green\n' >> "$state/t1.status"
+  append_wake_outcome "$state" t1 routine 'branch judged the completion routine' 1700:4
+  append_wake_outcome "$state" t1 captain 'done: PR https://github.com/ow/repo/pull/7 checks green' 1700:5
+  append_wake_outcome "$state" t2 routine 'working as usual' 1700:6
+  append_wake_outcome "$state" t3 routine 'worker fine' 1700:7
+  append_wake_outcome "$state" t3 routine 'worker fine' 1700:8
+  append_wake_outcome "$state" t3 captain 'stale escalated' 1700:9
+  append_wake_outcome "$state" t5 routine 'stale but fine' 1700:10
+  append_wake_outcome "$state" t2 captain 'compound: t2 escalated' 1700:11
+  append_wake_outcome "$state" t1 routine 'compound: t1 noted' 1700:11
+  append_wake_outcome "$state" t2 captain 'compound: t2 escalated' 1700:12
+  append_wake_outcome "$state" t1 routine 'compound: t1 noted' 1700:12
+  append_wake_outcome "$state" t1 routine 'nofacts noted' 1700:13
+  # An unkeyed direct pass-to-main row covers t6's done line before the
+  # keyed routine row, so the later row's backstop span starts after it.
+  printf 'done: t6 finished\n' >> "$state/t6.status"
+  append_outcome "$state" t6 captain 'Passed to main directly (classifier): decision'
+  append_wake_outcome "$state" t6 routine 'noise' 1700:15
+  append_wake_outcome "$state" t3 routine 'stale, pane unread' 1700:16
+  append_wake_outcome "$state" t7 routine 'stale but fine, torn down later' 1700:17
+  append_wake_outcome "$state" t8 routine 'first row on t8' 1700:18
+  append_wake_outcome "$state" t2 captain 'compound stale: t2 escalated' 1700:19
+  append_wake_outcome "$state" t1 routine 'compound stale: t1 noted' 1700:19
+  append_wake_outcome "$state" t2 captain 'stale again' 1700:20
+  append_wake_outcome "$state" t8 routine 'gather failed' 1700:21
+  rm -f "$state/t7.meta" "$state/t7.status"
+
+  {
+    rec 1700:1 0 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:1 '{"t1":0}' fm-t1 '{"present":false}')"
+    rec 1700:2 1 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.5}}' "$(fact 1700:2 '{"t1":0}' fm-t1 '{"present":false}')"
+    rec 1700:3 2 'working: A' '["t1"]' '{"route":{"type":"choice","choice":"routine","confidence":0.9},"phase":{"type":"choice","choice":"working","confidence":0.9}}' "$(fact 1700:3 '{"t1":10}' fm-t1 '{"present":false}')"
+    rec 1700:4 3 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.95},"severity":{"type":"score","score":1,"confidence":0.9}}' "$(fact 1700:4 '{"t1":0}' fm-t1 '{"present":false}')"
+    rec 1700:5 4 'working: A' '["t1"]' '{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}}' "$(fact 1700:5 '{"t1":10}' fm-t1 '{"present":true,"pr":"ow/repo#7"}')"
+    rec 1700:6 5 'working: B' '["t2"]' '{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}}' "$(fact 1700:6 '{"t2":10}' fm-t2 '{"present":true,"pr":"ow/repo#9"}')"
+    rec 1700:7 6 'stale: fm-t3' '["t3"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:7 '{"t3":0}' fm-t3 '{"present":false}' "$stale_extra")"
+    rec 1700:8 0 'stale: fm-t4' '["t4"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:8 '{"t4":0}' fm-t4 '{"present":false}' "$stale_extra")"
+    rec 1700:9 60 'stale: fm-t4' '["t4"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:9 '{"t4":0}' fm-t4 '{"present":false}' "$stale_extra")"
+    rec 1700:10 0 'signal: t5\nstale: fm-t5' '["t5"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:10 '{"t5":0}' fm-t5 '{"present":false}' "$stale_extra")"
+    rec 1700:11 7 'signal: compound' '["t1","t2"]' '{"candidates":{"t1":{"type":"noul","noul":0.9},"t2":{"type":"noul","noul":0.5}}}' "$(fact 1700:11 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' '"candidates":{"t1":0.9,"t2":0.5}')"
+    rec 1700:12 8 'signal: compound' '["t1","t2"]' '{"candidates":{"t2":{"type":"noul","noul":0.9},"t1":{"type":"noul","noul":0.5}}}' "$(fact 1700:12 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' '"candidates":{"t2":0.9,"t1":0.5}')"
+    rec 1700:13 9 'signal: nofacts' '["t1"]' '{}' 'null'
+    rec 1700:14 10 'signal: unmatched' '["t6"]' '{}' "$(fact 1700:14 '{"t6":0}' fm-t6 '{"present":false}')"
+    rec 1700:15 11 'signal: t6' '["t6"]' '{"severity":{"type":"score","score":3,"confidence":0.9}}' "$(fact 1700:15 '{"t6":0}' fm-t6 '{"present":false}')"
+    rec 1700:16 12 'stale: fm-t3' '["t3"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:16 '{"t3":0}' fm-t3 '{"present":false}')"
+    rec 1700:17 13 'stale: fm-t7' '["t7"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:17 '{"t7":0}' fm-t7 '{"present":false}' "$stale_extra")"
+    rec 1700:18 14 'signal: t8' '["t8"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:18 '{"t8":0}' fm-t8 '{"present":false}')"
+    rec 1700:19 20 'signal: t1.status\nstale: fm-t2 (idle 900s, possible wedge, escalation 2)' '["t1","t2"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9},"candidates":{"t2":{"type":"noul","noul":0.9},"t1":{"type":"noul","noul":0.5}}}' "$(fact 1700:19 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' "$stale_extra,\"candidates\":{\"t2\":0.9,\"t1\":0.5}")"
+    rec 1700:20 80 'stale: fm-t2 (idle 960s, possible wedge, escalation 3)' '["t2"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:20 '{"t2":0}' fm-t2 '{"present":false}' "$stale_extra")"
+    rec 1700:21 15 'signal: t8' '["t8"]' '{"no_new_outcome":{"type":"noul","noul":0.9},"route":{"type":"choice","choice":"routine","confidence":0.9},"phase":{"type":"choice","choice":"working","confidence":0.9}}' "$(fact 1700:21 '{}' fm-t8 '{"present":false}')"
+  } > "$state/branch-mod-shadow.jsonl"
+
+  FM_STATE_OVERRIDE="$state" "$GATES" > "$out" || fail "gates scorer failed: $(cat "$out")"
+  grep -Fx '| absorb-no-new-outcome | 4 | 16 | 3 | 2 (66.7%) | 0 | 1 | 1 |' "$out" \
+    || fail "the no-new-outcome row must fire the clean absorbs (including a task's first row over a pre-trial captain line), miss the below-floor one, and count the backstop-covered absorb as a loss: $(grep '^| absorb-no-new-outcome' "$out")"
+  grep -Fx '| absorb-routine-working | 2 | 18 | 2 | 1 (50.0%) | 0 | 1 | 0 |' "$out" \
+    || fail "the routine-working row must count a fire over a captain outcome as a loss: $(grep '^| absorb-routine-working' "$out")"
+  grep -Fx '| stale-active-suppress | 6 | 2 | 6 | 2 (33.3%) | 3 | 1 | 0 |' "$out" \
+    || fail "the stale gate must apply only to stale wakes whose pane fact is the named window, score the in-window captain stales as losses, its own actionable or relaunch-repaired fires as delays, and a torn-down task's fire as correct: $(grep '^| stale-active-suppress' "$out")"
+  grep -Fx '| pr-ready-arm | 4 | 16 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
+    || fail "the arm gate must score the armed PR ready as correct and the unbacked one as a delay: $(grep '^| pr-ready-arm' "$out")"
+  grep -Fx '| severity-alert | 2 | 18 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
+    || fail "the severity gate must count a security-class alert over an absorbable wake as a delay and a low-scored actionable absorb as missed: $(grep '^| severity-alert' "$out")"
+  grep -Fx '| candidate-order | 3 | 0 | 3 | 2 (66.7%) | 0 | 1 | - |' "$out" \
+    || fail "the ordering gate must apply only to compound wakes, count the dropped captain candidate as a loss and the matched order as correct: $(grep '^| candidate-order' "$out")"
+  grep -Fx 'unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record' "$out" \
+    || fail "the record with no outcome rows must be reported as unmatched, not scored: $(grep unmatched "$out")"
+  grep -Fx 'torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record' "$out" \
+    || fail "the record whose task was torn down must be noted, since its derivable actions are no longer readable: $(grep 'torn down' "$out")"
+  grep -Fx '| absorb-no-new-outcome | 0.96 | 0 | 0.0% |' "$out" \
+    || fail "the no-new-outcome sweep must find its clean floor above the backstop-covered Noul: $(grep '^| absorb-no-new-outcome | 0' "$out")"
+  grep -Fx '| stale-active-suppress | 0.91 | 0 | 0.0% |' "$out" \
+    || fail "the stale sweep must only clean above the firing confidence: $(grep '^| stale-active-suppress | 0' "$out")"
+  grep -Fx '| pr-ready-arm | 0.70 | 2 | 50.0% |' "$out" \
+    || fail "the arm sweep has no loss class and must clean at the lowest floor: $(grep '^| pr-ready-arm | 0' "$out")"
+  grep -Fx '| candidate-order | - | - | - |' "$out" \
+    || fail "the ordering sweep must stay dirty at every floor while a captain candidate sits below it: $(grep '^| candidate-order | - ' "$out")"
+
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed"
+  grep -F $'1700:8\tstale-active-suppress\tloss\tpane=fm-t4 window=1800s' "$out" \
+    || fail "the suppressing stale wake whose later in-window stale was captain must be listed as a loss: $(grep stale-active-suppress "$out")"
+  grep -F $'1700:10\tstale-active-suppress\tdelay\tpane=fm-t5 window=1800s' "$out" \
+    || fail "the stale wake with a derivable repair must be listed as a delay: $(grep stale-active-suppress "$out")"
+  grep -F $'1700:17\tstale-active-suppress\tcorrect\tpane=fm-t7 window=1800s' "$out" \
+    || fail "a later teardown is not a stale repair, so the fire stays correct: $(grep stale-active-suppress "$out")"
+  grep -F $'1700:11\tcandidate-order\tloss\tcandidates=t1:0.9,t2:0.5 first_reported=t2' "$out" \
+    || fail "the dropped captain candidate must be listed with the raw ordering: $(grep candidate-order "$out")"
+  grep -F $'1700:12\tcandidate-order\tcorrect\tcandidates=t2:0.9,t1:0.5 first_reported=t2' "$out" \
+    || fail "the matched candidate order must be listed as correct: $(grep candidate-order "$out")"
+  grep -F $'1700:13\tabsorb-no-new-outcome\t' "$out" | grep -q 'missing inputs' \
+    || fail "the record without facts must be listed unscorable, never guessed: $(grep 1700:13 "$out")"
+  ! grep -F $'1700:13\tstale-active-suppress\t' "$out" \
+    || fail "a plain wake is not unscorable at the stale gate; the gate does not apply: $(grep 1700:13 "$out")"
+  ! grep -F $'1700:13\tcandidate-order\t' "$out" \
+    || fail "a single-task wake is not unscorable at the ordering gate; the gate does not apply: $(grep 1700:13 "$out")"
+  grep -F $'1700:19\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
+    || fail "a compound wake whose pane fact belongs to another task than the named stale window is unscorable, never judged on the wrong pane: $(grep 1700:19 "$out")"
+  grep -F $'1700:21\tabsorb-no-new-outcome\t' "$out" | grep -q 'missing inputs' \
+    || fail "a record whose new_status_bytes is empty has no byte count and is unscorable at the absorb gate, never a zero: $(grep 1700:21 "$out")"
+  grep -F $'1700:20\tstale-active-suppress\tdelay\tpane=fm-t2 window=1800s' "$out" \
+    || fail "the later captain stale on the named window is a delay on its own outcome: $(grep 1700:20 "$out")"
+  grep -F $'1700:16\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
+    || fail "a stale record without a pane observation must be listed unscorable, never guessed: $(grep 1700:16 "$out")"
+
+  FM_STATE_OVERRIDE="$state" "$GATES" "$state/absent.jsonl" > "$out" || fail "gates scorer failed on an absent log"
+  [ "$(wc -l < "$out" | tr -d ' ')" = 7 ] || fail "an absent log prints only the empty tables: $(cat "$out")"
+  pass "the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
@@ -345,6 +505,26 @@ test_shadow_pane_helper_reports_only_what_it_can_read() {
   out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_CAPTURE="$dir/capture.txt" "$PANE" t1 2>/dev/null)
   printf '%s' "$out" | jq -e '.observation.progressing == false and .observation.seconds_since_last_activity == null' >/dev/null \
     || fail "an idle record must report progressing false and drop the absent activity field: $out"
+
+  # Window identity and the watcher's stale-series markers: the key transform
+  # mirrors the watcher's window_key(), so a target with ':' and '.' still
+  # finds its markers, and window+stale evidence survives without a tail.
+  printf 'id=t9\nwindow=fm:t9.v1\nbackend=tmux\n' > "$state/t9.meta"
+  printf '3\n' > "$state/.count-fm_t9_v1"
+  printf '1\n' > "$state/.wedge-escalations-fm_t9_v1"
+  out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" "$PANE" t9 2>/dev/null)
+  printf '%s' "$out" | jq -e '
+    .unavailable == null and .task == "t9"
+    and .window == "fm:t9.v1"
+    and .stale.series_index == 3 and .stale.wedge_escalations == 1
+    and .tail == null and .observation == null' >/dev/null \
+    || fail "window and stale evidence must survive without a readable tail: $out"
+
+  # Neither marker present: the stale field is omitted rather than invented.
+  printf 'window=fm-t2\n' > "$state/t2.meta"
+  out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_CAPTURE="$dir/capture.txt" "$PANE" t2 2>/dev/null)
+  printf '%s' "$out" | jq -e '.window == "fm-t2" and .stale == null' >/dev/null \
+    || fail "an absent stale series must omit the field: $out"
   pass "the pane helper reports only readable evidence and omits every field it cannot read"
 }
 
@@ -400,3 +580,4 @@ test_scorer_labels_records_from_the_status_bytes_they_judged
 test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env
 test_shadow_pane_helper_reports_only_what_it_can_read
 test_shadow_scorer_joins_records_to_outcomes_by_wake_identity
+test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions
