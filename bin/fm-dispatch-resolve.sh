@@ -53,8 +53,9 @@
 #   (<when excerpt>)" exactly as the block renders it, or null), profile (the
 #   profile line's value on clear, else null), reason (the non-clear reason,
 #   else null), latency_ms, tokens (the usage object when the response carried
-#   one, else null), model, probabilities (keyed by the offered rule `when`
-#   texts and fixed none option), selected_option, selected_probability,
+#   one, else null), model, probabilities (the response's own vector keyed by
+#   the offered rule_N and default choice ids), selected_option (the chosen
+#   rule's `when` text or the fixed none option), selected_probability,
 #   runner_up_margin, policy (version and confidence_floor), and rules_digest
 #   (the SHA-256 of the rules snapshot). Response-derived fields are null when
 #   the response did not supply them. Never recorded: the API key, the brief
@@ -139,8 +140,11 @@ done
 
 LAT_MS=null
 RULES_DIGEST=''
-OPTION_LABELS='{}'
 RESPONSE_TELEMETRY='{}'
+# option_label maps a choice id (rule_N or default) to its offered `when` text.
+OPTION_LABEL_JQ='def option_label($c):
+  if $c == "default" then $none
+  else (try ($rules[0].rules[($c | ltrimstr("rule_") | tonumber) - 1].when) catch null) end;'
 # The outcome log lives beside the home's other private records; only a brief
 # sitting at a data/<id>/brief.md-shaped path contributes a task id, so an
 # arbitrary directory name is never mistaken for one.
@@ -207,15 +211,12 @@ log_dispatch_result() {
     --arg task "$DISPATCH_TASK_ID" \
     --arg project "$PROJECT" \
     --arg policy_version "$DISPATCH_POLICY_VERSION" --arg floor "$CONFIDENCE_FLOOR" \
-    --arg rules_digest "$RULES_DIGEST" --argjson labels "$OPTION_LABELS" \
-    --argjson result "$RESULT" '
+    --arg rules_digest "$RULES_DIGEST" --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" \
+    --argjson result "$RESULT" "$OPTION_LABEL_JQ"'
   ($result) as $r |
   ($r.probabilities[$r.rule]) as $selected_probability |
   ([$r.probabilities | to_entries[] | select(.key != $r.rule) | .value] | max) as $runner_up |
   def flat: tostring | gsub("[\t\r\n]"; " ");
-  def labeled_probabilities:
-    reduce ($r.probabilities | to_entries[]) as $entry
-      ({}; . + {($labels[$entry.key]): $entry.value});
   {
     ts: $ts,
     task: (if $task == "" then null else $task end),
@@ -232,8 +233,8 @@ log_dispatch_result() {
     latency_ms: $r.latency_ms,
     tokens: $r.tokens,
     model: ($r.model // null),
-    probabilities: labeled_probabilities,
-    selected_option: $labels[$r.rule],
+    probabilities: $r.probabilities,
+    selected_option: option_label($r.rule),
     selected_probability: $selected_probability,
     runner_up_margin: ($selected_probability - $runner_up),
     policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
@@ -324,10 +325,6 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   else empty end
 ' "$RULES" 2>/dev/null) || die "malformed rules file: $RULES_PATH (not JSON)"
 [ -z "$rules_err" ] || die "malformed rules file: $RULES_PATH - $rules_err"
-OPTION_LABELS=$(jq -c --arg none "$DEFAULT_WHEN" '
-  (.rules // [] | to_entries | map({key: ("rule_" + ((.key + 1) | tostring)), value: .value.when}) | from_entries)
-  + {default: $none}
-' "$RULES") || die "malformed rules file: $RULES_PATH (not JSON)"
 
 missing_provider=$(jq -r '
   def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
@@ -395,15 +392,11 @@ command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
     --data-binary @- 2>/dev/null) || HTTP=000
   T1=$(fm_timing_now_ms)
   LAT_MS=$(( T1 - T0 ))
-  RESPONSE_TELEMETRY=$(jq -c --argjson labels "$OPTION_LABELS" '
+  RESPONSE_TELEMETRY=$(jq -c --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" "$OPTION_LABEL_JQ"'
     (.answers.rule // {}) as $answer |
     ($answer.choice // null) as $choice |
     ($answer.probabilities // null) as $raw |
-    (if ($raw | type) == "object" and all($raw[]; type == "number")
-        and all($raw | keys[]; $labels[.] != null) then
-       reduce ($raw | to_entries[]) as $entry
-         ({}; . + {($labels[$entry.key]): $entry.value})
-     else null end) as $probabilities |
+    (if ($raw | type) == "object" then $raw else null end) as $probabilities |
     (if ($choice | type) == "string" and ($raw | type) == "object" and (($raw[$choice] | type) == "number")
      then $raw[$choice] else null end) as $selected |
     ([if ($raw | type) == "object" then
@@ -413,7 +406,7 @@ command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
       model: (if (.model | type) == "string" then .model else null end),
       confidence: (if ($answer.confidence | type) == "number" then $answer.confidence else null end),
       probabilities: $probabilities,
-      selected_option: (if ($choice | type) == "string" then ($labels[$choice] // null) else null end),
+      selected_option: (if ($choice | type) == "string" then option_label($choice) else null end),
       selected_probability: $selected,
       runner_up_margin: (if $selected != null and $runner_up != null then $selected - $runner_up else null end),
       tokens: (if (.usage | type) == "object" then .usage else null end)
