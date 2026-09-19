@@ -112,7 +112,10 @@ fm_nm_run_status_class() {  # <status_word>
 }
 
 # Select from a complete `no-mistakes axi` overview with the existing awk
-# toolchain. A capped overview requires an optional Python 3 sqlite3 reader
+# toolchain. When an overview's current_branch matches the requested branch and
+# its runs_on_current_branch: 0 field is present, that explicit CLI field is the
+# authoritative absent answer and takes precedence over table completeness. A
+# capped overview otherwise requires an optional Python 3 sqlite3 reader
 # for a read-only same-branch query of NM_HOME/state.sqlite (default:
 # ~/.no-mistakes/state.sqlite; relative NM_HOME resolves from the worktree).
 # If that reader or inventory is unavailable, report unknown with available
@@ -134,7 +137,13 @@ fm_nm_run_status_class() {  # <status_word>
 # structurally truncated tables report unknown, retaining every readable
 # same-branch candidate id.
 fm_nm_select_run() {  # <branch> <axi-overview> <worktree>
-  local selection inventory available_ids
+  local selection inventory available_ids current_branch runs_on_current_branch
+  current_branch=$(fm_nm_strip_quotes "$(fm_nm_field "$2" current_branch)")
+  runs_on_current_branch=$(fm_nm_strip_quotes "$(fm_nm_field "$2" runs_on_current_branch)")
+  if [ "$current_branch" = "$1" ] && [ "$runs_on_current_branch" = 0 ]; then
+    printf 'absent\n'
+    return
+  fi
   selection=$(printf '%s\n' "$2" | awk -v branch="$1" '
     function scalar(s) {
       sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s)

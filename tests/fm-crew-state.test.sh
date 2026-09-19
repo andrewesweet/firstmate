@@ -1701,6 +1701,50 @@ test_no_run_busy_pane() {
   pass "no run + a busy semantic record reads working, attributed to its source"
 }
 
+# `runs_on_current_branch: 0` is authoritative even when the capped overview
+# has no repo line for the optional complete-inventory reader. The explicit
+# no-run answer must let crew-state continue to its ordinary pane/log sources.
+test_no_run_overview_zero_branch_falls_through() {
+  reset_fakes
+  local d overview out
+  d=$(new_case explicit-no-run)
+  make_repo_on_branch "$d/wt" fm/feat-no-run-overview
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-no-run-overview.meta" "window=fm:fm-feat-no-run-overview" \
+    "worktree=$d/wt" "kind=ship" "harness=claude"
+  overview=$(cat <<'EOF'
+current_branch: fm/feat-no-run-overview
+runs_on_current_branch: 0
+count: 10 of 47 total
+runs[10]{id,branch,status,head,pr}:
+  "01OTHER00",fm/other-0,running,0123456,""
+  "01OTHER01",fm/other-1,running,0123456,""
+  "01OTHER02",fm/other-2,running,0123456,""
+  "01OTHER03",fm/other-3,running,0123456,""
+  "01OTHER04",fm/other-4,running,0123456,""
+  "01OTHER05",fm/other-5,running,0123456,""
+  "01OTHER06",fm/other-6,running,0123456,""
+  "01OTHER07",fm/other-7,running,0123456,""
+  "01OTHER08",fm/other-8,running,0123456,""
+  "01OTHER09",fm/other-9,running,0123456,""
+help[2]:
+  axi status
+  no-mistakes init
+EOF
+  )
+  FM_FAKE_AXI_STATUS="$overview"
+  FM_FAKE_AXI_HOME="$overview"
+  printf 'working: implementation continues\n' > "$d/state/feat-no-run-overview.status"
+  FM_FAKE_BUSY=0
+  arm_idle_record "$d/state" feat-no-run-overview
+  out=$(run_crew_state "$d" feat-no-run-overview)
+  assert_contains "$out" "state: working" "explicit no-run answer falls through to the current status"
+  assert_contains "$out" "source: status-log" "explicit no-run answer reaches the status-log source"
+  assert_contains "$out" "implementation continues" "the status-log detail survives the no-run fallback"
+  assert_not_contains "$out" "unreadable runs table" "explicit no-run answer avoids the capped-table diagnostic"
+  pass "runs_on_current_branch: 0 makes a capped overview fall through to crew-state sources"
+}
+
 # A converted adapter must NOT read working from rendered footer text: the
 # redesign removed that dependency, so a pane painting "esc to interrupt" with
 # no semantic record is unknown, never working and never silently idle.
@@ -3640,6 +3684,7 @@ test_terminal_run_without_live_sibling_is_unchanged
 test_coarse_run_does_not_probe_other_branch_ci_log_for_ready_status
 test_other_branch_run_ignored
 test_no_run_busy_pane
+test_no_run_overview_zero_branch_falls_through
 test_no_run_footer_text_alone_is_not_working
 test_no_run_grok_uses_isolated_fallback
 test_no_run_herdr_unknown_uses_backend_capture
