@@ -129,7 +129,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - `state/branch-mod-events.jsonl`: append-only event log, rotated to `.1` past 4 MB; the evidence source for every count the live test asserts.
   The `session.start` event carries `persistenceOn` and `persistenceCause` (`default`, `inherited CLAUDE_CODE_CHILD_SESSION marker`, or `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE`), and every `agent.send` event names the resume target as `agentId` and `sessionId` (the primary session's transcript id, or `unavailable (<error>)` where the engine does not expose it), so a transcript regression is one log line.
 - `state/branch-mod-classifications.jsonl`: the classification log, same rotation; read by `bin/fm-branch-classifier-score.sh`.
-- `state/branch-mod-shadow.jsonl`: the shadow advisory trial log, one record per ablation or control call; read by `bin/fm-branch-shadow-score.sh`.
+- `state/branch-mod-shadow.jsonl`: the shadow advisory trial log, one record per ablation or control call, same rotation; read by `bin/fm-branch-shadow-score.sh`.
 - `config/classifier-model`: the model name `$.model.complete` is given (default `haiku`), written into every classification record.
 - `config/classifier-shadow`: `jev` joins granted wakes to the shadow advisory trial; absent or any other value is off.
 - `config/supervision-branch-model`: the branch agent's model (default `sonnet`), shared with Pi.
@@ -141,7 +141,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - Branch rotation: 60,000 tokens of per-step request context.
 - Provider-error latch: two consecutive failed branch turns, five-minute cooldown.
 - Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry only.
-- Event and classification logs: 4 MB each before rotation.
+- Event, classification, and shadow advisory logs: 4 MB each before rotation.
 - Passed-wake dedupe: 90 seconds per row set; in-flight wake considered stale after 180 seconds.
 - Shadow advisory: detached from the wake path; at most five helper calls per granted wake (four ablation variants plus the repeat control), each answer call bounded to 10 seconds and the pane gather to 6; failures logged and dropped.
 
