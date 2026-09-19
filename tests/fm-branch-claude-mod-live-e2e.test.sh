@@ -141,7 +141,10 @@ STATUS=$1; PERIOD=$2; D=$(dirname "$STATUS")
 n=0; last=$(date +%s)
 while :; do
   now=$(date +%s)
-  if [ -e "$D/dummy.done-request" ]; then
+  if [ -e "$D/dummy.pause" ]; then
+    last=$now
+    echo "$(date +%T) paused"
+  elif [ -e "$D/dummy.done-request" ]; then
     rm -f "$D/dummy.done-request"; n=$((n + 1))
     echo "done: dummy finished step $n; report at data/dummy/report.md" >> "$STATUS"
     echo "$(date +%T) appended done"
@@ -194,9 +197,10 @@ start_dummy() {
 }
 
 # Pausing freezes the stand-in's status appends without killing its pane, so
-# no wake can flow while the production gap elapses.
-pause_dummy() { pkill -STOP -f "$LAB/dummy.sh" 2>/dev/null || true; }
-resume_dummy() { pkill -CONT -f "$LAB/dummy.sh" 2>/dev/null || true; }
+# no wake can flow while the production gap elapses. A flag file, not
+# SIGSTOP: tmux's server SIGCONTs a stopped pane process at once.
+pause_dummy() { : > "$STATE/dummy.pause"; }
+resume_dummy() { rm -f "$STATE/dummy.pause"; }
 
 # Claude Code refuses to nest inside another Claude session, and the home's
 # scripts must not inherit this shell's firstmate environment.
@@ -211,9 +215,13 @@ unset_inherited() {
 # session of the current lab. Any arguments become extra environment
 # assignments in the pane after the scrub, so the child-session case passes
 # CLAUDE_CODE_CHILD_SESSION=1 and the marker survives into Claude's env.
+# The lab's tmux server is started scrubbed too: Claude Code keeps transcript
+# saving on when `tmux show-environment -g` also carries the marker (an
+# ambient marker), so a server inheriting it from a test run inside a Claude
+# session would hide the child-session defect.
 start_claude_session() { # [extra-env...]
   local extra="${*:+$* }"
-  "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
+  env $(unset_inherited) "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
     "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
