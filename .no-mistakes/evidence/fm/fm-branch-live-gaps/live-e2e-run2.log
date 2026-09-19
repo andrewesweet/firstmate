@@ -1,0 +1,72 @@
+ok - Claude Code 2.1.278 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage
+ok - a wake after the in-memory window reaches the same persisted agent: the send succeeds, no rotation
+ok - one spawn, every send successful, no dropped hand-back, no backstop delivery across the run
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● fm-branch-mod: ⛵ dummy: Dummy loop continuing through step 16, no new outcome to report.
+
+● Prompt dropped by a hook: fm-branch-mod: branch agent notification suppressed
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● fm-branch-mod: ⛵ dummy: Dummy loop continuing through step 24, no new outcome to report.
+
+● Prompt dropped by a hook: fm-branch-mod: branch agent notification suppressed
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● fm-branch-mod: ⛵ dummy: Dummy loop continuing through step 32, no new outcome to report.
+
+● Prompt dropped by a hook: fm-branch-mod: branch agent notification suppressed
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● fm-branch-mod: ⛵ dummy: Dummy loop continuing through step 39, no new outcome to report.
+
+● Prompt dropped by a hook: fm-branch-mod: branch agent notification suppressed
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● fm-branch-mod: ⛵ dummy: Dummy loop continuing through step 47, no new outcome to report.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                                                                                                          /rc
+  ⏵⏵ bypass permissions on · 1 monitor · ← 1 agent
+
+  ● main
+  ◯ fm-branch  firstmate supervision branch (persistent)                                                                                   9s · ↓ 24.3k tokens
+{"t":"2026-09-19T13:25:16.749Z","kind":"tool.call.bash","data":{"agentId":"a50513d76756d901c","wakeNo":6,"command":"bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 1326076.1789824304.ZIsSAm"}}
+{"t":"2026-09-19T13:25:16.945Z","kind":"turn.step","data":{"agentId":"a50513d76756d901c","wakeNo":6,"model":"claude-sonnet-5","index":3,"effort":"xhigh","messageCount":83}}
+{"t":"2026-09-19T13:25:18.432Z","kind":"turn.complete.branch","data":{"agentId":"a50513d76756d901c","wakeNo":6,"via":"send","reason":"answer","usage":{"input_tokens":8,"output_tokens":344,"cache_read_input_tokens":88786,"cache_creation_input_tokens":1361,"model":"claude-sonnet-5"},"wakeTokens":90155,"steps":4,"stepContext":22539,"elapsedMs":11784,"reportedSeqs":[6],"wake":"signal: /tmp/fm-branch-claude-live.bKrEZ6/home/state/dummy.status","answer":"done"}}
+{"t":"2026-09-19T13:25:18.460Z","kind":"agent.notification.dropped","data":{"text":"<task-notification>\n<task-id>a50513d76756d901c</task-id>\n<tool-use-id>toolu_plugin_19d838786afc4aa789f235771d372ff3</tool-use-id>\n<output-file>/tmp/claude-1000/-tmp-fm-branch-claude-live-bKrEZ6-home/7ecbb7af-67c0-4a05-9843-7c8d15ce8a37/tasks/a50513d76756d901c.output</output-file>\n<status>completed</"}}
+{"t":"2026-09-19T13:25:18.533Z","kind":"backstop.check","data":{"task":"dummy","wakeNo":6,"rc":0,"lines":[],"stderr":""}}
+{"t":"2026-09-19T13:25:51.993Z","kind":"monitor.event","data":{"reasons":["signal: /tmp/fm-branch-claude-live.bKrEZ6/home/state/dummy.status"],"expired":false,"text":"<task-notification>\n<task-id>brjefcanr</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>signal: /tmp/fm-branch-claude-live.bKrEZ6/home/state/dummy.status</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-19T13:25:52.005Z","kind":"wake.scope","data":{"reason":"signal: /tmp/fm-branch-claude-live.bKrEZ6/home/state/dummy.status","scope":{"status":"safe","eligible":true,"eligibleSeqs":["13","14"],"eligibleTasks":["dummy"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["13","14"]},"source":"monitor"}}
+{"t":"2026-09-19T13:25:53.540Z","kind":"classifier","data":{"seqs":["13","14"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are `working:` progress updates from an ongoing dummy loop task with no errors, blocks, or completion signals.","ms":1442,"promptChars":3514,"answer":"{\"verdict\": \"routine\", \"reason\": \"All NEW lines are `working:` progress updates from an ongoing dummy loop task with no errors, blocks, or completion signals.\"}","model":"haiku","estTokens":879}}
+{"t":"2026-09-19T13:25:53.590Z","kind":"grant.publish","data":{"seqs":["13","14"],"rc":0}}
+{"t":"2026-09-19T13:25:53.619Z","kind":"agent.send","data":{"to":"fm-branch [0592df]","sendCount":6,"attempt":0,"text":"{\"success\":true,\"message\":\"Resuming agent fm-branch\",\"resumedAgentId\":\"a50513d76756d901c\",\"pin\":{\"id\":\"a50513d76756d901c\",\"name\":\"fm-branch\",\"ref\":\"0592df\"}}"}}
+{"t":"2026-09-19T13:25:53.620Z","kind":"wake.delivered","data":{"wakeNo":7,"seqs":["13","14"],"ok":true,"via":"send","detail":"a50513d76756d901c","spawnCount":1,"sendCount":6,"source":"monitor"}}
+{"t":"2026-09-19T13:25:53.620Z","kind":"wake.dropped","data":{"wakeNo":7,"source":"monitor"}}
+{"t":"2026-09-19T13:25:53.656Z","kind":"turn.step","data":{"agentId":"a50513d76756d901c","wakeNo":7,"model":"claude-sonnet-5","index":0,"effort":"xhigh","messageCount":86}}
+{"t":"2026-09-19T13:25:56.735Z","kind":"tool.call.bash","data":{"agentId":"a50513d76756d901c","wakeNo":7,"command":"bin/fm-wake-drain.sh"}}
+{"t":"2026-09-19T13:25:57.388Z","kind":"turn.step","data":{"agentId":"a50513d76756d901c","wakeNo":7,"model":"claude-sonnet-5","index":1,"effort":"xhigh","messageCount":89}}
+{"t":"2026-09-19T13:25:59.688Z","kind":"report.call","data":{"agentId":"a50513d76756d901c","task":"dummy","verdict":"routine","summary":"Dummy loop continuing through step 47, no new outcome to report.","silent":false,"wakeNo":7}}
+{"t":"2026-09-19T13:25:59.816Z","kind":"deliver.routine","data":{"seq":7,"task":"dummy","summary":"Dummy loop continuing through step 47, no new outcome to report.","silent":false,"wakeNo":7}}
+{"t":"2026-09-19T13:25:59.824Z","kind":"turn.step","data":{"agentId":"a50513d76756d901c","wakeNo":7,"model":"claude-sonnet-5","index":2,"effort":"xhigh","messageCount":92}}
+{"t":"2026-09-19T13:26:02.151Z","kind":"tool.call.bash","data":{"agentId":"a50513d76756d901c","wakeNo":7,"command":"bin/fm-wake-drain.sh --ack-through 14 --recovery-generation 1370843.1789824351.Lj3HWG"}}
+{"t":"2026-09-19T13:26:02.319Z","kind":"turn.step","data":{"agentId":"a50513d76756d901c","wakeNo":7,"model":"claude-sonnet-5","index":3,"effort":"xhigh","messageCount":95}}
+not ok - Claude Code 2.1.278 never reached the unresumable rotation
+# lab logs kept at /tmp/fm-branch-claude-live-logs.orYG19 (lab /tmp/fm-branch-claude-live.K2jnZ5)
+# lab logs kept at /tmp/fm-branch-claude-live-logs.sOGZFv (lab /tmp/fm-branch-claude-live.bKrEZ6)
+EXIT=1 DURATION=693s

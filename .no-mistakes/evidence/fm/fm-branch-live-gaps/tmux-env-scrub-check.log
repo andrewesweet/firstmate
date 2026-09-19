@@ -1,0 +1,4 @@
+fm-branch-claude-2268063 server-global-env: none | pane-child(pid 2268661) CLAUDE_CODE_CHILD_SESSION: none
+fm-branch-claude-child-2268063 server-global-env: none | pane-child(pid 2324241) CLAUDE_CODE_CHILD_SESSION: CLAUDE_CODE_CHILD_SESSION=1
+
+[exited with code 0]

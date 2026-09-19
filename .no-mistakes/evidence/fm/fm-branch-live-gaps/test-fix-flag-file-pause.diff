@@ -1,0 +1,30 @@
+diff --git a/tests/fm-branch-claude-mod-live-e2e.test.sh b/tests/fm-branch-claude-mod-live-e2e.test.sh
+index 9bc1570..1685b8c 100755
+--- a/tests/fm-branch-claude-mod-live-e2e.test.sh
++++ b/tests/fm-branch-claude-mod-live-e2e.test.sh
+@@ -141,7 +141,10 @@ STATUS=$1; PERIOD=$2; D=$(dirname "$STATUS")
+ n=0; last=$(date +%s)
+ while :; do
+   now=$(date +%s)
+-  if [ -e "$D/dummy.done-request" ]; then
++  if [ -e "$D/dummy.pause" ]; then
++    last=$now
++    echo "$(date +%T) paused"
++  elif [ -e "$D/dummy.done-request" ]; then
+     rm -f "$D/dummy.done-request"; n=$((n + 1))
+     echo "done: dummy finished step $n; report at data/dummy/report.md" >> "$STATUS"
+     echo "$(date +%T) appended done"
+@@ -194,9 +197,10 @@ start_dummy() {
+ }
+ 
+ # Pausing freezes the stand-in's status appends without killing its pane, so
+-# no wake can flow while the production gap elapses.
+-pause_dummy() { pkill -STOP -f "$LAB/dummy.sh" 2>/dev/null || true; }
+-resume_dummy() { pkill -CONT -f "$LAB/dummy.sh" 2>/dev/null || true; }
++# no wake can flow while the production gap elapses. A flag file, not
++# SIGSTOP: tmux's server SIGCONTs a stopped pane process at once.
++pause_dummy() { : > "$STATE/dummy.pause"; }
++resume_dummy() { rm -f "$STATE/dummy.pause"; }
+ 
+ # Claude Code refuses to nest inside another Claude session, and the home's
+ # scripts must not inherit this shell's firstmate environment.
