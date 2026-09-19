@@ -1,0 +1,8 @@
+$ bin/fm-branch-shadow-gates.sh --help | tail -5
+
+The logs default to $STATE/branch-mod-shadow.jsonl and
+$STATE/branch-outcomes.jsonl; each wake's task records are read from $STATE.
+Exit 0 always; the tables are the result, and an absent shadow log prints
+only the empty tables.
+
+help lines: 85; header comment lines in file: 85
