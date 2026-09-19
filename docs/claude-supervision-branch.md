@@ -72,6 +72,7 @@ Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` in the environment: a Herdr server started inside a Claude session hands the pane its `CLAUDE_CODE_CHILD_SESSION` marker, which switches transcript saving off, and without a disk transcript every resume of the branch agent fails once Claude Code evicts the finished agent from memory 30-60 s after it completes; set in the main home after the branch-reuse root-cause report of 2026-09-19 measured 25 of 25 rotations failing this way.
+  The live test does not set it: it scrubs every inherited `CLAUDE_CODE_*` variable instead, so its scratch session never carries the marker; the `session.start` event's `persistenceOn` / `persistenceCause` fields (see the event log below) show which case a home is in.
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
 - `promptSuggestionEnabled: false` in the launch settings (and `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` in the environment): a prompt suggestion is a model call main would make between wakes, so it is switched off.
 - The ordinary Claude Stop hook (`bin/fm-claude-stop-autoarm.sh` with `asyncRewake`), as the [Claude supervision protocol](supervision-protocols/claude.md) already requires; the rewake it delivers is what the mod routes.
