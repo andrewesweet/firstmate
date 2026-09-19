@@ -1,0 +1,12 @@
+== persistence D: marker plus CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+PATH claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+launched binary: /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+screen:
+● fm-branch-mod: fm-branch-mod: loaded (enabled, home /tmp/fm-split.KbFS7v/home, Claude Code 2.1.278)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                                                                                            ◉ xhigh · /effort
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent                                                                                                /rc
+events:
+{"t":"2026-09-19T11:50:30.990Z","kind":"session.start","data":{"cwd":"/tmp/fm-split.KbFS7v/home","home":"/tmp/fm-split.KbFS7v/home","state":"/tmp/fm-split.KbFS7v/home/state","enabled":true,"generation":"cc1789818630509","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":true,"persistenceCause":"CLAUDE_CODE_FORCE_SESSION_PERSISTENCE"}}

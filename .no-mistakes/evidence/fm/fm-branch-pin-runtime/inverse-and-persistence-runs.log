@@ -1,0 +1,27 @@
+## inverse-277-host-278-path
+host binary: /home/andre/.local/share/claude/versions/2.1.277 (2.1.277 (Claude Code))
+PATH claude: /tmp/fm-split-inverse-277-host-278-path.BVZGBf/shim/claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+extra env: none
+event log:
+{"t":"2026-09-19T11:56:34.797Z","kind":"pin.refused","data":{"version":"2.1.277","pin":"2.1.278","pinSource":"running binary","probe":"2.1.277 (Claude Code)"}}
+ui log line (from Claude debug log):
+2026-09-19T11:56:34.839Z [DEBUG] [fm-branch-mod] $.ui.log: fm-branch-mod: refusing to load on Claude Code 2.1.277 (running binary); built for 2.1.278
+
+## marker-off
+host binary: /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+PATH claude: /tmp/fm-split-marker-off.oUEKFO/shim/claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+extra env: CLAUDE_CODE_CHILD_SESSION=1
+event log:
+{"t":"2026-09-19T11:56:46.379Z","kind":"session.start","data":{"cwd":"/tmp/fm-split-marker-off.oUEKFO/home","home":"/tmp/fm-split-marker-off.oUEKFO/home","state":"/tmp/fm-split-marker-off.oUEKFO/home/state","enabled":true,"generation":"cc1789819005949","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":false,"persistenceCause":"inherited CLAUDE_CODE_CHILD_SESSION marker"}}
+ui log line (from Claude debug log):
+2026-09-19T11:56:46.379Z [DEBUG] [fm-branch-mod] $.ui.log: fm-branch-mod: loaded (enabled, home /tmp/fm-split-marker-off.oUEKFO/home, Claude Code 2.1.278)
+
+## force-on
+host binary: /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+PATH claude: /tmp/fm-split-force-on.7igad6/shim/claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+extra env: CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+event log:
+{"t":"2026-09-19T11:56:57.671Z","kind":"session.start","data":{"cwd":"/tmp/fm-split-force-on.7igad6/home","home":"/tmp/fm-split-force-on.7igad6/home","state":"/tmp/fm-split-force-on.7igad6/home/state","enabled":true,"generation":"cc1789819017219","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":true,"persistenceCause":"CLAUDE_CODE_FORCE_SESSION_PERSISTENCE"}}
+ui log line (from Claude debug log):
+2026-09-19T11:56:57.671Z [DEBUG] [fm-branch-mod] $.ui.log: fm-branch-mod: loaded (enabled, home /tmp/fm-split-force-on.7igad6/home, Claude Code 2.1.278)
+

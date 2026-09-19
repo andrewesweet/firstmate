@@ -1,0 +1,12 @@
+== persistence C: inherited CLAUDE_CODE_CHILD_SESSION marker
+PATH claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+launched binary: /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+screen:
+● fm-branch-mod: fm-branch-mod: loaded (enabled, home /tmp/fm-split.YuNYIs/home, Claude Code 2.1.278)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                                                                                            ◉ xhigh · /effort
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent                                                                                                /rc
+events:
+{"t":"2026-09-19T11:50:25.452Z","kind":"session.start","data":{"cwd":"/tmp/fm-split.YuNYIs/home","home":"/tmp/fm-split.YuNYIs/home","state":"/tmp/fm-split.YuNYIs/home/state","enabled":true,"generation":"cc1789818625033","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":false,"persistenceCause":"inherited CLAUDE_CODE_CHILD_SESSION marker"}}

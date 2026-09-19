@@ -1,0 +1,12 @@
+== split B: launched 2.1.277 absolute, PATH claude = 2.1.278 (pin 2.1.278; must refuse and name the running binary)
+PATH claude -> /home/andre/.local/share/claude/versions/2.1.278 (2.1.278 (Claude Code))
+launched binary: /home/andre/.local/share/claude/versions/2.1.277 (2.1.277 (Claude Code))
+screen:
+● fm-branch-mod: fm-branch-mod: refusing to load on Claude Code 2.1.277 (running binary); built for 2.1.278
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                                                                                            ◉ xhigh · /effort
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent                                                                                                /rc
+events:
+{"t":"2026-09-19T11:50:14.351Z","kind":"pin.refused","data":{"version":"2.1.277","pin":"2.1.278","pinSource":"running binary","probe":"2.1.277 (Claude Code)"}}

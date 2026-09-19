@@ -1,0 +1,10 @@
+# session.start
+{"t":"2026-09-19T11:49:38.718Z","kind":"session.start","data":{"cwd":"/tmp/fm-branch-claude-live.nwrE52/home","home":"/tmp/fm-branch-claude-live.nwrE52/home","state":"/tmp/fm-branch-claude-live.nwrE52/home/state","enabled":true,"generation":"cc1789818578287","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":true,"persistenceCause":"default"}}
+# agent.send
+{"t":"2026-09-19T11:51:55.810Z","kind":"agent.send","data":{"to":"fm-branch","agentId":"a23a2e9fc4583eedb","sessionId":"5f75d07c-3f13-44bf-ab39-a8e06960e008","sendCount":1,"attempt":0,"text":"{\"success\":true,\"message\":\"Resuming agent fm-branch\",\"resumedAgentId\":\"a23a2e9fc4583eedb\",\"pin\":{\"id\":\"a23a2e9fc4583eedb\",\"name\":\"fm-branch\",\"ref\":\"f2f368\"}}"}}
+# agent.spawn
+{"t":"2026-09-19T11:50:19.396Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch","branchGeneration":1,"result":{"model":"claude-sonnet-5","agentId":"a23a2e9fc4583eedb"}}}
+
+# resume target resolved on disk (find ~/.claude/projects -name "<sessionId>*" -o -name "agent-<agentId>*")
+/home/andre/.claude/projects/-tmp-fm-branch-claude-live-nwrE52-home/5f75d07c-3f13-44bf-ab39-a8e06960e008.jsonl
+/home/andre/.claude/projects/-tmp-fm-branch-claude-live-nwrE52-home/5f75d07c-3f13-44bf-ab39-a8e06960e008/subagents/agent-a23a2e9fc4583eedb.jsonl
