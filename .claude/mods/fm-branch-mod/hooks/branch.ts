@@ -982,17 +982,25 @@ function bashRewrite(e: any, holder: string): any {
 // the host binary's own `--version` through /proc (Linux only); the PATH call
 // stays as the fallback, and a probe answer without a version shape is treated
 // as unavailable so a misresolved executable can never cause a false refusal.
-async function checkPin($: any): Promise<string> {
+// The answer names which source decided and the probe's raw output, so a split
+// between the two is one log line.
+type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
+
+async function checkPin($: any): Promise<PinCheck> {
+  let probe = ''
   try {
     const r = await $.process.run(['sh', '-c', 'exec "$(readlink /proc/$PPID/exe)" --version'], { timeoutMs: 10000 })
-    const version = String(r.stdout ?? '').trim().split(/\s+/)[0] ?? ''
-    if (/^\d+\.\d+\.\d+/.test(version)) return version
-  } catch {}
+    probe = String(r.stdout ?? '').trim().slice(0, 200)
+    const version = probe.split(/\s+/)[0] ?? ''
+    if (/^\d+\.\d+\.\d+/.test(version)) return { version, source: 'running binary', probe }
+  } catch (error) {
+    probe = `unreadable (${String(error)})`
+  }
   try {
     const r = await $.process.run(['claude', '--version'], { timeoutMs: 10000 })
-    return String(r.stdout ?? '').trim().split(/\s+/)[0] ?? ''
+    return { version: String(r.stdout ?? '').trim().split(/\s+/)[0] ?? '', source: 'PATH claude', probe }
   } catch (error) {
-    return `unreadable (${String(error)})`
+    return { version: `unreadable (${String(error)})`, source: 'PATH claude', probe }
   }
 }
 
@@ -1032,11 +1040,11 @@ async function sessionTranscriptId($: any): Promise<string> {
 export function register(on: On) {
   on('session.start', async ($, e, next) => {
     await bind($, e.cwd)
-    const version = await checkPin($)
+    const { version, source: pinSource, probe } = await checkPin($)
     if (version !== CLAUDE_CODE_PIN) {
       refused = true
-      $.ui.log(`${PLUGIN}: refusing to load on Claude Code ${version || 'unknown'}; built for ${CLAUDE_CODE_PIN}`)
-      log($, 'pin.refused', { version, pin: CLAUDE_CODE_PIN })
+      $.ui.log(`${PLUGIN}: refusing to load on Claude Code ${version || 'unknown'} (${pinSource}); built for ${CLAUDE_CODE_PIN}`)
+      log($, 'pin.refused', { version, pin: CLAUDE_CODE_PIN, pinSource, probe })
       return next(e)
     }
     const persistence = await transcriptPersistence($)
@@ -1081,7 +1089,7 @@ export function register(on: On) {
     }
     const enabled = await modeOn($)
     $.ui.log(`${PLUGIN}: loaded (${enabled ? 'enabled' : 'inert: no state/.branch-mod-mode'}, home ${home}, Claude Code ${version})`)
-    log($, 'session.start', { cwd, home, state, enabled, generation, version })
+    log($, 'session.start', { cwd, home, state, enabled, generation, version, pinSource, probe })
     return next(e)
   }).catch(($, e, next) => next(e))
 

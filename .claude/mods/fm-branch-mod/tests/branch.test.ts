@@ -173,6 +173,9 @@ function armedHome(): Record<string, string> {
 
 const WAKE = `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: ${STATE}/t1.status\n`;
 
+const startEvent = (w: World) =>
+  w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).find((e) => e.kind === "session.start");
+
 describe("version pin", () => {
   test("refuses to load on any other Claude Code version and passes every wake through", async ($: Engine, on: On) => {
     const w = world(on, { version: "2.1.271", files: armedHome() });
@@ -202,6 +205,20 @@ describe("version pin", () => {
     // The probe is issued first and answers, so PATH claude is never asked.
     expect(w.runs[0]?.argv).toEqual(["sh", "-c", 'exec "$(readlink /proc/$PPID/exe)" --version']);
     expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(false);
+    // The load record names the source that decided and the probe's raw answer.
+    const start = startEvent(w);
+    expect(start?.data.version).toBe(PIN);
+    expect(start?.data.pinSource).toBe("running binary");
+    expect(start?.data.probe).toBe(`${PIN} (Claude Code)`);
+  });
+
+  test("a refusal records which source decided against the pin", async ($: Engine, on: On) => {
+    const w = world(on, { version: PIN, runningBinaryVersion: "2.1.1", files: armedHome() });
+    await $.session.start(sessionStart);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    const refused = events.find((e) => e.kind === "pin.refused");
+    expect(refused?.data).toEqual({ version: "2.1.1", pin: PIN, pinSource: "running binary", probe: "2.1.1 (Claude Code)" });
+    expect(w.registered).toEqual([]);
   });
 
   test("PATH claude decides when the running binary's version is unavailable", async ($: Engine, on: On) => {
@@ -212,6 +229,9 @@ describe("version pin", () => {
     expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
     expect(w.runs[0]?.argv[2]).toContain("/proc/$PPID/exe");
     expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(true);
+    const start = startEvent(w);
+    expect(start?.data.pinSource).toBe("PATH claude");
+    expect(start?.data.probe).toBe("");
   });
 
   test("without state/.branch-mod-mode the module loads inert and passes every wake through unclassified", async ($: Engine, on: On) => {

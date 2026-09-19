@@ -86,7 +86,8 @@ Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e
 ## Version pin
 
 The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.278`).
-At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable); on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version>; built for <pin>`, and passes every hook through untouched for the rest of the session.
+At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable); on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version> (<source>); built for <pin>`, and passes every hook through untouched for the rest of the session.
+Both the `session.start` and the `pin.refused` event record `pinSource` (`running binary` or `PATH claude`) and the probe's raw `--version` output as `probe`, so a split between the running binary and PATH is one log line.
 A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
 A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin was set) runs the unchanged Claude protocol until Claude Code is updated.
 
