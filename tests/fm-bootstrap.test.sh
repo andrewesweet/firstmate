@@ -21,6 +21,12 @@
 # one run into its local and network halves, and the one-hop tasks-axi
 # compatibility handoff that keeps a session start from paying for that verdict
 # twice.
+# Dedicated transcript-suppression cases pin the TRANSCRIPT_SUPPRESSION
+# contract: fires only for a claude primary, one line per environment cause
+# claude's transcript gate honors, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE
+# defeats only the nested-marker cause with claude's 0/false falsiness, and
+# the tmux ambient probe mirrors the binary (ambient = silent, absent/failed
+# probe = suppressed).
 set -u
 
 # shellcheck source=tests/lib.sh disable=SC1091
@@ -36,8 +42,15 @@ export FM_BACKEND_CMUX_BUNDLE_BIN="$TMP_ROOT/no-bundled-cmux"
 # fm_backend_name and flip a default-backend case onto a non-tmux backend. Unset
 # them once so the suite resolves the tmux reference backend unless a case says
 # otherwise - the same hermeticity discipline as pinning PATH via BASE_PATH.
+# CLAUDECODE and the claude transcript markers join them for the same reason:
+# a maintainer running this suite from inside a claude pane (possibly one whose
+# Herdr server carries CLAUDE_CODE_CHILD_SESSION) must not silently turn every
+# silence-pinning case into a TRANSCRIPT_SUPPRESSION failure, and must not
+# rename the harness a case detects.
 unset TMUX TMUX_PANE HERDR_ENV HERDR_PANE_ID HERDR_SESSION HERDR_SOCKET_PATH \
-  CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_SOCKET_PATH CMUX_TAB_ID CMUX_PANEL_ID 2>/dev/null || true
+  CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_SOCKET_PATH CMUX_TAB_ID CMUX_PANEL_ID \
+  CLAUDECODE CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_SKIP_PROMPT_HISTORY \
+  CLAUDE_CODE_FORCE_SESSION_PERSISTENCE 2>/dev/null || true
 
 # A fake toolchain where every required tool is present and gh is authenticated.
 # treehouse's `get --help` advertises --lease only when FM_FAKE_TREEHOUSE_LEASE_HELP=1.
@@ -1233,6 +1246,147 @@ ROWS
   pass "bootstrap gates resolver fields and additive harnesses on the typed key"
 }
 
+# Fake tmux whose `show-environment -g CLAUDE_CODE_CHILD_SESSION` answers per
+# mode: ambient (exit 0 naming the marker, the only silent verdict), absent
+# (exit 0 without the marker - the query was answered and found nothing), or
+# fail (nonzero exit - a query that never answered reads unknown). The table
+# toolchain's blanket exit-0 tmux would fake the ambient verdict for every
+# case, so transcript cases always overwrite it.
+# Fake ps that reports a bash ancestor terminating at pid 1, so the harness
+# ancestry walk proves nothing and only the marker layer answers. Without it a
+# maintainer running this suite from inside a real pi or claude session hands
+# every case a comm-strength ancestor that outranks the case's markers
+# (tests/fm-harness-precedence.test.sh owns that precedence boundary).
+blind_ancestry_bin() { # <dir>
+  local fakebin
+  fakebin=$(fm_fakebin "$1")
+  cat > "$fakebin/ps" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *'ppid='*) printf '%s\n' 1 ;;
+  *) printf '%s\n' bash ;;
+esac
+SH
+  chmod +x "$fakebin/ps"
+}
+
+add_transcript_tmux() { # <fakebin> <ambient|absent|fail>
+  local fakebin=$1 mode=$2
+  cat > "$fakebin/tmux" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = show-environment ] && [ "\${2:-}" = -g ] && [ "\${3:-}" = CLAUDE_CODE_CHILD_SESSION ]; then
+  case "$mode" in
+    ambient) printf 'CLAUDE_CODE_CHILD_SESSION=1\n'
+      exit 0 ;;
+    absent) exit 0 ;;
+    *) echo 'tmux exploded' >&2
+      exit 42 ;;
+  esac
+fi
+exit 0
+SH
+  chmod +x "$fakebin/tmux"
+}
+
+run_transcript_case() { # <name> <extra env assignments...>; output in $out
+  local name=$1
+  shift
+  local case_dir fakebin
+  case_dir="$TMP_ROOT/transcript-$name"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  out=$(env -u TMUX -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SKIP_PROMPT_HISTORY \
+    -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
+    -u GEMINI_CLI -u ATLASSIAN_AGENT_TYPE -u ROVODEV_CLI -u FM_OMP_HARNESS \
+    -u PI_CODING_AGENT -u GROK_AGENT \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 "$@" \
+    "$ROOT/bin/fm-bootstrap.sh")
+}
+
+TRANSCRIPT_CHILD_LINE='TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session'\''s transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1'
+TRANSCRIPT_SKIP_LINE='TRANSCRIPT_SUPPRESSION: CLAUDE_CODE_SKIP_PROMPT_HISTORY suppresses this primary session'\''s transcript and the MLflow traces read from it; CLAUDE_CODE_FORCE_SESSION_PERSISTENCE does not defeat this cause - relaunch the primary without it'
+
+test_primary_transcript_suppression() {
+  local case_dir fakebin expected_two
+  # A claude primary with the inherited nested-session marker and no override
+  # is suppressed; the line names the probe verdict and the remedy.
+  run_transcript_case child-suppressed CLAUDE_CODE_CHILD_SESSION=1
+  [ "$out" = "$TRANSCRIPT_CHILD_LINE" ] || fail "child marker without override must fire the suppression line, got: $out"
+  pass "inherited child marker on a claude primary fires the suppression line"
+
+  # The documented override defeats the nested-marker cause.
+  run_transcript_case child-override CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+  [ -z "$out" ] || fail "override must silence the child-marker line, got: $out"
+  # The override honors claude's bool parser: an explicit false is not forced.
+  run_transcript_case child-override-false CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=false
+  [ "$out" = "$TRANSCRIPT_CHILD_LINE" ] || fail "override=false must not read as forced, got: $out"
+  # A falsy marker is not a nested session at all.
+  run_transcript_case child-falsy CLAUDE_CODE_CHILD_SESSION=0
+  [ -z "$out" ] || fail "CHILD_SESSION=0 must stay silent, got: $out"
+  pass "the persistence override governs the nested-marker cause with claude's bool semantics"
+
+  # The skip-prompt-history cause fires independently and the override line
+  # says so; both markers fire both lines.
+  run_transcript_case skip-only CLAUDE_CODE_SKIP_PROMPT_HISTORY=1
+  [ "$out" = "$TRANSCRIPT_SKIP_LINE" ] || fail "skip marker must fire its own line, got: $out"
+  run_transcript_case both-markers CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_SKIP_PROMPT_HISTORY=1
+  expected_two="$TRANSCRIPT_CHILD_LINE"$'\n'"$TRANSCRIPT_SKIP_LINE"
+  [ "$out" = "$expected_two" ] || fail "both causes must fire both lines in order, got: $out"
+  pass "skip-prompt-history fires independently of the nested-marker cause"
+
+  # The tmux ambient probe mirrors the binary: marker in the server's global
+  # environment is ambient and silent; a missing marker is absent (suppressed)
+  # and a broken tmux is unknown (suppressed).
+  case_dir="$TMP_ROOT/transcript-tmux-ambient"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  add_transcript_tmux "$fakebin" ambient
+  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
+    "$ROOT/bin/fm-bootstrap.sh")
+  [ -z "$out" ] || fail "ambient tmux marker must stay silent, got: $out"
+  case_dir="$TMP_ROOT/transcript-tmux-absent"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  add_transcript_tmux "$fakebin" absent
+  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
+    "$ROOT/bin/fm-bootstrap.sh")
+  printf '%s' "$out" | grep -Fq '(tmux ambient probe: absent)' || fail "tmux without the marker must read absent, got: $out"
+  case_dir="$TMP_ROOT/transcript-tmux-fail"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  add_transcript_tmux "$fakebin" fail
+  out=$(env -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 TMUX=/tmp/fake-tmux,123,0 \
+    "$ROOT/bin/fm-bootstrap.sh")
+  printf '%s' "$out" | grep -Fq '(tmux ambient probe: unknown)' || fail "broken tmux must read unknown, got: $out"
+  pass "the tmux ambient probe mirrors the binary's absent/ambient/unknown verdicts"
+
+  # Only a claude primary is reportable: the same markers under a pi primary
+  # are inert inherited noise, and no markers at all stays silent.
+  case_dir="$TMP_ROOT/transcript-pi-primary"
+  mkdir -p "$case_dir/home"
+  fakebin=$(make_fake_toolchain "$case_dir")
+  blind_ancestry_bin "$case_dir" >/dev/null
+  out=$(env -u CLAUDECODE -u TMUX -u CLAUDE_CODE_SKIP_PROMPT_HISTORY -u CLAUDE_CODE_FORCE_SESSION_PERSISTENCE \
+    PATH="$fakebin:$BASE_PATH" FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_BOOTSTRAP_DETECT_ONLY=1 FM_FAKE_TREEHOUSE_LEASE_HELP=1 PI_CODING_AGENT=true CLAUDE_CODE_CHILD_SESSION=1 \
+    "$ROOT/bin/fm-bootstrap.sh")
+  [ -z "$out" ] || fail "non-claude primary must stay silent, got: $out"
+  run_transcript_case clean-claude
+  [ -z "$out" ] || fail "claude primary without markers must stay silent, got: $out"
+  pass "the check gates on the claude primary and stays silent when healthy"
+}
+
 test_bootstrap_reporting
 test_no_mistakes_min_version
 test_gh_axi_min_version
@@ -1261,3 +1415,4 @@ test_network_phases_record_per_step_elapsed_times
 test_tasks_axi_verdict_handoff_is_consumed_once
 test_crew_dispatch_active_rules_are_verbose_bootstrap_info
 test_crew_dispatch_validation
+test_primary_transcript_suppression
