@@ -75,6 +75,12 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   printf 'working: t3\n' > "$state/t3.status"
   printf 'working: t5\n' > "$state/t5.status"
   printf 'working: t6\n' > "$state/t6.status"
+  printf 'id=t7\nwindow=fm-t7\nbackend=tmux\n' > "$state/t7.meta"
+  printf 'working: t7\n' > "$state/t7.status"
+  printf 'id=t8\nwindow=fm-t8\nbackend=tmux\n' > "$state/t8.meta"
+  # A captain line presented before the mod's first row on t8: the first
+  # row's span is never scanned, so it is not a backstop surfacing.
+  printf 'done: t8 finished before the trial\n' > "$state/t8.status"
   # A worker incarnation newer than the 1700:10 stale wake: the derivable
   # stale-repair signal for the suppression gate.
   printf 'v1 gen=g%s.4242.17 seq=1 state=busy source=tmux event=turn-end ts=%s\n' "$((base_t + 50))" "$((base_t + 50))" > "$state/t5.busy-state"
@@ -103,6 +109,9 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   append_outcome "$state" t6 captain 'Passed to main directly (classifier): decision'
   append_wake_outcome "$state" t6 routine 'noise' 1700:15
   append_wake_outcome "$state" t3 routine 'stale, pane unread' 1700:16
+  append_wake_outcome "$state" t7 routine 'stale but fine, torn down later' 1700:17
+  append_wake_outcome "$state" t8 routine 'first row on t8' 1700:18
+  rm -f "$state/t7.meta" "$state/t7.status"
 
   {
     rec 1700:1 0 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:1 '{"t1":0}' fm-t1 '{"present":false}')"
@@ -121,18 +130,20 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     rec 1700:14 10 'signal: unmatched' '["t6"]' '{}' "$(fact 1700:14 '{"t6":0}' fm-t6 '{"present":false}')"
     rec 1700:15 11 'signal: t6' '["t6"]' '{"severity":{"type":"score","score":3,"confidence":0.9}}' "$(fact 1700:15 '{"t6":0}' fm-t6 '{"present":false}')"
     rec 1700:16 12 'stale: fm-t3' '["t3"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:16 '{"t3":0}' fm-t3 '{"present":false}')"
+    rec 1700:17 13 'stale: fm-t7' '["t7"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:17 '{"t7":0}' fm-t7 '{"present":false}' "$stale_extra")"
+    rec 1700:18 14 'signal: t8' '["t8"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:18 '{"t8":0}' fm-t8 '{"present":false}')"
   } > "$state/branch-mod-shadow.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$GATES" > "$out" || fail "gates scorer failed: $(cat "$out")"
-  grep -Fx '| absorb-no-new-outcome | 3 | 12 | 2 | 1 (50.0%) | 0 | 1 | 1 |' "$out" \
-    || fail "the no-new-outcome row must fire the clean absorb, miss the below-floor one, and count the backstop-covered absorb as a loss: $(grep '^| absorb-no-new-outcome' "$out")"
-  grep -Fx '| absorb-routine-working | 1 | 14 | 1 | 0 (0.0%) | 0 | 1 | 0 |' "$out" \
+  grep -Fx '| absorb-no-new-outcome | 4 | 13 | 3 | 2 (66.7%) | 0 | 1 | 1 |' "$out" \
+    || fail "the no-new-outcome row must fire the clean absorbs (including a task's first row over a pre-trial captain line), miss the below-floor one, and count the backstop-covered absorb as a loss: $(grep '^| absorb-no-new-outcome' "$out")"
+  grep -Fx '| absorb-routine-working | 1 | 16 | 1 | 0 (0.0%) | 0 | 1 | 0 |' "$out" \
     || fail "the routine-working row must count a fire over a captain outcome as a loss: $(grep '^| absorb-routine-working' "$out")"
-  grep -Fx '| stale-active-suppress | 4 | 2 | 4 | 1 (25.0%) | 2 | 1 | 0 |' "$out" \
-    || fail "the stale gate must score the in-window captain stale as a loss and its own actionable or repaired fires as delays: $(grep '^| stale-active-suppress' "$out")"
-  grep -Fx '| pr-ready-arm | 3 | 12 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
+  grep -Fx '| stale-active-suppress | 5 | 2 | 5 | 2 (40.0%) | 2 | 1 | 0 |' "$out" \
+    || fail "the stale gate must score the in-window captain stale as a loss, its own actionable or relaunch-repaired fires as delays, and a torn-down task's fire as correct: $(grep '^| stale-active-suppress' "$out")"
+  grep -Fx '| pr-ready-arm | 3 | 14 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
     || fail "the arm gate must score the armed PR ready as correct and the unbacked one as a delay: $(grep '^| pr-ready-arm' "$out")"
-  grep -Fx '| severity-alert | 2 | 13 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
+  grep -Fx '| severity-alert | 2 | 15 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
     || fail "the severity gate must count a security-class alert over an absorbable wake as a delay and a low-scored actionable absorb as missed: $(grep '^| severity-alert' "$out")"
   grep -Fx '| candidate-order | 2 | 1 | 2 | 1 (50.0%) | 0 | 1 | - |' "$out" \
     || fail "the ordering gate must count the dropped captain candidate as a loss and the matched order as correct: $(grep '^| candidate-order' "$out")"
@@ -152,6 +163,8 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "the suppressing stale wake whose later in-window stale was captain must be listed as a loss: $(grep stale-active-suppress "$out")"
   grep -F $'1700:10\tstale-active-suppress\tdelay\tpane=fm-t5 window=1800s' "$out" \
     || fail "the stale wake with a derivable repair must be listed as a delay: $(grep stale-active-suppress "$out")"
+  grep -F $'1700:17\tstale-active-suppress\tcorrect\tpane=fm-t7 window=1800s' "$out" \
+    || fail "a later teardown is not a stale repair, so the fire stays correct: $(grep stale-active-suppress "$out")"
   grep -F $'1700:11\tcandidate-order\tloss\tcandidates=t1:0.9,t2:0.5 first_reported=t2' "$out" \
     || fail "the dropped captain candidate must be listed with the raw ordering: $(grep candidate-order "$out")"
   grep -F $'1700:12\tcandidate-order\tcorrect\tcandidates=t2:0.9,t1:0.5 first_reported=t2' "$out" \

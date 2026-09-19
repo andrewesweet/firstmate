@@ -23,15 +23,18 @@
 #     routine rows label it routine; no rows leave it unmatched and out of
 #     every tally;
 #   - a later outcome-backstop surfacing (a routine row whose covered status
-#     span holds a captain-relevant, non-keyed status line - the same line set
-#     fm-wake-drain.sh's STATUS OUTCOME BACKSTOP prints) marks a routine label
-#     as a wrong absorb;
+#     span, from the task's previous outcome row's endpoint, holds a captain-
+#     relevant, non-keyed status line - the same line set fm-wake-drain.sh's
+#     STATUS OUTCOME BACKSTOP prints) marks a routine label as a wrong absorb;
+#     a task's first row has no previous endpoint and no durable receipt, so
+#     its span is never scanned rather than guessed from byte 0;
 #   - main's own later recorded action where the durable stores derive it: a
 #     PR URL inside the wake's joined outcome summaries, a merge poll armed
 #     for one of the wake's tasks (state/<task>.pr-poll or pr= in the meta,
 #     read at scoring time so this signal is task-scoped, not wake-scoped),
-#     and, for stale wakes, a later outcome row for the same task or the
-#     task's records gone (torn down) as the stale repair.
+#     and, for stale wakes, a worker incarnation newer than the wake (the
+#     busy-state gen) as the stale repair; teardown is not a repair, since
+#     every task is torn down once it finishes.
 #
 # The gates, fired on a full record's facts and answers at a floor F:
 #   absorb-no-new-outcome   no_new_outcome Noul >= F and zero new status bytes
@@ -207,7 +210,7 @@ while IFS=$'\t' read -r wake task seq verdict endpoint haspr; do
     WK_CAPTAIN[$wake]=1
     WK_CAPTASKS[$wake]="${WK_CAPTASKS[$wake]:-} $task"
   fi
-  if [ "$verdict" = routine ] && [ -z "${WK_BACKSTOP[$wake]:-}" ]; then
+  if [ "$verdict" = routine ] && [ "$prev_ep" -gt 0 ] && [ -z "${WK_BACKSTOP[$wake]:-}" ]; then
     backstop_span_has_surface "$task" "$prev_ep" "$endpoint" && WK_BACKSTOP[$wake]=1
   fi
   [ "$haspr" = pr ] && WK_PRROWS[$wake]=1
@@ -276,17 +279,14 @@ task_restarted_after() {  # <task> <epoch>: a worker incarnation newer than the 
   [ "$g" -gt "$2" ]
 }
 wake_stale_repair() {  # <wakeKey>: a stale wake main had to act on - a worker
-  # incarnation newer than the wake (a relaunch or replacement), or the
-  # task's records gone (torn down after being handled). A steer that unsticks
-  # the worker without a restart is not derivable from the durable stores, so
-  # it is never claimed.
+  # incarnation newer than the wake (a relaunch or replacement). A steer that
+  # unsticks the worker without a restart, and a teardown (every task is torn
+  # down once it finishes), are not derivable as repairs, so neither is claimed.
   local wk=$1 t epoch
   epoch=${WKEPOCH[$wk]:-}
   [ -n "$epoch" ] || return 1
   for t in ${WK_TASKS[$wk]:-}; do
     task_restarted_after "$t" "$epoch" && return 0
-    case "$t" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
-    if [ ! -f "$STATE/$t.meta" ] && [ ! -f "$STATE/$t.status" ]; then return 0; fi
   done
   return 1
 }
