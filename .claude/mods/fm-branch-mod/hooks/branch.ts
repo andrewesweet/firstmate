@@ -31,6 +31,7 @@
 //   .branch-mod-passed              queue seqs passed to main with a cover row and not yet acknowledged
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
+//   branch-mod-shadow.jsonl         one record per shadow advisory call (config/classifier-shadow = jev), size-capped
 import type { On } from 'claude-code'
 
 export const CLAUDE_CODE_PIN = '2.1.278'

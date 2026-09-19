@@ -6,8 +6,10 @@
 #   - Store: $STATE/branch-outcomes.jsonl, strictly APPEND-ONLY. One JSON
 #     object per line: {"seq":N,"epoch":N,"task":"...","wake":"...",
 #     "verdict":"routine"|"captain","summary":"...","silent":true|false,
-#     "statusEndpoint":N,"statusIdent":"..."}. Legacy rows without `silent`
-#     or status provenance remain valid and are treated as visible.
+#     "statusEndpoint":N,"statusIdent":"..."}, plus an optional "wakeKey"
+#     (digits, colon, comma only) before statusEndpoint when the appender
+#     passed --wake-key. Legacy rows without `silent` or status provenance
+#     remain valid and are treated as visible.
 #     Every read and append validates the complete log as a gap-free sequence;
 #     malformed, duplicate, or reordered rows fail closed.
 #     Existing lines are never rewritten, reordered, or deleted by any
