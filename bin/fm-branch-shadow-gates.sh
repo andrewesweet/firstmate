@@ -121,7 +121,7 @@ REC_ROWS=$(jq -R -r '
   (($sv | type) == "number" and ($sv >= 0) and ($sevc | type) == "array" and ($sv < ($sevc | length))) as $inrange |
   (if $inrange then ($sevc[$sv] | tostring) else "-" end) as $cls |
   [ ($r.wakeKey // "" | if . == "" then "-" else . end),
-    (if ($r.wake // "" | test("^stale:")) then "stale" else "plain" end),
+    (if ($r.wake // "" | test("(^|\n)stale:")) then "stale" else "plain" end),
     (($r.t // "" | sub("\\.[0-9]+Z$"; "Z") | try fromdateiso8601 catch null) // "-" | tostring),
     ($cf | tostring),
     ($npa | tostring),
@@ -145,8 +145,7 @@ REC_ROWS=$(jq -R -r '
     (($f.pane // null) // "-" | tostring),
     (($r.tasks // null) as $tsk | (if ($tsk | type) == "array" then ($tsk | length) else null end) // "-" | tostring),
     (if ($f.candidates | type) == "object" and ($f.candidates | length) > 0 then
-      ($f.candidates | to_entries | sort_by(-(.value | if type == "number" then . else -1 end)) | map(.key + ":" + ((.value // "-") | tostring)) | join(",")) else "-" end),
-    ((if ($r.tasks | type) == "array" then ($r.tasks[0] // null) else null end) // "-" | tostring)
+      ($f.candidates | to_entries | sort_by(-(.value | if type == "number" then . else -1 end)) | map(.key + ":" + ((.value // "-") | tostring)) | join(",")) else "-" end)
   ] | @tsv' "$LOG" 2>/dev/null || true)
 
 # One TSV line per branch outcome row.
@@ -198,12 +197,12 @@ backstop_span_has_surface() {  # <task> <from> <endpoint>
 }
 
 while IFS=$'\t' read -r wake task seq verdict endpoint haspr; do
-  { [ -n "$wake" ] && [ "$wake" != "-" ]; } || continue
   { [ -n "$task" ] && [ "$task" != "-" ]; } || continue
-  WK_SEEN[$wake]=1
-  WK_TASKS[$wake]="${WK_TASKS[$wake]:-} $task"
   prev_ep=${LAST_EP[$task]:-0}
   LAST_EP[$task]=$endpoint
+  { [ -n "$wake" ] && [ "$wake" != "-" ]; } || continue
+  WK_SEEN[$wake]=1
+  WK_TASKS[$wake]="${WK_TASKS[$wake]:-} $task"
   if [ "$verdict" = captain ]; then
     WK_CAPTAIN[$wake]=1
     WK_CAPTASKS[$wake]="${WK_CAPTASKS[$wake]:-} $task"
@@ -222,8 +221,8 @@ while IFS=$'\t' read -r wake task seq verdict endpoint haspr; do
 done <<< "$OUT_ROWS"
 
 # Records into parallel arrays; "-" keeps meaning absent.
-declare -a R_WK=() R_STALE=() R_EPOCH=() R_CF=() R_NPA=() R_AVAIL=() R_FACTS=() R_NOUL=() R_ROUTE=() R_ROUTECONF=() R_PHASE=() R_PHASECONF=() R_STALEC=() R_STALECONF=() R_SEVCLS=() R_SEVHIT=() R_SEVANY=() R_SEVCONF=() R_BYTES=() R_PRPRESENT=() R_PRID=() R_PROG=() R_PANE=() R_NTASKS=() R_CANDS=() R_TASK0=()
-while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pconf stalec sconf sevcls sevhit sevany sevconf bytes prpresent prid prog pane ntasks cands task0; do
+declare -a R_WK=() R_STALE=() R_EPOCH=() R_CF=() R_NPA=() R_AVAIL=() R_FACTS=() R_NOUL=() R_ROUTE=() R_ROUTECONF=() R_PHASE=() R_PHASECONF=() R_STALEC=() R_STALECONF=() R_SEVCLS=() R_SEVHIT=() R_SEVANY=() R_SEVCONF=() R_BYTES=() R_PRPRESENT=() R_PRID=() R_PROG=() R_PANE=() R_NTASKS=() R_CANDS=()
+while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pconf stalec sconf sevcls sevhit sevany sevconf bytes prpresent prid prog pane ntasks cands; do
   [ -n "$wk" ] || continue
   if [ "$st" = stale ]; then WK_ISSTALE[$wk]=1; fi
   if [ "$epoch" != "-" ]; then
@@ -234,7 +233,7 @@ while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pc
   R_PHASE+=("$phase"); R_PHASECONF+=("$pconf"); R_STALEC+=("$stalec"); R_STALECONF+=("$sconf")
   R_SEVCLS+=("$sevcls"); R_SEVHIT+=("$sevhit"); R_SEVANY+=("$sevany"); R_SEVCONF+=("$sevconf")
   R_BYTES+=("$bytes"); R_PRPRESENT+=("$prpresent"); R_PRID+=("$prid"); R_PROG+=("$prog"); R_PANE+=("$pane")
-  R_NTASKS+=("$ntasks"); R_CANDS+=("$cands"); R_TASK0+=("$task0")
+  R_NTASKS+=("$ntasks"); R_CANDS+=("$cands")
 done <<< "$REC_ROWS"
 
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 >= b + 0) }'; }
@@ -272,7 +271,7 @@ task_restarted_after() {  # <task> <epoch>: a worker incarnation newer than the 
   local rec="$STATE/$1.busy-state" g
   case "$1" in '' | *[!A-Za-z0-9._-]*) return 1 ;; esac
   [ -f "$rec" ] || return 1
-  g=$(awk '{for (i = 1; i <= NF; i++) if ($i ~ /^gen=/) { sub(/^gen=/, "", $i); print $i } }' "$rec")
+  g=$(awk '{for (i = 1; i <= NF; i++) if ($i ~ /^gen=g?[0-9]+(\.|$)/) { sub(/^gen=g?/, "", $i); sub(/\..*$/, "", $i); print $i } }' "$rec")
   case "$g" in '' | *[!0-9]*) return 1 ;; esac
   [ "$g" -gt "$2" ]
 }
@@ -292,10 +291,9 @@ wake_stale_repair() {  # <wakeKey>: a stale wake main had to act on - a worker
   return 1
 }
 
-pane_of() {  # <record-idx>: pane identity from the facts, else the record's first task
-  if [ "${R_PANE[$1]}" != "-" ]; then echo "${R_PANE[$1]}"; return 0; fi
-  if [ "${R_TASK0[$1]}" != "-" ]; then echo "${R_TASK0[$1]}"; return 0; fi
-  return 1
+pane_of() {  # <record-idx>: pane identity from the facts
+  [ "${R_PANE[$1]}" != "-" ] || return 1
+  echo "${R_PANE[$1]}"
 }
 
 # Loss-class check for a stale-active-suppress fire: any later stale wake of
@@ -374,13 +372,13 @@ gate_apply() {  # <gate> <record-idx>
       ;;
     stale-active-suppress)
       [ "${R_STALE[$i]}" = stale ] || return 2
-      [ "${R_STALEC[$i]}" != "-" ]
+      [ "${R_STALEC[$i]}" != "-" ] && [ "${R_STALECONF[$i]}" != "-" ] && [ "${R_PROG[$i]}" != "-" ] && [ "${R_PANE[$i]}" != "-" ]
       ;;
     pr-ready-arm)
       [ "${R_PHASE[$i]}" != "-" ] && [ "${R_PHASECONF[$i]}" != "-" ] && [ "${R_PRPRESENT[$i]}" != "-" ]
       ;;
     severity-alert)
-      [ "${R_SEVHIT[$i]}" != "-" ] && [ "${R_SEVANY[$i]}" = any ]
+      [ "${R_SEVCLS[$i]}" != "-" ] && [ "${R_SEVCONF[$i]}" != "-" ] && [ "${R_SEVANY[$i]}" = any ]
       ;;
     candidate-order)
       [ "${R_NTASKS[$i]}" != "-" ] && [ "${R_NTASKS[$i]}" -ge 2 ] || return 2

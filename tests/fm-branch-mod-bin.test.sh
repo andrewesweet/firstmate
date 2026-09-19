@@ -77,7 +77,7 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   printf 'working: t6\n' > "$state/t6.status"
   # A worker incarnation newer than the 1700:10 stale wake: the derivable
   # stale-repair signal for the suppression gate.
-  printf 'v1 gen=%s seq=1 state=busy source=tmux event=turn-end ts=%s\n' "$((base_t + 50))" "$((base_t + 50))" > "$state/t5.busy-state"
+  printf 'v1 gen=g%s.4242.17 seq=1 state=busy source=tmux event=turn-end ts=%s\n' "$((base_t + 50))" "$((base_t + 50))" > "$state/t5.busy-state"
 
   # Ground truth rows, in an order that also fixes first-reported ordering
   # for the candidate-order gate.
@@ -97,37 +97,43 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   append_wake_outcome "$state" t2 captain 'compound: t2 escalated' 1700:12
   append_wake_outcome "$state" t1 routine 'compound: t1 noted' 1700:12
   append_wake_outcome "$state" t1 routine 'nofacts noted' 1700:13
+  # An unkeyed direct pass-to-main row covers t6's done line before the
+  # keyed routine row, so the later row's backstop span starts after it.
+  printf 'done: t6 finished\n' >> "$state/t6.status"
+  append_outcome "$state" t6 captain 'Passed to main directly (classifier): decision'
   append_wake_outcome "$state" t6 routine 'noise' 1700:15
+  append_wake_outcome "$state" t3 routine 'stale, pane unread' 1700:16
 
   {
     rec 1700:1 0 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:1 '{"t1":0}' fm-t1 '{"present":false}')"
     rec 1700:2 1 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.5}}' "$(fact 1700:2 '{"t1":0}' fm-t1 '{"present":false}')"
     rec 1700:3 2 'working: A' '["t1"]' '{"route":{"type":"choice","choice":"routine","confidence":0.9},"phase":{"type":"choice","choice":"working","confidence":0.9}}' "$(fact 1700:3 '{"t1":10}' fm-t1 '{"present":false}')"
-    rec 1700:4 3 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.95}}' "$(fact 1700:4 '{"t1":0}' fm-t1 '{"present":false}')"
+    rec 1700:4 3 'signal: A' '["t1"]' '{"no_new_outcome":{"type":"noul","noul":0.95},"severity":{"type":"score","score":1,"confidence":0.9}}' "$(fact 1700:4 '{"t1":0}' fm-t1 '{"present":false}')"
     rec 1700:5 4 'working: A' '["t1"]' '{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}}' "$(fact 1700:5 '{"t1":10}' fm-t1 '{"present":true,"pr":"ow/repo#7"}')"
     rec 1700:6 5 'working: B' '["t2"]' '{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}}' "$(fact 1700:6 '{"t2":10}' fm-t2 '{"present":true,"pr":"ow/repo#9"}')"
     rec 1700:7 6 'stale: fm-t3' '["t3"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:7 '{"t3":0}' fm-t3 '{"present":false}' "$stale_extra")"
     rec 1700:8 0 'stale: fm-t4' '["t4"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:8 '{"t4":0}' fm-t4 '{"present":false}' "$stale_extra")"
     rec 1700:9 60 'stale: fm-t4' '["t4"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:9 '{"t4":0}' fm-t4 '{"present":false}' "$stale_extra")"
-    rec 1700:10 0 'stale: fm-t5' '["t5"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:10 '{"t5":0}' fm-t5 '{"present":false}' "$stale_extra")"
+    rec 1700:10 0 'signal: t5\nstale: fm-t5' '["t5"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:10 '{"t5":0}' fm-t5 '{"present":false}' "$stale_extra")"
     rec 1700:11 7 'signal: compound' '["t1","t2"]' '{"candidates":{"t1":{"type":"noul","noul":0.9},"t2":{"type":"noul","noul":0.5}}}' "$(fact 1700:11 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' '"candidates":{"t1":0.9,"t2":0.5}')"
     rec 1700:12 8 'signal: compound' '["t1","t2"]' '{"candidates":{"t2":{"type":"noul","noul":0.9},"t1":{"type":"noul","noul":0.5}}}' "$(fact 1700:12 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' '"candidates":{"t2":0.9,"t1":0.5}')"
     rec 1700:13 9 'signal: nofacts' '["t1"]' '{}' 'null'
     rec 1700:14 10 'signal: unmatched' '["t6"]' '{}' "$(fact 1700:14 '{"t6":0}' fm-t6 '{"present":false}')"
     rec 1700:15 11 'signal: t6' '["t6"]' '{"severity":{"type":"score","score":3,"confidence":0.9}}' "$(fact 1700:15 '{"t6":0}' fm-t6 '{"present":false}')"
+    rec 1700:16 12 'stale: fm-t3' '["t3"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:16 '{"t3":0}' fm-t3 '{"present":false}')"
   } > "$state/branch-mod-shadow.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$GATES" > "$out" || fail "gates scorer failed: $(cat "$out")"
-  grep -Fx '| absorb-no-new-outcome | 3 | 11 | 2 | 1 (50.0%) | 0 | 1 | 1 |' "$out" \
+  grep -Fx '| absorb-no-new-outcome | 3 | 12 | 2 | 1 (50.0%) | 0 | 1 | 1 |' "$out" \
     || fail "the no-new-outcome row must fire the clean absorb, miss the below-floor one, and count the backstop-covered absorb as a loss: $(grep '^| absorb-no-new-outcome' "$out")"
-  grep -Fx '| absorb-routine-working | 1 | 13 | 1 | 0 (0.0%) | 0 | 1 | 0 |' "$out" \
+  grep -Fx '| absorb-routine-working | 1 | 14 | 1 | 0 (0.0%) | 0 | 1 | 0 |' "$out" \
     || fail "the routine-working row must count a fire over a captain outcome as a loss: $(grep '^| absorb-routine-working' "$out")"
-  grep -Fx '| stale-active-suppress | 4 | 1 | 4 | 1 (25.0%) | 2 | 1 | 0 |' "$out" \
+  grep -Fx '| stale-active-suppress | 4 | 2 | 4 | 1 (25.0%) | 2 | 1 | 0 |' "$out" \
     || fail "the stale gate must score the in-window captain stale as a loss and its own actionable or repaired fires as delays: $(grep '^| stale-active-suppress' "$out")"
-  grep -Fx '| pr-ready-arm | 3 | 11 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
+  grep -Fx '| pr-ready-arm | 3 | 12 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
     || fail "the arm gate must score the armed PR ready as correct and the unbacked one as a delay: $(grep '^| pr-ready-arm' "$out")"
-  grep -Fx '| severity-alert | 1 | 13 | 1 | 0 (0.0%) | 1 | 0 | 0 |' "$out" \
-    || fail "the severity gate must count a security-class alert over an absorbable wake as a delay: $(grep '^| severity-alert' "$out")"
+  grep -Fx '| severity-alert | 2 | 13 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
+    || fail "the severity gate must count a security-class alert over an absorbable wake as a delay and a low-scored actionable absorb as missed: $(grep '^| severity-alert' "$out")"
   grep -Fx '| candidate-order | 2 | 1 | 2 | 1 (50.0%) | 0 | 1 | - |' "$out" \
     || fail "the ordering gate must count the dropped captain candidate as a loss and the matched order as correct: $(grep '^| candidate-order' "$out")"
   grep -Fx 'unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record' "$out" \
@@ -152,6 +158,8 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "the matched candidate order must be listed as correct: $(grep candidate-order "$out")"
   grep -F $'1700:13\tstale-active-suppress\t' "$out" \
     || fail "the record without facts must be listed unscorable, never guessed: $(grep 1700:13 "$out")"
+  grep -F $'1700:16\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
+    || fail "a stale record without a pane observation must be listed unscorable, never guessed: $(grep 1700:16 "$out")"
 
   FM_STATE_OVERRIDE="$state" "$GATES" "$state/absent.jsonl" > "$out" || fail "gates scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 7 ] || fail "an absent log prints only the empty tables: $(cat "$out")"
