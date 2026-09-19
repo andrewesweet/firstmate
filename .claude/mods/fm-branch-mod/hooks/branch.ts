@@ -32,7 +32,7 @@
 //   branch-mod-classifications.jsonl  one record per classifier call
 import type { On } from 'claude-code'
 
-export const CLAUDE_CODE_PIN = '2.1.277'
+export const CLAUDE_CODE_PIN = '2.1.278'
 
 type Scope = {
   status: 'safe' | 'empty' | 'unsafe'
