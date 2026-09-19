@@ -4,18 +4,18 @@
 #
 # Reads state/branch-mod-shadow.jsonl, the durable log the mod appends one
 # record per ablation variant per granted wake to, and joins every record to
-# the branch's own durable verdict in state/branch-outcomes.jsonl by exact
-# wake identity (the record's wake string equals the outcome row's wake).
-# That join is best-effort: the outcome row's wake string is agent-supplied
-# and often empty, so only an exact, non-empty wake match labels a route
-# sample, every other record stays unlabeled, and -v exists to adjudicate the
-# rest by hand. Only the route question has that durable label: a wake whose joined rows
-# include a captain verdict is labelled main, a wake whose joined rows are
-# all routine is labelled routine. The other questions (phase, severity,
-# no_new_outcome, stale_state, per-candidate Nouls) have no durable label in
-# the outcome record, so the scorer prints their answer distribution and
-# policy-uncertainty columns only; -v dumps the per-wake join for manual
-# adjudication.
+# the branch's own durable verdict in state/branch-outcomes.jsonl by the
+# durable wake identity: the mod stamps the same wakeKey (its wake-queue
+# "epoch:seq" set) onto the shadow records and onto the outcome row it writes
+# for that wake. A record whose wakeKey is empty or matches no outcome row is
+# reported as unmatched, separately, and never counted as a verdict; -v dumps
+# the per-wake join for manual adjudication. Only the route question has a
+# durable label: a wake whose joined rows include a captain verdict is
+# labelled main, a wake whose joined rows are all routine is labelled routine.
+# The other questions (phase, severity, no_new_outcome, stale_state,
+# per-candidate Nouls) have no durable label in the outcome record, so the
+# scorer prints their answer distribution and policy-uncertainty columns
+# only.
 #
 # Policy bands are read from each record's policy object (a Choice answer
 # counts only at confidence >= choice_confidence_floor; a Noul grants below
@@ -52,15 +52,18 @@ LOG=${args[0]:-$STATE/branch-mod-shadow.jsonl}
 OUTCOMES=${args[1]:-$STATE/branch-outcomes.jsonl}
 command -v jq >/dev/null 2>&1 || { echo "fm-branch-shadow-score: jq is required" >&2; exit 2; }
 
-# Route label per outcome wake: main when any joined row is a captain verdict,
-# routine when the wake joined only routine rows.
+# Route label per outcome wakeKey: main when any joined row is a captain
+# verdict, routine when the wakeKey joined only routine rows.
 OUTCOME_ROWS=''
 if [ -f "$OUTCOMES" ]; then
-  OUTCOME_ROWS=$(jq -r '[(.wake // ""), (.verdict // "")] | @tsv' "$OUTCOMES" 2>/dev/null || true)
+  # "-" marks an absent key: a real wake key is only digits, colon and comma
+  # (validated at write time), and a leading empty @tsv field would collapse
+  # under `read`.
+  OUTCOME_ROWS=$(jq -r '[(.wakeKey // "" | if . == "" then "-" else . end), (.verdict // "")] | @tsv' "$OUTCOMES" 2>/dev/null || true)
 fi
 declare -A WAKE_CAPTAIN=() WAKE_ROWS=()
 while IFS=$'\t' read -r wake verdict; do
-  [ -n "$wake" ] || continue
+  { [ -n "$wake" ] && [ "$wake" != "-" ]; } || continue
   WAKE_ROWS[$wake]=1
   [ "$verdict" = captain ] && WAKE_CAPTAIN[$wake]=1
 done <<< "$OUTCOME_ROWS"
@@ -86,7 +89,7 @@ ROWS=$(jq -R -r '
       [((.score // "?") | tostring), (if (.confidence // 0) < $cf then "uncertain" else ((.score // "?") | tostring) end)]
     else ["?", "uncertain"] end;
   (if .unavailable != null then
-    [[$r.wake, $r.variant, ($r.repeat | tostring), "UNAVAILABLE", "-", "-", $r.unavailable] | @tsv]
+    [[($r.wakeKey // "" | if . == "" then "-" else . end), $r.variant, ($r.repeat | tostring), "UNAVAILABLE", "-", "-", $r.unavailable] | @tsv]
   else
     [$r.answers // {} | to_entries |
       map(if .key == "candidates" and (.value | type == "object") then
@@ -94,10 +97,10 @@ ROWS=$(jq -R -r '
           else [.] end) | flatten |
       (if length == 0 then [{key: "NO_ANSWERS", value: {}}] else . end)[] |
       (.value | pol) as $p |
-      [$r.wake, $r.variant, ($r.repeat | tostring), .key, $p[0], $p[1], "-"] | @tsv]
+      [($r.wakeKey // "" | if . == "" then "-" else . end), $r.variant, ($r.repeat | tostring), .key, $p[0], $p[1], "-"] | @tsv]
   end) | .[]' "$LOG")
 
-declare -A SEEN_Q=() RAW=() POL=() DIS=() UNC=() SCORED=() TOT=() UNAV=() ANSWERS=() CTRL1=() CTRL2=()
+declare -A SEEN_Q=() RAW=() POL=() DIS=() UNC=() SCORED=() TOT=() UNAV=() ANSWERS=() CTRL1=() CTRL2=() SEEN_REC=() UNMATCHED=()
 QORDER=()
 
 note_q() {  # <question>: remember first-seen order
@@ -117,21 +120,33 @@ while IFS=$'\t' read -r wake variant repeat q raw pol unav; do
     esac
   fi
   [ "$repeat" -gt 1 ] && continue
+  # Unmatched records: the wake key is absent ("-") or no outcome row carries
+  # it. Counted once per record, reported separately, never counted as a
+  # verdict.
+  if [ -z "${SEEN_REC["$wake|$variant"]:-}" ]; then
+    SEEN_REC["$wake|$variant"]=1
+    if [ "$q" != UNAVAILABLE ] && [ -z "${WAKE_ROWS[$wake]:-}" ]; then
+      UNMATCHED[$variant]=$(( ${UNMATCHED[$variant]:-0} + 1 ))
+    fi
+  fi
   if [ "$q" = UNAVAILABLE ]; then
     UNAV[$variant]=$(( ${UNAV[$variant]:-0} + 1 ))
     continue
   fi
   [ "$q" = NO_ANSWERS ] && continue
   note_q "$q"
-  k="$q|$variant"
-  TOT[$k]=$(( ${TOT[$k]:-0} + 1 ))
-  ANSWERS["$k|$raw"]=$(( ${ANSWERS["$k|$raw"]:-0} + 1 ))
   label=''
   if [ "$q" = route ]; then
     if [ -n "${WAKE_CAPTAIN[$wake]:-}" ]; then label=main
     elif [ -n "${WAKE_ROWS[$wake]:-}" ]; then label=routine
     fi
+    # An unmatched route record has no durable verdict: already reported in
+    # the unmatched note, never counted as a route sample.
+    [ -n "$label" ] || continue
   fi
+  k="$q|$variant"
+  TOT[$k]=$(( ${TOT[$k]:-0} + 1 ))
+  ANSWERS["$k|$raw"]=$(( ${ANSWERS["$k|$raw"]:-0} + 1 ))
   if [ -n "$label" ]; then
     SCORED[$k]=$(( ${SCORED[$k]:-0} + 1 ))
     [ "$raw" = "$label" ] && RAW[$k]=$(( ${RAW[$k]:-0} + 1 ))
@@ -169,7 +184,7 @@ if [ "$VERBOSE" = 1 ]; then
     [ -n "$wake" ] || continue
     if [ -n "${WAKE_CAPTAIN[$wake]:-}" ]; then lbl=main
     elif [ -n "${WAKE_ROWS[$wake]:-}" ]; then lbl=routine
-    else lbl=unlabeled
+    else lbl=unmatched
     fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$wake" "$lbl" "$variant" "$q" "$raw" "$pol" "$unav"
   done
@@ -194,6 +209,11 @@ for q in "${QORDER[@]}"; do
         "$(pct "${UNC[$k]:-0}" "${TOT[$k]:-0}")" \
         "${UNAV[$v]:-0}"
     done
+    unmatched=''
+    for v in "${VARIANTS[@]}"; do
+      [ -n "${UNMATCHED[$v]:-}" ] && unmatched="$unmatched $v=${UNMATCHED[$v]}"
+    done
+    [ -n "$unmatched" ] && printf 'unmatched (no outcome row carries this wake key; never counted as a verdict):%s\n' "$unmatched"
   else
     printf '### %s (no durable label in the outcome record; distribution and policy uncertainty only)\n' "$q"
     printf '| variant | records | answers | uncertain | unavailable |\n|---|---|---|---|---|\n'

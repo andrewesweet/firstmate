@@ -39,6 +39,11 @@ type Scope = {
   status: 'safe' | 'empty' | 'unsafe'
   eligible: boolean
   eligibleSeqs: string[]
+  // Durable wake identity: the wake-queue "epoch:seq" of every eligible row,
+  // comma-joined. Stamped onto shadow records and onto the outcome row the
+  // branch reports for this wake, so retrospective scorers join by identity
+  // instead of agent-supplied wake text.
+  eligibleWakeKey: string
   eligibleTasks: string[]
   corrupted: boolean
   needsDecisionTasks: string[]
@@ -47,6 +52,7 @@ type Scope = {
 
 type InFlight = {
   seqs: string[]
+  wakeKey: string
   tasks: Set<string>
   heartbeat: boolean
   wakeText: string
@@ -355,7 +361,7 @@ function lastStatusLine(lines: string[]): string {
 }
 
 async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
-  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
+  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
   let queue = ''
   try {
     queue = await $.fs.read(`${state}/.wake-queue`)
@@ -363,7 +369,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     return unsafe
   }
   const rows = queue.split(/\r?\n/).filter((l: string) => l.length > 0)
-  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
+  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
   const metadata = new Map<string, string>()
   const taskByKey = new Map<string, string>()
   try {
@@ -388,6 +394,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     return unsafe
   }
   const eligibleSeqs: string[] = []
+  const eligibleWakeKey: string[] = []
   const eligibleTasks = new Set<string>()
   const needsDecisionTasks: string[] = []
   const allSeqs: string[] = []
@@ -400,7 +407,10 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     const kind = f[2]
     const key = f[3]
     if (kind === 'heartbeat') {
-      if (heartbeat) eligibleSeqs.push(seq)
+      if (heartbeat) {
+        eligibleSeqs.push(seq)
+        eligibleWakeKey.push(`${f[0]}:${seq}`)
+      }
       continue
     }
     if (kind === 'check') continue
@@ -442,9 +452,10 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     if (!project || !task) return unsafe
     eligibleTasks.add(task)
     eligibleSeqs.push(seq)
+    eligibleWakeKey.push(`${f[0]}:${seq}`)
   }
   const eligible = eligibleSeqs.length > 0
-  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
+  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleWakeKey: eligibleWakeKey.join(','), eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
 }
 
 // Deterministic note of the status lines appended since the task's last outcome.
@@ -527,6 +538,7 @@ async function serveReport($: any, e: any, agentId: string | undefined) {
   }
   const args = ['append', '--task', task, '--verdict', verdict, '--summary', summary, '--silent', String(silent)]
   if (wake) args.push('--wake', wake)
+  if (p?.wakeKey) args.push('--wake-key', p.wakeKey)
   const appended = await outcome($, args)
   if (!appended.ok) return textResult(`outcome store append failed (nothing merged): ${appended.detail}`, true)
   const seq = Number(appended.stdout)
@@ -864,7 +876,7 @@ function shadowQuestions(a: { wake: string; tasks: string[] }, st: ShadowState):
   return questions
 }
 
-async function shadowRecord($: any, a: { wake: string; seqs: string[]; tasks: string[]; wakeNo: number }, variant: string, repeat: number, body: string): Promise<void> {
+async function shadowRecord($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; wakeNo: number }, variant: string, repeat: number, body: string): Promise<void> {
   const t0 = Date.now()
   let unavailable: string | null = null
   let model = ''
@@ -889,6 +901,7 @@ async function shadowRecord($: any, a: { wake: string; seqs: string[]; tasks: st
     kind: 'shadow',
     wake: a.wake,
     seqs: a.seqs,
+    wakeKey: a.wakeKey,
     tasks: a.tasks,
     wakeNo: a.wakeNo,
     variant,
@@ -911,7 +924,7 @@ async function shadowRecord($: any, a: { wake: string; seqs: string[]; tasks: st
 }
 
 // The detached trial itself: config-gated, read-only, fully fire-and-forget.
-async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; tasks: string[]; evidence: Evidence[]; wakeNo: number }): Promise<void> {
+async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; evidence: Evidence[]; wakeNo: number }): Promise<void> {
   try {
     if ((await readConfig($, 'classifier-shadow', '')).trim() !== 'jev') return
     const st = await shadowAssembleState($, a)
@@ -1182,6 +1195,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const prompt = `FIRSTMATE SUPERVISION WAKE: ${reason}\n\n(wake ${wakeCounter} of this session)\nHandle this per your operating procedure and finish with fm_branch_report.` + scopeNote
   inFlight = {
     seqs: scope.eligibleSeqs,
+    wakeKey: scope.eligibleWakeKey,
     tasks: new Set(scope.eligibleTasks),
     heartbeat,
     wakeText,
@@ -1196,7 +1210,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   // Shadow advisory trial: detached and bounded, never delaying or altering
   // the delivery below. Any failure is recorded as unavailable by the trial
   // itself; nothing here may change the wake.
-  if (c.evidence.length > 0) void runShadowAdvisory($, { wake: reason, seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, evidence: c.evidence, wakeNo: wakeCounter })
+  if (c.evidence.length > 0) void runShadowAdvisory($, { wake: reason, seqs: scope.eligibleSeqs, wakeKey: scope.eligibleWakeKey, tasks: scope.eligibleTasks, evidence: c.evidence, wakeNo: wakeCounter })
   const d = await deliverToBranch($, prompt)
   log($, 'wake.delivered', { wakeNo: wakeCounter, seqs: scope.eligibleSeqs, ...d, spawnCount, sendCount, source })
   if (!d.ok) {

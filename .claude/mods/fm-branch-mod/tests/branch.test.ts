@@ -340,6 +340,8 @@ describe("classification log", () => {
     expect(cover!.argv).toContain("--task");
     expect(cover!.argv[cover!.argv.indexOf("--task") + 1]).toBe("t1");
     expect(cover!.argv[cover!.argv.indexOf("--verdict") + 1]).toBe("captain");
+    // No wake was granted here, so there is no in-flight wake identity to stamp.
+    expect(cover!.argv).not.toContain("--wake-key");
     // Main handles the wake itself, so the branch was never granted or spawned.
     expect(w.submitted).toEqual([WAKE]);
     expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
@@ -617,6 +619,10 @@ describe("shadow advisory", () => {
       expect(r.kind).toBe("shadow");
       expect(r.wake).toBe("signal: /fm/home/state/t1.status");
       expect(r.seqs).toEqual(["12"]);
+      // Durable wake identity: the fake queue row's epoch:seq, stamped on every
+      // variant so the scorer can join these records to the outcome row the
+      // granted wake's own report writes.
+      expect(r.wakeKey).toBe("1700000000:12");
       expect(r.tasks).toEqual(["t1"]);
       expect(r.control).toBe(false);
       expect(r.unavailable).toBeNull();

@@ -354,34 +354,41 @@ test_shadow_scorer_joins_records_to_outcomes_by_wake_identity() {
   state="$dir/state"
   out="$dir/score.out"
   cat > "$state/branch-outcomes.jsonl" <<'EOF'
-{"seq":1,"task":"t1","wake":"signal: A","verdict":"routine","summary":"x"}
-{"seq":2,"task":"t1","wake":"signal: A","verdict":"captain","summary":"y"}
-{"seq":3,"task":"t1","wake":"signal: B","verdict":"routine","summary":"z"}
+{"seq":1,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"x","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
+{"seq":2,"epoch":1,"task":"t1","wake":"agent text","verdict":"captain","summary":"y","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
+{"seq":3,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"z","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:4"}
 EOF
   {
-    printf '%s\n' '{"t":"1","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9},"no_new_outcome":{"type":"noul","noul":0.05}}}'
-    printf '%s\n' '{"t":"2","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.95}}}'
-    printf '%s\n' '{"t":"3","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":5,"policy":{}}'
+    printf '%s\n' '{"t":"1","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9},"no_new_outcome":{"type":"noul","noul":0.05}}}'
+    printf '%s\n' '{"t":"2","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.95}}}'
+    printf '%s\n' '{"t":"3","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":5,"policy":{}}'
     printf '%s\n' '{"t":"torn","wake":"signal: B","variant":"fu'
-    printf '%s\n' '{"t":"4","wake":"signal: B","seqs":["13"],"tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
-    printf '%s\n' '{"t":"5","wake":"signal: B","seqs":["13"],"tasks":["t1"],"wakeNo":2,"variant":"full","repeat":2,"control":true,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}'
+    printf '%s\n' '{"t":"4","wake":"signal: B","seqs":["13"],"wakeKey":"1700:4","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
+    printf '%s\n' '{"t":"5","wake":"signal: B","seqs":["13"],"wakeKey":"1700:4","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":2,"control":true,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}'
+    printf '%s\n' '{"t":"6","wake":"signal: C","seqs":["14"],"wakeKey":"","tasks":["t1"],"wakeNo":3,"variant":"without_pane_tail","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
   } > "$state/branch-mod-shadow.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" > "$out" || fail "shadow scorer failed: $(cat "$out")"
   grep -q '^| full | 2/2 | 0 (0.0%) | 0 (0.0%) | 2 | 0 (0.0%) | 0 |$' "$out" \
-    || fail "the route row must join by wake identity and skip the repeat control: $(grep '^| full' "$out")"
+    || fail "the route row must score only matched records and skip the repeat control: $(grep '^| full' "$out")"
+  grep -q 'unmatched (no outcome row carries this wake key; never counted as a verdict): without_pane_tail=1' "$out" \
+    || fail "a record whose wake key matches no outcome row must be reported separately: $(grep unmatched "$out")"
   grep -q '^| without_prior_outcomes | 0/0 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 1 |$' "$out" \
     || fail "an unavailable record must be counted, not scored: $(grep without_prior_outcomes "$out")"
   grep -q '^| route | 1 | 0 |$' "$out" \
     || fail "the repeat control must score the full-variant pair as raw call noise: $(grep '^| route' "$out")"
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" -v > "$out" || fail "verbose scorer failed"
-  grep -q $'^signal: A\tmain\tfull\troute\troutine\troutine\t-' "$out" \
-    || fail "the verbose dump must join each record to its wake label: $(grep 'signal: A' "$out" | head -2)"
+  grep -q $'^1700:1,1700:2\tmain\tfull\troute\troutine\troutine\t-' "$out" \
+    || fail "the verbose dump must label matched records by wake key: $(grep '1700:1,1700:2' "$out" | head -2)"
+  grep -q $'^1700:4\troutine\tfull\troute\tmain\tmain\t-' "$out" \
+    || fail "a wake key matching only routine outcome rows must label routine: $(grep '^1700:4' "$out" | head -2)"
+  grep -q $'^-\tunmatched\twithout_pane_tail\troute\tmain\tmain\t-' "$out" \
+    || fail "the verbose dump must mark records without a matching wake key as unmatched: $(grep unmatched "$out" | head -2)"
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 3 ] || fail "an absent log prints only the empty route table: $(cat "$out")"
-  pass "the shadow scorer joins records to the branch verdict by wake identity, skips a torn line, counts unavailable records separately, and scores the repeat control outside the variant rows"
+  pass "the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line, counts unavailable records separately, and scores the repeat control outside the variant rows"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset

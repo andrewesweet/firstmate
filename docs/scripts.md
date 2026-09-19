@@ -120,7 +120,7 @@ The shared no-mistakes gate refusal for fleet lifecycle entrypoints is summarize
 | `fm-branch-classifier-score.sh` | Score the Claude Code supervision-branch classifier's durable classification log against the status lines main had to act on |
 | `fm-branch-shadow-jev.sh` | Forward one shadow advisory request from stdin to the Jev model with the TypeSafe key held out of argv and the child environment, printing one JSON line and always exiting 0 |
 | `fm-branch-shadow-pane.sh` | Print the bounded, read-only pane tail and busy-state observation for one task as the shadow advisory's pane evidence |
-| `fm-branch-shadow-score.sh` | Score the Claude Code supervision-branch mod's shadow advisory log against the branch outcome store by exact wake identity |
+| `fm-branch-shadow-score.sh` | Score the Claude Code supervision-branch mod's shadow advisory log against the branch outcome store by durable wake key |
 | `fm-wake-evidence.sh`    | Print the Claude Code supervision-branch classifier's evidence bundle for one task, owning its read offset, or the routine-covered captain-facing lines the drain backstop re-presents |
 | `fm-lease.sh`            | Claim, release, inspect, and sweep per-task supervision leases                       |
 | `fm-lease-lib.sh`        | One owner of the supervision lease contract and the main-only role-partition guards  |
