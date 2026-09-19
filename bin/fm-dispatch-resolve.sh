@@ -115,17 +115,13 @@ usage() {
 sha256_file() {  # <path>
   local digest
   if command -v shasum >/dev/null 2>&1; then
-    digest=$(shasum -a 256 "$1" 2>/dev/null | awk '{print $1}') || return 1
+    digest=$(shasum -a 256 "$1" 2>/dev/null) || return 1
   elif command -v sha256sum >/dev/null 2>&1; then
-    digest=$(sha256sum "$1" 2>/dev/null | awk '{print $1}') || return 1
+    digest=$(sha256sum "$1" 2>/dev/null) || return 1
   else
     return 1
   fi
-  case $digest in
-    *[!0-9a-fA-F]*|'') return 1 ;;
-  esac
-  [ "${#digest}" -eq 64 ] || return 1
-  printf 'sha256:%s\n' "$digest"
+  printf 'sha256:%s\n' "${digest%% *}"
 }
 
 BRIEF='' PROJECT='' RULES_PATH="$CONFIG/crew-dispatch.json" RULES=''
