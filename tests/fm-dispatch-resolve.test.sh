@@ -28,9 +28,14 @@ RULES="$HOME_DIR/config/crew-dispatch.json"
 QUOTA="$TMP_ROOT/quota.json"
 BASE_PATH=$PATH
 mkdir -p "$HOME_DIR/config" "$LOG" "$NO_CURL_BIN"
-for command_name in bash chmod cp date dirname jq mkdir mktemp rm; do
+for command_name in awk bash chmod cp date dirname jq mkdir mktemp rm; do
   ln -s "$(command -v "$command_name")" "$NO_CURL_BIN/$command_name"
 done
+if command -v shasum >/dev/null 2>&1; then
+  ln -s "$(command -v shasum)" "$NO_CURL_BIN/shasum"
+else
+  ln -s "$(command -v sha256sum)" "$NO_CURL_BIN/sha256sum"
+fi
 
 cat > "$BRIEF" <<'MD'
 # Task
@@ -99,6 +104,14 @@ write_quota() {  # <path> <cursor spendPriority> [<claude all_models spendPriori
 JSON
 }
 write_quota "$QUOTA" 0.7597
+
+file_sha256() {  # <path>
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print "sha256:" $1}'
+  else
+    sha256sum "$1" | awk '{print "sha256:" $1}'
+  fi
+}
 
 write_response() {  # <path> <choice> <confidence>
   cat > "$1" <<JSON
@@ -268,6 +281,15 @@ assert_equals 'null' "$(jq -r .reason <<<"$line")" "a clear outcome logs no reas
 assert_equals 'number' "$(jq -r '.latency_ms | type' <<<"$line")" "the logged latency is a number"
 assert_equals '812' "$(jq -r .tokens.input_tokens <<<"$line")" "the logged usage carries the response input tokens"
 assert_equals '60' "$(jq -r .tokens.output_tokens <<<"$line")" "the logged usage carries the response output tokens"
+assert_equals 'jev-1.13.0' "$(jq -r .model <<<"$line")" "the concrete response model is logged"
+assert_equals '["A simple bug fix with a stated root cause.","Genuinely very difficult design or planning work.","New feature work on the app.","No listed rule applies to this task.","The task generates images."]' "$(jq -c '.probabilities | keys' <<<"$line")" "the full probability vector uses the offered option texts"
+assert_equals '0.96' "$(jq -r '.probabilities["A simple bug fix with a stated root cause."]' <<<"$line")" "the selected option probability is retained in the vector"
+assert_equals 'A simple bug fix with a stated root cause.' "$(jq -r .selected_option <<<"$line")" "the selected offered option is logged"
+assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "the selected probability is logged"
+assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "the runner-up margin is selected minus the highest other probability"
+assert_equals 'string:1' "$(jq -r '.policy.version | type + ":" + .' <<<"$line")" "the dispatch policy version is logged as a string"
+assert_equals '0.6' "$(jq -r .policy.confidence_floor <<<"$line")" "the confidence floor in force is logged"
+assert_equals "$(file_sha256 "$BASE_RULES")" "$(jq -r .rules_digest <<<"$line")" "the exact rules bytes are identified by SHA-256"
 assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the logged timestamp is UTC ISO 8601"
 assert_not_contains "$(cat "$DISPATCH_LOG")" "$KEY" "the API key never reaches the log"
 assert_not_contains "$(cat "$DISPATCH_LOG")" 'off-by-one in the pager' "the brief text never reaches the log"
@@ -279,6 +301,15 @@ line=$(sed -n '2p' "$DISPATCH_LOG")
 assert_equals 'ambiguous' "$(jq -r .status <<<"$line")" "the ambiguous status is logged"
 assert_equals 'null' "$(jq -r .profile <<<"$line")" "a non-clear outcome logs no profile"
 assert_contains "$(jq -r .reason <<<"$line")" 'confidence 0.41 below floor 0.6' "the non-clear reason is logged"
+assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "an ambiguous result retains the selected probability"
+assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "an ambiguous result retains the runner-up margin"
+write_response "$RESPONSE" rule_3 0.95
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'escalate' "$(jq -r .status <<<"$line")" "an escalation retains its outcome"
+assert_equals 'Genuinely very difficult design or planning work.' "$(jq -r .selected_option <<<"$line")" "an escalation retains the selected offered option"
+assert_equals '0.01' "$(jq -r .selected_probability <<<"$line")" "an escalation records the selected probability even when it is not the maximum"
+assert_equals '-0.95' "$(jq -r .runner_up_margin <<<"$line")" "an escalation records a negative margin when another option has more probability"
 TASK_BRIEF="$HOME_DIR/data/task-abc-123/brief.md"
 mkdir -p "$(dirname "$TASK_BRIEF")"
 cp "$BRIEF" "$TASK_BRIEF"
@@ -292,7 +323,7 @@ assert_equals 'task-abc-123' "$(jq -r .task <<<"$(tail -n 1 "$DISPATCH_LOG")")" 
 write_response "$RESPONSE" rule_4 0.9
 TYPESAFE_API_KEY='' run code out err "$BRIEF" --project pager
 assert_contains "$err" 'dispatch-resolve: off' "the off path still explains itself"
-assert_equals '4' "$(wc -l < "$DISPATCH_LOG")" "the off path appends nothing to the outcome log"
+assert_equals '5' "$(wc -l < "$DISPATCH_LOG")" "the off path appends nothing to the outcome log"
 
 # --- a failed log write never changes the outcome -----------------------------
 RO_HOME="$TMP_ROOT/ro-home"
@@ -581,6 +612,11 @@ TYPESAFE_API_KEY=$KEY FAKE_QUOTA_FAIL=1 run code out err "$BRIEF"
 expect_code 0 "$code" "quota-axi failure exits 0"
 assert_contains "$out" '  status: error' "quota-axi failure is an error outcome"
 assert_contains "$out" '  reason: quota-axi --json failed' "quota-axi failure is named"
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'error' "$(jq -r .status <<<"$line")" "an error after a valid answer logs the error outcome"
+assert_equals 'jev-1.13.0' "$(jq -r .model <<<"$line")" "an error retains the response model when supplied"
+assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "an error retains the selected probability when supplied"
+assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "an error retains the runner-up margin when supplied"
 pass "quota evidence comes from one quota-axi --json read, and its failure is an error outcome"
 
 # --- API and response failures are error outcomes, exit 0 ----------------------
@@ -594,7 +630,10 @@ assert_contains "$err" 'dispatch-resolve: error (curl not installed)' "missing c
 assert_equals $(( $(wc -l < "$DISPATCH_LOG") - LOG_LINES_BEFORE )) '1' "an error outcome also appends exactly one line"
 assert_equals 'error' "$(jq -r .status <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the error status is logged"
 assert_equals 'curl not installed' "$(jq -r .reason <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the error reason is logged"
-assert_equals 'null' "$(jq -r .tokens <<<"$(tail -n 1 "$DISPATCH_LOG")")" "an outcome without a parsed answer logs no tokens"
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'null' "$(jq -r .tokens <<<"$line")" "an outcome without a parsed answer logs no tokens"
+assert_equals '[null,null,null,null,null]' "$(jq -c '[.model,.probabilities,.selected_option,.selected_probability,.runner_up_margin]' <<<"$line")" "an error without a response logs null response telemetry"
+assert_equals "$(file_sha256 "$BASE_RULES")" "$(jq -r .rules_digest <<<"$line")" "an error still identifies the rules snapshot it resolved against"
 reset_log
 TYPESAFE_API_KEY=$KEY FAKE_CURL_HTTP=429 run code out err "$BRIEF"
 expect_code 0 "$code" "http 429 exits 0"
