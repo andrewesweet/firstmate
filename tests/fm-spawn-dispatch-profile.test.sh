@@ -1439,9 +1439,12 @@ SH
 # config/claude-permission-mode (bin/fm-spawn.sh header): absent and `bypass`
 # must both produce today's launch byte-for-byte, `auto` swaps only the
 # permission flag, and any other token refuses before endpoint or metadata.
-claude_expected_launch() {  # <home> <id> <permission-flag>
-  local home=$1 id=$2 flag=$3
-  printf '%s' "unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $flag --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG \"\$('${ROOT}/bin/fm-operational-input.sh' encode launch-brief < '$home/data/$id/launch-brief.md')\""
+# config/claude-function-hooks (header): presence alone prepends exactly
+# `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 ` to the environment prefix, and the
+# absent-file byte-for-byte cases above pin that absence changes nothing.
+claude_expected_launch() {  # <home> <id> <permission-flag> [hooks-env-prefix]
+  local home=$1 id=$2 flag=$3 hooks_prefix=${4:-}
+  printf '%s' "unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY ${hooks_prefix}CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $flag --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG \"\$('${ROOT}/bin/fm-operational-input.sh' encode launch-brief < '$home/data/$id/launch-brief.md')\""
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
@@ -1529,6 +1532,43 @@ test_non_claude_harness_ignores_claude_permission_mode() {
   pass "config/claude-permission-mode changes claude launches only"
 }
 
+# config/claude-function-hooks: presence alone adds exactly
+# CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 plus one space to the claude environment
+# prefix, content ignored; the absent-file launch is already pinned
+# byte-for-byte by test_claude_permission_mode_bypass_matches_absent_launch.
+test_claude_function_hooks_flag_prefixes_crewmate_env() {
+  local rec id out status launch expected
+  id=hooksflag-crew-z24
+  rec=$(make_spawn_case hooksflag-crew claude "$id")
+  read_case_record "$rec"
+  printf 'content is ignored\n' > "$HOME_DIR/config/claude-function-hooks"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn with claude-function-hooks present should succeed"
+  assert_contains "$out" "spawned $id harness=claude" "hooks-flag spawn did not report claude"
+  launch=$(cat "$LAUNCH_LOG")
+  expected=$(claude_expected_launch "$HOME_DIR" "$id" --dangerously-skip-permissions 'CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 ')
+  [ "$launch" = "$expected" ] || fail "the hooks flag changed more than the environment prefix"$'\n'"expected: $expected"$'\n'"actual:   $launch"
+  pass "config/claude-function-hooks presence adds exactly CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 to the crewmate environment prefix"
+}
+
+test_claude_function_hooks_non_regular_file_refuses_before_endpoint_or_metadata() {
+  local rec id out status
+  id=hooksflag-bad-z25
+  rec=$(make_spawn_case hooksflag-bad claude "$id")
+  read_case_record "$rec"
+  mkdir "$HOME_DIR/config/claude-function-hooks"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 1 "$status" "a non-regular claude-function-hooks file must refuse the spawn"
+  assert_contains "$out" "config/claude-function-hooks must be a readable regular file" "refusal must name the file and its requirement"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a non-regular function-hooks file must launch nothing (got: $(cat "$LAUNCH_LOG"))"
+  assert_absent "$HOME_DIR/state/$id.meta" "refusal must happen before meta is written"
+  pass "a non-regular config/claude-function-hooks file refuses before any endpoint or metadata"
+}
+
 test_worker_launch_delivers_role_scope
 test_no_profile_keeps_claude_profile_defaults
 test_non_cursor_launch_clears_inherited_cursor_markers
@@ -1573,6 +1613,8 @@ test_claude_permission_mode_auto_swaps_only_the_permission_flag
 test_claude_permission_mode_auto_reaches_scout_launch
 test_claude_permission_mode_invalid_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_claude_permission_mode
+test_claude_function_hooks_flag_prefixes_crewmate_env
+test_claude_function_hooks_non_regular_file_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_config_dir
 test_claude_task_launch_carries_control_channel_authority
 test_claude_secondmate_launch_omits_task_control_channel_authority

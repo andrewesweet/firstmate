@@ -10,7 +10,7 @@ The mod is deliberately inert everywhere it is not asked for:
 - It loads only through `--plugin-dir`; unlike the Calm mod it is never linked into `.claude/skills`, so no trusted project, worktree, or crewmate session auto-loads it.
 - It refuses to load on any Claude Code version other than its pin (see [Version pin](#version-pin)), and a refused module passes every hook through untouched.
 - Every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`; a home without that file runs the unchanged wake path, and `bin/fm-lease-lib.sh`, `bin/fm-branch-outcome.sh`, and `bin/fm-wake-grant.sh` are shared with the Pi branch unchanged.
-- It never sets `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` or any other Claude Code setting; enabling the function-hooks surface is the captain's own explicit opt-in per session.
+- It never sets `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` or any other Claude Code setting; enabling the function-hooks surface is the captain's own explicit opt-in per session, and `config/claude-function-hooks` is the per-home opt-in that puts the variable on a launched worker's environment (docs/configuration.md "Claude function hooks").
 - It depends on nothing outside the tracked `bin/` scripts it calls; in particular it never imports or calls the fork-only tracing series.
 
 ## What the mod does
