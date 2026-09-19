@@ -6,7 +6,10 @@
 # record per ablation variant per granted wake to, and joins every record to
 # the branch's own durable verdict in state/branch-outcomes.jsonl by exact
 # wake identity (the record's wake string equals the outcome row's wake).
-# Only the route question has that durable label: a wake whose joined rows
+# That join is best-effort: the outcome row's wake string is agent-supplied
+# and often empty, so only an exact, non-empty wake match labels a route
+# sample, every other record stays unlabeled, and -v exists to adjudicate the
+# rest by hand. Only the route question has that durable label: a wake whose joined rows
 # include a captain verdict is labelled main, a wake whose joined rows are
 # all routine is labelled routine. The other questions (phase, severity,
 # no_new_outcome, stale_state, per-candidate Nouls) have no durable label in
@@ -14,10 +17,14 @@
 # policy-uncertainty columns only; -v dumps the per-wake join for manual
 # adjudication.
 #
-# Policy bands (recorded in every shadow record): a Choice answer counts only
-# at confidence >= 0.85; a Noul grants below 0.15 and passes above 0.85 and
-# is uncertain between the two. The repeat-control pair (the full variant run
-# twice on every tenth wake) is scored per question as raw call noise.
+# Policy bands are read from each record's policy object (a Choice answer
+# counts only at confidence >= choice_confidence_floor; a Noul grants below
+# noul_grant_below, passes above noul_pass_above and is uncertain between the
+# two), with 0.85 / 0.15 / 0.85 as fallbacks. The repeat-control pair (the full
+# variant run twice on every tenth wake) is scored per question as raw call
+# noise only; the per-variant tallies skip the repeat so the full row stays one
+# sample per wake, like every ablation row. A torn or malformed log line is
+# skipped, never fatal.
 #
 # Usage:
 #   bin/fm-branch-shadow-score.sh [-v] [<shadow-log>] [<outcomes-file>]
@@ -37,7 +44,7 @@ args=()
 for arg in "$@"; do
   case "$arg" in
     -v) VERBOSE=1 ;;
-    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) args+=("$arg") ;;
   esac
 done
@@ -64,17 +71,20 @@ if [ ! -f "$LOG" ]; then
   printf '### route (label: the joined branch outcome verdict)\n| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |\n|---|---|---|---|---|---|---|\n'
   exit 0
 fi
-ROWS=$(jq -r '
+ROWS=$(jq -R -r '
+  fromjson? | select(type == "object") | . as $r |
+  (($r.policy // {}) | (.choice_confidence_floor // 0.85)) as $cf |
+  (($r.policy // {}) | (.noul_grant_below // 0.15)) as $gb |
+  (($r.policy // {}) | (.noul_pass_above // 0.85)) as $pa |
   def pol:
     if .type == "noul" then
       [(if (.noul // 0) >= 0.5 then "true" else "false" end),
-       (if (.noul // -1) < 0.15 then "false" elif (.noul // -1) > 0.85 then "true" else "uncertain" end)]
+       (if (.noul // -1) < $gb then "false" elif (.noul // -1) > $pa then "true" else "uncertain" end)]
     elif .type == "choice" then
-      [(.choice // "?"), (if (.confidence // 0) < 0.85 then "uncertain" else (.choice // "?") end)]
+      [(.choice // "?"), (if (.confidence // 0) < $cf then "uncertain" else (.choice // "?") end)]
     elif .type == "score" then
-      [((.score // "?") | tostring), (if (.confidence // 0) < 0.85 then "uncertain" else ((.score // "?") | tostring) end)]
+      [((.score // "?") | tostring), (if (.confidence // 0) < $cf then "uncertain" else ((.score // "?") | tostring) end)]
     else ["?", "uncertain"] end;
-  . as $r |
   (if .unavailable != null then
     [[$r.wake, $r.variant, ($r.repeat | tostring), "UNAVAILABLE", "-", "-", $r.unavailable] | @tsv]
   else
@@ -98,6 +108,15 @@ note_q() {  # <question>: remember first-seen order
 
 while IFS=$'\t' read -r wake variant repeat q raw pol unav; do
   [ -n "$wake" ] || continue
+  # Repeat control: the two full-variant calls of one wake, per question. The
+  # repeat itself is not a per-variant sample.
+  if [ "$q" != UNAVAILABLE ] && [ "$q" != NO_ANSWERS ] && [ "$variant" = full ]; then
+    case "$repeat" in
+      1) CTRL1["$wake|$q"]=$raw ;;
+      2) CTRL2["$wake|$q"]=$raw ;;
+    esac
+  fi
+  [ "$repeat" -gt 1 ] && continue
   if [ "$q" = UNAVAILABLE ]; then
     UNAV[$variant]=$(( ${UNAV[$variant]:-0} + 1 ))
     continue
@@ -123,13 +142,6 @@ while IFS=$'\t' read -r wake variant repeat q raw pol unav; do
     fi
   else
     [ "$pol" = uncertain ] && UNC[$k]=$(( ${UNC[$k]:-0} + 1 ))
-  fi
-  # Repeat control: the two full-variant calls of one wake, per question.
-  if [ "$variant" = full ]; then
-    case "$repeat" in
-      1) CTRL1["$wake|$q"]=$raw ;;
-      2) CTRL2["$wake|$q"]=$raw ;;
-    esac
   fi
 done <<< "$ROWS"
 

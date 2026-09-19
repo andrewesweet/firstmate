@@ -641,34 +641,21 @@ const SHADOW_CONTROL_EVERY = 10
 const SHADOW_LINES_PER_TASK = 12
 const SHADOW_PRIOR_PER_TASK = 4
 
-function shadowStatusLines(task: string, from: number, to: number, text: string, section: 'NEW' | 'HISTORY'): Array<{ id: string; text: string }> {
+function shadowStatusLines(task: string, from: number, to: number, text: string): Array<{ id: string; text: string }> {
   const out: Array<{ id: string; text: string }> = []
   let inside = false
-  let byte = section === 'NEW' ? from : -1
+  let byte = from
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
-      inside = section === 'NEW' ? line.startsWith('## status lines appended') : line.startsWith('## earlier lines')
+      inside = line.startsWith('## status lines appended')
       continue
     }
     if (!inside || !line.trim()) continue
     const content = line.replace(/^  /, '')
     if (!content || content.startsWith('(none')) continue
-    if (section === 'NEW' && byte >= 0) {
-      const len = utf8Len(content)
-      out.push({ id: `${task}:${byte}-${Math.min(byte + len, to)}`, text: content })
-      byte += len + 1
-    } else {
-      // HISTORY lines end immediately before the NEW boundary: work their byte
-      // offsets backwards from it.
-      out.push({ id: `${task}:pending`, text: content })
-    }
-  }
-  if (section === 'HISTORY') {
-    let start = from
-    for (let k = out.length - 1; k >= 0; k--) {
-      start -= utf8Len(out[k].text) + 1
-      out[k].id = `${task}:${Math.max(start, 0)}-${Math.max(start, 0) + utf8Len(out[k].text)}`
-    }
+    const len = utf8Len(content)
+    out.push({ id: `${task}:${byte}-${Math.min(byte + len, to)}`, text: content })
+    byte += len + 1
   }
   return out
 }
@@ -692,7 +679,7 @@ async function shadowAssembleState($: any, a: { wake: string; tasks: string[]; e
   const prSources: Array<{ task: string; where: string; value: string }> = []
   const currentState: Array<{ task: string; value: string }> = []
   for (const b of a.evidence) {
-    fresh.push(...shadowStatusLines(b.task, b.from, b.to, b.text, 'NEW'))
+    fresh.push(...shadowStatusLines(b.task, b.from, b.to, b.text))
     const cs = shadowCurrentState(b.task, b.text)
     if (cs) currentState.push({ task: b.task, value: cs })
     for (const m of String(b.text).matchAll(/https:\/\/[^\s)"']+/g)) {

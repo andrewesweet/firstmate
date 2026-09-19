@@ -314,7 +314,7 @@ test_shadow_pane_helper_reports_only_what_it_can_read() {
   [ -s "$dir/off.out" ] && fail "an inert pane helper must print nothing: $(cat "$dir/off.out")"
 
   printf '%s\n' '.branch-mod-mode marker' > "$state/.branch-mod-mode"
-  printf 'project=demo\nwindow=fm-t1\n' > "$state/t1.meta"
+  printf 'project=demo\n' > "$state/t1.meta"
 
   # No window in the meta: the pane endpoint is unknown, so the record is
   # unavailable rather than invented.
@@ -362,13 +362,14 @@ EOF
     printf '%s\n' '{"t":"1","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9},"no_new_outcome":{"type":"noul","noul":0.05}}}'
     printf '%s\n' '{"t":"2","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.95}}}'
     printf '%s\n' '{"t":"3","wake":"signal: A","seqs":["12"],"tasks":["t1"],"wakeNo":1,"variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":5,"policy":{}}'
+    printf '%s\n' '{"t":"torn","wake":"signal: B","variant":"fu'
     printf '%s\n' '{"t":"4","wake":"signal: B","seqs":["13"],"tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
     printf '%s\n' '{"t":"5","wake":"signal: B","seqs":["13"],"tasks":["t1"],"wakeNo":2,"variant":"full","repeat":2,"control":true,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}'
   } > "$state/branch-mod-shadow.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" > "$out" || fail "shadow scorer failed: $(cat "$out")"
-  grep -q '^| full | 3/3 | 1 (33.3%) | 1 (33.3%) | 2 | 0 (0.0%) | 0 |$' "$out" \
-    || fail "the route row must join by wake identity: $(grep '^| full' "$out")"
+  grep -q '^| full | 2/2 | 0 (0.0%) | 0 (0.0%) | 2 | 0 (0.0%) | 0 |$' "$out" \
+    || fail "the route row must join by wake identity and skip the repeat control: $(grep '^| full' "$out")"
   grep -q '^| without_prior_outcomes | 0/0 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 1 |$' "$out" \
     || fail "an unavailable record must be counted, not scored: $(grep without_prior_outcomes "$out")"
   grep -q '^| route | 1 | 0 |$' "$out" \
@@ -380,7 +381,7 @@ EOF
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 3 ] || fail "an absent log prints only the empty route table: $(cat "$out")"
-  pass "the shadow scorer joins records to the branch verdict by wake identity, counts unavailable records separately, and scores the repeat control"
+  pass "the shadow scorer joins records to the branch verdict by wake identity, skips a torn line, counts unavailable records separately, and scores the repeat control outside the variant rows"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset
