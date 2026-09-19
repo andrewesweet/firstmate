@@ -1,0 +1,9 @@
+# docs/herdr-backend.md 'Clean server start' check at HEAD b453123 against the live Herdr server
+$ pgrep -af '(^|/)herdr server( |$)'
+848 /home/andre/.local/bin/herdr server
+$ tr '\0' '\n' < "/proc/$(pgrep -f '(^|/)herdr server( |$)' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+rc=1 (no hit: the live server is clean)
+
+# adversarial: stand-in 'herdr server --session default' started under CLAUDE_CODE_CHILD_SESSION=1
+pid 848: (no marker)
+pid 3553399: CLAUDE_CODE_CHILD_SESSION=1   (the marker-carrying server is exposed by the same regex)

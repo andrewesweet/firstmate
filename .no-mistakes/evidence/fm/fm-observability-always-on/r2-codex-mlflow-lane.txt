@@ -1,0 +1,17 @@
+# Codex: host lane vs firstmate crewmate launch override (both 'codex exec ... "Reply with exactly the single word: pong"' in /tmp/fmtest-r2/work, codex-cli 0.154.0, 2026-09-19)
+
+## run 1: host ~/.codex/config.toml as-is (notify = ["/usr/local/bin/mlflow-codex","notify-hook"], [otel] table)
+rollout: ~/.codex/sessions/2026/09/19/rollout-2026-09-19T13-02-55-01a0b98c-4e39-7e01-87ca-63f568dc07f5.jsonl
+MLflow experiment 1 newest trace after run: tr-ad702a4b4e914de7132eb3e196eed396 request_time=2026-09-19T12:02:55.348Z mlflow.trace.session=01a0b98c-4e39-7e01-87ca-63f568dc07f5 tokenUsage={input_tokens:18762,output_tokens:22} outputs="pong"
+
+## run 2: fm-spawn crewmate/scout launch flags: --disable hooks -c 'notify=["bash","-c","touch /tmp/fmtest-r2/turnend"]'
+rollout: ~/.codex/sessions/2026/09/19/rollout-2026-09-19T13-03-17-01a0b98c-a667-7740-97d0-fff395726439.jsonl
+turn-end file touched: 2026-09-19 13:03:22.204512896 +0100
+MLflow experiment 1 traces naming session 01a0b98c-a667-7740-97d0-fff395726439:
+   0 of 50 newest traces (0 = the notify override displaced the host MLflow lane)
+
+## collector lane (unchanged by the override): /var/log/codex-otel/codex-telemetry.jsonl rows naming each session
+  01a0b98c-4e39-7e01-87ca-63f568dc07f5: 5 rows
+  01a0b98c-a667-7740-97d0-fff395726439: 4 rows
+
+## docs/trace-context.md (this change) says: 'No MLflow-equivalent trace lane exists for Pi or Codex ... nothing reads the Pi or Codex session files.' Run 1 shows the host already has one for Codex (@mlflow/codex notify hook, host-up roles/codex, 2026-09-15); run 2 shows firstmate's crewmate/scout notify override replaces it.

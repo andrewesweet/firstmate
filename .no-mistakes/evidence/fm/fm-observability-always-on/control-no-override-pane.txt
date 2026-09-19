@@ -1,0 +1,13 @@
+ ▐▛███▛█   Claude Code v2.1.278
+▝▜██████▀  Haiku 4.5 · Claude Max
+  ▝▝ ▝▝    /tmp/fmtest-transcript/work
+  Fable 5.1 writes better code and reports progress on long tasks. Switch anytime with /model.
+  1 more notice hidden
+❯ Reply with exactly the single word: pong
+● pong
+✻ Brewed for 1s · done 12:45 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 to keep future transcripts
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

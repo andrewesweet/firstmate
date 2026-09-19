@@ -1,0 +1,28 @@
+# Claude worker launched with bin/fm-spawn.sh's claude launch prefix at HEAD b453123, in a tmux pane whose shell exported CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENVIRONMENT_KIND=bridge CLAUDE_CODE_ENTRYPOINT=sdk-cli CLAUDE_CODE_SKIP_PROMPT_HISTORY=1 (scratch CLAUDE_CONFIG_DIR=/tmp/fmtest-r3/cfg, model haiku)
+$ env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{...same settings JSON as the captured launch...}'
+
+== pane after one turn ==
+❯ Reply with exactly the single word: pong
+● pong
+✻ Cooked for 1s · done 1:32 PM
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+(no "Transcript saving is off" notice; the control claude in the same pane without the prefix showed it and wrote nothing)
+
+== worker claude process environment (/proc/3545498/environ) ==
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+(CLAUDE_CODE_SKIP_PROMPT_HISTORY absent: cleared by the env -u prefix)
+
+== transcript /tmp/fmtest-r3/cfg/projects/-tmp-fmtest-r2-work/f07e6ceb-2a2e-4b39-8da7-b0110186026f.jsonl ==
+user | Reply with exactly the single word: pong | {}
+assistant |  | {"input_tokens": 10, "cache_creation_input_tokens": 3438, "cache_read_input_tokens": 11439, ...}
+assistant | pong | {"input_tokens": 10, "cache_creation_input_tokens": 3438, "cache_read_input_tokens": 11439, ...}
+
+== MLflow trace from that transcript (mlflow-tracing plugin 0.2.0 Stop hook run on it; experiment 1) ==
+{
+ "trace_id": "tr-eff8469ef73e251095bcb51a68beb614",
+ "request_time": "2026-09-19T12:32:02.123Z",
+ "session": "f07e6ceb-2a2e-4b39-8da7-b0110186026f",
+ "cost": "{\"input_cost\":0.0054514,\"output_cost\":0.000235,\"total_cost\":0.0056864}",
+ "tokenUsage": "{\"input_tokens\":10,\"output_tokens\":47,\"total_tokens\":57,\"cache_read_input_tokens\":11439,\"cache_creation_input_tokens\":3438}"
+}

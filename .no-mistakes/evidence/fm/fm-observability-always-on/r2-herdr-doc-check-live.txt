@@ -1,0 +1,18 @@
+# docs/herdr-backend.md 'Clean server start' check against the live Herdr server (started 10:54 today)
+$ pgrep -af '(^|/)herdr server( |$)'
+848 /home/andre/.local/bin/herdr server
+$ tr '\0' '\n' < "/proc/$(pgrep -f '(^|/)herdr server( |$)' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+rc=1 (no hit: the live server is clean)
+
+# adversarial: server started the 2026-09-18 way - 'herdr server --session default' under CLAUDE_CODE_CHILD_SESSION=1 (stand-in script /tmp/fmtest-r2/fakeherdr/herdr, same argv shape)
+$ pgrep -af '(^|/)herdr server( |$)'
+848 /home/andre/.local/bin/herdr server
+2919626 bash /tmp/fmtest-r2/fakeherdr/herdr server --session default
+pid 848: (no marker)
+pid 2919626: CLAUDE_CODE_CHILD_SESSION=1
+(regex finds both the bare and the --session argv; the marker-carrying server is exposed. The doc's 'head -1' reads only the lowest pid, so with several servers alive read each pid.)
+
+# doc's clean-start recipe, from a shell that carries both markers:
+$ env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SKIP_PROMPT_HISTORY herdr server --session clean &
+$ tr '\0' '\n' < /proc/2919660/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|SKIP_PROMPT_HISTORY)='
+rc=1 (no marker lines: the recipe strips both markers)

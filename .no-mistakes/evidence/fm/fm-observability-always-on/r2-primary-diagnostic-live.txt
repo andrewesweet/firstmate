@@ -1,0 +1,38 @@
+# Primary transcript-suppression diagnostic, live: bin/fm-bootstrap.sh run as session start runs it (FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip), real toolchain, hook-style caller env
+# caller env (this Bash child, claude-injected): CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_PID=2746166 TMUX=''
+
+## control: CLAUDE_PID=2811239 -> interactive claude 2.1.278, inherited marker, no override (status bar: Transcript saving is off)
+$ tr '\0' '\n' < /proc/2811239/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|FORCE_SESSION_PERSISTENCE|SKIP_PROMPT_HISTORY)='
+CLAUDE_CODE_CHILD_SESSION=1
+$ CLAUDE_PID=2811239 FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh
+TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+
+## worker: CLAUDE_PID=2829777 -> interactive claude launched with fm-spawn's captured launch prefix under inherited CHILD_SESSION=1 + SKIP_PROMPT_HISTORY=1 (transcript written)
+$ tr '\0' '\n' < /proc/2829777/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|FORCE_SESSION_PERSISTENCE|SKIP_PROMPT_HISTORY)='
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+$ CLAUDE_PID=2829777 FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh
+(silent)
+
+## own-primary: CLAUDE_PID=2746166 -> this run's own primary claude (no marker)
+$ tr '\0' '\n' < /proc/2746166/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|FORCE_SESSION_PERSISTENCE|SKIP_PROMPT_HISTORY)='
+(none)
+$ CLAUDE_PID=2746166 FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh
+(silent)
+
+## skip-only: CLAUDE_PID=2873459 -> interactive claude with CLAUDE_CODE_SKIP_PROMPT_HISTORY=1 only
+CLAUDE_CODE_SKIP_PROMPT_HISTORY=1
+$ CLAUDE_PID=2873459 bin/fm-bootstrap.sh
+TRANSCRIPT_SUPPRESSION: CLAUDE_CODE_SKIP_PROMPT_HISTORY suppresses this primary session's transcript and the MLflow traces read from it; CLAUDE_CODE_FORCE_SESSION_PERSISTENCE does not defeat this cause - relaunch the primary without it
+
+## tmux ambient probe against real tmux servers, CLAUDE_PID=2811239 (marker, no override)
+# server fmamb2 started from a marker-carrying shell:
+$ tmux -L fmamb2 show-environment -g | grep CLAUDE_CODE_CHILD_SESSION
+CLAUDE_CODE_CHILD_SESSION=1
+-> (silent)
+# server fmr2 started clean:
+$ tmux -L fmr2 show-environment -g | grep -c CLAUDE_CODE_CHILD_SESSION
+0
+-> TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+# TMUX naming a dead socket:
+-> TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: unknown); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1

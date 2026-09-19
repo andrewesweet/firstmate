@@ -1,0 +1,21 @@
+# Primary transcript-suppression diagnostic at HEAD b453123, bin/fm-bootstrap.sh run as session start runs it (FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip), from a real claude Bash-tool child whose hook env carries the injected marker
+
+## healthy primary (this run's own claude, pid 3425259): hook env CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_PID=3425259 TMUX=''
+$ tr '\0' '\n' < /proc/3425259/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|FORCE_SESSION_PERSISTENCE|SKIP_PROMPT_HISTORY)='   -> (none)
+$ FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh | grep -c TRANSCRIPT_SUPPRESSION
+0   (no false alarm from the hook's own injected marker)
+
+## broken primary: interactive claude 2.1.278 (haiku) started in a tmux pane whose shell exported CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENVIRONMENT_KIND=bridge CLAUDE_CODE_ENTRYPOINT=sdk-cli, scratch CLAUDE_CONFIG_DIR
+pane status bar:  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 to keep future transcripts
+after one 'pong' turn and /exit: transcript jsonl files under the scratch CLAUDE_CONFIG_DIR: 0
+$ tr '\0' '\n' < /proc/3538659/environ | grep -E '^CLAUDE_CODE_(CHILD_SESSION|FORCE_SESSION_PERSISTENCE|SKIP_PROMPT_HISTORY)='
+CLAUDE_CODE_CHILD_SESSION=1
+$ CLAUDE_PID=3538659 FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh
+TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+# same with TMUX pointing at the pane's server socket (server started clean; `tmux -L fmr3 show-environment -g` has no marker):
+TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: absent); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+
+## worker in the same pane (fm-spawn launch prefix, see r3-worker-override-transcript.txt), pid 3545498:
+CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+$ CLAUDE_PID=3545498 FM_BOOTSTRAP_DETECT_ONLY=1 FM_BOOTSTRAP_NETWORK=skip bin/fm-bootstrap.sh | grep -c TRANSCRIPT_SUPPRESSION
+0

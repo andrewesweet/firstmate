@@ -1,0 +1,11 @@
+# MLflow trace created from the worker transcript (mlflow-tracing plugin Stop hook run on the transcript written under inherited CHILD_SESSION=1 + SKIP_PROMPT_HISTORY=1 with fm-spawn's launch prefix); searched via POST /ajax-api/3.0/mlflow/traces/search on experiment 1
+{
+ "trace_id": "tr-d2760fc2d1116de6bf9ca979dabf3768",
+ "request_time": "2026-09-19T11:54:45.041Z",
+ "state": "OK",
+ "session": "c29e18ca-2a24-4c12-8fe6-4feeeb82c613",
+ "claude_code_version": "2.1.278",
+ "cost": "{\"input_cost\":0.006827099999999999,\"output_cost\":0.000355,\"total_cost\":0.007182099999999999}",
+ "tokenUsage": "{\"input_tokens\":10,\"output_tokens\":71,\"total_tokens\":81,\"cache_read_input_tokens\":10371,\"cache_creation_input_tokens\":4624}"
+}
+# control session (same marker, no override) wrote no transcript, so nothing exists for the plugin to read

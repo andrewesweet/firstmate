@@ -1,0 +1,22 @@
+# Codex crewmate notify chain, live (codex-cli 0.154.0, host ~/.codex/config.toml notify = ["/usr/local/bin/mlflow-codex", "notify-hook"], 2026-09-19)
+
+## launch captured from real bin/fm-spawn.sh (codex crewmate, host config copied into the suite's sandbox HOME):
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch '<state>/r3-task-1.turn-ended'; exec \\\"\$@\\\"\",\"_\",\"/usr/local/bin/mlflow-codex\", \"notify-hook\"]" "$('<root>/bin/fm-operational-input.sh' encode launch-brief < '<data>/r3-task-1/launch-brief.md')"
+
+## same flags with a host config that has no notify line -> bare touch, as before:
+... --disable hooks -c "notify=[\"bash\",\"-c\",\"touch '<state>/r3-task-1.turn-ended'\"]" ...
+
+## real run: codex exec with the chained -c notify= value (turn-end path /tmp/fmtest-r3/turnend), prompt 'Reply with exactly the single word: pong'
+session id: 01a0b9a3-3c1a-78b3-91ff-a52c08f1c6ab   reply: pong   codex rc=0
+turn-end file touched: 2026-09-19 13:28:04.464494399 +0100
+rollout: ~/.codex/sessions/2026/09/19/rollout-2026-09-19T13-27-57-01a0b9a3-3c1a-78b3-91ff-a52c08f1c6ab.jsonl
+MLflow experiment 1 trace for this session (POST /ajax-api/3.0/mlflow/traces/search):
+{
+ "trace_id": "tr-04f0044d4a3a08b1123108b99a40cf84",
+ "request_time": "2026-09-19T12:27:57.963Z",
+ "session": "01a0b9a3-3c1a-78b3-91ff-a52c08f1c6ab",
+ "tokenUsage": "{\"input_tokens\":18534,\"output_tokens\":15,\"total_tokens\":18549}",
+ "state": "OK"
+}
+collector lane rows naming this session in /var/log/codex-otel/codex-telemetry.jsonl: 5
+(round 2 with the un-chained override: turn-end touched, 0 MLflow traces - the chain restores the lane)

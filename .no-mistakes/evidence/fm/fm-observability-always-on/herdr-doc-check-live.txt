@@ -1,0 +1,12 @@
+# docs/herdr-backend.md 'Clean server start' check, run verbatim against the live Herdr server
+$ pgrep -af 'herdr server'
+848 /home/andre/.local/bin/herdr server
+$ pgrep -f '^herdr server'; echo rc=$?
+rc=1
+$ tr '\0' '\n' < "/proc/$(pgrep -f '^herdr server' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+/bin/bash: line 1: /proc//environ: No such file or directory
+rc=1
+
+# the same read with the real pid (848): server started 10:54:58 today, environment carries no marker
+0
+0 marker lines

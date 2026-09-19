@@ -1,0 +1,10 @@
+# Pi one-shot `pi -p 'Reply with exactly the single word: pong'` in /tmp/fmtest-r2/work; session file: /home/andre/.pi/agent/sessions/--tmp-fmtest-r2-work--/2026-09-19T12-04-50-190Z_01a0b98e-0f8e-7439-862d-ce7b48e598ea.jsonl
+assistant message.usage.cost: {"input": 0.008073799999999999, "output": 1.32e-05, "cacheRead": 0.00028288, "cacheWrite": 0, "total": 0.008369879999999998}
+collector rows naming this session: 1
+collector span attribute: "pi.usage.cost.total","value":{"doubleValue":0.008369879999999998}
+
+# fm-spawn pi and codex launch commands (captured from real bin/fm-spawn.sh via the suite's fake tmux)
+== pi
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI FM_PI_HARNESS=pi '/run/user/1000/fnm_multishells/1517_1789811700028/bin/pi' --tui-mode regular -e '/tmp/fmtest-r2-capture-pi.xGiLei/c/home/state/r2-task-1.pi-ext.ts' --exclude-tools fm_branch_outcomes,fm_branch_processed,fm_watch_arm_pi "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WMMXNWCTJ066V3T09VJMS1/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fmtest-r2-capture-pi.xGiLei/c/home/data/r2-task-1/launch-brief.md')"
+== codex
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch '/tmp/fmtest-r2-capture-codex.yQ2rf3/c/home/state/r2-task-1.turn-ended'\"]" "$('/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WMMXNWCTJ066V3T09VJMS1/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fmtest-r2-capture-codex.yQ2rf3/c/home/data/r2-task-1/launch-brief.md')"

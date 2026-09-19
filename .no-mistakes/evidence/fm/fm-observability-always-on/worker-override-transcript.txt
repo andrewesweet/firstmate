@@ -1,0 +1,18 @@
+== transcript /tmp/fmtest-transcript/cfg/projects/-tmp-fmtest-transcript-work/d3bc5bf8-47af-4523-a74b-48427ca823aa.jsonl (worker launch: inherited CHILD_SESSION=1 + SKIP_PROMPT_HISTORY=1, fm-spawn claude launch prefix, clean tmux server) ==
+user | Reply with exactly the single word: pong | 
+assistant |  | usage={"input_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 14947, "output_tokens": 45, "output_tokens_details": {"thinking_tokens": 38}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 0, "ephemeral_5m_input_tokens": 0}, "inference_geo": "not_available", "iterations": [{"input_tokens": 10, "output_tokens": 45, "cache_read_input_tokens": 14947, "cache_creation_input_tokens": 0, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 0}, "type": "message"}], "speed": "standard"}
+assistant | pong | usage={"input_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 14947, "output_tokens": 45, "output_tokens_details": {"thinking_tokens": 38}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 0, "ephemeral_5m_input_tokens": 0}, "inference_geo": "not_available", "iterations": [{"input_tokens": 10, "output_tokens": 45, "cache_read_input_tokens": 14947, "cache_creation_input_tokens": 0, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 0}, "type": "message"}], "speed": "standard"}
+
+== pane ==
+ ▐▛███▛█   Claude Code v2.1.278
+▝▜██████▀  Haiku 4.5 · Claude Max
+  ▝▝ ▝▝    /tmp/fmtest-transcript/work
+  Fable 5.1 writes better code and reports progress on long tasks. Switch anytime with /model.
+  1 more notice hidden
+❯ Reply with exactly the single word: pong
+● pong
+✻ Cogitated for 1s · done 12:46 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

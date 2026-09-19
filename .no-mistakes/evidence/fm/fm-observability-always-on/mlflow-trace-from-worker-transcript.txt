@@ -1,0 +1,21 @@
+# MLflow trace created from the worker transcript (plugin Stop hook run on the transcript written under inherited CLAUDE_CODE_CHILD_SESSION=1 + fm-spawn launch prefix)
+{
+ "trace_id": "tr-565697a5244b1d9c671a362a9d5b3bbc",
+ "request_time": "2026-09-19T11:46:48.197Z",
+ "session": "d3bc5bf8-47af-4523-a74b-48427ca823aa",
+ "state": "OK",
+ "metadata_keys": [
+  "mlflow.claude_code_version",
+  "mlflow.trace.cost",
+  "mlflow.trace.infoFinalized",
+  "mlflow.trace.permission_mode",
+  "mlflow.trace.session",
+  "mlflow.trace.tokenUsage",
+  "mlflow.trace.user",
+  "mlflow.trace.working_directory",
+  "mlflow.traceInputs",
+  "mlflow.traceOutputs",
+  "mlflow.trace_schema.version"
+ ]
+}
+# control session (same marker, no override) wrote no transcript: 0 jsonl files, so nothing exists for the plugin to read

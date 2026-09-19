@@ -1,0 +1,29 @@
+== worker: launch command captured from real bin/fm-spawn.sh (claude crewmate, fake tmux launch log), executed in a real tmux pane whose shell exported CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENVIRONMENT_KIND=bridge CLAUDE_CODE_ENTRYPOINT=sdk-cli CLAUDE_CODE_SKIP_PROMPT_HISTORY=1 ==
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","
+...
+
+== pane ==
+ ▐▛███▛█   Claude Code v2.1.278
+▝▜██████▀  Haiku 4.5 · Claude Max
+  ▝▝ ▝▝    /tmp/fmtest-r2/work
+  Fable 5.1 writes better code and reports progress on long tasks. Switch anytime with /model.
+  1 more notice hidden
+❯ Reply with exactly the single word: pong
+● pong
+✻ Cogitated for 1s · done 12:54 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+
+== worker claude process environment (/proc/<pid>/environ) ==
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENVIRONMENT_KIND=bridge
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+SKIP_PROMPT_HISTORY present: 0
+
+== transcript /tmp/fmtest-r2/cfg/projects/-tmp-fmtest-r2-work/c29e18ca-2a24-4c12-8fe6-4feeeb82c613.jsonl ==
+user | Reply with exactly the single word: pong | 
+assistant |  | usage={"input_tokens": 10, "output_tokens": 71, "cache_read_input_tokens": 10371}
+assistant | pong | usage={"input_tokens": 10, "output_tokens": 71, "cache_read_input_tokens": 10371}
