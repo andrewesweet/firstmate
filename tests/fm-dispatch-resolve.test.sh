@@ -641,9 +641,14 @@ assert_contains "$out" '  status: error' "http 429 is an error outcome"
 assert_contains "$out" '  reason: http 429 after' "http status is reported"
 assert_contains "$err" 'dispatch-resolve: error (http 429' "error also goes to stderr"
 reset_log
+LOG_LINES_BEFORE=$(wc -l < "$DISPATCH_LOG")
 TYPESAFE_API_KEY=$KEY FAKE_CURL_FAIL=1 run code out err "$BRIEF"
 expect_code 0 "$code" "curl failure exits 0"
 assert_contains "$out" '  reason: http 000 after' "transport failure reads as http 000"
+assert_equals $(( $(wc -l < "$DISPATCH_LOG") - LOG_LINES_BEFORE )) '1' "a transport failure still appends one outcome line"
+line=$(tail -n 1 "$DISPATCH_LOG")
+assert_equals 'error' "$(jq -r .status <<<"$line")" "a transport failure logs the error outcome"
+assert_equals '[null,null,null,null,null]' "$(jq -c '[.model,.probabilities,.selected_option,.selected_probability,.runner_up_margin]' <<<"$line")" "a transport failure logs null response telemetry"
 reset_log
 printf '%s\n' '{"model":"jev","answers":{}}' > "$RESPONSE"
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"

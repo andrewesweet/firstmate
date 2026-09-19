@@ -138,6 +138,7 @@ LAT_MS=null
 RULES_DIGEST=''
 RESPONSE_TELEMETRY='{}'
 # option_label maps a choice id (rule_N or default) to its offered `when` text.
+# shellcheck disable=SC2016  # jq program: $c, $none and $rules are jq variables, not shell expansions.
 OPTION_LABEL_JQ='def option_label($c):
   if $c == "default" then $none
   elif ($c | type) == "string" and ($c | test("^rule_[1-9][0-9]*$"))
@@ -411,6 +412,8 @@ command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
       tokens: (if (.usage | type) == "object" then .usage else null end)
     }
   ' "$RESP_FILE" 2>/dev/null) || RESPONSE_TELEMETRY='{}'
+  # An empty response file (curl transport failure) makes jq emit nothing and exit 0.
+  [ -n "$RESPONSE_TELEMETRY" ] || RESPONSE_TELEMETRY='{}'
   [ "$HTTP" = 200 ] || emit_error "http $HTTP after ${LAT_MS} ms: $(head -c 200 "$RESP_FILE" 2>/dev/null | tr '\n' ' ')"
 jq -e --slurpfile rules "$RULES" '
     (($rules[0].rules | to_entries | map("rule_" + ((.key + 1) | tostring))) + ["default"] | sort) as $choices |
