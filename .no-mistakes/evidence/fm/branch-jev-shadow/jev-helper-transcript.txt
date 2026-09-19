@@ -1,0 +1,66 @@
+# 1. key absent (no env, no .env)
+$ FM_HOME=$H bin/fm-branch-shadow-jev.sh <<< $BODY
+{"ok":false,"unavailable":"key absent","model":"jev"}
+exit=0
+
+# 2. key from environment, server ok
+$ TYPESAFE_API_KEY=sk-live-test-key FM_HOME=$H bin/fm-branch-shadow-jev.sh <<< $BODY
+{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.93},"phase":{"type":"choice","choice":"working","confidence":0.7},"no_new_outcome":{"type":"noul","value":0.08}}}
+exit=0
+
+# 3. key from FM_HOME/.env
+$ FM_HOME=$H bin/fm-branch-shadow-jev.sh <<< $BODY   (.env holds sk-dotenv-key)
+{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.93},"phase":{"type":"choice","choice":"working","confidence":0.7},"no_new_outcome":{"type":"noul","value":0.08}}}
+exit=0
+
+# 4. server 503
+$ server mode=503
+{"ok":false,"unavailable":"http 503","model":"jev"}
+exit=0
+
+# 5. server 200 but not JSON
+$ server mode=garbage
+{"ok":false,"unavailable":"malformed response","model":"jev"}
+exit=0
+
+# 6. server 200, answers not an object
+$ server mode=noanswers
+{"ok":false,"unavailable":"malformed response","model":"jev"}
+exit=0
+
+# 7. server hangs past TS_TIMEOUT=3
+$ server mode=slow
+{"ok":false,"unavailable":"http 000","model":"jev"}
+
+real	0m3.021s
+user	0m0.010s
+sys	0m0.010s
+exit=0
+
+# 8. request lacking state/questions
+$ body={"model":"x"}
+{"ok":false,"unavailable":"request lacks state/questions","model":"jev"}
+exit=0
+
+# 9. curl absent from PATH
+$ PATH=nocurl-only
+{"ok":false,"unavailable":"curl not found","model":"jev"}
+exit=0
+
+# server-side view of what arrived (Authorization header, body)
+{"path": "/v1/systemone", "auth": null, "ct": "application/x-www-form-urlencoded", "body": "{}", "mode": "ok"}
+{"path": "/v1/systemone", "auth": "Bearer sk-live-test-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "ok"}
+{"path": "/v1/systemone", "auth": "Bearer sk-dotenv-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "ok"}
+{"path": "/v1/systemone", "auth": "Bearer sk-live-test-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "503"}
+{"path": "/v1/systemone", "auth": "Bearer sk-live-test-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "garbage"}
+{"path": "/v1/systemone", "auth": "Bearer sk-live-test-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "noanswers"}
+{"path": "/v1/systemone", "auth": "Bearer sk-live-test-key", "ct": "application/json", "body": "{\"model\":\"jev-latest\",\"state\":{\"wake\":\"signal: t1.status\",\"fresh_status\":[{\"id\":\"t1:0-20\",\"text\":\"working: tests\"}]},\"questions\":{\"route\":{\"type\":\"choice\"}}}", "mode": "slow"}
+# 10. key discipline observed on the live curl child (/proc while the request is in flight)
+curl pid=884929
+argv: curl -sS --max-time 6 -o /tmp/fm-branch-shadow-jev.w17g0O -w %{http_code} -X POST http://127.0.0.1:47831/v1/systemone -H Content-Type: application/json -H @/dev/fd/3 --data-binary @- 
+TYPESAFE_API_KEY vars in curl env: 0
+occurrences of the key string in argv: 0
+occurrences of the key string in env: 0
+fd 3 of curl: pipe:[29045165]
+helper output after timeout: {"ok":false,"unavailable":"http 000","model":"jev"}
+{"auth":"Bearer sk-proc-probe-key"}

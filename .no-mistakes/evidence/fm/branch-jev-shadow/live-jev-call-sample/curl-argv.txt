@@ -1,0 +1,1 @@
+-sS --max-time 8 -o /tmp/fm-branch-shadow-jev.XuVaRt -w %{http_code} -X POST https://api.typesafe.ai/v1/systemone -H Content-Type: application/json -H @/dev/fd/3 --data-binary @-

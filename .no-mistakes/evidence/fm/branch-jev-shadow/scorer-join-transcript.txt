@@ -1,0 +1,177 @@
+# 1. the branch's own outcome store: append with --wake-key (the mod's durable stamp)
+$ fm-branch-outcome.sh append --task t1 --verdict routine --summary 'tests pass' --wake 'signal: t1.status' --wake-key 1700000000:12
+1
+exit=0
+
+$ fm-branch-outcome.sh append --task t1 --verdict captain --summary 'PR ready' --wake '' --wake-key 1700000000:13,1700000000:14
+2
+exit=0
+
+$ fm-branch-outcome.sh append --task t2 --verdict routine --summary 'legacy row, no key'
+3
+exit=0
+
+# 2. adversarial: malformed wake keys are refused (usage, exit 2) and nothing is appended
+$ --wake-key 'abc:1'
+usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--wake-key <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | processed-init [--held-lock] | list [--recent <n>] | startup-replay
+exit=2
+
+$ --wake-key '1700000000:12$(rm -rf /)'
+usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--wake-key <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | processed-init [--held-lock] | list [--recent <n>] | startup-replay
+exit=2
+
+$ --wake-key '1;2'
+usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--wake-key <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | processed-init [--held-lock] | list [--recent <n>] | startup-replay
+exit=2
+
+# 3. persisted outcome rows (with and without wakeKey), and the store still lists/validates them
+$ cat state/branch-outcomes.jsonl
+{"seq":1,"epoch":1789838524,"task":"t1","wake":"signal: t1.status","verdict":"routine","summary":"tests pass","silent":false,"wakeKey":"1700000000:12","statusEndpoint":0,"statusIdent":"strong:2096:1261071:2026-09-19 18:22:04.192224438 +0100"}
+{"seq":2,"epoch":1789838524,"task":"t1","wake":"","verdict":"captain","summary":"PR ready","silent":false,"wakeKey":"1700000000:13,1700000000:14","statusEndpoint":0,"statusIdent":"strong:2096:1261071:2026-09-19 18:22:04.192224438 +0100"}
+{"seq":3,"epoch":1789838524,"task":"t2","wake":"","verdict":"routine","summary":"legacy row, no key","silent":false,"statusEndpoint":0,"statusIdent":"strong:2096:1261118:2026-09-19 18:22:04.192224438 +0100"}
+exit=0
+
+$ fm-branch-outcome.sh list
+{"seq":1,"epoch":1789838524,"task":"t1","wake":"signal: t1.status","verdict":"routine","summary":"tests pass","silent":false,"wakeKey":"1700000000:12","statusEndpoint":0,"statusIdent":"strong:2096:1261071:2026-09-19 18:22:04.192224438 +0100"}
+{"seq":2,"epoch":1789838524,"task":"t1","wake":"","verdict":"captain","summary":"PR ready","silent":false,"wakeKey":"1700000000:13,1700000000:14","statusEndpoint":0,"statusIdent":"strong:2096:1261071:2026-09-19 18:22:04.192224438 +0100"}
+{"seq":3,"epoch":1789838524,"task":"t2","wake":"","verdict":"routine","summary":"legacy row, no key","silent":false,"statusEndpoint":0,"statusIdent":"strong:2096:1261118:2026-09-19 18:22:04.192224438 +0100"}
+exit=0
+
+$ fm-branch-outcome.sh append (a 4th row after keyed rows: the store's shape validation accepts keyed rows)
+4
+exit=0
+
+# 4. shadow log written in the mod's record shape (13 lines: 12 records incl. one torn line; keys 12 -> routine row, 13,14 -> captain row, 20 -> routine row, 99 -> no row, '' -> no key); outcomes file also carries one torn line
+$ cat state/branch-mod-shadow.jsonl | cut -c1-160
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:12","tasks":["t1"],"wakeNo":3,"variant":"full","repea
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:12","tasks":["t1"],"wakeNo":3,"variant":"without_curr
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:12","tasks":["t1"],"wakeNo":3,"variant":"without_prio
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:12","tasks":["t1"],"wakeNo":3,"variant":"without_pane
+{"t":"2026-09-19T17:00:01Z","kind":"shadow","wake":"signal: t1.status","seqs":["13"],"wakeKey":"1700000000:13,17000
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:13,1700000000:14","tasks":["t1"],"wakeNo":10,"variant
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:13,1700000000:14","tasks":["t1"],"wakeNo":10,"variant
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:13,1700000000:14","tasks":["t1"],"wakeNo":10,"variant
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:13,1700000000:14","tasks":["t1"],"wakeNo":10,"variant
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:13,1700000000:14","tasks":["t1"],"wakeNo":10,"variant
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:20","tasks":["t1"],"wakeNo":11,"variant":"full","repe
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"1700000000:99","tasks":["t1"],"wakeNo":12,"variant":"full","repe
+{"t":"2026-09-19T17:00:00Z","kind":"shadow","wake":"signal: t1.status","seqs":["12"],"wakeKey":"","tasks":["t1"],"wakeNo":13,"variant":"full","repeat":1,"contro
+
+$ tail -2 state/branch-outcomes.jsonl
+{"seq":4,"epoch":1789838524,"task":"t2","wake":"","verdict":"routine","summary":"after keyed rows","silent":false,"wakeKey":"1700000000:20","statusEndpoint":0,"statusIdent":"strong:2096:1261118:2026-09-19 18:22:04.192224438 +0100"}
+{"seq":5,"epoch":1789838524,"task":"t2","wake":"","verdict":"rou
+
+# 5. bin/fm-branch-shadow-score.sh (defaults resolve to state/)
+$ FM_STATE_OVERRIDE=state bin/fm-branch-shadow-score.sh
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_current_state | 2/2 | 1 (50.0%) | 1 (50.0%) | 1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2/2 | 1 (50.0%) | 1 (50.0%) | 0 | 1 (50.0%) | 0 |
+| without_pane_tail | 1/1 | 1 (100.0%) | 1 (100.0%) | 0 | 0 (0.0%) | 1 |
+unmatched (no outcome row carries this wake key; never counted as a verdict): full=2
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 5 | working=4 finished_ready=1 | 4 (80.0%) | 0 |
+| without_current_state | 2 | finished_ready=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | unknown=1 finished_ready=1 | 1 (50.0%) | 0 |
+| without_pane_tail | 1 | finished_ready=1 | 0 (0.0%) | 1 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 5 | false=4 true=1 | 0 (0.0%) | 0 |
+| without_current_state | 2 | true=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | true=2 | 1 (50.0%) | 0 |
+| without_pane_tail | 1 | true=1 | 0 (0.0%) | 1 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+| route | 1 | 0 |
+| phase | 1 | 0 |
+| no_new_outcome | 1 | 0 |
+exit=0
+
+# 6. -v per-wake join dump (torn outcome line now sits between outcome rows 1 and 2, before the captain row)
+$ sed -n 2p state/branch-outcomes.jsonl
+{"seq":9,"epoch":1789838524,"task":"t2","wake":"","verdict":"rou
+$ bin/fm-branch-shadow-score.sh -v
+# wake	label	variant	question	raw	policy	unavailable
+1700000000:12	routine	full	route	routine	routine	-
+1700000000:12	routine	full	phase	working	uncertain	-
+1700000000:12	routine	full	no_new_outcome	false	false	-
+1700000000:12	routine	without_current_state	route	main	main	-
+1700000000:12	routine	without_current_state	phase	finished_ready	finished_ready	-
+1700000000:12	routine	without_current_state	no_new_outcome	true	true	-
+1700000000:12	routine	without_prior_outcomes	route	main	uncertain	-
+1700000000:12	routine	without_prior_outcomes	phase	unknown	uncertain	-
+1700000000:12	routine	without_prior_outcomes	no_new_outcome	true	uncertain	-
+1700000000:12	routine	without_pane_tail	UNAVAILABLE	-	-	http 503
+1700000000:13,1700000000:14	main	full	route	main	main	-
+1700000000:13,1700000000:14	main	full	phase	finished_ready	finished_ready	-
+1700000000:13,1700000000:14	main	full	no_new_outcome	true	true	-
+1700000000:13,1700000000:14	main	without_current_state	route	main	main	-
+1700000000:13,1700000000:14	main	without_current_state	phase	finished_ready	finished_ready	-
+1700000000:13,1700000000:14	main	without_current_state	no_new_outcome	true	true	-
+1700000000:13,1700000000:14	main	without_prior_outcomes	route	main	main	-
+1700000000:13,1700000000:14	main	without_prior_outcomes	phase	finished_ready	finished_ready	-
+1700000000:13,1700000000:14	main	without_prior_outcomes	no_new_outcome	true	true	-
+1700000000:13,1700000000:14	main	without_pane_tail	route	main	main	-
+1700000000:13,1700000000:14	main	without_pane_tail	phase	finished_ready	finished_ready	-
+1700000000:13,1700000000:14	main	without_pane_tail	no_new_outcome	true	true	-
+1700000000:13,1700000000:14	main	full	route	routine	routine	-
+1700000000:13,1700000000:14	main	full	phase	working	uncertain	-
+1700000000:13,1700000000:14	main	full	no_new_outcome	false	false	-
+1700000000:20	routine	full	route	routine	routine	-
+1700000000:20	routine	full	phase	working	uncertain	-
+1700000000:20	routine	full	no_new_outcome	false	false	-
+1700000000:99	unmatched	full	route	routine	routine	-
+1700000000:99	unmatched	full	phase	working	uncertain	-
+1700000000:99	unmatched	full	no_new_outcome	false	false	-
+-	unmatched	full	route	routine	routine	-
+-	unmatched	full	phase	working	uncertain	-
+-	unmatched	full	no_new_outcome	false	false	-
+
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_current_state | 2/2 | 1 (50.0%) | 1 (50.0%) | 1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2/2 | 1 (50.0%) | 1 (50.0%) | 0 | 1 (50.0%) | 0 |
+| without_pane_tail | 1/1 | 1 (100.0%) | 1 (100.0%) | 0 | 0 (0.0%) | 1 |
+unmatched (no outcome row carries this wake key; never counted as a verdict): full=2
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 5 | working=4 finished_ready=1 | 4 (80.0%) | 0 |
+| without_current_state | 2 | finished_ready=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | unknown=1 finished_ready=1 | 1 (50.0%) | 0 |
+| without_pane_tail | 1 | finished_ready=1 | 0 (0.0%) | 1 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 5 | false=4 true=1 | 0 (0.0%) | 0 |
+| without_current_state | 2 | true=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | true=2 | 1 (50.0%) | 0 |
+| without_pane_tail | 1 | true=1 | 0 (0.0%) | 1 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+| route | 1 | 0 |
+| phase | 1 | 0 |
+| no_new_outcome | 1 | 0 |
+exit=0
+
+# 7. no shadow log yet: empty tables, exit 0
+$ bin/fm-branch-shadow-score.sh /nonexistent
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+exit=0

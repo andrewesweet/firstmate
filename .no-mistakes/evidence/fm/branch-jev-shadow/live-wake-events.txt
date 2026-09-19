@@ -1,0 +1,13 @@
+{"t":"2026-09-19T17:24:32.520Z","kind":"classifier","data":{"seqs":["1","2"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are `working:` progress updates from a dummy loop task with no errors, blocks, or
+{"t":"2026-09-19T17:24:32.645Z","kind":"wake.delivered","data":{"wakeNo":1,"seqs":["1","2"],"ok":true,"via":"spawn","detail":"a45869cc8cecbea2a","spawnCount":1,"sendCount":0,"source":"monitor"}}
+{"t":"2026-09-19T17:24:38.570Z","kind":"report.call","data":{"agentId":"a45869cc8cecbea2a","task":"dummy","verdict":"routine","summary":"Dummy task working through its loop (step 6 of the loop observed); no new outcome y
+{"t":"2026-09-19T17:27:05.278Z","kind":"wake.passed","data":{"why":"scope empty","reason":"check: rearm-resurface","source":"stop-hook","needsDecisionTasks":[],"seqsTasks":[]}}
+{"t":"2026-09-19T17:27:48.633Z","kind":"classifier","data":{"seqs":["9","10"],"tasks":["dummy"],"verdict":"captain","reason":"A NEW `done:` line appeared (step 8 with report) even though the task continued with subsequen
+{"t":"2026-09-19T17:27:48.637Z","kind":"wake.passed","data":{"why":"classifier captain","reason":"signal: /tmp/fm-branch-claude-live.zQMgEt/home/state/dummy.status","source":"stop-hook","classifierReason":"A NEW `done:` 
+{"t":"2026-09-19T17:27:48.863Z","kind":"pass.cover","data":{"task":"dummy","seq":2,"why":"classifier captain","processed":true,"detail":""}}
+{"t":"2026-09-19T17:28:32.758Z","kind":"classifier","data":{"seqs":["11","12"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are `working:` progress updates from an ongoing dummy loop with regular timesta
+{"t":"2026-09-19T17:28:32.834Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["11","12"],"ok":true,"via":"send","detail":"a45869cc8cecbea2a","spawnCount":1,"sendCount":1,"source":"stop-hook"}}
+{"t":"2026-09-19T17:28:38.887Z","kind":"report.call","data":{"agentId":"a45869cc8cecbea2a","task":"dummy","verdict":"routine","summary":"Dummy task still working through its loop (step 47); no new outcome yet.","silent":
+{"t":"2026-09-19T17:29:17.493Z","kind":"classifier","data":{"seqs":["13","14"],"tasks":["dummy"],"verdict":"routine","reason":"NEW line is a working: progress update showing continued normal iteration through a dummy loo
+{"t":"2026-09-19T17:29:17.576Z","kind":"wake.delivered","data":{"wakeNo":3,"seqs":["13","14"],"ok":true,"via":"send","detail":"a45869cc8cecbea2a","spawnCount":1,"sendCount":2,"source":"monitor"}}
+{"t":"2026-09-19T17:29:23.134Z","kind":"report.call","data":{"agentId":"a45869cc8cecbea2a","task":"dummy","verdict":"routine","summary":"No new dummy status content since last check; nothing to report.","silent":false,"w

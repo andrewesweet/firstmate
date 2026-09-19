@@ -1,0 +1,100 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "wake": "signal: /tmp/fm-branch-claude-live.zQMgEt/home/state/dummy.status",
+    "fresh_status": [
+      {
+        "id": "dummy:0-43",
+        "text": "working: step 1 of the dummy loop, 18:24:03"
+      },
+      {
+        "id": "dummy:44-87",
+        "text": "working: step 2 of the dummy loop, 18:24:09"
+      },
+      {
+        "id": "dummy:88-131",
+        "text": "working: step 3 of the dummy loop, 18:24:15"
+      },
+      {
+        "id": "dummy:132-175",
+        "text": "working: step 4 of the dummy loop, 18:24:21"
+      },
+      {
+        "id": "dummy:176-219",
+        "text": "working: step 5 of the dummy loop, 18:24:27"
+      }
+    ],
+    "current_state": [
+      {
+        "task": "dummy",
+        "value": "state: unknown · source: pane · harness state unavailable (unknown missing)"
+      }
+    ],
+    "unread_status": [
+      {
+        "id": "dummy:0-43",
+        "text": "working: step 1 of the dummy loop, 18:24:03"
+      },
+      {
+        "id": "dummy:44-87",
+        "text": "working: step 2 of the dummy loop, 18:24:09"
+      },
+      {
+        "id": "dummy:88-131",
+        "text": "working: step 3 of the dummy loop, 18:24:15"
+      },
+      {
+        "id": "dummy:132-175",
+        "text": "working: step 4 of the dummy loop, 18:24:21"
+      },
+      {
+        "id": "dummy:176-219",
+        "text": "working: step 5 of the dummy loop, 18:24:27"
+      }
+    ],
+    "pane": {
+      "task": "dummy",
+      "tail": "18:23:57 tick\n18:23:59 tick\n18:24:01 tick\n18:24:03 appended working step 1\n18:24:05 tick\n18:24:07 tick\n18:24:09 appended working step 2\n18:24:11 tick\n18:24:13 tick\n18:24:15 appended working step 3\n18:24:17 tick\n18:24:19 tick\n18:24:21 appended working step 4\n18:24:23 tick\n18:24:25 tick\n18:24:27 appended working step 5\n18:24:29 tick\n18:24:31 tick"
+    }
+  },
+  "questions": {
+    "route": {
+      "type": "choice",
+      "instructions": "Which route is required after this wake is handled? Judge only fresh or unread evidence and the observed action result; conservative routing means anything uncertain routes to the captain.",
+      "criteria": {
+        "routine": "No new requested result, review item, human-only decision, surviving blocker, credential need, or security/destructive impact.",
+        "main": "A requested result is finished, review is ready, a new human-only decision or surviving blocker/failure exists, or a credential/login is needed, or the impact is security-, privacy-, data-loss-, or externally-visible."
+      }
+    },
+    "phase": {
+      "type": "choice",
+      "instructions": "Which phase best describes the authoritative current evidence?",
+      "criteria": {
+        "no_change": "No new state beyond a signal or history",
+        "working": "Started, implementing, or validating normally",
+        "waiting": "A declared external wait or routine confirmation",
+        "finished_ready": "A requested result or review artifact is ready",
+        "blocked_failed": "Work cannot continue or recovery failed",
+        "unknown": "Evidence is contradictory, missing, or unreadable"
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is the observed condition after available recovery evidence?",
+      "criteria": [
+        "False alarm or no functional impact",
+        "Routine recoverable interruption or non-blocking failure",
+        "Task blocked or failed after normal recovery",
+        "Security, privacy, data-loss, irreversible, credential, or external-publication impact"
+      ]
+    },
+    "no_new_outcome": {
+      "type": "noul",
+      "instructions": "Can this wake be treated as carrying no new outcome beyond prior_outcomes?",
+      "criteria": {
+        "true": "Only signal, history, or unchanged facts are present",
+        "false": "A fresh fact changes phase, artifact, an open call, a blocker, or the required action"
+      }
+    }
+  }
+}

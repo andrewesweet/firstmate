@@ -1,0 +1,4 @@
+{"seq":1,"task":"dummy","verdict":"routine","wakeKey":"1789838661:1,1789838661:2"}
+{"seq":2,"task":"dummy","verdict":"captain","wakeKey":null}
+{"seq":3,"task":"dummy","verdict":"routine","wakeKey":"1789838911:11,1789838911:12"}
+{"seq":4,"task":"dummy","verdict":"routine","wakeKey":"1789838955:13,1789838955:14"}

@@ -1,0 +1,36 @@
+# 1. mod switch absent: helper inert
+$ bin/fm-branch-shadow-pane.sh t1  (no state/.branch-mod-mode)
+exit=1
+
+# 2. no task meta
+$ bin/fm-branch-shadow-pane.sh t1  (no t1.meta)
+{"task":"t1","unavailable":"no task meta"}
+exit=0
+
+# 3. meta without window
+$ bin/fm-branch-shadow-pane.sh t1  (meta lacks window=)
+{"task":"t1","unavailable":"no backend target in meta"}
+exit=0
+
+# 4. real tmux window (isolated server via TMUX_TMPDIR=/tmp/fm-shadow-live.SLPQiA/tmux), 61 lines printed in the pane, meta window=fmlab:t1
+$ bin/fm-branch-shadow-pane.sh t1 | jq
+{"task":"t1","tail_lines":59,"tail_first":"worker line 3","tail_last_nonblank":"PR https://github.com/x/y/pull/7 checks green","observation":null}
+exit=0
+
+# 5. busy-state record + progress marker add the observation
+$ bin/fm-branch-shadow-pane.sh t1 | jq
+{"task":"t1","has_tail":true,"observation":{"progressing":true,"busy_source":"pi-ext","seconds_since_last_activity":42}}
+exit=0
+
+# 6. tmux server killed: tail dropped, observation only
+$ bin/fm-branch-shadow-pane.sh t1
+{"task":"t1","observation":{"progressing":true,"busy_source":"pi-ext","seconds_since_last_activity":42}}
+exit=0
+
+# 7. bad task name
+$ bin/fm-branch-shadow-pane.sh '../x'
+usage: fm-branch-shadow-pane.sh <task>
+exit=2
+
+# 8. read-only: state dir listing unchanged by the helper
+state listing md5 before=4e0e9d63ab5bd09cc6e3bb306e9b5b90  - after=4e0e9d63ab5bd09cc6e3bb306e9b5b90  -

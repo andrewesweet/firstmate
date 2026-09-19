@@ -1,0 +1,85 @@
+# wake	label	variant	question	raw	policy	unavailable
+1789838661:1,1789838661:2	routine	full	route	routine	routine	-
+1789838661:1,1789838661:2	routine	full	phase	working	working	-
+1789838661:1,1789838661:2	routine	full	severity	1	uncertain	-
+1789838661:1,1789838661:2	routine	full	no_new_outcome	false	false	-
+1789838661:1,1789838661:2	routine	without_current_state	route	routine	routine	-
+1789838661:1,1789838661:2	routine	without_current_state	phase	working	working	-
+1789838661:1,1789838661:2	routine	without_current_state	severity	1	uncertain	-
+1789838661:1,1789838661:2	routine	without_current_state	no_new_outcome	false	false	-
+1789838661:1,1789838661:2	routine	without_prior_outcomes	route	routine	routine	-
+1789838661:1,1789838661:2	routine	without_prior_outcomes	phase	working	working	-
+1789838661:1,1789838661:2	routine	without_prior_outcomes	severity	1	uncertain	-
+1789838661:1,1789838661:2	routine	without_prior_outcomes	no_new_outcome	false	false	-
+1789838661:1,1789838661:2	routine	without_pane_tail	route	routine	routine	-
+1789838661:1,1789838661:2	routine	without_pane_tail	phase	working	working	-
+1789838661:1,1789838661:2	routine	without_pane_tail	severity	1	uncertain	-
+1789838661:1,1789838661:2	routine	without_pane_tail	no_new_outcome	false	false	-
+1789838911:11,1789838911:12	routine	full	route	routine	routine	-
+1789838911:11,1789838911:12	routine	full	phase	working	working	-
+1789838911:11,1789838911:12	routine	full	severity	1	uncertain	-
+1789838911:11,1789838911:12	routine	full	no_new_outcome	false	false	-
+1789838911:11,1789838911:12	routine	without_current_state	route	routine	routine	-
+1789838911:11,1789838911:12	routine	without_current_state	phase	working	working	-
+1789838911:11,1789838911:12	routine	without_current_state	severity	1	uncertain	-
+1789838911:11,1789838911:12	routine	without_current_state	no_new_outcome	false	false	-
+1789838911:11,1789838911:12	routine	without_prior_outcomes	route	routine	routine	-
+1789838911:11,1789838911:12	routine	without_prior_outcomes	phase	working	working	-
+1789838911:11,1789838911:12	routine	without_prior_outcomes	severity	1	uncertain	-
+1789838911:11,1789838911:12	routine	without_prior_outcomes	no_new_outcome	false	false	-
+1789838911:11,1789838911:12	routine	without_pane_tail	route	routine	routine	-
+1789838911:11,1789838911:12	routine	without_pane_tail	phase	working	working	-
+1789838911:11,1789838911:12	routine	without_pane_tail	severity	1	uncertain	-
+1789838911:11,1789838911:12	routine	without_pane_tail	no_new_outcome	false	false	-
+1789838955:13,1789838955:14	routine	full	route	routine	routine	-
+1789838955:13,1789838955:14	routine	full	phase	working	working	-
+1789838955:13,1789838955:14	routine	full	severity	1	uncertain	-
+1789838955:13,1789838955:14	routine	full	no_new_outcome	false	false	-
+1789838955:13,1789838955:14	routine	without_current_state	route	routine	routine	-
+1789838955:13,1789838955:14	routine	without_current_state	phase	working	working	-
+1789838955:13,1789838955:14	routine	without_current_state	severity	1	uncertain	-
+1789838955:13,1789838955:14	routine	without_current_state	no_new_outcome	false	false	-
+1789838955:13,1789838955:14	routine	without_prior_outcomes	route	routine	routine	-
+1789838955:13,1789838955:14	routine	without_prior_outcomes	phase	working	working	-
+1789838955:13,1789838955:14	routine	without_prior_outcomes	severity	1	uncertain	-
+1789838955:13,1789838955:14	routine	without_prior_outcomes	no_new_outcome	false	false	-
+1789838955:13,1789838955:14	routine	without_pane_tail	route	routine	routine	-
+1789838955:13,1789838955:14	routine	without_pane_tail	phase	working	working	-
+1789838955:13,1789838955:14	routine	without_pane_tail	severity	1	uncertain	-
+1789838955:13,1789838955:14	routine	without_pane_tail	no_new_outcome	false	false	-
+
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_current_state | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+| without_pane_tail | 3/3 | 3 (100.0%) | 3 (100.0%) | 0 | 0 (0.0%) | 0 |
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 3 | working=3 | 0 (0.0%) | 0 |
+| without_current_state | 3 | working=3 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 3 | working=3 | 0 (0.0%) | 0 |
+| without_pane_tail | 3 | working=3 | 0 (0.0%) | 0 |
+
+### severity (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 3 | 1=3 | 3 (100.0%) | 0 |
+| without_current_state | 3 | 1=3 | 3 (100.0%) | 0 |
+| without_prior_outcomes | 3 | 1=3 | 3 (100.0%) | 0 |
+| without_pane_tail | 3 | 1=3 | 3 (100.0%) | 0 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 3 | false=3 | 0 (0.0%) | 0 |
+| without_current_state | 3 | false=3 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 3 | false=3 | 0 (0.0%) | 0 |
+| without_pane_tail | 3 | false=3 | 0 (0.0%) | 0 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
