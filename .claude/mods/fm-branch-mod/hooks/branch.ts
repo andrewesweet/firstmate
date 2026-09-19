@@ -721,7 +721,7 @@ function shadowFacts(
   questions: Record<string, unknown>,
 ): ShadowFacts {
   const facts: ShadowFacts = { wake_key: a.wakeKey, new_status_bytes: {}, authoritative_pr: { present: false }, severity_classes: [] }
-  for (const b of a.evidence) facts.new_status_bytes[b.task] = Math.max(0, b.to - b.from)
+  for (const b of a.evidence) if (b.from >= 0 && b.to >= b.from) facts.new_status_bytes[b.task] = b.to - b.from
   const paneId = paneExtras?.window ?? (st.pane ? String((st.pane as any).task ?? '') : '')
   if (paneId) facts.pane = paneId
   if (paneExtras?.stale) facts.stale_series = paneExtras.stale

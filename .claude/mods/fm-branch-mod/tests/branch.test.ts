@@ -731,6 +731,17 @@ describe("shadow advisory", () => {
     expect(full.facts.new_status_bytes.t1).toBeGreaterThan(0);
   });
 
+  test("facts omit new_status_bytes for a task whose evidence gather failed, never a fake zero", async ($: Engine, on: On) => {
+    const w = world(on, { files: shadowHome(), evidence: ["## task t1\n(evidence gatherer failed: no status range)\n"], shadowAnswer: JEV_OK });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.length).toBeGreaterThan(0);
+    for (const r of records) expect(r.facts.new_status_bytes).toEqual({});
+  });
+
   test("prior_outcomes carry provenance: source, same_wake, and already_presented", async ($: Engine, on: On) => {
     const outcomes = [
       JSON.stringify({ seq: 3, task: "t1", wake: "an earlier wake", verdict: "captain", summary: "Passed to main directly (classifier captain): decision needed" }),
