@@ -45,7 +45,7 @@ The residue is the primary session itself, which the captain starts by hand in a
 To check a running server, read its environment and look for the marker:
 
 ```
-tr '\0' '\n' < "/proc/$(pgrep -f '^herdr server' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+tr '\0' '\n' < "/proc/$(pgrep -f '(^|/)herdr server( |$)' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
 ```
 
 A hit means every pane that server creates from now on inherits the marker; restarting the server from a clean environment is the durable fix.
