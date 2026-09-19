@@ -1735,11 +1735,13 @@ launch_template() {
   # pane it creates. The override is claude's own escape hatch for exactly
   # this suppression cause (the first condition of the nested-session gate in
   # the 2.1.276-2.1.278 binaries) and nothing else: the marker's other
-  # nested-session behaviors are left untouched, and
-  # CLAUDE_CODE_SKIP_PROMPT_HISTORY, a separate suppression cause the override
-  # does not defeat, is never set by firstmate and is reported for the
-  # primary session by fm-bootstrap's detect-only transcript-suppression
-  # check. Verified empirically in an isolated scratch CLAUDE_CONFIG_DIR: with the marker
+  # nested-session behaviors are left untouched. CLAUDE_CODE_SKIP_PROMPT_HISTORY,
+  # a separate suppression cause the override does not defeat, is unset at the
+  # launch boundary below (the `env -u` prefix); in the binary that variable
+  # also feeds the "did a person run this command" heuristic behind
+  # ultrareview and eval-report publishing, which for an interactive worker
+  # pane is the correct answer anyway. The primary session is covered by
+  # fm-bootstrap's detect-only transcript-suppression check. Verified empirically in an isolated scratch CLAUDE_CONFIG_DIR: with the marker
   # inherited and the override set, the transcript jsonl is written with real
   # user and assistant messages and no suppression notice.
   claude)
@@ -4487,7 +4489,10 @@ agy) LAUNCH=${LAUNCH//__AGYBIN__/"$(shell_quote "$AGY_BIN")"} ;;
 esac
 LAUNCH=${LAUNCH//__WORKTREE__/$sq_worktree}
 case "$HARNESS" in
-claude | codex | opencode | pi | pi-signed | grok | kimi | gemini | muse | rovo | agy)
+claude)
+  LAUNCH="env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY $LAUNCH"
+  ;;
+codex | opencode | pi | pi-signed | grok | kimi | gemini | muse | rovo | agy)
   LAUNCH="env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI $LAUNCH"
   ;;
 esac

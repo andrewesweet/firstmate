@@ -38,13 +38,14 @@ Real harness credential tests remain opt-in rather than part of default CI.
 Start the Herdr server from an environment that does not carry Claude's nested-session markers.
 A `herdr server` launched from inside a bridge-started Claude session records that session's environment, including `CLAUDE_CODE_CHILD_SESSION=1` (typically alongside `CLAUDE_CODE_ENVIRONMENT_KIND=bridge` and `CLAUDE_CODE_ENTRYPOINT=sdk-cli`), and every pane it later creates inherits the marker.
 An interactive Claude session launched in such a pane believes it is a nested child session and writes no transcript at all, which also removes the MLflow traces the tracing plugin reads from that transcript.
-Firstmate's own worker launches are immune: `bin/fm-spawn.sh` sets `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` on every Claude launch, Claude's documented override for exactly this suppression cause.
+Firstmate's own worker launches are immune: `bin/fm-spawn.sh` sets `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` on every Claude launch, Claude's documented override for exactly this suppression cause, and unsets `CLAUDE_CODE_SKIP_PROMPT_HISTORY`, the one suppression cause that override does not defeat.
+Pi and Codex launches need no launch-boundary change; [`docs/trace-context.md`](trace-context.md) "Session transcripts and cost telemetry per harness" states what is already on for each.
 The residue is the primary session itself, which the captain starts by hand in a pane; `bin/fm-bootstrap.sh` prints a `TRANSCRIPT_SUPPRESSION` line when it detects that environment.
 
 To check a running server, read its environment and look for the marker:
 
 ```
-tr '\0' '\n' < "/proc/$(pgrep -x herdr | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+tr '\0' '\n' < "/proc/$(pgrep -f '^herdr server' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
 ```
 
 A hit means every pane that server creates from now on inherits the marker; restarting the server from a clean environment is the durable fix.

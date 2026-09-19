@@ -1518,17 +1518,19 @@ detect_local_tools() {
 # the primary its session history and its per-request traces together. See the
 # header above for the causes and the ownership split with fm-spawn's launch
 # override. Mirrors the binary's gate as closely as the environment allows:
-# fires only for a claude primary, honors the documented persistence override
-# with the same 0/false falsiness the binary's bool parser uses, and reuses
-# claude's tmux ambient-marker probe: only a query that succeeded AND named the
-# marker in tmux's global environment is ambient (the session predates the
-# marker and is NOT suppressed); an answered query without the marker is
-# absent; a failed query is unknown - and only ambient stays silent, exactly
-# as in the binary.
+# fires only for a claude primary, reads every marker with the binary's bool
+# parser (true only for a trimmed, case-insensitive 1/true/yes/on), and reuses
+# claude's tmux ambient-marker probe (`tmux show-environment -g`, the same
+# call): only a query that succeeded AND named the marker in tmux's global
+# environment is ambient (the session predates the marker and is NOT
+# suppressed); an answered query without the marker is absent; a failed query
+# is unknown - and only ambient stays silent, exactly as in the binary.
 fm_env_flag_truthy() { # <value> -> 0 when claude's bool parser reads it as true
-  case "$1" in
-  '' | 0 | false | FALSE | False) return 1 ;;
-  *) return 0 ;;
+  local v
+  v=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  case "$v" in
+  1 | true | yes | on) return 0 ;;
+  *) return 1 ;;
   esac
 }
 detect_primary_transcript_suppression() {
@@ -1536,7 +1538,7 @@ detect_primary_transcript_suppression() {
   own_harness=$("$SCRIPT_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
   [ "$own_harness" = claude ] || return 0
   if [ -n "${TMUX:-}" ]; then
-    probe_out=$(tmux show-environment -g CLAUDE_CODE_CHILD_SESSION 2>/dev/null)
+    probe_out=$(tmux show-environment -g 2>/dev/null)
     probe_rc=$?
     if [ "$probe_rc" -ne 0 ]; then
       ambient=unknown

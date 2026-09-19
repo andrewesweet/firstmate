@@ -23,8 +23,9 @@
 # twice.
 # Dedicated transcript-suppression cases pin the TRANSCRIPT_SUPPRESSION
 # contract: fires only for a claude primary, one line per environment cause
-# claude's transcript gate honors, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE
-# defeats only the nested-marker cause with claude's 0/false falsiness, and
+# claude's transcript gate honors, every marker read with claude's bool parser
+# (only 1/true/yes/on is true), CLAUDE_CODE_FORCE_SESSION_PERSISTENCE
+# defeats only the nested-marker cause, and
 # the tmux ambient probe mirrors the binary (ambient = silent, absent/failed
 # probe = suppressed).
 set -u
@@ -1246,7 +1247,7 @@ ROWS
   pass "bootstrap gates resolver fields and additive harnesses on the typed key"
 }
 
-# Fake tmux whose `show-environment -g CLAUDE_CODE_CHILD_SESSION` answers per
+# Fake tmux whose `show-environment -g` (the binary's own probe call) answers per
 # mode: ambient (exit 0 naming the marker, the only silent verdict), absent
 # (exit 0 without the marker - the query was answered and found nothing), or
 # fail (nonzero exit - a query that never answered reads unknown). The table
@@ -1274,11 +1275,12 @@ add_transcript_tmux() { # <fakebin> <ambient|absent|fail>
   local fakebin=$1 mode=$2
   cat > "$fakebin/tmux" <<SH
 #!/usr/bin/env bash
-if [ "\${1:-}" = show-environment ] && [ "\${2:-}" = -g ] && [ "\${3:-}" = CLAUDE_CODE_CHILD_SESSION ]; then
+if [ "\${1:-}" = show-environment ] && [ "\${2:-}" = -g ] && [ "\${3:-}" = '' ]; then
   case "$mode" in
-    ambient) printf 'CLAUDE_CODE_CHILD_SESSION=1\n'
+    ambient) printf 'TERM=screen\nCLAUDE_CODE_CHILD_SESSION=1\n'
       exit 0 ;;
-    absent) exit 0 ;;
+    absent) printf 'TERM=screen\n'
+      exit 0 ;;
     *) echo 'tmux exploded' >&2
       exit 42 ;;
   esac
@@ -1322,9 +1324,16 @@ test_primary_transcript_suppression() {
   # The override honors claude's bool parser: an explicit false is not forced.
   run_transcript_case child-override-false CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=false
   [ "$out" = "$TRANSCRIPT_CHILD_LINE" ] || fail "override=false must not read as forced, got: $out"
-  # A falsy marker is not a nested session at all.
+  # Only 1/true/yes/on is true: "off" does not force persistence, and a
+  # marker set to anything else is not a nested session at all.
+  run_transcript_case child-override-off CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=off
+  [ "$out" = "$TRANSCRIPT_CHILD_LINE" ] || fail "override=off must not read as forced, got: $out"
+  run_transcript_case child-override-yes CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=' YES '
+  [ -z "$out" ] || fail "override=' YES ' must read as forced, got: $out"
   run_transcript_case child-falsy CLAUDE_CODE_CHILD_SESSION=0
   [ -z "$out" ] || fail "CHILD_SESSION=0 must stay silent, got: $out"
+  run_transcript_case child-no CLAUDE_CODE_CHILD_SESSION=no
+  [ -z "$out" ] || fail "CHILD_SESSION=no must stay silent, got: $out"
   pass "the persistence override governs the nested-marker cause with claude's bool semantics"
 
   # The skip-prompt-history cause fires independently and the override line
