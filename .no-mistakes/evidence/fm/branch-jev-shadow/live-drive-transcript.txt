@@ -1,0 +1,89 @@
+ok - module loaded enabled, main holds the lock
+ok - first granted wake: shadow log has 4 records
+ok - second granted wake: shadow log has 8 records
+--- events (classifier / wake.delivered / shadow.*) ---
+{"t":"2026-09-19T14:07:46.774Z","kind":"classifier","data":{"seqs":["1","2"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are working: progress updates from an ongoing dummy loop task.","ms":834,"promptChars":3228,"answer":"{\"verdict\": \"routine\", \"reason\": \"All NEW lines are working: progress updates from an ongoing dummy loop task.\"}","model":"haiku","estTokens":807}}
+{"t":"2026-09-19T14:07:46.893Z","kind":"wake.delivered","data":{"wakeNo":1,"seqs":["1","2"],"ok":true,"via":"spawn","detail":"a6002b091a1c142b6","spawnCount":1,"sendCount":0,"source":"monitor"}}
+{"t":"2026-09-19T14:08:31.309Z","kind":"classifier","data":{"seqs":["3","4"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are working: progress updates from an ongoing dummy loop task with regular step increments.","ms":1062,"promptChars":3502,"answer":"{\"verdict\": \"routine\", \"reason\": \"All NEW lines are working: progress updates from an ongoing dummy loop task with regular
+{"t":"2026-09-19T14:08:31.410Z","kind":"wake.delivered","data":{"wakeNo":2,"seqs":["3","4"],"ok":true,"via":"send","detail":"a6002b091a1c142b6","spawnCount":1,"sendCount":1,"source":"monitor"}}
+--- shadow records ---
+{"t":"2026-09-19T14:07:47.041Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"full","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":20,"requestBytes":3496,"route":"routine"}
+{"t":"2026-09-19T14:07:47.064Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":21,"requestBytes":3373,"route":"routine"}
+{"t":"2026-09-19T14:07:47.087Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":21,"requestBytes":3496,"route":"routine"}
+{"t":"2026-09-19T14:07:47.110Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_pane_tail","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":20,"requestBytes":3001,"route":"routine"}
+{"t":"2026-09-19T14:08:31.504Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"full","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":20,"requestBytes":4367,"route":"routine"}
+{"t":"2026-09-19T14:08:31.526Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":19,"requestBytes":4244,"route":"routine"}
+{"t":"2026-09-19T14:08:31.549Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":19,"requestBytes":4138,"route":"routine"}
+{"t":"2026-09-19T14:08:31.571Z","wake":"signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status","variant":"without_pane_tail","repeat":1,"control":false,"unavailable":null,"model":"jev-1.13.0","ms":19,"requestBytes":3404,"route":"routine"}
+--- fake curl ---
+argv lines: 128  header: Authorization: Bearer sk-jev-live-fake-key  leak: no
+0
+--- scorer over the live logs ---
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+| full | 0/2 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 0 |
+| without_current_state | 0/2 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 0/2 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 0 |
+| without_pane_tail | 0/2 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 0 |
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 2 | working=2 | 0 (0.0%) | 0 |
+| without_current_state | 2 | working=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | working=2 | 0 (0.0%) | 0 |
+| without_pane_tail | 2 | working=2 | 0 (0.0%) | 0 |
+
+### severity (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 2 | 0=2 | 0 (0.0%) | 0 |
+| without_current_state | 2 | 0=2 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 2 | 0=2 | 0 (0.0%) | 0 |
+| without_pane_tail | 2 | 0=2 | 0 (0.0%) | 0 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 2 | false=2 | 2 (100.0%) | 0 |
+| without_current_state | 2 | false=2 | 2 (100.0%) | 0 |
+| without_prior_outcomes | 2 | false=2 | 2 (100.0%) | 0 |
+| without_pane_tail | 2 | false=2 | 2 (100.0%) | 0 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+
+# wake	label	variant	question	raw	policy	unavailable
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_pane_tail	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_pane_tail	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_pane_tail	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_pane_tail	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	full	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_current_state	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	route	routine	routine	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	phase	working	working	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	severity	0	0	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_prior_outcomes	no_new_outcome	false	uncertain	-
+signal: /tmp/fm-shadow-live/lab.TxVEaW/home/state/dummy.status	unlabeled	without_pane_tail	route	routine	routine	-
+--- branch outcomes ---
+{"seq":1,"epoch":1789826872,"task":"dummy","wake":"","verdict":"routine","summary":"Dummy loop is progressing through working steps 1-7; no completion or blocker yet.","silent":false,"statusEndpoint":308,"statusIdent":"strong:2096:1123318:2026-09-19 15:06:53.172368089 +0100"}
