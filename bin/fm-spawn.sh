@@ -270,8 +270,9 @@
 #   CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1, which that surface requires before it
 #   loads function-hooks modules; when absent, the launch is byte-for-byte
 #   what it would otherwise be. Presence alone enables the flag: the file's
-#   content is ignored and never read, so any kind of entry (empty file,
-#   directory, symlink) counts as present. Firstmate never sets that variable
+#   content is ignored and never read, so the supported shape is an empty
+#   regular file (touch config/claude-function-hooks), which is also the only
+#   shape secondmate inheritance copies. Firstmate never sets that variable
 #   in any project or user settings; this file is the captain's own per-home
 #   opt-in and touches no settings file. Presence is checked on every spawn
 #   and relaunch, so a change reaches the next launch without a restart, and
