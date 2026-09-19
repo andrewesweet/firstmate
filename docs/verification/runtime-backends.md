@@ -2034,6 +2034,18 @@ Nothing announced touches the function-hooks module API, `$.tool.register`, `$.a
 
 The live guard that refreshes this entry is `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh`.
 
+### 2026-09-19 running-binary pin check and transcript-persistence logging (Claude Code 2.1.278)
+
+Evidence produced 2026-09-19 on Linux 6.6.87.2-microsoft-standard-WSL2 x86_64, Claude Code 2.1.278, after `checkPin` was changed to read the version of the binary hosting the session and the mod gained the persistence-state and resume-target logging.
+The strict-validation scan now lists two more environment reads; the assertions in `tests/fm-branch-claude-mod-plugin.test.sh` name them.
+
+- Strict validation: `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin validate --strict .claude/mods/fm-branch-mod` printed `✔ Validation passed` with `./branch.ts env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE` and `$.session.id (via sessionTranscriptId)` on the calls line.
+- Engine-hosted suite: `bin/fm-test-run.sh tests/fm-branch-claude-mod-plugin.test.sh` printed `ok - Claude Code 2.1.278 (Claude Code) validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution and transcript-persistence environment` and `ok - Claude Code 2.1.278 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn`, including the new split-case, no-proc fallback, persistence-log, and resume-target assertions.
+- Live run: `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh` printed all four `ok` lines (mod loads enabled, routine spawn, SendMessage reuse, one spawn with every send successful) with exit 0, so the running-binary probe resolves in a real session and `$.session.id` is available on 2.1.278.
+- Probe mechanism, verified outside the suite: for a native versioned install, `readlink /proc/<claude pid>/exe` resolves to `~/.local/share/claude/versions/<version>` and running that path with `--version` prints the exact release (`2.1.277 (Claude Code)` and `2.1.278 (Claude Code)` both checked); on a Node-hosted install the same probe answers `v24.18.0`, fails the module's version-shape guard, and the PATH fallback decides.
+
+The live guard that refreshes this entry is `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh`.
+
 ### 2026-09-18 Claude Code 2.1.277 pin evidence
 
 Evidence produced 2026-09-18 on Linux 6.6.87.2-microsoft-standard-WSL2 x86_64, Claude Code 2.1.277, Node v24.18.0, with `CLAUDE_CODE_PIN` in `hooks/branch.ts` at `2.1.277` and the plugin test suite importing its `PIN` from the module.

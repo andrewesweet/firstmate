@@ -58,7 +58,8 @@ Records whose status log was torn down count as unscorable.
 
 ## Opting a home in
 
-1. Install Claude Code at the pinned version (`claude --version` must print it exactly).
+1. Install Claude Code at the pinned version.
+   The pin check reads the version of the binary actually running the session, so launch the pinned binary by absolute path; `claude --version` through PATH is only the fallback and may name a different release.
 2. Create `state/.branch-mod-mode`; its presence alone switches the mod and every `bin/` piece it relies on, and its content is ignored.
    Remove the file to switch them all off together.
 3. Optionally write `config/classifier-model` and `config/supervision-branch-model`.
@@ -70,6 +71,7 @@ Records whose status log was torn down count as unscorable.
 Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
+- `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` in the environment: a Herdr server started inside a Claude session hands the pane its `CLAUDE_CODE_CHILD_SESSION` marker, which switches transcript saving off, and without a disk transcript every resume of the branch agent fails once Claude Code evicts the finished agent from memory 30-60 s after it completes; set in the main home after the branch-reuse root-cause report of 2026-09-19 measured 25 of 25 rotations failing this way.
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
 - `promptSuggestionEnabled: false` in the launch settings (and `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` in the environment): a prompt suggestion is a model call main would make between wakes, so it is switched off.
 - The ordinary Claude Stop hook (`bin/fm-claude-stop-autoarm.sh` with `asyncRewake`), as the [Claude supervision protocol](supervision-protocols/claude.md) already requires; the rewake it delivers is what the mod routes.
@@ -84,7 +86,7 @@ Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e
 ## Version pin
 
 The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.278`).
-At `session.start` it runs `claude --version`; on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version>; built for <pin>`, and passes every hook through untouched for the rest of the session.
+At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable); on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version>; built for <pin>`, and passes every hook through untouched for the rest of the session.
 A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
 A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin was set) runs the unchanged Claude protocol until Claude Code is updated.
 
