@@ -2,8 +2,10 @@
 # tests/fm-branch-mod-bin.test.sh - the bin surface behind the Claude Code
 # supervision-branch mod (docs/claude-supervision-branch.md): the classifier
 # evidence bundle and its per-task offset, the routine-covered backstop
-# extension of the main drain, and the classification-log scorer; teardown of
-# the offset file is covered by tests/fm-teardown.test.sh. Every piece is inert without state/.branch-mod-mode.
+# extension of the main drain, the classification-log scorer, and the shadow
+# advisory helpers (the jev call shim, the bounded pane reader, and the
+# shadow-log scorer); teardown of the offset file is covered by
+# tests/fm-teardown.test.sh. Every piece is inert without state/.branch-mod-mode.
 set -u
 
 # shellcheck source=tests/wake-helpers.sh
@@ -13,6 +15,9 @@ DRAIN="$ROOT/bin/fm-wake-drain.sh"
 EVIDENCE="$ROOT/bin/fm-wake-evidence.sh"
 OUTCOMES="$ROOT/bin/fm-branch-outcome.sh"
 SCORE="$ROOT/bin/fm-branch-classifier-score.sh"
+JEV="$ROOT/bin/fm-branch-shadow-jev.sh"
+PANE="$ROOT/bin/fm-branch-shadow-pane.sh"
+SSCORE="$ROOT/bin/fm-branch-shadow-score.sh"
 # shellcheck disable=SC2034 # make_case reads it
 TMP_ROOT=$(fm_test_tmproot fm-branch-mod-bin-tests)
 
@@ -227,8 +232,171 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
   pass "the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it"
 }
 
+test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env() {
+  local dir home fakebin out code body
+  dir=$(make_case jev-helper)
+  home="$dir/home"
+  fakebin="$dir/fakebin"
+  mkdir -p "$home" "$fakebin"
+  cat > "$fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+# Fake curl: record argv and the fd-3 header, record whether the key leaked
+# into the child environment, honor -o <file> for the response body, and print
+# the -w format with %{http_code} expanded to FAKE_JEV_HTTP (default 200).
+set -u
+if [ -n "${TYPESAFE_API_KEY+x}" ]; then
+  printf 'key-in-child-env\n' >> "${FAKE_JEV_LOG:?}/leak"
+fi
+printf '%s\n' "$@" >> "${FAKE_JEV_LOG:?}/argv"
+_out=""
+_wfmt=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) _out=$2; shift 2 ;;
+    -w) _wfmt=$2; shift 2 ;;
+    -H) case "$2" in
+          @/dev/fd/3) cat <&3 > "${FAKE_JEV_LOG:?}/header" ;;
+          *) printf '%s\n' "$2" > "${FAKE_JEV_LOG:?}/header" ;;
+        esac
+        shift 2 ;;
+    *) shift ;;
+  esac
+done
+cat > "${FAKE_JEV_LOG:?}/body"
+[ "${FAKE_JEV_HTTP:-200}" = 200 ] && cat "${FAKE_JEV_RESPONSE:?}" > "${_out:?}"
+printf '%s\n' "${_wfmt//%\{http_code\}/${FAKE_JEV_HTTP:-200}}"
+SH
+  chmod +x "$fakebin/curl"
+  export FAKE_JEV_LOG="$dir/log"
+  mkdir -p "$FAKE_JEV_LOG"
+  printf '%s\n' '{"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.91}}}' > "$dir/response.json"
+  export FAKE_JEV_RESPONSE="$dir/response.json"
+
+  # Absent key: one unavailable JSON line, exit 0, no curl call.
+  out=$(FM_HOME="$home" "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+  code=$?
+  [ "$code" = 0 ] || fail "absent key must exit 0, got $code"
+  printf '%s' "$out" | jq -e '.ok == false and .unavailable == "key absent"' >/dev/null     || fail "absent key must print an unavailable record: $out"
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] || fail "absent key must print exactly one line: $out"
+  [ ! -f "$FAKE_JEV_LOG/argv" ] || fail "absent key must never call curl"
+  pass "the jev helper is off without a key: one unavailable line, exit 0, no network"
+
+  # Key from the home's .env: forwarded on the fd-3 header only, never on
+  # argv, never in the child environment; the request body is forwarded whole.
+  printf '%s\n' 'TYPESAFE_API_KEY=sk-jev-trial-key' > "$home/.env"
+  body='{"model":"jev-latest","state":{"wake":"signal: x"},"questions":{"route":{}}}'
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$JEV" <<< "$body")
+  code=$?
+  [ "$code" = 0 ] || fail "happy path must exit 0, got $code"
+  printf '%s' "$out" | jq -e '.ok == true and .model == "jev-1.13.0" and .answers.route.choice == "main"' >/dev/null     || fail "happy path must print one ok record with model and answers: $out"
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] || fail "happy path must print exactly one line: $out"
+  assert_equals 'Authorization: Bearer sk-jev-trial-key' "$(cat "$FAKE_JEV_LOG/header")" "the key rides the fd-3 Authorization header"
+  if grep -q 'sk-jev-trial-key' "$FAKE_JEV_LOG/argv"; then
+    fail "the key must never appear on curl argv"
+  fi
+  [ ! -f "$FAKE_JEV_LOG/leak" ] || fail "the key must be unset in the curl child environment"
+  assert_equals "$body" "$(cat "$FAKE_JEV_LOG/body")" "the request body is forwarded whole on stdin"
+  pass "the jev helper forwards the request and the key reaches curl only on the fd-3 header"
+
+  # Non-200: one unavailable line naming the status, exit 0.
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FAKE_JEV_HTTP=503 "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+  code=$?
+  [ "$code" = 0 ] || fail "http failure must exit 0, got $code"
+  printf '%s' "$out" | jq -e '.ok == false and .unavailable == "http 503"' >/dev/null     || fail "http failure must record the status: $out"
+  pass "an http failure becomes one unavailable record and never a nonzero exit"
+}
+
+test_shadow_pane_helper_reports_only_what_it_can_read() {
+  local dir state out
+  dir=$(make_case pane-helper)
+  state="$dir/state"
+  FM_STATE_OVERRIDE="$state" "$PANE" t1 > "$dir/off.out" 2>/dev/null && fail "pane helper must be inert without the mod switch"
+  [ -s "$dir/off.out" ] && fail "an inert pane helper must print nothing: $(cat "$dir/off.out")"
+
+  printf '%s\n' '.branch-mod-mode marker' > "$state/.branch-mod-mode"
+  printf 'project=demo\n' > "$state/t1.meta"
+
+  # No window in the meta: the pane endpoint is unknown, so the record is
+  # unavailable rather than invented.
+  out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" "$PANE" t1 2>/dev/null) || \
+    fail "pane helper must exit 0 with an unknown endpoint"
+  printf '%s' "$out" | jq -e '.unavailable != null and .task == "t1"' >/dev/null \
+    || fail "an unknown endpoint must print unavailable: $out"
+
+  # A readable capture plus the busy-state record and progress marker: only
+  # fields with evidence appear.
+  printf 'window=fm-t1\n' >> "$state/t1.meta"
+  printf 'pane line one\npane line two\n' > "$dir/capture.txt"
+  printf 'v1 gen=1 seq=2 state=busy source=pi-ext event=turn ts=1700000000\n' > "$state/t1.busy-state"
+  printf 'x\n' > "$state/t1.progress"
+  set_mtime $(( $(date +%s) - 120 )) "$state/t1.progress"
+  out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_CAPTURE="$dir/capture.txt" "$PANE" t1 2>/dev/null)
+  printf '%s' "$out" | jq -e '
+    .unavailable == null and .task == "t1"
+    and .tail == "pane line one\npane line two"
+    and .observation.progressing == true
+    and .observation.busy_source == "pi-ext"
+    and (.observation.seconds_since_last_activity | type == "number" and . >= 115 and . <= 600)
+    and ((.observation | keys | sort) == ["busy_source", "progressing", "seconds_since_last_activity"])' >/dev/null     || fail "pane evidence must carry exactly the readable fields: $out"
+
+  # An idle busy-state record flips progressing without inventing anything else.
+  printf 'v1 gen=1 seq=3 state=idle source=pi-ext event=idle ts=1700000000\n' > "$state/t1.busy-state"
+  rm -f "$state/t1.progress"
+  out=$(FM_STATE_OVERRIDE="$state" PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_CAPTURE="$dir/capture.txt" "$PANE" t1 2>/dev/null)
+  printf '%s' "$out" | jq -e '.observation.progressing == false and .observation.seconds_since_last_activity == null' >/dev/null \
+    || fail "an idle record must report progressing false and drop the absent activity field: $out"
+  pass "the pane helper reports only readable evidence and omits every field it cannot read"
+}
+
+test_shadow_scorer_joins_records_to_outcomes_by_wake_identity() {
+  local dir state out
+  dir=$(make_case shadow-scorer)
+  state="$dir/state"
+  out="$dir/score.out"
+  cat > "$state/branch-outcomes.jsonl" <<'EOF'
+{"seq":1,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"x","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
+{"seq":2,"epoch":1,"task":"t1","wake":"agent text","verdict":"captain","summary":"y","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
+{"seq":3,"epoch":1,"task":"t1","wake":"agent text","verdi
+{"seq":3,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"z","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:4"}
+EOF
+  {
+    printf '%s\n' '{"t":"1","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9},"no_new_outcome":{"type":"noul","noul":0.05}}}'
+    printf '%s\n' '{"t":"2","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.95}}}'
+    printf '%s\n' '{"t":"3","wake":"signal: A","seqs":["12"],"wakeKey":"1700:1,1700:2","tasks":["t1"],"wakeNo":1,"variant":"without_prior_outcomes","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":5,"policy":{}}'
+    printf '%s\n' '{"t":"torn","wake":"signal: B","variant":"fu'
+    printf '%s\n' '{"t":"4","wake":"signal: B","seqs":["13"],"wakeKey":"1700:4","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
+    printf '%s\n' '{"t":"5","wake":"signal: B","seqs":["13"],"wakeKey":"1700:4","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":2,"control":true,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}'
+    printf '%s\n' '{"t":"6","wake":"signal: C","seqs":["14"],"wakeKey":"","tasks":["t1"],"wakeNo":3,"variant":"without_pane_tail","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"main","confidence":0.9}}}'
+  } > "$state/branch-mod-shadow.jsonl"
+
+  FM_STATE_OVERRIDE="$state" "$SSCORE" > "$out" || fail "shadow scorer failed: $(cat "$out")"
+  grep -q '^| full | 2/2 | 0 (0.0%) | 0 (0.0%) | 2 | 0 (0.0%) | 0 |$' "$out" \
+    || fail "the route row must score only matched records and skip the repeat control: $(grep '^| full' "$out")"
+  grep -q 'unmatched (no outcome row carries this wake key; never counted as a verdict): without_pane_tail=1' "$out" \
+    || fail "a record whose wake key matches no outcome row must be reported separately: $(grep unmatched "$out")"
+  grep -q '^| without_prior_outcomes | 0/0 | 0 (0.0%) | 0 (0.0%) | 0 | 0 (0.0%) | 1 |$' "$out" \
+    || fail "an unavailable record must be counted, not scored: $(grep without_prior_outcomes "$out")"
+  grep -q '^| route | 1 | 0 |$' "$out" \
+    || fail "the repeat control must score the full-variant pair as raw call noise: $(grep '^| route' "$out")"
+
+  FM_STATE_OVERRIDE="$state" "$SSCORE" -v > "$out" || fail "verbose scorer failed"
+  grep -q $'^1700:1,1700:2\tmain\tfull\troute\troutine\troutine\t-' "$out" \
+    || fail "the verbose dump must label matched records by wake key: $(grep '1700:1,1700:2' "$out" | head -2)"
+  grep -q $'^1700:4\troutine\tfull\troute\tmain\tmain\t-' "$out" \
+    || fail "a wake key matching only routine outcome rows must label routine: $(grep '^1700:4' "$out" | head -2)"
+  grep -q $'^-\tunmatched\twithout_pane_tail\troute\tmain\tmain\t-' "$out" \
+    || fail "the verbose dump must mark records without a matching wake key as unmatched: $(grep unmatched "$out" | head -2)"
+
+  FM_STATE_OVERRIDE="$state" "$SSCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
+  [ "$(wc -l < "$out" | tr -d ' ')" = 3 ] || fail "an absent log prints only the empty route table: $(cat "$out")"
+  pass "the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line in either log, counts unavailable records separately, and scores the repeat control outside the variant rows"
+}
+
 test_evidence_bundle_marks_new_lines_and_advances_the_offset
 test_routine_covered_lines_surface_only_under_the_mod
 test_routine_covered_lines_are_byte_exact_across_outcomes
 test_routine_covered_lines_omitted_by_the_byte_cap_are_presented_on_the_next_drain
 test_scorer_labels_records_from_the_status_bytes_they_judged
+test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env
+test_shadow_pane_helper_reports_only_what_it_can_read
+test_shadow_scorer_joins_records_to_outcomes_by_wake_identity

@@ -2,7 +2,7 @@
 
 Fleet supervision on a Claude Code primary can run on a second, persistent agent inside the same `claude` process as the captain's chat, exactly as the [Pi supervision branch](pi-supervision-branch.md) does inside `pi`.
 The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks module (`hooks/branch.ts`), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
-This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, its version pin and the pin-bump procedure, its state and config files, the durable classification log and its scorer, and the bounds measured on the pinned Claude Code version.
+This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, its version pin and the pin-bump procedure, its state and config files, the durable classification and shadow advisory logs and their scorers, and the bounds measured on the pinned Claude Code version.
 The module header owns the module's own shape, and [`pi-supervision-branch.md`](pi-supervision-branch.md) owns the design the two branches share: the outcome store, the leases, the verdict distinction, and the lost-wake backstop.
 
 The mod is deliberately inert everywhere it is not asked for:
@@ -56,13 +56,31 @@ Every classifier call appends one record to `state/branch-mod-classifications.js
 `bin/fm-branch-classifier-score.sh [-v] [<log>]` scores that log retrospectively: each record is re-labelled from the status bytes it judged, using the same captain-relevance test main applies (`status_is_captain_relevant`), and the table mirrors the spike replay scorer, so a record whose label is `captain` and whose verdict was `routine` is a captain miss, and `-v` lists every disagreement with its task and byte range.
 Records whose status log was torn down count as unscorable.
 
+### Shadow advisory trial
+
+`config/classifier-shadow` set to exactly `jev` joins a home's granted wakes (confident routine, after publish) to the Jev shadow trial: the mod assembles the evidence bundle a classifier call would see and asks the Jev model the same supervision questions as a detached advisory, so a slow, failed, or wrong answer never delays or alters the wake path.
+The questions mirror the classifier's with ablations: `route` (main vs routine), `phase`, `severity`, `no_new_outcome`, `stale_state` on stale wakes, and one per-candidate Noul per task on compound wakes; there is no recovery question, because recovery stays deterministic.
+Each granted wake runs four ablation variants - the full bundle, and one without current state, prior outcomes, or pane tail - plus a repeat control: on every tenth wake (by the session counter) the full bundle is asked twice, which measures raw call noise.
+That is at most five helper calls per wake, each answer call bounded to 10 seconds (pane gather 6), and any failure is logged and dropped.
+
+The answer call is `bin/fm-branch-shadow-jev.sh`: the mod writes the request JSON to its stdin, the helper reads `TYPESAFE_API_KEY` from the environment or the home's `.env`, passes it to `curl` only as an Authorization header on file descriptor 3 (never on argv or in the child environment), and prints one JSON line - the model and answers, or `{"ok":false,"unavailable":"<cause>"}` - and always exits 0.
+Pane evidence comes from `bin/fm-branch-shadow-pane.sh <task>`: a 40-line/6000-character tail through the task's recorded backend plus an observation built from the busy-state record and the progress marker, gated on the mod switch, read-only, with every field it cannot read omitted rather than invented.
+Prior outcomes carry provenance (source wake, whether the same wake produced them, whether main has already seen them), and the candidates stay in the bundle in rewritten form rather than being dropped.
+
+Every call appends one record to `state/branch-mod-shadow.jsonl`: the durable wake key (the wake-queue `epoch:seq` set of the granted wake's eligible rows), tasks and sequences, variant, repeat and control flags, unavailability, request byte size, elapsed milliseconds, the policy floors (Choice confidence 0.85; Noul grant below 0.15, pass above 0.85), and the answers.
+`bin/fm-branch-shadow-score.sh [-v] [<shadow-log>] [<outcomes-file>]` scores that log retrospectively against `state/branch-outcomes.jsonl`, joining by the durable wake key: the mod stamps the same `wakeKey` onto the shadow records and onto the outcome row the granted wake's own report writes (`--wake-key` on `bin/fm-branch-outcome.sh append`), so the join never depends on agent-supplied wake text.
+A shadow record whose wake key is absent or matches no outcome row is reported as unmatched, separately, and is never counted as a verdict; `-v` dumps the per-wake join for manual adjudication.
+`route` is the only question with a durable label in the outcome record, so the other questions are scored as distributions with policy-uncertainty shares read from each record's policy floors.
+The repeat-control table counts identical raw answers across the paired full calls; the repeat is not counted as a per-variant sample, so the full row stays one sample per wake like every ablation row.
+A torn or malformed log line is skipped, never fatal.
+
 ## Opting a home in
 
 1. Install Claude Code at the pinned version.
    The pin check reads the version of the binary actually running the session, so launch the pinned binary by absolute path; `claude --version` through PATH is only the fallback and may name a different release.
 2. Create `state/.branch-mod-mode`; its presence alone switches the mod and every `bin/` piece it relies on, and its content is ignored.
    Remove the file to switch them all off together.
-3. Optionally write `config/classifier-model` and `config/supervision-branch-model`.
+3. Optionally write `config/classifier-model` and `config/supervision-branch-model`; optionally set `config/classifier-shadow` to `jev` to join the shadow advisory trial.
 4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported rather than discovered when the mod refuses to load.
 5. Launch the primary with the settings below.
 
@@ -111,7 +129,9 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - `state/branch-mod-events.jsonl`: append-only event log, rotated to `.1` past 4 MB; the evidence source for every count the live test asserts.
   The `session.start` event carries `persistenceOn` and `persistenceCause` (`default`, `inherited CLAUDE_CODE_CHILD_SESSION marker`, or `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE`), and every `agent.send` event names the resume target as `agentId` and `sessionId` (the primary session's transcript id, or `unavailable (<error>)` where the engine does not expose it), so a transcript regression is one log line.
 - `state/branch-mod-classifications.jsonl`: the classification log, same rotation; read by `bin/fm-branch-classifier-score.sh`.
+- `state/branch-mod-shadow.jsonl`: the shadow advisory trial log, one record per ablation or control call, same rotation; read by `bin/fm-branch-shadow-score.sh`.
 - `config/classifier-model`: the model name `$.model.complete` is given (default `haiku`), written into every classification record.
+- `config/classifier-shadow`: `jev` joins granted wakes to the shadow advisory trial; absent or any other value is off.
 - `config/supervision-branch-model`: the branch agent's model (default `sonnet`), shared with Pi.
 - The outcome store, cursors, and leases are the shared files listed under `AGENTS.md` section 2 for the Pi branch.
 
@@ -121,8 +141,9 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - Branch rotation: 60,000 tokens of per-step request context.
 - Provider-error latch: two consecutive failed branch turns, five-minute cooldown.
 - Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry only.
-- Event and classification logs: 4 MB each before rotation.
+- Event, classification, and shadow advisory logs: 4 MB each before rotation.
 - Passed-wake dedupe: 90 seconds per row set; in-flight wake considered stale after 180 seconds.
+- Shadow advisory: detached from the wake path; at most five helper calls per granted wake (four ablation variants plus the repeat control), each answer call bounded to 10 seconds and the pane gather to 6; failures logged and dropped.
 
 ## Verification
 

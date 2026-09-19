@@ -47,6 +47,10 @@ type WorldOptions = {
   sendAnswer?: string | string[];
   /** When set, every SendMessage tool.call is denied with this string instead of answered. */
   sendDeny?: string;
+  /** One jev shadow answer per fm-branch-shadow-jev.sh run in order; the last one repeats. */
+  shadowAnswer?: string | string[];
+  /** One pane answer per fm-branch-shadow-pane.sh run in order; the last one repeats. */
+  paneAnswer?: string | string[];
 };
 
 function nth(values: string | string[] | undefined, index: number, fallback: string): string {
@@ -139,10 +143,26 @@ function world(on: On, options: WorldOptions = {}): World {
     const script = String(argv[1] ?? "").split("/").pop() ?? "";
     if (script === "fm-wake-evidence.sh") {
       const index = runs.filter((r) => r.argv[1]?.endsWith("fm-wake-evidence.sh")).length - 1;
-      return answer(nth(options.evidence, index, `## task ${argv[2]} status bytes 0-38\ndone: PR https://x/1 checks green\n`));
+      const fallback =
+        `## task ${argv[2]} status bytes 0-38\n` +
+        `## current state (bin/fm-crew-state.sh ${argv[2]})\n` +
+        `state: working\n` +
+        `## status lines appended since the last classified wake (NEW - judge these)\n` +
+        `  done: PR https://x/1 checks green\n` +
+        `## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n` +
+        `  (none)\n`;
+      return answer(nth(options.evidence, index, fallback));
     }
     if (script === "fm-wake-grant.sh") return answer();
     if (script === "fm-branch-outcome.sh") return answer("7\n");
+    if (script === "fm-branch-shadow-jev.sh") {
+      const index = runs.filter((r) => r.argv[1]?.endsWith("fm-branch-shadow-jev.sh")).length - 1;
+      return answer(nth(options.shadowAnswer, index, '{"ok":false,"unavailable":"http 503","model":"jev"}'));
+    }
+    if (script === "fm-branch-shadow-pane.sh") {
+      const index = runs.filter((r) => r.argv[1]?.endsWith("fm-branch-shadow-pane.sh")).length - 1;
+      return answer(nth(options.paneAnswer, index, '{"task":"t1","unavailable":"no readable pane evidence"}'));
+    }
     return answer("", 1);
   });
 
@@ -177,6 +197,12 @@ const WAKE = `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsig
 
 const startEvent = (w: World) =>
   w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).find((e) => e.kind === "session.start");
+
+/** The detached shadow advisory only shares the microtask queue with delivery; two macrotask turns drain it. */
+async function drained(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+}
 
 describe("version pin", () => {
   test("refuses to load on any other Claude Code version and passes every wake through", async ($: Engine, on: On) => {
@@ -314,6 +340,8 @@ describe("classification log", () => {
     expect(cover!.argv).toContain("--task");
     expect(cover!.argv[cover!.argv.indexOf("--task") + 1]).toBe("t1");
     expect(cover!.argv[cover!.argv.indexOf("--verdict") + 1]).toBe("captain");
+    // No wake was granted here, so there is no in-flight wake identity to stamp.
+    expect(cover!.argv).not.toContain("--wake-key");
     // Main handles the wake itself, so the branch was never granted or spawned.
     expect(w.submitted).toEqual([WAKE]);
     expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
@@ -533,5 +561,246 @@ describe("routine wake", () => {
     const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
     expect(events.find((e) => e.kind === "agent.rotated")?.data.why).toBe("unresumable");
     expect(events.some((e) => e.kind === "wake.passed" && String(e.data.why).includes("delivery failed via send"))).toBe(false);
+  });
+});
+
+// The shadow advisory trial (config/classifier-shadow=jev): a detached,
+// bounded question bundle to jev-latest over the state the mod just
+// classified with, recorded one row per ablation variant in
+// state/branch-mod-shadow.jsonl for bin/fm-branch-shadow-score.sh. It must
+// never delay or alter the wake: off by default, silent when its helper is
+// unavailable, and byte-honest about evidence it does not have.
+describe("shadow advisory", () => {
+  const SHADOW_LOG = `${STATE}/branch-mod-shadow.jsonl`;
+  const JEV_OK =
+    '{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.9,"probabilities":{"routine":0.9,"main":0.1}},"phase":{"type":"choice","choice":"finished_ready","confidence":0.8,"probabilities":{}},"severity":{"type":"score","score":1,"confidence":0.7,"probabilities":[0.1,0.8,0.1,0.0]},"no_new_outcome":{"type":"noul","noul":0.3}}}';
+  const PANE_PRESENT =
+    '{"task":"t1","tail":"pane last lines","observation":{"progressing":true,"seconds_since_last_activity":7,"busy_source":"pi-ext"}}';
+  const shadowHome = (extra: Record<string, string> = {}): Record<string, string> => ({
+    ...armedHome(),
+    [`${CONFIG}/classifier-shadow`]: "jev\n",
+    ...extra,
+  });
+  const shadowRuns = (w: World) => w.runs.filter((r) => r.argv[1]?.endsWith("fm-branch-shadow-jev.sh"));
+
+  test("absent config/classifier-shadow means no shadow helper call and no shadow records", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome(), shadowAnswer: JEV_OK, paneAnswer: PANE_PRESENT });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(shadowRuns(w)).toEqual([]);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-shadow-pane.sh"))).toBe(false);
+    expect(w.appended(SHADOW_LOG)).toEqual([]);
+  });
+
+  test("a config naming another model stays off", async ($: Engine, on: On) => {
+    const w = world(on, { files: shadowHome({ [`${CONFIG}/classifier-shadow`]: "other\n" }), shadowAnswer: JEV_OK, paneAnswer: PANE_PRESENT });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(shadowRuns(w)).toEqual([]);
+    expect(w.appended(SHADOW_LOG)).toEqual([]);
+  });
+
+  test("jev records one row per ablation variant, each with the request bytes and policy floors", async ($: Engine, on: On) => {
+    const w = world(on, { files: shadowHome(), shadowAnswer: JEV_OK, paneAnswer: PANE_PRESENT });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const runs = shadowRuns(w);
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.map((r) => r.variant)).toEqual(["full", "without_current_state", "without_prior_outcomes", "without_pane_tail"]);
+    expect(runs.length).toBe(4);
+    const requests = runs.map((r) => JSON.parse(r.stdin ?? "{}"));
+    expect(requests.map((q) => q.model)).toEqual(["jev-latest", "jev-latest", "jev-latest", "jev-latest"]);
+
+    for (const r of records) {
+      expect(r.kind).toBe("shadow");
+      expect(r.wake).toBe("signal: /fm/home/state/t1.status");
+      expect(r.seqs).toEqual(["12"]);
+      // Durable wake identity: the fake queue row's epoch:seq, stamped on every
+      // variant so the scorer can join these records to the outcome row the
+      // granted wake's own report writes.
+      expect(r.wakeKey).toBe("1700000000:12");
+      expect(r.tasks).toEqual(["t1"]);
+      expect(r.control).toBe(false);
+      expect(r.unavailable).toBeNull();
+      expect(r.model).toBe("jev-1.13.0");
+      expect(r.requestBytes).toBeGreaterThan(0);
+      expect(r.policy).toEqual({ choice_confidence_floor: 0.85, noul_grant_below: 0.15, noul_pass_above: 0.85 });
+      expect(r.answers.route.choice).toBe("routine");
+      expect(r.answers.route.confidence).toBe(0.9);
+    }
+    // The stdin body is exactly what the record measured.
+    expect(records.map((r) => r.requestBytes)).toEqual(runs.map((r) => (r.stdin ?? "").length));
+
+    // The full variant carries the assembled state; ablations drop exactly one key.
+    expect(Object.keys(requests[0].state).sort()).toEqual(["current_state", "fresh_status", "pane", "unread_status", "wake"]);
+    expect(Object.keys(requests[1].state).sort()).toEqual(["fresh_status", "pane", "unread_status", "wake"]);
+    expect(Object.keys(requests[3].state).sort()).toEqual(["current_state", "fresh_status", "unread_status", "wake"]);
+    expect(requests[0].state.pane).toEqual(JSON.parse(PANE_PRESENT));
+    expect(requests[0].state.current_state[0].task).toBe("t1");
+
+    // The bundle: route/phase/severity/no-new-outcome; no recovery question,
+    // no stale_state without a stale reason, no candidates on a single-task wake.
+    expect(Object.keys(requests[0].questions).sort()).toEqual(["no_new_outcome", "phase", "route", "severity"]);
+  });
+
+  test("fields with no evidence are omitted, never invented: no pane data makes full byte-identical to without_pane_tail", async ($: Engine, on: On) => {
+    const w = world(on, { files: shadowHome(), shadowAnswer: JEV_OK });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const bodies = shadowRuns(w).map((r) => r.stdin ?? "");
+    expect(bodies[0]).toBe(bodies[3]);
+    const full = JSON.parse(bodies[0]);
+    expect(full.state.pane).toBeUndefined();
+    // A dropped variant key still changes the bytes the helper saw.
+    expect(bodies[0]).not.toBe(bodies[1]);
+  });
+
+  test("prior_outcomes carry provenance: source, same_wake, and already_presented", async ($: Engine, on: On) => {
+    const outcomes = [
+      JSON.stringify({ seq: 3, task: "t1", wake: "an earlier wake", verdict: "captain", summary: "Passed to main directly (classifier captain): decision needed" }),
+      JSON.stringify({ seq: 4, task: "t1", wake: "another wake", verdict: "routine", summary: "branch shipped the fix" }),
+      JSON.stringify({ seq: 5, task: "other", wake: "x", verdict: "routine", summary: "not this task" }),
+    ].join("\n");
+    const w = world(on, {
+      files: shadowHome({ [`${STATE}/branch-outcomes.jsonl`]: `${outcomes}\n`, [`${STATE}/.branch-outcomes-cursor`]: "3\n" }),
+      shadowAnswer: JEV_OK,
+      paneAnswer: PANE_PRESENT,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const full = JSON.parse(shadowRuns(w)[0].stdin ?? "{}");
+    expect(full.state.prior_outcomes).toEqual([
+      { task: "t1", seq: 3, verdict: "captain", summary: "Passed to main directly (classifier captain): decision needed", source: "classifier_pass", same_wake: false, already_presented: true },
+      { task: "t1", seq: 4, verdict: "routine", summary: "branch shipped the fix", source: "accepted_branch", same_wake: false, already_presented: false },
+    ]);
+    // The wake's own reason marks the same-wake row.
+    const same = JSON.parse(shadowRuns(w)[0].stdin ?? "{}");
+    expect(same.state.prior_outcomes.every((p: any) => p.same_wake === false)).toBe(true);
+  });
+
+  test("a compound wake carries one provenance-bearing Noul per candidate; a stale wake carries stale_state", async ($: Engine, on: On) => {
+    const files = shadowHome({
+      [`${STATE}/t2.meta`]: "project=demo\nwindow=fm-t2\n",
+      [`${STATE}/t2.status`]: "working: b\n",
+      [`${STATE}/.wake-queue`]: "1700000000\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n1700000000\t13\tsignal\tt2.status\tworking: b\n",
+    });
+    const w = world(on, { files, shadowAnswer: JEV_OK, paneAnswer: PANE_PRESENT });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({
+      text: `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: ${STATE}/t1.status\nsignal: ${STATE}/t2.status\n`,
+      origin: { kind: "task-notification" },
+    });
+    await drained();
+
+    const full = JSON.parse(shadowRuns(w)[0].stdin ?? "{}");
+    expect(full.state.wake).toContain("t1.status");
+    const cands = full.questions.candidates;
+    expect(Object.keys(cands).sort()).toEqual(["t1", "t2"]);
+    expect(cands.t1.type).toBe("noul");
+    expect(cands.t1.instructions.candidate).toBe("t1");
+    expect(cands.t1.instructions.fresh_lines.length).toBeGreaterThan(0);
+    expect(cands.t1.instructions.fresh_lines[0].id).toMatch(/^t1:[0-9]+-[0-9]+$/);
+    expect(cands.t2.instructions.prior_outcome).toBeNull();
+    expect(full.questions.stale_state).toBeUndefined();
+    expect(Object.keys(full.questions)).not.toContain("recovery");
+  });
+
+  test("a stale wake carries the stale_state question and never a recovery question", async ($: Engine, on: On) => {
+    const stale = world(on, {
+      files: {
+        ...armedHome(),
+        [`${STATE}/.wake-queue`]: "1700000000\t13\tstale\tfm-t1\tpane quiet\n",
+        [`${CONFIG}/classifier-shadow`]: "jev\n",
+      },
+      shadowAnswer: JEV_OK,
+      paneAnswer: PANE_PRESENT,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nstale: fm-t1\n`, origin: { kind: "task-notification" } });
+    await drained();
+    const staleFull = JSON.parse(shadowRuns(stale)[0].stdin ?? "{}");
+    expect(staleFull.questions.stale_state.type).toBe("choice");
+    expect(Object.keys(staleFull.questions)).not.toContain("recovery");
+  });
+
+  test("a wake-queue row with a non-numeric epoch is unsafe scope: passed to main untouched, no shadow record, no wake key stamped", async ($: Engine, on: On) => {
+    const w = world(on, {
+      files: shadowHome({ [`${STATE}/.wake-queue`]: "not-an-epoch\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n" }),
+      shadowAnswer: JEV_OK,
+      paneAnswer: PANE_PRESENT,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    expect(w.submitted).toEqual([WAKE]);
+    expect(w.completions.length).toBe(0);
+    expect(w.spawns.length).toBe(0);
+    expect(shadowRuns(w)).toEqual([]);
+    expect(w.appended(SHADOW_LOG)).toEqual([]);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    expect(events.some((e) => e.kind === "wake.passed" && e.data.why === "scope unsafe")).toBe(true);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv.includes("--wake-key"))).toBe(false);
+  });
+
+  test("an unavailable helper records unavailable per variant and never touches the delivery", async ($: Engine, on: On) => {
+    const w = world(on, { files: shadowHome() });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.length).toBe(4);
+    for (const r of records) {
+      expect(r.unavailable).toBe("http 503");
+      expect(r.model).toBeUndefined();
+      expect(r.answers).toBeUndefined();
+      expect(r.requestBytes).toBeGreaterThan(0);
+    }
+    // The wake itself was still granted and spawned: the shadow changed nothing.
+    expect(w.spawns.length).toBe(1);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    expect(events.some((e) => e.kind === "wake.passed" && String(e.data.why).includes("shadow"))).toBe(false);
+  });
+
+  test("every tenth wake repeats the full variant as the raw-call-noise control", async ($: Engine, on: On) => {
+    const counters = { lockPid: "4242", wakeCounter: 9, spawnCount: 1, sendCount: 0, branchGeneration: 1, branchAgentId: "" };
+    const w = world(on, {
+      files: shadowHome({ [`${STATE}/.branch-mod-counters`]: JSON.stringify(counters) }),
+      shadowAnswer: JEV_OK,
+      paneAnswer: PANE_PRESENT,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.map((r) => [r.variant, r.repeat])).toEqual([
+      ["full", 1],
+      ["without_current_state", 1],
+      ["without_prior_outcomes", 1],
+      ["without_pane_tail", 1],
+      ["full", 2],
+    ]);
+    expect(records[4].control).toBe(true);
+    // The two full calls carry byte-identical requests: only sampling noise can differ.
+    const bodies = shadowRuns(w).map((r) => r.stdin ?? "");
+    expect(bodies[0]).toBe(bodies[4]);
+    // An ordinary wake stays at four.
+    const before = w.appended(SHADOW_LOG).length;
+    w.files.set(`${STATE}/t1.status`, "working: a\ndone: PR https://x/1 checks green\nworking: c\n");
+    w.files.set(`${STATE}/.wake-queue`, "1700000120\t14\tsignal\tt1.status\tworking: c\n");
+    await w.clock.advance(91_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(w.appended(SHADOW_LOG).length - before).toBe(4);
   });
 });

@@ -31,6 +31,7 @@
 //   .branch-mod-passed              queue seqs passed to main with a cover row and not yet acknowledged
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
+//   branch-mod-shadow.jsonl         one record per shadow advisory call (config/classifier-shadow = jev), size-capped
 import type { On } from 'claude-code'
 
 export const CLAUDE_CODE_PIN = '2.1.278'
@@ -39,6 +40,11 @@ type Scope = {
   status: 'safe' | 'empty' | 'unsafe'
   eligible: boolean
   eligibleSeqs: string[]
+  // Durable wake identity: the wake-queue "epoch:seq" of every eligible row,
+  // comma-joined. Stamped onto shadow records and onto the outcome row the
+  // branch reports for this wake, so retrospective scorers join by identity
+  // instead of agent-supplied wake text.
+  eligibleWakeKey: string
   eligibleTasks: string[]
   corrupted: boolean
   needsDecisionTasks: string[]
@@ -47,6 +53,7 @@ type Scope = {
 
 type InFlight = {
   seqs: string[]
+  wakeKey: string
   tasks: Set<string>
   heartbeat: boolean
   wakeText: string
@@ -59,6 +66,7 @@ type InFlight = {
 }
 
 type Evidence = { task: string; from: number; to: number; text: string }
+type ShadowState = Record<string, unknown>
 
 const PLUGIN = 'fm-branch-mod'
 const BRANCH_NAME = 'fm-branch'
@@ -354,7 +362,7 @@ function lastStatusLine(lines: string[]): string {
 }
 
 async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
-  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
+  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
   let queue = ''
   try {
     queue = await $.fs.read(`${state}/.wake-queue`)
@@ -362,7 +370,7 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     return unsafe
   }
   const rows = queue.split(/\r?\n/).filter((l: string) => l.length > 0)
-  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
+  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
   const metadata = new Map<string, string>()
   const taskByKey = new Map<string, string>()
   try {
@@ -387,19 +395,23 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     return unsafe
   }
   const eligibleSeqs: string[] = []
+  const eligibleWakeKey: string[] = []
   const eligibleTasks = new Set<string>()
   const needsDecisionTasks: string[] = []
   const allSeqs: string[] = []
   const staleOwned = new Map<string, boolean>()
   for (const line of rows) {
     const f = line.split('\t')
-    if (f.length < 5 || !/^[0-9]+$/.test(f[1])) return unsafe
+    if (f.length < 5 || !/^[0-9]+$/.test(f[0]) || !/^[0-9]+$/.test(f[1])) return unsafe
     const seq = f[1]
     allSeqs.push(seq)
     const kind = f[2]
     const key = f[3]
     if (kind === 'heartbeat') {
-      if (heartbeat) eligibleSeqs.push(seq)
+      if (heartbeat) {
+        eligibleSeqs.push(seq)
+        eligibleWakeKey.push(`${f[0]}:${seq}`)
+      }
       continue
     }
     if (kind === 'check') continue
@@ -441,9 +453,10 @@ async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
     if (!project || !task) return unsafe
     eligibleTasks.add(task)
     eligibleSeqs.push(seq)
+    eligibleWakeKey.push(`${f[0]}:${seq}`)
   }
   const eligible = eligibleSeqs.length > 0
-  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
+  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleWakeKey: eligibleWakeKey.join(','), eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
 }
 
 // Deterministic note of the status lines appended since the task's last outcome.
@@ -526,6 +539,7 @@ async function serveReport($: any, e: any, agentId: string | undefined) {
   }
   const args = ['append', '--task', task, '--verdict', verdict, '--summary', summary, '--silent', String(silent)]
   if (wake) args.push('--wake', wake)
+  if (p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey)) args.push('--wake-key', p.wakeKey)
   const appended = await outcome($, args)
   if (!appended.ok) return textResult(`outcome store append failed (nothing merged): ${appended.detail}`, true)
   const seq = Number(appended.stdout)
@@ -573,7 +587,7 @@ async function gatherEvidence($: any, task: string): Promise<Evidence> {
   return { task, from: m ? Number(m[1]) : -1, to: m ? Number(m[2]) : -1, text: r.stdout }
 }
 
-async function classify($: any, reason: string, tasks: string[], seqs: string[]): Promise<{ verdict: string; reason: string; ms: number; promptChars: number; answer: string; model: string }> {
+async function classify($: any, reason: string, tasks: string[], seqs: string[]): Promise<{ verdict: string; reason: string; ms: number; promptChars: number; answer: string; model: string; evidence: Evidence[] }> {
   if (!classifierSystem) classifierSystem = await $.fs.read(`${pluginRoot}/classifier-system.txt`)
   const evidence: Evidence[] = []
   for (const task of tasks) evidence.push(await gatherEvidence($, task))
@@ -599,7 +613,7 @@ async function classify($: any, reason: string, tasks: string[], seqs: string[])
       why = 'unparsed'
     }
   }
-  const result = { verdict, reason: why, ms: Date.now() - t0, promptChars: prompt.length + classifierSystem.length, answer: answer.slice(0, 400), model }
+  const result = { verdict, reason: why, ms: Date.now() - t0, promptChars: prompt.length + classifierSystem.length, answer: answer.slice(0, 400), model, evidence }
   // The durable classification log: one record per call, scored later by
   // bin/fm-branch-classifier-score.sh against the status lines main had to act on.
   const record = {
@@ -620,6 +634,319 @@ async function classify($: any, reason: string, tasks: string[], seqs: string[])
     log($, 'classifier.log.error', { error: String(error) })
   }
   return result
+}
+
+// ---- shadow advisory trial (config/classifier-shadow) ----
+// When config/classifier-shadow names `jev`, every granted wake also issues a
+// detached, bounded question bundle to the TypeSafe System One model
+// (jev-latest) through bin/fm-branch-shadow-jev.sh, over the state this mod
+// just classified with. The trial must never delay or alter the wake: it runs
+// as a void promise beside delivery, each call has its own timeout, and one
+// record per ablation variant is appended to state/branch-mod-shadow.jsonl
+// for bin/fm-branch-shadow-score.sh. Any failure appends an `unavailable`
+// record and moves on. The API key lives only inside the bash helper;
+// TypeScript never reads it.
+
+const utf8Len = (s: string): number => new TextEncoder().encode(s).length
+const SHADOW_TIMEOUT_MS = 10_000
+const SHADOW_PANE_TIMEOUT_MS = 6_000
+const SHADOW_CONTROL_EVERY = 10
+const SHADOW_LINES_PER_TASK = 12
+const SHADOW_PRIOR_PER_TASK = 4
+
+function shadowStatusLines(task: string, from: number, to: number, text: string): Array<{ id: string; text: string }> {
+  const out: Array<{ id: string; text: string }> = []
+  let inside = false
+  let byte = from
+  for (const line of text.split('\n')) {
+    if (line.startsWith('## ')) {
+      inside = line.startsWith('## status lines appended')
+      continue
+    }
+    if (!inside || !line.trim()) continue
+    const content = line.replace(/^  /, '')
+    if (!content || content.startsWith('(none')) continue
+    const len = utf8Len(content)
+    out.push({ id: `${task}:${byte}-${Math.min(byte + len, to)}`, text: content })
+    byte += len + 1
+  }
+  return out
+}
+
+function shadowCurrentState(task: string, text: string): string {
+  const lines = text.split('\n')
+  const at = lines.findIndex((l) => l.startsWith('## current state'))
+  if (at < 0) return ''
+  const body: string[] = []
+  for (let k = at + 1; k < lines.length && !lines[k].startsWith('## '); k++) body.push(lines[k])
+  const s = body.join('\n').trim()
+  return s && !s.startsWith('(evidence gatherer failed') ? s.slice(0, 1500) : ''
+}
+
+// The wake state the mod already holds, assembled read-only with the same
+// bounds the branch note and the classifier use. Fields with no evidence are
+// omitted entirely, never invented.
+async function shadowAssembleState($: any, a: { wake: string; tasks: string[]; evidence: Evidence[] }): Promise<ShadowState> {
+  const st: ShadowState = { wake: a.wake }
+  const fresh: Array<{ id: string; text: string }> = []
+  const prSources: Array<{ task: string; where: string; value: string }> = []
+  const currentState: Array<{ task: string; value: string }> = []
+  for (const b of a.evidence) {
+    fresh.push(...shadowStatusLines(b.task, b.from, b.to, b.text))
+    const cs = shadowCurrentState(b.task, b.text)
+    if (cs) currentState.push({ task: b.task, value: cs })
+    for (const m of String(b.text).matchAll(/https:\/\/[^\s)"']+/g)) {
+      if (/\/pull\/[0-9]+/.test(m[0]) && !prSources.some((p) => p.value === m[0]) && prSources.length < 8) prSources.push({ task: b.task, where: 'status', value: m[0] })
+    }
+  }
+  st.fresh_status = fresh.slice(-SHADOW_LINES_PER_TASK * Math.max(a.tasks.length, 1))
+  if (currentState.length) st.current_state = currentState
+  // Unread lines: appended since the task's last outcome, the branch note's own bound.
+  const unread: Array<{ id: string; text: string }> = []
+  for (const task of a.tasks) {
+    let endpoint = 0
+    try {
+      const idx = (await $.fs.read(`${state}/.${task}.branch-outcome-index`)).split('\t')
+      if (idx[0] === 'fm-branch-outcome-index-v1' && /^[0-9]+$/.test(idx[2] ?? '')) endpoint = Number(idx[2])
+    } catch {
+      endpoint = 0
+    }
+    let text = ''
+    try {
+      text = await $.fs.read(`${state}/${task}.status`)
+    } catch {
+      text = ''
+    }
+    let byte = endpoint
+    for (const line of text.slice(endpoint).split('\n')) {
+      const len = utf8Len(line)
+      if (line.trim()) unread.push({ id: `${task}:${byte}-${byte + len}`, text: line })
+      byte += len + 1
+    }
+  }
+  st.unread_status = unread.slice(-SHADOW_LINES_PER_TASK * Math.max(a.tasks.length, 1))
+  if (prSources.length) st.authoritative_pr_sources = prSources
+  // Prior outcomes with provenance (phase-1 policy).
+  let readThrough = -1
+  let rows: any[] = []
+  try {
+    const n = Number((await $.fs.read(`${state}/.branch-outcomes-cursor`)).trim())
+    readThrough = Number.isFinite(n) ? n : -1
+  } catch {
+    readThrough = -1
+  }
+  try {
+    rows = (await $.fs.read(`${state}/branch-outcomes.jsonl`))
+      .split('\n')
+      .filter((l: string) => l.trim())
+      .map((l: string) => {
+        try {
+          return JSON.parse(l)
+        } catch {
+          return null
+        }
+      })
+      .filter((r: any) => r !== null)
+  } catch {
+    rows = []
+  }
+  const prior: Array<Record<string, unknown>> = []
+  for (const task of a.tasks) {
+    for (const r of rows.filter((r: any) => r.task === task).slice(-SHADOW_PRIOR_PER_TASK)) {
+      const seq = Number(r.seq) || 0
+      const summary = String(r.summary ?? '')
+      prior.push({
+        task,
+        seq,
+        verdict: String(r.verdict ?? ''),
+        summary: summary.slice(0, 300),
+        source: /^Passed to main directly \((classifier|scope unsafe)/.test(summary) ? 'classifier_pass' : 'accepted_branch',
+        same_wake: String(r.wake ?? '') === a.wake,
+        already_presented: readThrough >= 0 && seq <= readThrough,
+      })
+    }
+  }
+  if (prior.length) st.prior_outcomes = prior
+  // Open captain calls, from the mod's own status fold.
+  const openCalls: Array<{ task: string }> = []
+  for (const task of a.tasks) {
+    try {
+      const lines = (await $.fs.read(`${state}/${task}.status`)).split(/\r?\n/)
+      if (hasOpenNeedsDecision(lines, await statusKind($, task))) openCalls.push({ task })
+    } catch {
+      // unreadable status: no open-call claim
+    }
+  }
+  if (openCalls.length) st.open_calls = openCalls
+  // Bounded pane evidence for the first eligible task, through the helper.
+  try {
+    const r = await $.process.run(['bash', `${bin}/fm-branch-shadow-pane.sh`, a.tasks[0]], { cwd, env: scriptEnv(), timeoutMs: SHADOW_PANE_TIMEOUT_MS })
+    const line = String(r.stdout)
+      .trim()
+      .split('\n')
+      .filter((l: string) => l.startsWith('{'))
+      .pop()
+    const j = line ? JSON.parse(line) : null
+    if (j && !j.unavailable) st.pane = { task: j.task, ...(j.tail ? { tail: j.tail } : {}), ...(j.observation ? { observation: j.observation } : {}) }
+  } catch {
+    // no pane evidence: the field stays absent
+  }
+  return st
+}
+
+// The question bundle: route/phase/severity/no-new-outcome on every wake,
+// stale-state only on stale wakes, per-candidate Nouls with provenance on
+// compound wakes. The recovery question from the phase-1 survey is dropped.
+function shadowQuestions(a: { wake: string; tasks: string[] }, st: ShadowState): Record<string, unknown> {
+  const questions: Record<string, unknown> = {
+    route: {
+      type: 'choice',
+      instructions: 'Which route is required after this wake is handled? Judge only fresh or unread evidence and the observed action result; conservative routing means anything uncertain routes to the captain.',
+      criteria: {
+        routine: 'No new requested result, review item, human-only decision, surviving blocker, credential need, or security/destructive impact.',
+        main: 'A requested result is finished, review is ready, a new human-only decision or surviving blocker/failure exists, or a credential/login is needed, or the impact is security-, privacy-, data-loss-, or externally-visible.',
+      },
+    },
+    phase: {
+      type: 'choice',
+      instructions: 'Which phase best describes the authoritative current evidence?',
+      criteria: {
+        no_change: 'No new state beyond a signal or history',
+        working: 'Started, implementing, or validating normally',
+        waiting: 'A declared external wait or routine confirmation',
+        finished_ready: 'A requested result or review artifact is ready',
+        blocked_failed: 'Work cannot continue or recovery failed',
+        unknown: 'Evidence is contradictory, missing, or unreadable',
+      },
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How severe is the observed condition after available recovery evidence?',
+      criteria: [
+        'False alarm or no functional impact',
+        'Routine recoverable interruption or non-blocking failure',
+        'Task blocked or failed after normal recovery',
+        'Security, privacy, data-loss, irreversible, credential, or external-publication impact',
+      ],
+    },
+    no_new_outcome: {
+      type: 'noul',
+      instructions: 'Can this wake be treated as carrying no new outcome beyond prior_outcomes?',
+      criteria: {
+        true: 'Only signal, history, or unchanged facts are present',
+        false: 'A fresh fact changes phase, artifact, an open call, a blocker, or the required action',
+      },
+    },
+  }
+  if (/^stale:/m.test(a.wake)) {
+    questions.stale_state = {
+      type: 'choice',
+      instructions: 'Given the current-state and pane evidence rather than the stale header alone, which state is the worker in?',
+      criteria: {
+        active: 'The worker is running or thinking normally',
+        expected_external_wait: 'A declared external wait the worker chose',
+        routine_confirmation_wait: 'Parked on a routine confirmation it already selected',
+        finished_ready: 'Its requested result or review artifact is ready',
+        stuck_or_looping: 'Repeated identical output or no progress',
+        dead_or_unreadable: 'The endpoint is gone or unreadable',
+        unknown: 'Evidence is contradictory or missing',
+      },
+    }
+  }
+  if (a.tasks.length > 1) {
+    const prior = (st.prior_outcomes as Array<Record<string, unknown>> | undefined) ?? []
+    const fresh = (st.fresh_status as Array<{ id: string; text: string }> | undefined) ?? []
+    const cands: Record<string, unknown> = {}
+    for (const t of a.tasks) {
+      cands[t] = {
+        type: 'noul',
+        instructions: {
+          question: 'Is this candidate a still-unreported actionable fact in this wake?',
+          candidate: t,
+          fresh_lines: fresh.filter((f) => f.id.startsWith(`${t}:`)),
+          prior_outcome: prior.filter((p) => p.task === t).at(-1) ?? null,
+        },
+        criteria: {
+          true: 'A new fact that changes the artifact, phase, an open call, a blocker, or the required action',
+          false: 'History, a duplicate, continuation prose, or a superseded fact',
+        },
+      }
+    }
+    questions.candidates = cands
+  }
+  return questions
+}
+
+async function shadowRecord($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; wakeNo: number }, variant: string, repeat: number, body: string): Promise<void> {
+  const t0 = Date.now()
+  let unavailable: string | null = null
+  let model = ''
+  let answers: unknown = null
+  try {
+    const r = await $.process.run(['bash', `${bin}/fm-branch-shadow-jev.sh`], { cwd, env: scriptEnv(), stdin: body, timeoutMs: SHADOW_TIMEOUT_MS })
+    const line = String(r.stdout)
+      .trim()
+      .split('\n')
+      .filter((l: string) => l.startsWith('{'))
+      .pop()
+    const j = line ? JSON.parse(line) : null
+    if (j && j.ok === true) {
+      model = String(j.model ?? 'jev')
+      answers = j.answers
+    } else unavailable = String((j && j.unavailable) || 'unavailable').slice(0, 200)
+  } catch (error) {
+    unavailable = `helper failed: ${String(error)}`.slice(0, 200)
+  }
+  const record: Record<string, unknown> = {
+    t: new Date().toISOString(),
+    kind: 'shadow',
+    wake: a.wake,
+    seqs: a.seqs,
+    wakeKey: a.wakeKey,
+    tasks: a.tasks,
+    wakeNo: a.wakeNo,
+    variant,
+    repeat,
+    control: repeat > 1,
+    unavailable,
+    requestBytes: utf8Len(body),
+    ms: Date.now() - t0,
+    policy: { choice_confidence_floor: 0.85, noul_grant_below: 0.15, noul_pass_above: 0.85 },
+  }
+  if (answers !== null) {
+    record.model = model
+    record.answers = answers
+  }
+  try {
+    await appendLine($, `${state}/branch-mod-shadow.jsonl`, JSON.stringify(record) + '\n', EVENT_LOG_CAP_BYTES)
+  } catch (error) {
+    log($, 'shadow.log.error', { error: String(error) })
+  }
+}
+
+// The detached trial itself: config-gated, read-only, fully fire-and-forget.
+async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; evidence: Evidence[]; wakeNo: number }): Promise<void> {
+  try {
+    if ((await readConfig($, 'classifier-shadow', '')).trim() !== 'jev') return
+    const st = await shadowAssembleState($, a)
+    const questions = shadowQuestions(a, st)
+    const variants: Array<{ name: string; drop: string[]; repeat: number }> = [
+      { name: 'full', drop: [], repeat: 1 },
+      { name: 'without_current_state', drop: ['current_state'], repeat: 1 },
+      { name: 'without_prior_outcomes', drop: ['prior_outcomes'], repeat: 1 },
+      { name: 'without_pane_tail', drop: ['pane'], repeat: 1 },
+    ]
+    // Repeat control: every tenth wake runs the full variant twice so raw
+    // call noise stays measurable.
+    if (a.wakeNo % SHADOW_CONTROL_EVERY === 0) variants.push({ name: 'full', drop: [], repeat: 2 })
+    for (const v of variants) {
+      const state: ShadowState = {}
+      for (const [k, val] of Object.entries(st)) if (!v.drop.includes(k)) state[k] = val
+      await shadowRecord($, a, v.name, v.repeat, JSON.stringify({ model: 'jev-latest', state, questions }))
+    }
+  } catch (error) {
+    log($, 'shadow.error', { error: String(error) })
+  }
 }
 
 // ---- delivery to the one persistent branch agent ----
@@ -847,7 +1174,9 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   // Classifier ahead of the branch: only a confident routine verdict is
   // granted; captain or uncertain goes to main untouched.
   const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
-  log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, ...c, estTokens: Math.ceil(c.promptChars / 4) })
+  // The event log keeps the record shape but never the evidence texts; the
+  // shadow advisory receives them in memory only.
+  log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, verdict: c.verdict, reason: c.reason, ms: c.ms, promptChars: c.promptChars, answer: c.answer, model: c.model, estTokens: Math.ceil(c.promptChars / 4) })
   if (c.verdict !== 'routine') {
     for (const s of scope.eligibleSeqs) passedSeqs.add(s)
     await writePassedSeqs($, passedSeqs)
@@ -867,6 +1196,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const prompt = `FIRSTMATE SUPERVISION WAKE: ${reason}\n\n(wake ${wakeCounter} of this session)\nHandle this per your operating procedure and finish with fm_branch_report.` + scopeNote
   inFlight = {
     seqs: scope.eligibleSeqs,
+    wakeKey: scope.eligibleWakeKey,
     tasks: new Set(scope.eligibleTasks),
     heartbeat,
     wakeText,
@@ -878,6 +1208,10 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     via: freshAgent ? 'spawn' : 'send',
   }
   stepsThisWake = 0
+  // Shadow advisory trial: detached and bounded, never delaying or altering
+  // the delivery below. Any failure is recorded as unavailable by the trial
+  // itself; nothing here may change the wake.
+  if (c.evidence.length > 0) void runShadowAdvisory($, { wake: reason, seqs: scope.eligibleSeqs, wakeKey: scope.eligibleWakeKey, tasks: scope.eligibleTasks, evidence: c.evidence, wakeNo: wakeCounter })
   const d = await deliverToBranch($, prompt)
   log($, 'wake.delivered', { wakeNo: wakeCounter, seqs: scope.eligibleSeqs, ...d, spawnCount, sendCount, source })
   if (!d.ok) {
