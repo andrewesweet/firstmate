@@ -133,5 +133,5 @@ tests/fm-branch-claude-mod-plugin.test.sh
 FM_BRANCH_MOD_LIVE=1 tests/fm-branch-claude-mod-live-e2e.test.sh
 ```
 
-The first two are portable (Node and bash), the third runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` is exactly the pin and `tmux` exists.
+The first two are portable (Node and bash), the third runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` is exactly the pin and `tmux` exists; it also proves, across two labs, that a minutes-later wake resumes the persisted agent when transcript saving is on and rotates with `why=unresumable` when an inherited `CLAUDE_CODE_CHILD_SESSION` breaks resume.
 The dated results live in [`verification/runtime-backends.md`](verification/runtime-backends.md#claude-code-supervision-branch).
