@@ -33,6 +33,26 @@ The required CI lane uses the pinned installers in `bin/fm-install-herdr.sh` and
 Those script headers own release assets, checksums, download bounds, and post-install gates.
 Real harness credential tests remain opt-in rather than part of default CI.
 
+## Clean server start
+
+Start the Herdr server from an environment that does not carry Claude's nested-session markers.
+A `herdr server` launched from inside a bridge-started Claude session records that session's environment, including `CLAUDE_CODE_CHILD_SESSION=1` (typically alongside `CLAUDE_CODE_ENVIRONMENT_KIND=bridge` and `CLAUDE_CODE_ENTRYPOINT=sdk-cli`), and every pane it later creates inherits the marker.
+An interactive Claude session launched in such a pane believes it is a nested child session and writes no transcript at all, which also removes the MLflow traces the tracing plugin reads from that transcript.
+Firstmate's own worker launches are immune: `bin/fm-spawn.sh` sets `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` on every Claude launch, Claude's override that lifts the nested-session persistence gate - transcript, prompt-history recording, and session-registry naming - and nothing else the marker controls (verified against the 2.1.276-2.1.278 binaries and their "restart with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 to keep future transcripts" notice; no public documentation describes it), and unsets `CLAUDE_CODE_SKIP_PROMPT_HISTORY`, the one suppression cause that override does not defeat.
+Pi and Codex ignore Claude's markers, so their launches need no marker clearing; [`docs/trace-context.md`](trace-context.md) "Session transcripts and cost telemetry per harness" states what is already on for each and how the Codex launch keeps the host's `notify` lane.
+The residue is the primary session itself, which the captain starts by hand in a pane; `bin/fm-bootstrap.sh` prints a `TRANSCRIPT_SUPPRESSION` line when it detects that environment.
+
+To check a running server, read its environment and look for the marker:
+
+```
+tr '\0' '\n' < "/proc/$(pgrep -f '(^|/)herdr server( |$)' | head -1)/environ" | grep '^CLAUDE_CODE_CHILD_SESSION='
+```
+
+A hit means every pane that server creates from now on inherits the marker; restarting the server from a clean environment is the durable fix.
+To start clean, launch the server through `env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SKIP_PROMPT_HISTORY herdr server ...`, from a fresh login shell, or from a systemd user unit - any parent whose environment does not carry the markers.
+Panes created by a clean server are clean; existing panes keep the environment they were born with until they are closed.
+Do not restart a server that has live work without the operator's word: killing the server closes its panes.
+
 ## Client selection
 
 Each operation routed through the adapter's session-scoped CLI helper starts with the first `herdr` on `PATH` unless that session has already selected another client.

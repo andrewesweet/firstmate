@@ -22,6 +22,7 @@
 #                 "BOOTSTRAP_INFO: nudged fm-<id> with '<message>'",
 #                 "SECONDMATE_LIVENESS: secondmate <id>: skipped: <reason>|respawn failed after <cause>: <reason>",
 #                 "SECONDMATE_HANDOFF: secondmate <id>: pending delivery: <n> item(s)",
+#                 "TRANSCRIPT_SUPPRESSION: <cause> suppresses this primary session's transcript and the MLflow traces read from it; <remediation>",
 #                 "FMX: X mode on ..." or "FMX: X mode off ...".
 #          When a RUNNING secondmate home is fast-forwarded, its target is
 #          firstmate's own current default-branch commit. A local worktree uses
@@ -53,6 +54,27 @@
 #          A TANGLE line means the firstmate primary checkout (FM_ROOT) is stranded
 #          on a feature branch instead of its default branch - a crewmate's work
 #          landed in the primary instead of its own worktree; restore it per the line.
+#          A TRANSCRIPT_SUPPRESSION line means THIS primary session runs on claude
+#          with an environment that makes claude write no session transcript at
+#          all, which also strips the MLflow traces the tracing plugin reads from
+#          that transcript. Claude Code suppresses an interactive session's
+#          transcript when it believes it is a nested child session: the inherited
+#          CLAUDE_CODE_CHILD_SESSION marker does this whenever the session's pane
+#          server was itself started inside a bridge-launched claude session (a
+#          `herdr server` started under such a session passes the marker to every
+#          pane), and CLAUDE_CODE_SKIP_PROMPT_HISTORY does it independently. The
+#          nested-marker cause honors claude's own
+#          CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 override (which fm-spawn sets
+#          on every worker launch); the skip-prompt-history cause honors
+#          nothing. The check fires only when the primary harness itself
+#          detects as claude, reads the markers from the primary claude
+#          process's own environment (/proc/$CLAUDE_PID/environ - claude
+#          injects CLAUDE_CODE_CHILD_SESSION=1 into every hook and Bash child
+#          it runs, so the hook's environment proves nothing), mirrors
+#          claude's tmux ambient-marker probe (a marker in tmux's global
+#          environment means the session predates it and is NOT suppressed),
+#          and is silent when no marker is present, the override is in
+#          force, or the primary's environment is unreadable.
 #          treehouse is also MISSING when its installed version lacks
 #          "treehouse get --lease" support.
 #          no-mistakes is also MISSING when its installed version is older than
@@ -1493,6 +1515,62 @@ detect_local_tools() {
   fi
 }
 
+# Primary-session transcript suppression (detect-only). Claude Code writes no
+# session transcript for an interactive session it classifies as a nested child
+# session, and the MLflow tracing plugin reads that transcript, so an inherited
+# CLAUDE_CODE_CHILD_SESSION marker (or CLAUDE_CODE_SKIP_PROMPT_HISTORY) costs
+# the primary its session history and its per-request traces together. See the
+# header above for the causes and the ownership split with fm-spawn's launch
+# override. Mirrors the binary's gate as closely as the environment allows:
+# fires only for a claude primary, reads every marker from the primary
+# process's environment via /proc/$CLAUDE_PID/environ (the hook's own
+# environment always carries CLAUDE_CODE_CHILD_SESSION=1, injected by claude
+# for every child it runs), with the binary's bool parser (true only for a
+# trimmed, case-insensitive 1/true/yes/on), and reuses
+# claude's tmux ambient-marker probe (`tmux show-environment -g`, the same
+# call): only a query that succeeded AND named the marker in tmux's global
+# environment is ambient (the session predates the marker and is NOT
+# suppressed); an answered query without the marker is absent; a failed query
+# is unknown - and only ambient stays silent, exactly as in the binary.
+fm_env_flag_truthy() { # <value> -> 0 when claude's bool parser reads it as true
+  local v
+  v=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  case "$v" in
+  1 | true | yes | on) return 0 ;;
+  *) return 1 ;;
+  esac
+}
+fm_primary_env_value() { # <name> -> value of <name> in $primary_env, empty when unset
+  printf '%s\n' "$primary_env" | sed -n "s/^$1=//p" | head -n 1
+}
+detect_primary_transcript_suppression() {
+  local own_harness ambient=absent probe_out probe_rc primary_env child force skip
+  own_harness=$("$SCRIPT_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  [ "$own_harness" = claude ] || return 0
+  case "${CLAUDE_PID:-}" in
+  '' | *[!0-9]*) return 0 ;;
+  esac
+  primary_env=$(tr '\0' '\n' < "/proc/$CLAUDE_PID/environ" 2>/dev/null) || return 0
+  child=$(fm_primary_env_value CLAUDE_CODE_CHILD_SESSION)
+  force=$(fm_primary_env_value CLAUDE_CODE_FORCE_SESSION_PERSISTENCE)
+  skip=$(fm_primary_env_value CLAUDE_CODE_SKIP_PROMPT_HISTORY)
+  if [ -n "${TMUX:-}" ]; then
+    probe_out=$(tmux show-environment -g 2>/dev/null)
+    probe_rc=$?
+    if [ "$probe_rc" -ne 0 ]; then
+      ambient=unknown
+    elif printf '%s\n' "$probe_out" | grep -q '^CLAUDE_CODE_CHILD_SESSION='; then
+      ambient=ambient
+    fi
+  fi
+  if fm_env_flag_truthy "$child" && ! fm_env_flag_truthy "$force" && [ "$ambient" != ambient ]; then
+    echo "TRANSCRIPT_SUPPRESSION: inherited CLAUDE_CODE_CHILD_SESSION marker suppresses this primary session's transcript and the MLflow traces read from it (tmux ambient probe: $ambient); relaunch the primary without the marker, or start it with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1"
+  fi
+  if fm_env_flag_truthy "$skip"; then
+    echo "TRANSCRIPT_SUPPRESSION: CLAUDE_CODE_SKIP_PROMPT_HISTORY suppresses this primary session's transcript and the MLflow traces read from it; CLAUDE_CODE_FORCE_SESSION_PERSISTENCE does not defeat this cause - relaunch the primary without it"
+  fi
+}
+
 detect_local_config() {
   # Worktree-tangle check: the firstmate primary checkout (FM_ROOT) must sit on its
   # default branch, not a feature branch (see fm-tangle-lib.sh). Scoped to the
@@ -1526,6 +1604,7 @@ detect_local_config() {
   fi
   detect_code_root_backlog_fork
   detect_home_summary_publication
+  detect_primary_transcript_suppression
 }
 
 # Shadow-backlog check. When this home's data directory is not the code root's,
