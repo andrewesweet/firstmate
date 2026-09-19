@@ -58,8 +58,9 @@ OUTCOME_ROWS=''
 if [ -f "$OUTCOMES" ]; then
   # "-" marks an absent key: a real wake key is only digits, colon and comma
   # (validated at write time), and a leading empty @tsv field would collapse
-  # under `read`.
-  OUTCOME_ROWS=$(jq -r '[(.wakeKey // "" | if . == "" then "-" else . end), (.verdict // "")] | @tsv' "$OUTCOMES" 2>/dev/null || true)
+  # under `read`. The raw read also skips torn or malformed lines so one bad
+  # outcome row can never drop the labels of every row after it.
+  OUTCOME_ROWS=$(jq -R -r 'fromjson? | select(type == "object") | [(.wakeKey // "" | if . == "" then "-" else . end), (.verdict // "")] | @tsv' "$OUTCOMES" 2>/dev/null || true)
 fi
 declare -A WAKE_CAPTAIN=() WAKE_ROWS=()
 while IFS=$'\t' read -r wake verdict; do

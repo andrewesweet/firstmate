@@ -356,6 +356,7 @@ test_shadow_scorer_joins_records_to_outcomes_by_wake_identity() {
   cat > "$state/branch-outcomes.jsonl" <<'EOF'
 {"seq":1,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"x","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
 {"seq":2,"epoch":1,"task":"t1","wake":"agent text","verdict":"captain","summary":"y","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:1,1700:2"}
+{"seq":3,"epoch":1,"task":"t1","wake":"agent text","verdi
 {"seq":3,"epoch":1,"task":"t1","wake":"agent text","verdict":"routine","summary":"z","silent":false,"statusEndpoint":0,"statusIdent":"-","wakeKey":"1700:4"}
 EOF
   {
@@ -388,7 +389,7 @@ EOF
 
   FM_STATE_OVERRIDE="$state" "$SSCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 3 ] || fail "an absent log prints only the empty route table: $(cat "$out")"
-  pass "the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line, counts unavailable records separately, and scores the repeat control outside the variant rows"
+  pass "the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line in either log, counts unavailable records separately, and scores the repeat control outside the variant rows"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset
