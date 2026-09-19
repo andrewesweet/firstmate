@@ -383,10 +383,9 @@ The [Claude adapter reference](../.agents/skills/harness-adapters/references/har
 
 The optional local, gitignored `config/claude-function-hooks` is a presence flag opting every Claude worker launch from this home into Claude Code's function-hooks surface: crewmates, scouts, Claude secondmates, and control-plane relaunches alike.
 When the file is present, the launch environment prefix carries `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`, which Claude Code requires before it loads function-hooks modules; when the file is absent, the launch is byte-for-byte what it would otherwise be.
-The file's content is ignored.
+Presence alone enables the flag: the file's content is ignored and never read, so an empty file is enough and any kind of entry counts as present.
 Firstmate never sets that variable in any project or user settings: the file is the captain's own per-home opt-in that puts the variable on a launched worker's environment, and it touches no settings file.
-An unreadable or nonregular file refuses every spawn from that home, whichever harness it would launch, before any endpoint, worktree, or task record exists.
-`bin/fm-spawn.sh` reads the file on every spawn and relaunch, so a change takes effect at the next launch without a restart.
+`bin/fm-spawn.sh` checks for the file on every spawn and relaunch, so a change takes effect at the next launch without a restart.
 The file is a captain-wide preference, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract; a secondmate's own Claude crewmates then launch with the same posture.
 
 ## Worker launch environment (config/launch-env-allowlist)

@@ -269,13 +269,13 @@
 #   when the file is present, the launch environment carries
 #   CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1, which that surface requires before it
 #   loads function-hooks modules; when absent, the launch is byte-for-byte
-#   what it would otherwise be. Content is ignored. Firstmate never sets that
-#   variable in any project or user settings; this file is the captain's own
-#   per-home opt-in and touches no settings file. An unreadable or non-regular
-#   file refuses the spawn before any endpoint, worktree, or record exists,
-#   the file is read on every spawn and relaunch, so a change reaches the next
-#   launch without a restart, and it is inherited into secondmate homes
-#   (bin/fm-config-inherit-lib.sh).
+#   what it would otherwise be. Presence alone enables the flag: the file's
+#   content is ignored and never read, so any kind of entry (empty file,
+#   directory, symlink) counts as present. Firstmate never sets that variable
+#   in any project or user settings; this file is the captain's own per-home
+#   opt-in and touches no settings file. Presence is checked on every spawn
+#   and relaunch, so a change reaches the next launch without a restart, and
+#   it is inherited into secondmate homes (bin/fm-config-inherit-lib.sh).
 #   Launch templates live in launch_template() below; placeholders replaced before launch:
 #     __BRIEF__    absolute path to data/<task-id>/brief.md
 #     __CLAUDEPERMFLAG__ the claude permission flag selected by config/claude-permission-mode
@@ -501,17 +501,13 @@ case "$CLAUDE_PERMISSION_MODE" in
 auto) CLAUDE_PERM_FLAG='--permission-mode auto' ;;
 *) CLAUDE_PERM_FLAG='--dangerously-skip-permissions' ;;
 esac
-# config/claude-function-hooks (header above): presence-only, resolved beside
-# the permission posture so a malformed file refuses before any mutation.
+# config/claude-function-hooks (header above): presence alone enables the
+# flag; the file's content is never read.
 if ! CLAUDE_HOOKS_PRESENT=$(fm_config_source_present "$CONFIG/claude-function-hooks"); then
   exit 1
 fi
 CLAUDE_HOOKS_FLAG=''
 if [ "$CLAUDE_HOOKS_PRESENT" = 1 ]; then
-  if [ ! -f "$CONFIG/claude-function-hooks" ] || [ ! -r "$CONFIG/claude-function-hooks" ]; then
-    echo "error: config/claude-function-hooks must be a readable regular file; its presence alone opts claude launches into CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 and its content is ignored" >&2
-    exit 1
-  fi
   CLAUDE_HOOKS_FLAG='CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 '
 fi
 SUB_HOME_MARKER=".fm-secondmate-home"

@@ -1553,22 +1553,6 @@ test_claude_function_hooks_flag_prefixes_crewmate_env() {
   pass "config/claude-function-hooks presence adds exactly CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 to the crewmate environment prefix"
 }
 
-test_claude_function_hooks_non_regular_file_refuses_before_endpoint_or_metadata() {
-  local rec id out status
-  id=hooksflag-bad-z25
-  rec=$(make_spawn_case hooksflag-bad claude "$id")
-  read_case_record "$rec"
-  mkdir "$HOME_DIR/config/claude-function-hooks"
-
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
-  status=$?
-  expect_code 1 "$status" "a non-regular claude-function-hooks file must refuse the spawn"
-  assert_contains "$out" "config/claude-function-hooks must be a readable regular file" "refusal must name the file and its requirement"
-  [ ! -s "$LAUNCH_LOG" ] || fail "a non-regular function-hooks file must launch nothing (got: $(cat "$LAUNCH_LOG"))"
-  assert_absent "$HOME_DIR/state/$id.meta" "refusal must happen before meta is written"
-  pass "a non-regular config/claude-function-hooks file refuses before any endpoint or metadata"
-}
-
 test_worker_launch_delivers_role_scope
 test_no_profile_keeps_claude_profile_defaults
 test_non_cursor_launch_clears_inherited_cursor_markers
@@ -1614,7 +1598,6 @@ test_claude_permission_mode_auto_reaches_scout_launch
 test_claude_permission_mode_invalid_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_claude_permission_mode
 test_claude_function_hooks_flag_prefixes_crewmate_env
-test_claude_function_hooks_non_regular_file_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_config_dir
 test_claude_task_launch_carries_control_channel_authority
 test_claude_secondmate_launch_omits_task_control_channel_authority
