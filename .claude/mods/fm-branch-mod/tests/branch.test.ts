@@ -574,6 +574,8 @@ describe("shadow advisory", () => {
   const SHADOW_LOG = `${STATE}/branch-mod-shadow.jsonl`;
   const JEV_OK =
     '{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.9,"probabilities":{"routine":0.9,"main":0.1}},"phase":{"type":"choice","choice":"finished_ready","confidence":0.8,"probabilities":{}},"severity":{"type":"score","score":1,"confidence":0.7,"probabilities":[0.1,0.8,0.1,0.0]},"no_new_outcome":{"type":"noul","noul":0.3}}}';
+  const JEV_COMPOUND =
+    '{"ok":true,"model":"jev-1.13.0","answers":{"candidates":{"t1":{"type":"noul","noul":0.3},"t2":{"type":"noul","noul":0.2}}}}';
   const PANE_PRESENT =
     '{"task":"t1","tail":"pane last lines","observation":{"progressing":true,"seconds_since_last_activity":7,"busy_source":"pi-ext"}}';
   const shadowHome = (extra: Record<string, string> = {}): Record<string, string> => ({
@@ -661,6 +663,74 @@ describe("shadow advisory", () => {
     expect(bodies[0]).not.toBe(bodies[1]);
   });
 
+  test("facts ride every record, mirror the assembled state, and per-variant candidates come only from that record's answers", async ($: Engine, on: On) => {
+    const paneAnswer =
+      '{"task":"t1","window":"fm-t1","stale":{"series_index":3,"wedge_escalations":1},"tail":"pane last lines","observation":{"progressing":true,"seconds_since_last_activity":7,"busy_source":"pi-ext"}}';
+    const evidence =
+      "## task t1 status bytes 0-38\n" +
+      "## current state (bin/fm-crew-state.sh t1)\nstate: working\n" +
+      "## status lines appended since the last classified wake (NEW - judge these)\n" +
+      "  done: PR https://github.com/ow/repo/pull/7 checks green\n" +
+      "## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n";
+    const w = world(on, {
+      files: shadowHome(),
+      evidence,
+      shadowAnswer: JEV_OK,
+      paneAnswer: paneAnswer,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.map((r) => r.variant)).toEqual(["full", "without_current_state", "without_prior_outcomes", "without_pane_tail"]);
+    for (const r of records) {
+      expect(r.facts).toBeDefined();
+      expect(r.facts.wake_key).toBe("1700000000:12");
+      expect(r.facts.new_status_bytes.t1).toBeGreaterThan(0);
+      expect(r.facts.pane).toBe("fm-t1");
+      expect(r.facts.stale_series).toEqual({ series_index: 3, wedge_escalations: 1 });
+      expect(r.facts.pane_observation).toEqual({ progressing: true, seconds_since_last_activity: 7, busy_source: "pi-ext" });
+      expect(r.facts.authoritative_pr).toEqual({ present: true, pr: "ow/repo#7" });
+      expect(r.facts.severity_classes).toHaveLength(4);
+      expect(r.facts.severity_classes[3]).toContain("Security");
+    }
+
+    // The request bodies keep their shape: the pane payload still carries
+    // exactly the fields it always has - window and stale ride facts only -
+    // and the pane-tail ablation drops that payload as before.
+    const bodies = shadowRuns(w).map((r) => r.stdin ?? "");
+    expect(bodies[0]).not.toBe(bodies[3]);
+    expect(JSON.parse(bodies[0]).state.pane).toEqual({
+      task: "t1",
+      tail: "pane last lines",
+      observation: { progressing: true, seconds_since_last_activity: 7, busy_source: "pi-ext" },
+    });
+    expect(JSON.parse(bodies[3]).state.pane).toBeUndefined();
+  });
+
+  test("facts stay honest when evidence is missing: no pane, no PR, no noul means absent fields", async ($: Engine, on: On) => {
+    const noNoul =
+      '{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.9},"phase":{"type":"choice","choice":"working","confidence":0.8},"severity":{"type":"score","score":1,"confidence":0.7}}}';
+    const w = world(on, { files: shadowHome(), shadowAnswer: noNoul });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    for (const r of records) {
+      expect(r.facts.pane).toBeUndefined();
+      expect(r.facts.stale_series).toBeUndefined();
+      expect(r.facts.pane_observation).toBeUndefined();
+      expect(r.facts.authoritative_pr).toEqual({ present: false });
+      expect(r.facts.severity_classes).toHaveLength(4);
+      expect(r.facts.candidates).toBeUndefined();
+    }
+    const full = records[0];
+    expect(full.facts.wake_key).toBe("1700000000:12");
+    expect(full.facts.new_status_bytes.t1).toBeGreaterThan(0);
+  });
+
   test("prior_outcomes carry provenance: source, same_wake, and already_presented", async ($: Engine, on: On) => {
     const outcomes = [
       JSON.stringify({ seq: 3, task: "t1", wake: "an earlier wake", verdict: "captain", summary: "Passed to main directly (classifier captain): decision needed" }),
@@ -692,7 +762,7 @@ describe("shadow advisory", () => {
       [`${STATE}/t2.status`]: "working: b\n",
       [`${STATE}/.wake-queue`]: "1700000000\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n1700000000\t13\tsignal\tt2.status\tworking: b\n",
     });
-    const w = world(on, { files, shadowAnswer: JEV_OK, paneAnswer: PANE_PRESENT });
+    const w = world(on, { files, shadowAnswer: JEV_COMPOUND, paneAnswer: PANE_PRESENT });
     await $.session.start(sessionStart);
     await $.prompt.submit({
       text: `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: ${STATE}/t1.status\nsignal: ${STATE}/t2.status\n`,
@@ -704,6 +774,9 @@ describe("shadow advisory", () => {
     expect(full.state.wake).toContain("t1.status");
     const cands = full.questions.candidates;
     expect(Object.keys(cands).sort()).toEqual(["t1", "t2"]);
+    // The compound facts name every candidate Noul that record's own answer gave.
+    const compoundRecord = JSON.parse(w.appended(SHADOW_LOG)[0]);
+    expect(compoundRecord.facts.candidates).toEqual({ t1: 0.3, t2: 0.2 });
     expect(cands.t1.type).toBe("noul");
     expect(cands.t1.instructions.candidate).toBe("t1");
     expect(cands.t1.instructions.fresh_lines.length).toBeGreaterThan(0);

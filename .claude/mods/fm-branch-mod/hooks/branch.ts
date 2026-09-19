@@ -686,10 +686,69 @@ function shadowCurrentState(task: string, text: string): string {
 // The wake state the mod already holds, assembled read-only with the same
 // bounds the branch note and the classifier use. Fields with no evidence are
 // omitted entirely, never invented.
-async function shadowAssembleState($: any, a: { wake: string; tasks: string[]; evidence: Evidence[] }): Promise<ShadowState> {
+// Deterministic facts recorded locally with every shadow record so the
+// candidate gates (bin/fm-branch-shadow-gates.sh) can be scored against the
+// trial's outcomes. Facts come only from the state this hook already
+// assembles - never a second read, never an invented value - and they are
+// recorded in state/branch-mod-shadow.jsonl only: the request body to the
+// scorer stays exactly as before.
+type ShadowFacts = {
+  wake_key: string
+  new_status_bytes: Record<string, number>
+  pane?: string
+  stale_series?: { series_index?: number; wedge_escalations?: number }
+  pane_observation?: Record<string, unknown>
+  authoritative_pr: { present: boolean; pr?: string }
+  severity_classes: string[]
+  candidates?: Record<string, number>
+}
+
+// owner/repo#number from a pull-request URL; empty when the URL is not one.
+function prIdentity(url: string): string {
+  const m = String(url).match(/^https:\/\/[^/]+\/(.+)\/pull\/([0-9]+)\/?$/)
+  if (!m) return ''
+  const segs = m[1].split('/')
+  if (segs.length < 2) return ''
+  return `${segs[segs.length - 2]}/${segs[segs.length - 1]}#${m[2]}`
+}
+
+// The wake's facts, minus the per-variant candidates that only the answer
+// can supply (shadowRecord merges those from each record's own answers).
+function shadowFacts(
+  a: { wakeKey: string; tasks: string[]; evidence: Evidence[] },
+  st: ShadowState,
+  paneExtras: { window?: string; stale?: { series_index?: number; wedge_escalations?: number } } | null,
+  questions: Record<string, unknown>,
+): ShadowFacts {
+  const facts: ShadowFacts = { wake_key: a.wakeKey, new_status_bytes: {}, authoritative_pr: { present: false }, severity_classes: [] }
+  for (const b of a.evidence) facts.new_status_bytes[b.task] = Math.max(0, b.to - b.from)
+  const paneId = paneExtras?.window ?? (st.pane ? String((st.pane as any).task ?? '') : '')
+  if (paneId) facts.pane = paneId
+  if (paneExtras?.stale) facts.stale_series = paneExtras.stale
+  const obs = st.pane ? (st.pane as any).observation : undefined
+  if (obs && typeof obs === 'object') facts.pane_observation = obs as Record<string, unknown>
+  const sources = (st.authoritative_pr_sources ?? []) as Array<{ value: string }>
+  facts.authoritative_pr = { present: sources.length > 0 }
+  for (const s of sources) {
+    const id = prIdentity(s.value)
+    if (id) {
+      facts.authoritative_pr.pr = id
+      break
+    }
+  }
+  const sev = questions.severity as { criteria?: unknown } | undefined
+  if (sev && Array.isArray(sev.criteria)) facts.severity_classes = sev.criteria.map((c) => String(c))
+  return facts
+}
+
+async function shadowAssembleState(
+  $: any,
+  a: { wake: string; tasks: string[]; evidence: Evidence[] },
+): Promise<{ st: ShadowState; paneExtras: { window?: string; stale?: { series_index?: number; wedge_escalations?: number } } | null }> {
   const st: ShadowState = { wake: a.wake }
   const fresh: Array<{ id: string; text: string }> = []
   const prSources: Array<{ task: string; where: string; value: string }> = []
+  let paneExtras: { window?: string; stale?: { series_index?: number; wedge_escalations?: number } } | null = null
   const currentState: Array<{ task: string; value: string }> = []
   for (const b of a.evidence) {
     fresh.push(...shadowStatusLines(b.task, b.from, b.to, b.text))
@@ -787,11 +846,16 @@ async function shadowAssembleState($: any, a: { wake: string; tasks: string[]; e
       .filter((l: string) => l.startsWith('{'))
       .pop()
     const j = line ? JSON.parse(line) : null
-    if (j && !j.unavailable) st.pane = { task: j.task, ...(j.tail ? { tail: j.tail } : {}), ...(j.observation ? { observation: j.observation } : {}) }
+    if (j && !j.unavailable) {
+      // The request keeps carrying exactly the pane fields it always has;
+      // the helper's window identity and stale series feed local facts only.
+      if (j.tail || j.observation) st.pane = { task: j.task, ...(j.tail ? { tail: j.tail } : {}), ...(j.observation ? { observation: j.observation } : {}) }
+      paneExtras = { ...(j.window ? { window: String(j.window) } : {}), ...(j.stale ? { stale: j.stale } : {}) }
+    }
   } catch {
     // no pane evidence: the field stays absent
   }
-  return st
+  return { st, paneExtras }
 }
 
 // The question bundle: route/phase/severity/no-new-outcome on every wake,
@@ -877,7 +941,14 @@ function shadowQuestions(a: { wake: string; tasks: string[] }, st: ShadowState):
   return questions
 }
 
-async function shadowRecord($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; wakeNo: number }, variant: string, repeat: number, body: string): Promise<void> {
+async function shadowRecord(
+  $: any,
+  a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; wakeNo: number },
+  variant: string,
+  repeat: number,
+  body: string,
+  facts: ShadowFacts,
+): Promise<void> {
   const t0 = Date.now()
   let unavailable: string | null = null
   let model = ''
@@ -916,7 +987,15 @@ async function shadowRecord($: any, a: { wake: string; seqs: string[]; wakeKey: 
   if (answers !== null) {
     record.model = model
     record.answers = answers
+    // Candidate Nouls from this record's own answers, so each variant's facts
+    // carry what that variant actually said.
+    const cands: Record<string, number> = {}
+    for (const [tid, c] of Object.entries(((answers as any).candidates ?? {}) as Record<string, any>)) {
+      if (c && typeof c.noul === 'number') cands[tid] = c.noul
+    }
+    if (Object.keys(cands).length) facts = { ...facts, candidates: cands }
   }
+  record.facts = facts
   try {
     await appendLine($, `${state}/branch-mod-shadow.jsonl`, JSON.stringify(record) + '\n', EVENT_LOG_CAP_BYTES)
   } catch (error) {
@@ -928,8 +1007,9 @@ async function shadowRecord($: any, a: { wake: string; seqs: string[]; wakeKey: 
 async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; evidence: Evidence[]; wakeNo: number }): Promise<void> {
   try {
     if ((await readConfig($, 'classifier-shadow', '')).trim() !== 'jev') return
-    const st = await shadowAssembleState($, a)
+    const { st, paneExtras } = await shadowAssembleState($, a)
     const questions = shadowQuestions(a, st)
+    const facts = shadowFacts(a, st, paneExtras, questions)
     const variants: Array<{ name: string; drop: string[]; repeat: number }> = [
       { name: 'full', drop: [], repeat: 1 },
       { name: 'without_current_state', drop: ['current_state'], repeat: 1 },
@@ -942,7 +1022,7 @@ async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; wake
     for (const v of variants) {
       const state: ShadowState = {}
       for (const [k, val] of Object.entries(st)) if (!v.drop.includes(k)) state[k] = val
-      await shadowRecord($, a, v.name, v.repeat, JSON.stringify({ model: 'jev-latest', state, questions }))
+      await shadowRecord($, a, v.name, v.repeat, JSON.stringify({ model: 'jev-latest', state, questions }), { ...facts })
     }
   } catch (error) {
     log($, 'shadow.error', { error: String(error) })
