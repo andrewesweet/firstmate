@@ -1743,7 +1743,8 @@ launch_template() {
   # also feeds the "did a person run this command" heuristic behind
   # ultrareview and eval-report publishing, which for an interactive worker
   # pane is the correct answer anyway. The primary session is covered by
-  # fm-bootstrap's detect-only transcript-suppression check. Verified empirically in an isolated scratch CLAUDE_CONFIG_DIR: with the marker
+  # fm-bootstrap's detect-only transcript-suppression check. Verified
+  # empirically in an isolated scratch CLAUDE_CONFIG_DIR: with the marker
   # inherited and the override set, the transcript jsonl is written with real
   # user and assistant messages and no suppression notice.
   claude)
