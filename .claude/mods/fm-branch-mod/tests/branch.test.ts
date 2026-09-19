@@ -14,6 +14,7 @@ const STATE = `${HOME}/state`;
 const CONFIG = `${HOME}/config`;
 import { CLAUDE_CODE_PIN as PIN } from "../hooks/branch.ts";
 const sessionStart = { cwd: "/work", surface: "terminal" as const, isInteractive: true };
+const SESSION_ID = "0f3a9c2e-kit-session";
 
 type Run = { argv: string[]; stdin?: string; env?: Record<string, string> };
 type World = {
@@ -101,6 +102,7 @@ function world(on: On, options: WorldOptions = {}): World {
     return { value: nth(options.classifierAnswer, completions.length - 1, '{"verdict":"routine","reason":"nothing new"}') };
   });
   on("session.start", async (_$, e) => ({ cwd: e.cwd }));
+  on("session.id", async () => ({ value: SESSION_ID }));
   on("agent.spawn", async (_$, e) => {
     // The event is Agent-tool shaped: subagent_type and run_in_background.
     spawns.push({ subagentType: e.subagent_type, name: e.name, model: e.model, background: e.run_in_background, prompt: e.prompt });
@@ -247,27 +249,27 @@ describe("version pin", () => {
 });
 
 describe("transcript persistence log", () => {
-  const persistenceLine = (w: World): string => {
-    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
-    return events.find((e) => e.kind === "session.start.transcript")?.data.persistence ?? "";
+  const persistence = (w: World) => {
+    const start = startEvent(w);
+    return { on: start?.data.persistenceOn, cause: start?.data.persistenceCause };
   };
 
   test("session.start logs the persistence state and its cause", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome() });
     await $.session.start(sessionStart);
-    expect(persistenceLine(w)).toBe("transcript persistence: on (default)");
+    expect(persistence(w)).toEqual({ on: true, cause: "default" });
   });
 
   test("an inherited CLAUDE_CODE_CHILD_SESSION marker logs persistence off", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome(), env: { CLAUDE_CODE_CHILD_SESSION: "1" } });
     await $.session.start(sessionStart);
-    expect(persistenceLine(w)).toBe("transcript persistence: off (inherited CLAUDE_CODE_CHILD_SESSION marker)");
+    expect(persistence(w)).toEqual({ on: false, cause: "inherited CLAUDE_CODE_CHILD_SESSION marker" });
   });
 
   test("CLAUDE_CODE_FORCE_SESSION_PERSISTENCE logs persistence on over the marker", async ($: Engine, on: On) => {
     const w = world(on, { files: armedHome(), env: { CLAUDE_CODE_CHILD_SESSION: "1", CLAUDE_CODE_FORCE_SESSION_PERSISTENCE: "1" } });
     await $.session.start(sessionStart);
-    expect(persistenceLine(w)).toBe("transcript persistence: on (CLAUDE_CODE_FORCE_SESSION_PERSISTENCE)");
+    expect(persistence(w)).toEqual({ on: true, cause: "CLAUDE_CODE_FORCE_SESSION_PERSISTENCE" });
   });
 });
 
@@ -500,7 +502,7 @@ describe("routine wake", () => {
     // primary session whose transcript resume would read.
     const send = events.find((e) => e.kind === "agent.send");
     expect(send?.data.agentId).toBe("ade34056fb4d9ab91");
-    expect(typeof send?.data.sessionId).toBe("string");
+    expect(send?.data.sessionId).toBe(SESSION_ID);
     expect(rotated?.data.why).toBe("unresumable");
     expect(rotated?.data.name).toBe("fm-branch-2");
     expect(rotated?.data.branchGeneration).toBe(2);

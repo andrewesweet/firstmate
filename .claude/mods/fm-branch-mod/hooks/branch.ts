@@ -1027,13 +1027,13 @@ async function transcriptPersistence($: any): Promise<{ on: boolean; cause: stri
 
 // The primary session's transcript id: resume reads the branch agent's
 // transcript under it (<session>/subagents/agent-<id>.jsonl), so a send log
-// naming both is the resume target the next regression needs. Empty where the
-// engine does not expose it.
+// naming both is the resume target the next regression needs; where the engine
+// does not expose it the reason is logged in its place.
 async function sessionTranscriptId($: any): Promise<string> {
   try {
     return String(await $.session.id() ?? '')
-  } catch {
-    return ''
+  } catch (error) {
+    return `unavailable (${String(error)})`
   }
 }
 
@@ -1048,7 +1048,6 @@ export function register(on: On) {
       return next(e)
     }
     const persistence = await transcriptPersistence($)
-    log($, 'session.start.transcript', { persistence: `transcript persistence: ${persistence.on ? 'on' : 'off'} (${persistence.cause})` })
     refused = false
     generation = `cc${Date.now()}`
     activated = false
@@ -1089,7 +1088,7 @@ export function register(on: On) {
     }
     const enabled = await modeOn($)
     $.ui.log(`${PLUGIN}: loaded (${enabled ? 'enabled' : 'inert: no state/.branch-mod-mode'}, home ${home}, Claude Code ${version})`)
-    log($, 'session.start', { cwd, home, state, enabled, generation, version, pinSource, probe })
+    log($, 'session.start', { cwd, home, state, enabled, generation, version, pinSource, probe, persistenceOn: persistence.on, persistenceCause: persistence.cause })
     return next(e)
   }).catch(($, e, next) => next(e))
 
