@@ -199,8 +199,8 @@ describe("version pin", () => {
 
   test("the binary hosting the session decides the pin when PATH claude differs", async ($: Engine, on: On) => {
     // The launcher execs the pinned binary by absolute path while the installer
-    // symlink moved on: PATH answers 2.1.278, the running binary the pin.
-    const w = world(on, { version: "2.1.278", runningBinaryVersion: PIN, files: armedHome() });
+    // symlink moved on: PATH answers a later release, the running binary the pin.
+    const w = world(on, { version: "2.1.999", runningBinaryVersion: PIN, files: armedHome() });
     await $.session.start(sessionStart);
     expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
     expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
