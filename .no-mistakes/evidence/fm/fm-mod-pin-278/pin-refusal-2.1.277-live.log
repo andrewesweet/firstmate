@@ -1,0 +1,15 @@
+== shim claude --version
+2.1.277 (Claude Code)
+== branch-mod-events.jsonl
+{"t":"2026-09-19T10:36:44.526Z","kind":"pin.refused","data":{"version":"2.1.277","pin":"2.1.278"}}
+== debug.log refusal lines
+28:2026-09-19T10:36:42.644Z [DEBUG] Read hooks.json for plugin fm-branch-mod (enabled=true): /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WKJVHWRP74DG4YGXZ8TQ9H/.claude/mods/fm-branch-mod/hooks/hooks.json
+47:2026-09-19T10:36:42.723Z [DEBUG] Loaded inline plugin from path: fm-branch-mod
+54:2026-09-19T10:36:42.752Z [DEBUG] Checking plugin fm-branch-mod: skillsPath=none, skillsPaths=0 paths
+97:2026-09-19T10:36:42.755Z [WARN] plugin fm-branch-mod: options requested but its manifest declares no userConfig; every option reads as absent
+115:2026-09-19T10:36:42.770Z [DEBUG] Loaded 1 agents from plugin fm-branch-mod default directory
+225:2026-09-19T10:36:43.263Z [DEBUG] hooks module fm-branch-mod@inline loaded (worker, environment 1, tier user); events: session.start,turn.start,prompt.submit,tool.call,turn.step,session.compact,turn.complete
+228:2026-09-19T10:36:43.283Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for fm-branch-mod,compact-adviser,agents-md
+230:2026-09-19T10:36:43.284Z [DEBUG] plugin.register: fm-branch-mod (user, fm-branch-mod@inline), judged by core alone: admitted
+261:2026-09-19T10:36:44.518Z [DEBUG] $.process.run (fm-branch-mod): claude with 1 args in /tmp/fm-pin-refuse.hSL3Zq/home (pid 635050)
+262:2026-09-19T10:36:44.526Z [DEBUG] $.process.run (fm-branch-mod): claude exited 0 in 9ms, 22 + 0 chars

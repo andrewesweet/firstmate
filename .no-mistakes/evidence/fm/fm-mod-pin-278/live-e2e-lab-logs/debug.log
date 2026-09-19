@@ -1,0 +1,1139 @@
+2026-09-19T10:34:07.109Z [DEBUG] MDM settings load completed in 6ms
+2026-09-19T10:34:07.135Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /etc/claude-code/managed-settings.json
+2026-09-19T10:34:07.137Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.json
+2026-09-19T10:34:07.137Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.local.json
+2026-09-19T10:34:07.138Z [DEBUG] CA certs: Config fallback - globalEnv keys: , settingsEnv keys: CLAUDE_CODE_ENABLE_TELEMETRY,OTEL_METRICS_EXPORTER,OTEL_LOGS_EXPORTER,OTEL_EXPORTER_OTLP_PROTOCOL,OTEL_EXPORTER_OTLP_ENDPOINT,OTEL_METRIC_EXPORT_INTERVAL,OTEL_LOGS_EXPORT_INTERVAL,OTEL_TRACES_EXPORTER,OTEL_METRICS_INCLUDE_VERSION,CLAUDE_CODE_ENHANCED_TELEMETRY_BETA,OTEL_LOG_USER_PROMPTS,OTEL_LOG_ASSISTANT_RESPONSES,OTEL_LOG_TOOL_DETAILS,OTEL_LOG_TOOL_CONTENT,OTEL_LOG_RAW_API_BODIES,OTEL_METRICS_INCLUDE_REPOSITORY,OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES,CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH,MLFLOW_CLAUDE_TRACING_ENABLED,MLFLOW_TRACKING_URI,MLFLOW_EXPERIMENT_ID
+2026-09-19T10:34:07.140Z [DEBUG] [init] configureGlobalMTLS starting
+2026-09-19T10:34:07.140Z [DEBUG] [init] configureGlobalMTLS complete
+2026-09-19T10:34:07.140Z [DEBUG] [init] configureGlobalAgents starting
+2026-09-19T10:34:07.140Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=undefined
+2026-09-19T10:34:07.140Z [DEBUG] CA certs: Loaded 121 bundled root certificates
+2026-09-19T10:34:07.143Z [DEBUG] CA certs: Loaded 121 system CA certificates
+2026-09-19T10:34:07.143Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-09-19T10:34:07.143Z [DEBUG] [init] configureGlobalAgents complete
+2026-09-19T10:34:07.145Z [DEBUG] Git remote URL: null
+2026-09-19T10:34:07.145Z [DEBUG] No git remote URL found
+2026-09-19T10:34:07.147Z [DEBUG] Error log sink initialized
+2026-09-19T10:34:07.147Z [DEBUG] clearPluginCache: invalidating loadAllPlugins cache (preAction: --plugin-dir inline plugins)
+2026-09-19T10:34:07.155Z [DEBUG] [ToolSearch:optimistic] mode=tst, ENABLE_TOOL_SEARCH=undefined, result=true
+2026-09-19T10:34:07.158Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-09-19T10:34:07.159Z [DEBUG] [STARTUP] Running setup()...
+2026-09-19T10:34:07.169Z [DEBUG] Loading skills from: managed=/etc/claude-code/.claude/skills, user=/home/andre/.claude/skills, project=[]
+2026-09-19T10:34:07.200Z [DEBUG] [skills] skipping reserved dir name 'synced' under /home/andre/.claude/skills: 'synced' is the sync-owned root
+2026-09-19T10:34:07.273Z [DEBUG] Loaded 14 installed plugins from /home/andre/.claude/plugins/installed_plugins.json
+2026-09-19T10:34:07.276Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/agents: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/agents'
+2026-09-19T10:34:07.277Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/commands: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/commands'
+2026-09-19T10:34:07.277Z [DEBUG] Failed to stat directory /home/andre/.claude/commands: ENOENT: no such file or directory, stat '/home/andre/.claude/commands'
+2026-09-19T10:34:07.281Z [DEBUG] [plugins] skipping skills-dir entry 'synced': the sync-owned root name is never adopted as a plugin
+2026-09-19T10:34:07.328Z [DEBUG] Read hooks.json for plugin fm-branch-mod (enabled=true): /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WKJVHWRP74DG4YGXZ8TQ9H/.claude/mods/fm-branch-mod/hooks/hooks.json
+2026-09-19T10:34:07.328Z [DEBUG] Loaded 71 unique skills (71 unconditional, 0 conditional, managed: 0, user: 54, project: 0, additional: 0, legacy commands: 0)
+2026-09-19T10:34:07.328Z [DEBUG] Read hooks.json for plugin compact-adviser (enabled=true): /home/andre/.claude/plugins/cache/compact-adviser/compact-adviser/0.1.3/hooks/hooks.json
+2026-09-19T10:34:07.338Z [DEBUG] Read manifest hooks for plugin ponytail (enabled=true): ./hooks/claude-codex-hooks.json
+2026-09-19T10:34:07.351Z [DEBUG] Read hooks.json for plugin mlflow-tracing (enabled=true): /home/andre/.claude/plugins/cache/mlflow-plugins/mlflow-tracing/0.2.0/hooks/hooks.json
+2026-09-19T10:34:07.352Z [INFO] [uds-messaging] Listening: /run/user/1000/cc-socks/543078.sock
+2026-09-19T10:34:07.352Z [INFO] [uds-messaging] Inject messages (auth line optional here): { echo '{"type":"auth","token":"[REDACTED]"$CLAUDE_CODE_MESSAGING_TOKEN"'"}'; echo '{"type":"user","message":{"role":"user","content":"hello"}}'; } | socat - UNIX-CONNECT:/run/user/1000/cc-socks/543078.sock
+2026-09-19T10:34:07.353Z [INFO] [uds-messaging] Connect when the data is ready (e.g. out=$(cmd); printf '%s\n' "$out" | nc -N -U "$CLAUDE_CODE_MESSAGING_SOCKET" — or the socat form above): a connection that sends no complete line within 30000 ms is closed
+2026-09-19T10:34:07.355Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /etc/claude-code/managed-settings.json
+2026-09-19T10:34:07.357Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.json
+2026-09-19T10:34:07.357Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.local.json
+2026-09-19T10:34:07.358Z [DEBUG] Error log sink initialized
+2026-09-19T10:34:07.378Z [DEBUG] Cannot acquire lock for 2.1.278 - held by PID 460
+2026-09-19T10:34:07.378Z [ERROR] NON-FATAL: Lock acquisition failed for /home/andre/.local/share/claude/versions/2.1.278 (expected in multi-process scenarios): Lock already held by another process
+2026-09-19T10:34:07.381Z [DEBUG] [STARTUP] setup() completed in 222ms
+2026-09-19T10:34:07.386Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-09-19T10:34:07.398Z [DEBUG] Loaded inline plugin from path: fm-branch-mod
+2026-09-19T10:34:07.398Z [DEBUG] Loaded 1 directory-loaded plugins
+2026-09-19T10:34:07.410Z [DEBUG] Loaded 1 skills-as-plugins
+2026-09-19T10:34:07.411Z [DEBUG] Found 18 plugins (17 enabled, 1 disabled)
+2026-09-19T10:34:07.412Z [DEBUG] getPluginSkills: Processing 17 enabled plugins
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin fm-branch-mod: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin gopls-lsp: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin caveman: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Attempting to load skills from plugin caveman default skillsPath: /home/andre/.claude/plugins/cache/caveman/caveman/2.7.0/skills
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin astral: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Attempting to load skills from plugin astral default skillsPath: /home/andre/.claude/plugins/cache/astral-sh/astral/0.1.0/skills
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin code-craftsmanship: skillsPath=none, skillsPaths=7 paths
+2026-09-19T10:34:07.412Z [DEBUG] Attempting to load skills from plugin code-craftsmanship skillsPaths: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/clean-code, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/refactoring-patterns, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/software-design-philosophy, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/pragmatic-programmer, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/domain-driven-design, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/working-with-legacy-code, /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/technical-documentation
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/clean-code for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/refactoring-patterns for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/software-design-philosophy for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/pragmatic-programmer for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/domain-driven-design for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/working-with-legacy-code for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/technical-documentation for plugin code-craftsmanship
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin systems-architecture: skillsPath=none, skillsPaths=6 paths
+2026-09-19T10:34:07.412Z [DEBUG] Attempting to load skills from plugin systems-architecture skillsPaths: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/ddia-systems, /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/system-design, /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/clean-architecture, /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/release-it, /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/high-perf-browser, /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/team-topologies
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/ddia-systems for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/system-design for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/clean-architecture for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/release-it for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/high-perf-browser for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Loading from skillPath: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/team-topologies for plugin systems-architecture
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin ropey: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin voltagent-qa-sec: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin terraform-ls: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.412Z [DEBUG] Checking plugin claude-md-management: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Attempting to load skills from plugin claude-md-management default skillsPath: /home/andre/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/skills
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin ponytail: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Attempting to load skills from plugin ponytail default skillsPath: /home/andre/.claude/plugins/cache/ponytail/ponytail/4.10.0/skills
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin eli5: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Attempting to load skills from plugin eli5 default skillsPath: /home/andre/.claude/plugins/cache/claude-community/eli5/1.0.0/skills
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin mlflow-tracing: skillsPath=exists, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Attempting to load skills from plugin mlflow-tracing default skillsPath: /home/andre/.claude/plugins/cache/mlflow-plugins/mlflow-tracing/0.2.0/skills
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin compact-adviser: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin humanizer: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin agents-md: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Checking plugin plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-09-19T10:34:07.413Z [DEBUG] Total plugin workflows loaded: 0
+2026-09-19T10:34:07.413Z [DEBUG] Loading hooks from plugin: caveman
+2026-09-19T10:34:07.414Z [DEBUG] Loading hooks from plugin: ponytail
+2026-09-19T10:34:07.414Z [DEBUG] Loading hooks from plugin: mlflow-tracing
+2026-09-19T10:34:07.414Z [DEBUG] hooks modules not loaded until workspace trust is accepted: fm-branch-mod, compact-adviser, agents-md
+2026-09-19T10:34:07.415Z [DEBUG] plugin-dir watch: watching nothing; folders of plugins /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WKJVHWRP74DG4YGXZ8TQ9H/.claude/mods/fm-branch-mod
+2026-09-19T10:34:07.415Z [DEBUG] Registered 6 hooks from 17 plugins
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/ddia-systems
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/team-topologies
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/software-design-philosophy
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/clean-code
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/high-perf-browser
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/pragmatic-programmer
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/release-it
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/clean-architecture
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/domain-driven-design
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/technical-documentation
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/refactoring-patterns
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin systems-architecture custom path: /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture/1.8.0/system-design
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 skills from plugin code-craftsmanship custom path: /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship/1.8.0/working-with-legacy-code
+2026-09-19T10:34:07.430Z [DEBUG] Loaded 1 commands from plugin caveman default directory
+2026-09-19T10:34:07.431Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/ai-writing-auditor.md
+2026-09-19T10:34:07.431Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/architect-reviewer.md
+2026-09-19T10:34:07.431Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/gdpr-ccpa-compliance.md
+2026-09-19T10:34:07.431Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/error-detective.md
+2026-09-19T10:34:07.431Z [DEBUG] Loaded 1 agents from plugin fm-branch-mod default directory
+2026-09-19T10:34:07.431Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/accessibility-tester.md
+2026-09-19T10:34:07.431Z [DEBUG] Loaded 1 commands from plugin claude-md-management default directory
+2026-09-19T10:34:07.431Z [DEBUG] Total plugin commands loaded: 2
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/debugger.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/qa-expert.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/chaos-engineer.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/performance-engineer.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/powershell-security-hardening.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/security-auditor.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/penetration-tester.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/compliance-auditor.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/code-reviewer.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/ui-ux-tester.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded 3 agents from plugin caveman default directory
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/test-automator.md
+2026-09-19T10:34:07.433Z [DEBUG] Loaded agent from plugin voltagent-qa-sec custom file: /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec/1.1.1/ad-security-reviewer.md
+2026-09-19T10:34:07.433Z [DEBUG] Total plugin agents loaded: 21
+2026-09-19T10:34:07.441Z [DEBUG] Loaded 3 skills from plugin astral default directory
+2026-09-19T10:34:07.441Z [DEBUG] Loaded 1 skills from plugin eli5 default directory
+2026-09-19T10:34:07.441Z [DEBUG] Loaded 1 skills from plugin claude-md-management default directory
+2026-09-19T10:34:07.441Z [DEBUG] Loaded 20 skills from plugin caveman default directory
+2026-09-19T10:34:07.441Z [DEBUG] Loaded 6 skills from plugin ponytail default directory
+2026-09-19T10:34:07.442Z [DEBUG] Loaded 2 skills from plugin mlflow-tracing default directory
+2026-09-19T10:34:07.442Z [DEBUG] Total plugin skills loaded: 46 (0 duplicate/user-owned entries skipped)
+2026-09-19T10:34:07.443Z [DEBUG] getSkills returning: 71 skill dir commands, 46 plugin skills, 40 bundled skills, 1 builtin plugin skills
+2026-09-19T10:34:07.447Z [DEBUG] Artifact input schema built: capabilities=true comments=true db=true assets=true files=true types=true type_catalog=true read_page_data=false room=false verify=false delete=true copy_from=true preview=false open=true endpoints=false pin=true flag_source=disk gb_fresh=false assets_source=disk
+2026-09-19T10:34:07.456Z [DEBUG] [STARTUP] Commands and agents loaded in 70ms
+2026-09-19T10:34:07.464Z [DEBUG] nonBlockingStdout: active
+2026-09-19T10:34:07.465Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-09-19T10:34:07.470Z [DEBUG] [keybindings] KeybindingSetup initialized with 229 bindings, 0 warnings
+2026-09-19T10:34:07.484Z [DEBUG] [keybindings] Watching for changes to /home/andre/.claude/keybindings.json
+2026-09-19T10:34:07.485Z [DEBUG] [plugins-scope] send: token carries user:plugins
+2026-09-19T10:34:07.502Z [DEBUG] systemTheme: OSC 11 query (via=mux-bare) got no response
+2026-09-19T10:34:07.504Z [DEBUG] [plugins-scope] send: token carries user:plugins
+2026-09-19T10:34:07.506Z [DEBUG] XTVERSION: terminal identified as "tmux 3.4"
+2026-09-19T10:34:07.507Z [DEBUG] Terminal capabilities: extendedKeys=yes (env: terminal=tmux); synchronizedOutput=no (env: TMUX (tmux answers for itself), no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: inside tmux or screen); mousePixels=no (env: inside tmux or screen); terminal said: no reply to CSI ? u; no reply to DECRQM 2026
+2026-09-19T10:34:07.507Z [DEBUG] DECSTBM: gated (TMUX=set ZELLIJ=unset TERM_PROGRAM=tmux TERM=tmux-256color)
+2026-09-19T10:34:08.500Z [DEBUG] clearPluginCache: invalidating loadAllPlugins cache (post-trust: re-discover project @skills-dir plugins)
+2026-09-19T10:34:08.586Z [DEBUG] [plugins] skipping skills-dir entry 'synced': the sync-owned root name is never adopted as a plugin
+2026-09-19T10:34:08.614Z [DEBUG] Read hooks.json for plugin fm-branch-mod (enabled=true): /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WKJVHWRP74DG4YGXZ8TQ9H/.claude/mods/fm-branch-mod/hooks/hooks.json
+2026-09-19T10:34:08.614Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:08.614Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.e2aba60578eb
+2026-09-19T10:34:08.619Z [DEBUG] Read hooks.json for plugin compact-adviser (enabled=true): /home/andre/.claude/plugins/cache/compact-adviser/compact-adviser/0.1.3/hooks/hooks.json
+2026-09-19T10:34:08.621Z [DEBUG] Read manifest hooks for plugin ponytail (enabled=true): ./hooks/claude-codex-hooks.json
+2026-09-19T10:34:08.623Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:08.623Z [DEBUG] Read hooks.json for plugin mlflow-tracing (enabled=true): /home/andre/.claude/plugins/cache/mlflow-plugins/mlflow-tracing/0.2.0/hooks/hooks.json
+2026-09-19T10:34:08.627Z [DEBUG] Loaded inline plugin from path: fm-branch-mod
+2026-09-19T10:34:08.627Z [DEBUG] Loaded 1 directory-loaded plugins
+2026-09-19T10:34:08.631Z [DEBUG] Loaded 1 skills-as-plugins
+2026-09-19T10:34:08.631Z [DEBUG] Temp file written successfully, size: 198755 bytes
+2026-09-19T10:34:08.631Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.e2aba60578eb to /home/andre/.claude.json
+2026-09-19T10:34:08.634Z [DEBUG] Found 18 plugins (17 enabled, 1 disabled)
+2026-09-19T10:34:08.635Z [DEBUG] Loading hooks from plugin: caveman
+2026-09-19T10:34:08.635Z [DEBUG] Loading hooks from plugin: ponytail
+2026-09-19T10:34:08.635Z [DEBUG] Loading hooks from plugin: mlflow-tracing
+2026-09-19T10:34:08.635Z [DEBUG] sec-default@builtin not seated: no managed settings and not a Team or Enterprise organization (max)
+2026-09-19T10:34:08.636Z [WARN] plugin fm-branch-mod: options requested but its manifest declares no userConfig; every option reads as absent
+2026-09-19T10:34:08.637Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:08.701Z [DEBUG] Cleared mTLS configuration cache
+2026-09-19T10:34:08.701Z [DEBUG] Cleared proxy agent cache
+2026-09-19T10:34:08.701Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-09-19T10:34:08.701Z [DEBUG] Grove: Using fresh cached config
+2026-09-19T10:34:08.726Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-09-19T10:34:08.726Z [DEBUG] [3P telemetry] isTelemetryEnabled=true (CLAUDE_CODE_ENABLE_TELEMETRY=1)
+2026-09-19T10:34:08.726Z [DEBUG] [3P telemetry] getOtlpReaders: types=["otlp"], interval=10000, protocol=http/protobuf, endpoint=http://127.0.0.1:4318
+2026-09-19T10:34:08.736Z [DEBUG] [3P telemetry] getOtlpLogExporters: types=["otlp"], protocol=http/protobuf, endpoint=http://127.0.0.1:4318
+2026-09-19T10:34:08.737Z [DEBUG] [3P telemetry] Created 1 log exporter(s)
+2026-09-19T10:34:08.737Z [DEBUG] [3P telemetry] Event logger set successfully
+2026-09-19T10:34:08.738Z [DEBUG] [keybindings] KeybindingSetup initialized with 229 bindings, 0 warnings
+2026-09-19T10:34:08.740Z [DEBUG] Git remote URL: null
+2026-09-19T10:34:08.740Z [DEBUG] No git remote URL found
+2026-09-19T10:34:08.740Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-09-19T10:34:08.765Z [DEBUG] XTVERSION: terminal identified as "tmux 3.4"
+2026-09-19T10:34:08.766Z [DEBUG] plugin agents-md: no pluginConfigs["agents-md@builtin"].options in user, --settings or managed settings (project settings are not read); every option is its default
+2026-09-19T10:34:08.767Z [DEBUG] hooks worker spawned (one for every plugin)
+2026-09-19T10:34:08.768Z [DEBUG] Terminal capabilities: extendedKeys=yes (env: terminal=tmux); synchronizedOutput=no (env: TMUX (tmux answers for itself), no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: inside tmux or screen); mousePixels=no (env: inside tmux or screen); terminal said: CSI ? u not asked; no reply to DECRQM 2026
+2026-09-19T10:34:08.768Z [DEBUG] DECSTBM: gated (TMUX=set ZELLIJ=unset TERM_PROGRAM=tmux TERM=tmux-256color)
+2026-09-19T10:34:08.809Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:08.809Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.5840e23a1cbc
+2026-09-19T10:34:08.810Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:08.818Z [DEBUG] Temp file written successfully, size: 199796 bytes
+2026-09-19T10:34:08.818Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.5840e23a1cbc to /home/andre/.claude.json
+2026-09-19T10:34:08.818Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:08.826Z [DEBUG] hooks module fm-branch-mod@inline loaded (worker, environment 1, tier user); events: session.start,turn.start,prompt.submit,tool.call,turn.step,session.compact,turn.complete
+2026-09-19T10:34:08.839Z [DEBUG] hooks module compact-adviser@compact-adviser loaded (worker, environment 2, tier user); events: session.start,turn.start,turn.complete,session.compact,command.run,config.describe,ui.close,ui.render
+2026-09-19T10:34:08.841Z [DEBUG] hooks module agents-md@builtin loaded (native, environment 3, tier builtin); events: session.start,prompt.context,agent.spawn,tool.call
+2026-09-19T10:34:08.843Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for fm-branch-mod,compact-adviser,agents-md
+2026-09-19T10:34:08.844Z [DEBUG] plugin.register: agents-md (builtin, agents-md@builtin), judged by core alone: admitted
+2026-09-19T10:34:08.844Z [DEBUG] plugin.register: fm-branch-mod (user, fm-branch-mod@inline), judged by core alone: admitted
+2026-09-19T10:34:08.844Z [DEBUG] plugin.register: compact-adviser (user, compact-adviser@compact-adviser), judged by core alone: admitted
+2026-09-19T10:34:08.846Z [DEBUG] plugin-dir watch: watching fm-branch-mod; folders of plugins none
+2026-09-19T10:34:08.846Z [DEBUG] Registered 6 hooks from 17 plugins
+2026-09-19T10:34:09.172Z [DEBUG] [STARTUP] showSetupScreens() completed in 1707ms
+2026-09-19T10:34:09.172Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-09-19T10:34:09.172Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-09-19T10:34:09.172Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-09-19T10:34:09.172Z [DEBUG] Starting background startup prefetches
+2026-09-19T10:34:09.173Z [DEBUG] [Bootstrap] Fetching
+2026-09-19T10:34:09.174Z [DEBUG] Passes: Using fresh cached eligibility data
+2026-09-19T10:34:09.178Z [DEBUG] [STARTUP] MCP configs resolved in 1ms (awaited at +2020ms)
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all allow rules for destination 'userSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all deny rules for destination 'userSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all ask rules for destination 'userSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all allow rules for destination 'projectSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all deny rules for destination 'projectSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all ask rules for destination 'projectSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all allow rules for destination 'localSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all deny rules for destination 'localSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all ask rules for destination 'localSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all allow rules for destination 'flagSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all deny rules for destination 'flagSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all ask rules for destination 'flagSettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all allow rules for destination 'policySettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all deny rules for destination 'policySettings' with 0 rule(s): []
+2026-09-19T10:34:09.183Z [DEBUG] Replacing all ask rules for destination 'policySettings' with 0 rule(s): []
+2026-09-19T10:34:09.186Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-09-19T10:34:09.187Z [DEBUG] All plugins already exist, skipping migration
+2026-09-19T10:34:09.188Z [DEBUG] Initialized versioned plugins system with 14 plugins
+2026-09-19T10:34:09.243Z [DEBUG] [keybindings] KeybindingSetup initialized with 229 bindings, 0 warnings
+2026-09-19T10:34:09.254Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-09-19T10:34:09.276Z [DEBUG] [engine] send set_max_thinking_tokens max=null
+2026-09-19T10:34:09.276Z [DEBUG] [engine] send set_model model=claude-sonnet-5
+2026-09-19T10:34:09.284Z [DEBUG] prompt.edit: unhooked; the composer relays nothing
+2026-09-19T10:34:09.304Z [DEBUG] mcp runtime arm: v2 (source: growthbook)
+2026-09-19T10:34:09.329Z [DEBUG] performStartupChecks called
+2026-09-19T10:34:09.329Z [DEBUG] Starting background plugin installations
+2026-09-19T10:34:09.343Z [DEBUG] [jobStateNameSync] watch skipped: Error: ENOENT: no such file or directory, watch '/home/andre/.claude/jobs/359b53a5'
+2026-09-19T10:34:09.348Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-09-19T10:34:09.349Z [DEBUG] Official marketplace auto-install skipped: already_installed
+2026-09-19T10:34:09.352Z [DEBUG] [ScheduledTasks] scheduler start() — enabled=false, hasTasks=false
+2026-09-19T10:34:09.355Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.json
+2026-09-19T10:34:09.355Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /tmp/fm-branch-claude-live.SANFg2/home/.claude/settings.local.json
+2026-09-19T10:34:09.356Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /etc/claude-code/managed-settings.json
+2026-09-19T10:34:09.381Z [DEBUG] plugin-dir watch: watching fm-branch-mod; folders of plugins none
+2026-09-19T10:34:09.388Z [DEBUG] performBackgroundPluginInstallations called
+2026-09-19T10:34:09.390Z [DEBUG] Total plugin workflows loaded: 0
+2026-09-19T10:34:09.403Z [DEBUG] session.start: raised (surface terminal, interactive)
+2026-09-19T10:34:09.406Z [DEBUG] getSkills returning: 71 skill dir commands, 46 plugin skills, 40 bundled skills, 1 builtin plugin skills
+2026-09-19T10:34:09.408Z [DEBUG] [auto-mode] verifyAutoModeGateAccess: enabledState=enabled disabledBySettings=false model=claude-sonnet-5 modelSupported=true disableFastModeBreakerFires=false carouselAvailable=true canEnterAuto=true
+2026-09-19T10:34:09.420Z [DEBUG] [event-loop-stall] detector started (interval=200ms, threshold=500ms)
+2026-09-19T10:34:09.437Z [INFO] Bridge URL: wss://bridge.claudeusercontent.com
+2026-09-19T10:34:09.440Z [DEBUG] MCP server "claude-in-chrome": In-process Chrome MCP server started
+2026-09-19T10:34:09.441Z [DEBUG] MCP server "claude-in-chrome": Starting connection with timeout of 30000ms
+2026-09-19T10:34:09.449Z [DEBUG] MCP server "claude-in-chrome": Successfully connected (transport: stdio) in 42ms
+2026-09-19T10:34:09.449Z [DEBUG] MCP server "claude-in-chrome": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"Claude in Chrome","version":"1.0.0"},"protocolEra":"legacy","negotiatedProtocolVersion":"2025-11-25"}
+2026-09-19T10:34:09.449Z [DEBUG] [MCP] Server "claude-in-chrome" connected with subscribe=false
+2026-09-19T10:34:09.482Z [DEBUG] MCP server "claude-in-chrome": Channel notifications skipped: server did not declare claude/channel capability
+2026-09-19T10:34:09.490Z [DEBUG] Unable to get Windows USERPROFILE via PowerShell - IDE detection may be incomplete
+2026-09-19T10:34:09.494Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=7c4e3490-44be-4b44-8732-b99173c15917 source=quota_check
+2026-09-19T10:34:09.496Z [DEBUG] Loaded 1 LSP server(s) from plugin: gopls-lsp
+2026-09-19T10:34:09.496Z [DEBUG] Loaded 1 LSP server(s) from plugin: astral
+2026-09-19T10:34:09.496Z [DEBUG] Loaded 1 LSP server(s) from plugin: terraform-ls
+2026-09-19T10:34:09.496Z [DEBUG] Total LSP servers loaded: 3
+2026-09-19T10:34:09.496Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 3 server(s)
+2026-09-19T10:34:09.497Z [DEBUG] LSP manager initialized with 3 servers
+2026-09-19T10:34:09.497Z [DEBUG] LSP server manager initialized successfully
+2026-09-19T10:34:09.497Z [DEBUG] Registered notification handler for plugin:gopls-lsp:gopls.textDocument/publishDiagnostics (connection not ready)
+2026-09-19T10:34:09.497Z [DEBUG] Registered diagnostics handler for plugin:gopls-lsp:gopls
+2026-09-19T10:34:09.497Z [DEBUG] Registered notification handler for plugin:astral:ty.textDocument/publishDiagnostics (connection not ready)
+2026-09-19T10:34:09.497Z [DEBUG] Registered diagnostics handler for plugin:astral:ty
+2026-09-19T10:34:09.497Z [DEBUG] Registered notification handler for plugin:terraform-ls:terraform-ls.textDocument/publishDiagnostics (connection not ready)
+2026-09-19T10:34:09.497Z [DEBUG] Registered diagnostics handler for plugin:terraform-ls:terraform-ls
+2026-09-19T10:34:09.497Z [DEBUG] LSP notification handlers registered successfully for all 3 server(s)
+2026-09-19T10:34:09.501Z [DEBUG] [Claude in Chrome] Found chrome profiles: Default
+2026-09-19T10:34:09.503Z [DEBUG] [sessionRegistry] sweep declined by isRegistrySweepPermitted() — dead records are left in place (neither counted nor deleted)
+2026-09-19T10:34:09.528Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/skills: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/skills'
+2026-09-19T10:34:09.553Z [DEBUG] [servedCatalog] shadow compare logged (fetch=cache_fresh, rows=4, source=compiled)
+2026-09-19T10:34:09.578Z [DEBUG] [sessionRegistry] sweep declined by isRegistrySweepPermitted() — dead records are left in place (neither counted nor deleted)
+2026-09-19T10:34:09.590Z [DEBUG] $.process.run (fm-branch-mod): claude with 1 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 544500)
+2026-09-19T10:34:09.599Z [DEBUG] "Loaded 3 CLAUDE.md/rules files:\n  [User] /home/andre/.claude/CLAUDE.md (366 chars)\n  [Project] /tmp/fm-branch-claude-live.SANFg2/home/CLAUDE.md (11 chars)\n  [Project] /tmp/fm-branch-claude-live.SANFg2/home/AGENTS.md (1148 chars) (included by /tmp/fm-branch-claude-live.SANFg2/home/CLAUDE.md)"
+2026-09-19T10:34:09.611Z [DEBUG] hooks module agents-md@builtin prompt.context settled in 3.1ms (native link, next() included)
+2026-09-19T10:34:09.648Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/astral-sh/astral: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.650Z [DEBUG] Watching for changes in skill/command directories: /home/andre/.claude/skills, /home/andre/.claude/skills/synced, /home/andre/.claude/agents...
+2026-09-19T10:34:09.650Z [DEBUG] [Claude in Chrome] Extension not found in any browser
+2026-09-19T10:34:09.650Z [INFO] 1 setup issue: chrome
+2026-09-19T10:34:09.665Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:09.665Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.b51c7e573ca8
+2026-09-19T10:34:09.665Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/astral-sh: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.708Z [DEBUG] [FileIndex] getProjectFiles called, respectGitignore=true
+2026-09-19T10:34:09.708Z [DEBUG] [FileIndex] getFilesUsingGit called
+2026-09-19T10:34:09.712Z [DEBUG] Git remote URL: null
+2026-09-19T10:34:09.712Z [DEBUG] No git remote URL found
+2026-09-19T10:34:09.713Z [DEBUG] StatusLine [HERDR_PLUGIN_STATE_DIR='/home/andre/.local/state/herdr/plugins/herdr-agent-quota' '/home/andre/tools/herdr-agent-quota/target/release/herdr-agent-quota' claude-statusline] completed with status 0
+2026-09-19T10:34:09.714Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.715Z [DEBUG] $.process.run (fm-branch-mod): claude exited 0 in 128ms, 22 + 0 chars
+2026-09-19T10:34:09.716Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.716Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nbin: ~/.local/bin/upkeep-axi-ambient\ndescription: Report workstation update inventory across surfaces.\ngeneratedAt: \"2026-09-19T10:34:09.598Z\"\nschemaVersion: 3\nambient: \"7 gaps (1 major, 2 minor, 4 patch), 31 in use\"\nsnapshotAt: \"2026-09-18T20:49:50.067Z\"\ntools[8]{surface,tool,version,latest,tier,in_use}:\n  fnm,node,v24.18.0,v24.21.0,minor,true\n  codex,codex,0.154.0,0.155.1,minor,true\n  npm,@earendil-works/pi-coding-agent,0.85.1,0.85.1,none,true\n  skills,no-mistakes,null,null,null,true\n  claude,claude,2.1.277,null,null,true\n  claude,gopls-lsp@claude-plugins-official,1.0.0,null,null,true\n  claude,caveman@caveman,2.7.0,null,null,true\n  claude,astral@astral-sh,0.1.0,null,null,true\nhelp[2]:\n  Showing 8 of 36 rows, most severe first; run `upkeep-axi status` for every row with its apply and pin commands\n  Run `upkeep-axi setup hooks` to show this dashboard at every agent session start"
+2026-09-19T10:34:09.716Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.717Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nPONYTAIL MODE ACTIVE — level: ultra\n\n# Ponytail\n\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\nseen every over-engineered codebase and been paged at 3am for one. The best\ncode is the code never written.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\nunsure. Off only: \"stop ponytail\" / \"normal mode\". Default: **full**.\nSwitch: `/ponytail lite|full|ultra`.\n\n## The ladder\n\nStop at the first rung that holds:\n\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\n3. **Stdlib does it?** Use it.\n4. **Native platform feature covers it?** `<input type=\"date\">` over a picker lib, CSS over JS, DB constraint over app code.\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\n6. **Can it be one line?** One line.\n7. **Only then:** the minimum code that works.\n\nThe ladder is a reflex, not a research project — but it runs *after* you\nunderstand the problem, not instead of it. Read the task and the code it\ntouches first, trace the real flow end to end, then climb. Two rungs work →\ntake the higher one and move on. The first lazy solution that works is the\nright one — once you actually know what the change has to touch.\n\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\nedit, grep every caller of the function you're about to touch. The lazy fix IS\nthe root-cause fix: one guard in the shared function is a smaller diff than a\nguard in every caller — and patching only the path the ticket names leaves\nevery sibling caller still broken. Fix it once, where all callers route through.\n\n## Rules\n\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\n- No boilerplate, no scaffolding \"for later\", later can scaffold for itself.\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\n- Complex request? Ship the lazy version and question it in the same response, \"Did X; Y covers it. Need full X? Say so.\" Never stall on an answer you can default.\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\n\n## Output\n\nCode first. Then at most three short lines: what was skipped, when to add it.\nNo essays, no feature tours, no design notes. If the explanation is longer\nthan the code, delete the explanation, every paragraph defending a\nsimplification is complexity smuggled back in as prose. Explanation the user\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\ngive it in full, the rule is only against unrequested prose.\n\nPattern: `[code] → skipped: [X], add when [Y].`\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\n\nExample: \"Add a cache for these API responses.\"\n- ultra: \"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\"\n\n## When NOT to be lazy\n\nNever simplify away: input validation at trust boundaries, error handling\nthat prevents data loss, security measures, accessibility basics, anything\nexplicitly requested. User insists on the full version → build it, no\nre-arguing.\n\nNever lazy about understanding the problem. The ladder shortens the\nsolution, never the reading. Trace the whole thing first — every file the\nchange touches, the actual flow — before picking a rung. Laziness that skips\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\n\nHardware is never the ideal on paper: a real clock drifts, a real sensor\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\njust less code, the physical world needs tuning a minimal model can't see.\n\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\nsmallest thing that fails if the logic breaks: an `assert`-based\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\nfixtures, no per-function suites unless asked. Trivial one-liners need no\ntest, YAGNI applies to tests too.\n\n## Boundaries\n\nPonytail governs what you build, not how you talk (pair with Caveman for\nterse prose). \"stop ponytail\" / \"normal mode\": revert. Level persists until\nchanged or session end.\n\nThe shortest path to done is the right path."
+2026-09-19T10:34:09.718Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.718Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nCAVEMAN MODE ACTIVE — level: ultra\n\nRespond terse like smart caveman. All technical substance stay. Only fluff die.\n\n## Persistence\n\nDefault style for this whole session, every response, until user say \"stop caveman\" or \"normal mode\". Keep terse on long sessions no filler drift.\n\nDefault: **full**. Switch: `/caveman lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra|off`.\n\n## Rules\n\nDrop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not \"implement a solution for\"). No tool-call narration, no decorative tables/emoji, no dumping long raw error logs unless asked quote shortest decisive line. Standard well-known tech acronyms OK (DB/API/HTTP); never invent new abbreviations (cfg/impl/req/res/fn) tokenizer split them same as full word: zero token saved, reader still decode. Full word cheaper AND clearer. No causal arrows (→) either own token, save nothing. Technical terms exact. Code blocks unchanged. Errors quoted exact.\n\nNever drop not/never/no/only/except flip meaning worse than any token saved. Numbers, units exact.\n\nNever ADD word to sound caveman. Compression only style never grow output. No inserted pronoun or copula to fake broken grammar: \"when it not\" cost one token more than \"when not\" and say same thing. Keep correct verb form when correct form cost same \"sees\" one token, \"see\" one token, so mangle buy nothing and read worse. Same rule as abbreviations and arrows: if caveman phrasing not shorter than plain phrasing, use plain.\n\nClarity register: mix ASD-STE100 Simplified Technical English into caveman, always. One idea per sentence. Sentence short, target 20 words max. Active voice. Present tense where true. One word one meaning: same term for same thing every time, no synonym rotation. Instruction = imperative: \"Run X\", not \"X should be run\". Noun cluster 3 words max. Pronoun only with one clear referent, else repeat noun. Caveman cut filler; STE keep what make meaning unambiguous. Conflict between them → clarity win.\n\nTool calls: fire direct. No preamble, plan, or progress note before or between calls. After result: next call direct or final answer never announce next call. Text before call only to clarify, warn security/irreversible, or resolve ambiguity.\n\nFollow explicit reply-language instructions from the user or project. Otherwise preserve the user's dominant language. Never switch because of example text or multilingual context elsewhere. Compress the style, not the language. Every emitted line in that language openings, pre-tool status lines, all not just final reply. ALWAYS keep technical terms, code, API names, CLI commands, commit-type keywords (feat/fix/...), and exact error strings verbatim unless user explicitly ask for translation.\n\n'Drop articles' = article languages only. Where small markers carry case/role (particles, postpositions), keep them grammar, not filler; compress politeness/filler instead.\n\nAnswer directly in this style. Skip \"caveman mode on\", \"me caveman think\", \"Caveman:\" prefix or recap redundant with the reply itself. No normal answer plus caveman duplicate. User ask what mode is → say so plainly.\n\nPattern: `[thing] [action] [reason]. [next step].`\n\nNot: \"Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by...\"\nYes: \"Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:\"\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | Strip conjunctions when cause-then-effect stay unambiguous. One word when one word enough. State each fact once. NO prose abbreviations (cfg/impl/req/res/fn/auth), NO arrows (X → Y) measured zero token saving under tokenizer, cost decode clarity. Code symbols, function names, API names, error strings: never touch |\n\nExample \"Why React component re-render?\"\n- ultra: \"Inline obj prop, new ref, re-render. `useMemo`.\"\n\nExample \"Explain database connection pooling.\"\n- ultra: \"Pool reuse open DB connections. No per-request handshake.\"\n\nClassical chars = wenyan modes only. Never swap a word to a classical char to shrink at non-wenyan levels.\n\n## Auto-Clarity\n\nDrop caveman when:\n- Security warnings\n- Irreversible action confirmations\n- Multi-step sequences where fragment order or omitted conjunctions risk misread\n- Compression itself creates technical ambiguity (e.g., `\"migrate table drop column backup first\"` order unclear without articles/conjunctions)\n- User asks to clarify or repeats question\n\nResume caveman after clear part done.\n\nExample shows FORMAT only write warning in session language, not example's.\n\nExample destructive op:\n> **Warning:** This will permanently delete all rows in the `users` table and cannot be undone.\n> ```sql\n> DROP TABLE users;\n> ```\n> Caveman resume. Verify backup exist first.\n\n## Boundaries\n\nPersisted outside chat: write normal prose code, comments, commits, docs, issue/PR/MR/defect/ticket/bug-report text, memory files, third-party messages (/caveman-compress exempt). \"Open a defect\" or \"file a bug\" mean the same as \"open issue\": body go to other humans, so body normal English. \"stop caveman\" or \"normal mode\": revert. Level persist until changed or session end."
+2026-09-19T10:34:09.718Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.718Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nbin: /run/user/1000/fnm_multishells/1517_1789811700028/bin/chrome-devtools-axi\ndescription: Agent ergonomic interface for controlling Chrome browser session. Prefer this over other browser automation tools.\nbrowser: no active session\nhelp[1]:\n  Run `chrome-devtools-axi open <url>` to start browsing"
+2026-09-19T10:34:09.720Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:09.720Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nbin: /run/user/1000/fnm_multishells/1517_1789811700028/bin/gh-axi\ndescription: Agent ergonomic wrapper around Github CLI. Prefer this over `gh` and other methods for Github operations.\nissues: 0 open\nprs: 0 open\nhelp[1]:\n  Run `gh-axi <command> <subcommand>` — commands: issue, pr, run, release, repo, label, secret, variable"
+2026-09-19T10:34:09.728Z [DEBUG] Watching /tmp/fm-branch-claude-live.SANFg2/home for /tmp/fm-branch-claude-live.SANFg2/home/.claude to appear
+2026-09-19T10:34:09.728Z [DEBUG] Watching for changes in setting files /home/andre/.claude/settings.json...
+2026-09-19T10:34:09.730Z [DEBUG] [engine] send seed_read_state path=/tmp/fm-branch-claude-live.SANFg2/home/CLAUDE.md
+2026-09-19T10:34:09.730Z [DEBUG] [engine] send seed_read_state path=/tmp/fm-branch-claude-live.SANFg2/home/AGENTS.md
+2026-09-19T10:34:09.730Z [DEBUG] [engine] send seed_read_state path=/home/andre/.claude/CLAUDE.md
+2026-09-19T10:34:09.773Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/output-styles: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/output-styles'
+2026-09-19T10:34:09.773Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/routines: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/routines'
+2026-09-19T10:34:09.773Z [DEBUG] Failed to stat directory /etc/claude-code/.claude/workflows: ENOENT: no such file or directory, stat '/etc/claude-code/.claude/workflows'
+2026-09-19T10:34:09.773Z [DEBUG] Failed to stat directory /home/andre/.claude/workflows: ENOENT: no such file or directory, stat '/home/andre/.claude/workflows'
+2026-09-19T10:34:09.773Z [DEBUG] Failed to stat directory /home/andre/.claude/routines: ENOENT: no such file or directory, stat '/home/andre/.claude/routines'
+2026-09-19T10:34:09.773Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters'
+2026-09-19T10:34:09.774Z [DEBUG] Org fast mode: disabled (extra_usage_disabled)
+2026-09-19T10:34:09.775Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:09.776Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/mlflow-plugins/mlflow-tracing: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.781Z [DEBUG] $.tool.register: loopback MCP server listening on 127.0.0.1:45401
+2026-09-19T10:34:09.781Z [DEBUG] $.tool.register (fm-branch-mod): 1 tool(s) served at 127.0.0.1:45401/<secret>/fm-branch-mod v1
+2026-09-19T10:34:09.786Z [DEBUG] $.tool.register (fm-branch-mod): mcp__fm-branch-mod__fm_branch_report (1 tool(s) on server "fm-branch-mod"); connecting
+2026-09-19T10:34:09.788Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/mlflow-plugins: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.790Z [DEBUG] Temp file written successfully, size: 199796 bytes
+2026-09-19T10:34:09.790Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.b51c7e573ca8 to /home/andre/.claude.json
+2026-09-19T10:34:09.792Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:09.806Z [DEBUG] MCP server "claude-in-chrome": Channel notifications skipped: server did not declare claude/channel capability
+2026-09-19T10:34:09.808Z [DEBUG] [FileIndex] git ls-files (tracked) took 100ms
+2026-09-19T10:34:09.809Z [DEBUG] XTVERSION: terminal identified as "tmux 3.4"
+2026-09-19T10:34:09.814Z [DEBUG] MCP server "fm-branch-mod": Initializing HTTP transport to http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED
+2026-09-19T10:34:09.814Z [DEBUG] MCP server "fm-branch-mod": Node version: v26.3.0, Platform: linux
+2026-09-19T10:34:09.814Z [DEBUG] MCP server "fm-branch-mod": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"not set"}
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": HTTP transport options: {"url":"http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED","headers":{"User-Agent":"claude-code/2.1.278 (cli)","Accept-Encoding":"identity"},"hasAuthProvider":true,"timeoutMs":60000}
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": HTTP transport created successfully
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": Starting connection with timeout of 30000ms
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": Testing basic HTTP connectivity to http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": Parsed URL: host=127.0.0.1, port=45401, protocol=http:
+2026-09-19T10:34:09.815Z [DEBUG] MCP server "fm-branch-mod": Using loopback address: 127.0.0.1
+2026-09-19T10:34:09.818Z [DEBUG] [Bootstrap] Fetch ok
+2026-09-19T10:34:09.818Z [DEBUG] [Bootstrap] Cache unchanged, skipping write
+2026-09-19T10:34:09.819Z [DEBUG] [FileIndex] git ls-files: 0 tracked files in 111ms
+2026-09-19T10:34:09.820Z [DEBUG] [FileIndex] using git ls-files result (0 files)
+2026-09-19T10:34:09.821Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-plugins-official/gopls-lsp: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.824Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:09.829Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-plugins-official/claude-md-management: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.870Z [DEBUG] Terminal capabilities: extendedKeys=yes (env: terminal=tmux); synchronizedOutput=no (env: TMUX (tmux answers for itself), no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: inside tmux or screen); mousePixels=no (env: inside tmux or screen); terminal said: CSI ? u not asked; no reply to DECRQM 2026
+2026-09-19T10:34:09.870Z [DEBUG] DECSTBM: gated (TMUX=set ZELLIJ=unset TERM_PROGRAM=tmux TERM=tmux-256color)
+2026-09-19T10:34:09.870Z [DEBUG] [FileIndex] background untracked fetch: 204 files
+2026-09-19T10:34:09.871Z [DEBUG] [FileIndex] rebuilt index with 0 tracked + 204 untracked files
+2026-09-19T10:34:09.879Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:09.879Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.b0906335f044
+2026-09-19T10:34:09.880Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:09.884Z [DEBUG] Loaded plugins - Enabled: 17, Disabled: 1, Commands: 2, Agents: 21, Errors: 0
+2026-09-19T10:34:09.886Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:09.905Z [DEBUG] Temp file written successfully, size: 199869 bytes
+2026-09-19T10:34:09.905Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.b0906335f044 to /home/andre/.claude.json
+2026-09-19T10:34:09.906Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:09.907Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:09.913Z [DEBUG] MCP server "fm-branch-mod": Successfully connected (transport: http) in 100ms
+2026-09-19T10:34:09.913Z [DEBUG] MCP server "fm-branch-mod": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"fm-branch-mod","version":"plugin-tools-1"},"protocolEra":"legacy","negotiatedProtocolVersion":"2025-11-25"}
+2026-09-19T10:34:09.913Z [DEBUG] [MCP] Server "fm-branch-mod" connected with subscribe=false
+2026-09-19T10:34:09.916Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:09.918Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:09.972Z [DEBUG] MCP server "fm-branch-mod": Channel notifications skipped: server did not declare claude/channel capability
+2026-09-19T10:34:09.976Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-plugins-official/context7: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.977Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-plugins-official: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.979Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-community/eli5: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.979Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/claude-community: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.981Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/voltagent-subagents/voltagent-qa-sec: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.981Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/voltagent-subagents: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.983Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/ponytail/ponytail: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.984Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/ponytail: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.985Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/compact-adviser/compact-adviser: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.986Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/compact-adviser: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.987Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/terraform-lsp/terraform-ls: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.988Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/terraform-lsp: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.993Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/ropey/ropey: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.995Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/ropey: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:09.996Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/wondelai-skills/systems-architecture: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:10.011Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/wondelai-skills/code-craftsmanship: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:10.012Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/wondelai-skills: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:10.013Z [DEBUG] $.tool.register (fm-branch-mod): mcp__fm-branch-mod__fm_branch_report visible after 227ms
+2026-09-19T10:34:10.015Z [DEBUG] $.tool.register (fm-branch-mod): 2 tool(s) served at 127.0.0.1:45401/<secret>/fm-branch-mod v2
+2026-09-19T10:34:10.015Z [DEBUG] $.tool.register (fm-branch-mod): mcp__fm-branch-mod__fm_branch_processed (2 tool(s) on server "fm-branch-mod"); connecting
+2026-09-19T10:34:10.016Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/caveman/caveman: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:10.018Z [DEBUG] MCP server "fm-branch-mod": excludeStalePluginClients: marking stale (config hash changed)
+2026-09-19T10:34:10.025Z [DEBUG] MCP server "claude-in-chrome": Channel notifications skipped: server did not declare claude/channel capability
+2026-09-19T10:34:10.026Z [DEBUG] Keeping /home/andre/.claude/plugins/cache/caveman: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Initializing HTTP transport to http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Node version: v26.3.0, Platform: linux
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"not set"}
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": HTTP transport options: {"url":"http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED","headers":{"User-Agent":"claude-code/2.1.278 (cli)","Accept-Encoding":"identity"},"hasAuthProvider":true,"timeoutMs":60000}
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": HTTP transport created successfully
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Starting connection with timeout of 30000ms
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Testing basic HTTP connectivity to http://127.0.0.1:45401/REDACTED/fm-branch-mod?v=REDACTED
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Parsed URL: host=127.0.0.1, port=45401, protocol=http:
+2026-09-19T10:34:10.028Z [DEBUG] MCP server "fm-branch-mod": Using loopback address: 127.0.0.1
+2026-09-19T10:34:10.029Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:10.032Z [DEBUG] Ripgrep first use test: PASSED (mode=embedded, path=/home/andre/.local/share/claude/versions/2.1.278)
+2026-09-19T10:34:10.034Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:10.037Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:10.040Z [DEBUG] MCP server "fm-branch-mod": Successfully connected (transport: http) in 12ms
+2026-09-19T10:34:10.040Z [DEBUG] MCP server "fm-branch-mod": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"fm-branch-mod","version":"plugin-tools-2"},"protocolEra":"legacy","negotiatedProtocolVersion":"2025-11-25"}
+2026-09-19T10:34:10.040Z [DEBUG] [MCP] Server "fm-branch-mod" connected with subscribe=false
+2026-09-19T10:34:10.042Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:10.043Z [DEBUG] MCP server "fm-branch-mod": No token data found
+2026-09-19T10:34:10.055Z [DEBUG] MCP server "fm-branch-mod": Channel notifications skipped: server did not declare claude/channel capability
+2026-09-19T10:34:10.108Z [DEBUG] [FileIndex] cache refresh completed in 400ms
+2026-09-19T10:34:10.116Z [DEBUG] $.tool.register (fm-branch-mod): mcp__fm-branch-mod__fm_branch_processed visible after 101ms
+2026-09-19T10:34:10.117Z [DEBUG] [fm-branch-mod] $.ui.log: fm-branch-mod: loaded (enabled, home /tmp/fm-branch-claude-live.SANFg2/home, Claude Code 2.1.278)
+2026-09-19T10:34:10.120Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 544599)
+2026-09-19T10:34:10.126Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 7ms, 0 + 0 chars
+2026-09-19T10:34:10.127Z [DEBUG] [fs.watch probe] verdict: delivers
+2026-09-19T10:34:10.128Z [DEBUG] $.command.register (compact-adviser): /compact-adviser listed
+2026-09-19T10:34:10.138Z [DEBUG] $.ui.status (compact-adviser): (cleared)
+2026-09-19T10:34:10.139Z [DEBUG] hooks module agents-md@builtin session.start settled in 0.2ms (native link, next() included)
+2026-09-19T10:34:10.139Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser session.start settled in 735.2ms (worker hop, next() included)
+2026-09-19T10:34:10.261Z [DEBUG] [remote-bridge] Created session cse_01JzMS6Gnj7rqYmPmEXD3EpC
+2026-09-19T10:34:10.269Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:10.270Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.4dffa0dabfaa
+2026-09-19T10:34:10.270Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:10.275Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:34:10.275Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.4dffa0dabfaa to /home/andre/.claude.json
+2026-09-19T10:34:10.275Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:10.589Z [DEBUG] [remote-bridge] Fetched bridge credentials (expires_in=46800s)
+2026-09-19T10:34:10.589Z [DEBUG] [presence session=cse_01JzMS6Gnj7rqYmPmEXD3EpC] wired
+2026-09-19T10:34:10.589Z [DEBUG] [remote-bridge] v2 session URL: https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC
+2026-09-19T10:34:10.590Z [DEBUG] [bridge:repl] CCR v2: worker sessionId=[REDACTED] epoch=1 (from /bridge)
+2026-09-19T10:34:10.590Z [DEBUG] SSETransport: SSE URL = https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC/worker/events/stream
+2026-09-19T10:34:10.590Z [DEBUG] SSETransport: POST URL = https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC/worker/events
+2026-09-19T10:34:10.593Z [DEBUG] [remote-bridge] v2 transport created (epoch=1)
+2026-09-19T10:34:10.593Z [DEBUG] [bridge:repl] handleStateChange state=ready detail="undefined" kind=undefined cancelled=false outboundOnly=false
+2026-09-19T10:34:10.595Z [DEBUG] [remote:token] Scheduled token refresh for sessionId=[REDACTED] in 755m (expires_in=46800s, buffer=1500s)
+2026-09-19T10:34:10.604Z [DEBUG] [bridge:repl] Hook initialized, session=cse_01JzMS6Gnj7rqYmPmEXD3EpC
+2026-09-19T10:34:10.619Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:10.623Z [DEBUG] Git remote URL: null
+2026-09-19T10:34:10.624Z [DEBUG] No git remote URL found
+2026-09-19T10:34:10.748Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:10.749Z [DEBUG] "Hook SessionStart:startup (SessionStart) success:\nbin: /run/user/1000/fnm_multishells/1517_1789811700028/bin/lavish-axi\ndescription: \"Lavish Editor helps agents turn rich HTML artifacts into collaborative human review surfaces. Whenever you are about to give user a complex response that will be easier to understand via a rich / interactive page, consider using Lavish Editor. First generate an interactive HTML artifact according to user request, then run `lavish-axi <html-file>` so the user can visually review it, annotate elements or selected text, queue prompts, and send feedback back through `lavish-axi poll`.\"\nsessions: []\nvisual_guidance[5]: \"Use visual hierarchy to make the most important decisions, risks, tradeoffs, and next actions obvious at a glance\",\"Show, don't tell: explain concepts, flows, relationships, and comparisons with labeled illustrations - hand-authored inline SVG, per the diagram playbook - and show existing UI or state with screenshots of the real pages (run the app read-only if needed); reserve prose for what cannot be shown, such as rationale, trade-offs, and open questions\",\"Structure the prose that remains with sections, cards, tables, annotated snippets, and side-by-side comparisons instead of long paragraphs\",\"Choose typography, spacing, color, and layout deliberately so the artifact has a clear point of view\",\"Prevent horizontal overflow at every nesting level: nested grid/flex children also need minmax(0, 1fr) tracks and min-width: 0, especially when badges, labels, or status text use wide pixel or monospace fonts; wrap, truncate, or contain long unbreakable text deliberately\"\nplaybooks[7]{id,use_when}:\n  diagram,\"Explain relationships, flows, state, architecture, and concepts with illustrations\"\n  table,Turn dense records into scan-friendly review surfaces\n  comparison,\"Show options, tradeoffs, and current vs target behavior\"\n  plan,Explain a product or technical plan before implementation\n  code,\"Render source code, code files, patches, PR diffs, and before/after code inside Lavish artifacts\"\n  input,\"Must be used when the agent needs to collect user input on decisions, choices, preferences, triage, scope, or other structured feedback from within the artifact\"\n  slides,Create a deliberate presentation when slides are requested\nhelp[12]: \"Run `lavish-axi <html-file>` to open or resume a Lavish Editor session. If the user explicitly ended the session from the browser, this refuses to reopen it and explains why instead of reopening uninvited - pass `--reopen` only when the user asks for further review or something important needs their visual attention\",\"Unless the user specifies another location, create HTML artifacts in the current working directory under `.lavish/`\",\"Lavish serves the html file through a local express.js server. If your html needs to reference other filesystem assets such as images, CSS, fonts, and local scripts, copy them into the same directory as the HTML file, then reference them with relative paths from that directory. Never prepend `/` to those asset paths - root paths won't work\",\"Run `lavish-axi poll <html-file>` to wait for user feedback. It long-polls and stays silent until the user sends feedback, ends the session, or leaves every review window disconnected past the reconnect grace period, so leave it running - never kill it. Detected layout issues never return this poll: the browser files them in the user's Layout issues inbox in the Lavish top bar, and they arrive as an ordinary tag \\\"layout-warnings\\\" prompt only when the user selects them and queues the fixes. Never edit the artifact to chase a layout issue the user has not queued. The only exception is a fatal artifact_failures response, which means the review surface itself could not be used. Keep the poll in the foreground by default and let it return the feedback directly to the agent. A background poll is allowed only through a harness-native tracked background-job facility whose completion result is guaranteed to resume or notify the same agent. Never use `nohup`, shell `&`, `disown`, redirected fire-and-forget processes, or a detached terminal without an explicit verified callback merely to keep polling alive. If the harness has no completion-aware background facility, use the foreground poll or first wire a verified wake callback into the surrounding supervisor. Do not tell the user the artifact is being monitored until that wake path is live. If the poll gets killed or times out before feedback arrives, re-run it - feedback remains queued until delivery. Poll delivery consumes the response, so read it completely. If it returns browser_disconnected, the review window stayed disconnected past its reconnect grace period but the session remains resumable; ask the user whether to reopen or end it, and do neither uninvited. `Send & End` ends the session. Its final feedback is still delivered once. After that response, polling stops, and the agent must not reopen the session uninvited.\",\"Mermaid is the whiteboard opt-in, not the diagram default: only when the user asks for an editable whiteboard, author that diagram as Mermaid in a `.mermaid` container. Rendered Mermaid diagrams there become embedded, editable Excalidraw whiteboards in the browser (click a diagram to unlock editing; a Fullscreen action opens it over the whole viewport) - flowchart, sequence, class, ER, and state diagrams convert to editable shapes; other types embed as an image to draw on. Scenes autosave locally; an unmodified autosave silently re-converts when a reload changes the Mermaid source. If the reviewer edited the scene, they choose to re-convert and discard saved edits or keep editing the saved scene. Standalone and exported copies still render plain Mermaid. Queue feedback adds a prompt to the Conversation panel; when the user sends it, poll returns a tag \\\"whiteboard\\\" prompt carrying a bounded edit summary plus local scenePath (.excalidraw JSON) and previewPath (PNG) files - read the summary first, open the files only when needed, then apply the edits by updating the Mermaid source in the artifact (never try to write the scene back)\",\"Run `lavish-axi end <html-file>` to end a session as the agent - ending it this way still allows a plain reopen later. When the user ends it from the browser instead, a later `lavish-axi <html-file>` refuses to reopen it without `--reopen`\",\"Run `lavish-axi export <html-file> [--out <path>]` to write a portable copy of the artifact - one HTML file with its LOCAL assets inlined - so it opens with no Lavish server and no sibling files. Remote CDN/font references are left as links, so it needs network to render those. Users can also export from the browser chrome's overflow menu\",\"Run `lavish-axi share <html-file> [--private | --password <pw>]` to publish the artifact on ht-ml.app (https://ht-ml.app), a third-party hosting service not part of Lavish, and get back a visitable URL. Shares are PUBLIC by default, so anyone with the link can open them. Pass --private to publish a PRIVATE page behind a password Lavish generates and returns - hand the user that password with the URL and say it is a shared secret anyone they give it to can use; --password <pw> uses one you were already given instead. Local assets are inlined; remote refs load over the network. It also returns a secret update_key that can republish or lock the same URL later - run `lavish-axi share --help` before using it. Users can also publish from the browser chrome's overflow menu\",Run `lavish-axi stop` to shut down the background server (it also self-stops when idle or after the last session ends with nothing connected),\"Run `lavish-axi playbook <playbook_id>` for focused artifact guidance. One artifact often combines several playbooks (for example a plan that includes a comparison and a diagram), so MUST open each matching playbook before writing HTML.\",\"Lavish does not auto-inject any design system - artifacts stay portable so they render identically when opened directly without lavish-axi running. Before writing any HTML: Decide the design direction in this strict priority order, and only move to the next step when the current one truly yields nothing: (1) if the user asked for a specific look or named design system, use that; (2) otherwise you must first inspect the project the artifact is about - the subject or product whose content or UI it represents, which may differ from your current working directory - and match that project's design system: Tailwind or theme config, shared CSS variables or design tokens, component library, brand assets, or existing styled pages. If the artifact previews, proposes, or mocks a specific app's UI, render it in that app's own design system so it faithfully shows the product, even when you are running in a different repo; (3) only when both steps come up empty, use the Lavish-recommended Tailwind CSS browser runtime v4 + DaisyUI v5, available via CDN, and prefer that CDN snippet over hand-writing styles unless explicitly instructed otherwise by the user. Run `lavish-axi design` for a content-to-playbook router, a copy-pasteable CDN snippet, the whiteboard (Mermaid) opt-in snippet, and the DaisyUI component reference. When you deliver the artifact, state which of the three design sources you used and why.\",\"Use lavish-axi when the user asks for a visual artifact, HTML explainer, interactive prototype, review surface, product or technical plan, comparison, report, or browser-based feedback loop\""
+2026-09-19T10:34:10.755Z [DEBUG] [bridge:repl] Transcript rewrite detected (messages.length=15), rescanning
+2026-09-19T10:34:10.875Z [DEBUG] CCRClient: no subscribers reported; dropping stream deltas until one is
+2026-09-19T10:34:10.942Z [DEBUG] CCRClient: initialized, epoch=1
+2026-09-19T10:34:10.942Z [DEBUG] [bridge:repl] v2 transport ready for writes (epoch=1); opening the read stream
+2026-09-19T10:34:10.942Z [DEBUG] [remote-bridge] v2 transport connected
+2026-09-19T10:34:10.942Z [DEBUG] [bridge:repl] handleStateChange state=connected detail="undefined" kind=undefined cancelled=false outboundOnly=false
+2026-09-19T10:34:10.943Z [DEBUG] SSETransport: Opening https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC/worker/events/stream
+2026-09-19T10:34:10.945Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:11.100Z [DEBUG] SSETransport: Connected
+2026-09-19T10:34:11.192Z [DEBUG] [3P telemetry] First logs export: SUCCESS
+2026-09-19T10:34:13.067Z [DEBUG] [presence session=cse_01JzMS6Gnj7rqYmPmEXD3EpC] pulse → https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC/client/presence
+2026-09-19T10:34:13.583Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:34:13.583Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:34:13.583Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:34:13.585Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:34:13.586Z [DEBUG] Total plugin output styles loaded: 0
+2026-09-19T10:34:13.589Z [DEBUG] Sending 117 skills via attachment (initial)
+2026-09-19T10:34:13.590Z [WARN] Skill listing over budget: 117 skills, 52005 chars > 30000 budget — descriptions will be truncated. Run /skills to disable some, or raise skillListingBudgetFraction in settings.
+2026-09-19T10:34:13.632Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 547510)
+2026-09-19T10:34:13.634Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:34:13.643Z [DEBUG] $.tool.call (fm-branch-mod): Monitor (command, description, timeout_ms)
+2026-09-19T10:34:13.646Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:34:13.669Z [INFO] [Stall] tool_dispatch_start tool=Monitor toolUseId=toolu_plugin_676fce47f39a49c1bbfdc7fc32eaff8a permissionDecisionMs=13
+2026-09-19T10:34:13.671Z [DEBUG] Creating shell snapshot for bash (/bin/bash)
+2026-09-19T10:34:13.671Z [DEBUG] Looking for shell config file: /home/andre/.bashrc
+2026-09-19T10:34:13.674Z [DEBUG] Snapshots directory: /home/andre/.claude/shell-snapshots
+2026-09-19T10:34:13.675Z [DEBUG] Creating snapshot at: /home/andre/.claude/shell-snapshots/snapshot-bash-1789814053674-xikxcz.sh
+2026-09-19T10:34:13.675Z [DEBUG] Execution timeout: 10000ms
+2026-09-19T10:34:13.679Z [DEBUG] Spawn-env probe captured 112 keys
+2026-09-19T10:34:13.683Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:13.684Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:34:13.684Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:34:13.685Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:34:13.688Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:34:13.688Z [DEBUG] "Hook UserPromptSubmit (UserPromptSubmit) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact.\"}}"
+2026-09-19T10:34:13.688Z [DEBUG] Hook UserPromptSubmit (Tracking caveman mode...) provided additionalContext (278 chars)
+2026-09-19T10:34:13.690Z [DEBUG] FileHistory: Added snapshot for b25d6a8d-0305-40d5-80c0-6a041ff3e4ab, tracking 0 files
+2026-09-19T10:34:13.697Z [DEBUG] act_dont_rederive_arm_active source=growthbook
+2026-09-19T10:34:13.702Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.a58; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:34:13.702Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.703Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.707Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 547608)
+2026-09-19T10:34:13.707Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 110.6ms (worker hop, next() included)
+2026-09-19T10:34:13.708Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.start settled in 11.7ms (worker hop, next() included)
+2026-09-19T10:34:13.711Z [DEBUG] [engine] yield system/init (first)
+2026-09-19T10:34:13.712Z [DEBUG] [engine] turn 1 start
+2026-09-19T10:34:13.717Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:13.726Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.727Z [DEBUG] [API:timing] dispatching to firstParty model=claude-haiku-4-5-20251001
+2026-09-19T10:34:13.733Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=69e94ca1-9238-4588-8664-b3beef0ffe0f source=generate_session_title
+2026-09-19T10:34:13.748Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:34:13.750Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prompt_id=614078ec-7e66-42ca-aeee-dc3a6724fa2d; cc_turn_origin=human;
+2026-09-19T10:34:13.751Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.753Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.755Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.756Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:13.757Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=aca93250-3aec-40a4-9d21-9c017fb43b40 source=repl_main_thread:outputStyle:custom
+2026-09-19T10:34:13.765Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:13.768Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.a58; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:34:13.768Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.769Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.771Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 65ms, 0 + 0 chars
+2026-09-19T10:34:13.776Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:13.777Z [DEBUG] [API:timing] dispatching to firstParty model=claude-haiku-4-5-20251001
+2026-09-19T10:34:13.778Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=a398012a-8e25-4790-b424-5dfd4838aad3 source=generate_session_title
+2026-09-19T10:34:13.779Z [DEBUG] Shell snapshot created successfully (8543 bytes)
+2026-09-19T10:34:13.783Z [DEBUG] No session environment scripts found
+2026-09-19T10:34:13.784Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:34:13.788Z [INFO] [Stall] tool_dispatch_end tool=Monitor toolUseId=toolu_plugin_676fce47f39a49c1bbfdc7fc32eaff8a outcome=ok durationMs=118
+2026-09-19T10:34:13.792Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 146.1ms (worker hop, next() included)
+2026-09-19T10:34:13.793Z [DEBUG] $.tool.call (fm-branch-mod): Monitor answered in 150ms, 302 chars
+2026-09-19T10:34:13.802Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 547688)
+2026-09-19T10:34:13.803Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.lock failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/state/.lock'
+2026-09-19T10:34:13.805Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters (173 bytes)
+2026-09-19T10:34:13.806Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 5ms, 0 + 0 chars
+2026-09-19T10:34:14.340Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:14.340Z [DEBUG] [API:timing] first byte after 614ms
+2026-09-19T10:34:14.479Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:14.479Z [DEBUG] [API:timing] first byte after 704ms
+2026-09-19T10:34:14.485Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:34:14.718Z [DEBUG] [bridge:repl] derived title from message 1: fm-lock.sh session lock
+2026-09-19T10:34:14.719Z [DEBUG] [bridge] Updating session title: cse_01JzMS6Gnj7rqYmPmEXD3EpC
+2026-09-19T10:34:14.891Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:14.891Z [DEBUG] [API:timing] first byte after 1136ms
+2026-09-19T10:34:15.010Z [DEBUG] [bridge] Session title updated successfully
+2026-09-19T10:34:15.593Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:15.867Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:15.869Z [DEBUG] High write ratio: blit=0, write=1042 (100.0% writes), screen=20x160
+2026-09-19T10:34:15.878Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_014EKAd4XVcJmmHFmCnao2Ad permissionDecisionMs=5
+2026-09-19T10:34:15.882Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:34:15.908Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 2182.9ms (worker hop, next() included)
+2026-09-19T10:34:16.055Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_014EKAd4XVcJmmHFmCnao2Ad outcome=ok durationMs=177
+2026-09-19T10:34:16.061Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 199.2ms (worker hop, next() included)
+2026-09-19T10:34:16.067Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:34:16.067Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:34:16.067Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:34:16.067Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:34:16.078Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:16.083Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:16.092Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:34:16.094Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCeYCqEBswf4u78DAZQ8; cc_prompt_id=614078ec-7e66-42ca-aeee-dc3a6724fa2d; cc_turn_origin=human;
+2026-09-19T10:34:16.094Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:16.095Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:16.098Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:16.099Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:16.099Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=f1c2949b-3407-4250-8a92-7f60b9c494c9 source=repl_main_thread:outputStyle:custom
+2026-09-19T10:34:16.697Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:16.697Z [DEBUG] [API:timing] first byte after 599ms
+2026-09-19T10:34:16.729Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:16.738Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 653.1ms (worker hop, next() included)
+2026-09-19T10:34:16.747Z [DEBUG] Hooks: Config-based async hook, backgrounding process async_hook_551753
+2026-09-19T10:34:16.748Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.104; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:34:16.749Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=b75c66f7-baa1-4a61-b330-d6e171199f5a source=side_query
+2026-09-19T10:34:17.023Z [DEBUG] AutoUpdaterWrapper: Installation type: native
+2026-09-19T10:34:17.141Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:17.147Z [DEBUG] [engine] turn 1 end (turns=2 usage in=1788 out=165 cost=$0.1574 api=4470ms stop=end_turn resultLen=5)
+2026-09-19T10:34:17.155Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=2
+2026-09-19T10:34:17.163Z [DEBUG] [sessionRegistry] sweep declined by isRegistrySweepPermitted() — dead records are left in place (neither counted nor deleted)
+2026-09-19T10:34:17.165Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 552480)
+2026-09-19T10:34:17.178Z [DEBUG] High write ratio: blit=0, write=1069 (100.0% writes), screen=22x160
+2026-09-19T10:34:17.179Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:17.181Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 16ms, 0 + 0 chars
+2026-09-19T10:34:17.187Z [DEBUG] $.store.set (compact-adviser@compact-adviser): session:359b53a5-0623-48c6-a886-e8c5254cc83d
+2026-09-19T10:34:17.189Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:17.192Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:34:17.195Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 3.2ms (worker hop, next() included)
+2026-09-19T10:34:17.196Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:17.196Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.7c1099aba925
+2026-09-19T10:34:17.196Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:17.198Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:17.199Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:34:17.200Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 0.9ms (worker hop, next() included)
+2026-09-19T10:34:17.201Z [ERROR] $.fs.read (compact-adviser): /tmp/fm-branch-claude-live.SANFg2/home/.env failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/.env'
+2026-09-19T10:34:17.201Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:34:17.201Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.7c1099aba925 to /home/andre/.claude.json
+2026-09-19T10:34:17.201Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:17.202Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.complete settled in 44.2ms (worker hop, next() included)
+2026-09-19T10:34:17.341Z [DEBUG] Checking for native installer update to version 2.1.278
+2026-09-19T10:34:17.343Z [DEBUG] Found 2.1.278 at /home/andre/.local/bin/claude, skipping install
+2026-09-19T10:34:17.373Z [DEBUG] Protecting locked version from cleanup: 2.1.277
+2026-09-19T10:34:18.689Z [DEBUG] [3P telemetry] First traces export: SUCCESS
+2026-09-19T10:34:18.740Z [DEBUG] [3P telemetry] First metrics export: SUCCESS
+2026-09-19T10:34:29.433Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:34:32.459Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:34:39.323Z [DEBUG] "Hook Stop (Stop) error:\nfirstmate watcher auto-arm FAILED - the Stop-owned automatic supervision mechanism is broken after 2 bounded attempts, and no live watcher with a fresh beacon was verified.\nwatcher: already running pid 547700\nwatcher: FAILED - cycle ended without an actionable reason\nDo not launch a manual background arm from this notice; investigate the automatic Stop hook and watcher startup before ending blind."
+2026-09-19T10:34:39.341Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 567023)
+2026-09-19T10:34:39.344Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:34:39.350Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:39.350Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.21686c442d37
+2026-09-19T10:34:39.350Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:39.362Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:34:39.362Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.21686c442d37 to /home/andre/.claude.json
+2026-09-19T10:34:39.362Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:39.373Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:34:39.373Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:34:39.373Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:34:39.373Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:34:39.376Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:34:39.376Z [DEBUG] "Hook UserPromptSubmit (UserPromptSubmit) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact.\"}}"
+2026-09-19T10:34:39.376Z [DEBUG] Hook UserPromptSubmit (Tracking caveman mode...) provided additionalContext (278 chars)
+2026-09-19T10:34:39.379Z [DEBUG] [engine] turn 2 start
+2026-09-19T10:34:39.380Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:39.383Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 567045)
+2026-09-19T10:34:39.383Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 44.1ms (worker hop, next() included)
+2026-09-19T10:34:39.383Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.start settled in 4.4ms (worker hop, next() included)
+2026-09-19T10:34:39.389Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:39.390Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 8ms, 0 + 0 chars
+2026-09-19T10:34:39.394Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:34:39.396Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCeYNeLLHbaxUneEvzEf; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856; cc_turn_origin=task_notification;
+2026-09-19T10:34:39.396Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:39.398Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:39.401Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:39.401Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:39.402Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=3d6ab540-fa22-42fd-9df7-0dbbeb7b112d source=repl_main_thread:outputStyle:custom
+2026-09-19T10:34:40.468Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:40.468Z [DEBUG] [API:timing] first byte after 1068ms
+2026-09-19T10:34:45.070Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:34:45.070Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.7abdca80702d
+2026-09-19T10:34:45.071Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:34:45.075Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:34:45.075Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.7abdca80702d to /home/andre/.claude.json
+2026-09-19T10:34:45.076Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:34:48.609Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:48.983Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:48.984Z [DEBUG] High write ratio: blit=0, write=1259 (100.0% writes), screen=30x160
+2026-09-19T10:34:48.990Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01Q3MyWZcePcPFB11AUxZTVw permissionDecisionMs=3
+2026-09-19T10:34:48.994Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:34:49.013Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 9629.6ms (worker hop, next() included)
+2026-09-19T10:34:49.030Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01Q3MyWZcePcPFB11AUxZTVw outcome=ok durationMs=40
+2026-09-19T10:34:49.034Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 61.6ms (worker hop, next() included)
+2026-09-19T10:34:49.045Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:34:49.048Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 571494)
+2026-09-19T10:34:49.051Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:34:49.056Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 571505)
+2026-09-19T10:34:49.057Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed'
+2026-09-19T10:34:49.058Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:34:49.060Z [DEBUG] $.process.run (fm-branch-mod): bash with 2 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 571514)
+2026-09-19T10:34:49.149Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 90ms, 555 + 0 chars
+2026-09-19T10:34:49.150Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model'
+2026-09-19T10:34:49.151Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.5a2; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:34:49.152Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=c6471190-b95f-4660-baf3-f08687d1c505 source=side_query
+2026-09-19T10:34:50.242Z [DEBUG] $.model.complete (fm-branch-mod): claude-haiku-4-5-20251001 answered in 1091ms, 137 chars
+2026-09-19T10:34:50.247Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572239)
+2026-09-19T10:34:50.248Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:34:50.251Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572241)
+2026-09-19T10:34:50.254Z [DEBUG] $.process.run (fm-branch-mod): bash with 4 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572244)
+2026-09-19T10:34:50.254Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:34:50.302Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 49ms, 0 + 0 chars
+2026-09-19T10:34:50.304Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572294)
+2026-09-19T10:34:50.305Z [DEBUG] $.process.run (fm-branch-mod): bash with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572296)
+2026-09-19T10:34:50.306Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:34:50.343Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 39ms, 0 + 0 chars
+2026-09-19T10:34:50.345Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572342)
+2026-09-19T10:34:50.345Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters (179 bytes)
+2026-09-19T10:34:50.346Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.dummy.branch-outcome-index failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/state/.dummy.branch-outcome-index'
+2026-09-19T10:34:50.346Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 2ms, 0 + 0 chars
+2026-09-19T10:34:50.348Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/config/supervision-branch-model failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/config/supervision-branch-model'
+2026-09-19T10:34:50.348Z [DEBUG] $.tool.call (fm-branch-mod): Agent (prompt, description, run_in_background, model, subagent_type, name)
+2026-09-19T10:34:50.349Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:34:50.351Z [INFO] [Stall] tool_dispatch_start tool=Agent toolUseId=toolu_plugin_9c7afce516134fa58522dfe25d2beb68 permissionDecisionMs=0
+2026-09-19T10:34:50.361Z [INFO] [Stall] tool_dispatch_end tool=Agent toolUseId=toolu_plugin_9c7afce516134fa58522dfe25d2beb68 outcome=ok durationMs=10
+2026-09-19T10:34:50.367Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 17.7ms (worker hop, next() included)
+2026-09-19T10:34:50.368Z [DEBUG] $.tool.call (fm-branch-mod): Agent answered in 19ms, 1064 chars
+2026-09-19T10:34:50.368Z [DEBUG] $.agent.spawn (fm-branch-mod): Agent a239a11a72cd45d73 started
+2026-09-19T10:34:50.370Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572347)
+2026-09-19T10:34:50.378Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 8ms, 0 + 0 chars
+2026-09-19T10:34:50.378Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters (196 bytes)
+2026-09-19T10:34:50.380Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572355)
+2026-09-19T10:34:50.382Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572358)
+2026-09-19T10:34:50.384Z [DEBUG] fm-branch-mod (user) answered prompt.submit without next() in 1340.2ms; nothing beneath it ran for this dispatch
+2026-09-19T10:34:50.384Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 1346.0ms (worker hop, next() included)
+2026-09-19T10:34:50.384Z [DEBUG] prompt.submit: dropped (fm-branch-mod: routed to supervision branch)
+2026-09-19T10:34:50.388Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:34:50.388Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:34:50.388Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:34:50.388Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:34:50.395Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 16ms, 0 + 0 chars
+2026-09-19T10:34:50.395Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 15ms, 0 + 0 chars
+2026-09-19T10:34:50.399Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:50.408Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"PONYTAIL MODE ACTIVE — level: ultra\n\n# Ponytail\n\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\nseen every over-engineered codebase and been paged at 3am for one. The best\ncode is the code never written.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\nunsure. Off only: \"stop ponytail\" / \"normal mode\". Default: **full**.\nSwitch: `/ponytail lite|full|ultra`.\n\n## The ladder\n\nStop at the first rung that holds:\n\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\n3. **Stdlib does it?** Use it.\n4. **Native platform feature covers it?** `<input type=\"date\">` over a picker lib, CSS over JS, DB constraint over app code.\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\n6. **Can it be one line?** One line.\n7. **Only then:** the minimum code that works.\n\nThe ladder is a reflex, not a research project — but it runs *after* you\nunderstand the problem, not instead of it. Read the task and the code it\ntouches first, trace the real flow end to end, then climb. Two rungs work →\ntake the higher one and move on. The first lazy solution that works is the\nright one — once you actually know what the change has to touch.\n\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\nedit, grep every caller of the function you're about to touch. The lazy fix IS\nthe root-cause fix: one guard in the shared function is a smaller diff than a\nguard in every caller — and patching only the path the ticket names leaves\nevery sibling caller still broken. Fix it once, where all callers route through.\n\n## Rules\n\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\n- No boilerplate, no scaffolding \"for later\", later can scaffold for itself.\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\n- Complex request? Ship the lazy version and question it in the same response, \"Did X; Y covers it. Need full X? Say so.\" Never stall on an answer you can default.\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\n\n## Output\n\nCode first. Then at most three short lines: what was skipped, when to add it.\nNo essays, no feature tours, no design notes. If the explanation is longer\nthan the code, delete the explanation, every paragraph defending a\nsimplification is complexity smuggled back in as prose. Explanation the user\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\ngive it in full, the rule is only against unrequested prose.\n\nPattern: `[code] → skipped: [X], add when [Y].`\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\n\nExample: \"Add a cache for these API responses.\"\n- ultra: \"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\"\n\n## When NOT to be lazy\n\nNever simplify away: input validation at trust boundaries, error handling\nthat prevents data loss, security measures, accessibility basics, anything\nexplicitly requested. User insists on the full version → build it, no\nre-arguing.\n\nNever lazy about understanding the problem. The ladder shortens the\nsolution, never the reading. Trace the whole thing first — every file the\nchange touches, the actual flow — before picking a rung. Laziness that skips\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\n\nHardware is never the ideal on paper: a real clock drifts, a real sensor\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\njust less code, the physical world needs tuning a minimal model can't see.\n\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\nsmallest thing that fails if the logic breaks: an `assert`-based\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\nfixtures, no per-function suites unless asked. Trivial one-liners need no\ntest, YAGNI applies to tests too.\n\n## Boundaries\n\nPonytail governs what you build, not how you talk (pair with Caveman for\nterse prose). \"stop ponytail\" / \"normal mode\": revert. Level persists until\nchanged or session end.\n\nThe shortest path to done is the right path.\n"}}
+2026-09-19T10:34:50.408Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"PONYTAIL MODE ACTIVE — level: ultra\n\n# Ponytail\n\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\nseen every over-engineered codebase and been paged at 3am for one. The best\ncode is the code never written.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\nunsure. Off only: \"stop ponytail\" / \"normal mode\". Default: **full**.\nSwitch: `/ponytail lite|full|ultra`.\n\n## The ladder\n\nStop at the first rung that holds:\n\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\n3. **Stdlib does it?** Use it.\n4. **Native platform feature covers it?** `<input type=\"date\">` over a picker lib, CSS over JS, DB constraint over app code.\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\n6. **Can it be one line?** One line.\n7. **Only then:** the minimum code that works.\n\nThe ladder is a reflex, not a research project — but it runs *after* you\nunderstand the problem, not instead of it. Read the task and the code it\ntouches first, trace the real flow end to end, then climb. Two rungs work →\ntake the higher one and move on. The first lazy solution that works is the\nright one — once you actually know what the change has to touch.\n\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\nedit, grep every caller of the function you're about to touch. The lazy fix IS\nthe root-cause fix: one guard in the shared function is a smaller diff than a\nguard in every caller — and patching only the path the ticket names leaves\nevery sibling caller still broken. Fix it once, where all callers route through.\n\n## Rules\n\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\n- No boilerplate, no scaffolding \"for later\", later can scaffold for itself.\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\n- Complex request? Ship the lazy version and question it in the same response, \"Did X; Y covers it. Need full X? Say so.\" Never stall on an answer you can default.\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\n\n## Output\n\nCode first. Then at most three short lines: what was skipped, when to add it.\nNo essays, no feature tours, no design notes. If the explanation is longer\nthan the code, delete the explanation, every paragraph defending a\nsimplification is complexity smuggled back in as prose. Explanation the user\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\ngive it in full, the rule is only against unrequested prose.\n\nPattern: `[code] → skipped: [X], add when [Y].`\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\n\nExample: \"Add a cache for these API responses.\"\n- ultra: \"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\"\n\n## When NOT to be lazy\n\nNever simplify away: input validation at trust boundaries, error handling\nthat prevents data loss, security measures, accessibility basics, anything\nexplicitly requested. User insists on the full version → build it, no\nre-arguing.\n\nNever lazy about understanding the problem. The ladder shortens the\nsolution, never the reading. Trace the whole thing first — every file the\nchange touches, the actual flow — before picking a rung. Laziness that skips\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\n\nHardware is never the ideal on paper: a real clock drifts, a real sensor\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\njust less code, the physical world needs tuning a minimal model can't see.\n\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\nsmallest thing that fails if the logic breaks: an `assert`-based\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\nfixtures, no per-function suites unless asked. Trivial one-liners need no\ntest, YAGNI applies to tests too.\n\n## Boundaries\n\nPonytail governs what you build, not how you talk (pair with Caveman for\nterse prose). \"stop ponytail\" / \"normal mode\": revert. Level persists until\nchanged or session end.\n\nThe shortest path to done is the right path.\n"}}
+2026-09-19T10:34:50.408Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:34:50.408Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:34:50.409Z [DEBUG] "Hook SubagentStart:fm-branch-mod:fm-branch (SubagentStart) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"PONYTAIL MODE ACTIVE — level: ultra\\n\\n# Ponytail\\n\\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\\nseen every over-engineered codebase and been paged at 3am for one. The best\\ncode is the code never written.\\n\\n## Persistence\\n\\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\\nunsure. Off only: \\\"stop ponytail\\\" / \\\"normal mode\\\". Default: **full**.\\nSwitch: `/ponytail lite|full|ultra`.\\n\\n## The ladder\\n\\nStop at the first rung that holds:\\n\\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\\n3. **Stdlib does it?** Use it.\\n4. **Native platform feature covers it?** `<input type=\\\"date\\\">` over a picker lib, CSS over JS, DB constraint over app code.\\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\\n6. **Can it be one line?** One line.\\n7. **Only then:** the minimum code that works.\\n\\nThe ladder is a reflex, not a research project — but it runs *after* you\\nunderstand the problem, not instead of it. Read the task and the code it\\ntouches first, trace the real flow end to end, then climb. Two rungs work →\\ntake the higher one and move on. The first lazy solution that works is the\\nright one — once you actually know what the change has to touch.\\n\\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\\nedit, grep every caller of the function you're about to touch. The lazy fix IS\\nthe root-cause fix: one guard in the shared function is a smaller diff than a\\nguard in every caller — and patching only the path the ticket names leaves\\nevery sibling caller still broken. Fix it once, where all callers route through.\\n\\n## Rules\\n\\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\\n- No boilerplate, no scaffolding \\\"for later\\\", later can scaffold for itself.\\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\\n- Complex request? Ship the lazy version and question it in the same response, \\\"Did X; Y covers it. Need full X? Say so.\\\" Never stall on an answer you can default.\\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\\n\\n## Output\\n\\nCode first. Then at most three short lines: what was skipped, when to add it.\\nNo essays, no feature tours, no design notes. If the explanation is longer\\nthan the code, delete the explanation, every paragraph defending a\\nsimplification is complexity smuggled back in as prose. Explanation the user\\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\\ngive it in full, the rule is only against unrequested prose.\\n\\nPattern: `[code] → skipped: [X], add when [Y].`\\n\\n## Intensity\\n\\n| Level | What change |\\n|-------|------------|\\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\\n\\nExample: \\\"Add a cache for these API responses.\\\"\\n- ultra: \\\"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\\\"\\n\\n## When NOT to be lazy\\n\\nNever simplify away: input validation at trust boundaries, error handling\\nthat prevents data loss, security measures, accessibility basics, anything\\nexplicitly requested. User insists on the full version → build it, no\\nre-arguing.\\n\\nNever lazy about understanding the problem. The ladder shortens the\\nsolution, never the reading. Trace the whole thing first — every file the\\nchange touches, the actual flow — before picking a rung. Laziness that skips\\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\\n\\nHardware is never the ideal on paper: a real clock drifts, a real sensor\\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\\njust less code, the physical world needs tuning a minimal model can't see.\\n\\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\\nsmallest thing that fails if the logic breaks: an `assert`-based\\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\\nfixtures, no per-function suites unless asked. Trivial one-liners need no\\ntest, YAGNI applies to tests too.\\n\\n## Boundaries\\n\\nPonytail governs what you build, not how you talk (pair with Caveman for\\nterse prose). \\\"stop ponytail\\\" / \\\"normal mode\\\": revert. Level persists until\\nchanged or session end.\\n\\nThe shortest path to done is the right path.\\n\"}}"
+2026-09-19T10:34:50.409Z [DEBUG] Hook SubagentStart (Loading ponytail mode...) provided additionalContext (5267 chars)
+2026-09-19T10:34:50.415Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:50.421Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:34:50.422Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCea6MMazLSUSRhcqe8t; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856; cc_turn_origin=task_notification;
+2026-09-19T10:34:50.423Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.424Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.427Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.427Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:50.428Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=393a91f5-3ff1-4534-90ea-a4793001c6fa source=repl_main_thread:outputStyle:custom
+2026-09-19T10:34:50.436Z [DEBUG] hooks module fm-branch-mod@inline: turn.step stream nested in fm-branch-mod#2
+2026-09-19T10:34:50.438Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572365)
+2026-09-19T10:34:50.439Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-19T10:34:50.441Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.69c; cc_entrypoint=cli; cch=00000; cc_is_subagent=true; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856;
+2026-09-19T10:34:50.441Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.442Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.444Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:50.444Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:50.445Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=3a220ff9-b33e-4f7f-a933-457660c6529b source=agent:custom:fm-branch-mod:fm-branch
+2026-09-19T10:34:50.446Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:34:50.900Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:34:51.119Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:51.119Z [DEBUG] [API:timing] first byte after 693ms
+2026-09-19T10:34:51.162Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:51.162Z [DEBUG] [API:timing] first byte after 718ms
+2026-09-19T10:34:51.880Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:34:51.884Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 572643)
+2026-09-19T10:34:51.887Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01VUUME12S8VwKvLm9iTXAsJ permissionDecisionMs=2
+2026-09-19T10:34:51.890Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 8ms, 0 + 0 chars
+2026-09-19T10:34:51.890Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:34:51.935Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 1499.1ms (worker hop, next() included)
+2026-09-19T10:34:52.605Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01VUUME12S8VwKvLm9iTXAsJ outcome=ok durationMs=718
+2026-09-19T10:34:52.610Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 729.5ms (worker hop, next() included)
+2026-09-19T10:34:52.615Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:52.617Z [DEBUG] hooks module fm-branch-mod@inline: turn.step stream nested in fm-branch-mod#2
+2026-09-19T10:34:52.619Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 573643)
+2026-09-19T10:34:52.620Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-19T10:34:52.622Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.69c; cc_entrypoint=cli; cch=00000; cc_is_subagent=true; cc_prev_req=req_011CfCeauggyJ6m6oNSxw1VB; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856;
+2026-09-19T10:34:52.622Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:52.623Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:52.626Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:52.626Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:52.627Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=03dcb517-5113-490c-9ddf-0dace0fe3789 source=agent:custom:fm-branch-mod:fm-branch
+2026-09-19T10:34:52.627Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:34:53.256Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:53.256Z [DEBUG] [API:timing] first byte after 631ms
+2026-09-19T10:34:54.792Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:34:54.795Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 575912)
+2026-09-19T10:34:54.797Z [DEBUG] $.process.run (fm-branch-mod): bash with 12 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 575916)
+2026-09-19T10:34:54.798Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:34:54.869Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 2252.0ms (worker hop, next() included)
+2026-09-19T10:34:54.885Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 89ms, 2 + 0 chars
+2026-09-19T10:34:54.887Z [DEBUG] $.process.run (fm-branch-mod): bash with 4 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 576130)
+2026-09-19T10:34:54.933Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 47ms, 0 + 0 chars
+2026-09-19T10:34:54.934Z [DEBUG] [fm-branch-mod] $.ui.log: ⛵ dummy: Dummy task progressing normally through its loop (steps 1-5); no new terminal or captain-facing status.
+2026-09-19T10:34:54.936Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 576242)
+2026-09-19T10:34:54.936Z [DEBUG] fm-branch-mod (user) answered tool.call without next() in 141.9ms; nothing beneath it ran for this dispatch
+2026-09-19T10:34:54.936Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 144.8ms (worker hop, next() included)
+2026-09-19T10:34:54.936Z [DEBUG] tool.call mcp__fm-branch-mod__fm_branch_report toolu_01CG8z1J6JsQ1JdB5xkLuc9L: resolved by a hooks module (result)
+2026-09-19T10:34:54.941Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:54.942Z [DEBUG] hooks module fm-branch-mod@inline: turn.step stream nested in fm-branch-mod#2
+2026-09-19T10:34:54.948Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 13ms, 0 + 0 chars
+2026-09-19T10:34:54.949Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 576258)
+2026-09-19T10:34:54.950Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-19T10:34:54.951Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.69c; cc_entrypoint=cli; cch=00000; cc_is_subagent=true; cc_prev_req=req_011CfCeb4r6QbHZ2yYnkLNhk; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856;
+2026-09-19T10:34:54.951Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:54.952Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:54.955Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:54.955Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:54.956Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=44609287-ce0c-46e8-a9fc-788e09653bdd source=agent:custom:fm-branch-mod:fm-branch
+2026-09-19T10:34:54.957Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:34:55.557Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:55.557Z [DEBUG] [API:timing] first byte after 602ms
+2026-09-19T10:34:56.239Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:34:56.243Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 577815)
+2026-09-19T10:34:56.248Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01BCnFfi9g1P9EqcYqeUrtAi permissionDecisionMs=2
+2026-09-19T10:34:56.251Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:34:56.251Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:34:56.305Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 1363.2ms (worker hop, next() included)
+2026-09-19T10:34:56.393Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01BCnFfi9g1P9EqcYqeUrtAi outcome=ok durationMs=145
+2026-09-19T10:34:56.398Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 158.3ms (worker hop, next() included)
+2026-09-19T10:34:56.402Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:34:56.403Z [DEBUG] hooks module fm-branch-mod@inline: turn.step stream nested in fm-branch-mod#2
+2026-09-19T10:34:56.405Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 578095)
+2026-09-19T10:34:56.406Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-19T10:34:56.407Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.69c; cc_entrypoint=cli; cch=00000; cc_is_subagent=true; cc_prev_req=req_011CfCebEgC2jL1iTcEinFpN; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856;
+2026-09-19T10:34:56.408Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:56.409Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:56.411Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:34:56.411Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:34:56.412Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=1e2b2dfa-b34f-4e01-b905-901e6993de78 source=agent:custom:fm-branch-mod:fm-branch
+2026-09-19T10:34:56.413Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:34:57.265Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:34:57.265Z [DEBUG] [API:timing] first byte after 854ms
+2026-09-19T10:34:57.300Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 896.6ms (worker hop, next() included)
+2026-09-19T10:34:57.305Z [DEBUG] [AgentSummary] Stopping summarization for a239a11a72cd45d73
+2026-09-19T10:34:57.305Z [INFO] [Stall] agent_completion agentId=a239a11a72cd45d73 agentType=fm-branch-mod:fm-branch exitPath=completed durationMs=6946 turns=4 finalStopReason=end_turn lastChunkAgeMs=10 lastToolUseId=toolu_01BCnFfi9g1P9EqcYqeUrtAi lastToolResultSeen=toolu_01BCnFfi9g1P9EqcYqeUrtAi
+2026-09-19T10:34:57.312Z [DEBUG] [enqueueAgentNotification] skipped taskId=a239a11a72cd45d73 status=completed taskPresent=true reason=already-notified
+2026-09-19T10:34:57.317Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 579306)
+2026-09-19T10:34:57.319Z [DEBUG] $.process.run (fm-branch-mod): bash with 3 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 579311)
+2026-09-19T10:34:57.322Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 7ms, 0 + 0 chars
+2026-09-19T10:34:57.358Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 41ms, 0 + 0 chars
+2026-09-19T10:34:57.360Z [DEBUG] $.process.run (fm-branch-mod): bash with 3 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 579407)
+2026-09-19T10:34:57.405Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 46ms, 0 + 0 chars
+2026-09-19T10:34:57.406Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 579505)
+2026-09-19T10:34:57.408Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.complete settled in 105.2ms (worker hop, next() included)
+2026-09-19T10:34:57.409Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:34:59.342Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:35:01.776Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:02.230Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:02.231Z [DEBUG] High write ratio: blit=0, write=1532 (100.0% writes), screen=37x160
+2026-09-19T10:35:02.237Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01MqdAHrbaWcVA2stUhYR5LE permissionDecisionMs=3
+2026-09-19T10:35:02.252Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:35:02.295Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 11893.3ms (worker hop, next() included)
+2026-09-19T10:35:03.008Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01MqdAHrbaWcVA2stUhYR5LE outcome=ok durationMs=771
+2026-09-19T10:35:03.013Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 789.0ms (worker hop, next() included)
+2026-09-19T10:35:03.017Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:35:03.017Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:35:03.017Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:35:03.017Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:35:03.026Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:03.041Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:35:03.050Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:35:03.052Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCeauSJSd2VPEc8UwtHt; cc_prompt_id=c13b2798-9ead-4255-abd8-e732c6d9e856; cc_turn_origin=task_notification;
+2026-09-19T10:35:03.053Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:03.054Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:03.057Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:03.057Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:35:03.058Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=826e571f-c61c-4f8c-8239-a9c81472c96b source=repl_main_thread:outputStyle:custom
+2026-09-19T10:35:03.898Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:35:03.899Z [DEBUG] [API:timing] first byte after 842ms
+2026-09-19T10:35:10.326Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:35:10.755Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:35:10.755Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.b7027f9e78bf
+2026-09-19T10:35:10.756Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:35:10.763Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:35:10.763Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.b7027f9e78bf to /home/andre/.claude.json
+2026-09-19T10:35:10.764Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:35:14.874Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:35:14.917Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:15.956Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:15.957Z [DEBUG] High write ratio: blit=0, write=1802 (100.0% writes), screen=39x160
+2026-09-19T10:35:15.965Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 12921.5ms (worker hop, next() included)
+2026-09-19T10:35:15.971Z [DEBUG] Hooks: Config-based async hook, backgrounding process async_hook_588517
+2026-09-19T10:35:15.972Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.104; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:35:15.972Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=8c09ee2f-a1a1-4832-bc82-298ef20c1043 source=side_query
+2026-09-19T10:35:16.343Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:35:16.348Z [DEBUG] [engine] turn 2 end (turns=3 usage in=1802 out=4011 cost=$0.3077 api=44820ms stop=end_turn resultLen=287)
+2026-09-19T10:35:16.352Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=3
+2026-09-19T10:35:16.356Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 589065)
+2026-09-19T10:35:16.366Z [DEBUG] High write ratio: blit=0, write=1722 (100.0% writes), screen=38x160
+2026-09-19T10:35:16.368Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:16.369Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 14ms, 0 + 0 chars
+2026-09-19T10:35:16.372Z [DEBUG] $.store.set (compact-adviser@compact-adviser): session:359b53a5-0623-48c6-a886-e8c5254cc83d
+2026-09-19T10:35:16.373Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:16.374Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:35:16.375Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 1.0ms (worker hop, next() included)
+2026-09-19T10:35:16.379Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:16.380Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:35:16.381Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 1.4ms (worker hop, next() included)
+2026-09-19T10:35:16.382Z [ERROR] $.fs.read (compact-adviser): /tmp/fm-branch-claude-live.SANFg2/home/.env failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/.env'
+2026-09-19T10:35:16.383Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.complete settled in 29.8ms (worker hop, next() included)
+2026-09-19T10:35:18.850Z [DEBUG] plugin-dir watch on /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2WKJVHWRP74DG4YGXZ8TQ9H/.claude/mods/fm-branch-mod: idle, polling every 30000ms
+2026-09-19T10:35:20.060Z [DEBUG] [skills] idle — switching poll interval to 30000ms
+2026-09-19T10:35:28.755Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:35:30.096Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 596733)
+2026-09-19T10:35:30.099Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:35:30.100Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:35:30.100Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.e7c4b4b0e1d6
+2026-09-19T10:35:30.101Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:35:30.106Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 596752)
+2026-09-19T10:35:30.106Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed'
+2026-09-19T10:35:30.106Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:35:30.106Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.e7c4b4b0e1d6 to /home/andre/.claude.json
+2026-09-19T10:35:30.107Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:35:30.108Z [DEBUG] $.process.run (fm-branch-mod): bash with 2 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 596758)
+2026-09-19T10:35:30.108Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:35:30.191Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 84ms, 843 + 0 chars
+2026-09-19T10:35:30.192Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model'
+2026-09-19T10:35:30.192Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.5a2; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:35:30.193Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=442106df-df89-4bfc-87f8-02f7ddae5879 source=side_query
+2026-09-19T10:35:31.247Z [DEBUG] $.model.complete (fm-branch-mod): claude-haiku-4-5-20251001 answered in 1055ms, 170 chars
+2026-09-19T10:35:31.250Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598387)
+2026-09-19T10:35:31.252Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 4ms, 0 + 0 chars
+2026-09-19T10:35:31.253Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598393)
+2026-09-19T10:35:31.254Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed (9 bytes)
+2026-09-19T10:35:31.255Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598398)
+2026-09-19T10:35:31.257Z [DEBUG] $.process.run (fm-branch-mod): bash with 2 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598403)
+2026-09-19T10:35:31.259Z [DEBUG] $.process.run (fm-branch-mod): bash with 12 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598405)
+2026-09-19T10:35:31.267Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 15ms, 0 + 0 chars
+2026-09-19T10:35:31.267Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 13ms, 0 + 0 chars
+2026-09-19T10:35:31.295Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:35:31.297Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:35:31.297Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:35:31.298Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:35:31.300Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:35:31.301Z [DEBUG] "Hook UserPromptSubmit (UserPromptSubmit) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact.\"}}"
+2026-09-19T10:35:31.301Z [DEBUG] Hook UserPromptSubmit (Tracking caveman mode...) provided additionalContext (278 chars)
+2026-09-19T10:35:31.302Z [DEBUG] prompt.submit: text rewritten by a hook (341 -> 684 chars)
+2026-09-19T10:35:31.304Z [DEBUG] [engine] turn 3 start
+2026-09-19T10:35:31.305Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:35:31.308Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598544)
+2026-09-19T10:35:31.309Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 1214.6ms (worker hop, next() included)
+2026-09-19T10:35:31.309Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.start settled in 5.3ms (worker hop, next() included)
+2026-09-19T10:35:31.315Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:31.317Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 9ms, 0 + 0 chars
+2026-09-19T10:35:31.320Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:35:31.322Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCebqTxah2aJ3QZpJpkZ; cc_prompt_id=2c24232a-3e04-47ad-80ce-d0e84e74aba3; cc_turn_origin=task_notification;
+2026-09-19T10:35:31.323Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:31.325Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:31.328Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:31.329Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:35:31.330Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=7e9a988f-e920-4a1c-bfa8-7dd0566beb6a source=repl_main_thread:outputStyle:custom
+2026-09-19T10:35:31.360Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 104ms, 565 + 0 chars
+2026-09-19T10:35:31.366Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 109ms, 2 + 0 chars
+2026-09-19T10:35:31.368Z [DEBUG] $.process.run (fm-branch-mod): bash with 4 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598735)
+2026-09-19T10:35:31.415Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 48ms, 0 + 0 chars
+2026-09-19T10:35:31.416Z [DEBUG] $.process.run (fm-branch-mod): bash with 4 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598824)
+2026-09-19T10:35:31.461Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 46ms, 0 + 0 chars
+2026-09-19T10:35:31.463Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 598907)
+2026-09-19T10:35:31.465Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:35:31.785Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:35:32.159Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:35:32.159Z [DEBUG] [API:timing] first byte after 831ms
+2026-09-19T10:35:33.109Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:33.205Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:33.207Z [DEBUG] High write ratio: blit=0, write=1905 (100.0% writes), screen=46x160
+2026-09-19T10:35:33.212Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01DCE8TLPd6EKtGWFHtQRitP permissionDecisionMs=2
+2026-09-19T10:35:33.219Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:35:33.230Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 1920.9ms (worker hop, next() included)
+2026-09-19T10:35:33.938Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01DCE8TLPd6EKtGWFHtQRitP outcome=ok durationMs=726
+2026-09-19T10:35:33.942Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 744.3ms (worker hop, next() included)
+2026-09-19T10:35:33.946Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:35:33.946Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:35:33.946Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:35:33.946Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:35:33.954Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:33.957Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:35:33.967Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:35:33.969Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCedvJyGyPFT1EosU3yk; cc_prompt_id=2c24232a-3e04-47ad-80ce-d0e84e74aba3; cc_turn_origin=task_notification;
+2026-09-19T10:35:33.970Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:33.972Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:33.974Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:33.975Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:35:33.976Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=c527f9a8-ddd9-468c-a7e6-04e155641144 source=repl_main_thread:outputStyle:custom
+2026-09-19T10:35:34.867Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:35:34.867Z [DEBUG] [API:timing] first byte after 893ms
+2026-09-19T10:35:37.095Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:37.775Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:37.776Z [DEBUG] High write ratio: blit=0, write=2443 (100.0% writes), screen=52x160
+2026-09-19T10:35:38.138Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:35:38.138Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.4d1de74bec0e
+2026-09-19T10:35:38.138Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:35:38.142Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:35:38.142Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.4d1de74bec0e to /home/andre/.claude.json
+2026-09-19T10:35:38.143Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:35:38.463Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:38.464Z [DEBUG] High write ratio: blit=0, write=2551 (100.0% writes), screen=55x160
+2026-09-19T10:35:38.470Z [INFO] [Stall] tool_dispatch_start tool=Bash toolUseId=toolu_01EuieLaKHZUdLYd8pJYtHcR permissionDecisionMs=3
+2026-09-19T10:35:38.477Z [DEBUG] Spawning shell without login (-l flag skipped)
+2026-09-19T10:35:38.497Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 4538.1ms (worker hop, next() included)
+2026-09-19T10:35:38.637Z [INFO] [Stall] tool_dispatch_end tool=Bash toolUseId=toolu_01EuieLaKHZUdLYd8pJYtHcR outcome=ok durationMs=167
+2026-09-19T10:35:38.643Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 186.9ms (worker hop, next() included)
+2026-09-19T10:35:38.653Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:38.654Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 605203)
+2026-09-19T10:35:38.661Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 7ms, 0 + 0 chars
+2026-09-19T10:35:38.681Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:35:38.681Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact."}}
+2026-09-19T10:35:38.681Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:35:38.683Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:35:38.685Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:35:38.685Z [DEBUG] "Hook UserPromptSubmit (UserPromptSubmit) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"CAVEMAN MODE ACTIVE (ultra). Enforce this reply: Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap. Technical terms, code, commands, paths, and errors stay exact.\"}}"
+2026-09-19T10:35:38.686Z [DEBUG] Hook UserPromptSubmit (Tracking caveman mode...) provided additionalContext (278 chars)
+2026-09-19T10:35:38.688Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-09-19T10:35:38.688Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-09-19T10:35:38.688Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-19T10:35:38.689Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-19T10:35:38.690Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 43.7ms (worker hop, next() included)
+2026-09-19T10:35:38.698Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:35:38.711Z [DEBUG] Dynamic tool loading: 0/46 deferred tools included
+2026-09-19T10:35:38.713Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.c5c; cc_entrypoint=cli; cch=00000; cc_prev_req=req_011CfCee7gLmdnk22UdBKQH9; cc_prompt_id=2c24232a-3e04-47ad-80ce-d0e84e74aba3; cc_turn_origin=task_notification;
+2026-09-19T10:35:38.714Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:38.715Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:38.718Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:38.718Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:35:38.719Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=4b7c98cd-b72c-42db-9b56-64a87127345d source=repl_main_thread:outputStyle:custom
+2026-09-19T10:35:39.546Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:35:39.546Z [DEBUG] [API:timing] first byte after 829ms
+2026-09-19T10:35:39.700Z [DEBUG] [remote-bridge] Sending 1 message(s)
+2026-09-19T10:35:39.701Z [DEBUG] High write ratio: blit=0, write=2590 (100.0% writes), screen=59x160
+2026-09-19T10:35:39.742Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 1042.2ms (worker hop, next() included)
+2026-09-19T10:35:39.752Z [DEBUG] Hooks: Config-based async hook, backgrounding process async_hook_605567
+2026-09-19T10:35:39.755Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.104; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:35:39.756Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=e16ab4ba-23d3-4a21-a43b-70a4feabab58 source=side_query
+2026-09-19T10:35:40.210Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-19T10:35:40.215Z [DEBUG] [engine] turn 3 end (turns=3 usage in=1808 out=4628 cost=$0.3714 api=52266ms stop=end_turn resultLen=32)
+2026-09-19T10:35:40.218Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=3
+2026-09-19T10:35:40.222Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 606414)
+2026-09-19T10:35:40.234Z [DEBUG] High write ratio: blit=0, write=2532 (100.0% writes), screen=58x160
+2026-09-19T10:35:40.236Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:40.237Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 16ms, 0 + 0 chars
+2026-09-19T10:35:40.241Z [DEBUG] $.store.set (compact-adviser@compact-adviser): session:359b53a5-0623-48c6-a886-e8c5254cc83d
+2026-09-19T10:35:40.242Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:40.245Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:35:40.246Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 1.2ms (worker hop, next() included)
+2026-09-19T10:35:40.248Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:40.250Z [DEBUG] hooks module compact-adviser@compact-adviser: config.describe nested in compact-adviser#2
+2026-09-19T10:35:40.251Z [DEBUG] hooks module compact-adviser@compact-adviser config.describe settled in 1.5ms (worker hop, next() included)
+2026-09-19T10:35:40.252Z [ERROR] $.fs.read (compact-adviser): /tmp/fm-branch-claude-live.SANFg2/home/.env failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/.env'
+2026-09-19T10:35:40.253Z [DEBUG] hooks module fm-branch-mod@inline, compact-adviser@compact-adviser turn.complete settled in 33.3ms (worker hop, next() included)
+2026-09-19T10:35:49.361Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:35:50.102Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:35:53.320Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 612594)
+2026-09-19T10:35:53.320Z [DEBUG] fm-branch-mod (user) answered prompt.submit without next() in 0.3ms; nothing beneath it ran for this dispatch
+2026-09-19T10:35:53.320Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 2.5ms (worker hop, next() included)
+2026-09-19T10:35:53.320Z [DEBUG] prompt.submit: dropped (fm-branch-mod: monitor notice without a wake)
+2026-09-19T10:35:53.323Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=0
+2026-09-19T10:35:53.331Z [DEBUG] High write ratio: blit=0, write=2603 (100.0% writes), screen=60x160
+2026-09-19T10:35:53.333Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:35:53.333Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 14ms, 0 + 0 chars
+2026-09-19T10:35:53.337Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:35:53.337Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.1a76c07b3beb
+2026-09-19T10:35:53.337Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:35:53.344Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:35:53.344Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.1a76c07b3beb to /home/andre/.claude.json
+2026-09-19T10:35:53.344Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:06.389Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 616900)
+2026-09-19T10:36:06.390Z [DEBUG] fm-branch-mod (user) answered prompt.submit without next() in 0.3ms; nothing beneath it ran for this dispatch
+2026-09-19T10:36:06.390Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 2.1ms (worker hop, next() included)
+2026-09-19T10:36:06.390Z [DEBUG] prompt.submit: dropped (fm-branch-mod: monitor notice without a wake)
+2026-09-19T10:36:06.392Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=0
+2026-09-19T10:36:06.400Z [DEBUG] High write ratio: blit=0, write=2674 (100.0% writes), screen=62x160
+2026-09-19T10:36:06.401Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:36:06.402Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 14ms, 0 + 0 chars
+2026-09-19T10:36:06.405Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:06.405Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.c646ac1f13ad
+2026-09-19T10:36:06.405Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:06.408Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:36:06.408Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.c646ac1f13ad to /home/andre/.claude.json
+2026-09-19T10:36:06.408Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:08.271Z [DEBUG] CCRClient: Heartbeat sent
+2026-09-19T10:36:11.197Z [DEBUG] "Hook Stop (Stop) error:\nfirstmate watcher wake - one supervision event needs a handling turn now.\nsignal: /tmp/fm-branch-claude-live.SANFg2/home/state/dummy.status\nRun bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake."
+2026-09-19T10:36:11.214Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 619845)
+2026-09-19T10:36:11.216Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:36:11.217Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:11.217Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.e0b2fa1b6e66
+2026-09-19T10:36:11.218Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:11.224Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 619852)
+2026-09-19T10:36:11.225Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:36:11.225Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.e0b2fa1b6e66 to /home/andre/.claude.json
+2026-09-19T10:36:11.226Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 3ms, 0 + 0 chars
+2026-09-19T10:36:11.226Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:11.226Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-passed (2 bytes)
+2026-09-19T10:36:11.227Z [DEBUG] $.process.run (fm-branch-mod): bash with 2 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 619855)
+2026-09-19T10:36:11.304Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 77ms, 834 + 0 chars
+2026-09-19T10:36:11.304Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/config/classifier-model'
+2026-09-19T10:36:11.305Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.5a2; cc_entrypoint=cli; cch=00000;
+2026-09-19T10:36:11.306Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=c20026fa-760e-4067-9f84-6ee4607b1e52 source=side_query
+2026-09-19T10:36:12.322Z [DEBUG] $.model.complete (fm-branch-mod): claude-haiku-4-5-20251001 answered in 1017ms, 135 chars
+2026-09-19T10:36:12.328Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620455)
+2026-09-19T10:36:12.332Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 7ms, 0 + 0 chars
+2026-09-19T10:36:12.334Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620458)
+2026-09-19T10:36:12.336Z [DEBUG] $.process.run (fm-branch-mod): bash with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620460)
+2026-09-19T10:36:12.338Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 5ms, 0 + 0 chars
+2026-09-19T10:36:12.383Z [DEBUG] $.process.run (fm-branch-mod): bash exited 0 in 48ms, 0 + 0 chars
+2026-09-19T10:36:12.385Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620506)
+2026-09-19T10:36:12.385Z [DEBUG] $.fs.write (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/state/.branch-mod-counters (196 bytes)
+2026-09-19T10:36:12.386Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 2ms, 0 + 0 chars
+2026-09-19T10:36:12.387Z [ERROR] $.fs.read (fm-branch-mod): /tmp/fm-branch-claude-live.SANFg2/home/config/supervision-branch-model failed: ENOENT: no such file or directory, open '/tmp/fm-branch-claude-live.SANFg2/home/config/supervision-branch-model'
+2026-09-19T10:36:12.388Z [DEBUG] $.tool.call (fm-branch-mod): SendMessage (to, summary, message)
+2026-09-19T10:36:12.389Z [DEBUG] hooks module fm-branch-mod@inline: tool.call nested in fm-branch-mod#2
+2026-09-19T10:36:12.393Z [INFO] [Stall] tool_dispatch_start tool=SendMessage toolUseId=toolu_plugin_2cbf158fb71342a2b06863de706b5d73 permissionDecisionMs=0
+2026-09-19T10:36:12.408Z [INFO] [Stall] tool_dispatch_end tool=SendMessage toolUseId=toolu_plugin_2cbf158fb71342a2b06863de706b5d73 outcome=ok durationMs=15
+2026-09-19T10:36:12.413Z [DEBUG] hooks module fm-branch-mod@inline tool.call settled in 24.2ms (worker hop, next() included)
+2026-09-19T10:36:12.413Z [DEBUG] $.tool.call (fm-branch-mod): SendMessage answered in 25ms, 157 chars
+2026-09-19T10:36:12.415Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620511)
+2026-09-19T10:36:12.418Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620517)
+2026-09-19T10:36:12.419Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620523)
+2026-09-19T10:36:12.420Z [DEBUG] hooks module fm-branch-mod@inline prompt.submit settled in 1208.1ms (worker hop, next() included)
+2026-09-19T10:36:12.420Z [DEBUG] prompt.submit: dropped (fm-branch-mod: routed to supervision branch)
+2026-09-19T10:36:12.423Z [DEBUG] [remote-bridge] Sent result success is_error=false num_turns=0
+2026-09-19T10:36:12.432Z [DEBUG] High write ratio: blit=0, write=2808 (100.0% writes), screen=67x160
+2026-09-19T10:36:12.433Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:36:12.434Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 20ms, 0 + 0 chars
+2026-09-19T10:36:12.435Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 19ms, 0 + 0 chars
+2026-09-19T10:36:12.435Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 17ms, 0 + 0 chars
+2026-09-19T10:36:12.439Z [DEBUG] Hooks: Checking first line for async: {"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"PONYTAIL MODE ACTIVE — level: ultra\n\n# Ponytail\n\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\nseen every over-engineered codebase and been paged at 3am for one. The best\ncode is the code never written.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\nunsure. Off only: \"stop ponytail\" / \"normal mode\". Default: **full**.\nSwitch: `/ponytail lite|full|ultra`.\n\n## The ladder\n\nStop at the first rung that holds:\n\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\n3. **Stdlib does it?** Use it.\n4. **Native platform feature covers it?** `<input type=\"date\">` over a picker lib, CSS over JS, DB constraint over app code.\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\n6. **Can it be one line?** One line.\n7. **Only then:** the minimum code that works.\n\nThe ladder is a reflex, not a research project — but it runs *after* you\nunderstand the problem, not instead of it. Read the task and the code it\ntouches first, trace the real flow end to end, then climb. Two rungs work →\ntake the higher one and move on. The first lazy solution that works is the\nright one — once you actually know what the change has to touch.\n\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\nedit, grep every caller of the function you're about to touch. The lazy fix IS\nthe root-cause fix: one guard in the shared function is a smaller diff than a\nguard in every caller — and patching only the path the ticket names leaves\nevery sibling caller still broken. Fix it once, where all callers route through.\n\n## Rules\n\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\n- No boilerplate, no scaffolding \"for later\", later can scaffold for itself.\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\n- Complex request? Ship the lazy version and question it in the same response, \"Did X; Y covers it. Need full X? Say so.\" Never stall on an answer you can default.\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\n\n## Output\n\nCode first. Then at most three short lines: what was skipped, when to add it.\nNo essays, no feature tours, no design notes. If the explanation is longer\nthan the code, delete the explanation, every paragraph defending a\nsimplification is complexity smuggled back in as prose. Explanation the user\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\ngive it in full, the rule is only against unrequested prose.\n\nPattern: `[code] → skipped: [X], add when [Y].`\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\n\nExample: \"Add a cache for these API responses.\"\n- ultra: \"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\"\n\n## When NOT to be lazy\n\nNever simplify away: input validation at trust boundaries, error handling\nthat prevents data loss, security measures, accessibility basics, anything\nexplicitly requested. User insists on the full version → build it, no\nre-arguing.\n\nNever lazy about understanding the problem. The ladder shortens the\nsolution, never the reading. Trace the whole thing first — every file the\nchange touches, the actual flow — before picking a rung. Laziness that skips\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\n\nHardware is never the ideal on paper: a real clock drifts, a real sensor\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\njust less code, the physical world needs tuning a minimal model can't see.\n\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\nsmallest thing that fails if the logic breaks: an `assert`-based\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\nfixtures, no per-function suites unless asked. Trivial one-liners need no\ntest, YAGNI applies to tests too.\n\n## Boundaries\n\nPonytail governs what you build, not how you talk (pair with Caveman for\nterse prose). \"stop ponytail\" / \"normal mode\": revert. Level persists until\nchanged or session end.\n\nThe shortest path to done is the right path.\n"}}
+2026-09-19T10:36:12.439Z [DEBUG] Hooks: Parsed initial response: {"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"PONYTAIL MODE ACTIVE — level: ultra\n\n# Ponytail\n\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\nseen every over-engineered codebase and been paged at 3am for one. The best\ncode is the code never written.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\nunsure. Off only: \"stop ponytail\" / \"normal mode\". Default: **full**.\nSwitch: `/ponytail lite|full|ultra`.\n\n## The ladder\n\nStop at the first rung that holds:\n\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\n3. **Stdlib does it?** Use it.\n4. **Native platform feature covers it?** `<input type=\"date\">` over a picker lib, CSS over JS, DB constraint over app code.\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\n6. **Can it be one line?** One line.\n7. **Only then:** the minimum code that works.\n\nThe ladder is a reflex, not a research project — but it runs *after* you\nunderstand the problem, not instead of it. Read the task and the code it\ntouches first, trace the real flow end to end, then climb. Two rungs work →\ntake the higher one and move on. The first lazy solution that works is the\nright one — once you actually know what the change has to touch.\n\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\nedit, grep every caller of the function you're about to touch. The lazy fix IS\nthe root-cause fix: one guard in the shared function is a smaller diff than a\nguard in every caller — and patching only the path the ticket names leaves\nevery sibling caller still broken. Fix it once, where all callers route through.\n\n## Rules\n\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\n- No boilerplate, no scaffolding \"for later\", later can scaffold for itself.\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\n- Complex request? Ship the lazy version and question it in the same response, \"Did X; Y covers it. Need full X? Say so.\" Never stall on an answer you can default.\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\n\n## Output\n\nCode first. Then at most three short lines: what was skipped, when to add it.\nNo essays, no feature tours, no design notes. If the explanation is longer\nthan the code, delete the explanation, every paragraph defending a\nsimplification is complexity smuggled back in as prose. Explanation the user\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\ngive it in full, the rule is only against unrequested prose.\n\nPattern: `[code] → skipped: [X], add when [Y].`\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\n\nExample: \"Add a cache for these API responses.\"\n- ultra: \"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\"\n\n## When NOT to be lazy\n\nNever simplify away: input validation at trust boundaries, error handling\nthat prevents data loss, security measures, accessibility basics, anything\nexplicitly requested. User insists on the full version → build it, no\nre-arguing.\n\nNever lazy about understanding the problem. The ladder shortens the\nsolution, never the reading. Trace the whole thing first — every file the\nchange touches, the actual flow — before picking a rung. Laziness that skips\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\n\nHardware is never the ideal on paper: a real clock drifts, a real sensor\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\njust less code, the physical world needs tuning a minimal model can't see.\n\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\nsmallest thing that fails if the logic breaks: an `assert`-based\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\nfixtures, no per-function suites unless asked. Trivial one-liners need no\ntest, YAGNI applies to tests too.\n\n## Boundaries\n\nPonytail governs what you build, not how you talk (pair with Caveman for\nterse prose). \"stop ponytail\" / \"normal mode\": revert. Level persists until\nchanged or session end.\n\nThe shortest path to done is the right path.\n"}}
+2026-09-19T10:36:12.439Z [DEBUG] Hooks: Initial response is not async, continuing normal processing
+2026-09-19T10:36:12.440Z [DEBUG] Successfully parsed and validated hook JSON output
+2026-09-19T10:36:12.441Z [DEBUG] "Hook SubagentStart:fm-branch-mod:fm-branch (SubagentStart) success:\n{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"PONYTAIL MODE ACTIVE — level: ultra\\n\\n# Ponytail\\n\\nYou are a lazy senior developer. Lazy means efficient, not careless. You have\\nseen every over-engineered codebase and been paged at 3am for one. The best\\ncode is the code never written.\\n\\n## Persistence\\n\\nACTIVE EVERY RESPONSE. No drift back to over-building. Still active if\\nunsure. Off only: \\\"stop ponytail\\\" / \\\"normal mode\\\". Default: **full**.\\nSwitch: `/ponytail lite|full|ultra`.\\n\\n## The ladder\\n\\nStop at the first rung that holds:\\n\\n1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)\\n2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → reuse it. Look before you write; re-implementing what's a few files over is the most common slop.\\n3. **Stdlib does it?** Use it.\\n4. **Native platform feature covers it?** `<input type=\\\"date\\\">` over a picker lib, CSS over JS, DB constraint over app code.\\n5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.\\n6. **Can it be one line?** One line.\\n7. **Only then:** the minimum code that works.\\n\\nThe ladder is a reflex, not a research project — but it runs *after* you\\nunderstand the problem, not instead of it. Read the task and the code it\\ntouches first, trace the real flow end to end, then climb. Two rungs work →\\ntake the higher one and move on. The first lazy solution that works is the\\nright one — once you actually know what the change has to touch.\\n\\n**Bug fix = root cause, not symptom.** A report names a symptom. Before you\\nedit, grep every caller of the function you're about to touch. The lazy fix IS\\nthe root-cause fix: one guard in the shared function is a smaller diff than a\\nguard in every caller — and patching only the path the ticket names leaves\\nevery sibling caller still broken. Fix it once, where all callers route through.\\n\\n## Rules\\n\\n- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.\\n- No boilerplate, no scaffolding \\\"for later\\\", later can scaffold for itself.\\n- Deletion over addition. Boring over clever, clever is what someone decodes at 3am.\\n- Fewest files possible. Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.\\n- Complex request? Ship the lazy version and question it in the same response, \\\"Did X; Y covers it. Need full X? Say so.\\\" Never stall on an answer you can default.\\n- Two stdlib options, same size? Take the one that's correct on edge cases. Lazy means writing less code, not picking the flimsier algorithm.\\n- Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path (`# ponytail: global lock, per-account locks if throughput matters`).\\n\\n## Output\\n\\nCode first. Then at most three short lines: what was skipped, when to add it.\\nNo essays, no feature tours, no design notes. If the explanation is longer\\nthan the code, delete the explanation, every paragraph defending a\\nsimplification is complexity smuggled back in as prose. Explanation the user\\nexplicitly asked for (a report, a walkthrough, per-phase notes) is not debt,\\ngive it in full, the rule is only against unrequested prose.\\n\\nPattern: `[code] → skipped: [X], add when [Y].`\\n\\n## Intensity\\n\\n| Level | What change |\\n|-------|------------|\\n| **ultra** | YAGNI extremist. Deletion before addition. Ship the one-liner and challenge the rest of the requirement in the same breath. |\\n\\nExample: \\\"Add a cache for these API responses.\\\"\\n- ultra: \\\"No cache until a profiler says so. When it does: `@lru_cache`. A hand-rolled TTL cache class is a bug farm with a hit rate.\\\"\\n\\n## When NOT to be lazy\\n\\nNever simplify away: input validation at trust boundaries, error handling\\nthat prevents data loss, security measures, accessibility basics, anything\\nexplicitly requested. User insists on the full version → build it, no\\nre-arguing.\\n\\nNever lazy about understanding the problem. The ladder shortens the\\nsolution, never the reading. Trace the whole thing first — every file the\\nchange touches, the actual flow — before picking a rung. Laziness that skips\\ncomprehension to ship a small diff is the dangerous kind: it dresses up as\\nefficiency and ships a confident wrong fix. Read fully, then be lazy.\\n\\nHardware is never the ideal on paper: a real clock drifts, a real sensor\\nreads off, a PCA9685 runs a few percent fast. Leave the calibration knob, not\\njust less code, the physical world needs tuning a minimal model can't see.\\n\\nLazy code without its check is unfinished. Non-trivial logic (a branch, a\\nloop, a parser, a money/security path) leaves ONE runnable check behind, the\\nsmallest thing that fails if the logic breaks: an `assert`-based\\n`demo()`/`__main__` self-check or one small `test_*.py`. No frameworks, no\\nfixtures, no per-function suites unless asked. Trivial one-liners need no\\ntest, YAGNI applies to tests too.\\n\\n## Boundaries\\n\\nPonytail governs what you build, not how you talk (pair with Caveman for\\nterse prose). \\\"stop ponytail\\\" / \\\"normal mode\\\": revert. Level persists until\\nchanged or session end.\\n\\nThe shortest path to done is the right path.\\n\"}}"
+2026-09-19T10:36:12.441Z [DEBUG] Hook SubagentStart (Loading ponytail mode...) provided additionalContext (5267 chars)
+2026-09-19T10:36:12.446Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-09-19T10:36:12.448Z [DEBUG] hooks module fm-branch-mod@inline: turn.step stream nested in fm-branch-mod#2
+2026-09-19T10:36:12.451Z [DEBUG] $.process.run (fm-branch-mod): sh with 5 args in /tmp/fm-branch-claude-live.SANFg2/home (pid 620532)
+2026-09-19T10:36:12.451Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-19T10:36:12.455Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.278.69c; cc_entrypoint=cli; cch=00000; cc_is_subagent=true; cc_prev_req=req_011CfCebM3g3R1n4y3wte9TC; cc_prompt_id=2c24232a-3e04-47ad-80ce-d0e84e74aba3;
+2026-09-19T10:36:12.455Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:36:12.456Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:36:12.460Z [DEBUG] Fast mode unavailable: Fast mode requires usage credits · /usage-credits to turn them on
+2026-09-19T10:36:12.460Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-5
+2026-09-19T10:36:12.461Z [DEBUG] [API REQUEST] /v1/messages x-client-request-id=dc3b66c5-f941-428b-82ea-2656d5c9a8af source=agent:custom:fm-branch-mod:fm-branch
+2026-09-19T10:36:12.462Z [DEBUG] $.process.run (fm-branch-mod): sh exited 0 in 12ms, 0 + 0 chars
+2026-09-19T10:36:12.984Z [DEBUG] nonBlockingStdout: uninstalling (Error: EIO: i/o error, write)
+2026-09-19T10:36:12.989Z [DEBUG] [uds-messaging] Shutting down
+2026-09-19T10:36:13.002Z [DEBUG] [closeSessionTabGroup] bridge not connected, skipping
+2026-09-19T10:36:13.003Z [DEBUG] LSP server manager shut down successfully
+2026-09-19T10:36:13.003Z [DEBUG] [presence session=cse_01JzMS6Gnj7rqYmPmEXD3EpC] clear → https://api.anthropic.com/v1/code/sessions/cse_01JzMS6Gnj7rqYmPmEXD3EpC/client/presence
+2026-09-19T10:36:13.012Z [DEBUG] High write ratio: blit=0, write=2808 (100.0% writes), screen=67x160
+2026-09-19T10:36:13.013Z [DEBUG] Cleaned up session snapshot: /home/andre/.claude/shell-snapshots/snapshot-bash-1789814053674-xikxcz.sh
+2026-09-19T10:36:13.037Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:13.037Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.7e8869c5d52c
+2026-09-19T10:36:13.038Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:13.042Z [DEBUG] Temp file written successfully, size: 199997 bytes
+2026-09-19T10:36:13.042Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.7e8869c5d52c to /home/andre/.claude.json
+2026-09-19T10:36:13.043Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:13.281Z [DEBUG] Stream started - received first chunk
+2026-09-19T10:36:13.281Z [DEBUG] [API:timing] first byte after 821ms
+2026-09-19T10:36:13.320Z [ERROR] Failed to flush logs to Datadog: AxiosError: timeout of 5000ms exceeded
+2026-09-19T10:36:13.693Z [DEBUG] SSETransport: Event seq=59 event_id=39df5bfc-dee8-4a23-9006-f039c88b3074 event_type=control_request payload_type=control_request attestation=DEVICE_ATTESTATION_STATUS_ABSENT session=cse_01JzMS6Gnj7rqYmPmEXD3EpC
+2026-09-19T10:36:13.695Z [DEBUG] [bridge:repl] Inbound control_request subtype=end_session
+2026-09-19T10:36:13.696Z [DEBUG] [bridge] refusing end_session: this process is exiting
+2026-09-19T10:36:13.699Z [DEBUG] CCRClient: resuming stream deltas (watcher)
+2026-09-19T10:36:13.730Z [DEBUG] [code-session] Archive cse_01JzMS6Gnj7rqYmPmEXD3EpC status=200
+2026-09-19T10:36:13.732Z [ERROR] SSETransport: Stream read error: The operation was aborted.
+2026-09-19T10:36:13.736Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:13.736Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.ef5735674d73
+2026-09-19T10:36:13.737Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:13.741Z [DEBUG] Temp file written successfully, size: 199869 bytes
+2026-09-19T10:36:13.741Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.ef5735674d73 to /home/andre/.claude.json
+2026-09-19T10:36:13.741Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:13.868Z [DEBUG] hooks module fm-branch-mod@inline turn.step stream settled in 1420.4ms (worker hop, next() included)
+2026-09-19T10:36:13.895Z [DEBUG] [remote-bridge] Torn down (archive=200)
+2026-09-19T10:36:14.402Z [WARN] [stderr] [?25h
+2026-09-19T10:36:14.410Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:14.411Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.63ef333f9d12
+2026-09-19T10:36:14.411Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:14.420Z [DEBUG] Temp file written successfully, size: 201070 bytes
+2026-09-19T10:36:14.420Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.63ef333f9d12 to /home/andre/.claude.json
+2026-09-19T10:36:14.421Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:14.426Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:14.426Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.6059e0212ea5
+2026-09-19T10:36:14.426Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:14.429Z [DEBUG] Temp file written successfully, size: 202103 bytes
+2026-09-19T10:36:14.429Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.6059e0212ea5 to /home/andre/.claude.json
+2026-09-19T10:36:14.429Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:14.431Z [DEBUG] Preserving file permissions: 100600
+2026-09-19T10:36:14.431Z [DEBUG] Writing to temp file: /home/andre/.claude.json.tmp.543078.9cd3c6a66065
+2026-09-19T10:36:14.432Z [DEBUG] Applied original permissions to temp file
+2026-09-19T10:36:14.434Z [DEBUG] Temp file written successfully, size: 202103 bytes
+2026-09-19T10:36:14.434Z [DEBUG] Renaming /home/andre/.claude.json.tmp.543078.9cd3c6a66065 to /home/andre/.claude.json
+2026-09-19T10:36:14.434Z [DEBUG] File /home/andre/.claude.json written atomically
+2026-09-19T10:36:14.435Z [ERROR] restoreTerminalModes write failed: Error: EIO: i/o error, write
+2026-09-19T10:36:14.439Z [DEBUG] [bridge:repl] Hook cleanup: starting teardown for session=cse_01JzMS6Gnj7rqYmPmEXD3EpC reason=host_exit
+2026-09-19T10:36:14.440Z [DEBUG] [REPL:unmount] REPL unmounting
