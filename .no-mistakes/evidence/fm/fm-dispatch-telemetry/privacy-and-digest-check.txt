@@ -1,0 +1,6 @@
+key present in log: 0
+brief text present in log: 0
+why text present in log: 0
+sha256sum of rules file: sha256:7d3871b9b2bc8aa8460c7843e5248e5d07fa702f01324eb159dfc1a52f185589
+logged rules_digest values: sha256:7d3871b9b2bc8aa8460c7843e5248e5d07fa702f01324eb159dfc1a52f185589
+vector sums (HEAD rows): 1 1 1 1 
