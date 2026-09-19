@@ -1,0 +1,35 @@
+
+### S2 absent file -> launch byte-for-byte identical to base commit e711c40 (ROOT path normalised)
+S2 PASS: absent-flag claude launch identical to base commit
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions 
+
+### S8 control-plane relaunch (fm-control.sh relaunch) with flag present -> replacement launch carries prefix
+rc=0
+warning: /tmp/fm-control-relaunch.yj9fus/hooks-17658/home/data/rl9/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched rl9 harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-rl9 worktree=/tmp/fm-control-relaunch.yj9fus/hooks-17658/wt
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions 
+S8 PASS
+
+### S8b same relaunch with flag removed -> no prefix
+rc=0
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions 
+S8b PASS
+
+### S9 inheritance chain: primary touch -> fm-config-push -> secondmate home has empty regular file -> spawn from that home carries prefix
+# all fm-secondmate-harness tests passed
+push rc=0 :: config-push: /tmp/fm-secondmate-harness.VNlUyi/hooks-chain/home -> live secondmate homes
+secondmate sm (/tmp/fm-secondmate-harness.VNlUyi/hooks-chain/sm):
+  claude-function-hooks: pushed
+-rw------- 1 andre andre 0 Sep 19 20:46 /tmp/fm-secondmate-harness.VNlUyi/hooks-chain/sm/config/claude-function-hooks
+/home/andre/.no-mistakes/evidence/01M2XHT6APT02FNX3XQGP96E2G/drive-hooks-flag-2.sh: line 60: fm_test_make_spawn_fakebin: command not found
+/home/andre/.no-mistakes/evidence/01M2XHT6APT02FNX3XQGP96E2G/drive-hooks-flag-2.sh: line 60: /timeout: Permission denied
+chmod: cannot access '/timeout': No such file or directory
+/home/andre/.no-mistakes/evidence/01M2XHT6APT02FNX3XQGP96E2G/drive-hooks-flag-2.sh: line 61: fm_test_spawn_brief: command not found
+
+S9 FAIL
+
+### S9b primary removes flag -> push removes secondmate copy -> next spawn from secondmate home has no prefix
+push rc=0
+secondmate copy removed
+/home/andre/.no-mistakes/evidence/01M2XHT6APT02FNX3XQGP96E2G/drive-hooks-flag-2.sh: line 69: fm_test_spawn_brief: command not found
+S9b PASS

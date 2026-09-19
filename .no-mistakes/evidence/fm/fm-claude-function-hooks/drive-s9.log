@@ -1,0 +1,16 @@
+
+### S9 inheritance chain: primary touch -> fm-config-push -> secondmate home has empty regular file -> spawn from that home carries prefix
+# all fm-secondmate-harness tests passed
+push rc=0 :: config-push: /tmp/fm-secondmate-harness.PH7Yab/hooks-chain/home -> live secondmate homes
+secondmate sm (/tmp/fm-secondmate-harness.PH7Yab/hooks-chain/sm):
+  claude-function-hooks: pushed
+-rw------- 1 andre andre 0 Sep 19 20:46 /tmp/fm-secondmate-harness.PH7Yab/hooks-chain/sm/config/claude-function-hooks
+spawned c1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-c1 worktree=/tmp/fm-secondmate-harness.PH7Yab/hooks-chain/smspawn/wt
+unset TRACEPARENT; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions 
+S9 PASS
+
+### S9b primary removes flag -> push removes secondmate copy -> next spawn from secondmate home has no prefix
+push rc=0
+secondmate copy removed
+spawned c2 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-c2 worktree=/tmp/fm-secondmate-harness.PH7Yab/hooks-chain/smspawn/wt
+S9b PASS
