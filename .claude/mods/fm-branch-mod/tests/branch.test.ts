@@ -731,6 +731,26 @@ describe("shadow advisory", () => {
     expect(Object.keys(staleFull.questions)).not.toContain("recovery");
   });
 
+  test("a wake-queue row with a non-numeric epoch is unsafe scope: passed to main untouched, no shadow record, no wake key stamped", async ($: Engine, on: On) => {
+    const w = world(on, {
+      files: shadowHome({ [`${STATE}/.wake-queue`]: "not-an-epoch\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\n" }),
+      shadowAnswer: JEV_OK,
+      paneAnswer: PANE_PRESENT,
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    expect(w.submitted).toEqual([WAKE]);
+    expect(w.completions.length).toBe(0);
+    expect(w.spawns.length).toBe(0);
+    expect(shadowRuns(w)).toEqual([]);
+    expect(w.appended(SHADOW_LOG)).toEqual([]);
+    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
+    expect(events.some((e) => e.kind === "wake.passed" && e.data.why === "scope unsafe")).toBe(true);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh") && r.argv.includes("--wake-key"))).toBe(false);
+  });
+
   test("an unavailable helper records unavailable per variant and never touches the delivery", async ($: Engine, on: On) => {
     const w = world(on, { files: shadowHome() });
     await $.session.start(sessionStart);
