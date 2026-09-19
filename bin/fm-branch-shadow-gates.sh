@@ -145,10 +145,13 @@ REC_ROWS=$(jq -R -r '
     (if ($cls | test("security|privacy|data-loss|credential|publication"; "i")) then "hit" else "-" end),
     (if ($sevc | type) == "array" and ([(($sevc // [])[]) | tostring | test("security|privacy|data-loss|credential|publication"; "i")] | any) then "any" else "-" end),
     (($ans.severity.confidence // null) as $n | (if ($n | type) == "number" then $n else null end) // "-" | tostring),
-    (if ($f.new_status_bytes | type) == "object" then ([($f.new_status_bytes // {})[] | numbers] | add // 0 | tostring) else "-" end),
+    (($r.tasks // []) as $tsk | if ($f.new_status_bytes | type) == "object" and ($tsk | type) == "array" and ($tsk | length) > 0
+        and ($tsk | all(. as $t | ($f.new_status_bytes[$t] | type) == "number"))
+      then ([$tsk[] as $t | $f.new_status_bytes[$t]] | add | tostring) else "-" end),
     (if ($f.authoritative_pr | type) == "object" then (($f.authoritative_pr.present == true) | tostring) else "-" end),
     (($f.authoritative_pr.pr // null) // "-" | tostring),
     (($f.pane_observation.progressing // null) as $p | (if ($p | type) == "boolean" then $p else null end) // "-" | tostring),
+    (($f.pane // null) // "-" | tostring),
     (($r.tasks // null) as $tsk | (if ($tsk | type) == "array" then ($tsk | length) else null end) // "-" | tostring),
     (if ($f.candidates | type) == "object" and ($f.candidates | length) > 0 then
       ($f.candidates | to_entries | sort_by(-(.value | if type == "number" then . else -1 end)) | map(.key + ":" + ((.value // "-") | tostring)) | join(",")) else "-" end)
@@ -227,8 +230,8 @@ while IFS=$'\t' read -r wake task seq verdict endpoint haspr; do
 done <<< "$OUT_ROWS"
 
 # Records into parallel arrays; "-" keeps meaning absent.
-declare -a R_WK=() R_STALE=() R_EPOCH=() R_CF=() R_NPA=() R_AVAIL=() R_FACTS=() R_NOUL=() R_ROUTE=() R_ROUTECONF=() R_PHASE=() R_PHASECONF=() R_STALEC=() R_STALECONF=() R_SEVCLS=() R_SEVHIT=() R_SEVANY=() R_SEVCONF=() R_BYTES=() R_PRPRESENT=() R_PRID=() R_PROG=() R_NTASKS=() R_CANDS=()
-while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pconf stalec sconf sevcls sevhit sevany sevconf bytes prpresent prid prog ntasks cands; do
+declare -a R_WK=() R_STALE=() R_EPOCH=() R_CF=() R_NPA=() R_AVAIL=() R_FACTS=() R_NOUL=() R_ROUTE=() R_ROUTECONF=() R_PHASE=() R_PHASECONF=() R_STALEC=() R_STALECONF=() R_SEVCLS=() R_SEVHIT=() R_SEVANY=() R_SEVCONF=() R_BYTES=() R_PRPRESENT=() R_PRID=() R_PROG=() R_PANE=() R_NTASKS=() R_CANDS=()
+while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pconf stalec sconf sevcls sevhit sevany sevconf bytes prpresent prid prog pane ntasks cands; do
   [ -n "$wk" ] || continue
   if [ "$st" != "-" ]; then WK_ISSTALE[$wk]=1; fi
   if [ "$epoch" != "-" ]; then
@@ -238,7 +241,7 @@ while IFS=$'\t' read -r wk st epoch cf npa avail facts noul route rconf phase pc
   R_AVAIL+=("$avail"); R_FACTS+=("$facts"); R_NOUL+=("$noul"); R_ROUTE+=("$route"); R_ROUTECONF+=("$rconf")
   R_PHASE+=("$phase"); R_PHASECONF+=("$pconf"); R_STALEC+=("$stalec"); R_STALECONF+=("$sconf")
   R_SEVCLS+=("$sevcls"); R_SEVHIT+=("$sevhit"); R_SEVANY+=("$sevany"); R_SEVCONF+=("$sevconf")
-  R_BYTES+=("$bytes"); R_PRPRESENT+=("$prpresent"); R_PRID+=("$prid"); R_PROG+=("$prog")
+  R_BYTES+=("$bytes"); R_PRPRESENT+=("$prpresent"); R_PRID+=("$prid"); R_PROG+=("$prog"); R_PANE+=("$pane")
   R_NTASKS+=("$ntasks"); R_CANDS+=("$cands")
 done <<< "$REC_ROWS"
 
@@ -376,7 +379,8 @@ gate_apply() {  # <gate> <record-idx>
         [ "${R_PHASE[$i]}" != "-" ] && [ "${R_PHASECONF[$i]}" != "-" ]
       ;;
     stale-active-suppress)
-      [ "${R_STALEC[$i]}" != "-" ] && [ "${R_STALECONF[$i]}" != "-" ] && [ "${R_PROG[$i]}" != "-" ]
+      [ "${R_STALEC[$i]}" != "-" ] && [ "${R_STALECONF[$i]}" != "-" ] && [ "${R_PROG[$i]}" != "-" ] &&
+        [ "${R_PANE[$i]}" = "${R_STALE[$i]}" ]
       ;;
     pr-ready-arm)
       [ "${R_PHASE[$i]}" != "-" ] && [ "${R_PHASECONF[$i]}" != "-" ] && [ "${R_PRPRESENT[$i]}" != "-" ]

@@ -114,6 +114,7 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   append_wake_outcome "$state" t2 captain 'compound stale: t2 escalated' 1700:19
   append_wake_outcome "$state" t1 routine 'compound stale: t1 noted' 1700:19
   append_wake_outcome "$state" t2 captain 'stale again' 1700:20
+  append_wake_outcome "$state" t8 routine 'gather failed' 1700:21
   rm -f "$state/t7.meta" "$state/t7.status"
 
   {
@@ -137,18 +138,19 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     rec 1700:18 14 'signal: t8' '["t8"]' '{"no_new_outcome":{"type":"noul","noul":0.9}}' "$(fact 1700:18 '{"t8":0}' fm-t8 '{"present":false}')"
     rec 1700:19 20 'signal: t1.status\nstale: fm-t2 (idle 900s, possible wedge, escalation 2)' '["t1","t2"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9},"candidates":{"t2":{"type":"noul","noul":0.9},"t1":{"type":"noul","noul":0.5}}}' "$(fact 1700:19 '{"t1":0,"t2":0}' fm-t1 '{"present":false}' "$stale_extra,\"candidates\":{\"t2\":0.9,\"t1\":0.5}")"
     rec 1700:20 80 'stale: fm-t2 (idle 960s, possible wedge, escalation 3)' '["t2"]' '{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}' "$(fact 1700:20 '{"t2":0}' fm-t2 '{"present":false}' "$stale_extra")"
+    rec 1700:21 15 'signal: t8' '["t8"]' '{"no_new_outcome":{"type":"noul","noul":0.9},"route":{"type":"choice","choice":"routine","confidence":0.9},"phase":{"type":"choice","choice":"working","confidence":0.9}}' "$(fact 1700:21 '{}' fm-t8 '{"present":false}')"
   } > "$state/branch-mod-shadow.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$GATES" > "$out" || fail "gates scorer failed: $(cat "$out")"
-  grep -Fx '| absorb-no-new-outcome | 4 | 15 | 3 | 2 (66.7%) | 0 | 1 | 1 |' "$out" \
+  grep -Fx '| absorb-no-new-outcome | 4 | 16 | 3 | 2 (66.7%) | 0 | 1 | 1 |' "$out" \
     || fail "the no-new-outcome row must fire the clean absorbs (including a task's first row over a pre-trial captain line), miss the below-floor one, and count the backstop-covered absorb as a loss: $(grep '^| absorb-no-new-outcome' "$out")"
-  grep -Fx '| absorb-routine-working | 1 | 18 | 1 | 0 (0.0%) | 0 | 1 | 0 |' "$out" \
+  grep -Fx '| absorb-routine-working | 2 | 18 | 2 | 1 (50.0%) | 0 | 1 | 0 |' "$out" \
     || fail "the routine-working row must count a fire over a captain outcome as a loss: $(grep '^| absorb-routine-working' "$out")"
-  grep -Fx '| stale-active-suppress | 7 | 1 | 7 | 2 (28.6%) | 3 | 2 | 0 |' "$out" \
-    || fail "the stale gate must apply only to stale wakes, score the in-window captain stales as losses, its own actionable or relaunch-repaired fires as delays, and a torn-down task's fire as correct: $(grep '^| stale-active-suppress' "$out")"
-  grep -Fx '| pr-ready-arm | 3 | 16 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
+  grep -Fx '| stale-active-suppress | 6 | 2 | 6 | 2 (33.3%) | 3 | 1 | 0 |' "$out" \
+    || fail "the stale gate must apply only to stale wakes whose pane fact is the named window, score the in-window captain stales as losses, its own actionable or relaunch-repaired fires as delays, and a torn-down task's fire as correct: $(grep '^| stale-active-suppress' "$out")"
+  grep -Fx '| pr-ready-arm | 4 | 16 | 2 | 1 (50.0%) | 1 | 0 | 0 |' "$out" \
     || fail "the arm gate must score the armed PR ready as correct and the unbacked one as a delay: $(grep '^| pr-ready-arm' "$out")"
-  grep -Fx '| severity-alert | 2 | 17 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
+  grep -Fx '| severity-alert | 2 | 18 | 1 | 0 (0.0%) | 1 | 0 | 1 |' "$out" \
     || fail "the severity gate must count a security-class alert over an absorbable wake as a delay and a low-scored actionable absorb as missed: $(grep '^| severity-alert' "$out")"
   grep -Fx '| candidate-order | 3 | 0 | 3 | 2 (66.7%) | 0 | 1 | - |' "$out" \
     || fail "the ordering gate must apply only to compound wakes, count the dropped captain candidate as a loss and the matched order as correct: $(grep '^| candidate-order' "$out")"
@@ -160,7 +162,7 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "the no-new-outcome sweep must find its clean floor above the backstop-covered Noul: $(grep '^| absorb-no-new-outcome | 0' "$out")"
   grep -Fx '| stale-active-suppress | 0.91 | 0 | 0.0% |' "$out" \
     || fail "the stale sweep must only clean above the firing confidence: $(grep '^| stale-active-suppress | 0' "$out")"
-  grep -Fx '| pr-ready-arm | 0.70 | 2 | 66.7% |' "$out" \
+  grep -Fx '| pr-ready-arm | 0.70 | 2 | 50.0% |' "$out" \
     || fail "the arm sweep has no loss class and must clean at the lowest floor: $(grep '^| pr-ready-arm | 0' "$out")"
   grep -Fx '| candidate-order | - | - | - |' "$out" \
     || fail "the ordering sweep must stay dirty at every floor while a captain candidate sits below it: $(grep '^| candidate-order | - ' "$out")"
@@ -182,8 +184,10 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "a plain wake is not unscorable at the stale gate; the gate does not apply: $(grep 1700:13 "$out")"
   ! grep -F $'1700:13\tcandidate-order\t' "$out" \
     || fail "a single-task wake is not unscorable at the ordering gate; the gate does not apply: $(grep 1700:13 "$out")"
-  grep -F $'1700:19\tstale-active-suppress\tloss\tpane=fm-t2 window=1800s' "$out" \
-    || fail "a compound wake's stale gate keys on the window its stale line names, not the first task's pane: $(grep 1700:19 "$out")"
+  grep -F $'1700:19\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
+    || fail "a compound wake whose pane fact belongs to another task than the named stale window is unscorable, never judged on the wrong pane: $(grep 1700:19 "$out")"
+  grep -F $'1700:21\tabsorb-no-new-outcome\t' "$out" | grep -q 'missing inputs' \
+    || fail "a record whose new_status_bytes is empty has no byte count and is unscorable at the absorb gate, never a zero: $(grep 1700:21 "$out")"
   grep -F $'1700:20\tstale-active-suppress\tdelay\tpane=fm-t2 window=1800s' "$out" \
     || fail "the later captain stale on the named window is a delay on its own outcome: $(grep 1700:20 "$out")"
   grep -F $'1700:16\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
