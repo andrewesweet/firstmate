@@ -47,6 +47,8 @@ type WorldOptions = {
   sendAnswer?: string | string[];
   /** When set, every SendMessage tool.call is denied with this string instead of answered. */
   sendDeny?: string;
+  /** The first N Monitor tool.calls are denied, so an arm attempt fails with the claim left false. */
+  monitorDenyFirst?: number;
   /** One jev shadow answer per fm-branch-shadow-jev.sh run in order; the last one repeats. */
   shadowAnswer?: string | string[];
   /** One pane answer per fm-branch-shadow-pane.sh run in order; the last one repeats. */
@@ -110,15 +112,30 @@ function world(on: On, options: WorldOptions = {}): World {
   on("agent.spawn", async (_$, e) => {
     // The event is Agent-tool shaped: subagent_type and run_in_background.
     spawns.push({ subagentType: e.subagent_type, name: e.name, model: e.model, background: e.run_in_background, prompt: e.prompt });
-    // The kit answers a spawn with { model } only; the live engine adds agentId.
+    // The kit answers a spawn with { model } only (the engine's launch answer
+    // maps a `result` agent id to `agentId` for the caller, but the kit's own
+    // downstream contract allows just { model } or { deny }); branch absorption
+    // in kit tests goes through the SendMessage adoption path instead.
     return { model: e.model };
   });
   on("agent.list", async () => ({ value: [] }));
+  let monitorCalls = 0;
   on("tool.call", async (_$, e) => {
     toolCalls.push(e);
+    // The continuity Monitor the module arms: one task id per successful call,
+    // or a denial for the first N calls a test sets, so the arm triggers can
+    // be watched failing and recovering.
+    if ((e as { tool?: string }).tool === "Monitor") {
+      monitorCalls += 1;
+      if (options.monitorDenyFirst !== undefined && monitorCalls <= options.monitorDenyFirst) return { deny: MONITOR_DENY };
+      return { result: `Monitor started (task m${monitorCalls})` };
+    }
     if (options.sendDeny) return { deny: options.sendDeny };
     // No branch agent exists yet: the harness answers a send to an unknown name this way.
-    return { result: nth(options.sendAnswer, toolCalls.length - 1, '{"success":false,"message":"no agent named fm-branch"}') };
+    // The answer table indexes SendMessage calls only; the continuity Monitor
+    // is a different tool and never consumes a send answer.
+    const sends = toolCalls.filter((c) => (c as { tool?: string }).tool === "SendMessage").length;
+    return { result: nth(options.sendAnswer, sends - 1, '{"success":false,"message":"no agent named fm-branch"}') };
   });
   on("process.run", async (_$, e) => {
     const argv = e.argv as string[];
@@ -194,6 +211,8 @@ function armedHome(): Record<string, string> {
 }
 
 const WAKE = `<summary>Stop hook feedback</summary>\nfirstmate watcher wake\nsignal: ${STATE}/t1.status\n`;
+
+const MONITOR_DENY = "Monitor tool unavailable in this engine";
 
 const startEvent = (w: World) =>
   w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).find((e) => e.kind === "session.start");
@@ -519,7 +538,8 @@ describe("routine wake", () => {
     // the next generation name (branchName() suffixes every generation above
     // 1). The kit's spawn answer carries no agentId, so the wake then passes
     // via the rotation's own spawn failure, exactly as a failed rotation must.
-    expect(w.toolCalls.length).toBe(1);
+    const sends = w.toolCalls.filter((c) => (c as { tool?: string }).tool === "SendMessage");
+    expect(sends.length).toBe(1);
     expect(w.spawns.length).toBe(1);
     expect(w.spawns[0].subagentType).toBe("fm-branch-mod:fm-branch");
     expect(w.spawns[0].name).toBe("fm-branch-2");
@@ -555,7 +575,7 @@ describe("routine wake", () => {
     });
     await $.session.start(sessionStart);
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
-    expect(w.toolCalls.length).toBe(1);
+    expect(w.toolCalls.filter((c) => (c as { tool?: string }).tool === "SendMessage").length).toBe(1);
     expect(w.spawns.length).toBe(1);
     expect(w.spawns[0].name).toBe("fm-branch-2");
     const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
@@ -886,5 +906,146 @@ describe("shadow advisory", () => {
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
     await drained();
     expect(w.appended(SHADOW_LOG).length - before).toBe(4);
+  });
+});
+
+// Watcher continuity must not depend on a captain prompt: the Monitor is armed
+// at session start (mode file present, session lock held), re-checked on every
+// handled prompt.submit so a lost expiry notice recovers, and re-armed from the
+// branch's own settlement - a branch-absorbed wake always leaves one live cycle
+// behind. The 2026-09-19 gap: a module reload with no captain prompt after it
+// left no Monitor at all, the Stop-hook wake was absorbed and acknowledged by
+// the branch, main's Stop hook never fired, and no watcher cycle ran for hours.
+describe("watcher continuity", () => {
+  const monitorEvents = (w: World) =>
+    w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).filter((e) => e.kind === "monitor.armed");
+
+  // The kit's branch-absorption path: counters from a prior spawn plus a send
+  // answer that names the resumed agent id let deliverToBranch adopt the named
+  // agent, so a wake is truly absorbed and its turn.complete is a branch turn.
+  const adoptionCounters = JSON.stringify({ lockPid: "4242", wakeCounter: 1, spawnCount: 1, sendCount: 1, branchGeneration: 1, branchAgentId: "" });
+  const SEND_ADOPTS = '{"success":true,"resumedAgentId":"branch-agent-1"}';
+  const REPORT_CALL = { tool: "mcp__fm-branch-mod__fm_branch_report", agentId: "branch-agent-1", task: "t1", verdict: "routine", summary: "handled" } as const;
+
+  test("a stop-hook wake routed to the branch leaves one armed monitor behind, with no captain prompt ever submitted", async ($: Engine, on: On) => {
+    // evidence "" keeps the routine backstop silent after the branch reports.
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+    // Armed at session start, before any prompt exists to arm from.
+    expect(monitorEvents(w).map((e) => e.data.why)).toEqual(["session start"]);
+    // The wake is absorbed by the branch agent via the adoption send.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.why)).toEqual(["session start"]);
+    expect(w.submitted).toEqual([]);
+    // The branch reports the wake handled through the mod's report tool. Its
+    // settlement is a branch turn: the claim stays true, nothing double-arms.
+    await $.tool.call(REPORT_CALL);
+    try {
+      await $.turn.complete({ agentId: "branch-agent-1", reason: "stop", usage: { input_tokens: 10 }, answer: "handled" });
+    } catch {
+      // The kit has no turn.complete implementation to stub - the real one is
+      // the engine's own model loop - but the module's hook above already ran.
+    }
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.why)).toEqual(["session start"]);
+    // The wake never opened a main turn.
+    expect(w.submitted).toEqual([]);
+  });
+
+  test("a session start that cannot arm records why in the event log", async ($: Engine, on: On) => {
+    // The mode file is on but the SessionStart shell hook has not written the
+    // lock yet: no arm, and the log says so instead of leaving no trace.
+    const { [`${STATE}/.lock`]: _lock, ...noLock } = armedHome();
+    const w = world(on, { files: noLock });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w)).toEqual([]);
+    const skipped = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).filter((e) => e.kind === "monitor.skipped");
+    expect(skipped.map((e) => e.data)).toEqual([{ why: "session start", mode: true, lockPid: "" }]);
+  });
+
+  test("a lost expiry notice recovers at the next prompt.submit once the armed claim is older than the monitor timeout", async ($: Engine, on: On) => {
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.taskId)).toEqual(["m1"]);
+    // Inside the monitor's lifetime the claim holds: no second loop.
+    await w.clock.advance(10 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.taskId)).toEqual(["m1"]);
+    // m1 has long since expired and its notice never arrived: the claim is
+    // stale, so the next wake arms a fresh cycle instead of honouring it.
+    await w.clock.advance(30 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => [e.data.why, e.data.taskId])).toEqual([
+      ["session start", "m1"],
+      ["stop-hook wake without monitor", "m2"],
+    ]);
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-counters`) ?? "{}").monitorTaskId).toBe("m2");
+    expect(w.submitted).toEqual([]);
+  });
+
+  test("a restored claim with no recorded arm time is honoured for one monitor lifetime, never expired at once", async ($: Engine, on: On) => {
+    // Counters written by the previous module version name the live monitor
+    // but carry no monitorArmedAt: session start must not start a second loop.
+    const legacy = JSON.stringify({ ...JSON.parse(adoptionCounters), monitorTaskId: "m-old" });
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: legacy }, sendAnswer: SEND_ADOPTS, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w)).toEqual([]);
+    await w.clock.advance(40 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => [e.data.why, e.data.taskId])).toEqual([["stop-hook wake without monitor", "m1"]]);
+  });
+
+  test("a monitor arm that failed recovers at the next prompt.submit, with no expiry notice ever arriving", async ($: Engine, on: On) => {
+    // The session-start arm is denied: the claim is false and, the monitor
+    // never having started, no expiry notice will ever arrive to re-arm it.
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, monitorDenyFirst: 1 });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w)).toHaveLength(1);
+    expect(monitorEvents(w)[0].data.why).toBe("session start");
+    expect(monitorEvents(w)[0].data.deny).toBe(MONITOR_DENY);
+    // The next prompt.submit is the wake itself: it re-arms before routing.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    const events = monitorEvents(w);
+    expect(events).toHaveLength(2);
+    expect(events[1].data.why).toBe("stop-hook wake without monitor");
+    expect(events[1].data.deny).toBeUndefined();
+    // The wake was still routed to the branch, not passed to main.
+    expect(w.submitted).toEqual([]);
+  });
+
+  test("a branch-absorbed wake settled with the claim still false arms from the settlement path", async ($: Engine, on: On) => {
+    // Both the session-start arm and the wake's own arm fail; an arm failure
+    // never blocks routing, so the branch still absorbs the wake. Settlement
+    // is the last hand that can leave a live cycle behind, and it does.
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, monitorDenyFirst: 2 });
+    await $.session.start(sessionStart);
+    // Let the session-start arm settle before the wake, so the wake's own arm
+    // is a distinct attempt and not swallowed by the arming claim.
+    await drained();
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    try {
+      await $.turn.complete({ agentId: "branch-agent-1", reason: "stop", usage: { input_tokens: 10 }, answer: "handled" });
+    } catch {
+      // The kit has no turn.complete implementation to stub; the hook above ran.
+    }
+    await drained();
+    expect(monitorEvents(w).map((e) => [e.data.why, e.data.deny ?? null])).toEqual([
+      ["session start", MONITOR_DENY],
+      ["stop-hook wake without monitor", MONITOR_DENY],
+      ["branch settled without monitor", null],
+    ]);
+    // The durable claim now names the live monitor task.
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-counters`) ?? "{}").monitorTaskId).toBe("m3");
   });
 });

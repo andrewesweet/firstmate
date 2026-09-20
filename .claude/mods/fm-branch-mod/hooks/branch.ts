@@ -15,8 +15,12 @@
 //       deterministic backstop (bin/fm-wake-evidence.sh --routine-covered) as a
 //       main prompt, then route any wake still queued.
 //   (f) turn.step effort rewrite for the branch's own agent ids.
-//   continuity: one Monitor task per session (re-armed on expiry) streams each
-//       watcher close as a task-notification into prompt.submit.
+//   continuity: one Monitor task per session streams each watcher close as a
+//       task-notification into prompt.submit; armed at session start when the
+//       mode file is present and the session lock is held, on any captain
+//       prompt or stop-hook-sourced wake that finds no live monitor (a claim
+//       older than MONITOR_CLAIM_STALE_MS counts as dead), and from the
+//       branch's settlement - never dependent on a captain prompt to exist.
 //
 // The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
 // the version is read from the binary hosting the session (PATH `claude` is only
@@ -81,6 +85,9 @@ const BRANCH_ROTATE_TOKENS = 60_000
 const CLASSIFIER_MAX_TOKENS = 200
 const MONITOR_DESCRIPTION = 'fm-branch-mod watcher continuity'
 const MONITOR_TIMEOUT_MS = 30 * 60 * 1000
+// An armed claim older than this with no expiry notice in hand is a dead
+// monitor whose notice was lost: the claim expires and the next arm site arms.
+const MONITOR_CLAIM_STALE_MS = MONITOR_TIMEOUT_MS + 5 * 60 * 1000
 const EVENT_LOG_CAP_BYTES = 4_000_000
 const PASSED_DEDUPE_MS = 90_000
 const INFLIGHT_STALE_MS = 180_000
@@ -114,6 +121,7 @@ const handledSeqs = new Set<string>()
 const recentPassed = new Map<string, number>()
 let monitorArmed = false
 let monitorTaskId = ''
+let monitorArmedAt = 0
 let armingNow = false
 let monitorArms = 0
 let classifierSystem = ''
@@ -225,7 +233,7 @@ async function saveCounters($: any): Promise<void> {
   try {
     await $.fs.write(
       `${state}/.branch-mod-counters`,
-      JSON.stringify({ lockPid: lockPid || (await readLockPid($)), wakeCounter, spawnCount, sendCount, generation, branchGeneration, branchRef, branchAgentId, monitorTaskId }),
+      JSON.stringify({ lockPid: lockPid || (await readLockPid($)), wakeCounter, spawnCount, sendCount, generation, branchGeneration, branchRef, branchAgentId, monitorTaskId, monitorArmedAt }),
     )
   } catch {}
 }
@@ -246,6 +254,7 @@ async function restoreCounters($: any): Promise<void> {
       }
       if (j.monitorTaskId) {
         monitorTaskId = j.monitorTaskId
+        monitorArmedAt = j.monitorArmedAt ?? Number(await $.clock.now())
         monitorArmed = true
       }
       log($, 'counters.restored', { ...j, reason: 'same session lock pid (module reloaded)' })
@@ -1305,15 +1314,25 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
 
 // ---- continuity: one Monitor task per session, re-armed on expiry ----
 async function armMonitor($: any, why: string): Promise<void> {
-  if (monitorArmed || armingNow) return
+  if (armingNow) return
   // Claim before the first await: the rotate event and the source-ended notice
   // of one monitor arrive within milliseconds and would otherwise arm two loops.
   armingNow = true
+  const now = Number(await $.clock.now())
+  if (monitorArmed) {
+    const ageMs = now - monitorArmedAt
+    if (ageMs < MONITOR_CLAIM_STALE_MS) {
+      armingNow = false
+      return
+    }
+    log($, 'monitor.stale.claim', { why, taskId: monitorTaskId, ageMs })
+  }
   if (!(await modeOn($))) {
     armingNow = false
     return
   }
   monitorArmed = true
+  monitorArmedAt = now
   monitorArms += 1
   // Each watcher close prints its reason lines (one event); the loop re-arms
   // the watcher itself so no per-wake background task is ever started.
@@ -1474,6 +1493,16 @@ export function register(on: On) {
     monitorArmed = false
     handledSeqs.clear()
     await restoreCounters($)
+    // Continuity must not wait for a captain prompt: a module reload followed
+    // by silence left no Monitor at all, so a Stop-hook-sourced wake the branch
+    // absorbed never re-armed one and supervision went dark. Arm at session
+    // start when the mode file is present and this session holds the lock - the
+    // same evidence restoreCounters reads, never a new lock mechanism.
+    // armMonitor's own claim keeps a restored live monitor from double-arming.
+    const mode = await modeOn($)
+    const lockPid = await readLockPid($)
+    if (mode && lockPid) void armMonitor($, 'session start')
+    else log($, 'monitor.skipped', { why: 'session start', mode, lockPid })
     try {
       await $.tool.register({
         name: 'fm_branch_report',
@@ -1558,6 +1587,11 @@ export function register(on: On) {
     const isWake = /<summary>Stop hook feedback<\/summary>/.test(e.text) && /firstmate watcher wake/.test(e.text)
     log($, 'prompt.submit', { origin: e.origin, isWake, text: e.text.slice(0, 600) })
     if (!isWake) return next(e)
+    // A wake main's own Stop hook produced must always leave one live cycle
+    // behind. If the armed claim is false with no expiry notice in hand (a
+    // failed arm, a lost notice), arm here so the next watcher close still
+    // surfaces; armMonitor's armed/arming claim is the double-arm guard.
+    void armMonitor($, 'stop-hook wake without monitor')
     const verdict = await routeWake($, e.text, 'stop-hook')
     if (verdict === 'dropped') return { drop: `${PLUGIN}: routed to supervision branch` }
     return next(e)
@@ -1678,6 +1712,10 @@ export function register(on: On) {
       // Deterministic captain-class backstop over what the branch just covered.
       await backstopCheck($, p.tasks, p.wakeNo)
     }
+    // A branch-absorbed wake must always leave one live cycle behind: if the
+    // branch settled a wake and no monitor is armed, arm one here so the next
+    // watcher close still reaches a prompt.
+    if (!monitorArmed) void armMonitor($, 'branch settled without monitor')
     // Anything that arrived while the branch was busy is still in the queue.
     const scope = await scopeForUnreadWake($, false)
     if (scope.eligibleSeqs.some((s) => !handledSeqs.has(s))) {

@@ -34,6 +34,7 @@ A branch turn that ends in a provider error, or without a report, hands the wake
 A branch hand-back message, and the completed background agent's own notification, are dropped so they never open a main turn.
 
 Continuity across the branch's own turns uses one `Monitor` task per session, described `fm-branch-mod watcher continuity`, with a 30-minute timeout re-armed on expiry.
+Arming never depends on a captain prompt: the monitor is armed at session start when the mode file is present and the session lock is held (the same evidence the restored counters read), every captain prompt and every Stop-hook-sourced wake reaching `prompt.submit` re-arms when no live monitor is claimed (an armed claim older than the monitor timeout plus five minutes with no expiry notice in hand counts as dead; peer messages and non-wake task notifications do not re-check), and a branch turn that settles a wake with the claim still false arms from the branch's own settlement - a module reload followed by silence, a failed arm, or a lost expiry notice each still leave one live cycle behind.
 It streams each watcher close that arrives while no main turn is open into `prompt.submit` as a task notification, where the same routing applies.
 
 ### Deterministic backstop
@@ -147,7 +148,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - Classifier: text-only, one call, no thinking, `maxTokens` 200.
 - Branch rotation: 60,000 tokens of per-step request context.
 - Provider-error latch: two consecutive failed branch turns, five-minute cooldown.
-- Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry only.
+- Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry, on any captain prompt or Stop-hook-sourced wake that finds no live monitor, and from the branch's settlement.
 - Event, classification, and shadow advisory logs: 4 MB each before rotation.
 - Passed-wake dedupe: 90 seconds per row set; in-flight wake considered stale after 180 seconds.
 - Shadow advisory: detached from the wake path; at most five helper calls per granted wake (four ablation variants plus the repeat control), each answer call bounded to 10 seconds and the pane gather to 6; failures logged and dropped.
