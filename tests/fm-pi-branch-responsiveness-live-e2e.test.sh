@@ -54,6 +54,8 @@ for lib in fm-async-exec fm-branch-dispatch fm-branch-model-picker fm-calm-visib
   cp "$ROOT/.pi/extensions/lib/$lib.ts" "$PROJECT/.pi/extensions/lib/$lib.ts"
 done
 cp "$ROOT/lib/fm-branch-eligibility.ts" "$PROJECT/lib/fm-branch-eligibility.ts"
+cp "$ROOT/lib/fm-branch-report-sequence.ts" "$PROJECT/lib/fm-branch-report-sequence.ts"
+cp "$ROOT/lib/fm-branch-provider-latch.ts" "$PROJECT/lib/fm-branch-provider-latch.ts"
 
 EXT="$PROJECT/.pi/extensions/fm-branch-supervision.ts"
 OUTCOME_SCRIPT="$ROOT/bin/fm-branch-outcome.sh"
