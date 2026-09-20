@@ -440,8 +440,8 @@ snapshot_truth() {
     SC_AT[$wk]=$at
   done
   if [ -n "$lines" ]; then
-    [ -f "$TRUTH" ] || (umask 077; : > "$TRUTH")
-    printf '%s' "$lines" >> "$TRUTH"
+    [ -f "$TRUTH" ] || (umask 077; : > "$TRUTH") || { echo "fm-branch-shadow-gates: cannot write $TRUTH" >&2; exit 2; }
+    printf '%s' "$lines" >> "$TRUTH" || { echo "fm-branch-shadow-gates: cannot write $TRUTH" >&2; exit 2; }
   fi
 }
 snapshot_truth
@@ -752,10 +752,7 @@ unmatched=0
 torn=0
 for i in "${!R_WK[@]}"; do
   [ -n "${WK_SEEN[${R_WK[$i]}]:-}" ] || { unmatched=$((unmatched + 1)); continue; }
-  for t in ${WK_TASKS[${R_WK[$i]}]:-}; do
-    case "$t" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
-    if [ ! -f "$STATE/$t.meta" ]; then torn=$((torn + 1)); break; fi
-  done
+  wake_readable "${R_WK[$i]}" || torn=$((torn + 1))
 done
 if [ "$torn" -gt 0 ]; then
   word=records
