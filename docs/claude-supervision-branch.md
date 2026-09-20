@@ -1,7 +1,7 @@
 # Claude Code supervision branch
 
 Fleet supervision on a Claude Code primary can run on a second, persistent agent inside the same `claude` process as the captain's chat, exactly as the [Pi supervision branch](pi-supervision-branch.md) does inside `pi`.
-The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks module (`hooks/branch.ts`), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
+The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks module (`hooks/branch.ts`), the vendored shared eligibility fold it delegates to (`lib/fm-branch-eligibility.ts`, generated), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
 This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, its version pin and the pin-bump procedure, its state and config files, the durable classification and shadow advisory logs and their scorers, and the bounds measured on the pinned Claude Code version.
 The module header owns the module's own shape, and [`pi-supervision-branch.md`](pi-supervision-branch.md) owns the design the two branches share: the outcome store, the leases, the verdict distinction, and the lost-wake backstop.
 
@@ -22,6 +22,7 @@ Every task wake hands the branch the deterministic new-status-lines note (the st
 A delivered wake is dropped from main, which stays silent; a wake the branch may not own, or one the mod cannot deliver, passes through to main exactly as it would without the mod.
 
 The branch agent runs on the same system prompt as the Pi branch (`bin/fm-branch-prompt.sh`) plus a hooks-module addendum, generated into `agents/fm-branch.md` by `bin/fm-branch-agent-md.sh`; `bin/fm-branch-agent-md.sh --check` fails when the tracked file is stale.
+The module's eligibility scan delegates to the same shared fold the Pi extension consumes, vendored into `lib/fm-branch-eligibility.ts` by `bin/fm-branch-shared-sync.sh` (pure core only - a hooks module may import nothing but its own files, so the mod binds it to its host seam instead of `node:fs`); `bin/fm-branch-shared-sync.sh --check` fails when the tracked copy is stale.
 It records each handled wake through the mod's `fm_branch_report` tool, which appends to the shared outcome store (`bin/fm-branch-outcome.sh`) before anything reaches main.
 A `routine` outcome ends there.
 A `captain` outcome opens one sequence-keyed processing request on main, which tells the captain the outcome and acknowledges the sequence through `fm_branch_processed`, exactly as on Pi.
