@@ -52,6 +52,18 @@
 # conflicting role is superseded rather than duplicated.
 # fm_ship_rule_one owns the mode-specific first ship safety rule shared by an
 # ordinary ship brief and the durable contract written during scout promotion.
+# The no-mistakes block is also the one owner of the worker's conduct at the CI
+# gate: every poll reads the PR's reviews and comments, not only its checks;
+# review-bot or maintainer feedback is fed to the gate through
+# `no-mistakes axi respond --action fix`, never dismissed as a non-required
+# check; a maintainer-only wait (fork-workflow approval, flaky-job rerun) is a
+# keyed declared-external-wait line the worker resumes from itself, never
+# `blocked:`; and no single wait exceeds the harness command bound the block
+# already names. That contract came from a worker that sat at the gate for
+# hours on `sleep 3000; gh pr checks`, never read the review or the
+# maintainer's comment, and reported `blocked:`. The declared-external-wait verb
+# is bin/fm-brief.sh's PAUSED_VERB when sourced there, else the classifier's
+# default, so both renderers print the vocabulary the classifier reads.
 
 fm_brief_worker_role() {  # <state-dir> <task-id>
   local state=$1 task_id=$2
@@ -264,7 +276,7 @@ EOF
 }
 
 fm_dod_block() {  # <mode> <task-id>
-  local mode=$1 id=$2
+  local mode=$1 id=$2 paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   case "$mode" in
     direct-PR)
       cat <<EOF
@@ -318,7 +330,13 @@ Two firstmate-specific rules layer on top of that guidance:
 - NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide.
   It auto-resolves every gate including ask-user findings with no escalation, and answering your own ask-user finding is a hard rule violation.
 
-When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design; poll every 60 seconds), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done: PR {url} checks green\` and stop. You are finished.
+At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; gh pr checks <n>\` is one blocking hold, not a poll.
+Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
+A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: feed each item to the parked gate with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
+A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [key=nm-<run>-ci]: <what must happen>\` once, keep polling, and when it clears append \`resolved [key=nm-<run>-ci]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
+Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
+
+When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done: PR {url} checks green\` and stop. You are finished.
 EOF
       ;;
     *)
