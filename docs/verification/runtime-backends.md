@@ -2126,6 +2126,36 @@ Evidence produced 2026-09-17 on Linux 6.6.87.2-microsoft-standard-WSL2 x86_64, C
 - Engine-hosted suite: the same run printed `ok - Claude Code 2.1.274 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn` (`claude plugin test .claude/mods/fm-branch-mod`, `0 fail`).
 - Live run: `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh` (one Claude Code 2.1.274 primary on `--model sonnet` in tmux, launched with the settings the owning page lists, supervising one stand-in task in a temporary scratch home, 141 s end to end) printed `ok - Claude Code 2.1.274 loads the supervision-branch mod enabled and main holds the session lock`, `ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine`, `ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage`, and `ok - one spawn, every send successful, no dropped hand-back, no backstop delivery across the run`.
 
+### 2026-09-20 the away words execute
+
+The away-record owner, launch, return, merge, branch-supervision, contributions, merge-poll security, and Pi branch extension suites were run on macOS 26.6.2 arm64 (Darwin 25.6.0), Node v24.14.1, after the away record became the captain's words alone (version 2, with version 1 still readable) and the per-task merge-grant list retired.
+No model was selected or prompted, no provider call was made, and the captain's own Pi session was not changed.
+The 2026-09-18 entry above records the retired grant model's merge matrix; the lines below supersede it for the merge gate.
+
+```sh
+bin/fm-test-run.sh tests/fm-afk-contract.test.sh tests/fm-afk-launch.test.sh tests/fm-afk-return.test.sh tests/fm-pr-merge.test.sh tests/fm-branch-supervision.test.sh tests/fm-contributions.test.sh tests/fm-pr-check-security.test.sh tests/fm-pi-branch-extension.test.sh
+```
+
+```text
+ok - the read-back renders the words verbatim beside the expected return, spend cap, and reach line
+ok - propose then confirm writes a version 2 record, announces hold-for-return only, and every read subcommand reflects it
+ok - retired clause fields, --grant, and the clause and grant subcommands are refused by name
+ok - a version 1 record validates, reads its words and scalars with the clause and grant sections ignored, refreshes untouched, and archives
+ok - new words over a live version 1 record archive it and write version 2 with the same session start
+ok - propose: the retired --grant flag is refused by name
+ok - the return brief renders health, the words with the session account, waiting, could-not-fix, handled, and cost from durable records, and the gate shrinks to what the away session could not fix
+ok - while the away-posture record exists any green merge lands under away authority, yolo or not, and attended merges stay untagged
+ok - under the away-posture record the branch merges a green task, is refused on a red check with or without --allow-red, and is refused at the partition while attended
+ok - the away record does not bypass red checks, and a recorded pr= must match the URL
+ok - no away-record archive or replacement lands between the authority read and the merge
+ok - a record made unreadable before the merge's own authority read refuses the merge
+ok - queued merges retain their away authority after captain return
+ok - branch prompt is byte-stable across homes, cwd, timezone, and time, above the cache floor
+ok - under the away-posture record the wake carries the verbatim read-back tail, claims every row, opens no processing turn, cancels a pending request, and presents the accumulated rows after archive
+```
+
+The runner reported exit 0 with 337 passing lines across the eight scripts; the merge suite (about 227 s) and the security suite dominate the wall time.
+
 ## Native Codex through Pi
 
 Verified on 2026-09-08 with Pi 0.85.1 and the installed `pi-codex-native` 0.2.1 adapter.
