@@ -136,15 +136,8 @@ export function validateThroughValue(through: number): boolean {
 // (mark-processed). A failed append means nothing was recorded and nothing
 // may be delivered; a failed mark-read means the row IS recorded but its
 // delivery or cursor advance failed; a failed mark-processed means the
-// acknowledgement did not land.
-export type SettlementStep = "append" | "mark-read" | "mark-processed";
-export type SettlementFailureKind = "nothing-recorded" | "recorded-unread" | "processed-not-advanced";
-
-export function settlementFailureKind(step: SettlementStep): SettlementFailureKind {
-  if (step === "append") return "nothing-recorded";
-  if (step === "mark-read") return "recorded-unread";
-  return "processed-not-advanced";
-}
+// acknowledgement did not land. These meanings live here as the shared
+// contract the hosts' rendered failure strings carry.
 
 export interface OutcomeCallResult {
   ok: boolean;
@@ -154,13 +147,13 @@ export interface OutcomeCallResult {
 
 export type OutcomeRunner = (argv: string[]) => Promise<OutcomeCallResult>;
 
-export type SettlementStepResult = { ok: true; stdout: string } | { ok: false; kind: SettlementFailureKind; detail: string };
+export type SettlementStepResult = { ok: true; stdout: string } | { ok: false; detail: string };
 
-// Runs one settlement step through the host's outcome runner and classifies
-// its failure with the module-owned meaning, so both adapters branch on the
-// same kind instead of restating it.
-export async function runSettlementStep(step: SettlementStep, run: OutcomeRunner, argv: string[]): Promise<SettlementStepResult> {
+// Runs one settlement step through the host's outcome runner in the module's
+// call order - the argv builder already names the step - so both adapters
+// share the same settlement path instead of restating it.
+export async function runSettlementStep(run: OutcomeRunner, argv: string[]): Promise<SettlementStepResult> {
   const result = await run(argv);
   if (result.ok) return { ok: true, stdout: result.stdout };
-  return { ok: false, kind: settlementFailureKind(step), detail: result.detail };
+  return { ok: false, detail: result.detail };
 }

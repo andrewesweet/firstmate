@@ -542,11 +542,11 @@ export async function serveReport($: any, e: any, agentId: string | undefined) {
     return textResult(`already recorded seq ${p.reportedSeqs[p.reportedSeqs.length - 1]} for this wake; one report per wake is enough. Do not report again: run the exact --ack-through command the drain printed and end your turn with the word done.`)
   }
   const args = reportAppendArgv(validated, wake || null, p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey) ? ['--wake-key', p.wakeKey] : undefined)
-  const appended = await runSettlementStep('append', (argv) => outcome($, argv), args)
+  const appended = await runSettlementStep((argv) => outcome($, argv), args)
   if (!appended.ok) return textResult(appendFailureMessage(appended.detail), true)
   const seq = Number(appended.stdout)
   if (p) p.reportedSeqs.push(seq)
-  const marked = await runSettlementStep('mark-read', (argv) => outcome($, argv), markReadArgv(seq))
+  const marked = await runSettlementStep((argv) => outcome($, argv), markReadArgv(seq))
   if (!marked.ok) return textResult(`recorded seq ${seq}, but cursor advancement failed: ${marked.detail}`, true)
   if (verdict === 'routine') {
     if (!silent) $.ui.log(`${BOAT} ${task}: ${summary}`)
@@ -562,7 +562,7 @@ export async function serveReport($: any, e: any, agentId: string | undefined) {
 export async function serveProcessed($: any, e: any) {
   const through = Number(e.through)
   if (!validateThroughValue(through)) return textResult('through must be a positive integer', true)
-  const r = await runSettlementStep('mark-processed', (argv) => outcome($, argv), markProcessedArgv(through))
+  const r = await runSettlementStep((argv) => outcome($, argv), markProcessedArgv(through))
   log($, 'processed.call', { through, ok: r.ok, detail: r.ok ? '' : r.detail })
   if (!r.ok) return textResult(`processed marker not advanced: ${r.detail}`, true)
   return textResult(`captain outcomes through seq ${through} marked processed`)

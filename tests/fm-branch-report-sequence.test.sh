@@ -9,7 +9,12 @@
 #     the real latch wiring assertions live in the mod's own engine test
 #     (tests/fm-branch-claude-mod-plugin.test.sh) because the latch is driven
 #     from turn hooks that only that host can drive;
-#   - the lib leg: the shared modules the Pi extension imports;
+#   - the lib leg: the shared modules the Pi extension imports, driven through
+#     the same handler logic the extension calls; the Pi host's own seams (the
+#     isError scoping-refusal shape, the wakeScopeRefusal wording, the through
+#     coercion, and the reconcile mark-read failure text) are pinned
+#     behaviorally by tests/fm-pi-branch-extension.test.sh against the real
+#     extension, so this suite pins the shared core and the mod leg;
 #   - the vendored legs: the same drivers against
 #     .claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts and
 #     fm-branch-provider-latch.ts, which must decide byte-identically.
@@ -108,7 +113,7 @@ for (const step of plan) {
     if (!m.validateThroughValue(through)) {
       out.push({ denied: true, cls: "host:through-refused", argv: calls.slice(before) });
     } else {
-      const r = await m.runSettlementStep("mark-processed", run, m.markProcessedArgv(through));
+      const r = await m.runSettlementStep(run, m.markProcessedArgv(through));
       if (!r.ok) out.push({ denied: true, cls: "host:processed-failed", argv: calls.slice(before) });
       else out.push({ denied: false, cls: "host:processed-success", argv: calls.slice(before) });
     }
@@ -131,13 +136,13 @@ for (const step of plan) {
   }
   const wk = inflight && inflight.wakeKey;
   const extra = wk && /^[0-9:,]+$/.test(wk) ? ["--wake-key", wk] : undefined;
-  const appended = await m.runSettlementStep("append", run, m.reportAppendArgv(validated, input.wake || null, extra));
+  const appended = await m.runSettlementStep(run, m.reportAppendArgv(validated, input.wake || null, extra));
   if (!appended.ok) {
     out.push({ denied: true, cls: "module:append-failed", moduleText: m.appendFailureMessage(appended.detail), argv: calls.slice(before) });
     continue;
   }
   const seq = Number(appended.stdout);
-  const marked = await m.runSettlementStep("mark-read", run, m.markReadArgv(seq));
+  const marked = await m.runSettlementStep(run, m.markReadArgv(seq));
   if (!marked.ok) {
     out.push({ denied: true, cls: "host:markread-failed", argv: calls.slice(before) });
     continue;

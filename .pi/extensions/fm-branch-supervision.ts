@@ -1157,7 +1157,7 @@ export default function (pi: ExtensionAPI) {
         } else {
           deliverRoutineOutcome(row);
         }
-        if (!(await runSettlementStep("mark-read", runOutcomeScript, markReadArgv(row.seq))).ok) return false;
+        if (!(await runSettlementStep(runOutcomeScript, markReadArgv(row.seq))).ok) return false;
       }
     }
     if (!present) return true;
@@ -1230,7 +1230,7 @@ export default function (pi: ExtensionAPI) {
               isError: true,
             };
           }
-          const appended = await runSettlementStep("append", runOutcomeScript, appendArgs);
+          const appended = await runSettlementStep(runOutcomeScript, appendArgs);
           if (!appended.ok) {
             return {
               content: [{ type: "text", text: appendFailureMessage(appended.detail) }],
@@ -2278,7 +2278,7 @@ ${context.command}
             isError: true,
           };
         }
-        const marked = await runSettlementStep("mark-processed", runOutcomeScript, markProcessedArgv(through));
+        const marked = await runSettlementStep(runOutcomeScript, markProcessedArgv(through));
         if (!marked.ok) {
           return {
             content: [{ type: "text", text: `acknowledgement refused: ${marked.detail}` }],
