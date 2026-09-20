@@ -1,0 +1,12 @@
+$ claude plugin validate --strict .claude/mods/fm-branch-mod
+Validating plugin manifest: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2Y5KDPMQX1G4FB6T7VHXWAJ/.claude/mods/fm-branch-mod/.claude-plugin/plugin.json
+
+Validating hooks: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2Y5KDPMQX1G4FB6T7VHXWAJ/.claude/mods/fm-branch-mod/hooks/hooks.json
+
+  ❯ ./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete
+  ❯ ./branch.ts calls: $.agent.list (via resolveBranchAgentId), $.agent.spawn (via spawnBranch), $.clock.now (via routeWake), $.env.get (via bind, transcriptPersistence), $.fs.exists (via modeOn, routeWake, scopeForUnreadWake), $.fs.list (via scopeForUnreadWake), $.fs.read (via classify, newStatusLinesNote, readConfig, readLockPid, readPassedSeqs, restoreCounters, scopeForUnreadWake, shadowAssembleState, statusKind), $.fs.write (via saveCounters, writePassedSeqs), $.model.complete (via classify), $.process.run (via appendLine, backstopCheck, checkPin, gatherEvidence, grant, outcome, routeWake, shadowAssembleState, shadowRecord), $.prompt.submit, $.session.cwd (via ensureBound), $.session.id (via sessionTranscriptId), $.tool.call (via armMonitor, sendToBranch), $.tool.register, $.ui.log
+  ❯ ./branch.ts env writes: nothing
+  ❯ ./branch.ts env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE
+
+✔ Validation passed
+exit=0

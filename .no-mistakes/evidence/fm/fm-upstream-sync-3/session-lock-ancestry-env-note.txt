@@ -1,0 +1,13 @@
+tests/fm-session-lock-ancestry.test.sh: "not ok - the pty-host was not reparented to init after the daemon ended"
+
+Environmental, not a merge regression:
+- On this runner an orphaned process is reparented to the user's systemd
+  subreaper (pid 562, `systemd --user`), never to pid 1. Probe:
+    ( sleep 3 & echo $! > /tmp/orph.pid ); ps -o ppid= -p $(cat /tmp/orph.pid)  => 562
+- Reproduced on a clean upstream/main clone (kunchenguid/firstmate 1b1b6e0):
+  see upstream-clean-session-lock-ancestry.log, same assertion fails.
+- Same suite passes when run inside a fresh pid namespace where orphans
+  reparent to pid 1 (see session-lock-ancestry-pidns.log, 16 ok, exit=0):
+    unshare -U --map-user=$(id -u) --map-group=$(id -g) -pf --mount-proc \
+      setpriv --inh-caps=-all --ambient-caps=-all \
+      bin/fm-test-run.sh tests/fm-session-lock-ancestry.test.sh
