@@ -2,8 +2,9 @@
 // Vendored from lib/fm-branch-report-sequence.ts by bin/fm-branch-shared-sync.sh:
 // the shared fm_branch_report / fm_branch_processed decision core
 // (validation rules, task-in-scope rule, store-call argv, settlement order
-// and failure meanings). The per-host refusal and failure strings are host
-// seams declared in the source's header, not drift.
+// and failure meanings). The refusal and failure strings are unified across
+// the hosts and rendered host-side, as the source's header declares - not
+// drift.
 // Regenerate with bin/fm-branch-shared-sync.sh.
 // One owner for the supervision-branch report and acknowledgement decision
 // core, shared by the Pi supervision-branch extension
@@ -17,17 +18,21 @@
 // calls (append, mark-read, mark-processed), the settlement call ORDER, and
 // the meaning of each settlement failure.
 //
-// Host seams - declared, deliberately not unified (firstmate's A4 decision
-// D1=C, D2=C, D3=C: zero observable behaviour change is the contract):
-//   - Refusal and failure STRINGS. The task-in-scope refusal text, the
-//     through-validation refusal text, the mark-read failure text, the
-//     mark-processed failure text, and the processed success text differ per
-//     host and stay host-rendered; this module returns structured verdicts
-//     (with the scope facts each host needs) instead of picking a winner.
-//     Unifying them is a separate later decision, not part of this
-//     extraction. The strings that are byte-identical across both hosts
-//     today (the invalid-report refusal, the append-failure refusal, the
-//     report success line) ARE owned here as constants so they cannot drift.
+// Host seams - the refusal and failure STRINGS, unified but still host-
+// rendered (firstmate's A4 decision kept them per-host; the captain's
+// 2026-09-20 ruling then unified them on the mod's wording and shape):
+//   - The task-in-scope refusal text, the through-validation refusal text,
+//     the mark-read failure text, the mark-processed failure text, and the
+//     processed success text are byte-identical across both hosts now, and
+//     the task-in-scope refusal is a normal tool result carrying the
+//     corrective re-report instruction on BOTH hosts (the Pi extension no
+//     longer renders it as an isError result). They stay rendered host-side
+//     because the mod's hooks source is the adopted original and its bytes
+//     are frozen; no module constant exists for them, so the shared fixture
+//     suite (tests/fm-branch-report-sequence.test.sh) pins the byte equality
+//     between the hosts instead. The strings owned here as constants (the
+//     invalid-report refusal, the append-failure refusal, the report success
+//     line) cannot drift by construction.
 //   - Parameter coercion preambles. Each host coerces raw tool-call input
 //     into primitives its own way (trimming, Number() coercion) before
 //     calling the rules here; those few lines stay host-side so pathological
@@ -94,7 +99,8 @@ export type TaskScopeVerdict =
 
 // The task-in-scope rule, stated once: during a task-scoped wake a report
 // may only name a task the wake's own rows resolve to; an unscoped host
-// accepts any task. The refusal TEXT is a host seam (see the header).
+// accepts any task. The refusal TEXT is unified across the hosts (see the
+// header) but stays host-rendered.
 export function reportTaskScopeVerdict(scope: WakeTaskScope | null, task: string): TaskScopeVerdict {
   if (!scope || scope.tasks.includes(task)) return { allowed: true };
   return { allowed: false, task, tasks: [...scope.tasks], rows: [...scope.rows] };
@@ -132,7 +138,8 @@ export function parseOutcomeSeq(stdout: string): number | null {
 
 // The fm_branch_processed rule, stated once: a through value must be a safe
 // positive integer. The coercion of raw tool input into a number stays
-// host-side (see the header); the refusal TEXT is a host seam.
+// host-side (see the header); the refusal TEXT is unified across the hosts
+// but stays host-rendered.
 export function validateThroughValue(through: number): boolean {
   return Number.isSafeInteger(through) && through >= 1;
 }

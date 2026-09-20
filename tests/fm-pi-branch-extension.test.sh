@@ -1821,7 +1821,11 @@ if (dispatch("check: unresolved fleet event", []).accepted) {
 // The legacy away daemon flag means nothing on Pi, where the daemon is never
 // launched: the branch keeps accepting (docs/pi-supervision-branch.md
 // "Postures"; the away-posture record itself is covered by
-// test_away_record_parks_main_and_presents_after_archive).
+// test_away_record_parks_main_and_presents_after_archive). The two silent
+// prompt settlements above each count one unified latch failure under the
+// adopted counting rule, so open a fresh supervision session first - a new
+// session resets the failure latch - and assert eligibility on it.
+await fire("session_start", {}, defaultSessionCtx);
 writeFileSync(`${home}/state/.afk`, "");
 if (!dispatch("signal: legacy flag present").accepted) throw new Error("branch declined a wake over the legacy daemon flag");
 rmSync(`${home}/state/.afk`);
@@ -2250,7 +2254,8 @@ EOF
 # another pane. A signal or stale wake may report only the tasks its rows
 # resolve to, with fleet refused too; a heartbeat review is unscoped and
 # refuses nothing by task id. The wake's own task still goes through, and
-# nothing refused ever reaches the durable store.
+# nothing refused ever reaches the durable store. The refusal is the unified
+# normal-result retry instruction (the mod's wording, no isError).
 test_branch_report_refuses_a_task_the_wake_did_not_name() {
   local repo home out status
   repo="$TMP_ROOT/ghost-report-root"
@@ -2278,13 +2283,15 @@ await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "task-local bran
 const session = globalThis.__fmSessions[globalThis.__fmSessions.length - 1];
 const report = session.options.customTools.find((tool) => tool.name === "fm_branch_report");
 const ghost = await report.execute("ghost", { task: "other-task", verdict: "captain", summary: "PR ready to merge" }, undefined, undefined, {});
-if (!ghost.isError || !ghost.content[0].text.includes("names branch-driver, not other-task")) {
-  throw new Error(`a report for a live task the wake never named was not refused: ${JSON.stringify(ghost)}`);
+if (ghost.isError || !ghost.content[0].text.includes("task must be branch-driver (this wake's own task), not 'other-task'. Call fm_branch_report again with task=branch-driver and the same verdict and summary.")) {
+  throw new Error(`a report for a live task the wake never named did not carry the unified retry instruction: ${JSON.stringify(ghost)}`);
 }
 const gone = await report.execute("gone", { task: "retired-task", verdict: "captain", summary: "PR ready to merge" }, undefined, undefined, {});
-if (!gone.isError) throw new Error(`a report for a task with no record was not refused: ${JSON.stringify(gone)}`);
+if (gone.isError || !gone.content[0].text.includes("not 'retired-task'")) {
+  throw new Error(`a report for a task with no record did not carry the unified retry instruction: ${JSON.stringify(gone)}`);
+}
 const fleet = await report.execute("fleet", { task: "fleet", verdict: "routine", summary: "fleet-wide note" }, undefined, undefined, {});
-if (!fleet.isError || !fleet.content[0].text.includes("never fleet")) {
+if (fleet.isError || !fleet.content[0].text.includes("not 'fleet'")) {
   throw new Error(`a fleet-wide report was not refused during a task-local wake: ${JSON.stringify(fleet)}`);
 }
 const named = await report.execute("named", { task: "branch-driver", verdict: "routine", summary: "worker healthy" }, undefined, undefined, {});
@@ -2627,7 +2634,7 @@ await new Promise((resolve) => setTimeout(resolve, 50));
 if (attempt !== 4 || mainUserMessages.length !== 0) {
   throw new Error(`latched branch still prompted or emitted its own fallback: attempts=${attempt} fallbacks=${mainUserMessages.length}`);
 }
-const pauseNotes = sentToMain.filter((sent) => sent.message.content.includes("Supervision branch paused after repeated provider errors"));
+const pauseNotes = sentToMain.filter((sent) => sent.message.content.includes("Supervision branch paused after repeated failures"));
 if (pauseNotes.length !== 1 || pauseNotes[0].message.content.includes("\n")) {
   throw new Error(`the first latch must surface exactly one one-line note: ${JSON.stringify(pauseNotes)}`);
 }
@@ -2700,6 +2707,124 @@ EOF
   out=$(cat "$TMP_ROOT/node-output")
   expect_code 0 "$status" "provider errors must latch, cool down, re-probe once, back off, and recover through a durable report: $out"
   pass "provider-error latches cool down, re-probe once with backoff, and recover through a durable report"
+}
+
+# The unified latch predicate (the mod's rule, adopted on Pi): a report-less,
+# error-free settlement is one consecutive failure exactly as a settled
+# provider error is, counted under Pi's schedule - two silent turns latch,
+# a healthy probe reopens, and a silent probe re-latches and doubles the
+# cooldown. The watchable surface is unchanged: a silent wake still rejects
+# to the watcher's fallback and releases its row grant, and the pause note
+# no longer names provider errors only.
+test_report_less_error_free_turns_count_toward_the_latch() {
+  local repo home out status
+  repo="$TMP_ROOT/report-less-latch-root"
+  home="$TMP_ROOT/report-less-latch-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, sentToMain, defaultSessionCtx, home }; })()	`);
+const { fire, dispatch, settle, sentToMain, defaultSessionCtx, home } = globalThis.__t;
+import { existsSync } from "node:fs";
+
+const pauseNotes = () => sentToMain.filter((sent) => sent.message.content.includes("Supervision branch paused after repeated failures")).length;
+const recoveryNotes = () => sentToMain.filter((sent) => sent.message.content.includes("Supervision branch recovered after a successful cooldown probe")).length;
+
+let now = Date.now();
+Date.now = () => now;
+let attempt = 0;
+globalThis.__fmOnBranchPrompt = async ({ session }) => {
+  attempt += 1;
+  if (attempt === 3 || attempt === 7) {
+    const report = session.options.customTools.find((tool) => tool.name === "fm_branch_report");
+    const recorded = await report.execute(
+      `probe-recovery-${attempt}`,
+      { task: "branch-driver", verdict: "routine", summary: "post-probe report proved the branch is healthy again" },
+      undefined,
+      undefined,
+      {},
+    );
+    if (recorded.isError) throw new Error(`the recovery report failed: ${JSON.stringify(recorded)}`);
+    session.messages.push({ role: "assistant", content: [], stopReason: "stop" });
+    return;
+  }
+  session.messages.push({ role: "assistant", content: [], stopReason: "stop" });
+};
+
+await fire("session_start", {}, defaultSessionCtx);
+
+// Two consecutive silent turns arm the latch: the first settles rejected
+// with the report-less reason and no pause note, the second arms it with
+// exactly one widened pause note. Neither leaves a row grant behind.
+const firstSilent = dispatch("signal: silent turn one");
+if (!firstSilent.accepted) throw new Error("the first silent wake was refused before the latch armed");
+const firstError = await firstSilent.settlement.then(() => null, (error) => error);
+if (!(firstError instanceof Error) || !firstError.message.includes("produced no durable outcome")) {
+  throw new Error(`the first silent turn did not reject settlement: ${String(firstError)}`);
+}
+if (pauseNotes() !== 0) throw new Error("a single report-less turn armed the latch early");
+if (existsSync(`${home}/state/.branch-eligible-rows`)) {
+  throw new Error("the first silent turn left the claimed row grant active");
+}
+const secondSilent = dispatch("signal: silent turn two");
+if (!secondSilent.accepted) throw new Error("one silent failure must not latch the branch yet");
+await secondSilent.settlement.then(() => null, (error) => error);
+await settle(() => pauseNotes() === 1, "the second silent turn armed the latch");
+if (sentToMain.some((sent) => sent.message.content.includes("provider errors"))) {
+  throw new Error("the pause note still names provider errors only");
+}
+
+// The latch refuses the next wake inside the cooldown, then admits exactly
+// one probe after the five-minute cooldown.
+const latchedRefusal = dispatch("signal: refused while latched");
+if (latchedRefusal.accepted) throw new Error("a latched branch accepted a fresh wake before the cooldown ended");
+now += 5 * 60 * 1000 - 1000;
+const stillLatched = dispatch("signal: one second before the cooldown ends");
+if (stillLatched.accepted) throw new Error("a latched branch accepted a wake one second before the cooldown ended");
+now += 1000;
+const probe = dispatch("signal: the cooldown probe");
+if (!probe.accepted) throw new Error("the branch did not admit the recovery probe after its cooldown");
+const probeOutcome = await probe.settlement.then(() => "resolved", (error) => error);
+if (probeOutcome !== "resolved") throw new Error(`the healthy probe did not resolve its settlement: ${String(probeOutcome)}`);
+await settle(() => attempt === 3 && recoveryNotes() === 1, "the healthy probe reopened the branch");
+
+// After recovery, two more silent turns latch again.
+now += 60 * 1000;
+const postRecoveryOne = dispatch("signal: silent turn after recovery");
+if (!postRecoveryOne.accepted) throw new Error("a recovered branch refused a fresh wake");
+await postRecoveryOne.settlement.then(() => null, (error) => error);
+const postRecoveryTwo = dispatch("signal: second silent turn after recovery");
+if (!postRecoveryTwo.accepted) throw new Error("one post-recovery silent failure must not latch yet");
+await postRecoveryTwo.settlement.then(() => null, (error) => error);
+await settle(() => pauseNotes() === 2, "the second silent pair latched again");
+
+// The re-latch cooldown admits a probe whose settlement is silent too: that
+// probe failure doubles the cooldown to ten minutes.
+now += 5 * 60 * 1000;
+const silentProbe = dispatch("signal: probe after the second latch");
+if (!silentProbe.accepted) throw new Error("the branch did not admit the probe after the re-latch cooldown");
+const silentProbeError = await silentProbe.settlement.then(() => null, (error) => error);
+if (!(silentProbeError instanceof Error) || !silentProbeError.message.includes("produced no durable outcome")) {
+  throw new Error(`the silent probe did not reject settlement: ${String(silentProbeError)}`);
+}
+if (pauseNotes() !== 2) throw new Error("a re-latch must not re-issue the first-latch note");
+
+now += 5 * 60 * 1000;
+const doubledRefusal = dispatch("signal: five minutes into a doubled cooldown");
+if (doubledRefusal.accepted) throw new Error("the failed probe did not double the cooldown to ten minutes");
+now += 5 * 60 * 1000;
+const secondProbe = dispatch("signal: probe admitted after the doubled cooldown");
+if (!secondProbe.accepted) throw new Error("the branch did not admit a probe after the doubled cooldown ended");
+await secondProbe.settlement.then(() => null, (error) => error);
+await settle(() => attempt === 7 && recoveryNotes() === 2, "the second healthy probe reopened the branch");
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "report-less error-free turns must count toward the latch under Pi's schedule with probes and a doubled cooldown: $out"
+  pass "report-less error-free turns latch the branch, recover through probes, and double the cooldown"
 }
 
 test_selection_change_does_not_corrupt_inflight_provider_state() {
@@ -5267,8 +5392,9 @@ if (outcomeScript(["list", "--recent", "50"]) !== "") throw new Error("a failed 
 // reconciliation completes the delivery rather than losing it.
 armStoreFailure("mark-read");
 const markFailed = await report.execute("mark-read-fails", { task: "branch-driver", verdict: "captain", summary: "cursor advance must fail" }, undefined, undefined, {});
-if (!markFailed.isError || !markFailed.content[0].text.includes("visible delivery or cursor advancement failed")) {
-  throw new Error(`a failed cursor advance did not surface as an error: ${JSON.stringify(markFailed)}`);
+if (!markFailed.isError || !markFailed.content[0].text.includes("recorded seq ") ||
+    !markFailed.content[0].text.includes("but cursor advancement failed: fm-branch-outcome.sh exited 9: injected store failure")) {
+  throw new Error(`a failed cursor advance did not surface the unified failure wording: ${JSON.stringify(markFailed)}`);
 }
 const afterFailure = outcomeScript(["list", "--recent", "50"]).split("\n").filter(Boolean).map((line) => JSON.parse(line));
 if (afterFailure.length !== 1 || afterFailure[0].summary !== "cursor advance must fail") {
@@ -5359,8 +5485,8 @@ const report = globalThis.__fmSessions[0].options.customTools.find((tool) => too
 const routineSummary = "routine note whose cursor write fails";
 armStoreFailure("mark-read");
 const routineFailed = await report.execute("routine-mark-read-fails", { task: "branch-driver", verdict: "routine", summary: routineSummary }, undefined, undefined, {});
-if (!routineFailed.isError || !routineFailed.content[0].text.includes("visible delivery or cursor advancement failed")) {
-  throw new Error(`a failed routine cursor advance did not surface as an error: ${JSON.stringify(routineFailed)}`);
+if (!routineFailed.isError || !routineFailed.content[0].text.includes("but cursor advancement failed: fm-branch-outcome.sh exited 9: injected store failure")) {
+  throw new Error(`a failed routine cursor advance did not surface the unified failure wording: ${JSON.stringify(routineFailed)}`);
 }
 if (routineCopies(routineSummary) !== 1) {
   throw new Error(`the routine note was not delivered exactly once before the cursor failure: ${routineCopies(routineSummary)}`);
@@ -5533,6 +5659,7 @@ test_branch_predrain_recheck_excludes_new_main_owned_row_without_deferring_eligi
 test_branch_predrain_needs_decision_keeps_routine_row_branch_eligible
 test_settled_branch_prompt_releases_unacknowledged_grant
 test_post_construction_provider_error_falls_back_latches_and_recovers_on_cooldown
+test_report_less_error_free_turns_count_toward_the_latch
 test_selection_change_does_not_corrupt_inflight_provider_state
 test_main_owned_grant_result_falls_back_to_main
 test_branch_predrain_recheck_noops_already_drained_wake
