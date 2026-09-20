@@ -17,10 +17,10 @@
 //   (f) turn.step effort rewrite for the branch's own agent ids.
 //   continuity: one Monitor task per session streams each watcher close as a
 //       task-notification into prompt.submit; armed at session start when the
-//       mode file is present and the session lock is held, on the first captain
-//       prompt (fallback), on any handled prompt.submit that finds no live
-//       monitor, and from the branch's settlement - never dependent on a
-//       captain prompt to exist.
+//       mode file is present and the session lock is held, on any captain
+//       prompt or stop-hook-sourced wake that finds no live monitor (a claim
+//       older than MONITOR_CLAIM_STALE_MS counts as dead), and from the
+//       branch's settlement - never dependent on a captain prompt to exist.
 //
 // The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
 // the version is read from the binary hosting the session (PATH `claude` is only
