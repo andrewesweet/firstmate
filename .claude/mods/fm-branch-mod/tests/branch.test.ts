@@ -989,6 +989,20 @@ describe("watcher continuity", () => {
     expect(w.submitted).toEqual([]);
   });
 
+  test("a restored claim with no recorded arm time is honoured for one monitor lifetime, never expired at once", async ($: Engine, on: On) => {
+    // Counters written by the previous module version name the live monitor
+    // but carry no monitorArmedAt: session start must not start a second loop.
+    const legacy = JSON.stringify({ ...JSON.parse(adoptionCounters), monitorTaskId: "m-old" });
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: legacy }, sendAnswer: SEND_ADOPTS, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w)).toEqual([]);
+    await w.clock.advance(40 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => [e.data.why, e.data.taskId])).toEqual([["stop-hook wake without monitor", "m1"]]);
+  });
+
   test("a monitor arm that failed recovers at the next prompt.submit, with no expiry notice ever arriving", async ($: Engine, on: On) => {
     // The session-start arm is denied: the claim is false and, the monitor
     // never having started, no expiry notice will ever arrive to re-arm it.

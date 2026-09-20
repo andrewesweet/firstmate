@@ -254,7 +254,7 @@ async function restoreCounters($: any): Promise<void> {
       }
       if (j.monitorTaskId) {
         monitorTaskId = j.monitorTaskId
-        monitorArmedAt = j.monitorArmedAt ?? 0
+        monitorArmedAt = j.monitorArmedAt ?? Number(await $.clock.now())
         monitorArmed = true
       }
       log($, 'counters.restored', { ...j, reason: 'same session lock pid (module reloaded)' })
