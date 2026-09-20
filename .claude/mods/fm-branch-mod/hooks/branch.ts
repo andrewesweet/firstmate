@@ -154,7 +154,7 @@ function parentDirectory(path: string): string {
 // Home and script resolution follow bin/ exactly: FM_HOME, then FM_ROOT_OVERRIDE,
 // then the tracked code root three levels above the plugin folder; state and
 // config honour their own overrides; scripts always come from the code root.
-async function bind($: any, sessionCwd: string): Promise<void> {
+export async function bind($: any, sessionCwd: string): Promise<void> {
   if (bound) return
   bound = true
   cwd = sessionCwd
@@ -361,7 +361,7 @@ function lastStatusLine(lines: string[]): string {
   return last || fallback
 }
 
-async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
+export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
   const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
   let queue = ''
   try {

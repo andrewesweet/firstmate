@@ -690,6 +690,7 @@ tests/fm-bootstrap.test.sh 46634
 tests/fm-branch-claude-mod-live-e2e.test.sh 60
 tests/fm-branch-claude-mod-plugin.test.sh 60
 tests/fm-branch-claude-mod.test.sh 250
+tests/fm-branch-eligibility.test.sh 950
 tests/fm-branch-mod-bin.test.sh 8000
 tests/fm-branch-supervision.test.sh 8915
 tests/fm-busy-adapter-wiring.test.sh 27817
