@@ -415,12 +415,16 @@ test_no_mistakes_dod_wording() {
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticked respond command must stay literal
   assert_grep 'when `no-mistakes axi status` shows a parked gate, feed each item to it with `no-mistakes axi respond --action fix`' "$brief" \
     "no-mistakes DOD must route review feedback through the fix action on a parked gate"
-  assert_grep "shows no parked gate, write the comment's text and URL to a file and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=<path>\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping: on fix, commit the follow-up on your existing branch and push it through the pipeline; on dismiss, reply on the PR" "$brief" \
-    "no-mistakes DOD must route green-CI review feedback to firstmate as a keyed needs-decision the worker keeps polling behind"
-  assert_grep "Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those two paths first" "$brief" \
-    "no-mistakes DOD must re-read the PR for unactioned feedback before done"
+  assert_grep "shows no parked gate, write the comment's text and URL to \`$home/data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=$home/data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR" "$brief" \
+    "no-mistakes DOD must route green-CI review feedback to firstmate as a keyed needs-decision pointing at a data-dir file"
+  assert_grep "A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`" "$brief" \
+    "no-mistakes DOD must apply a fix answer only at the run's next stopping point"
+  assert_grep "Never hand-commit while a run is active and never start a second run while one is active" "$brief" \
+    "no-mistakes DOD must forbid hand-commits and a second run while one is active"
+  assert_grep "never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered" "$brief" \
+    "no-mistakes DOD must hold done while a review-feedback decision is open"
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticked keyed paused/resolved lines must stay literal
-  assert_grep 'append `paused [key=nm-<run>-ci]: <what must happen>` once, keep polling, and when it clears append `resolved [key=nm-<run>-ci]: <how it cleared>` yourself' "$brief" \
+  assert_grep 'append `paused [key=nm-<run>-ci-wait]: <what must happen>` once, keep polling, and when it clears append `resolved [key=nm-<run>-ci-wait]: <how it cleared>` yourself' "$brief" \
     "no-mistakes DOD must report a maintainer-only wait as a keyed paused line the worker resolves itself"
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticked blocked: token must stay literal
   assert_grep 'never report it as `blocked:` and never stop on it' "$brief" \

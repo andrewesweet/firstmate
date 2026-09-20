@@ -57,12 +57,17 @@
 # review-bot or maintainer feedback is fed to a parked gate through
 # `no-mistakes axi respond --action fix`, never dismissed as a non-required
 # check; feedback that lands while no gate is parked is a keyed
-# `needs-decision [key=pr-<n>-<comment-id>]` line the worker keeps polling
-# behind until firstmate answers fix (commit and push the follow-up on the
-# same branch) or dismiss (reply on the PR), and `done:` waits until the PR
-# holds no unactioned feedback; a maintainer-only wait (fork-workflow approval, flaky-job rerun) is a
-# keyed declared-external-wait line the worker resumes from itself, never
-# `blocked:`; and no single wait exceeds the harness command bound the block
+# `needs-decision [key=pr-<n>-<comment-id>]` line pointing at
+# `<data-dir>/<task-id>/pr-<n>-<comment-id>.txt` that the worker keeps polling
+# behind until firstmate answers dismiss (reply on the PR) or fix, which is
+# applied only at the run's next stopping point (a parked gate, or a follow-up
+# commit plus a new run on the same branch after the final outcome), and
+# `done:` waits until no such decision is open and the PR holds no unactioned
+# feedback; a maintainer-only wait (fork-workflow approval, flaky-job rerun) is
+# a `[key=nm-<run>-ci-wait]` declared-external-wait line, keyed apart from the
+# gate's own ask-user key so the worker's `resolved` never folds away an
+# escalation only firstmate may close, that the worker resumes from itself,
+# never `blocked:`; and no single wait exceeds the harness command bound the block
 # already names. That contract came from a worker that sat at the gate for
 # hours on `sleep 3000; gh pr checks`, never read the review or the
 # maintainer's comment, and reported `blocked:`. The declared-external-wait verb
@@ -279,8 +284,8 @@ fm_ask_user_escalation_block() {  # <data-dir> <task-id>
 EOF
 }
 
-fm_dod_block() {  # <mode> <task-id>
-  local mode=$1 id=$2 paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
+fm_dod_block() {  # <mode> <task-id> <data-dir>
+  local mode=$1 id=$2 data=$3 paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   case "$mode" in
     direct-PR)
       cat <<EOF
@@ -337,9 +342,11 @@ Two firstmate-specific rules layer on top of that guidance:
 At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; gh pr checks <n>\` is one blocking hold, not a poll.
 Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
 A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: when \`no-mistakes axi status\` shows a parked gate, feed each item to it with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
-When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to a file and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=<path>\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping: on fix, commit the follow-up on your existing branch and push it through the pipeline; on dismiss, reply on the PR.
-Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those two paths first.
-A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [key=nm-<run>-ci]: <what must happen>\` once, keep polling, and when it clears append \`resolved [key=nm-<run>-ci]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
+When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to \`$data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=$data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
+A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`.
+Never hand-commit while a run is active and never start a second run while one is active.
+Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those paths first; never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered.
+A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
 Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
 
 When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done: PR {url} checks green\` and stop. You are finished.
