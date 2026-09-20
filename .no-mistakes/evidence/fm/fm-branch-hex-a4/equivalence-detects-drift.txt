@@ -1,0 +1,10 @@
+$ # vendored copy tampered: through >= 0 instead of >= 1
+ .claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ tests/fm-branch-report-sequence.test.sh
+14c14
+< {"cls":"host:through-refused","denied":true,"argv":[]}
+---
+> {"cls":"host:processed-success","denied":false,"argv":[["mark-processed","--through","0"]]}
+not ok - mod and lib verdict/argv transcripts diverge
+rc=1

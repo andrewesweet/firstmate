@@ -1,0 +1,13 @@
+$ bin/fm-branch-shared-sync.sh --check   # after hand-editing the vendored copy
+stale: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2ZECMSW56G20C8X0BYDZSBB/.claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts (run bin/fm-branch-shared-sync.sh)
+rc=1
+
+$ tests/fm-branch-claude-mod.test.sh
+ok - the mod is one hooks module and one agent, reached only through --plugin-dir, with no command, skill, or classic hook path
+ok - agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns
+not ok - the vendored eligibility module is stale against lib/fm-branch-eligibility.ts: stale: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2ZECMSW56G20C8X0BYDZSBB/.claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts (run bin/fm-branch-shared-sync.sh)
+
+$ bin/fm-branch-shared-sync.sh   # regenerate
+rc=0
+$ bin/fm-branch-shared-sync.sh --check
+rc=0
