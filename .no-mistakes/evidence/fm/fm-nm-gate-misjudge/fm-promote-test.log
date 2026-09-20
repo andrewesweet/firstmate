@@ -1,0 +1,8 @@
+wrote ship instructions for mode=direct-PR: /tmp/fm-promote.CEeUmX/promote-off/home/data/sc1/ship-instructions.md
+next: FM_HOME=/tmp/fm-promote.CEeUmX/promote-off/home bin/fm-send.sh fm-sc1 "$(cat /tmp/fm-promote.CEeUmX/promote-off/home/data/sc1/ship-instructions.md)"
+ok - fm-promote: a disabled home promotes identically and posts nothing
+promoted sc1 to ship mode=local-only yolo=off (teardown protection restored)
+wrote ship instructions for mode=local-only: /tmp/fm-promote.CEeUmX/promote-curl-fail/home/data/sc1/ship-instructions.md
+next: FM_HOME=/tmp/fm-promote.CEeUmX/promote-curl-fail/home bin/fm-send.sh fm-sc1 "$(cat /tmp/fm-promote.CEeUmX/promote-curl-fail/home/data/sc1/ship-instructions.md)"
+ok - fm-promote: an emitter failure cannot alter the promotion outcome
+# all fm-promote tests passed
