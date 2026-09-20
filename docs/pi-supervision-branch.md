@@ -146,6 +146,8 @@ The away posture skips the classifier entirely: the branch takes every row while
 The shared module self-gates on the config value; the helper scripts (`bin/fm-branch-shadow-jev.sh`, `bin/fm-branch-shadow-pane.sh`) resolve from the extension's own repository root, which in production is the same directory as the tracked scripts.
 Answers append to `state/branch-mod-shadow.jsonl` with the same byte-stable record shape, wake-key stamping, policy floors, and facts object as the mod's trial, so `bin/fm-branch-shadow-score.sh` and `bin/fm-branch-shadow-gates.sh` score one log for both hosts; both logs rotate at the mod's 4MB cap; the extension appends through its own inline rotating-append snippet with the same cap.
 The repeat-control cadence counts wakes per extension process, the same per-incarnation semantics as the mod's per-lock-pid counter.
+On Pi the trial runs without pane-derived evidence (no pane tail, observation, window, or stale facts): `bin/fm-branch-shadow-pane.sh` is gated on the Claude mod marker `state/.branch-mod-mode`, which a Pi home does not have, so the `without_pane_tail` ablation is inert on Pi.
+Widening that gate is a reserved product call tracked as follow-up `fm-branch-shadow-pi-pane-evidence`.
 
 ## Heartbeat routing
 
