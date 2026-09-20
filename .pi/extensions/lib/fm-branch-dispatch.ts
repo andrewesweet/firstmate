@@ -79,6 +79,8 @@ export interface UnreadWakeScope {
    * either mode.
    */
   corrupted: boolean;
+  /** The mod's `<epoch>:<seq>` wake keys for the eligible rows, comma-joined. */
+  eligibleWakeKey: string;
   /**
    * The exact "key" field of every decision-owned signal or stale row this
    * scan excluded. Signal rows are marked by bin/fm-watch.sh; stale rows are
@@ -100,6 +102,8 @@ export interface UnreadWakeScope {
    * non-heartbeat wake claims it in the away posture.
    */
   heartbeatSeqs: string[];
+  /** The mod's every validated row seq (the passed-seqs sweep's queue view). */
+  allSeqs: string[];
   taskByWakeKey: Record<string, string>;
 }
 

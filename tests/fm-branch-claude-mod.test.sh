@@ -91,7 +91,7 @@ test_vendored_eligibility_module_is_generated_and_current() {
 
 test_vendored_a4_modules_are_generated_and_current() {
   local out module source tracked
-  for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts; do
+  for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts fm-branch-classifier.ts fm-branch-shadow.ts; do
     source="$ROOT/lib/$module"
     tracked="$MOD/lib/$module"
     [ -f "$source" ] || fail "the shared A4 module is missing: $source"
@@ -110,7 +110,7 @@ test_vendored_a4_modules_are_generated_and_current() {
       fail "$tracked is not the source verbatim under its generated header"
     fi
   done
-  pass "the vendored report-sequence and provider-latch modules are current with bin/fm-branch-shared-sync.sh"
+  pass "the vendored report-sequence, provider-latch, classifier, and shadow modules are current with bin/fm-branch-shared-sync.sh"
 }
 
 test_plugin_shape

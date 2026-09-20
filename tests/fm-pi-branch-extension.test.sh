@@ -55,7 +55,9 @@ install_pi_branch_extension_fixture() {
     "$repo/node_modules/typebox"
   cp "$EXT" "$repo/.pi/extensions/fm-branch-supervision.ts"
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
+  cp "$ROOT/lib/fm-branch-classifier.ts" "$repo/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
+  cp "$ROOT/lib/fm-branch-shadow.ts" "$repo/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$repo/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$repo/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
@@ -66,6 +68,16 @@ install_pi_branch_extension_fixture() {
   mkdir -p "$repo/bin"
   cp "$ROOT/bin/fm-operational-input.sh" "$repo/bin/fm-operational-input.sh"
   chmod +x "$repo/bin/fm-operational-input.sh"
+  # The shadow trial's pane helper runs for real against fixture state; the
+  # jev helper is stubbed because the real one calls the TypeSafe API.
+  cp "$ROOT/bin/fm-branch-shadow-pane.sh" "$repo/bin/fm-branch-shadow-pane.sh"
+  chmod +x "$repo/bin/fm-branch-shadow-pane.sh"
+  cat > "$repo/bin/fm-branch-shadow-jev.sh" <<'STUB'
+#!/usr/bin/env bash
+# Fixture stub: emits one well-formed success line without any network call.
+printf '%s\n' '{"ok":true,"model":"jev-stub","answers":{"state":{"answer":"the worker is working","confidence":"high"}}}'
+STUB
+  chmod +x "$repo/bin/fm-branch-shadow-jev.sh"
   cat > "$repo/node_modules/@earendil-works/pi-coding-agent/package.json" <<'JSON'
 {"name":"@earendil-works/pi-coding-agent","type":"module","exports":"./index.js"}
 JSON
@@ -142,7 +154,41 @@ export class ModelRuntime {
   hasConfiguredAuth(provider) {
     return this.authenticated.has(provider);
   }
+  // The pre-branch classifier's completion seam. Default answer keeps every
+  // wake routine so existing wake-delivery cases are unchanged; a test binds
+  // globalThis.__fmClassifierAnswer(context, options) to script a verdict.
+  async completeSimple(model, context, options) {
+    (globalThis.__fmClassifierCalls ??= []).push({
+      model: { provider: model.provider, id: model.id },
+      systemPrompt: context.systemPrompt,
+      prompt: context.messages.map((message) => message.content).join("\n"),
+      maxTokens: options?.maxTokens,
+    });
+    const answer = globalThis.__fmClassifierAnswer
+      ? await globalThis.__fmClassifierAnswer(context, options)
+      : JSON.stringify({ verdict: "routine", reason: "stub default: routine" });
+    return {
+      role: "assistant",
+      content: [{ type: "text", text: String(answer) }],
+      usage: {},
+      provider: model.provider,
+      model: model.id,
+    };
+  }
 }
+// Stub of the classifier's model-name resolution: first exact provider or
+// id match, else a synthetic scope so a suite that binds no static models
+// still exercises the completion seam (the real resolver's diagnostics are
+// not this suite's unit).
+export async function resolveModelScopeWithDiagnostics(patterns, modelRuntime) {
+  const pattern = String(patterns[0] ?? "");
+  const model =
+    modelRuntime.models.find((m) => m.provider === pattern || m.id === pattern) ??
+    modelRuntime.models[0] ??
+    { provider: "stub-classifier", id: pattern || "stub-model" };
+  return { scopedModels: [{ model, thinkingLevel: "off" }], diagnostics: [] };
+}
+
 export class DefaultResourceLoader {
   constructor(options) {
     this.options = options;
@@ -654,6 +700,184 @@ const mod = await import(pathToFileURL(process.env.PLUGIN).href);
 mod.default(pi);
 JS
 DRIVER_PRELUDE=$(cat "$DRIVER_PRELUDE_FILE")
+
+# The pre-branch classifier joins the branch here: a captain-classified wake
+# passes to main with durable covering rows and the passed-seqs guard, a
+# re-offer of guarded rows classifies nothing, and rows that left the queue
+# are swept from the guard.
+test_classifier_pass_covers_rows_and_guards_passed_seqs() {
+  local repo home out status
+  repo="$TMP_ROOT/classifier-pass-root"
+  home="$TMP_ROOT/classifier-pass-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home, makeOffer, bus }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home, makeOffer, bus } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+await fire("session_start", {}, defaultSessionCtx);
+const classFile = `${home}/state/branch-mod-classifications.jsonl`;
+const passedFile = `${home}/state/.branch-mod-passed`;
+const classRecords = () => {
+  try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
+  catch { return []; }
+};
+const passedSeqs = () => { try { return JSON.parse(readFileSync(passedFile, "utf8")); } catch { return []; } };
+const outcomeRows = () => {
+  try { return readFileSync(`${home}/state/branch-outcomes.jsonl`, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
+  catch { return []; }
+};
+
+// A captain-classified wake passes to main: the settlement rejects, exactly
+// one durable record lands with the whitelisted verdict and the configured
+// default model, the guard file holds the claimed rows, and one covering
+// captain row per eligible task carries the shared pass-cover summary.
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "captain", reason: "the worker reports a blocked credential" });
+const offer = dispatch("signal: task-9 done: PR https://example.com/pr/9 checks green");
+if (!offer.accepted) throw new Error("branch did not accept the wake offer");
+let rejected = "";
+try { await offer.settlement; } catch (error) { rejected = String(error.message); }
+if (!rejected.includes("classifier routed the wake to main")) {
+  throw new Error(`a captain-classified wake settled instead of passing to main: ${rejected}`);
+}
+const records = classRecords();
+if (records.length !== 1) throw new Error(`expected one classification record, got ${records.length}`);
+if (records[0].verdict !== "captain") throw new Error(`record lost the verdict: ${JSON.stringify(records[0])}`);
+if (records[0].wake !== offer.message) throw new Error(`record lost the wake: ${JSON.stringify(records[0])}`);
+if (records[0].model !== "haiku") throw new Error(`record lost the default model: ${JSON.stringify(records[0])}`);
+if (JSON.stringify(passedSeqs()) !== JSON.stringify(["1"])) throw new Error(`guard file wrong: ${readFileSync(passedFile, "utf8")}`);
+let cover = null;
+await settle(() => {
+  const rows = outcomeRows();
+  if (rows.length === 0) return false;
+  const last = rows.at(-1);
+  if (last.task === "branch-driver" && last.verdict === "captain") cover = last;
+  return cover !== null;
+}, "classifier cover row");
+if (cover.summary !== "Passed to main directly (classifier captain): the worker reports a blocked credential") {
+  throw new Error(`cover summary is not the shared builder's: ${cover.summary}`);
+}
+if (cover.wake !== offer.message) throw new Error(`cover row lost the wake: ${JSON.stringify(cover)}`);
+await settle(() => {
+  try { return readFileSync(`${home}/state/.branch-outcomes-processed`, "utf8").trim() === String(cover.seq); }
+  catch { return false; }
+}, "cover row processed marker");
+
+// The unacknowledged guard: a re-offer of the same rows rejects without
+// classifying again or appending more cover rows.
+const beforeCount = classRecords().length;
+const beforeRows = outcomeRows().length;
+const again = dispatch("signal: task-9 done: PR https://example.com/pr/9 checks green");
+try {
+  await again.settlement;
+  throw new Error("a re-offered passed wake settled");
+} catch (error) {
+  if (!String(error.message).includes("already passed to main")) throw error;
+}
+if (classRecords().length !== beforeCount) throw new Error("a guarded re-offer classified again");
+if (outcomeRows().length !== beforeRows) throw new Error("a guarded re-offer appended cover rows again");
+
+// Rows that left the queue are swept from the guard, so a later wake
+// classifies fresh and the guard no longer names the gone seq. The queue is
+// written directly so the row's seq differs from the guarded one (the driver
+// helper always writes seq 1).
+writeFileSync(`${home}/state/.wake-queue`, "1\t2\tsignal\tbranch-driver.status\tsignal: next wake\n");
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+const third = makeOffer("signal: next wake");
+bus.emit("fm-branch-supervision:dispatch", third);
+if (!third.accepted) throw new Error("the swept-guard wake was not accepted by the branch");
+let thirdRejection = "";
+try { await third.settlement; } catch (error) { thirdRejection = String(error.message); }
+if (classRecords().length !== beforeCount + 1) throw new Error("the swept guard did not classify the next wake");
+if (classRecords().at(-1).verdict !== "routine") throw new Error(`the swept-guard wake lost its verdict: ${JSON.stringify(classRecords().at(-1))}`);
+if (JSON.stringify(passedSeqs()) !== JSON.stringify([])) throw new Error(`gone seqs were not swept: ${readFileSync(passedFile, "utf8")}`);
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "classifier pass cover and guard must hold: $out"
+  pass "a captain-classified wake passes to main with cover rows, the guard file, and its sweep"
+}
+
+# The shadow advisory trial: gated on config, detached behind a routine
+# classification with evidence, appending one record per variant keyed by the
+# wake key; the away posture skips classification entirely.
+test_shadow_trial_appends_and_away_skips_classification() {
+  local repo home out status
+  repo="$TMP_ROOT/shadow-root"
+  home="$TMP_ROOT/shadow-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  printf 'jev\n' > "$home/config/classifier-shadow"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+await fire("session_start", {}, defaultSessionCtx);
+const classFile = `${home}/state/branch-mod-classifications.jsonl`;
+const shadowFile = `${home}/state/branch-mod-shadow.jsonl`;
+const classRecords = () => {
+  try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
+  catch { return []; }
+};
+const shadowRecords = () => {
+  try { return readFileSync(shadowFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
+  catch { return []; }
+};
+
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+const offer = dispatch("signal: routine wake");
+try { await offer.settlement; } catch { /* the stubbed prompt reports nothing; the rejection is expected */ }
+const records = classRecords();
+if (records.length !== 1 || records[0].verdict !== "routine") {
+  throw new Error(`the routine wake was not classified once as routine: ${JSON.stringify(records)}`);
+}
+// The trial runs detached: wait for its four variant records (wakeNo 1 is
+// below the control cadence, so none is a repeat control).
+await settle(() => shadowRecords().length >= 4, "shadow trial records");
+const shadow = shadowRecords();
+const variants = new Set(shadow.map((record) => record.variant));
+if (variants.size !== 4
+  || !variants.has("full")
+  || !variants.has("without_current_state")
+  || !variants.has("without_prior_outcomes")
+  || !variants.has("without_pane_tail")) {
+  throw new Error(`shadow records lost the ablation variant set: ${JSON.stringify(shadow.map((r) => r.variant))}`);
+}
+const keys = new Set(shadow.map((record) => record.wakeKey));
+if (keys.size !== 1 || [...keys][0] === "") {
+  throw new Error(`shadow records lost the shared wake key: ${JSON.stringify([...keys])}`);
+}
+for (const record of shadow) {
+  if (record.kind !== "shadow") throw new Error(`shadow record lost its kind: ${JSON.stringify(record)}`);
+  if (record.model !== "jev-stub") throw new Error(`shadow record lost the helper model: ${JSON.stringify(record)}`);
+  if (record.unavailable !== null) throw new Error(`the helper answer did not parse: ${record.unavailable}`);
+  if (record.control !== false) throw new Error(`wake 1 produced a repeat control: ${JSON.stringify(record)}`);
+}
+
+// The away posture skips the classifier entirely: the branch takes the rows
+// and no classification record or shadow trial appears.
+writeFileSync(`${home}/state/.afk-contract`, "hold for the captain's return\n");
+const away = dispatch("signal: away wake");
+try { await away.settlement; } catch { /* the away branch's stubbed prompt reports nothing */ }
+await settle(() => (globalThis.__fmPrompts ?? []).length === 2, "away branch prompt");
+if (classRecords().length !== 1) throw new Error(`the away posture classified: ${JSON.stringify(classRecords())}`);
+if (shadowRecords().length !== 4) throw new Error(`the away posture ran a shadow trial: ${shadowRecords().length}`);
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "shadow trial and away skip must hold: $out"
+  pass "the gated shadow trial appends joined records and the away posture skips classification"
+}
 
 test_branch_dispatch_two_stage_filter_and_prefix_contract() {
   local repo home out status
@@ -4152,7 +4376,9 @@ test_branch_dispatch_classifies_main_only_rows_and_writes_the_eligible_snapshot(
   home="$TMP_ROOT/dispatch-classify-home"
   mkdir -p "$repo/.pi/extensions/lib" "$repo/lib" "$home/state" "$home/projects/approved"
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
+  cp "$ROOT/lib/fm-branch-classifier.ts" "$repo/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
+  cp "$ROOT/lib/fm-branch-shadow.ts" "$repo/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$repo/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$repo/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
@@ -4590,7 +4816,9 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers() {
   mkdir -p "$fixture/.pi/extensions/lib" "$fixture/lib" "$fixture/node_modules/@earendil-works"
   cp "$EXT" "$fixture/.pi/extensions/fm-branch-supervision.ts"
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$fixture/.pi/extensions/lib/fm-branch-dispatch.ts"
+  cp "$ROOT/lib/fm-branch-classifier.ts" "$fixture/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$fixture/lib/fm-branch-eligibility.ts"
+  cp "$ROOT/lib/fm-branch-shadow.ts" "$fixture/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$fixture/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$fixture/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$fixture/.pi/extensions/lib/fm-native-contract.ts"
@@ -5288,6 +5516,8 @@ EOF
 test_outcomes_tool_uses_stock_execution_and_export_consumers
 test_real_pi_picker_primitives_stay_bounded_and_searchable
 test_branch_dispatch_two_stage_filter_and_prefix_contract
+test_classifier_pass_covers_rows_and_guards_passed_seqs
+test_shadow_trial_appends_and_away_skips_classification
 test_requested_healthy_outcome_and_unsolicited_routine_outcome_delivery
 test_captain_outcome_is_exactly_once_across_crash_reload_and_unrelated_response
 test_captain_outcome_processing_turn_is_sequence_keyed_and_re_presented

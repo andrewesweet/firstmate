@@ -91,6 +91,7 @@ import {
   getAgentDir,
   keyHint,
   ModelRuntime,
+  resolveModelScopeWithDiagnostics,
   type ModelRegistry,
   SessionManager,
   ToolExecutionComponent,
@@ -142,6 +143,18 @@ import {
   validateThroughValue,
 } from "../../lib/fm-branch-report-sequence.ts";
 import { createProviderErrorLatch, type ProviderErrorLatchPolicy } from "../../lib/fm-branch-provider-latch.ts";
+import {
+  classifierPassCoverArgv,
+  classifyWake,
+  passedToMainSummary,
+  type ClassifierDeps,
+} from "../../lib/fm-branch-classifier.ts";
+import { runShadowAdvisory as libRunShadowAdvisory, type ShadowDeps } from "../../lib/fm-branch-shadow.ts";
+import {
+  foldVocabularyFromEnv,
+  hasOpenNeedsDecision,
+  statusKindFromMetaText,
+} from "../../lib/fm-branch-eligibility.ts";
 
 const extensionFile = fileURLToPath(import.meta.url);
 const extensionDir = dirname(extensionFile);
@@ -161,6 +174,17 @@ const wakeGrantScript = join(fmRoot, "bin", "fm-wake-grant.sh");
 const loadedMarker = join(state, ".pi-branch-extension-loaded");
 const modelPinFile = join(config, "supervision-branch-model");
 const effortPinFile = join(config, "supervision-branch-effort");
+// The shared pre-branch classifier and shadow advisory trial (lib/
+// fm-branch-classifier.ts, lib/fm-branch-shadow.ts; docs/pi-supervision-branch.md
+// "Classifier and shadow trial"). The classifier's system prompt is the one
+// tracked asset the Claude Code mod reads from its plugin root; both hosts
+// consume the same bytes, never a copy.
+const classifierSystemFile = join(fmRoot, ".claude", "mods", "fm-branch-mod", "classifier-system.txt");
+const classificationsFile = join(state, "branch-mod-classifications.jsonl");
+const shadowFile = join(state, "branch-mod-shadow.jsonl");
+const passedSeqsFile = join(state, ".branch-mod-passed");
+// Same rotation cap the mod applies to its classification and shadow logs.
+const CLASSIFIER_LOG_CAP_BYTES = 4_000_000;
 
 // Same tool set in the same order on every request (part of the cached
 // prefix). "bash" resolves to the customTools override below, which injects
@@ -1458,6 +1482,141 @@ ${context.command}
     return `\n\n${AWAY_POSTURE_TAIL}\n${readback || "(the record's read-back could not be rendered; treat every grant and clause as unavailable and hold on doubt)"}`;
   }
 
+  // ---- pre-branch classifier and shadow advisory trial (shared modules) ----
+  // One lazily-created runtime serves every classifier call; the branch's own
+  // runtime is created per branch and must not gate classification on a
+  // branch existing.
+  let classifierRuntime: ModelRuntime | null = null;
+  // The shadow trial's control cadence counts granted wakes of this process,
+  // exactly like the mod's per-session counter; a restart restarts the
+  // cadence, which is trial-internal and never a record-format fact.
+  let shadowWakeCounter = 0;
+
+  function readConfigLine(name: string, fallback: string): string {
+    try {
+      return readFileSync(`${config}/${name}`, "utf8").trim() || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  // One shell append per record, rotated once past the cap: the same
+  // mechanics and cap the mod's appendLine gives these logs.
+  function appendRecordLine(path: string, line: string): Promise<void> {
+    const script = 'f=$1; cap=$2; if [ -f "$f" ] && [ "$(wc -c < "$f")" -gt "$cap" ]; then mv -f "$f" "$f.1"; fi; cat >> "$f"';
+    return runCommandAsync("sh", ["-c", script, "_", path, String(CLASSIFIER_LOG_CAP_BYTES)], {
+      cwd: fmRoot,
+      env: scriptEnv,
+      input: line,
+    }).then(() => undefined);
+  }
+
+  // Queue rows already passed to main with a cover row and not yet
+  // acknowledged: the same durable guard file the mod writes, so one home's
+  // classification history reads the same whichever harness ran the wake.
+  function readPassedSeqs(): Set<string> {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(passedSeqsFile, "utf8"));
+      return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writePassedSeqs(seqs: Set<string>): void {
+    try {
+      writeFileSync(passedSeqsFile, JSON.stringify([...seqs]));
+    } catch {
+      // A failed guard-file write must not block the wake; the next pass
+      // rewrites it, and a duplicate classification is the worst case.
+    }
+  }
+
+  // The classifier's model seam: the configured name resolves against the
+  // same runtime surface the branch uses (main's extension-registered
+  // providers copied across), and the completion is one simple request. The
+  // globalThis stub lets tests bind a fake completion without a runtime.
+  async function classifierComplete(req: { model: string; system: string; prompt: string; maxTokens: number }): Promise<string> {
+    const stub = (globalThis as { __fmClassifierComplete?: unknown }).__fmClassifierComplete;
+    if (typeof stub === "function") return String(await stub(req));
+    if (!classifierRuntime) {
+      classifierRuntime = await ModelRuntime.create();
+      await copyExtensionProviders(classifierRuntime);
+    }
+    const { scopedModels } = await resolveModelScopeWithDiagnostics([req.model], classifierRuntime);
+    const scope = scopedModels[0];
+    if (!scope) throw new Error(`classifier model not found: ${req.model}`);
+    const message = await classifierRuntime.completeSimple(
+      scope.model,
+      {
+        systemPrompt: req.system,
+        messages: [{ role: "user", content: req.prompt, timestamp: Date.now() }],
+      },
+      { maxTokens: req.maxTokens },
+    );
+    return message.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+  }
+
+  function piClassifierDeps(): ClassifierDeps {
+    return {
+      paths: { bin: join(fmRoot, "bin") },
+      runScript: async (argv, opts) => {
+        const r = await runCommandAsync(argv[0], argv.slice(1), {
+          cwd: fmRoot,
+          env: scriptEnv,
+          timeoutMs: opts.timeoutMs,
+        });
+        return { exitCode: r.status ?? 1, stdout: r.stdout || "", stderr: r.stderr || "" };
+      },
+      readSystemPrompt: () => Promise.resolve(readFileSync(classifierSystemFile, "utf8")),
+      readClassifierModel: () => Promise.resolve(readConfigLine("classifier-model", "haiku")),
+      complete: classifierComplete,
+      clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
+    };
+  }
+
+  function piShadowDeps(): ShadowDeps {
+    return {
+      // The shadow helpers resolve from this extension's own repository root,
+      // not FM_ROOT_OVERRIDE: in production the two are the same directory,
+      // while a fixture install can stub exactly these local helper scripts.
+      paths: { bin: join(root, "bin"), state },
+      readFile: (path) => Promise.resolve(readFileSync(path, "utf8")),
+      hasOpenCall: async (task) => {
+        try {
+          const lines = readFileSync(`${state}/${task}.status`, "utf8").split(/\r?\n/);
+          let metaText: string | null = null;
+          try {
+            metaText = readFileSync(`${state}/${task}.meta`, "utf8");
+          } catch {
+            metaText = null;
+          }
+          return hasOpenNeedsDecision(lines, statusKindFromMetaText(metaText), foldVocabularyFromEnv((name) => process.env[name]));
+        } catch {
+          return false;
+        }
+      },
+      runScript: async (argv, opts) => {
+        const r = await runCommandAsync(argv[0], argv.slice(1), {
+          cwd: fmRoot,
+          env: scriptEnv,
+          ...(opts.stdin !== undefined ? { input: opts.stdin } : {}),
+          timeoutMs: opts.timeoutMs,
+        });
+        return { exitCode: r.status ?? 1, stdout: r.stdout || "", stderr: r.stderr || "" };
+      },
+      readConfig: (name, fallback) => Promise.resolve(readConfigLine(name, fallback)),
+      appendShadowRecord: (line) => appendRecordLine(shadowFile, line),
+      // The mod surfaces trial failures in its event log; Pi has no such
+      // surface, and the records themselves carry every unavailable fact.
+      onShadowError: () => {},
+      clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
+    };
+  }
+
   function enqueueWake(message: string, acceptedGeneration: number, recoveryProbe = false, acceptedAwayOnly = false): Promise<void> {
     const acceptedSelectionRevision = branchSelectionRevision;
     const delivery = branchChain
@@ -1482,6 +1641,13 @@ ${context.command}
         const { session, sessionManager } = branchForWake;
         await flushMirror(session, acceptedGeneration);
         if (!(await actingAsOwner(acceptedGeneration))) throw new Error("supervision session no longer owns the fleet lock");
+        // The settlement baseline is taken at the wake's acceptance into the
+        // branch, not at the prompt's edge: every later durable report is
+        // this wake's handling producing an outcome (in practice only the
+        // branch's own turn reports), so the settled-prompt check below must
+        // count reports that land during the wake's pre-prompt work - the
+        // classifier's evidence gather and log append - as this wake's.
+        const reportRevisionBeforePrompt = durableReportRevision;
         const heartbeat = /^heartbeat($|:)/.test(message);
         // The posture is read here, at the tail of this wake, never earlier
         // and never into the prompt prefix.
@@ -1511,6 +1677,69 @@ ${context.command}
         if (scope.corrupted) {
           throw new Error("the unread wake queue could not be read safely");
         }
+        // The shared pre-branch classifier joins the capability here: every
+        // attended wake with eligible rows is classified before any row is
+        // claimed. The away posture skips it entirely - the branch takes
+        // every row while the record exists. A non-routine verdict passes
+        // the rows to main: durable covering captain rows in the outcome
+        // store (the mod's exact argv), the durable passed-seqs guard, and
+        // a rejected settlement, which hands the wake back to the watcher's
+        // consumption-acknowledged main path. A routine verdict proceeds to
+        // the branch and fires the detached shadow advisory trial beside
+        // delivery (the shared module self-gates on config/classifier-shadow).
+        if (!afk) {
+          const passedSeqs = readPassedSeqs();
+          const gone = [...passedSeqs].filter((s) => !scope.allSeqs.includes(s));
+          if (gone.length > 0) {
+            for (const s of gone) passedSeqs.delete(s);
+            writePassedSeqs(passedSeqs);
+          }
+          const unacknowledged = scope.eligibleSeqs.filter((s) => passedSeqs.has(s));
+          if (unacknowledged.length > 0) {
+            throw new Error("wake rows were already passed to main and are not yet acknowledged");
+          }
+          const { result, recordLine } = await classifyWake(piClassifierDeps(), {
+            wake: message,
+            tasks: scope.eligibleTasks,
+            seqs: scope.eligibleSeqs,
+          });
+          try {
+            await appendRecordLine(classificationsFile, recordLine);
+          } catch {
+            // The durable log is the scorer's input, not the routing path;
+            // a failed append is absorbed exactly like the mod absorbs one.
+          }
+          if (result.verdict !== "routine") {
+            for (const s of scope.eligibleSeqs) passedSeqs.add(s);
+            writePassedSeqs(passedSeqs);
+            const why = `classifier ${result.verdict}`;
+            const coverSummary = passedToMainSummary(why, result.reason);
+            for (const t of scope.eligibleTasks) {
+              try {
+                const appended = await runOutcomeScript(classifierPassCoverArgv(t, coverSummary, message));
+                if (appended.ok) {
+                  await runOutcomeScript(markReadArgv(appended.stdout));
+                  await runOutcomeScript(markProcessedArgv(appended.stdout));
+                }
+              } catch {
+                // One task's covering row failing must not block the pass;
+                // the guard file still keeps main authoritative for the rows.
+              }
+            }
+            throw new Error(`classifier routed the wake to main: ${result.verdict} (${result.reason})`);
+          }
+          if (result.evidence.length > 0) {
+            shadowWakeCounter += 1;
+            void libRunShadowAdvisory(piShadowDeps(), {
+              wake: message,
+              seqs: scope.eligibleSeqs,
+              wakeKey: scope.eligibleWakeKey,
+              tasks: scope.eligibleTasks,
+              evidence: result.evidence,
+              wakeNo: shadowWakeCounter,
+            }).catch(() => {});
+          }
+        }
         const grant = await writeEligibleRowsSnapshot(
           state,
           scope.eligibleSeqs,
@@ -1519,9 +1748,6 @@ ${context.command}
         );
         if (grant === "main-owned") throw new Error("the wake rows are already claimed by main");
         if (grant !== "published") throw new Error("could not record the branch's eligible row snapshot");
-        // A row can still arrive between this re-check and the model starting
-        // the drain; that residual is accepted by the confused-agent-grade boundary.
-        const reportRevisionBeforePrompt = durableReportRevision;
         const entryOffset = sessionManager.getEntries().length;
         // A claimed check row names no task, so a prompt carrying one is not
         // scoped by task (only possible in the away posture).

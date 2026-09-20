@@ -14,6 +14,9 @@
 #     copies of the shared report/processed decision core and the
 #     provider-error latch state machine, which are dependency-free by
 #     contract (the generator refuses any node: import).
+#   - fm-branch-classifier.ts and fm-branch-shadow.ts: verbatim copies of the
+#     shared pre-branch classifier core and the shadow-advisory trial core,
+#     also dependency-free by contract.
 # Like the agent definition, each copy is a pure function of tracked files, so
 # they are committed and regenerated only when a source or this script
 # changes. tests/fm-branch-claude-mod.test.sh holds every committed copy to
@@ -37,6 +40,8 @@ MOD_LIB="$FM_TRACKED_ROOT/.claude/mods/fm-branch-mod/lib"
 ELIGIBILITY_SOURCE="$FM_TRACKED_ROOT/lib/fm-branch-eligibility.ts"
 REPORT_SEQUENCE_SOURCE="$FM_TRACKED_ROOT/lib/fm-branch-report-sequence.ts"
 PROVIDER_LATCH_SOURCE="$FM_TRACKED_ROOT/lib/fm-branch-provider-latch.ts"
+CLASSIFIER_SOURCE="$FM_TRACKED_ROOT/lib/fm-branch-classifier.ts"
+SHADOW_SOURCE="$FM_TRACKED_ROOT/lib/fm-branch-shadow.ts"
 
 # The generated-file header for one vendored module. $1 is the source path
 # relative to the repo root; $2 is the source-specific provenance note.
@@ -102,12 +107,30 @@ generate_provider_latch() {
 // drift."
 }
 
+generate_classifier() {
+  generate_pure_module "$CLASSIFIER_SOURCE" "the shared pre-branch classifier core (evidence byte-range
+// parsing, prompt construction, answer interpretation, durable record
+// shape, classifier-pass covering row). The model call, file reads and
+// appends, and the clock are host seams declared in the source's header,
+// not drift."
+}
+
+generate_shadow() {
+  generate_pure_module "$SHADOW_SOURCE" "the shared shadow-advisory trial core (evidence parsers, question
+// bundle, facts object, variant set, answer parsing, record shape, the
+// detached trial). Script spawns, file reads and appends, error
+// notifications, the open-call fold, and the clock are host seams declared
+// in the source's header, not drift."
+}
+
 # source path -> generator name; one vendored file per shared module.
 vendored_files() {
   printf '%s\n' \
     "$ELIGIBILITY_SOURCE:generate_eligibility:fm-branch-eligibility.ts" \
     "$REPORT_SEQUENCE_SOURCE:generate_report_sequence:fm-branch-report-sequence.ts" \
-    "$PROVIDER_LATCH_SOURCE:generate_provider_latch:fm-branch-provider-latch.ts"
+    "$PROVIDER_LATCH_SOURCE:generate_provider_latch:fm-branch-provider-latch.ts" \
+    "$CLASSIFIER_SOURCE:generate_classifier:fm-branch-classifier.ts" \
+    "$SHADOW_SOURCE:generate_shadow:fm-branch-shadow.ts"
 }
 
 generate_one() {
