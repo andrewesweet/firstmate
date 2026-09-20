@@ -52,13 +52,18 @@
 #   or null), status, confidence (number or null), rule ("<choice>
 #   (<when excerpt>)" exactly as the block renders it, or null), profile (the
 #   profile line's value on clear, else null), reason (the non-clear reason,
-#   else null), latency_ms, and tokens (the usage object when the response
-#   carried one, else null). Never recorded: the API key, the brief text, and
-#   the request body. A failed append (unwritable directory, read-only home)
-#   prints one "dispatch-resolve: outcome log unwritable: <path>" line on
-#   stderr and never changes the block or the exit code; only data/ itself is
-#   created when absent. The off path and exit-2 usage or configuration
-#   errors write nothing: they are not calls.
+#   else null), latency_ms, tokens (the usage object when the response carried
+#   one, else null), model, probabilities (the response's own vector keyed by
+#   the offered rule_N and default choice ids), selected_option (the chosen
+#   rule's `when` text or the fixed none option), selected_probability,
+#   runner_up_margin, policy (version and confidence_floor), and rules_digest
+#   (the SHA-256 of the rules snapshot). Response-derived fields are null when
+#   the response did not supply them. Never recorded: the API key, the brief
+#   text, and the request body. A failed append (unwritable directory,
+#   read-only home) prints one "dispatch-resolve: outcome log unwritable:
+#   <path>" line on stderr and never changes the block or the exit code; only
+#   data/ itself is created when absent. The off path and exit-2 usage or
+#   configuration errors write nothing: they are not calls.
 #
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
@@ -87,6 +92,7 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 . "$SCRIPT_DIR/fm-timing-lib.sh"
 
 CONFIDENCE_FLOOR=0.6
+DISPATCH_POLICY_VERSION=1
 TS_MODEL=jev-latest
 TS_BASE=https://api.typesafe.ai
 TS_TIMEOUT=5
@@ -106,6 +112,18 @@ usage() {
   ' "$0"
 }
 
+sha256_file() {  # <path>
+  local digest
+  if command -v shasum >/dev/null 2>&1; then
+    digest=$(shasum -a 256 "$1" 2>/dev/null) || return 1
+  elif command -v sha256sum >/dev/null 2>&1; then
+    digest=$(sha256sum "$1" 2>/dev/null) || return 1
+  else
+    return 1
+  fi
+  printf 'sha256:%s\n' "${digest%% *}"
+}
+
 BRIEF='' PROJECT='' RULES_PATH="$CONFIG/crew-dispatch.json" RULES=''
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -117,6 +135,16 @@ while [ $# -gt 0 ]; do
 done
 
 LAT_MS=null
+RULES_DIGEST=''
+RESPONSE_TELEMETRY='{}'
+# option_label maps a choice id (rule_N or default) to its offered `when` text.
+# shellcheck disable=SC2016  # jq program: $c, $none and $rules are jq variables, not shell expansions.
+OPTION_LABEL_JQ='def option_label($c):
+  if $c == "default" then $none
+  elif ($c | type) == "string" and ($c | test("^rule_[1-9][0-9]*$"))
+       and ($c | ltrimstr("rule_") | tonumber) <= (($rules[0].rules // []) | length)
+  then $rules[0].rules[($c | ltrimstr("rule_") | tonumber) - 1].when
+  else null end;'
 # The outcome log lives beside the home's other private records; only a brief
 # sitting at a data/<id>/brief.md-shaped path contributes a task id, so an
 # arbitrary directory name is never mistaken for one.
@@ -144,9 +172,8 @@ dispatch_log_append() {  # <json-line>
 }
 
 # log_dispatch_outcome <status> <confidence> <rule-render> <profile> <reason>
-# for outcomes resolved without a parsed model answer (no rules, error):
-# confidence, rule, profile, and tokens stay null and latency is whatever the
-# call reached.
+# records any individually usable response telemetry even when resolution ends
+# in an error; fields the response did not supply stay null.
 log_dispatch_outcome() {
   local line
   line=$(jq -cn \
@@ -154,11 +181,20 @@ log_dispatch_outcome() {
     --arg task "$DISPATCH_TASK_ID" \
     --arg project "$PROJECT" \
     --arg status "$1" --arg confidence "$2" --arg rule "$3" --arg profile "$4" --arg reason "$5" \
+    --arg policy_version "$DISPATCH_POLICY_VERSION" --arg floor "$CONFIDENCE_FLOOR" \
+    --arg rules_digest "$RULES_DIGEST" --argjson telemetry "$RESPONSE_TELEMETRY" \
     --argjson latency "$LAT_MS" '
     def n: if . == "" then null else . end;
     {ts: $ts, task: ($task | n), project: ($project | n), status: $status,
-     confidence: ($confidence | n), rule: ($rule | n), profile: ($profile | n),
-     reason: ($reason | n), latency_ms: $latency, tokens: null}') || {
+     confidence: (if $confidence != "" then ($confidence | tonumber) else ($telemetry.confidence // null) end),
+     rule: ($rule | n), profile: ($profile | n), reason: ($reason | n),
+     latency_ms: $latency, tokens: ($telemetry.tokens // null),
+     model: ($telemetry.model // null), probabilities: ($telemetry.probabilities // null),
+     selected_option: ($telemetry.selected_option // null),
+     selected_probability: ($telemetry.selected_probability // null),
+     runner_up_margin: ($telemetry.runner_up_margin // null),
+     policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
+     rules_digest: ($rules_digest | n)}') || {
     printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
     return 0
   }
@@ -174,8 +210,12 @@ log_dispatch_result() {
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg task "$DISPATCH_TASK_ID" \
     --arg project "$PROJECT" \
-    --argjson result "$RESULT" '
+    --arg policy_version "$DISPATCH_POLICY_VERSION" --arg floor "$CONFIDENCE_FLOOR" \
+    --arg rules_digest "$RULES_DIGEST" --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" \
+    --argjson result "$RESULT" "$OPTION_LABEL_JQ"'
   ($result) as $r |
+  ($r.probabilities[$r.rule]) as $selected_probability |
+  ([$r.probabilities | to_entries[] | select(.key != $r.rule) | .value] | max) as $runner_up |
   def flat: tostring | gsub("[\t\r\n]"; " ");
   {
     ts: $ts,
@@ -191,7 +231,14 @@ log_dispatch_result() {
     else null end),
     reason: (if $r.status == "clear" then null else ($r.reason // null) end),
     latency_ms: $r.latency_ms,
-    tokens: $r.tokens
+    tokens: $r.tokens,
+    model: ($r.model // null),
+    probabilities: $r.probabilities,
+    selected_option: option_label($r.rule),
+    selected_probability: $selected_probability,
+    runner_up_margin: (if $selected_probability != null and $runner_up != null then $selected_probability - $runner_up else null end),
+    policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
+    rules_digest: (if $rules_digest == "" then null else $rules_digest end)
   }') || {
     printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
     return 0
@@ -218,6 +265,7 @@ RULES=$(mktemp) || die "mktemp failed"
 trap 'rm -f "$RULES"' EXIT
 cp "$RULES_PATH" "$RULES" || die "could not snapshot rules file: $RULES_PATH"
 chmod 400 "$RULES" || die "could not protect rules snapshot"
+RULES_DIGEST=$(sha256_file "$RULES") || die "could not hash rules file: $RULES_PATH (shasum or sha256sum required)"
 VERIFIED_HARNESSES=$(fm_control_harnesses | jq -Rsc 'split("\n") | map(select(length > 0))')
 
 # The fields this tool consumes must be well formed; bootstrap owns the wider
@@ -344,6 +392,28 @@ command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
     --data-binary @- 2>/dev/null) || HTTP=000
   T1=$(fm_timing_now_ms)
   LAT_MS=$(( T1 - T0 ))
+  RESPONSE_TELEMETRY=$(jq -c --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" "$OPTION_LABEL_JQ"'
+    (.answers.rule // {}) as $answer |
+    ($answer.choice // null) as $choice |
+    ($answer.probabilities // null) as $raw |
+    (if ($raw | type) == "object" then $raw else null end) as $probabilities |
+    (if ($choice | type) == "string" and ($raw | type) == "object" and (($raw[$choice] | type) == "number")
+     then $raw[$choice] else null end) as $selected |
+    ([if ($raw | type) == "object" then
+        $raw | to_entries[] | select(.key != $choice and (.value | type) == "number") | .value
+      else empty end] | if length > 0 then max else null end) as $runner_up |
+    {
+      model: (if (.model | type) == "string" then .model else null end),
+      confidence: (if ($answer.confidence | type) == "number" then $answer.confidence else null end),
+      probabilities: $probabilities,
+      selected_option: (if ($choice | type) == "string" then option_label($choice) else null end),
+      selected_probability: $selected,
+      runner_up_margin: (if $selected != null and $runner_up != null then $selected - $runner_up else null end),
+      tokens: (if (.usage | type) == "object" then .usage else null end)
+    }
+  ' "$RESP_FILE" 2>/dev/null) || RESPONSE_TELEMETRY='{}'
+  # An empty response file (curl transport failure) makes jq emit nothing and exit 0.
+  [ -n "$RESPONSE_TELEMETRY" ] || RESPONSE_TELEMETRY='{}'
   [ "$HTTP" = 200 ] || emit_error "http $HTTP after ${LAT_MS} ms: $(head -c 200 "$RESP_FILE" 2>/dev/null | tr '\n' ' ')"
 jq -e --slurpfile rules "$RULES" '
     (($rules[0].rules | to_entries | map("rule_" + ((.key + 1) | tostring))) + ["default"] | sort) as $choices |
