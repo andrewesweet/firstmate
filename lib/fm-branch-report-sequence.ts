@@ -20,9 +20,10 @@
 //     corrective re-report instruction on BOTH hosts (the Pi extension no
 //     longer renders it as an isError result). They stay rendered host-side
 //     because the mod's hooks source is the adopted original and its bytes
-//     are frozen; no module constant exists for them, so the shared fixture
-//     suite (tests/fm-branch-report-sequence.test.sh) pins the byte equality
-//     between the hosts instead. The strings owned here as constants (the
+//     are frozen; no module constant exists for them, so the tests pin the
+//     bytes instead: tests/fm-branch-report-sequence.test.sh pins the mod's
+//     and tests/fm-pi-branch-extension.test.sh pins the same bytes against
+//     the real Pi extension. The strings owned here as constants (the
 //     invalid-report refusal, the append-failure refusal, the report success
 //     line) cannot drift by construction.
 //   - Parameter coercion preambles. Each host coerces raw tool-call input
@@ -31,8 +32,8 @@
 //     inputs keep each host's historical verdict.
 //   - The mod's --wake-key argv extension and duplicate-report guard are mod
 //     delivery mechanics and stay host-side (extraArgs below).
-//   - The latch failure predicate is a host seam of
-//     lib/fm-branch-provider-latch.ts, not of this file.
+//   - The latch failure predicate belongs to lib/fm-branch-provider-latch.ts
+//     (unified there by the same ruling), not to this file.
 //
 // The mod does not import this file directly: its hooks validator refuses
 // anything but relative imports and "claude-code", so the mod consumes a

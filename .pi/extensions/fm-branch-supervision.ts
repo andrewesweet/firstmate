@@ -214,11 +214,13 @@ const PROCESSING_MESSAGE_TYPE = "fm-branch-process";
 // (deliverAs nextTurn). Bounded so an answer that repeatedly ignores the
 // request cannot become an unbounded loop of empty turns.
 const PROCESSING_TRIGGERED_ATTEMPTS = 2;
-// One provider failure rejects immediately to watcher-owned fallback but leaves
-// room for a transient outage to recover on the next wake. A second consecutive
-// provider failure latches the branch off. While latched, main keeps every wake
-// except one branch recovery probe after each exponentially backed-off cooldown.
-// The state machine behind that schedule is the shared provider-error latch
+// One failure (a settled provider error, or a settled prompt with no report -
+// the same counting rule the mod uses) rejects immediately to watcher-owned
+// fallback but leaves room for a transient outage to recover on the next wake.
+// A second consecutive failure latches the branch off. While latched, main
+// keeps every wake except one branch recovery probe after each exponentially
+// backed-off cooldown.
+// The state machine behind that schedule is the shared failure latch
 // (lib/fm-branch-provider-latch.ts); these values are this host's policy for it.
 const PROVIDER_ERROR_LATCH_POLICY: ProviderErrorLatchPolicy = {
   threshold: 2,
@@ -2508,7 +2510,7 @@ ${context.command}
     execute: async (_toolCallId, params) => {
       const raw = (params as { through?: unknown }).through;
       // The safe-positive-integer rule is the shared module's; the coercion
-      // of raw input and this host's refusal wording are declared host seams.
+      // of raw input is a declared host seam, the refusal wording is unified.
       const through = typeof raw === "number" && validateThroughValue(raw) ? raw : null;
       if (through === null) {
         return {
