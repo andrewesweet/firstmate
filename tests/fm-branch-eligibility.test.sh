@@ -23,19 +23,13 @@
 # no bash-side eligible-row scan exists (the extension computes the eligible
 # snapshot and bin/fm-wake-drain.sh consumes it), so the bash leg pins
 # `status_open_decisions` output and the join between fold truth and scope.
-# Today's known drift is asserted as documented drift, not as agreement; each
-# drift case passes once the Pi fold adopts the rule the other legs apply:
-#   - v8 drift: Pi lacks the terminal-close rule (done:/failed: closes every
-#     open decision of a ship or scout task), so a ship task's open
-#     needs-decision followed by done: stays decision-owned there while bash,
-#     the mod, and the lib clear it;
-#   - symlink drift: Pi refuses a symlinked status log for the whole scan
-#     and the mod reads through the link (decision-owned when the target
-#     holds an open decision) while bash's refusal names an empty fold
-#     (branch-eligible), which the lib takes;
-#   - torn-epoch drift: the mod and the lib validate the epoch field
-#     digit-wise and refuse the scan; Pi validates only the seq and claims
-#     the row.
+# The Pi extension consumes the shared module (A2), so its leg is pinned
+# byte-equal to bash on every fixture, drift cases included. One documented
+# drift remains until its port adopts the rule the other legs apply:
+#   - symlink drift: the mod reads through a symlinked status log
+#     (decision-owned when the target holds an open decision) while bash's
+#     refusal names an empty fold (branch-eligible), which the lib and the
+#     Pi extension take.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -239,12 +233,12 @@ test_routine_signal_row_agrees_across_all_folds() {
   pass "a plain routine signal row classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
-test_ship_terminal_declaration_is_the_documented_v8_drift() {
+test_ship_terminal_declaration_agrees_across_all_folds() {
   # Bash truth: done: on a ship task clears the whole open set, so nothing
-  # holds ship-b and its stale row stays branch-eligible. The mod and the
-  # lib agree; Pi lacks the terminal-close rule and keeps the row
-  # decision-owned. This drift assertion retires once the Pi fold adopts
-  # that rule.
+  # holds ship-b and its stale row stays branch-eligible. The Pi extension
+  # consumes the shared module, so it applies the same terminal close as
+  # bash, the mod, and the lib; the drift this case once asserted retired
+  # when the Pi fold adopted the rule.
   local dir="$FIXTURES/v8-ship" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "v8: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "v8: mod leg failed: $mod"
@@ -252,19 +246,17 @@ test_ship_terminal_declaration_is_the_documented_v8_drift() {
   lib=$(lib_scope "$dir") || fail "v8: lib leg failed: $lib"
   libfold=$(lib_fold "$dir" "ship-b")
   assert_equals "" "$fold" "v8: bash truth - the terminal done: must empty the fold for a ship task"
-  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}' "$mod" "v8: mod agrees with bash truth (terminal close, row branch-eligible)"
   assert_equals "$fold" "$libfold" "v8: lib fold is byte-equal to the bash fold"
-  assert_equals "$mod" "$lib" "v8: lib agrees with bash truth (terminal close, row branch-eligible)"
-  assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-b"]}' "$pi" "v8: documented drift - pi keeps the done: task decision-owned"
-  assert_not_equals "$pi" "$mod" "v8: the drift must remain visible until the Pi fold adopts the terminal-close rule"
-  pass "the v8 drift (pi missing the terminal-close rule) is asserted as documented drift against bash truth, the mod, and the lib"
+  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}' "$pi" "v8: pi applies the terminal close (row branch-eligible)"
+  assert_equals "$pi" "$mod" "v8: pi and mod scopes must be byte-identical"
+  assert_equals "$pi" "$lib" "v8: lib scope agrees with the ports"
+  pass "a ship task's terminal done: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
 test_scout_blocked_then_failed_agrees_across_all_folds() {
   # Bash truth: failed: on a scout task clears the open blocked key, so the
-  # stale row stays branch-eligible. Pi's internal open map keeps the blocked
-  # key (it has no terminal close), but its needs-decision-specific verdict
-  # and the cleared sets of the mod and the lib produce the same scope.
+  # stale row stays branch-eligible. The Pi extension consumes the shared
+  # module, so its fold applies the same terminal close for a scout kind.
   local dir="$FIXTURES/scout-terminal" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "scout: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "scout: mod leg failed: $mod"
@@ -279,13 +271,13 @@ test_scout_blocked_then_failed_agrees_across_all_folds() {
   pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
-test_symlinked_status_log_names_bash_truth_and_both_port_drifts() {
+test_symlinked_status_log_names_bash_truth_and_the_mod_drift() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
   # which names an empty fold - nothing holds ship-d and its stale row stays
-  # branch-eligible, and the lib takes bash's outcome. The mod reads through
-  # the link and sees the open decision (decision-owned); Pi's
-  # statusFileVersion refuses the symlink for the whole scan (unsafe). Both
-  # drift assertions retire once the ports adopt the bash refusal shape.
+  # branch-eligible. The lib takes bash's outcome and the Pi extension
+  # consumes the lib, so both are branch-eligible; the mod still reads through
+  # the link and sees the open decision (decision-owned), asserted as
+  # documented drift until the mod fold adopts the bash refusal shape.
   local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
@@ -295,19 +287,17 @@ test_symlinked_status_log_names_bash_truth_and_both_port_drifts() {
   assert_equals "" "$fold" "symlink: bash truth - the refusal must name an empty fold"
   assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
+  assert_equals "$lib" "$pi" "symlink: pi takes bash's outcome through the shared module"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-d"]}' "$mod" "symlink: documented drift - mod reads through the link and holds the row"
-  assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$pi" "symlink: documented drift - pi refuses the whole scan"
-  assert_not_equals "$pi" "$lib" "symlink: the pi drift must remain visible until the Pi fold adopts the bash refusal shape"
   assert_not_equals "$mod" "$lib" "symlink: the mod drift must remain visible until the mod fold adopts the bash refusal shape"
-  pass "the symlink refusal names bash truth (branch-eligible); pi's whole-scan refusal and the mod's read-through are asserted as documented drift"
+  pass "the symlink refusal names bash truth (branch-eligible); pi agrees through the shared module and the mod's read-through is asserted as documented drift"
 }
 
-test_torn_epoch_row_is_the_documented_epoch_validation_drift() {
-  # The mod and the lib validate the epoch field digit-wise and refuse the
-  # scan; Pi validates only the seq and claims the row. Bash has no queue
-  # scan to contribute; its fold on the task's own log names the empty truth,
-  # which the lib's fold is byte-equal to. This drift assertion retires once
-  # the Pi fold validates the epoch field too.
+test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner() {
+  # The mod, the lib, and the Pi extension through the shared module all
+  # validate the epoch field digit-wise and refuse the scan on a torn row.
+  # Bash has no queue scan to contribute; its fold on the task's own log
+  # names the empty truth, which the lib's fold is byte-equal to.
   local dir="$FIXTURES/torn-epoch" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "epoch: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "epoch: mod leg failed: $mod"
@@ -316,11 +306,11 @@ test_torn_epoch_row_is_the_documented_epoch_validation_drift() {
   libfold=$(lib_fold "$dir" "ship-e")
   assert_equals "" "$fold" "epoch: the task's own log holds no decision"
   assert_equals "$fold" "$libfold" "epoch: lib fold is byte-equal to the bash fold"
-  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["5"],"eligibleTasks":["ship-e"],"needsDecision":[]}' "$pi" "epoch: documented drift - pi claims the torn-epoch row"
+  assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$pi" "epoch: pi refuses the scan on the non-numeric epoch"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$mod" "epoch: the mod refuses the scan on the non-numeric epoch"
   assert_equals "$mod" "$lib" "epoch: lib joins the mod's stricter epoch validation (bash has no queue opinion)"
-  assert_not_equals "$pi" "$mod" "epoch: the drift must remain visible until the Pi fold validates the epoch field"
-  pass "the torn-epoch queue row is asserted as documented drift (mod and lib validate the epoch, pi does not)"
+  assert_equals "$pi" "$mod" "epoch: pi and mod scopes must be byte-identical"
+  pass "a torn-epoch queue row refuses the scan in the Pi extension, the mod, and the lib alike"
 }
 
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere() {
@@ -387,10 +377,10 @@ test_verb_overrides_reach_the_bash_and_lib_folds_alike() {
 }
 
 test_routine_signal_row_agrees_across_all_folds
-test_ship_terminal_declaration_is_the_documented_v8_drift
+test_ship_terminal_declaration_agrees_across_all_folds
 test_scout_blocked_then_failed_agrees_across_all_folds
-test_symlinked_status_log_names_bash_truth_and_both_port_drifts
-test_torn_epoch_row_is_the_documented_epoch_validation_drift
+test_symlinked_status_log_names_bash_truth_and_the_mod_drift
+test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
 test_reserved_key_namespace_guard_agrees_across_all_folds
 test_verb_overrides_reach_the_bash_and_lib_folds_alike
