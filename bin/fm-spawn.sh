@@ -12,14 +12,16 @@
 #   "Delivery contract: mode=<mode>" line and REFUSES a mismatch, so the worker's
 #   instructions and the recorded task delivery cannot drift apart; a brief
 #   scaffolded before that line existed warns once and launches on the flag. A
-#   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
-#   placeholders, an empty Task, an incomplete pair of Task subsections, or a
-#   `## Captain's intent` line opening with a Captain label or address.
+#   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}` /
+#   `{PUBLISHED_INTENT}` placeholders, an empty Task, an incomplete pair of Task
+#   subsections, or a `## Captain's intent` line opening with a Captain label or
+#   address; a no-mistakes ship spawn additionally refuses a missing (stop for
+#   migration), empty, or captain-addressed `## Published intent`.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
-#   it also carries the current `--intent` contract and the extracted captain
-#   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
-#   provenance-marking rules; unmarked legacy Tasks stop for migration rather
-#   than becoming intent. That library owns the parsing and intent rules. When
+#   it also carries the current `--intent` contract and the published intent
+#   authorized for `--intent`. A no-mistakes brief predating the published
+#   subsection stops for migration instead of launching; bin/fm-dod-lib.sh owns
+#   the parsing and intent rules. When
 #   the explicit mode carries less rigor than the project's standing posture, a
 #   loud one-line deviation notice is printed and the spawn continues.
 #   no-mistakes-prod-only is a registry policy rather than a task mode and is
@@ -2724,7 +2726,7 @@ fi
 }
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if fm_brief_task_placeholders_present "$BRIEF"; then
-    echo "error: $BRIEF still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn" >&2
+    echo "error: $BRIEF still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; fill ## Captain's intent, ## Published intent, and ## Firstmate spec before spawn" >&2
     exit 1
   fi
   if ! fm_brief_task_content_valid "$BRIEF"; then
@@ -2736,15 +2738,18 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
     exit 1
   fi
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-    if fm_brief_task_heading_present "$BRIEF" "## Captain's intent"; then
-      CAPTAIN_INTENT=$(fm_brief_task_heading_body "$BRIEF" "## Captain's intent")
-    else
-      LEGACY_TASK_BODY=$(fm_brief_heading_body "$BRIEF" "# Task")
-      CAPTAIN_INTENT=$(fm_brief_marked_captain_words "$LEGACY_TASK_BODY")
-      if [ -z "$(printf '%s' "$CAPTAIN_INTENT" | tr -d '[:space:]')" ]; then
-        echo "error: legacy mixed # Task brief has no provenance-marked captain words for no-mistakes --intent; add [captain] lines or migrate to ## Captain's intent and ## Firstmate spec" >&2
-        exit 1
-      fi
+    if ! fm_brief_task_heading_present "$BRIEF" "## Published intent"; then
+      echo "error: $BRIEF has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words" >&2
+      exit 1
+    fi
+    PUBLISHED_INTENT=$(fm_brief_task_heading_body "$BRIEF" "## Published intent")
+    if [ -z "$(printf '%s' "$PUBLISHED_INTENT" | tr -d '[:space:]')" ]; then
+      echo "error: $BRIEF ## Published intent is empty; firstmate fills it before spawn, since this no-mistakes ship passes it as --intent" >&2
+      exit 1
+    fi
+    if PUBLISHED_ADDRESS_LINE=$(fm_brief_published_intent_address_line "$BRIEF"); then
+      echo "error: $BRIEF ## Published intent has an operator-address line: $PUBLISHED_ADDRESS_LINE; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent" >&2
+      exit 1
     fi
   fi
   # Use the existing launch-brief overlay for every worker kind, including
@@ -2757,7 +2762,7 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
       printf '\n' &&
       cat "$SOURCE_BRIEF" &&
       if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-        fm_brief_intent_overlay "$CAPTAIN_INTENT"
+        fm_brief_intent_overlay "$PUBLISHED_INTENT"
       fi
   } >"$BRIEF_TMP" || {
     rm -f -- "$BRIEF_TMP"

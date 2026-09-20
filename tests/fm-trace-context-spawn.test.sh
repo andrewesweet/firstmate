@@ -18,6 +18,9 @@ write_ship_brief() {  # <file> <id>
 ## Captain's intent
 Exercise trace propagation for $2.
 
+## Published intent
+Restate the accepted trace-propagation change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the spawned process receives the expected trace context.
 EOF

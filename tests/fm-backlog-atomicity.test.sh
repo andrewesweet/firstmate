@@ -80,6 +80,9 @@ EOF
 ## Captain's intent
 Exercise backlog dispatch for $id.
 
+## Published intent
+Restate the accepted backlog change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the atomic backlog transition.
 

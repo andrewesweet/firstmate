@@ -22,6 +22,9 @@ write_spawn_brief() {  # <data-dir> <id>
 ## Captain's intent
 Exercise Orca dispatch.
 
+## Published intent
+Restate the accepted Orca change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the Orca lifecycle behavior under test.
 EOF

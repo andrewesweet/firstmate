@@ -11,21 +11,35 @@
 # The block opens with the fixed machine-readable "Delivery contract: mode=<mode>"
 # line that bin/fm-spawn.sh checks a ship brief against.
 # This file is the one owner of the no-mistakes `--intent` contract: only the
-# brief's `## Captain's intent` subsection plus later captain words, never
-# `## Firstmate spec` and never the worker's own tradeoffs.
-# Author the subsection body and later relays as the actual words, without
-# adding speaker labels or direct address: the heading supplies provenance and
-# is not part of --intent. A legacy mixed Task instead marks each captain line
-# with `[captain] `; the selector returns its words, not that metadata prefix.
-# Previously stored speaker labels remain readable for compatibility only.
-# Never scrub literal examples or other content the captain actually supplied.
+# brief's `## Published intent` subsection plus later captain asks restated
+# into it, never `## Captain's intent` (the captain's private words, kept out
+# of the pipeline), never `## Firstmate spec`, and never the worker's own
+# tradeoffs. What firstmate writes there depends on the repository's
+# visibility, which firstmate decides at intake (registry note or forge query;
+# no script performs a visibility lookup and there is no per-repo
+# configuration): on a repository whose PRs are public the published intent is
+# a firstmate-authored neutral engineering statement of what the change must
+# do and how it is judged done, self-sufficient with the codebase and written
+# without any of the captain's exact words, spend, quota, provider,
+# subscription, model-routing, session-privacy, or fleet-strategy content; on
+# a private repository firstmate fills it with the captain's own intent
+# wording, still without speaker labels or direct address, so the PR body
+# keeps the full intent as before. `## Captain's intent` keeps its
+# worker-facing role - the captain's actual words, authored without added
+# speaker labels or direct address, the heading supplying provenance; a legacy
+# mixed Task marks each captain line with `[captain] ` for promotion's private
+# extraction, and previously stored speaker labels remain readable for
+# compatibility only. Never scrub literal examples or other content the
+# captain actually supplied.
 # The string passed must be self-sufficient - it plus the codebase reconstructs
 # roughly the same specification - so a report, decision, or PR the intent
 # refers to is written into it as substance, never left as a pointer.
-# bin/fm-brief.sh scaffolds those two `# Task` subsections; bin/fm-spawn.sh and
-# bin/fm-promote.sh refuse leftover `{TASK}` / `{FIRSTMATE_SPEC}` placeholders
-# and a `## Captain's intent` line opening with a Captain label or address
-# through the helpers below. Other mentions of `--intent` point here rather than
+# bin/fm-brief.sh scaffolds those `# Task` subsections; bin/fm-spawn.sh and
+# bin/fm-promote.sh refuse leftover `{TASK}` / `{FIRSTMATE_SPEC}` /
+# `{PUBLISHED_INTENT}` placeholders, a missing (stop for migration), empty, or
+# captain-addressed `## Published intent` on a no-mistakes ship, and a
+# `## Captain's intent` line opening with a Captain label or address through
+# the helpers below. Other mentions of `--intent` point here rather than
 # restating the rule.
 # Every heredoc here stays outside a command substitution: `VAR=$(cat <<EOF ...)`
 # breaks parsing of the whole file on Bash 3.2 (tests/fm-brief.test.sh).
@@ -77,11 +91,13 @@ fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only> <task-id>
 # Return 0 when a Task subsection still consists only of its scaffold
 # placeholder. A missing file and legacy briefs carry no such placeholders.
 fm_brief_task_placeholders_present() {  # <file>
-  local file=$1 intent spec
+  local file=$1 intent published spec
   [ -f "$file" ] || return 1
   intent=$(fm_brief_task_heading_body "$file" "## Captain's intent")
+  published=$(fm_brief_task_heading_body "$file" "## Published intent")
   spec=$(fm_brief_task_heading_body "$file" "## Firstmate spec")
   [ "$(printf '%s' "$intent" | tr -d '[:space:]')" = '{TASK}' ] && return 0
+  [ "$(printf '%s' "$published" | tr -d '[:space:]')" = '{PUBLISHED_INTENT}' ] && return 0
   [ "$(printf '%s' "$spec" | tr -d '[:space:]')" = '{FIRSTMATE_SPEC}' ] && return 0
   return 1
 }
@@ -180,17 +196,21 @@ fm_brief_marked_captain_words() {  # <task-body>
   '
 }
 
-fm_brief_intent_overlay() {  # <captain-intent>
+# Emit the launch-brief overlay that authoritatively re-teaches the contract
+# from the published subsection: bin/fm-spawn.sh calls this for no-mistakes
+# ships so a worker with an older rendered brief or a stale habit cannot pass
+# captain's words, spec content, or its own additions as `--intent`.
+fm_brief_intent_overlay() {  # <published-intent>
   cat <<'EOF'
 
 # Current no-mistakes intent contract
-This section supersedes every earlier brief instruction about constructing `--intent`, but not later clarifications actually supplied by the captain.
-Use everything under `## Captain intent authorized for --intent` through the end of this brief, including any nested subheadings but excluding that heading, plus any later words the captain actually supplied as `--intent`; never include Firstmate specification or other mixed Task content.
-Preserve those words without adding speaker labels or direct address.
-Firstmate-authored constraints, acceptance criteria, implementation details, decisions, and tradeoffs are specification, not captain intent.
+This section supersedes every earlier brief instruction about constructing `--intent`, but not later captain asks restated into the brief's `## Published intent`.
+Use everything under `## Published intent authorized for --intent` through the end of this brief, including any nested subheadings but excluding that heading, plus any later captain ask restated into the published subsection as `--intent`; never include `## Captain's intent`, Firstmate specification, or other mixed Task content.
+The published intent is firstmate-authored at dispatch and is the only authorized source: pass it exactly as written, without speaker labels or direct address.
+Firstmate-authored constraints, acceptance criteria, implementation details, decisions, and tradeoffs outside that subsection are specification, not published intent.
 The Definition of done's rule that `--intent` must be self-sufficient still governs the string you pass: resolve any report, decision, or PR the intent below refers to into its substance rather than passing the pointer.
 
-## Captain intent authorized for --intent
+## Published intent authorized for --intent
 EOF
   printf '%s\n' "$1"
 }
@@ -214,13 +234,24 @@ fm_brief_task_content_valid() {  # <file>
   [ -n "$(printf '%s' "$task" | tr -d '[:space:]')" ]
 }
 
-# Print the first `## Captain's intent` body line that opens with an operator
+# Print the first body line of a Task subsection that opens with an operator
 # address spelling; fail when there is none. The body is never rewritten.
-fm_brief_intent_address_line() {  # <file>
-  fm_brief_task_heading_body "$1" "## Captain's intent" | awk '
+fm_brief_task_address_line() {  # <file> <heading>
+  fm_brief_task_heading_body "$1" "$2" | awk '
     /^[[:space:]]*(Captain('\''s (words|ask|intent))?:|Captain,)/ { print; found = 1; exit }
     END { exit !found }
   '
+}
+
+fm_brief_intent_address_line() {  # <file>
+  fm_brief_task_address_line "$1" "## Captain's intent"
+}
+
+# The published intent is firstmate-authored and carries no speaker labels or
+# direct address on any repository, so a line opening with a Captain label or
+# address means it was not authored to its contract.
+fm_brief_published_intent_address_line() {  # <file>
+  fm_brief_task_address_line "$1" "## Published intent"
 }
 
 fm_ask_user_escalation_block() {  # <data-dir> <task-id>
@@ -265,13 +296,12 @@ When your implementation is committed, rebase onto the current default branch, t
 
 You drive no-mistakes by responding to its gates, not by implementing fixes.
 Follow the guidance no-mistakes itself provides for the mechanics: it loads when you invoke /no-mistakes, and \`no-mistakes axi run --help\` plus the \`help\` lines in each \`axi\` response are authoritative and version-matched to the installed binary.
-When starting no-mistakes, pass \`--intent\` as only this brief's \`## Captain's intent\` subsection body, not its heading, plus any later words the captain actually said.
-Preserve the actual words without adding speaker labels or direct address; the subsection heading supplies provenance outside the pipeline input.
-For a legacy brief with no such subsection, include only words on lines marked \`[captain] \`, excluding that metadata prefix; never copy its mixed \`# Task\` wholesale.
-If it has no provenance-marked captain words, stop and ask firstmate instead of starting no-mistakes.
-Do not include \`## Firstmate spec\`, later Firstmate build constraints, or your own decisions and tradeoffs.
+When starting no-mistakes, pass \`--intent\` as only this brief's \`## Published intent\` subsection body, not its heading, plus any later captain ask restated into that subsection.
+That subsection is firstmate-authored at dispatch and is the only authorized source: pass it exactly as written, without speaker labels or direct address.
+Never include \`## Captain's intent\`, \`## Firstmate spec\`, later Firstmate build constraints, or your own decisions and tradeoffs.
+If the brief has no \`## Published intent\` subsection, stop and ask firstmate to migrate the brief instead of starting no-mistakes; never substitute the captain's own words.
 The \`--intent\` string you pass must be self-sufficient: that string plus the codebase must let a reader reconstruct roughly the same specification, without depending on a separate report, a PR, or context that lives only in this conversation.
-When the captain's intent refers to a report, decision, or PR ("do items 1, 2, 3, and 7 of the report"), write the substance of the referenced items into \`--intent\` in the captain's terms, not only the pointer; that substance is the captain's ask by reference, while Firstmate's build instructions and your own decisions still stay out.
+When the published intent refers to a report, decision, or PR ("do items 1, 2, 3, and 7 of the report"), write the substance of the referenced items into \`--intent\` in the terms the intent uses, not only the pointer; that substance is the intent by reference, while Firstmate's build instructions and your own decisions still stay out.
 This replaces the no-mistakes skill's advice to enrich \`--intent\` with decisions and tradeoffs; that advice does not apply to Firstmate-dispatched work.
 Do not hand-edit, commit, or fix findings yourself while a run is active - the pipeline applies every fix.
 

@@ -561,6 +561,9 @@ make_agy_spawn_case() {
 ## Captain's intent
 Exercise Antigravity dispatch.
 
+## Published intent
+Restate the accepted Antigravity change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify launch and delivery behavior.
 EOF

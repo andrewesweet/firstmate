@@ -2,17 +2,21 @@
 # Scaffold a crewmate brief or persistent secondmate charter at
 # data/<task-id>/brief.md under the active firstmate home.
 # For ordinary tasks, the standard Setup/Rules/Definition-of-done contract is
-# filled in. Ship and scout `# Task` sections have two subsections Firstmate
+# filled in. Ship and scout `# Task` sections carry subsections Firstmate
 # fills before dispatch: `{TASK}` under `## Captain's intent` (the captain's
 # own ask plus the context needed to read it, including the substance of any
 # report, decision, or PR the ask refers to, without added speaker labels or
 # direct address; captain rulings that constrain the design belong in that
 # subsection so the reviewer does not re-ask them) and `{FIRSTMATE_SPEC}`
 # under `## Firstmate spec` (build instructions, which are never the captain's
-# intent). bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract those
-# subsections feed; bin/fm-spawn.sh refuses leftover placeholders and a
-# `## Captain's intent` line opening with a Captain label or address. Secondmate
-# charters still use a single `{TASK}` charter fill. Firstmate may adjust other
+# intent). A ship brief also carries `{PUBLISHED_INTENT}` under
+# `## Published intent` between them: the firstmate-authored statement a
+# no-mistakes worker passes as `--intent`; scout briefs keep the two
+# subsections. bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract and
+# the published-intent fill rules; bin/fm-spawn.sh refuses leftover
+# placeholders and a `## Captain's intent` line opening with a Captain label or
+# address. Secondmate charters still use a single `{TASK}` charter fill.
+# Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
 # Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--herdr-lab]
@@ -359,6 +363,22 @@ IFS= read -r -d '' TASK_SECTION <<'EOF' || true
 EOF
 TASK_SECTION=${TASK_SECTION%$'\n'}
 
+# The ship scaffold carries the published-intent subsection between the
+# captain's private ask and the build instructions: bin/fm-dod-lib.sh owns the
+# visibility-scoped contract for the statement firstmate fills it with.
+IFS= read -r -d '' SHIP_TASK_SECTION <<'EOF' || true
+# Task
+## Captain's intent
+{TASK}
+
+## Published intent
+{PUBLISHED_INTENT}
+
+## Firstmate spec
+{FIRSTMATE_SPEC}
+EOF
+SHIP_TASK_SECTION=${SHIP_TASK_SECTION%$'\n'}
+
 if [ "$KIND" = scout ]; then
 if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
   LAVISH_LINE='If your deliverable is a visual artifact the captain will review and iterate on, you may host the Lavish review loop yourself (poll, revise, re-serve, staying alive) instead of handing it back to firstmate.'
@@ -452,7 +472,7 @@ DOD=$(fm_dod_block "$MODE" "$ID") || exit 1
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
-$TASK_SECTION
+$SHIP_TASK_SECTION
 
 $HERDR_SECTION
 
@@ -515,4 +535,4 @@ Keep it proportionate: skip \`AGENTS.md\` edits for trivial tasks that produced 
 
 $DOD
 EOF
-echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK} and {FIRSTMATE_SPEC})"
+echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})"

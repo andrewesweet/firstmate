@@ -43,6 +43,9 @@ setup_case() {  # <name> [on|off] -> echoes case dir
     echo "## Captain's intent"
     echo "Promote this scout and ship the fix it found."
     echo
+    echo "## Published intent"
+    echo "Ship the reproduced-bug fix and carry its reproduction in as a regression test."
+    echo
     echo "## Firstmate spec"
     echo "Carry the reproduced bug in as a regression test."
   } > "$dir/home/data/sc1/brief.md"

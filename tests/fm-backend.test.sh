@@ -51,6 +51,9 @@ write_spawn_brief() {  # <file> <id>
 ## Captain's intent
 Exercise backend dispatch for $2.
 
+## Published intent
+Restate the accepted backend change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify backend selection without changing task intent.
 EOF

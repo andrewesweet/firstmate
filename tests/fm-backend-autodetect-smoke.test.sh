@@ -101,6 +101,9 @@ cat > "$DATA/$ID/brief.md" <<'EOF'
 ## Captain's intent
 Exercise Herdr backend auto-detection.
 
+## Published intent
+Restate the accepted backend change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the real spawn path selects Herdr.
 EOF

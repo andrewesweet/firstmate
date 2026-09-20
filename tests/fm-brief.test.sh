@@ -211,8 +211,16 @@ test_ship_modes_generate_clean_briefs() {
       || fail "$id: brief did not record its machine-readable delivery contract line"
     assert_grep "{TASK}" "$brief" "$id: brief missing the {TASK} placeholder"
     assert_grep "{FIRSTMATE_SPEC}" "$brief" "$id: brief missing the {FIRSTMATE_SPEC} placeholder"
+    assert_grep "{PUBLISHED_INTENT}" "$brief" "$id: brief missing the {PUBLISHED_INTENT} placeholder"
     assert_grep "## Captain's intent" "$brief" "$id: brief missing Captain's intent subsection"
+    assert_grep "## Published intent" "$brief" "$id: brief missing Published intent subsection"
     assert_grep "## Firstmate spec" "$brief" "$id: brief missing Firstmate spec subsection"
+    intent_line=$(grep -n "^## Captain's intent$" "$brief" | cut -d: -f1)
+    published_line=$(grep -n "^## Published intent$" "$brief" | cut -d: -f1)
+    spec_line=$(grep -n "^## Firstmate spec$" "$brief" | cut -d: -f1)
+    [ -n "$intent_line" ] && [ -n "$published_line" ] && [ -n "$spec_line" ] \
+      && [ "$intent_line" -lt "$published_line" ] && [ "$published_line" -lt "$spec_line" ] \
+      || fail "$id: ## Published intent must sit between ## Captain's intent and ## Firstmate spec"
     assert_grep 'never a bare number such as "PR 108"' "$brief" "$id: brief missing the full-PR-URL rule"
     assert_grep "mid-task \`working:\` line (including setup complete) is nonterminal" "$brief" \
       "$id: brief missing nonterminal working:/setup-complete gate protection"
@@ -314,11 +322,11 @@ test_faster_paths_use_configured_authority_without_stacked_review() {
     "local-only brief hard-coded captain-only authority"
   assert_no_grep "Firstmate then reviews your branch diff" "$brief" \
     "local-only brief retained a personal review stacked on the selected delivery path"
-  assert_no_grep "pass \`--intent\` as only this brief's \`## Captain's intent\`" "$home/data/$id/brief.md" \
+  assert_no_grep "pass \`--intent\` as only this brief's \`## Published intent\`" "$home/data/$id/brief.md" \
     "local-only brief must not include the no-mistakes --intent contract"
   id="brief-direct-intent-a4"
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" direct-proj --mode direct-PR >/dev/null 2>&1
-  assert_no_grep "pass \`--intent\` as only this brief's \`## Captain's intent\`" "$home/data/$id/brief.md" \
+  assert_no_grep "pass \`--intent\` as only this brief's \`## Published intent\`" "$home/data/$id/brief.md" \
     "direct-PR brief must not include the no-mistakes --intent contract"
   pass "fm-brief.sh: faster paths use configured authority without stacked review"
 }
@@ -336,7 +344,6 @@ test_no_mistakes_dod_wording() {
   for spelling in 'Captain:' "Captain's words:" "Captain's ask:" "Captain's intent:" 'Captain,'; do
     assert_no_grep "$spelling" "$brief" "rendered intent contract still teaches operator-address labels"
   done
-  assert_grep '[captain]' "$brief" "rendered intent contract must explain the neutral legacy provenance marker"
   assert_grep "no-mistakes itself provides for the mechanics" "$brief" \
     "no-mistakes DOD lost its guidance-reference sentence"
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
@@ -345,21 +352,33 @@ test_no_mistakes_dod_wording() {
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
   assert_grep '`help`' "$brief" \
     "no-mistakes DOD must render literal backticks around help"
-  assert_grep "pass \`--intent\` as only this brief's \`## Captain's intent\`" "$brief" \
-    "no-mistakes DOD must require --intent to be the Captain's intent subsection"
-  assert_grep "plus any later words the captain actually said" "$brief" \
-    "no-mistakes DOD must allow later captain words in --intent"
-  assert_grep "Do not include \`## Firstmate spec\`" "$brief" \
-    "no-mistakes DOD must keep Firstmate spec out of --intent"
+  assert_grep "pass \`--intent\` as only this brief's \`## Published intent\`" "$brief" \
+    "no-mistakes DOD must require --intent to be the Published intent subsection"
+  assert_grep "plus any later captain ask restated into that subsection" "$brief" \
+    "no-mistakes DOD must allow later captain asks restated into the published subsection"
+  assert_grep "firstmate-authored at dispatch and is the only authorized source" "$brief" \
+    "no-mistakes DOD must name the published subsection as the only authorized --intent source"
+  assert_grep "pass it exactly as written, without speaker labels or direct address" "$brief" \
+    "no-mistakes DOD must forbid speaker labels and direct address in --intent"
+  assert_grep "Never include \`## Captain's intent\`, \`## Firstmate spec\`" "$brief" \
+    "no-mistakes DOD must keep both the captain's private words and the Firstmate spec out of --intent"
   assert_grep "or your own decisions and tradeoffs" "$brief" \
     "no-mistakes DOD must keep worker tradeoffs out of --intent"
+  assert_grep "If the brief has no \`## Published intent\` subsection, stop and ask firstmate to migrate the brief" "$brief" \
+    "no-mistakes DOD must stop for migration instead of launching on a pre-publication brief"
+  assert_grep "never substitute the captain's own words" "$brief" \
+    "no-mistakes DOD must forbid substituting the captain's own words for the published subsection"
+  assert_no_grep '\[captain\]' "$brief" \
+    "rendered intent contract still teaches the legacy provenance marker as worker input"
   assert_grep "This replaces the no-mistakes skill's advice to enrich \`--intent\`" "$brief" \
     "no-mistakes DOD must override the external skill's enrich-with-decisions guidance"
-  # A bare reference cannot preserve the captain's ask, so the rendered DOD states
+  # A bare reference cannot preserve the intent, so the rendered DOD states
   # the self-sufficiency rule and requires referenced material to be resolved into
   # its substance.
   assert_grep "The \`--intent\` string you pass must be self-sufficient" "$brief" \
     "no-mistakes DOD must require a self-sufficient --intent string"
+  assert_grep "When the published intent refers to a report" "$brief" \
+    "no-mistakes DOD must tie referenced-material resolution to the published intent"
   assert_grep "write the substance of the referenced items into \`--intent\`" "$brief" \
     "no-mistakes DOD must tell the worker to resolve report, decision, and PR references into substance"
 
@@ -542,11 +561,12 @@ test_herdr_lab_omission_is_loud_for_ship_and_scout() {
 # see the task text. Each placeholder must exist only at its genuine fill site,
 # so the documented fill leaves the gate intact and each body appears once.
 test_documented_global_replace_leaves_the_herdr_gate_intact() {
-  local home id brief kind count content filled body spec
+  local home id brief kind count content filled body spec published
   home="$TMP_ROOT/task-fill-site-home"
   mkdir -p "$home/data"
   body='Restart the herdr session, then profile it'
   spec='Use the isolated lab helper for every lifecycle call'
+  published='Restate the accepted herdr work neutrally for the pipeline reviewer'
   for kind in ship scout; do
     id="brief-fill-site-$kind"
     if [ "$kind" = scout ]; then
@@ -562,9 +582,18 @@ test_documented_global_replace_leaves_the_herdr_gate_intact() {
     count=$(grep -c -F '{FIRSTMATE_SPEC}' "$brief")
     [ "$count" = 1 ] \
       || fail "$kind brief must carry exactly one {FIRSTMATE_SPEC} fill site, found $count"
+    if [ "$kind" = ship ]; then
+      count=$(grep -c -F '{PUBLISHED_INTENT}' "$brief")
+      [ "$count" = 1 ] \
+        || fail "ship brief must carry exactly one {PUBLISHED_INTENT} fill site, found $count"
+    else
+      grep -qF '{PUBLISHED_INTENT}' "$brief" \
+        && fail "scout brief must not carry a {PUBLISHED_INTENT} fill site"
+    fi
     content=$(cat "$brief")
     filled=${content//'{TASK}'/$body}
     filled=${filled//'{FIRSTMATE_SPEC}'/$spec}
+    filled=${filled//'{PUBLISHED_INTENT}'/$published}
     count=$(printf '%s\n' "$filled" | grep -c -F "$body")
     [ "$count" = 1 ] \
       || fail "$kind brief: the documented {TASK} replace duplicated the intent body $count times"
@@ -908,6 +937,10 @@ test_scout_and_secondmate_scaffold() {
   assert_grep "## Captain's intent" "$brief" "scout brief missing Captain's intent subsection"
   assert_grep "## Firstmate spec" "$brief" "scout brief missing Firstmate spec subsection"
   assert_grep "{FIRSTMATE_SPEC}" "$brief" "scout brief missing the spec placeholder"
+  assert_no_grep "## Published intent" "$brief" \
+    "scout brief must not carry the Published intent subsection: a scout passes no pipeline intent"
+  assert_no_grep "{PUBLISHED_INTENT}" "$brief" \
+    "scout brief must not carry the {PUBLISHED_INTENT} placeholder"
 
   FM_SECONDMATE_CHARTER='Supervise the alpha domain.' \
     FM_HOME="$BRIEF_HOME" "$ROOT/bin/fm-brief.sh" brief-sm-q6 --secondmate alpha >/dev/null 2>&1 \

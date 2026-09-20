@@ -12,12 +12,18 @@
 # mode-specific Definition of done, so a promoted worker receives exactly the same
 # delivery contract as a briefed one, including the no-mistakes mode's ask-user
 # escalation rule and --yes ban. The instructions also carry `# Task` with
-# `## Captain's intent` preserved from the scout brief and promotion's ship-time
+# `## Captain's intent` preserved from the scout brief, `## Published intent`
+# carried from the scout brief when present, and promotion's ship-time
 # instructions under `## Firstmate spec`; the scout-time spec remains context but
 # is not relabeled as the ship spec. Promotion refuses leftover `{TASK}` /
-# `{FIRSTMATE_SPEC}` placeholders and a `## Captain's intent` line opening with
-# a Captain label or address (bin/fm-dod-lib.sh). A pre-subsection scout
-# brief contributes only Task lines explicitly marked as captain words to intent.
+# `{FIRSTMATE_SPEC}` / `{PUBLISHED_INTENT}` placeholders and a `## Captain's
+# intent` line opening with a Captain label or address (bin/fm-dod-lib.sh); on
+# a no-mistakes promotion it additionally refuses a missing (stop for
+# migration), empty, or captain-addressed `## Published intent`, since the
+# no-mistakes `--intent` comes from that published subsection, never the
+# captain's private words. A pre-subsection scout
+# brief contributes only Task lines explicitly marked as captain words to the
+# private intent.
 # A scout records no delivery posture, so promotion is where this task's delivery
 # contract is decided: --mode and --yolo are REQUIRED and written into the meta
 # alongside the kind= flip. Firstmate resolves both at promotion time, having just
@@ -148,7 +154,7 @@ grep -qx 'kind=scout' "$META" || { echo "error: task $ID is not a scout task (ki
 
 SCOUT_BRIEF="$DATA/$ID/brief.md"
 if fm_brief_task_placeholders_present "$SCOUT_BRIEF"; then
-  echo "error: $SCOUT_BRIEF still contains {TASK} or {FIRSTMATE_SPEC}; preserve the original ask in ## Captain's intent and fill the scout-time ## Firstmate spec; promotion generates a separate ship-time spec" >&2
+  echo "error: $SCOUT_BRIEF still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; preserve the original ask in ## Captain's intent, fill ## Published intent, and fill the scout-time ## Firstmate spec; promotion generates a separate ship-time spec" >&2
   exit 1
 fi
 if ! fm_brief_task_content_valid "$SCOUT_BRIEF"; then
@@ -167,6 +173,26 @@ else
 fi
 if [ -z "$(printf '%s' "$INTENT_BODY" | tr -d '[:space:]')" ]; then
   echo "error: $SCOUT_BRIEF has no provenance-marked Captain's intent; add the captain's actual words before promotion" >&2
+  exit 1
+fi
+# The published intent rides along whenever the scout brief carries it; a
+# no-mistakes promotion requires it, because the no-mistakes --intent comes
+# from that subsection (bin/fm-dod-lib.sh), never the captain's private words.
+PUBLISHED_INTENT_BODY=
+if fm_brief_task_heading_present "$SCOUT_BRIEF" "## Published intent"; then
+  PUBLISHED_INTENT_BODY=$(fm_brief_task_heading_body "$SCOUT_BRIEF" "## Published intent")
+  if [ "$MODE" = no-mistakes ]; then
+    if [ -z "$(printf '%s' "$PUBLISHED_INTENT_BODY" | tr -d '[:space:]')" ]; then
+      echo "error: $SCOUT_BRIEF ## Published intent is empty; firstmate fills it before promotion, since this no-mistakes ship passes it as --intent" >&2
+      exit 1
+    fi
+    if PUBLISHED_ADDRESS_LINE=$(fm_brief_published_intent_address_line "$SCOUT_BRIEF"); then
+      echo "error: $SCOUT_BRIEF ## Published intent has an operator-address line: $PUBLISHED_ADDRESS_LINE; firstmate rewrites it without a Captain label or direct address before promotion, since the pipeline publishes it as the PR intent" >&2
+      exit 1
+    fi
+  fi
+elif [ "$MODE" = no-mistakes ]; then
+  echo "error: $SCOUT_BRIEF has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before promotion: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words" >&2
   exit 1
 fi
 
@@ -220,6 +246,10 @@ Your scout task has been promoted to a ship task, mode=$MODE. Your window, workt
 ## Captain's intent
 EOF
   printf '%s\n' "$INTENT_BODY"
+  if [ -n "$PUBLISHED_INTENT_BODY" ]; then
+    printf '\n## Published intent\n'
+    printf '%s\n' "$PUBLISHED_INTENT_BODY"
+  fi
   cat <<EOF
 
 ## Firstmate spec

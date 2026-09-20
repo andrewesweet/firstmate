@@ -131,6 +131,9 @@ make_spawn_case() {
 ## Captain's intent
 Exercise Muse dispatch.
 
+## Published intent
+Restate the accepted Muse change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the Muse harness behavior under test.
 EOF
