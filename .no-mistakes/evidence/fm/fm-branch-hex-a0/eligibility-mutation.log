@@ -1,0 +1,35 @@
+### mutation 1: mod drops terminal-close rule (kind check made impossible)
+not ok - v8: mod agrees with bash truth (terminal close, row branch-eligible) (expected '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}', got '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-b"]}')
+exit=1
+
+### mutation 2: bash fold stops clearing on ship terminal
+287:# Ship/scout terminal declarations supersede stale log decisions; a secondmate's
+532:    kind=${kind:-ship}
+534:  case "$kind" in ship|scout|secondmate) printf '%s' "$kind" ;; *) printf unknown ;; esac
+552:    *:*) case "$verb:$kind" in done:ship|done:scout|failed:ship|failed:scout) return 0 ;; esac ;;
+666:# could be a fold verb (including the ship/scout terminals, which carry no key
+not ok - v8: bash truth - the terminal done: must empty the fold for a ship task (expected '', got 'dep	needs-decision	waiting on captain')
+exit=1
+
+### mutation 3: Pi gains a fake terminal-close for done: (drift row would silently agree)
+89:  needsDecisionKeys: string[];
+112:  needsDecisionKeys: [],
+124:  needsDecisionKeys: [],
+277:  const needsDecisionKeys: string[] = [];
+324:        needsDecisionKeys.push(key);
+### mutation 3: Pi gains a done: terminal-close (simulating stage A2 landing without retiring the drift assertion)
+    const reservedPrefix = reservedPrefixes.find((prefix) => key.startsWith(prefix));
+    if (reservedPrefix && !(note.startsWith(reservedPrefix) && note.slice(reservedPrefix.length).includes(":"))) continue;
+    if (verb === "needs-decision" || verb === "blocked") open.set(key, verb);
+    if (verb === "done" || verb === "failed") open.clear();
+    else open.delete(key);
+not ok - v8: documented drift - pi keeps the done: task decision-owned (expected '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-b"]}', got '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}')
+exit=1
+
+### mutation 4: mod stops validating the epoch field
+43:  // Durable wake identity: the wake-queue "epoch:seq" of every eligible row,
+    if (f.length < 5 || !/^[0-9]+$/.test(f[1])) return unsafe
+not ok - epoch: the mod refuses the scan on the non-numeric epoch (expected '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}', got '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["5"],"eligibleTasks":["ship-e"],"needsDecision":[]}')
+exit=1
+
+### post-mutation: worktree clean
