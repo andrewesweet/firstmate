@@ -1,0 +1,11 @@
+## Real Pi extension scopeForUnreadWake (.pi/extensions/lib/fm-branch-dispatch.ts) on the three drift fixtures + scout
+### AFTER (bc0bdea, bound to lib/fm-branch-eligibility.ts)
+v8-ship         status=safe eligible=true corrupted=false eligibleSeqs=["2"] needsDecision=[]
+scout-terminal  status=safe eligible=true corrupted=false eligibleSeqs=["3"] needsDecision=[]
+symlink-log     status=safe eligible=true corrupted=false eligibleSeqs=["4"] needsDecision=[]
+torn-epoch      status=unsafe eligible=false corrupted=true eligibleSeqs=[] needsDecision=[]
+### BEFORE (5061126 inline Pi fold)
+v8-ship         status=unsafe eligible=false corrupted=false eligibleSeqs=[] needsDecision=["ship-b"]
+scout-terminal  status=safe eligible=true corrupted=false eligibleSeqs=["3"] needsDecision=[]
+symlink-log     status=unsafe eligible=false corrupted=true eligibleSeqs=[] needsDecision=[]
+torn-epoch      status=safe eligible=true corrupted=false eligibleSeqs=["5"] needsDecision=[]

@@ -1,0 +1,2 @@
+ok - a plain routine signal row classifies identically in bash, the Pi extension, the mod, and the shared lib
+not ok - v8: pi applies the terminal close (row branch-eligible) (expected '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}', got '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-b"]}')
