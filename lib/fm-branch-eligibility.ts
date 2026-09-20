@@ -575,7 +575,7 @@ function listQueueMetas(state: string): QueueMeta[] | null {
     for (const entry of readdirSync(state, { withFileTypes: true })) {
       if (!entry.name.endsWith(".meta")) continue;
       const task = entry.name.slice(0, -5);
-      const fields = readFileSync(`${state}/${entry.name}`, "utf8").split(/\r?\n/);
+      const fields = readFileSync(`${state}/${entry.name}`, "utf8").split("\n");
       metas.push({
         task,
         project: fields.find((line) => line.startsWith("project="))?.slice(8) ?? "",
