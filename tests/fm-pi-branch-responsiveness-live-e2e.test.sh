@@ -53,7 +53,9 @@ cp "$ROOT/.pi/extensions/fm-branch-supervision.ts" "$PROJECT/.pi/extensions/fm-b
 for lib in fm-async-exec fm-branch-dispatch fm-branch-model-picker fm-calm-visibility fm-native-contract fm-operational-input; do
   cp "$ROOT/.pi/extensions/lib/$lib.ts" "$PROJECT/.pi/extensions/lib/$lib.ts"
 done
-cp "$ROOT/lib/fm-branch-eligibility.ts" "$PROJECT/lib/fm-branch-eligibility.ts"
+for lib in fm-branch-classifier fm-branch-eligibility fm-branch-shadow; do
+  cp "$ROOT/lib/$lib.ts" "$PROJECT/lib/$lib.ts"
+done
 cp "$ROOT/lib/fm-branch-report-sequence.ts" "$PROJECT/lib/fm-branch-report-sequence.ts"
 cp "$ROOT/lib/fm-branch-provider-latch.ts" "$PROJECT/lib/fm-branch-provider-latch.ts"
 

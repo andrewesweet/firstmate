@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# fm-wake-evidence.sh - evidence for the Claude Code supervision-branch mod
-# (docs/claude-supervision-branch.md).
+# fm-wake-evidence.sh - evidence for the supervision-branch pre-branch classifier
+# on either host (docs/claude-supervision-branch.md "Classifier";
+# docs/pi-supervision-branch.md for the Pi extension).
 #
 # Usage:
 #   fm-wake-evidence.sh <task>

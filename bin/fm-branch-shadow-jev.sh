@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# fm-branch-shadow-jev.sh - the TypeSafe (Jev) call shim for the Claude Code
-# supervision-branch mod's shadow advisory trial (docs/claude-supervision-branch.md).
+# fm-branch-shadow-jev.sh - the TypeSafe (Jev) call shim for the supervision-branch
+# shadow advisory trial on either host (docs/claude-supervision-branch.md).
 #
 # Usage:
 #   fm-branch-shadow-jev.sh
