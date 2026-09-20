@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Portable three-fold equivalence proof for the wake-eligibility and
-# open-decision classification (the "branch fold"), which exists twice in
-# TypeScript plus once in bash:
+# Portable four-fold equivalence proof for the wake-eligibility and
+# open-decision classification (the "branch fold"), which exists three times
+# plus once as the shared extraction target:
 #   - bin/fm-classify-lib.sh `status_open_decisions` (the authoritative v8
 #     fold: needs-decision/blocked open a keyed decision, resolved/captain-held
 #     close one, and a done:/failed: declaration clears the whole set when the
@@ -11,24 +11,30 @@
 #   - the Claude mod's exported `scopeForUnreadWake`
 #     (.claude/mods/fm-branch-mod/hooks/branch.ts), bound through its exported
 #     `bind` - both exports are behavior-neutral and exist so this test can
-#     drive the real implementation instead of a re-implementation.
+#     drive the real implementation instead of a re-implementation;
+#   - the shared module lib/fm-branch-eligibility.ts (the bash v8 fold plus
+#     the guards the ports carry, one owner for the fold the other three
+#     restate), driven through its scanStateDirectory and foldStatusLog
+#     bindings. The lib leg must be byte-equal to the bash leg on every
+#     fixture, including the documented drift cases below.
 # One fixture set (status logs, wake-queue rows, task metas) is driven through
-# all three, and the two TypeScript legs must emit byte-identical normalised
-# scope JSON wherever the folds agree. Bash contributes the fold truth alone:
+# all four, and the TypeScript legs must emit byte-identical normalised scope
+# JSON wherever the folds agree. Bash contributes the fold truth alone:
 # no bash-side eligible-row scan exists (the extension computes the eligible
 # snapshot and bin/fm-wake-drain.sh consumes it), so the bash leg pins
 # `status_open_decisions` output and the join between fold truth and scope.
 # Today's known drift is asserted as documented drift, not as agreement; each
-# drift case passes once the Pi fold adopts the rule the other two apply:
+# drift case passes once the Pi fold adopts the rule the other legs apply:
 #   - v8 drift: Pi lacks the terminal-close rule (done:/failed: closes every
 #     open decision of a ship or scout task), so a ship task's open
-#     needs-decision followed by done: stays decision-owned there while bash
-#     and the mod clear it;
+#     needs-decision followed by done: stays decision-owned there while bash,
+#     the mod, and the lib clear it;
 #   - symlink drift: Pi refuses a symlinked status log for the whole scan
-#     while bash's refusal names an empty fold (branch-eligible) and the mod
-#     reads through the link;
-#   - torn-epoch drift: the mod validates the epoch field digit-wise and
-#     refuses the scan; Pi validates only the seq and claims the row.
+#     while bash's refusal names an empty fold (branch-eligible), the mod
+#     reads through, and the lib takes bash's outcome;
+#   - torn-epoch drift: the mod and the lib validate the epoch field
+#     digit-wise and refuse the scan; Pi validates only the seq and claims
+#     the row.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -78,6 +84,24 @@ build_fixtures() {
   printf 'needs-decision [key=gate]: captain pick\ndone: unrelated cleanup finished\n' >"$fx/secondmate-held/mate-f.status"
   printf 'kind=secondmate\nproject=demo\n' >"$fx/secondmate-held/mate-f.meta"
   printf '6\t6\tstale\tmate-f\tstale: waiting too long\n' >"$fx/secondmate-held/.wake-queue"
+  # Reserved-key namespace guard: a reserved key moves only when the note
+  # speaks its own vocabulary. mate-g opens one properly (fold keeps it),
+  # mate-h's non-speaking line is ignored entirely (fold stays empty), and
+  # mate-i opens an ordinary key (fold keeps it).
+  mkdir -p "$fx/reserved-prefix"
+  printf 'needs-decision [key=pending-reply-m1]: pending-reply-m1: awaiting parent answer\n' >"$fx/reserved-prefix/mate-g.status"
+  printf 'kind=secondmate\nproject=demo\n' >"$fx/reserved-prefix/mate-g.meta"
+  printf 'needs-decision [key=pending-reply-m2]: captain pick\n' >"$fx/reserved-prefix/mate-h.status"
+  printf 'kind=secondmate\nproject=demo\n' >"$fx/reserved-prefix/mate-h.meta"
+  printf 'needs-decision [key=plain]: pick one\n' >"$fx/reserved-prefix/mate-i.status"
+  printf 'kind=secondmate\nproject=demo\n' >"$fx/reserved-prefix/mate-i.meta"
+  printf '7\t7\tstale\tmate-g\tstale: waiting too long\n8\t8\tstale\tmate-h\tstale: waiting too long\n9\t9\tstale\tmate-i\tstale: waiting too long\n' >"$fx/reserved-prefix/.wake-queue"
+  # Verb overrides (FM_CLASSIFY_RESOLVE_VERB=ack, FM_CLASSIFY_CAPTAIN_HELD_VERB=hold):
+  # the fold closes through ack, and the held declaration is hold.
+  mkdir -p "$fx/overridden-verbs"
+  printf 'needs-decision [key=swap]: pick a name\nack [key=swap]: decided\nhold: waiting on captain review\n' >"$fx/overridden-verbs/ship-h.status"
+  printf 'kind=ship\nproject=demo\n' >"$fx/overridden-verbs/ship-h.meta"
+  printf '10\t10\tstale\tship-h\tstale: waiting too long\n' >"$fx/overridden-verbs/.wake-queue"
   printf '%s\n' "$fx"
 }
 
@@ -100,11 +124,21 @@ bash_fold() { # <state-dir> <task> -> v8 open set, or empty
   bash -c '. "$1/bin/fm-classify-lib.sh"; status_open_decisions "$2/$3.status"' _ "$ROOT" "$1" "$2"
 }
 
+# The lib leg: the shared module bound to the fixture state directory. Its
+# fold output must be byte-equal to bash_fold's on every fixture, and its
+# scope normalises to the same shape the two port legs emit.
+lib_scope() { # <state-dir> -> normalised scope JSON
+  FM_ELIGIBILITY_ROOT="$ROOT" node "$TMP_ROOT/lib-scope.mjs" "$1"
+}
+lib_fold() { # <state-dir> <task> -> v8 open-set bytes, or empty
+  FM_ELIGIBILITY_ROOT="$ROOT" node "$TMP_ROOT/lib-fold.mjs" "$1" "$2"
+}
+
 write_runners() {
-  # Normalised scope shape shared by both TS legs: the mod Scope carries
+  # Normalised scope shape shared by all three TS legs: the mod Scope carries
   # eligibleWakeKey/allSeqs and the Pi scope carries projects/checkSeqs/
   # heartbeatSeqs/taskByWakeKey, which have no counterpart on the other side;
-  # the compared fields are the ones both expose with the same meaning.
+  # the compared fields are the ones all three expose with the same meaning.
   cat >"$TMP_ROOT/pi-scope.mjs" <<'JS'
 import { pathToFileURL } from "node:url";
 const root = process.env.FM_ELIGIBILITY_ROOT;
@@ -159,103 +193,201 @@ const norm = (s) => JSON.stringify({
 });
 process.stdout.write(`${norm(await mod.scopeForUnreadWake($, false))}\n`);
 JS
+  cat >"$TMP_ROOT/lib-scope.mjs" <<'JS'
+import { pathToFileURL } from "node:url";
+const root = process.env.FM_ELIGIBILITY_ROOT;
+if (!root) throw new Error("FM_ELIGIBILITY_ROOT required");
+const { scanStateDirectory } = await import(pathToFileURL(`${root}/lib/fm-branch-eligibility.ts`).href);
+const norm = (s) => JSON.stringify({
+  status: s.status,
+  eligible: s.eligible,
+  corrupted: s.corrupted,
+  eligibleSeqs: [...new Set(s.eligibleSeqs)].sort(),
+  eligibleTasks: [...new Set(s.eligibleTasks)].sort(),
+  needsDecision: [...new Set(s.needsDecisionTasks)].sort(),
+});
+for (const dir of process.argv.slice(2)) {
+  process.stdout.write(`${norm(scanStateDirectory(dir))}\n`);
+}
+JS
+  cat >"$TMP_ROOT/lib-fold.mjs" <<'JS'
+import { pathToFileURL } from "node:url";
+const root = process.env.FM_ELIGIBILITY_ROOT;
+if (!root) throw new Error("FM_ELIGIBILITY_ROOT required");
+const { foldStatusLog } = await import(pathToFileURL(`${root}/lib/fm-branch-eligibility.ts`).href);
+const [dir, task] = process.argv.slice(2);
+process.stdout.write(foldStatusLog(dir, task));
+JS
 }
 
 write_runners
 
-test_routine_signal_row_agrees_across_all_three_folds() {
-  local dir="$FIXTURES/routine" pi mod fold
+test_routine_signal_row_agrees_across_all_folds() {
+  local dir="$FIXTURES/routine" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "routine: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "routine: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "ship-a")
+  lib=$(lib_scope "$dir") || fail "routine: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "ship-a")
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["1"],"eligibleTasks":["ship-a"],"needsDecision":[]}' "$pi" "routine: pi scope"
   assert_equals "$pi" "$mod" "routine: pi and mod scopes must be byte-identical"
+  assert_equals "$pi" "$lib" "routine: lib scope agrees with the ports"
   assert_equals "" "$fold" "routine: bash fold must be empty (nothing holds ship-a)"
-  pass "a plain routine signal row classifies identically in bash, the Pi extension, and the mod"
+  assert_equals "$fold" "$libfold" "routine: lib fold is byte-equal to the bash fold"
+  pass "a plain routine signal row classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
 test_ship_terminal_declaration_is_the_documented_v8_drift() {
   # Bash truth: done: on a ship task clears the whole open set, so nothing
-  # holds ship-b and its stale row stays branch-eligible. The mod agrees; Pi
-  # lacks the terminal-close rule and keeps the row decision-owned. This
-  # drift assertion retires once the Pi fold adopts that rule.
-  local dir="$FIXTURES/v8-ship" pi mod fold
+  # holds ship-b and its stale row stays branch-eligible. The mod and the
+  # lib agree; Pi lacks the terminal-close rule and keeps the row
+  # decision-owned. This drift assertion retires once the Pi fold adopts
+  # that rule.
+  local dir="$FIXTURES/v8-ship" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "v8: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "v8: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "ship-b")
+  lib=$(lib_scope "$dir") || fail "v8: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "ship-b")
   assert_equals "" "$fold" "v8: bash truth - the terminal done: must empty the fold for a ship task"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-b"],"needsDecision":[]}' "$mod" "v8: mod agrees with bash truth (terminal close, row branch-eligible)"
+  assert_equals "$fold" "$libfold" "v8: lib fold is byte-equal to the bash fold"
+  assert_equals "$mod" "$lib" "v8: lib agrees with bash truth (terminal close, row branch-eligible)"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-b"]}' "$pi" "v8: documented drift - pi keeps the done: task decision-owned"
   assert_not_equals "$pi" "$mod" "v8: the drift must remain visible until the Pi fold adopts the terminal-close rule"
-  pass "the v8 drift (pi missing the terminal-close rule) is asserted as documented drift against bash truth and the mod"
+  pass "the v8 drift (pi missing the terminal-close rule) is asserted as documented drift against bash truth, the mod, and the lib"
 }
 
-test_scout_blocked_then_failed_agrees_across_all_three_folds() {
+test_scout_blocked_then_failed_agrees_across_all_folds() {
   # Bash truth: failed: on a scout task clears the open blocked key, so the
   # stale row stays branch-eligible. Pi's internal open map keeps the blocked
   # key (it has no terminal close), but its needs-decision-specific verdict
-  # and the mod's cleared set produce the same scope: byte-identical output.
-  local dir="$FIXTURES/scout-terminal" pi mod fold
+  # and the cleared sets of the mod and the lib produce the same scope.
+  local dir="$FIXTURES/scout-terminal" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "scout: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "scout: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "scout-c")
+  lib=$(lib_scope "$dir") || fail "scout: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "scout-c")
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["3"],"eligibleTasks":["scout-c"],"needsDecision":[]}' "$pi" "scout: pi scope"
   assert_equals "$pi" "$mod" "scout: pi and mod scopes must be byte-identical"
+  assert_equals "$pi" "$lib" "scout: lib scope agrees with the ports"
   assert_equals "" "$fold" "scout: bash truth - the terminal failed: must empty the fold for a scout task"
-  pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, and the mod"
+  assert_equals "$fold" "$libfold" "scout: lib fold is byte-equal to the bash fold"
+  pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
 test_symlinked_status_log_names_bash_truth_and_the_pi_drift() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
   # which names an empty fold - nothing holds ship-d and its stale row stays
-  # branch-eligible. The mod reads through the link and agrees. Pi's
-  # statusFileVersion refuses the symlink for the whole scan (unsafe). This
-  # drift assertion retires once the Pi fold adopts the bash refusal shape.
-  local dir="$FIXTURES/symlink-log" pi mod fold
+  # branch-eligible. The mod reads through the link and agrees, and the lib
+  # takes bash's outcome. Pi's statusFileVersion refuses the symlink for the
+  # whole scan (unsafe). This drift assertion retires once the Pi fold adopts
+  # the bash refusal shape.
+  local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "ship-d")
+  lib=$(lib_scope "$dir") || fail "symlink: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "ship-d")
   assert_equals "" "$fold" "symlink: bash truth - the refusal must name an empty fold"
+  assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$mod" "symlink: mod reads through the link and agrees with bash truth"
+  assert_equals "$mod" "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$pi" "symlink: documented drift - pi refuses the whole scan"
   assert_not_equals "$pi" "$mod" "symlink: the drift must remain visible until the Pi fold adopts the bash refusal shape"
   pass "the symlink refusal names bash truth (branch-eligible) and pi's whole-scan refusal is asserted as documented drift"
 }
 
 test_torn_epoch_row_is_the_documented_epoch_validation_drift() {
-  # The mod validates the epoch field digit-wise and refuses the scan; Pi
-  # validates only the seq and claims the row. Bash has no queue scan to
-  # contribute; its fold on the task's own log names the empty truth. This
-  # drift assertion retires once the Pi fold validates the epoch field too.
-  local dir="$FIXTURES/torn-epoch" pi mod fold
+  # The mod and the lib validate the epoch field digit-wise and refuse the
+  # scan; Pi validates only the seq and claims the row. Bash has no queue
+  # scan to contribute; its fold on the task's own log names the empty truth,
+  # which the lib's fold is byte-equal to. This drift assertion retires once
+  # the Pi fold validates the epoch field too.
+  local dir="$FIXTURES/torn-epoch" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "epoch: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "epoch: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "ship-e")
+  lib=$(lib_scope "$dir") || fail "epoch: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "ship-e")
   assert_equals "" "$fold" "epoch: the task's own log holds no decision"
+  assert_equals "$fold" "$libfold" "epoch: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["5"],"eligibleTasks":["ship-e"],"needsDecision":[]}' "$pi" "epoch: documented drift - pi claims the torn-epoch row"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$mod" "epoch: the mod refuses the scan on the non-numeric epoch"
+  assert_equals "$mod" "$lib" "epoch: lib joins the mod's stricter epoch validation (bash has no queue opinion)"
   assert_not_equals "$pi" "$mod" "epoch: the drift must remain visible until the Pi fold validates the epoch field"
-  pass "the torn-epoch queue row is asserted as documented drift (mod validates the epoch, pi does not)"
+  pass "the torn-epoch queue row is asserted as documented drift (mod and lib validate the epoch, pi does not)"
 }
 
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere() {
   # A secondmate's done: may describe unrelated work, so no fold clears an
   # open decision on it: bash keeps the key, the mod skips the clear for a
-  # secondmate kind, and pi never clears. All three must agree the row is
-  # decision-owned and the scope is main-owned (unsafe, nothing eligible).
-  local dir="$FIXTURES/secondmate-held" pi mod fold
+  # secondmate kind, the lib's bash-truth fold keeps it, and pi never clears.
+  # All four must agree the row is decision-owned and the scope is
+  # main-owned (unsafe, nothing eligible).
+  local dir="$FIXTURES/secondmate-held" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "secondmate: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "secondmate: mod leg failed: $mod"
   fold=$(bash_fold "$dir" "mate-f")
+  lib=$(lib_scope "$dir") || fail "secondmate: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "mate-f")
   assert_equals "$(printf 'gate\tneeds-decision\tcaptain pick')" "$fold" "secondmate: bash keeps the open key across the terminal line"
+  assert_equals "$fold" "$libfold" "secondmate: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["mate-f"]}' "$pi" "secondmate: pi scope"
   assert_equals "$pi" "$mod" "secondmate: pi and mod scopes must be byte-identical"
-  pass "a secondmate's terminal declaration holds the open decision in bash, the Pi extension, and the mod alike"
+  assert_equals "$pi" "$lib" "secondmate: lib scope agrees with the ports"
+  pass "a secondmate's terminal declaration holds the open decision in bash, the Pi extension, the mod, and the lib alike"
 }
 
-test_routine_signal_row_agrees_across_all_three_folds
+test_reserved_key_namespace_guard_agrees_across_all_folds() {
+  # A reserved key moves only when the note speaks its namespace's own
+  # vocabulary: mate-g's speaking note opens the decision (fold keeps it, row
+  # decision-owned), mate-h's non-speaking line is ignored entirely (fold
+  # stays empty, row branch-eligible), and mate-i's ordinary key opens
+  # normally (fold keeps it, row decision-owned). All four implementations
+  # carry the rule with the documented defaults.
+  local dir="$FIXTURES/reserved-prefix" pi mod lib
+  pi=$(pi_scope "$dir") || fail "reserved: pi leg failed: $pi"
+  mod=$(mod_scope "$dir") || fail "reserved: mod leg failed: $mod"
+  lib=$(lib_scope "$dir") || fail "reserved: lib leg failed: $lib"
+  assert_equals "$(printf 'pending-reply-m1\tneeds-decision\tpending-reply-m1: awaiting parent answer')" "$(bash_fold "$dir" "mate-g")" "reserved: bash keeps mate-g's properly opened reserved key"
+  assert_equals "$(bash_fold "$dir" "mate-g")" "$(lib_fold "$dir" "mate-g")" "reserved: lib fold is byte-equal to the bash fold for mate-g"
+  assert_equals "" "$(bash_fold "$dir" "mate-h")" "reserved: bash ignores mate-h's non-speaking reserved-key line"
+  assert_equals "$(bash_fold "$dir" "mate-h")" "$(lib_fold "$dir" "mate-h")" "reserved: lib fold is byte-equal to the bash fold for mate-h"
+  assert_equals "$(printf 'plain\tneeds-decision\tpick one')" "$(bash_fold "$dir" "mate-i")" "reserved: bash keeps mate-i's ordinary key"
+  assert_equals "$(bash_fold "$dir" "mate-i")" "$(lib_fold "$dir" "mate-i")" "reserved: lib fold is byte-equal to the bash fold for mate-i"
+  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["8"],"eligibleTasks":["mate-h"],"needsDecision":["mate-g","mate-i"]}' "$pi" "reserved: pi scope"
+  assert_equals "$pi" "$mod" "reserved: pi and mod scopes must be byte-identical"
+  assert_equals "$pi" "$lib" "reserved: lib scope agrees with the ports"
+  pass "the reserved-key namespace guard classifies identically in bash, the Pi extension, the mod, and the lib"
+}
+
+test_verb_overrides_reach_the_bash_and_lib_folds_alike() {
+  # FM_CLASSIFY_RESOLVE_VERB/FM_CLASSIFY_CAPTAIN_HELD_VERB reach the bash
+  # fold and the lib's environment alike: under ack/hold the swap decision is
+  # closed and ship-h is decision-owned through the held declaration; under
+  # the documented defaults the same log keeps swap open. The mod hardcodes
+  # its vocabulary, so it has no leg here.
+  local dir="$FIXTURES/overridden-verbs" fold lib libfold dflt dfltlibfold libscope
+  fold=$(FM_CLASSIFY_RESOLVE_VERB=ack FM_CLASSIFY_CAPTAIN_HELD_VERB=hold bash_fold "$dir" "ship-h")
+  libfold=$(FM_CLASSIFY_RESOLVE_VERB=ack FM_CLASSIFY_CAPTAIN_HELD_VERB=hold lib_fold "$dir" "ship-h")
+  libscope=$(FM_CLASSIFY_RESOLVE_VERB=ack FM_CLASSIFY_CAPTAIN_HELD_VERB=hold lib_scope "$dir")
+  dflt=$(bash_fold "$dir" "ship-h")
+  dfltlibfold=$(lib_fold "$dir" "ship-h")
+  assert_equals "" "$fold" "verbs: bash closes swap through the ack override"
+  assert_equals "$fold" "$libfold" "verbs: lib fold is byte-equal to the bash fold under the override"
+  assert_equals "$(printf 'swap\tneeds-decision\tpick a name')" "$dflt" "verbs: bash keeps swap open under the documented defaults"
+  assert_equals "$dflt" "$dfltlibfold" "verbs: lib fold is byte-equal to the bash fold under the defaults"
+  assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}' "$libscope" "verbs: lib scope is decision-owned through the overridden held declaration"
+  pass "the FM_CLASSIFY_* verb overrides reach the bash fold and the lib alike, in the fold and the held-declaration verdict"
+}
+
+test_routine_signal_row_agrees_across_all_folds
 test_ship_terminal_declaration_is_the_documented_v8_drift
-test_scout_blocked_then_failed_agrees_across_all_three_folds
+test_scout_blocked_then_failed_agrees_across_all_folds
 test_symlinked_status_log_names_bash_truth_and_the_pi_drift
 test_torn_epoch_row_is_the_documented_epoch_validation_drift
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
+test_reserved_key_namespace_guard_agrees_across_all_folds
+test_verb_overrides_reach_the_bash_and_lib_folds_alike
