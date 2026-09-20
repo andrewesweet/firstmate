@@ -1,0 +1,19 @@
+### S6b happy-path spawn full output (fake tmux exits 1 AFTER launch-brief render; no intent error)
+exit=1
+-rw-rw-r-- 1 andre andre 13668 Sep 20 03:33 /tmp/fm-intent-live.gmTB3o/home/data/ship1/launch-brief.md
+
+### S7 legacy no-mistakes ship brief (two subsections, no Published) stops for migration
+error: /tmp/fm-intent-live.gmTB3o/home/data/legacy2/brief.md has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/legacy2/launch-brief.md': No such file or directory
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/state/legacy2.meta': No such file or directory
+
+### S8 legacy [captain]-marked mixed Task, no-mistakes: stops for migration (no fallback to captain words)
+error: /tmp/fm-intent-live.gmTB3o/home/data/legacy1/brief.md has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/legacy1/launch-brief.md': No such file or directory
+
+### S9 boundary: direct-PR ship with the same two-subsection brief is NOT blocked by the published check
+exit=1
+/tmp/fm-intent-live.gmTB3o/home/data/legacy3/launch-brief.md
+0

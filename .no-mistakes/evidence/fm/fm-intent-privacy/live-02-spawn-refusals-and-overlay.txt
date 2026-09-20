@@ -1,0 +1,66 @@
+### S3 spawn refuses leftover {PUBLISHED_INTENT} (TASK and SPEC filled)
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; fill ## Captain's intent, ## Published intent, and ## Firstmate spec before spawn
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/ship1/launch-brief.md': No such file or directory
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/state/ship1.meta': No such file or directory
+
+### S4 spawn refuses EMPTY ## Published intent
+# Task
+## Captain's intent
+Captain private words: cut my Anthropic spend by routing to Haiku.
+
+## Published intent
+
+
+## Firstmate spec
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent is empty; firstmate fills it before spawn, since this no-mistakes ship passes it as --intent
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/ship1/launch-brief.md': No such file or directory
+
+### S5 spawn refuses captain-addressed ## Published intent (each address spelling)
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent has an operator-address line: Captain: route the classifier to the cheaper model.; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent
+exit=1
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent has an operator-address line: Captain's words: route the classifier to the cheaper model.; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent
+exit=1
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent has an operator-address line: Captain's ask: route the classifier to the cheaper model.; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent
+exit=1
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent has an operator-address line: Captain's intent: route the classifier to the cheaper model.; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent
+exit=1
+error: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md ## Published intent has an operator-address line: Captain, route the classifier to the cheaper model.; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/ship1/launch-brief.md': No such file or directory
+
+### S6 happy path: filled published intent becomes the ONLY --intent source in launch-brief overlay
+# Task
+## Captain's intent
+Captain private words: cut my Anthropic spend by routing to Haiku.
+
+## Published intent
+Route classifier calls through the lower-cost tier and record the routing decision in the task log.
+
+
+## Firstmate spec
+exit=1
+--- launch-brief.md overlay (tail) ---
+# Current no-mistakes intent contract
+This section supersedes every earlier brief instruction about constructing `--intent`, but not later captain asks restated into the brief's `## Published intent`.
+Use everything under `## Published intent authorized for --intent` through the end of this brief, including any nested subheadings but excluding that heading, plus any later captain ask restated into the published subsection as `--intent`; never include `## Captain's intent`, Firstmate specification, or other mixed Task content.
+The published intent is firstmate-authored at dispatch and is the only authorized source: pass it exactly as written, without speaker labels or direct address.
+Firstmate-authored constraints, acceptance criteria, implementation details, decisions, and tradeoffs outside that subsection are specification, not published intent.
+The Definition of done's rule that `--intent` must be self-sufficient still governs the string you pass: resolve any report, decision, or PR the intent below refers to into its substance rather than passing the pointer.
+
+## Published intent authorized for --intent
+Route classifier calls through the lower-cost tier and record the routing decision in the task log.
+--- authorized block exact ---
+Route classifier calls through the lower-cost tier and record the routing decision in the task log.
+--- captain private words present in authorized block? ---
+0
+--- launch-brief DoD lines about --intent ---
+13:## Captain's intent
+16:## Published intent
+98:When starting no-mistakes, pass `--intent` as only this brief's `## Published intent` subsection body, not its heading, plus any later captain ask restated into that subsection.
+100:Never include `## Captain's intent`, `## Firstmate spec`, later Firstmate build constraints, or your own decisions and tradeoffs.
+101:If the brief has no `## Published intent` subsection, stop and ask firstmate to migrate the brief instead of starting no-mistakes; never substitute the captain's own words.
+123:This section supersedes every earlier brief instruction about constructing `--intent`, but not later captain asks restated into the brief's `## Published intent`.
+124:Use everything under `## Published intent authorized for --intent` through the end of this brief, including any nested subheadings but excluding that heading, plus any later captain ask restated into the published subsection as `--intent`; never include `## Captain's intent`, Firstmate specification, or other mixed Task content.
+129:## Published intent authorized for --intent

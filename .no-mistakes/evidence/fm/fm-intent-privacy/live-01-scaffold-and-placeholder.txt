@@ -1,0 +1,26 @@
+### Note: S3 in this file re-ran in live-02 after setting FM_GATE_REFUSE_BYPASS=1 (same test-harness bypass tests/lib.sh exports); the exit=3 gate refusal here is the sandbox guard, not the change under test.
+### S1 ship scaffold carries ## Published intent between Captain and Firstmate
+scaffolded: /tmp/fm-intent-live.gmTB3o/home/data/ship1/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+# Task
+## Captain's intent
+{TASK}
+
+## Published intent
+{PUBLISHED_INTENT}
+
+## Firstmate spec
+
+### S2 scout scaffold keeps two subsections
+scaffolded: /tmp/fm-intent-live.gmTB3o/home/data/scout1/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+# Task
+## Captain's intent
+{TASK}
+
+## Firstmate spec
+published-heading-count-in-scout: 0
+
+### S3 spawn refuses leftover {PUBLISHED_INTENT} (TASK and SPEC filled)
+error: no-mistakes gate agent must not drive the fleet (NO_MISTAKES_GATE set)
+exit=3
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/ship1/launch-brief.md': No such file or directory
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/state/ship1.meta': No such file or directory

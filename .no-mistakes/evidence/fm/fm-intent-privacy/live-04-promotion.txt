@@ -1,0 +1,89 @@
+### P1 promotion refuses leftover {PUBLISHED_INTENT}
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: /tmp/fm-intent-live.gmTB3o/home/data/p1/brief.md still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; preserve the original ask in ## Captain's intent, fill ## Published intent, and fill the scout-time ## Firstmate spec; promotion generates a separate ship-time spec
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/p1/ship-instructions.md': No such file or directory
+kind=scout
+
+### P2 no-mistakes promotion refuses MISSING ## Published intent (stop for migration)
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: /tmp/fm-intent-live.gmTB3o/home/data/p2/brief.md has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before promotion: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/p2/ship-instructions.md': No such file or directory
+kind=scout
+
+### P3 no-mistakes promotion refuses EMPTY ## Published intent
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: /tmp/fm-intent-live.gmTB3o/home/data/p3/brief.md ## Published intent is empty; firstmate fills it before promotion, since this no-mistakes ship passes it as --intent
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/p3/ship-instructions.md': No such file or directory
+
+### P4 no-mistakes promotion refuses captain-addressed ## Published intent
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: /tmp/fm-intent-live.gmTB3o/home/data/p4/brief.md ## Published intent has an operator-address line: Captain, ship it today.; firstmate rewrites it without a Captain label or direct address before promotion, since the pipeline publishes it as the PR intent
+exit=1
+ls: cannot access '/tmp/fm-intent-live.gmTB3o/home/data/p4/ship-instructions.md': No such file or directory
+
+### P5 no-mistakes promotion happy path: published intent carried, captain words separate, DoD points --intent at Published
+next: FM_HOME=/tmp/fm-intent-live.gmTB3o/home bin/fm-send.sh fm-p5 "$(cat /tmp/fm-intent-live.gmTB3o/home/data/p5/ship-instructions.md)"
+exit=0
+--- ship-instructions # Task ---
+# Task
+## Captain's intent
+My Anthropic quota is burning; find why login fails and fix it cheaply.
+
+## Published intent
+Fix the login failure and add a regression test that reproduces it.
+
+## Firstmate spec
+If these promotion steps were already completed before a relaunch, preserve the existing `fm/p5` branch and continue from its current state; do not repeat them destructively.
+1. **Verify isolation before anything else.** Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from. If either does not resolve to the worktree you were launched in, stop and escalate to firstmate.
+2. Inventory this worktree's scratch state with `git status` and `git log` before changing anything.
+3. Return to a clean default-branch base, then create your branch: `git checkout -b fm/p5`.
+4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.
+5. If you reproduced a bug, turn that reproduction into a regression test.
+6. Treat the scout-time Firstmate spec and any unmarked legacy `# Task` text as investigation context, not captain intent or current ship-time instructions.
+7. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule, except where the current delivery contract below explicitly replaces scout-only delivery rules.
+
+
+# Current delivery mode contract
+This task is now kind=ship with mode=no-mistakes.
+This section supersedes every earlier brief instruction about delivery mode.
+These current ship instructions supersede the scout delivery rules and report-based Definition of done.
+Any earlier "Never push" or scout-only delivery language in this file is superseded.
+The mode-specific Definition of done below is the current delivery contract.
+
+# Current ship safety rule
+1. Never push to the default branch. Never merge a PR.
+
+The no-mistakes ask-user escalation below supersedes the scout rule 6 escalation shape.
+   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `/tmp/fm-intent-live.gmTB3o/home/data/p5/nm-<run>-findings.txt`, then report the gate with
+   `needs-decision [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=/tmp/fm-intent-live.gmTB3o/home/data/p5/nm-<run>-findings.txt`
+   naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
+
+# Definition of done
+--- --intent lines in DoD ---
+43:When starting no-mistakes, pass `--intent` as only this brief's `## Published intent` subsection body, not its heading, plus any later captain ask restated into that subsection.
+45:Never include `## Captain's intent`, `## Firstmate spec`, later Firstmate build constraints, or your own decisions and tradeoffs.
+46:If the brief has no `## Published intent` subsection, stop and ask firstmate to migrate the brief instead of starting no-mistakes; never substitute the captain's own words.
+
+### P6 boundary: direct-PR promotion of a two-subsection scout (no Published) still succeeds
+exit=0
+/tmp/fm-intent-live.gmTB3o/home/data/p6/ship-instructions.md
+0
+
+### P7 promotion still refuses captain-addressed ## Captain's intent (legacy discipline intact)
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: /tmp/fm-intent-live.gmTB3o/home/data/p7/brief.md ## Captain's intent has an operator-address line: Captain: find why login fails.; write the captain's actual words without a Captain label or address before promotion, since the heading already records provenance
+exit=1
+
+### P8 legacy [captain]-marked scout, direct-PR: private intent extraction still works
+exit=0
+Find why login fails.
+
