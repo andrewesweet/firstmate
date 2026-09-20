@@ -2,17 +2,21 @@
 # Scaffold a crewmate brief or persistent secondmate charter at
 # data/<task-id>/brief.md under the active firstmate home.
 # For ordinary tasks, the standard Setup/Rules/Definition-of-done contract is
-# filled in. Ship and scout `# Task` sections have two subsections Firstmate
+# filled in. Ship and scout `# Task` sections carry subsections Firstmate
 # fills before dispatch: `{TASK}` under `## Captain's intent` (the captain's
 # own ask plus the context needed to read it, including the substance of any
 # report, decision, or PR the ask refers to, without added speaker labels or
 # direct address; captain rulings that constrain the design belong in that
 # subsection so the reviewer does not re-ask them) and `{FIRSTMATE_SPEC}`
 # under `## Firstmate spec` (build instructions, which are never the captain's
-# intent). bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract those
-# subsections feed; bin/fm-spawn.sh refuses leftover placeholders and a
-# `## Captain's intent` line opening with a Captain label or address. Secondmate
-# charters still use a single `{TASK}` charter fill. Firstmate may adjust other
+# intent). A ship brief also carries `{PUBLISHED_INTENT}` under
+# `## Published intent` between them: the firstmate-authored statement a
+# no-mistakes worker passes as `--intent`; scout briefs keep the two
+# subsections. bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract and
+# the published-intent fill rules; bin/fm-spawn.sh refuses leftover
+# placeholders and a `## Captain's intent` line opening with a Captain label or
+# address. Secondmate charters still use a single `{TASK}` charter fill.
+# Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
 # Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--herdr-lab]
