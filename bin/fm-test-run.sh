@@ -1476,6 +1476,7 @@ families_for_changed_path() {
       # below loads it through .pi/extensions/lib/fm-branch-dispatch.ts, and
       # tests/fm-branch-eligibility.test.sh pins it directly.
       printf '%s\n' __script__:fm-branch-eligibility.test.sh
+      printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' __script__:fm-pi-branch-extension.test.sh
       printf '%s\n' __script__:fm-pi-watch-extension.test.sh
       printf '%s\n' __script__:fm-calm-pi-extension.test.sh
@@ -1509,10 +1510,11 @@ families_for_changed_path() {
       printf '%s\n' __script__:fm-pi-primary-types.test.sh
       printf '%s\n' live-harness-optin
       ;;
-    .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh)
-      # The Claude Code supervision-branch mod and the generator of its agent
-      # definition: the portable Node checks, then the Claude-dependent guards
-      # (strict validation, the engine-hosted suite, and the pinned live run).
+    .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh|bin/fm-branch-shared-sync.sh)
+      # The Claude Code supervision-branch mod, the generator of its agent
+      # definition, and the vendorer of its shared eligibility module: the
+      # portable Node checks, then the Claude-dependent guards (strict
+      # validation, the engine-hosted suite, and the pinned live run).
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' live-harness-optin
       ;;

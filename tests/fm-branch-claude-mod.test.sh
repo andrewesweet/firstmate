@@ -18,6 +18,7 @@ set -u
 
 MOD="$ROOT/.claude/mods/fm-branch-mod"
 GENERATOR="$ROOT/bin/fm-branch-agent-md.sh"
+SYNC_GENERATOR="$ROOT/bin/fm-branch-shared-sync.sh"
 TMP_ROOT=$(fm_test_tmproot fm-branch-claude-mod)
 
 command -v node >/dev/null 2>&1 || { echo "skip: node not found for the Claude Code supervision-branch mod checks"; exit 0; }
@@ -47,8 +48,8 @@ if (!existsSync(\`\${mod}/hooks/branch.ts\`)) throw new Error("the hooks module 
 const agents = readdirSync(\`\${mod}/agents\`).sort();
 if (JSON.stringify(agents) !== JSON.stringify(["fm-branch.md"])) throw new Error(\`agents/ holds \${agents.join(", ")}: only the one branch agent may exist\`);
 const entries = readdirSync(mod).filter((name) => name !== ".claude-plugin").sort();
-if (JSON.stringify(entries) !== JSON.stringify(["agents", "classifier-system.txt", "hooks", "tests"])) {
-  throw new Error(\`the mod folder holds \${entries.join(", ")}: only agents, classifier-system.txt, hooks, and tests may exist\`);
+if (JSON.stringify(entries) !== JSON.stringify(["agents", "classifier-system.txt", "hooks", "lib", "tests"])) {
+  throw new Error(\`the mod folder holds \${entries.join(", ")}: only agents, classifier-system.txt, hooks, lib, and tests may exist\`);
 }
 console.log("shape-ok");
 JS
@@ -74,5 +75,20 @@ test_agent_definition_is_generated_and_current() {
   pass "agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns"
 }
 
+test_vendored_eligibility_module_is_generated_and_current() {
+  local out
+  out=$("$SYNC_GENERATOR" --check 2>&1) || fail "the vendored eligibility module is stale against lib/fm-branch-eligibility.ts: $out"
+  out=$("$SYNC_GENERATOR" --print) || fail "the generator cannot print the vendored module"
+  [ "$out" = "$(cat "$MOD/lib/fm-branch-eligibility.ts")" ] || fail "--print differs from the tracked vendored module"
+  "$SYNC_GENERATOR" --bogus >/dev/null 2>&1 && fail "an unknown generator argument was accepted"
+  grep -q 'GENERATED FILE - DO NOT EDIT BY HAND' "$MOD/lib/fm-branch-eligibility.ts" \
+    || fail "the vendored module does not announce itself as generated"
+  if grep -q 'from "node:fs"' "$MOD/lib/fm-branch-eligibility.ts"; then
+    fail "the vendored module imports node:fs, which the hooks-module validator refuses"
+  fi
+  pass "the vendored eligibility module is current with bin/fm-branch-shared-sync.sh and free of node:fs"
+}
+
 test_plugin_shape
 test_agent_definition_is_generated_and_current
+test_vendored_eligibility_module_is_generated_and_current

@@ -16,20 +16,18 @@
 #     the guards the ports carry, one owner for the fold the other three
 #     restate), driven through its scanStateDirectory and foldStatusLog
 #     bindings. The lib leg must be byte-equal to the bash leg on every
-#     fixture, including the documented drift cases below.
+#     fixture, including the drift cases below. The mod consumes the same
+#     module through bin/fm-branch-shared-sync.sh's vendored copy, bound via
+#     its host stat seam, so all three TypeScript legs share one fold.
 # One fixture set (status logs, wake-queue rows, task metas) is driven through
 # all four, and the TypeScript legs must emit byte-identical normalised scope
 # JSON wherever the folds agree. Bash contributes the fold truth alone:
 # no bash-side eligible-row scan exists (the extension computes the eligible
 # snapshot and bin/fm-wake-drain.sh consumes it), so the bash leg pins
 # `status_open_decisions` output and the join between fold truth and scope.
-# The Pi extension consumes the shared module (A2), so its leg is pinned
-# byte-equal to bash on every fixture, drift cases included. One documented
-# drift remains until its port adopts the rule the other legs apply:
-#   - symlink drift: the mod reads through a symlinked status log
-#     (decision-owned when the target holds an open decision) while bash's
-#     refusal names an empty fold (branch-eligible), which the lib and the
-#     Pi extension take.
+# The Pi extension consumes the shared module (A2) and the mod its vendored
+# copy (A3), so both are pinned byte-equal to bash on every fixture, drift
+# cases included:
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -153,7 +151,7 @@ for (const dir of process.argv.slice(2)) {
 }
 JS
   cat >"$TMP_ROOT/mod-scope.mjs" <<'JS'
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 const root = process.env.FM_ELIGIBILITY_ROOT;
 if (!root) throw new Error("FM_ELIGIBILITY_ROOT required");
@@ -161,7 +159,9 @@ const stateDir = process.env.FM_STATE_OVERRIDE;
 if (!stateDir) throw new Error("FM_STATE_OVERRIDE required");
 const mod = await import(pathToFileURL(`${root}/.claude/mods/fm-branch-mod/hooks/branch.ts`).href);
 // The host seam the fold reads through, backed by node:fs with its documented
-// read/list/exists behavior; the fs methods are awaited exactly as the mod
+// read/list/exists behavior; stat carries the host's lstat shape (isLink true
+// for the link itself, the target's size/mtime when it resolves) and throws
+// ENOENT on a missing path. The fs methods are awaited exactly as the mod
 // awaits the host they stand in for.
 const $ = {
   plugin: { root: `${root}/.claude/mods/fm-branch-mod` },
@@ -171,6 +171,16 @@ const $ = {
     read: async (path) => {
       if (!existsSync(path)) throw new Error(`ENOENT: ${path}`);
       return readFileSync(path, "utf8");
+    },
+    stat: async (path) => {
+      const st = lstatSync(path);
+      if (st.isSymbolicLink()) return { kind: "other", size: st.size, mtimeMs: st.mtimeMs, isLink: true };
+      return {
+        kind: st.isFile() ? "file" : st.isDirectory() ? "dir" : "other",
+        size: st.size,
+        mtimeMs: st.mtimeMs,
+        isLink: false,
+      };
     },
     list: async (dir) => readdirSync(dir, { withFileTypes: true }),
     exists: async (path) => existsSync(path),
@@ -271,13 +281,12 @@ test_scout_blocked_then_failed_agrees_across_all_folds() {
   pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
-test_symlinked_status_log_names_bash_truth_and_the_mod_drift() {
+test_symlinked_status_log_is_bash_truth_in_all_four_legs() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
   # which names an empty fold - nothing holds ship-d and its stale row stays
-  # branch-eligible. The lib takes bash's outcome and the Pi extension
-  # consumes the lib, so both are branch-eligible; the mod still reads through
-  # the link and sees the open decision (decision-owned), asserted as
-  # documented drift until the mod fold adopts the bash refusal shape.
+  # branch-eligible. The lib takes bash's outcome, the Pi extension consumes
+  # the lib, and the mod consumes the lib through the vendored copy whose host
+  # stat seam refuses a symlinked log the same way, so all four agree.
   local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
@@ -288,9 +297,8 @@ test_symlinked_status_log_names_bash_truth_and_the_mod_drift() {
   assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
   assert_equals "$lib" "$pi" "symlink: pi takes bash's outcome through the shared module"
-  assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-d"]}' "$mod" "symlink: documented drift - mod reads through the link and holds the row"
-  assert_not_equals "$mod" "$lib" "symlink: the mod drift must remain visible until the mod fold adopts the bash refusal shape"
-  pass "the symlink refusal names bash truth (branch-eligible); pi agrees through the shared module and the mod's read-through is asserted as documented drift"
+  assert_equals "$lib" "$mod" "symlink: the mod takes bash's outcome through the vendored copy and the host stat seam"
+  pass "the symlink refusal names bash truth (branch-eligible); the Pi extension and the mod agree through the shared fold"
 }
 
 test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner() {
@@ -379,7 +387,7 @@ test_verb_overrides_reach_the_bash_and_lib_folds_alike() {
 test_routine_signal_row_agrees_across_all_folds
 test_ship_terminal_declaration_agrees_across_all_folds
 test_scout_blocked_then_failed_agrees_across_all_folds
-test_symlinked_status_log_names_bash_truth_and_the_mod_drift
+test_symlinked_status_log_is_bash_truth_in_all_four_legs
 test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
 test_reserved_key_namespace_guard_agrees_across_all_folds

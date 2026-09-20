@@ -22,6 +22,7 @@ Every task wake hands the branch the deterministic new-status-lines note (the st
 A delivered wake is dropped from main, which stays silent; a wake the branch may not own, or one the mod cannot deliver, passes through to main exactly as it would without the mod.
 
 The branch agent runs on the same system prompt as the Pi branch (`bin/fm-branch-prompt.sh`) plus a hooks-module addendum, generated into `agents/fm-branch.md` by `bin/fm-branch-agent-md.sh`; `bin/fm-branch-agent-md.sh --check` fails when the tracked file is stale.
+The module's eligibility scan delegates to the same shared fold the Pi extension consumes, vendored into `lib/fm-branch-eligibility.ts` by `bin/fm-branch-shared-sync.sh` (pure core only - a hooks module may import nothing but its own files, so the mod binds it to its host seam instead of `node:fs`); `bin/fm-branch-shared-sync.sh --check` fails when the tracked copy is stale.
 It records each handled wake through the mod's `fm_branch_report` tool, which appends to the shared outcome store (`bin/fm-branch-outcome.sh`) before anything reaches main.
 A `routine` outcome ends there.
 A `captain` outcome opens one sequence-keyed processing request on main, which tells the captain the outcome and acknowledges the sequence through `fm_branch_processed`, exactly as on Pi.

@@ -37,6 +37,16 @@
 //   branch-mod-classifications.jsonl  one record per classifier call
 //   branch-mod-shadow.jsonl         one record per shadow advisory call (config/classifier-shadow = jev), size-capped
 import type { On } from 'claude-code'
+// The shared v8 fold and eligible-rows scan, vendored by
+// bin/fm-branch-shared-sync.sh (the source's node:fs default bindings are
+// excluded: this module may import only its own files and "claude-code").
+import {
+  foldVocabularyFromEnv,
+  hasOpenNeedsDecision,
+  scopeForUnreadWake as libScopeForUnreadWake,
+  statusKindFromMetaText,
+} from '../lib/fm-branch-eligibility.ts'
+import type { DecisionVerdictCache, FoldVocabulary, QueueMeta, StatusStat, StatusText } from '../lib/fm-branch-eligibility.ts'
 
 export const CLAUDE_CODE_PIN = '2.1.278'
 
@@ -276,196 +286,170 @@ async function ensureActivated($: any): Promise<boolean> {
   return activated
 }
 
-// ---- eligibility: port of scopeForUnreadWake (.pi/extensions/lib/fm-branch-dispatch.ts) ----
-function statusLineVerb(line: string): string {
-  const beforeColon = line.split(':', 1)[0].split('[', 1)[0].trim()
-  const words = beforeColon.split(/\s+/)
-  if (!words.some((w) => w.startsWith('corr='))) return beforeColon
-  return words.filter((w, i) => i === 0 || !/^corr=[0-9a-f]{16}$/i.test(w)).join(' ')
-}
-function decisionKey(line: string): string | null {
-  const colon = line.indexOf(':')
-  const beforeColon = colon < 0 ? line : line.slice(0, colon)
-  const beforeMatch = beforeColon.match(/\[key=([^\]]*)\]/)
-  const noteMatch = beforeMatch || colon < 0 ? null : line.slice(colon + 1).trimStart().match(/^\[key=([^\]]*)\]/)
-  const key = (beforeMatch ?? noteMatch)?.[1] ?? 'default'
-  return /^[A-Za-z0-9._-]+$/.test(key) ? key : null
-}
-function statusLineNote(line: string): string {
-  const colon = line.indexOf(':')
-  if (colon < 0) return line
-  const note = line.slice(colon + 1).trimStart()
-  if (/\[key=[^\]]*\]/.test(line.slice(0, colon))) return note
-  const m = note.match(/^\[key=([A-Za-z0-9._-]+)\]/)
-  return m ? note.slice(m[0].length).trimStart() : note
-}
-function hasOpenNeedsDecision(lines: string[], kind: string): boolean {
-  const open = new Map<string, string>()
-  for (const line of lines) {
-    // v8 fold (bin/fm-classify-lib.sh _fm_decision_fold_line,
-    // FM_OPEN_DECISIONS_FOLD_VERSION 8): needs-decision/blocked OPEN a keyed
-    // decision, resolved/captain-held CLOSE it, and a `done:`/`failed:`
-    // declaration closes the WHOLE open set when the task's kind is ship or
-    // scout - a secondmate's terminal event may describe other work and cannot
-    // close an unrelated decision. Declaration guard first: a line holding
-    // neither a colon nor a complete "[key=...]" token is continuation prose and
-    // can never move the set.
-    if (!line.includes(':') && !/\[key=[^\]]*\]/.test(line)) continue
-    const verb = statusLineVerb(line)
-    if (verb === 'done' || verb === 'failed') {
-      if (line.includes(':') && (kind === 'ship' || kind === 'scout')) open.clear()
-      continue
-    }
-    if (!['needs-decision', 'blocked', 'resolved', 'captain-held'].includes(verb)) continue
-    const key = decisionKey(line)
-    if (!key) continue
-    const note = statusLineNote(line)
-    const rp = ['pending-reply-'].find((p) => key.startsWith(p))
-    if (rp && !(note.startsWith(rp) && note.slice(rp.length).includes(':'))) continue
-    if (verb === 'needs-decision' || verb === 'blocked') open.set(key, verb)
-    else open.delete(key)
+// ---- eligibility: the shared fold, vendored (bin/fm-branch-shared-sync.sh) ----
+
+// Cross-scan verdict cache keyed by task id, the shared lib's module-level
+// posture: one state directory per runtime, so task ids are stable keys and a
+// stale row's fold carries across scans on an unchanged stat version.
+const verdictCache: DecisionVerdictCache = new Map()
+
+// The FM_CLASSIFY_* names and defaults of bin/fm-classify-lib.sh. The hooks
+// host answers $.env.get name by name (no process global in the module
+// sandbox, and a literal name at every call site so the host can list the
+// variables a module reads), so the four names are read literally and the
+// shared lib's defaults rule fills the rest.
+async function foldVocabulary($: any): Promise<FoldVocabulary> {
+  const [resolveVerb, heldVerb, reservedPrefixes, pausedVerb] = await Promise.all([
+    $.env.get('FM_CLASSIFY_RESOLVE_VERB'),
+    $.env.get('FM_CLASSIFY_CAPTAIN_HELD_VERB'),
+    $.env.get('FM_CLASSIFY_RESERVED_KEY_PREFIXES'),
+    $.env.get('FM_CLASSIFY_PAUSED_VERB'),
+  ])
+  const byName: Record<string, string | undefined> = {
+    FM_CLASSIFY_RESOLVE_VERB: resolveVerb === undefined ? undefined : String(resolveVerb),
+    FM_CLASSIFY_CAPTAIN_HELD_VERB: heldVerb === undefined ? undefined : String(heldVerb),
+    FM_CLASSIFY_RESERVED_KEY_PREFIXES: reservedPrefixes === undefined ? undefined : String(reservedPrefixes),
+    FM_CLASSIFY_PAUSED_VERB: pausedVerb === undefined ? undefined : String(pausedVerb),
   }
-  return [...open.values()].includes('needs-decision')
+  return foldVocabularyFromEnv((name) => byName[name])
 }
 
-// bin/fm-classify-lib.sh _fm_status_kind: the task kind the fold's terminal
-// done/failed rule needs, read from the task's .meta `kind=` line - ship when a
-// readable meta is silent, unknown when it cannot be read or names another
-// kind. Only ship and scout clear the open set.
-async function statusKind($: any, task: string): Promise<string> {
-  let kind = ''
+// The stat version of one state-directory file through the host seam, whose
+// stat answers { kind, size, mtimeMs, isLink } with lstat semantics (isLink
+// true for a symlink itself, the target's size/mtime when it resolves).
+// Returns null for a missing, unreadable, or symlinked path - bash's
+// `[ -f ] && [ -r ] && [ ! -L ]` guard, via the shared lib's stat rule.
+async function statVersionOf($: any, path: string): Promise<string | null> {
   try {
-    for (const line of (await $.fs.read(`${state}/${task}.meta`)).split(/\r?\n/)) {
-      if (line.startsWith('kind=')) kind = line.slice(5)
-    }
+    const stat = await $.fs.stat(path)
+    if (stat.isLink) return null
+    return `${stat.size}:${stat.mtimeMs}`
   } catch {
-    return 'unknown'
+    return null
   }
-  if (!kind) kind = 'ship'
-  return ['ship', 'scout', 'secondmate'].includes(kind) ? kind : 'unknown'
 }
 
-// The recognized-event vocabulary of last_status_line / _fm_status_event_scan
-// (bin/fm-classify-lib.sh), with that lib's FM_CLASSIFY_* defaults read from it:
-// a line carrying one of these leading verbs is an event; anything else is
-// continuation prose. A bare legacy free-text line counts as an event only when
-// a captain token leads it, so prose that merely mentions one cannot hide a
-// declaration.
-const EVENT_VERBS = ['working', 'needs-decision', 'blocked', 'done', 'failed', 'note', 'paused', 'resolved', 'captain-held']
-const LEGACY_CAPTAIN_RE = /^\s*(done:|needs-decision:|blocked:|failed:|PR ready|checks green|ready in branch|merged)/i
-
-// bin/fm-classify-lib.sh last_status_line: the latest RECOGNIZED status event,
-// falling back to the last non-blank line only when the log holds no event at
-// all. Continuation prose after a `captain-held:` line must not un-hold the
-// task; a `working:` line after it must.
-function lastStatusLine(lines: string[]): string {
-  let last = ''
-  let fallback = ''
-  for (const line of lines) {
-    if (!/\S/.test(line)) continue
-    fallback = line
-    const verb = line.includes(':') ? statusLineVerb(line) : ''
-    if (EVENT_VERBS.includes(verb) || LEGACY_CAPTAIN_RE.test(line)) last = line
+// bin/fm-classify-lib.sh _fm_status_kind through the shared lib's parser: a
+// symlinked, missing, or unreadable meta names no kind (unknown).
+async function statusKind($: any, task: string): Promise<string> {
+  const path = `${state}/${task}.meta`
+  let metaText: string | null = null
+  try {
+    const stat = await $.fs.stat(path)
+    if (!stat.isLink) metaText = await $.fs.read(path)
+  } catch {
+    metaText = null
   }
-  return last || fallback
+  return statusKindFromMetaText(metaText)
 }
 
+// The eligible-rows scan, delegated to the vendored shared core. The host seam
+// is async while the core binds sync lookups, so the reads happen first: the
+// queue, every .meta record (one unreadable meta refuses the scan exactly as
+// the lib's node:fs binding does), each stale-referenced task's kind, and each
+// stale-referenced task's log with the stat-read-stat torn check. The sync
+// bindings then answer from those pre-reads.
 export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
   const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
-  let queue = ''
+  let queueText: string
   try {
-    queue = await $.fs.read(`${state}/.wake-queue`)
+    queueText = await $.fs.read(`${state}/.wake-queue`)
   } catch {
     return unsafe
   }
-  const rows = queue.split(/\r?\n/).filter((l: string) => l.length > 0)
-  if (rows.length === 0) return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
-  const metadata = new Map<string, string>()
-  const taskByKey = new Map<string, string>()
+  // An empty queue is nothing to claim before any metadata enumeration can
+  // fail - the shared core's own ordering.
+  if (queueText.split(/\r?\n/).filter((l: string) => l.length > 0).length === 0) {
+    return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
+  }
+  const metas: QueueMeta[] = []
+  const kinds = new Map<string, string>()
   try {
     for (const entry of await $.fs.list(state)) {
       if (!entry.name.endsWith('.meta')) continue
       const task = entry.name.slice(0, -5)
-      const fields = (await $.fs.read(`${state}/${entry.name}`)).split(/\r?\n/)
-      const project = fields.find((l: string) => l.startsWith('project='))?.slice(8) ?? ''
-      const window = fields.find((l: string) => l.startsWith('window='))?.slice(7) ?? ''
-      if (project) {
-        metadata.set(task, project)
-        taskByKey.set(task, task)
-        taskByKey.set(`${task}.status`, task)
-        taskByKey.set(`${task}.turn-ended`, task)
-        if (window) {
-          metadata.set(window, project)
-          taskByKey.set(window, task)
-        }
+      const metaPath = `${state}/${entry.name}`
+      const text: string = await $.fs.read(metaPath)
+      const fields = text.split('\n')
+      metas.push({
+        task,
+        project: fields.find((l: string) => l.startsWith('project='))?.slice(8) ?? '',
+        window: fields.find((l: string) => l.startsWith('window='))?.slice(7) ?? '',
+      })
+      let kind: string
+      try {
+        kind = (await $.fs.stat(metaPath)).isLink ? 'unknown' : statusKindFromMetaText(text)
+      } catch {
+        kind = 'unknown'
       }
+      kinds.set(task, kind)
     }
   } catch {
     return unsafe
   }
-  const eligibleSeqs: string[] = []
-  const eligibleWakeKey: string[] = []
-  const eligibleTasks = new Set<string>()
-  const needsDecisionTasks: string[] = []
-  const allSeqs: string[] = []
-  const staleOwned = new Map<string, boolean>()
-  for (const line of rows) {
+  // The core folds a status log only for a stale row's task; pre-read exactly
+  // those (the same key resolution the core applies) so the sync bindings
+  // never guess.
+  const taskByKey = new Map<string, string>()
+  for (const meta of metas) {
+    if (!meta.project) continue
+    taskByKey.set(meta.task, meta.task)
+    taskByKey.set(`${meta.task}.status`, meta.task)
+    taskByKey.set(`${meta.task}.turn-ended`, meta.task)
+    if (meta.window) taskByKey.set(meta.window, meta.task)
+  }
+  const staleTasks = new Set<string>()
+  for (const line of queueText.split(/\r?\n/)) {
     const f = line.split('\t')
-    if (f.length < 5 || !/^[0-9]+$/.test(f[0]) || !/^[0-9]+$/.test(f[1])) return unsafe
-    const seq = f[1]
-    allSeqs.push(seq)
-    const kind = f[2]
-    const key = f[3]
-    if (kind === 'heartbeat') {
-      if (heartbeat) {
-        eligibleSeqs.push(seq)
-        eligibleWakeKey.push(`${f[0]}:${seq}`)
-      }
+    if (f.length < 5 || !/^[0-9]+$/.test(f[0]) || !/^[0-9]+$/.test(f[1])) continue
+    if (f[2] !== 'stale') continue
+    const task = taskByKey.get(f[3]) ?? taskByKey.get(f[3].replace(/^fm-/, '')) ?? ''
+    if (task) staleTasks.add(task)
+  }
+  const stats = new Map<string, StatusStat>()
+  const texts = new Map<string, StatusText>()
+  for (const task of staleTasks) {
+    const path = `${state}/${task}.status`
+    const version = await statVersionOf($, path)
+    if (version === null) {
+      stats.set(task, { state: 'refused' })
+      texts.set(task, { state: 'refused' })
       continue
     }
-    if (kind === 'check') continue
-    let project = ''
-    let task = ''
-    if (kind === 'signal') {
-      task = key.replace(/\.(?:status|turn-ended)$/, '')
-      if (/^needs-decision:/.test(f[4] ?? '')) {
-        needsDecisionTasks.push(task)
-        continue
-      }
-      project = metadata.get(task) ?? ''
-    } else if (kind === 'stale') {
-      task = taskByKey.get(key) ?? taskByKey.get(key.replace(/^fm-/, '')) ?? ''
-      project = metadata.get(key) ?? metadata.get(key.replace(/^fm-/, '')) ?? ''
-      if (task) {
-        const statusPath = `${state}/${task}.status`
-        if (!staleOwned.has(statusPath)) {
-          let owned = false
-          if (await $.fs.exists(statusPath)) {
-            let lines: string[]
-            try {
-              lines = (await $.fs.read(statusPath)).split(/\r?\n/).filter((l: string) => /\S/.test(l))
-            } catch {
-              return unsafe
-            }
-            owned = hasOpenNeedsDecision(lines, await statusKind($, task)) || statusLineVerb(lastStatusLine(lines)) === 'captain-held'
-          }
-          staleOwned.set(statusPath, owned)
-        }
-        if (staleOwned.get(statusPath)) {
-          needsDecisionTasks.push(task)
-          continue
-        }
-      }
-    } else {
-      return unsafe
+    stats.set(task, { state: 'ok', version })
+    let text: string
+    try {
+      text = await $.fs.read(path)
+    } catch {
+      texts.set(task, { state: 'refused' })
+      continue
     }
-    if (!project || !task) return unsafe
-    eligibleTasks.add(task)
-    eligibleSeqs.push(seq)
-    eligibleWakeKey.push(`${f[0]}:${seq}`)
+    const after = await statVersionOf($, path)
+    texts.set(task, after === null || after !== version ? { state: 'torn' } : { state: 'ok', text, version: after })
   }
-  const eligible = eligibleSeqs.length > 0
-  return { status: eligible ? 'safe' : 'unsafe', eligible, eligibleSeqs, eligibleWakeKey: eligibleWakeKey.join(','), eligibleTasks: [...eligibleTasks], corrupted: false, needsDecisionTasks, allSeqs }
+  const libScope = libScopeForUnreadWake({
+    queueText,
+    metas,
+    statStatus: (task) => stats.get(task) ?? { state: 'refused' },
+    readStatusText: (task) => texts.get(task) ?? { state: 'refused' },
+    readKind: (task) => kinds.get(task) ?? 'unknown',
+    env: await foldVocabulary($),
+    heartbeat,
+    // The mod routes the away collapse before scoping (routeWake's .afk
+    // check), so the core's own afk branch stays off here.
+    afk: false,
+    cache: verdictCache,
+  })
+  return {
+    status: libScope.status,
+    eligible: libScope.eligible,
+    eligibleSeqs: libScope.eligibleSeqs,
+    eligibleWakeKey: libScope.eligibleWakeKey,
+    eligibleTasks: libScope.eligibleTasks,
+    corrupted: libScope.corrupted,
+    needsDecisionTasks: libScope.needsDecisionTasks,
+    allSeqs: libScope.allSeqs,
+  }
 }
 
 // Deterministic note of the status lines appended since the task's last outcome.
@@ -834,12 +818,12 @@ async function shadowAssembleState(
     }
   }
   if (prior.length) st.prior_outcomes = prior
-  // Open captain calls, from the mod's own status fold.
+  // Open captain calls, from the shared fold through the vendored module.
   const openCalls: Array<{ task: string }> = []
   for (const task of a.tasks) {
     try {
       const lines = (await $.fs.read(`${state}/${task}.status`)).split(/\r?\n/)
-      if (hasOpenNeedsDecision(lines, await statusKind($, task))) openCalls.push({ task })
+      if (hasOpenNeedsDecision(lines, await statusKind($, task), await foldVocabulary($))) openCalls.push({ task })
     } catch {
       // unreadable status: no open-call claim
     }

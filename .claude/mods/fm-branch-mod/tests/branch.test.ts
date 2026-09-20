@@ -2,10 +2,10 @@
 // classification log, and the cover row a captain verdict writes for main.
 //
 // The world beneath the module is mocked noun by noun: the environment names a
-// Firstmate home, an in-memory file system holds the home's state and config,
-// and every process the module runs answers from a small table keyed on the
-// script name, with a journal of every call so a test can read what the module
-// wrote and to which file.
+// Firstmate home, an in-memory file system (reads, writes, lists, and stats)
+// holds the home's state and config, and every process the module runs answers
+// from a small table keyed on the script name, with a journal of every call so
+// a test can read what the module wrote and to which file.
 import { describe, expect, test, type Engine, type On } from "claude-code/testing";
 import { mock, type MockClock } from "claude-code/testing";
 
@@ -61,10 +61,34 @@ function nth(values: string | string[] | undefined, index: number, fallback: str
   return values[Math.min(index, values.length - 1)] ?? fallback;
 }
 
+/**
+ * The in-memory state directory with stat versions: every mutation bumps that
+ * key's mtime, so the eligibility scan's stat-version cache keys move even when
+ * an edit keeps the byte length identical. The side table lives at module level
+ * because Map's own constructor invokes the overridden set before any instance
+ * field initializer could run.
+ */
+const worldFileMtimes = new WeakMap<Map<string, string>, Map<string, number>>();
+let worldFileTick = 0;
+class WorldFiles extends Map<string, string> {
+  override set(key: string, value: string): this {
+    let mtimes = worldFileMtimes.get(this);
+    if (!mtimes) {
+      mtimes = new Map();
+      worldFileMtimes.set(this, mtimes);
+    }
+    mtimes.set(key, 1_700_000_000_000 + ++worldFileTick);
+    return super.set(key, value);
+  }
+  mtime(key: string): number {
+    return worldFileMtimes.get(this)?.get(key) ?? 1_700_000_000_000;
+  }
+}
+
 function world(on: On, options: WorldOptions = {}): World {
   mock.env(on, { FM_HOME: HOME, CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1", ...options.env });
   const clock = mock.clock(on);
-  const files = new Map<string, string>(Object.entries(options.files ?? {}));
+  const files = new WorldFiles(Object.entries(options.files ?? {}));
   const runs: Run[] = [];
   const logs: string[] = [];
   const registered: string[] = [];
@@ -80,6 +104,14 @@ function world(on: On, options: WorldOptions = {}): World {
     // The classifier system prompt is read from the plugin's own folder.
     if (e.path.endsWith("/classifier-system.txt")) return { value: "SYSTEM PROMPT FIXTURE" };
     return files.has(e.path) ? { value: files.get(e.path)! } : { deny: `ENOENT: ${e.path}` };
+  });
+  // The eligibility scan's stat seam, answered from the same in-memory files:
+  // regular files only (the engine world has no symlinks), so every stat is
+  // ok and the per-key mtime version moves on each mutation. Denial for a
+  // missing path is the host's ENOENT throw.
+  on("fs.stat", async (_$, e) => {
+    if (!files.has(e.path)) return { deny: `ENOENT: ${e.path}` };
+    return { value: { kind: "file", size: new TextEncoder().encode(files.get(e.path)!).length, mtimeMs: files.mtime(e.path), isLink: false } };
   });
   on("prompt.submit", async (_$, e) => {
     submitted.push(e.text);
