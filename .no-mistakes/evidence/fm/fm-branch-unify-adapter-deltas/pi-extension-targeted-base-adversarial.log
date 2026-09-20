@@ -1,0 +1,12 @@
+== test_branch_report_refuses_a_task_the_wake_did_not_name (base extension)
+not ok - the report tool must refuse tasks the wake never named: file:///home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3068MX0X5P2JD7KBQPXVP6S/[eval1]:21
+Error: a report for a live task the wake never named did not carry the unified retry instruction: {"content":[{"type":"text","text":"report refused: the wake being handled (row 1) names branch-driver, not other-task; report only that task, never fleet or a task from memory"}],"isError":true}
+== test_report_less_error_free_turns_count_toward_the_latch (base extension)
+not ok - report-less error-free turns must count toward the latch under Pi's schedule with probes and a doubled cooldown: <anonymous_script>:217
+Error: timed out waiting for the second silent turn armed the latch
+== test_post_construction_provider_error_falls_back_latches_and_recovers_on_cooldown (base extension)
+not ok - provider errors must latch, cool down, re-probe once, back off, and recover through a durable report: file:///home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3068MX0X5P2JD7KBQPXVP6S/[eval1]:108
+Error: the first latch must surface exactly one one-line note: []
+== test_store_failure_during_delivery_neither_loses_nor_duplicates (base extension)
+not ok - a store failure during delivery must neither lose nor duplicate an outcome, and fm_branch_processed must carry the unified wordings: file:///home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3068MX0X5P2JD7KBQPXVP6S/[eval1]:33
+Error: a failed cursor advance did not surface the unified failure wording: {"content":[{"type":"text","text":"recorded seq 1, but visible delivery or cursor advancement failed"}],"isError":true}

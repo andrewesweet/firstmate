@@ -1,0 +1,6 @@
+ok - fm_branch_report refuses a task the wake did not name, fleet included, while a heartbeat is unscoped
+ok - report-less error-free turns latch the branch, recover through probes, and double the cooldown
+ok - provider-error latches cool down, re-probe once with backoff, and recover through a durable report
+ok - a captain outcome opens one sequence-keyed processing turn, survives empty and unrelated answers, is re-presented at run end and session start, and closes only on its acknowledgement
+ok - a failing store script surfaces to the branch, its outcome is neither lost nor delivered twice, and fm_branch_processed renders the unified wordings byte-exactly
+ok - a failed cursor write re-delivers a routine note exactly once more while a captain outcome stays deduplicated
