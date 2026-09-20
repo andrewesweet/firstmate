@@ -1,0 +1,18 @@
+ok - lib and vendored classifier legs decide byte-identically on every fixture
+ok - the mod hook routes the classifier core byte-identically to the shared module
+ok - the evidence gatherer spawns bin/fm-wake-evidence.sh per task with its 25s timeout
+ok - a whitelisted verdict is trusted with its reason
+ok - a failed gatherer is judgeable evidence, not a routing failure
+ok - prose around the one JSON line still parses
+ok - an answer without JSON is unparsed
+ok - a verdict outside the whitelist falls back to uncertain, keeping the reason
+ok - a failed model call routes uncertain with the failure text
+ok - a missing reason stays an empty string
+ok - an evidence bundle without a byte range records -1 spans
+ok - a failed gatherer contributes its 300-capped failure text with -1 spans
+ok - the classifier prompt, system, model, and 200-token cap are byte-stable
+ok - the classification record keeps its pinned field order and byte shape
+ok - the durable answer keeps at most 400 characters
+ok - evidence bundles follow the wake's task order
+ok - the classifier system prompt is read once per module lifetime; the test reset clears it
+ok - the classifier-pass covering summary and outcome-store argv are byte-stable

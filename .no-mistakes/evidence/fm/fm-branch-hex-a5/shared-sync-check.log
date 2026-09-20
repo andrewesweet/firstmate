@@ -1,0 +1,3 @@
+sync --check: exit 0 (all vendored copies current)
+fm-branch-classifier.ts: vendored body after generated header byte-equal to lib/fm-branch-classifier.ts
+fm-branch-shadow.ts: vendored body after generated header byte-equal to lib/fm-branch-shadow.ts

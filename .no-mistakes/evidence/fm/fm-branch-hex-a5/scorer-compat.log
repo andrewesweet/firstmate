@@ -1,0 +1,51 @@
+== state/branch-mod-classifications.jsonl (Pi-produced)
+{"t":"2026-09-20T18:26:38.343Z","wake":"signal: routine wake","tasks":["branch-driver"],"seqs":["1"],"evidence":[{"task":"branch-driver","from":0,"to":0}],"verdict":"routine","reason":"healthy","model":"haiku","ms":1,"answer":"{\"verdict\":\"routine\",\"reason\":\"healthy\"}"}
+== state/branch-mod-shadow.jsonl (Pi-produced, first record)
+{"t":"2026-09-20T18:26:38.392Z","kind":"shadow","wake":"signal: routine wake","seqs":["1"],"wakeKey":"1:1","tasks":["branch-driver"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":1976,"ms":3,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"model":"jev-stub","answers":{"state":{"answer":"the worker is working","confidence":"high"}},"facts":{"wake_key":"1:1","new_status_bytes":{"branch-driver":0},"authoritative_pr":{"present":false},"severity_classes":["False alarm or no functional impact","Routine recoverable interruption or non-blocking failure","Task blocked or failed after normal recovery","Security, privacy, data-loss, irreversible, credential, or external-publication impact"]}}
+== bin/fm-branch-classifier-score.sh -v
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 1 | 1 / 0 / 0 | 0 | 0 | 0 | 0 | 1 |
+exit=0
+== bin/fm-branch-shadow-score.sh -v
+# wake	label	variant	question	raw	policy	unavailable
+1:1	unmatched	full	state	?	uncertain	-
+1:1	unmatched	without_current_state	state	?	uncertain	-
+1:1	unmatched	without_prior_outcomes	state	?	uncertain	-
+1:1	unmatched	without_pane_tail	state	?	uncertain	-
+
+### state (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | ?=1 | 1 (100.0%) | 0 |
+| without_current_state | 1 | ?=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 1 | ?=1 | 1 (100.0%) | 0 |
+| without_pane_tail | 1 | ?=1 | 1 (100.0%) | 0 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|
+exit=0
+== bin/fm-branch-shadow-gates.sh
+### candidate gates over full-variant shadow records (ground truth: joined branch outcomes, backstop surfacing, and derivable main actions)
+| gate | eligible | unscorable | fired | correct | wrong (delay-only) | wrong (loss) | missed (absorbed, gate silent) |
+|---|---|---|---|---|---|---|---|
+| absorb-no-new-outcome | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| absorb-routine-working | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| stale-active-suppress | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| pr-ready-arm | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| severity-alert | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| candidate-order | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | - |
+unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record
+
+### floor sweep 0.70-0.99: lowest floor with zero loss-class wrong fires, and the fire rate there
+| gate | lowest clean floor | fires there | fire rate there |
+|---|---|---|---|
+| absorb-no-new-outcome | - | - | - |
+| absorb-routine-working | - | - | - |
+| stale-active-suppress | - | - | - |
+| pr-ready-arm | - | - | - |
+| severity-alert | - | - | - |
+| candidate-order | - | - | - |
+exit=0
+ok - Pi-produced logs are read by the real scorers

@@ -1,0 +1,7 @@
+settlement rejection: classifier routed the wake to main: uncertain (model.complete failed: Error: provider exploded)
+classification record: {"t":"2026-09-20T18:26:03.250Z","wake":"signal: task-9 done: PR https://example.com/pr/9 checks green","tasks":["branch-driver"],"seqs":["1"],"evidence":[{"task":"branch-driver","from":0,"to":0}],"verdict":"uncertain","reason":"model.complete failed: Error: provider exploded","model":"gpt-5-nano","ms":0,"answer":""}
+passed guard: ["1"]
+cover row: {"seq":1,"epoch":1789928763,"task":"branch-driver","wake":"signal: task-9 done: PR https://example.com/pr/9 checks green","verdict":"captain","summary":"Passed to main directly (classifier uncertain): model.complete failed: Error: provider exploded","silent":false,"statusEndpoint":0,"statusIdent":"-"}
+branch prompted once for routine wake; classifier calls: 2 maxTokens: 200
+no branch-mod-shadow.jsonl with config/classifier-shadow unset
+ok - a failed classifier call passes rows to main; classifier-model honoured; shadow off when unset
