@@ -143,10 +143,6 @@ while [ "$#" -gt 0 ]; do
       MIN_POSITIVES=$2
       shift 2
       ;;
-    --sufficient=* | --bound=* | --min-positives=*)
-      echo "fm-branch-shadow-gates: separate the value with a space, not = : $1" >&2
-      exit 2
-      ;;
     *) args+=("$1"); shift ;;
   esac
 done
@@ -341,7 +337,7 @@ if [ -f "$TRUTH" ]; then
     SC_STALE[$wk]=$sst
     SC_AT[$wk]=$sat
   done < <(jq -R -r 'fromjson? | select(type == "object" and (.wakeKey | type) == "string" and .wakeKey != "") |
-      [ .wakeKey, (if (.pr_truth == true or .pr_truth == 1) then 1 else 0 end), (if (.stale_repair == true or .stale_repair == 1) then 1 else 0 end), ((.read_at // 0) | tostring) ] | @tsv' "$TRUTH" 2>/dev/null || true)
+      [ .wakeKey, (if .pr_truth == 1 then 1 else 0 end), (if .stale_repair == 1 then 1 else 0 end), ((.read_at // 0) | tostring) ] | @tsv' "$TRUTH" 2>/dev/null || true)
 fi
 
 wake_label() {  # <wakeKey>: main | routine | unmatched
