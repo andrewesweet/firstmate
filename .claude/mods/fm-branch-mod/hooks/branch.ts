@@ -346,9 +346,9 @@ async function statusKind($: any, task: string): Promise<string> {
 // The eligible-rows scan, delegated to the vendored shared core. The host seam
 // is async while the core binds sync lookups, so the reads happen first: the
 // queue, every .meta record (one unreadable meta refuses the scan exactly as
-// the lib's node:fs binding does), each stale-referenced task's kind, and each
-// stale-referenced task's log with the stat-read-stat torn check. The sync
-// bindings then answer from those pre-reads.
+// the lib's node:fs binding does), each task's kind, and each project-bearing
+// task's log with the stat-read-stat torn check. The sync bindings then answer
+// from those pre-reads.
 export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
   const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
   let queueText: string
@@ -387,28 +387,13 @@ export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Sc
   } catch {
     return unsafe
   }
-  // The core folds a status log only for a stale row's task; pre-read exactly
-  // those (the same key resolution the core applies) so the sync bindings
-  // never guess.
-  const taskByKey = new Map<string, string>()
-  for (const meta of metas) {
-    if (!meta.project) continue
-    taskByKey.set(meta.task, meta.task)
-    taskByKey.set(`${meta.task}.status`, meta.task)
-    taskByKey.set(`${meta.task}.turn-ended`, meta.task)
-    if (meta.window) taskByKey.set(meta.window, meta.task)
-  }
-  const staleTasks = new Set<string>()
-  for (const line of queueText.split(/\r?\n/)) {
-    const f = line.split('\t')
-    if (f.length < 5 || !/^[0-9]+$/.test(f[0]) || !/^[0-9]+$/.test(f[1])) continue
-    if (f[2] !== 'stale') continue
-    const task = taskByKey.get(f[3]) ?? taskByKey.get(f[3].replace(/^fm-/, '')) ?? ''
-    if (task) staleTasks.add(task)
-  }
+  // The core resolves which stale rows fold a status log; every task the
+  // resolution can name is one with a project, so pre-read those logs and let
+  // the core consult the ones it needs.
   const stats = new Map<string, StatusStat>()
   const texts = new Map<string, StatusText>()
-  for (const task of staleTasks) {
+  for (const { task, project } of metas) {
+    if (!project) continue
     const path = `${state}/${task}.status`
     const version = await statVersionOf($, path)
     if (version === null) {
