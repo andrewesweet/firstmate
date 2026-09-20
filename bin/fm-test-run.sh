@@ -1465,12 +1465,17 @@ families_for_changed_path() {
       printf '%s\n' "__script__:fm-dispatch-resolve.test.sh"
       ;;
     .pi/extensions/fm-branch-supervision.ts|.pi/extensions/lib/fm-async-exec.ts|\
-    .pi/extensions/lib/fm-branch-dispatch.ts|.pi/extensions/lib/fm-native-contract.ts)
+    .pi/extensions/lib/fm-branch-dispatch.ts|.pi/extensions/lib/fm-native-contract.ts|\
+    lib/fm-branch-eligibility.ts)
       # The portable suites that actually load these files, named one by one.
       # Left unmapped, a Pi extension library resolves through the reference
       # scan, which widens to each referencing suite's WHOLE family - and
       # these suites sit in four different families, so that pulls in dozens
-      # of suites with nothing to do with Pi.
+      # of suites with nothing to do with Pi. lib/fm-branch-eligibility.ts
+      # joins the list because the dispatch lib imports it, so every suite
+      # below loads it through .pi/extensions/lib/fm-branch-dispatch.ts, and
+      # tests/fm-branch-eligibility.test.sh pins it directly.
+      printf '%s\n' __script__:fm-branch-eligibility.test.sh
       printf '%s\n' __script__:fm-pi-branch-extension.test.sh
       printf '%s\n' __script__:fm-pi-watch-extension.test.sh
       printf '%s\n' __script__:fm-calm-pi-extension.test.sh

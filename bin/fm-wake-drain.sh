@@ -51,11 +51,12 @@ case "$PRESENTATION_LOCK_TIMEOUT" in ''|*[!0-9]*|0) PRESENTATION_LOCK_TIMEOUT=10
 # that claimed set. branch (FM_SUPERVISION_ACTOR=branch, injected
 # deterministically by the Pi branch extension's bash tool - never agent
 # memory) drains and acks only the row set the extension granted to it.
-# .pi/extensions/lib/fm-branch-dispatch.ts is the single owner of that
-# eligibility classification (which signal/stale rows resolve to a known
-# project, and the existing all-unread-rows-safe rule for a heartbeat); this
-# script never reclassifies a row itself, it only consumes the extension's
-# already-computed verdict. The extension writes the exact eligible sequence
+# lib/fm-branch-eligibility.ts is the single owner of that eligibility
+# classification (which signal/stale rows resolve to a known project, and the
+# existing all-unread-rows-safe rule for a heartbeat); the Pi extension's
+# fm-branch-dispatch.ts binds it to the state directory and hands the verdict
+# to this script. This script never reclassifies a row itself, it only
+# consumes the extension's already-computed verdict. The extension writes the exact eligible sequence
 # numbers to ELIGIBLE_ROWS_FILE under the queue lock, immediately before every
 # branch prompt, so the file is always fresh for the one wake that prompt is about to
 # handle (the branch drains and acks exactly once per prompt, serialized by

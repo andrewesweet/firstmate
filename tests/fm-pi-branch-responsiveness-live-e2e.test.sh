@@ -42,7 +42,7 @@ LAB="$TMP_ROOT/lab"
 PROJECT="$LAB/project"
 HOME_DIR="$LAB/fmhome"
 SESSION_DIR="$LAB/sessions"
-mkdir -p "$PROJECT/.pi/extensions/lib" "$HOME_DIR/state" "$HOME_DIR/config" "$SESSION_DIR"
+mkdir -p "$PROJECT/.pi/extensions/lib" "$PROJECT/lib" "$HOME_DIR/state" "$HOME_DIR/config" "$SESSION_DIR"
 
 cleanup() {
   "$TMUX" -L "$SOCKET" kill-server 2>/dev/null || true
@@ -53,6 +53,7 @@ cp "$ROOT/.pi/extensions/fm-branch-supervision.ts" "$PROJECT/.pi/extensions/fm-b
 for lib in fm-async-exec fm-branch-dispatch fm-branch-model-picker fm-calm-visibility fm-native-contract fm-operational-input; do
   cp "$ROOT/.pi/extensions/lib/$lib.ts" "$PROJECT/.pi/extensions/lib/$lib.ts"
 done
+cp "$ROOT/lib/fm-branch-eligibility.ts" "$PROJECT/lib/fm-branch-eligibility.ts"
 
 EXT="$PROJECT/.pi/extensions/fm-branch-supervision.ts"
 OUTCOME_SCRIPT="$ROOT/bin/fm-branch-outcome.sh"
