@@ -1,0 +1,30 @@
+unreadable bash fold: 
+unreadable lib fold: 
+unreadable scan: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+torn-seq scan: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+unknown-kind scan: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+short-row scan: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+no-meta scan: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+mixed attended: {"status":"safe","eligible":true,"corrupted":false,"seqs":["3","5"],"wakeKey":"12:3,14:5","tasks":["t"],"nd":["t"],"all":["1","2","3","4","5"],"check":[],"hb":[],"projects":["demo"]}
+mixed heartbeat: {"status":"safe","eligible":true,"corrupted":false,"seqs":["2","3","5"],"wakeKey":"11:2,12:3,14:5","tasks":["t"],"nd":["t"],"all":["1","2","3","4","5"],"check":[],"hb":["2"],"projects":["demo"]}
+mixed afk: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1","2","3","4","5"],"wakeKey":"10:1,11:2,12:3,13:4,14:5","tasks":["t"],"nd":["t"],"all":["1","2","3","4","5"],"check":["1"],"hb":["2"],"projects":["demo"]}
+empty queue: {"status":"empty","eligible":false,"corrupted":false,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+missing queue: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+cache scan1: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+cache scan2 after append: {"status":"unsafe","eligible":false,"corrupted":false,"seqs":[],"wakeKey":"","tasks":[],"nd":["t"],"all":["1"],"check":[],"hb":[],"projects":[]}
+cache scan3 after rename: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+cache scan4 log removed: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+paused default lib: {"status":"unsafe","eligible":false,"corrupted":false,"seqs":[],"wakeKey":"","tasks":[],"nd":["t"],"all":["1"],"check":[],"hb":[],"projects":[]}
+paused default bash: held
+paused=hold-on lib (warm cache): {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+paused=hold-on bash: free
+reserved-override bash: dep-2	needs-decision	dep-: spoken
+reserved-override lib: dep-2	needs-decision	dep-: spoken
+crlf-meta bash: a	needs-decision	pick
+crlf-meta lib: a	needs-decision	pick
+crlf-meta scan: {"status":"unsafe","eligible":false,"corrupted":false,"seqs":[],"wakeKey":"","tasks":[],"nd":["t"],"all":["1"],"check":[],"hb":[],"projects":[]}
+torn version drift: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+torn state: {"status":"unsafe","eligible":false,"corrupted":true,"seqs":[],"wakeKey":"","tasks":[],"nd":[],"all":[],"check":[],"hb":[],"projects":[]}
+refused after stat: {"status":"safe","eligible":true,"corrupted":false,"seqs":["1"],"wakeKey":"1:1","tasks":["t"],"nd":[],"all":["1"],"check":[],"hb":[],"projects":["demo"]}
+cache size after insert at 600: 600
+ALL SCAN SCENARIOS PASS
