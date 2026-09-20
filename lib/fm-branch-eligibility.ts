@@ -281,15 +281,14 @@ export interface QueueMeta {
 /** A status-log stat bound by the consumer: the stat version string for the
  * verdict cache, or refused - bash's empty-fold outcome for an absent,
  * unreadable, or symlinked log (never a scan refusal). */
-export type StatusStat = { state: "ok"; version: string | null } | { state: "refused" };
+export type StatusStat = { state: "ok"; version: string } | { state: "refused" };
 
 /** A status-log read bound by the consumer: the bytes plus the post-read
- * stat version (null when the consumer cannot stat, which disables the torn
- * check for that consumer), or refused (bash's empty fold), or torn (the
- * stat version changed during the read - Pi's rule refuses the scan, header
+ * stat version, or refused (bash's empty fold), or torn (the stat version
+ * changed or vanished during the read - Pi's rule refuses the scan, header
  * choice). */
 export type StatusText =
-  | { state: "ok"; text: string; version: string | null }
+  | { state: "ok"; text: string; version: string }
   | { state: "refused" }
   | { state: "torn" };
 
@@ -297,7 +296,7 @@ export type StatusText =
  * state directory per runtime, so the task id is the stable key). */
 export type DecisionVerdictCache = Map<
   string,
-  { version: string | null; config: string; decisionOwned: boolean }
+  { version: string; config: string; decisionOwned: boolean }
 >;
 
 export interface UnreadWakeInputs {
@@ -492,21 +491,14 @@ function staleDecisionVerdict(
   }
   let owned: boolean;
   const hit = cache?.get(task);
-  if (hit && hit.version !== null && hit.version === stat.version && hit.config === verdictConfig) {
+  if (hit && hit.version === stat.version && hit.config === verdictConfig) {
     owned = hit.decisionOwned;
   } else {
     const read = inputs.readStatusText(task);
     if (read.state === "torn") return "torn";
     // refused after a clean stat: bash's empty fold (header choice).
     const lines = read.state === "ok" ? read.text.split("\n").filter((line) => /\S/.test(line)) : [];
-    if (
-      read.state === "ok" &&
-      read.version !== null &&
-      stat.version !== null &&
-      read.version !== stat.version
-    ) {
-      return "torn";
-    }
+    if (read.state === "ok" && read.version !== stat.version) return "torn";
     owned = statusDecisionOwned(lines, inputs.readKind(task), inputs.env);
     cache?.set(task, { version: stat.version, config: verdictConfig, decisionOwned: owned });
     if (cache && cache.size > 512) {
@@ -552,7 +544,8 @@ function readStatusTextOnDisk(state: string, task: string): StatusText {
   } catch {
     return { state: "refused" };
   }
-  return { state: "ok", text, version: statVersion(path) };
+  const version = statVersion(path);
+  return version === null ? { state: "torn" } : { state: "ok", text, version };
 }
 
 function readMetaKindOnDisk(state: string, task: string): string {
