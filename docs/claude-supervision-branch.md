@@ -34,7 +34,7 @@ A branch turn that ends in a provider error, or without a report, hands the wake
 A branch hand-back message, and the completed background agent's own notification, are dropped so they never open a main turn.
 
 Continuity across the branch's own turns uses one `Monitor` task per session, described `fm-branch-mod watcher continuity`, with a 30-minute timeout re-armed on expiry.
-Arming never depends on a captain prompt: the monitor is armed at session start when the mode file is present and the session lock is held (the same evidence the restored counters read), any handled `prompt.submit` that finds no live monitor arms one, and a branch turn that settles a wake with the claim still false arms from the branch's own settlement - a module reload followed by silence, a failed arm, or a lost expiry notice each still leave one live cycle behind.
+Arming never depends on a captain prompt: the monitor is armed at session start when the mode file is present and the session lock is held (the same evidence the restored counters read), any handled `prompt.submit` that finds no live monitor arms one (an armed claim older than the monitor timeout plus five minutes with no expiry notice in hand counts as dead), and a branch turn that settles a wake with the claim still false arms from the branch's own settlement - a module reload followed by silence, a failed arm, or a lost expiry notice each still leave one live cycle behind.
 It streams each watcher close that arrives while no main turn is open into `prompt.submit` as a task notification, where the same routing applies.
 
 ### Deterministic backstop

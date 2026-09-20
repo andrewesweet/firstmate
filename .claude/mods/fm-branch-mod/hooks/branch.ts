@@ -85,6 +85,9 @@ const BRANCH_ROTATE_TOKENS = 60_000
 const CLASSIFIER_MAX_TOKENS = 200
 const MONITOR_DESCRIPTION = 'fm-branch-mod watcher continuity'
 const MONITOR_TIMEOUT_MS = 30 * 60 * 1000
+// An armed claim older than this with no expiry notice in hand is a dead
+// monitor whose notice was lost: the claim expires and the next arm site arms.
+const MONITOR_CLAIM_STALE_MS = MONITOR_TIMEOUT_MS + 5 * 60 * 1000
 const EVENT_LOG_CAP_BYTES = 4_000_000
 const PASSED_DEDUPE_MS = 90_000
 const INFLIGHT_STALE_MS = 180_000
@@ -118,6 +121,7 @@ const handledSeqs = new Set<string>()
 const recentPassed = new Map<string, number>()
 let monitorArmed = false
 let monitorTaskId = ''
+let monitorArmedAt = 0
 let armingNow = false
 let monitorArms = 0
 let classifierSystem = ''
@@ -229,7 +233,7 @@ async function saveCounters($: any): Promise<void> {
   try {
     await $.fs.write(
       `${state}/.branch-mod-counters`,
-      JSON.stringify({ lockPid: lockPid || (await readLockPid($)), wakeCounter, spawnCount, sendCount, generation, branchGeneration, branchRef, branchAgentId, monitorTaskId }),
+      JSON.stringify({ lockPid: lockPid || (await readLockPid($)), wakeCounter, spawnCount, sendCount, generation, branchGeneration, branchRef, branchAgentId, monitorTaskId, monitorArmedAt }),
     )
   } catch {}
 }
@@ -250,6 +254,7 @@ async function restoreCounters($: any): Promise<void> {
       }
       if (j.monitorTaskId) {
         monitorTaskId = j.monitorTaskId
+        monitorArmedAt = j.monitorArmedAt ?? 0
         monitorArmed = true
       }
       log($, 'counters.restored', { ...j, reason: 'same session lock pid (module reloaded)' })
@@ -1309,15 +1314,25 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
 
 // ---- continuity: one Monitor task per session, re-armed on expiry ----
 async function armMonitor($: any, why: string): Promise<void> {
-  if (monitorArmed || armingNow) return
+  if (armingNow) return
   // Claim before the first await: the rotate event and the source-ended notice
   // of one monitor arrive within milliseconds and would otherwise arm two loops.
   armingNow = true
+  const now = Number(await $.clock.now())
+  if (monitorArmed) {
+    const ageMs = now - monitorArmedAt
+    if (ageMs < MONITOR_CLAIM_STALE_MS) {
+      armingNow = false
+      return
+    }
+    log($, 'monitor.stale.claim', { why, taskId: monitorTaskId, ageMs })
+  }
   if (!(await modeOn($))) {
     armingNow = false
     return
   }
   monitorArmed = true
+  monitorArmedAt = now
   monitorArms += 1
   // Each watcher close prints its reason lines (one event); the loop re-arms
   // the watcher itself so no per-wake background task is ever started.

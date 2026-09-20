@@ -966,6 +966,29 @@ describe("watcher continuity", () => {
     expect(skipped.map((e) => e.data)).toEqual([{ why: "session start", mode: true, lockPid: "" }]);
   });
 
+  test("a lost expiry notice recovers at the next prompt.submit once the armed claim is older than the monitor timeout", async ($: Engine, on: On) => {
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.taskId)).toEqual(["m1"]);
+    // Inside the monitor's lifetime the claim holds: no second loop.
+    await w.clock.advance(10 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => e.data.taskId)).toEqual(["m1"]);
+    // m1 has long since expired and its notice never arrived: the claim is
+    // stale, so the next wake arms a fresh cycle instead of honouring it.
+    await w.clock.advance(30 * 60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(monitorEvents(w).map((e) => [e.data.why, e.data.taskId])).toEqual([
+      ["session start", "m1"],
+      ["stop-hook wake without monitor", "m2"],
+    ]);
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-counters`) ?? "{}").monitorTaskId).toBe("m2");
+    expect(w.submitted).toEqual([]);
+  });
+
   test("a monitor arm that failed recovers at the next prompt.submit, with no expiry notice ever arriving", async ($: Engine, on: On) => {
     // The session-start arm is denied: the claim is false and, the monitor
     // never having started, no expiry notice will ever arrive to re-arm it.
