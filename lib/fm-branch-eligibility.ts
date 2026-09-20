@@ -4,10 +4,11 @@
 // fold that the repo previously carried three times: the authoritative bash
 // fold (bin/fm-classify-lib.sh `status_open_decisions`, fold version 8), the
 // Pi extension's `scopeForUnreadWake`
-// (.pi/extensions/lib/fm-branch-dispatch.ts), and the Claude mod's port
-// (.claude/mods/fm-branch-mod/hooks/branch.ts). tests/
-// fm-branch-eligibility.test.sh pins this module against the bash fold on
-// one fixture set, so wherever this file and bash disagree, the test fails.
+// (.pi/extensions/lib/fm-branch-dispatch.ts, which now delegates here), and
+// the Claude mod's port (.claude/mods/fm-branch-mod/hooks/branch.ts, still
+// inline). tests/fm-branch-eligibility.test.sh pins this module against the
+// bash fold on one fixture set, so wherever this file and bash disagree, the
+// test fails.
 //
 // Behaviour is bash v8 truth wherever bin/fm-classify-lib.sh has an opinion.
 // Where bash has none, this module takes the stricter of the two ports and
@@ -23,28 +24,27 @@
 //     WHOLE open set when the task's kind is ship or scout; a secondmate's
 //     terminal event may describe other work and closes nothing.
 //   - Symlinked or unreadable status log: bash's outcome - that task's fold
-//     is empty, never a scan refusal. (Pi currently refuses the whole scan
-//     on a symlinked log; the mod reads through the link. Both drift cases
-//     are asserted as drift in tests/fm-branch-eligibility.test.sh until
-//     their ports adopt this rule.)
+//     is empty, never a scan refusal. (The mod reads through the link; that
+//     drift is asserted in tests/fm-branch-eligibility.test.sh until the mod
+//     adopts this rule.)
 //   - Symlinked, missing, or unreadable task meta: bash's rule - the kind is
 //     `unknown`, so the terminal close never applies; a readable meta
 //     silent about `kind=` means `ship`.
 //   - Torn queue row: the mod's rule (the stricter port) - the epoch field
 //     and the seq field must each be purely numeric or the scan refuses as
-//     corrupt; Pi validates only the seq.
+//     corrupt.
 //   - Stale-read hygiene: Pi's file-version cache kept - a verdict is
 //     cached per task keyed on the stat version and the fold configuration,
 //     evicted past 512 entries, and a stat version that changed between the
-//     stat and the read refuses the scan (Pi's rule; the mod has no check).
+//     stat and the read refuses the scan (the mod has no check).
 //   - Wake identity: the mod's derivation - `<epoch>:<seq>` per claimed row,
-//     comma-joined; Pi stamps no wake keys today.
+//     comma-joined.
 //   - Line splitting: bash's `read -r` - a log or meta splits on `\n` alone,
 //     so a trailing `\r` stays on the line (a `kind=ship\r` meta is
-//     `unknown`, a note keeps its `\r`). The ports split on `\r?\n`.
+//     `unknown`, a note keeps its `\r`). The mod splits on `\r?\n`.
 //   - Captain-held declaration check: bash's event scan (the mod's
-//     `lastStatusLine` ports it; Pi reads the raw last line) - the last
-//     RECOGNIZED event's verb must be the held verb, falling back to the
+//     `lastStatusLine` ports it) - the last RECOGNIZED event's verb must be
+//     the held verb, falling back to the
 //     last non-blank line only when the log holds no event at all. The
 //     legacy captain-token fallback regex is bash's default; bash's inline
 //     FM_CAPTAIN_RE override is not carried (no TS consumer reads it).
