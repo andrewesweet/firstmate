@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# fm-branch-shadow-pane.sh - bounded pane evidence for the Claude Code
-# supervision-branch mod's shadow advisory trial (docs/claude-supervision-branch.md).
+# fm-branch-shadow-pane.sh - bounded pane evidence for the supervision-branch
+# shadow advisory trial (docs/claude-supervision-branch.md).
 #
 # Usage:
 #   fm-branch-shadow-pane.sh <task>

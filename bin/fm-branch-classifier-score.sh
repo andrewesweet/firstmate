@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# fm-branch-classifier-score.sh - retrospective score of the Claude Code
-# supervision-branch classifier (docs/claude-supervision-branch.md).
+# fm-branch-classifier-score.sh - retrospective score of the supervision-branch
+# pre-branch classifier on either host (docs/claude-supervision-branch.md
+# "Classifier"; docs/pi-supervision-branch.md for the Pi extension).
 #
-# Reads state/branch-mod-classifications.jsonl, the durable log the
-# fm-branch-mod hooks module appends one record to per classifier call, and
+# Reads state/branch-mod-classifications.jsonl, the durable log the Claude
+# Code mod and the Pi extension append one record to per classifier call, and
 # labels every record from the status lines the classifier was shown: the
 # evidence byte ranges recorded per task are re-read from state/<task>.status
 # and a record is labelled captain when any line in those ranges satisfies

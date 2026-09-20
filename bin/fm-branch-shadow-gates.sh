@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # fm-branch-shadow-gates.sh - retrospective score of the six candidate gates
-# over the Claude Code supervision-branch mod's shadow advisory records
+# over the supervision-branch shadow advisory records either host writes
 # (docs/claude-supervision-branch.md, "Shadow advisory trial").
 #
 # Sibling, not extension: bin/fm-branch-shadow-score.sh owns the per-question

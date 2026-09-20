@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# fm-branch-shadow-score.sh - retrospective score of the Claude Code
-# supervision-branch mod's shadow advisory trial (docs/claude-supervision-branch.md).
+# fm-branch-shadow-score.sh - retrospective score of the supervision-branch
+# shadow advisory trial on either host (docs/claude-supervision-branch.md
+# "Shadow advisory trial"; docs/pi-supervision-branch.md for the Pi extension).
 #
-# Reads state/branch-mod-shadow.jsonl, the durable log the mod appends one
+# Reads state/branch-mod-shadow.jsonl, the durable log each host appends one
 # record per ablation variant per granted wake to, and joins every record to
 # the branch's own durable verdict in state/branch-outcomes.jsonl by the
 # durable wake identity: the mod stamps the same wakeKey (its wake-queue
