@@ -1585,7 +1585,7 @@ const tooFar = await processed.execute("ack-too-far", { through: seq + 100 }, un
 if (!tooFar.isError) throw new Error("an acknowledgement beyond the read cursor was accepted");
 if (JSON.stringify(unprocessedSeqs()) !== JSON.stringify([seq])) throw new Error("a refused acknowledgement moved the marker");
 const ack = await processed.execute("ack", { through: seq }, undefined, undefined, {});
-if (ack.isError) throw new Error(`acknowledgement failed: ${JSON.stringify(ack)}`);
+if (ack.isError || ack.content[0].text !== `captain outcomes through seq ${seq} marked processed`) throw new Error(`acknowledgement failed: ${JSON.stringify(ack)}`);
 if (unprocessedSeqs().length !== 0) throw new Error("the acknowledgement did not close the sequence");
 const before = requests().length;
 await runOf();
@@ -5363,8 +5363,8 @@ SH
     FM_TEST_FAIL_ARM="$home/state/store-fail-arm" DRIVER_PRELUDE="$DRIVER_PRELUDE" \
     node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, outcomeScript, sentToMain, mainEntries, defaultSessionCtx }; })()`);
-const { fire, dispatch, settle, outcomeScript, sentToMain, mainEntries, defaultSessionCtx } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, outcomeScript, sentToMain, mainEntries, defaultSessionCtx, bus }; })()`);
+const { fire, dispatch, settle, outcomeScript, sentToMain, mainEntries, defaultSessionCtx, bus } = globalThis.__t;
 import { writeFileSync } from "node:fs";
 
 const failArm = process.env.FM_TEST_FAIL_ARM;
@@ -5416,14 +5416,40 @@ await fire("turn_end", {}, defaultSessionCtx);
 if (mainEntries.filter((entry) => entry.customType === "fm-branch-visible-outcome" && entry.data.seq === failedSeq).length !== 1) {
   throw new Error("a later reconciliation delivered the recovered outcome a second time");
 }
+
+// 4. The acknowledgement side of the same store: the unified
+// fm_branch_processed wordings, byte-exact, against the real extension. The
+// processing request opens at the run boundary, so settle the run first.
+await fire("agent_end", {});
+await fire("agent_settled", {});
+const nativeTools = new Map();
+bus.emit("firstmate:native-tools", { register: (tool) => nativeTools.set(tool.name, tool), allowMessageType: () => {} });
+const processed = nativeTools.get("fm_branch_processed");
+if (!processed) throw new Error("main did not receive its acknowledgement tool");
+const unprocessedSeqs = () => outcomeScript(["unprocessed"]).split("\n").filter(Boolean).map((line) => JSON.parse(line).seq);
+const badThrough = await processed.execute("ack-zero", { through: 0 }, undefined, undefined, {});
+if (!badThrough.isError || badThrough.content[0].text !== "through must be a positive integer") {
+  throw new Error(`a non-positive through did not carry the unified refusal wording: ${JSON.stringify(badThrough)}`);
+}
+armStoreFailure("mark-processed");
+const markProcessedFailed = await processed.execute("ack-mark-fails", { through: failedSeq }, undefined, undefined, {});
+if (!markProcessedFailed.isError || markProcessedFailed.content[0].text !== "processed marker not advanced: fm-branch-outcome.sh exited 9: injected store failure") {
+  throw new Error(`a failed mark-processed did not carry the unified failure wording: ${JSON.stringify(markProcessedFailed)}`);
+}
+if (JSON.stringify(unprocessedSeqs()) !== JSON.stringify([failedSeq])) throw new Error("a failed mark-processed moved the processed marker");
+const ack = await processed.execute("ack", { through: failedSeq }, undefined, undefined, {});
+if (ack.isError || ack.content.length !== 1 || ack.content[0].text !== `captain outcomes through seq ${failedSeq} marked processed`) {
+  throw new Error(`the acknowledgement did not carry the unified success wording: ${JSON.stringify(ack)}`);
+}
+if (unprocessedSeqs().length !== 0) throw new Error("the acknowledgement did not close the sequence");
 finishWakePrompt();
 await offer.settlement.then(() => null, () => null);
 process.exit(0);
 EOF
   status=$?
   out=$(cat "$TMP_ROOT/node-output")
-  expect_code 0 "$status" "a store failure during delivery must neither lose nor duplicate an outcome: $out"
-  pass "a failing store script surfaces to the branch and its outcome is neither lost nor delivered twice"
+  expect_code 0 "$status" "a store failure during delivery must neither lose nor duplicate an outcome, and fm_branch_processed must carry the unified wordings: $out"
+  pass "a failing store script surfaces to the branch, its outcome is neither lost nor delivered twice, and fm_branch_processed renders the unified wordings byte-exactly"
 }
 
 # The failure boundary the async conversion had to leave exactly as it found

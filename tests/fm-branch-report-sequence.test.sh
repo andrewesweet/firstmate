@@ -10,10 +10,11 @@
 #     (tests/fm-branch-claude-mod-plugin.test.sh) because the latch is driven
 #     from turn hooks that only that host can drive;
 #   - the lib leg: the shared modules the Pi extension imports, driven through
-#     the same handler logic the extension calls; the Pi host's own remaining
-#     seams (the through coercion and the reconcile mark-read failure detail)
-#     are pinned behaviorally by tests/fm-pi-branch-extension.test.sh against
-#     the real extension, so this suite pins the shared core and the mod leg;
+#     the same handler logic the extension calls; the Pi host's own rendered
+#     strings (the task-scope refusal, the through refusal, the mark-read and
+#     mark-processed failures, the processed success tail) are pinned
+#     byte-exactly by tests/fm-pi-branch-extension.test.sh against the real
+#     extension, so this suite pins the shared core and the mod leg;
 #   - the vendored legs: the same drivers against
 #     .claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts and
 #     fm-branch-provider-latch.ts, which must decide byte-identically.
