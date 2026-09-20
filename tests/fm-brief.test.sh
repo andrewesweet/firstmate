@@ -397,8 +397,40 @@ test_no_mistakes_dod_wording() {
     "no-mistakes DOD must state the concrete gh pr checks CI-green signal"
   assert_grep "the two network-gated jobs skip by design" "$brief" \
     "no-mistakes DOD must explain the skipped network-gated jobs"
-  assert_grep "poll every 60 seconds" "$brief" \
-    "no-mistakes DOD must give the polling cadence"
+  assert_grep "poll every 60 seconds with one poll per command" "$brief" \
+    "no-mistakes DOD must give the polling cadence as one poll per command"
+  # Retro on no-mistakes PR 1132: a worker sat at the CI gate for hours on
+  # `sleep 3000; gh pr checks`, never read the review-bot review or the
+  # maintainer's comment, dismissed the failing bot check as non-required, and
+  # reported the maintainer-only wait as an unkeyed blocked: line.
+  assert_grep "never put a single wait longer than the ten-minute bound above into one command" "$brief" \
+    "no-mistakes DOD must bound a single CI-gate wait"
+  assert_grep "Every poll reads the PR itself, not only its checks" "$brief" \
+    "no-mistakes DOD must make every CI poll read the PR's reviews and comments"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked gh api paths must stay literal
+  assert_grep '`gh api repos/<owner>/<repo>/pulls/<n>/reviews`, `.../pulls/<n>/comments`, and `.../issues/<n>/comments`' "$brief" \
+    "no-mistakes DOD must name the review, review-comment, and issue-comment reads"
+  assert_grep "is work for the gate, never a non-required check to dismiss" "$brief" \
+    "no-mistakes DOD must forbid dismissing review-bot or maintainer feedback"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked respond command must stay literal
+  assert_grep 'when `no-mistakes axi status` shows a parked gate, feed each item to it with `no-mistakes axi respond --action fix`' "$brief" \
+    "no-mistakes DOD must route review feedback through the fix action on a parked gate"
+  assert_grep "shows no parked gate, write the comment's text and URL to \`$home/data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=$home/data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR" "$brief" \
+    "no-mistakes DOD must route green-CI review feedback to firstmate as a keyed needs-decision pointing at a data-dir file"
+  assert_grep "A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`" "$brief" \
+    "no-mistakes DOD must apply a fix answer only at the run's next stopping point"
+  assert_grep "Never hand-commit while a run is active and never start a second run while one is active" "$brief" \
+    "no-mistakes DOD must forbid hand-commits and a second run while one is active"
+  assert_grep "never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered" "$brief" \
+    "no-mistakes DOD must hold done while a review-feedback decision is open"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked keyed paused/resolved lines must stay literal
+  assert_grep 'append `paused [key=nm-<run>-ci-wait]: <what must happen>` once, keep polling, and when it clears append `resolved [key=nm-<run>-ci-wait]: <how it cleared>` yourself' "$brief" \
+    "no-mistakes DOD must report a maintainer-only wait as a keyed paused line the worker resolves itself"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked blocked: token must stay literal
+  assert_grep 'never report it as `blocked:` and never stop on it' "$brief" \
+    "no-mistakes DOD must forbid blocked: for a maintainer-only wait"
+  assert_grep "Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait" "$brief" \
+    "no-mistakes DOD must keep ask-user rows on rule 6 even for an external wait"
   assert_no_grep 'ci_ready_at' "$brief" \
     "no-mistakes DOD still references a field axi status never prints"
   assert_grep 'done: PR {url} checks green' "$brief" \
