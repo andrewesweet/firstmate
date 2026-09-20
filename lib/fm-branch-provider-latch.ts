@@ -11,21 +11,23 @@
 // flight slot, probe-failure cooldown extension, and full recovery (latch
 // cleared, count reset) on a clean settlement.
 //
-// Host seams - declared, deliberately not unified (firstmate's A4 decision
-// D3=C: zero observable behaviour change is the contract):
-//   - The FAILURE PREDICATE. What a host counts as one failure is host
-//     input: the Pi extension calls recordFailure() only when a settled
-//     branch prompt carries a provider error (a report-less, error-free
-//     settlement neither counts nor resets - it throws to the watcher), and
-//     recordSuccess() only when the settled prompt proved a durable report.
-//     The mod calls recordFailure() when a completed branch turn ended in a
-//     provider error OR produced no report, and recordSuccess() on any other
-//     completed turn. Unifying the predicate is a separate later decision,
-//     not part of this extraction.
+// Host seams - the FAILURE PREDICATE is unified (the captain's 2026-09-20
+// ruling adopted the mod's counting on Pi); the rest are declared, not
+// unified (firstmate's A4 decision D3=C for these):
+//   - The FAILURE PREDICATE. Both hosts now count the same rule: a completed
+//     branch turn that ended in a provider error OR produced no report is
+//     one recordFailure(), and any other completed turn is one
+//     recordSuccess(). What stays host input is only each host's own
+//     detection of those two states (the mod reads its turn reason and
+//     report ledger; the Pi extension reads its settled prompt transcript
+//     and durable-report revision). On Pi a report-less, error-free
+//     settlement still throws to the watcher - it now also counts one
+//     consecutive failure, where before it neither counted nor reset.
 //   - NOTIFICATIONS. The Pi extension renders a first-latch note and a
-//     recovery note into main; the mod logs a line on every latch entry.
-//     Both render from this machine's structured verdicts (firstLatch,
-//     recovered), never from their own counting.
+//     recovery note into main (the first-latch wording names repeated
+//     failures, not provider errors only); the mod logs a line on every
+//     latch entry. Both render from this machine's structured verdicts
+//     (firstLatch, recovered), never from their own counting.
 //   - BROKEN-BRANCH VIEW. The Pi extension keeps a host-side "broken"
 //     detail string that also covers non-provider breakage (branch build
 //     failures, reconcile failures); this machine owns only the

@@ -10,22 +10,28 @@
 #     (tests/fm-branch-claude-mod-plugin.test.sh) because the latch is driven
 #     from turn hooks that only that host can drive;
 #   - the lib leg: the shared modules the Pi extension imports, driven through
-#     the same handler logic the extension calls; the Pi host's own seams (the
-#     isError scoping-refusal shape, the wakeScopeRefusal wording, the through
-#     coercion, and the reconcile mark-read failure text) are pinned
-#     behaviorally by tests/fm-pi-branch-extension.test.sh against the real
+#     the same handler logic the extension calls; the Pi host's own rendered
+#     strings (the task-scope refusal, the through refusal, the mark-read and
+#     mark-processed failures, the processed success tail) are pinned
+#     byte-exactly by tests/fm-pi-branch-extension.test.sh against the real
 #     extension, so this suite pins the shared core and the mod leg;
 #   - the vendored legs: the same drivers against
 #     .claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts and
 #     fm-branch-provider-latch.ts, which must decide byte-identically.
 # The lib and mod legs must agree on every admission/refusal verdict, its
 # error shape, and the exact store argv transcript (append/mark-read/
-# mark-processed), including the module-owned texts byte-for-byte; the
-# per-host refusal and failure strings are pinned to the mod's current
-# wording because zero behaviour change is this refactor's contract. The
-# latch schedules pin the threshold, first-latch cooldown, doubling with the
-# cap, probe admission/commit/settle semantics, and recovery for both hosts'
-# policies, byte-equal between lib and vendored copies.
+# mark-processed), including the module-owned texts byte-for-byte. The
+# refusal and failure strings are UNIFIED (the captain's 2026-09-20 ruling
+# adopted the mod's wording and refusal shape on Pi): both legs render the
+# same bytes and the task-scope refusal is a normal result on both hosts, so
+# the comparison covers denied and text on every row. The unified counting
+# rule - a report-less error-free turn is one latch failure - is host-side
+# wiring: the Pi extension's silent-turn counting is pinned behaviorally by
+# tests/fm-pi-branch-extension.test.sh, the mod's unchanged counting by its
+# engine suite. The latch schedules pin the threshold, first-latch cooldown,
+# doubling with the cap, probe admission/commit/settle semantics, and
+# recovery for both hosts' policies, byte-equal between lib and vendored
+# copies.
 set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -79,10 +85,13 @@ DUP_PLAN='[
 cat > "$TMP_ROOT/lib-report.mjs" <<'DRIVER'
 // Drives a report-sequence module (lib or vendored) through the fixture plan,
 // replaying each host's declared host seams the same way so the legs are
-// comparable: admission/refusal class, error shape, and the exact argv
-// transcript. The runner maps raw process results to {ok, stdout, detail}
-// exactly like the mod's outcome() host seam, so module-owned failure texts
-// are byte-comparable across legs. Host-owned texts are never emitted here.
+// comparable: admission/refusal class, error shape, the exact argv
+// transcript, and - since the captain's 2026-09-20 unification - the SAME
+// rendered bytes for every refusal and failure text. The runner maps raw
+// process results to {ok, stdout, detail} exactly like the mod's outcome()
+// host seam, and the unified strings below are the wording both hosts render
+// (the mod verbatim; the Pi extension pinned to the same bytes by its own
+// suite).
 import { pathToFileURL } from "node:url";
 const modulePath = process.argv[2];
 const plan = JSON.parse(process.argv[3]);
@@ -111,11 +120,11 @@ for (const step of plan) {
   if (step.kind === "processed") {
     const through = Number(step.through);
     if (!m.validateThroughValue(through)) {
-      out.push({ denied: true, cls: "host:through-refused", argv: calls.slice(before) });
+      out.push({ denied: true, cls: "host:through-refused", text: "through must be a positive integer", argv: calls.slice(before) });
     } else {
       const r = await m.runSettlementStep(run, m.markProcessedArgv(through));
-      if (!r.ok) out.push({ denied: true, cls: "host:processed-failed", argv: calls.slice(before) });
-      else out.push({ denied: false, cls: "host:processed-success", argv: calls.slice(before) });
+      if (!r.ok) out.push({ denied: true, cls: "host:processed-failed", text: `processed marker not advanced: ${r.detail}`, argv: calls.slice(before) });
+      else out.push({ denied: false, cls: "host:processed-success", text: `captain outcomes through seq ${through} marked processed`, argv: calls.slice(before) });
     }
     continue;
   }
@@ -123,7 +132,7 @@ for (const step of plan) {
   const input = step.input;
   const validated = m.validateBranchReport(input);
   if (!validated.valid) {
-    out.push({ denied: true, cls: "module:invalid", moduleText: m.INVALID_REPORT_MESSAGE, argv: calls.slice(before) });
+    out.push({ denied: true, cls: "module:invalid", text: m.INVALID_REPORT_MESSAGE, argv: calls.slice(before) });
     continue;
   }
   const scope = m.reportTaskScopeVerdict(
@@ -131,23 +140,26 @@ for (const step of plan) {
     input.task,
   );
   if (!scope.allowed) {
-    out.push({ denied: true, cls: "host:scope-refused", argv: calls.slice(before) });
+    // Unified refusal: a NORMAL result carrying the retry instruction - the
+    // shape and wording both hosts render since the 2026-09-20 ruling.
+    const text = `report not recorded: task must be ${scope.tasks.join(" or ")} (this wake's own task), not '${input.task}'. Call fm_branch_report again with task=${scope.tasks[0]} and the same verdict and summary.`;
+    out.push({ denied: false, cls: "host:scope-refused", text, argv: calls.slice(before) });
     continue;
   }
   const wk = inflight && inflight.wakeKey;
   const extra = wk && /^[0-9:,]+$/.test(wk) ? ["--wake-key", wk] : undefined;
   const appended = await m.runSettlementStep(run, m.reportAppendArgv(validated, input.wake || null, extra));
   if (!appended.ok) {
-    out.push({ denied: true, cls: "module:append-failed", moduleText: m.appendFailureMessage(appended.detail), argv: calls.slice(before) });
+    out.push({ denied: true, cls: "module:append-failed", text: m.appendFailureMessage(appended.detail), argv: calls.slice(before) });
     continue;
   }
   const seq = Number(appended.stdout);
   const marked = await m.runSettlementStep(run, m.markReadArgv(seq));
   if (!marked.ok) {
-    out.push({ denied: true, cls: "host:markread-failed", argv: calls.slice(before) });
+    out.push({ denied: true, cls: "host:markread-failed", text: `recorded seq ${seq}, but cursor advancement failed: ${marked.detail}`, argv: calls.slice(before) });
     continue;
   }
-  out.push({ denied: false, cls: "module:report-success", moduleText: m.reportSuccessMessage(seq, validated.verdict), argv: calls.slice(before) });
+  out.push({ denied: false, cls: "module:report-success", text: m.reportSuccessMessage(seq, validated.verdict), argv: calls.slice(before) });
 }
 console.log(JSON.stringify(out));
 DRIVER
@@ -282,19 +294,18 @@ node "$TMP_ROOT/lib-report.mjs" "$ROOT/.claude/mods/fm-branch-mod/lib/fm-branch-
 node "$TMP_ROOT/mod-report.mjs" "$PLAN" > "$TMP_ROOT/mod.json"
 node "$TMP_ROOT/mod-report.mjs" "$DUP_PLAN" > "$TMP_ROOT/mod-dup.json"
 
-# ---------- verdict + argv agreement between mod and lib ---------------------
-# Same steps, same admission/refusal class, same error shape, same argv. The
-# scoping refusal's ERROR SHAPE is the declared D1 host seam (the Pi tool
-# returns isError; the mod returns a normal result), so denied is compared on
-# every row except host:scope-refused; its refusal RULE and argv are compared
-# everywhere.
-jq -c '.[] | {cls, denied: (if .cls == "host:scope-refused" then null else .denied end), argv}' "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod.norm"
-jq -c '.[] | {cls, denied: (if .cls == "host:scope-refused" then null else .denied end), argv}' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.norm"
+# ---------- verdict + argv + text agreement between mod and lib --------------
+# Same steps, same admission/refusal class, same error shape, same argv, and
+# since the unification the SAME rendered bytes for every refusal/failure
+# text: the task-scope refusal is a normal result (denied false) on both
+# hosts, so denied and text are compared on every row with no exception.
+jq -c '.[] | {cls, denied, text: (.text // null), argv}' "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod.norm"
+jq -c '.[] | {cls, denied, text: (.text // null), argv}' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.norm"
 if cmp -s "$TMP_ROOT/mod.norm" "$TMP_ROOT/lib.norm"; then
-  pass "mod tool handlers and lib decide identically on every fixture (verdict, error shape, argv transcript)"
+  pass "mod tool handlers and lib decide identically on every fixture (verdict, error shape, argv, unified text)"
 else
   diff "$TMP_ROOT/lib.norm" "$TMP_ROOT/mod.norm" >&2 || true
-  fail "mod and lib verdict/argv transcripts diverge"
+  fail "mod and lib verdict/argv/text transcripts diverge"
 fi
 
 # ---------- vendored copies decide byte-identically to lib --------------------
@@ -306,12 +317,36 @@ fi
 
 # ---------- module-owned texts are the same bytes in both hosts ---------------
 jq -c '[.[] | select(.cls | startswith("module:")) | {cls, text}]' "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod.module-texts"
-jq -c '[.[] | select(.cls | startswith("module:")) | {cls, text: .moduleText}]' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.module-texts"
+jq -c '[.[] | select(.cls | startswith("module:")) | {cls, text}]' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.module-texts"
 if [ -s "$TMP_ROOT/mod.module-texts" ] && cmp -s "$TMP_ROOT/mod.module-texts" "$TMP_ROOT/lib.module-texts"; then
   pass "module-owned texts are byte-identical between mod and lib"
 else
   fail "module-owned texts diverge between mod and lib"
 fi
+
+# ---------- unified host seam strings: byte-equal across the adapters --------
+# The refusal/failure texts are host-rendered but unified (2026-09-20
+# ruling): the mod's verbatim tool answers and the lib leg's rendering of the
+# same wording must agree row-by-row, and the task-scope refusal must be a
+# NORMAL result on both adapters.
+jq -c '[.[] | select(.cls == "host:scope-refused") | {denied, text}]' "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod.scope-texts"
+jq -c '[.[] | select(.cls == "host:scope-refused") | {denied, text}]' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.scope-texts"
+if [ -s "$TMP_ROOT/mod.scope-texts" ] && cmp -s "$TMP_ROOT/mod.scope-texts" "$TMP_ROOT/lib.scope-texts" \
+  && [ "$(jq -c '[.[] | select(.denied != false)] | length' "$TMP_ROOT/mod.scope-texts")" = "0" ]; then
+  pass "the task-scope refusal is the unified normal-result retry instruction on both adapters"
+else
+  fail "the task-scope refusal shape or wording diverges between the adapters"
+fi
+
+for cls in host:markread-failed host:through-refused host:processed-failed host:processed-success; do
+  jq -c --arg cls "$cls" '[.[] | select(.cls == $cls) | {denied, text}]' "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod.$cls.texts"
+  jq -c --arg cls "$cls" '[.[] | select(.cls == $cls) | {denied, text}]' "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib.$cls.texts"
+  if [ -s "$TMP_ROOT/mod.$cls.texts" ] && cmp -s "$TMP_ROOT/mod.$cls.texts" "$TMP_ROOT/lib.$cls.texts"; then
+    pass "$cls renders byte-identically on both adapters"
+  else
+    fail "$cls text diverges between the adapters"
+  fi
+done
 
 # ---------- host seam strings: the mod's current wording is pinned ------------
 if grep -q 'report not recorded: task must be ship-a or ship-b (this wake'"'"'s own task), not '"'"'other-task'"'"'. Call fm_branch_report again with task=ship-a and the same verdict and summary.' "$TMP_ROOT/mod.json"; then

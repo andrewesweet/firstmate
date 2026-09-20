@@ -96,15 +96,16 @@ generate_pure_module() {
 generate_report_sequence() {
   generate_pure_module "$REPORT_SEQUENCE_SOURCE" "the shared fm_branch_report / fm_branch_processed decision core
 // (validation rules, task-in-scope rule, store-call argv, settlement order
-// and failure meanings). The per-host refusal and failure strings are host
-// seams declared in the source's header, not drift."
+// and failure meanings). The refusal and failure strings are unified across
+// the hosts and rendered host-side, as the source's header declares - not
+// drift."
 }
 
 generate_provider_latch() {
   generate_pure_module "$PROVIDER_LATCH_SOURCE" "the shared provider-error latch state machine (counting,
-// threshold, cooldowns, recovery probes). The failure predicate and the
-// latch notifications are host seams declared in the source's header, not
-// drift."
+// threshold, cooldowns, recovery probes). The failure predicate is unified
+// across the hosts and the latch notifications stay host seams, as the
+// source's header declares - not drift."
 }
 
 generate_classifier() {

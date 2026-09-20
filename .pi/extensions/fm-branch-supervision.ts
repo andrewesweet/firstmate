@@ -214,11 +214,13 @@ const PROCESSING_MESSAGE_TYPE = "fm-branch-process";
 // (deliverAs nextTurn). Bounded so an answer that repeatedly ignores the
 // request cannot become an unbounded loop of empty turns.
 const PROCESSING_TRIGGERED_ATTEMPTS = 2;
-// One provider failure rejects immediately to watcher-owned fallback but leaves
-// room for a transient outage to recover on the next wake. A second consecutive
-// provider failure latches the branch off. While latched, main keeps every wake
-// except one branch recovery probe after each exponentially backed-off cooldown.
-// The state machine behind that schedule is the shared provider-error latch
+// One failure (a settled provider error, or a settled prompt with no report -
+// the same counting rule the mod uses) rejects immediately to watcher-owned
+// fallback but leaves room for a transient outage to recover on the next wake.
+// A second consecutive failure latches the branch off. While latched, main
+// keeps every wake except one branch recovery probe after each exponentially
+// backed-off cooldown.
+// The state machine behind that schedule is the shared failure latch
 // (lib/fm-branch-provider-latch.ts); these values are this host's policy for it.
 const PROVIDER_ERROR_LATCH_POLICY: ProviderErrorLatchPolicy = {
   threshold: 2,
@@ -626,9 +628,11 @@ export default function (pi: ExtensionAPI) {
   };
   let branch: BranchSession | null = null;
   let branchBroken = "";
-  // The provider-error latch (counting, cooldowns, probes, recovery) is the
-  // shared machine; branchBroken stays this host's wider broken view and also
-  // covers non-provider breakage such as build and reconcile failures.
+  // The failure latch (counting, cooldowns, probes, recovery) is the shared
+  // machine under the unified predicate - a settled provider error or a
+  // report-less, error-free turn is one failure; branchBroken stays this
+  // host's wider broken view and also covers non-provider breakage such as
+  // build and reconcile failures.
   const providerLatch = createProviderErrorLatch(PROVIDER_ERROR_LATCH_POLICY, () => Date.now());
   // A revision advances only after fm_branch_report has appended successfully,
   // so a prompt can prove that it created a durable outcome after claiming its
@@ -745,11 +749,16 @@ export default function (pi: ExtensionAPI) {
     else pi.sendMessage(message, {});
   }
 
-  function recordSettledProviderError(detail: string): void {
+  // One settled branch failure, counted by the unified latch predicate (the
+  // mod's rule, adopted on Pi): a settled provider error AND a report-less,
+  // error-free settlement both count one consecutive failure, so two silent
+  // turns latch the branch exactly as two provider errors do. The detail is
+  // both the broken-branch reason and the first-latch pause note's cause.
+  function recordSettledBranchFailure(detail: string): void {
     const verdict = providerLatch.recordFailure();
     if (verdict.armed) branchBroken = detail;
     if (verdict.firstLatch) {
-      deliverBranchHealthNote("Supervision branch paused after repeated provider errors; main will handle wakes while it cools down.");
+      deliverBranchHealthNote("Supervision branch paused after repeated failures; main will handle wakes while it cools down.");
     }
   }
 
@@ -1135,20 +1144,24 @@ export default function (pi: ExtensionAPI) {
   // one processing request; callers that run inside a main turn (turn_end)
   // leave presentation to the run boundary (agent_settled) instead, so one
   // multi-tool run never receives duplicate requests.
-  async function reconcileUnreadOutcomes(expectedGeneration: number, present = true): Promise<boolean> {
-    if (!(await generationOwnsLock(expectedGeneration))) return false;
+  // Resolves to null on success, or to a short detail naming the step that
+  // failed: the unified mark-read failure wording renders this detail to the
+  // branch exactly as the mod's settlement failure wording does.
+  async function reconcileUnreadOutcomes(expectedGeneration: number, present = true): Promise<string | null> {
+    if (!(await generationOwnsLock(expectedGeneration))) return "supervision session was replaced or lost lock ownership";
     // One-time migration per generation: a home whose outcomes were all
     // delivered before the processed marker existed treats them as processed
     // rather than re-presenting its whole history. Runs before any new row
     // can be read below, so nothing delivered from here on is ever skipped.
     if (processedInitializedGeneration !== expectedGeneration) {
-      if (!(await runOutcomeScript(["processed-init"])).ok) return false;
+      const initialized = await runSettlementStep(runOutcomeScript, ["processed-init"]);
+      if (!initialized.ok) return `processed-init failed: ${initialized.detail}`;
       processedInitializedGeneration = expectedGeneration;
     }
     const unread = await runOutcomeScript(["unread"]);
-    if (!unread.ok) return false;
+    if (!unread.ok) return `unread read failed: ${unread.detail}`;
     if (unread.stdout) {
-      if (!currentMainSession) return false;
+      if (!currentMainSession) return "no main session is available to deliver unread outcomes into";
       for (const line of unread.stdout.split("\n")) {
         let row: OutcomeRow | null = null;
         try {
@@ -1156,7 +1169,7 @@ export default function (pi: ExtensionAPI) {
         } catch {
           row = null;
         }
-        if (!row) return false;
+        if (!row) return "unread returned a row that failed to parse";
         // The last cancellation point of this row: everything from here to
         // its mark-read is synchronous delivery plus the awaited script that
         // records it, with no second ownership test in between. That is
@@ -1164,7 +1177,7 @@ export default function (pi: ExtensionAPI) {
         // because the session was replaced mid-write would leave the row
         // unread and deliver it a second time; the cursor records that the
         // row WAS delivered, which stays true across a replacement.
-        if (!(await generationOwnsLock(expectedGeneration))) return false;
+        if (!(await generationOwnsLock(expectedGeneration))) return "supervision session was replaced or lost lock ownership";
         // KNOWN PRE-EXISTING LIMITATION, unchanged by moving this work off Pi's
         // render thread and tracked as
         // fm-pi-routine-delivery-idempotency-followup-r1: if the mark-read
@@ -1178,15 +1191,16 @@ export default function (pi: ExtensionAPI) {
         // contract rather than this ordering, so it is deliberately not done
         // here.
         if (row.verdict === "captain") {
-          if (!ensureVisibleCaptainOutcome(row)) return false;
+          if (!ensureVisibleCaptainOutcome(row)) return `captain outcome seq ${row.seq} delivery failed`;
         } else {
           deliverRoutineOutcome(row);
         }
-        if (!(await runSettlementStep(runOutcomeScript, markReadArgv(row.seq))).ok) return false;
+        const marked = await runSettlementStep(runOutcomeScript, markReadArgv(row.seq));
+        if (!marked.ok) return marked.detail;
       }
     }
-    if (!present) return true;
-    return presentUnprocessedOutcomes(expectedGeneration);
+    if (!present) return null;
+    return (await presentUnprocessedOutcomes(expectedGeneration)) ? null : "presenting unprocessed captain outcomes failed";
   }
 
   function wakeScopeRefusal(task: string): string {
@@ -1195,11 +1209,10 @@ export default function (pi: ExtensionAPI) {
       task,
     );
     if (scopeVerdict.allowed) return "";
-    // The rule is the shared module's; this host's refusal wording (with the
-    // wake's row list) is a declared host seam.
-    const named = [...scopeVerdict.tasks].sort().join(", ");
-    const rows = scopeVerdict.rows.join(", ");
-    return `report refused: the wake being handled (row ${rows}) names ${named}, not ${task}; report only that task, never fleet or a task from memory`;
+    // The rule is the shared module's; the refusal is the mod's wording and
+    // shape, unified by the captain's 2026-09-20 ruling: a normal result
+    // carrying the corrective re-report instruction (no row list, no isError).
+    return `report not recorded: task must be ${scopeVerdict.tasks.join(" or ")} (this wake's own task), not '${task}'. Call fm_branch_report again with task=${scopeVerdict.tasks[0]} and the same verdict and summary.`;
   }
 
   function createReportTool(toolGeneration: number): ToolDefinition {
@@ -1240,7 +1253,9 @@ export default function (pi: ExtensionAPI) {
         const verdict = validated.verdict;
         const scopeRefusal = wakeScopeRefusal(task);
         if (scopeRefusal) {
-          return { content: [{ type: "text", text: scopeRefusal }], details: undefined, isError: true };
+          // Unified refusal shape: a normal result carrying the retry
+          // instruction, byte-identical to the mod's textResult default.
+          return { content: [{ type: "text", text: scopeRefusal }], details: undefined };
         }
         const appendArgs = reportAppendArgv(validated, wake || null);
         // Ownership, the durable append, and the delivery it authorizes are
@@ -1264,9 +1279,16 @@ export default function (pi: ExtensionAPI) {
             };
           }
           durableReportRevision += 1;
-          if (parseOutcomeSeq(appended.stdout) === null || !(await reconcileUnreadOutcomes(toolGeneration))) {
+          // The unified mark-read failure wording carries the failed step's
+          // detail exactly as the mod's does; the sequence-parse short-
+          // circuit keeps its own step name. The row IS durable here, so only
+          // its delivery or cursor advance failed.
+          const deliveryFailure = parseOutcomeSeq(appended.stdout) === null
+            ? "the outcome store returned no usable sequence number"
+            : await reconcileUnreadOutcomes(toolGeneration);
+          if (deliveryFailure !== null) {
             return {
-              content: [{ type: "text", text: `recorded seq ${appended.stdout}, but visible delivery or cursor advancement failed` }],
+              content: [{ type: "text", text: `recorded seq ${appended.stdout}, but cursor advancement failed: ${deliveryFailure}` }],
               details: undefined,
               isError: true,
             };
@@ -1629,7 +1651,7 @@ ${context.command}
         if (!(await enqueueDelivery(() => actingAsOwner(acceptedGeneration)))) {
           throw new Error("supervision session no longer owns the fleet lock");
         }
-        if (!(await enqueueDelivery(() => reconcileUnreadOutcomes(acceptedGeneration)))) {
+        if (!(await enqueueDelivery(async () => (await reconcileUnreadOutcomes(acceptedGeneration)) === null))) {
           if (acceptedGeneration === generation) {
             branchBroken = "could not reconcile unread supervision outcomes into main";
           }
@@ -1772,12 +1794,24 @@ ${context.command}
             branchForWake.generation === generation &&
             branchForWake.selectionRevision === branchSelectionRevision
           ) {
-            recordSettledProviderError(detail);
+            recordSettledBranchFailure(detail);
           }
           throw new Error(detail);
         }
         if (durableReportRevision <= reportRevisionBeforePrompt) {
-          throw new Error("supervision branch prompt settled but produced no durable outcome for its claimed wake rows");
+          // Unified failure counting (the mod's rule, adopted on Pi): a
+          // report-less, error-free settlement counts one consecutive
+          // failure exactly as a settled provider error does, so two silent
+          // turns latch the branch the same way. The wake still rejects to
+          // the watcher's fallback either way, so no wake is lost.
+          const detail = "supervision branch prompt settled but produced no durable outcome for its claimed wake rows";
+          if (
+            branchForWake.generation === generation &&
+            branchForWake.selectionRevision === branchSelectionRevision
+          ) {
+            recordSettledBranchFailure(detail);
+          }
+          throw new Error(detail);
         }
         recordDurableBranchReport(branchForWake.generation, branchForWake.selectionRevision);
         if (!(await releaseEligibleRowsSnapshot(state, wakeGrantScript, String(acceptedGeneration)))) {
@@ -1942,7 +1976,7 @@ ${context.command}
     const turnGeneration = generation;
     const reconciled = await enqueueDelivery(async () => {
       if (!(await actingAsOwner(turnGeneration))) return "not-owner";
-      return (await reconcileUnreadOutcomes(turnGeneration, false)) ? "reconciled" : "failed";
+      return (await reconcileUnreadOutcomes(turnGeneration, false)) === null ? "reconciled" : "failed";
     });
     // A verdict about a generation that has since been replaced says nothing
     // about the new one, so it neither breaks the branch nor flushes a mirror.
@@ -1987,7 +2021,7 @@ ${context.command}
     const startedGeneration = generation;
     const failed = await enqueueDelivery(
       async () =>
-        (await actingAsOwner(startedGeneration)) && !(await reconcileUnreadOutcomes(startedGeneration)),
+        (await actingAsOwner(startedGeneration)) && (await reconcileUnreadOutcomes(startedGeneration)) !== null,
     );
     if (failed && startedGeneration === generation) {
       branchBroken = "could not reconcile unread supervision outcomes into main";
@@ -2476,11 +2510,12 @@ ${context.command}
     execute: async (_toolCallId, params) => {
       const raw = (params as { through?: unknown }).through;
       // The safe-positive-integer rule is the shared module's; the coercion
-      // of raw input and this host's refusal wording are declared host seams.
+      // of raw input is a declared host seam, the refusal wording is unified.
       const through = typeof raw === "number" && validateThroughValue(raw) ? raw : null;
       if (through === null) {
         return {
-          content: [{ type: "text", text: "acknowledgement refused: through must be a positive outcome sequence number" }],
+          // Unified wording (the mod's through-validation refusal).
+          content: [{ type: "text", text: "through must be a positive integer" }],
           details: undefined,
           isError: true,
         };
@@ -2507,20 +2542,19 @@ ${context.command}
         const marked = await runSettlementStep(runOutcomeScript, markProcessedArgv(through));
         if (!marked.ok) {
           return {
-            content: [{ type: "text", text: `acknowledgement refused: ${marked.detail}` }],
+            // Unified wording (the mod's mark-processed failure).
+            content: [{ type: "text", text: `processed marker not advanced: ${marked.detail}` }],
             details: undefined,
             isError: true,
           };
         }
         const remaining = await readUnprocessedOutcomes(acknowledgedGeneration);
         if (remaining !== null && remaining.length === 0) processing = null;
-        const open = remaining === null
-          ? "the remaining outcomes could not be read"
-          : remaining.length === 0
-            ? "no captain outcome remains unprocessed"
-            : `${remaining.length} newer captain outcome(s) remain unprocessed (seq ${remaining.map((row) => row.seq).join(", ")}) and will be presented again`;
+        // Unified wording (the mod's processed success tail). The remaining
+        // read above only maintains the volatile processing state; the
+        // per-row re-presentation stays main's own processing-request path.
         return {
-          content: [{ type: "text", text: `processed through seq ${through}; ${open}` }],
+          content: [{ type: "text", text: `captain outcomes through seq ${through} marked processed` }],
           details: undefined,
         };
       });

@@ -1941,7 +1941,7 @@ ok - tracked Pi extensions pass strict no-emit typecheck against Pi 0.84.4
 ok - real Pi SDK 0.84.4 returns a post-construction 429 wake to main without losing its durable row
 ```
 
-The current portable regression proves that only consecutive provider errors count toward the two-error broken-branch latch: a durable report between errors resets the streak, the error that reaches the threshold rejects to watcher-owned fallback, and the next wake remains on main without another branch prompt.
+The current portable regression proves that consecutive settled failures (a provider error or a report-less error-free settlement, counted alike) latch the branch broken at two: a durable report between failures resets the streak, the failure that reaches the threshold rejects to watcher-owned fallback, and the next wake remains on main without another branch prompt.
 `tests/fm-pi-watch-extension.test.sh` owns the provider-free integration evidence that watcher fallback remains pending until Pi accepts the main follow-up or the branch settles successfully, and that a follow-up accepted while main is streaming neither stalls the successor chain nor escapes replacement replay until Pi consumes it.
 [`pi-supervision-branch.md`](../pi-supervision-branch.md) owns the current cooldown, recovery, and re-latch contract and points to the regression that now covers it.
 
