@@ -954,6 +954,18 @@ describe("watcher continuity", () => {
     expect(w.submitted).toEqual([]);
   });
 
+  test("a session start that cannot arm records why in the event log", async ($: Engine, on: On) => {
+    // The mode file is on but the SessionStart shell hook has not written the
+    // lock yet: no arm, and the log says so instead of leaving no trace.
+    const { [`${STATE}/.lock`]: _lock, ...noLock } = armedHome();
+    const w = world(on, { files: noLock });
+    await $.session.start(sessionStart);
+    await drained();
+    expect(monitorEvents(w)).toEqual([]);
+    const skipped = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).filter((e) => e.kind === "monitor.skipped");
+    expect(skipped.map((e) => e.data)).toEqual([{ why: "session start", mode: true, lockPid: "" }]);
+  });
+
   test("a monitor arm that failed recovers at the next prompt.submit, with no expiry notice ever arriving", async ($: Engine, on: On) => {
     // The session-start arm is denied: the claim is false and, the monitor
     // never having started, no expiry notice will ever arrive to re-arm it.

@@ -1484,7 +1484,10 @@ export function register(on: On) {
     // start when the mode file is present and this session holds the lock - the
     // same evidence restoreCounters reads, never a new lock mechanism.
     // armMonitor's own claim keeps a restored live monitor from double-arming.
-    if ((await modeOn($)) && (await readLockPid($))) void armMonitor($, 'session start')
+    const mode = await modeOn($)
+    const lockPid = await readLockPid($)
+    if (mode && lockPid) void armMonitor($, 'session start')
+    else log($, 'monitor.skipped', { why: 'session start', mode, lockPid })
     try {
       await $.tool.register({
         name: 'fm_branch_report',
