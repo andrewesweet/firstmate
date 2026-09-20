@@ -15,8 +15,12 @@
 //       deterministic backstop (bin/fm-wake-evidence.sh --routine-covered) as a
 //       main prompt, then route any wake still queued.
 //   (f) turn.step effort rewrite for the branch's own agent ids.
-//   continuity: one Monitor task per session (re-armed on expiry) streams each
-//       watcher close as a task-notification into prompt.submit.
+//   continuity: one Monitor task per session streams each watcher close as a
+//       task-notification into prompt.submit; armed at session start when the
+//       mode file is present and the session lock is held, on the first captain
+//       prompt (fallback), on any handled prompt.submit that finds no live
+//       monitor, and from the branch's settlement - never dependent on a
+//       captain prompt to exist.
 //
 // The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
 // the version is read from the binary hosting the session (PATH `claude` is only
@@ -1474,6 +1478,13 @@ export function register(on: On) {
     monitorArmed = false
     handledSeqs.clear()
     await restoreCounters($)
+    // Continuity must not wait for a captain prompt: a module reload followed
+    // by silence left no Monitor at all, so a Stop-hook-sourced wake the branch
+    // absorbed never re-armed one and supervision went dark. Arm at session
+    // start when the mode file is present and this session holds the lock - the
+    // same evidence restoreCounters reads, never a new lock mechanism.
+    // armMonitor's own claim keeps a restored live monitor from double-arming.
+    if ((await modeOn($)) && (await readLockPid($))) void armMonitor($, 'session start')
     try {
       await $.tool.register({
         name: 'fm_branch_report',
@@ -1558,6 +1569,11 @@ export function register(on: On) {
     const isWake = /<summary>Stop hook feedback<\/summary>/.test(e.text) && /firstmate watcher wake/.test(e.text)
     log($, 'prompt.submit', { origin: e.origin, isWake, text: e.text.slice(0, 600) })
     if (!isWake) return next(e)
+    // A wake main's own Stop hook produced must always leave one live cycle
+    // behind. If the armed claim is false with no expiry notice in hand (a
+    // failed arm, a lost notice), arm here so the next watcher close still
+    // surfaces; armMonitor's armed/arming claim is the double-arm guard.
+    void armMonitor($, 'stop-hook wake without monitor')
     const verdict = await routeWake($, e.text, 'stop-hook')
     if (verdict === 'dropped') return { drop: `${PLUGIN}: routed to supervision branch` }
     return next(e)
@@ -1678,6 +1694,10 @@ export function register(on: On) {
       // Deterministic captain-class backstop over what the branch just covered.
       await backstopCheck($, p.tasks, p.wakeNo)
     }
+    // A branch-absorbed wake must always leave one live cycle behind: if the
+    // branch settled a wake and no monitor is armed, arm one here so the next
+    // watcher close still reaches a prompt.
+    if (!monitorArmed) void armMonitor($, 'branch settled without monitor')
     // Anything that arrived while the branch was busy is still in the queue.
     const scope = await scopeForUnreadWake($, false)
     if (scope.eligibleSeqs.some((s) => !handledSeqs.has(s))) {
