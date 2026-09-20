@@ -47,7 +47,10 @@ test_validate_strict() {
   expect_in_report "$report" "\$.agent.spawn" "the module never spawns the branch"
   expect_in_report "$report" "\$.model.complete" "the module never calls the classifier"
   expect_in_report "$report" "\$.tool.register" "the module never registers the branch's report tools"
-  expect_in_report "$report" "env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE" "the module reads a different environment"
+  # The FM_CLASSIFY_* names are the fold vocabulary overrides bash honours
+  # (bin/fm-classify-lib.sh); the vendored shared fold reads them through
+  # the host env seam so the mod's verdicts track bash under an override too.
+  expect_in_report "$report" "env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CLASSIFY_CAPTAIN_HELD_VERB, FM_CLASSIFY_PAUSED_VERB, FM_CLASSIFY_RESERVED_KEY_PREFIXES, FM_CLASSIFY_RESOLVE_VERB, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE" "the module reads a different environment"
   expect_in_report "$report" "env writes: nothing" "the module writes the environment"
   case "$report" in
     *"http.fetch"*|*"env.set"*|*"ui.render"*)
@@ -55,7 +58,7 @@ test_validate_strict() {
       fail "Claude Code $CLAUDE_VERSION scanned a capability the supervision-branch mod must not use"
       ;;
   esac
-  pass "Claude Code $CLAUDE_VERSION validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution and transcript-persistence environment"
+  pass "Claude Code $CLAUDE_VERSION validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution, transcript-persistence, and fold-vocabulary environment"
 }
 
 test_plugin_suite() {
