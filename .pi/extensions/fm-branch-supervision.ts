@@ -148,6 +148,7 @@ import {
   classifyWake,
   passedToMainSummary,
   type ClassifierDeps,
+  type ClassifierEvidence,
 } from "../../lib/fm-branch-classifier.ts";
 import { runShadowAdvisory as libRunShadowAdvisory, type ShadowDeps } from "../../lib/fm-branch-shadow.ts";
 import {
@@ -1534,11 +1535,8 @@ ${context.command}
 
   // The classifier's model seam: the configured name resolves against the
   // same runtime surface the branch uses (main's extension-registered
-  // providers copied across), and the completion is one simple request. The
-  // globalThis stub lets tests bind a fake completion without a runtime.
+  // providers copied across), and the completion is one simple request.
   async function classifierComplete(req: { model: string; system: string; prompt: string; maxTokens: number }): Promise<string> {
-    const stub = (globalThis as { __fmClassifierComplete?: unknown }).__fmClassifierComplete;
-    if (typeof stub === "function") return String(await stub(req));
     if (!classifierRuntime) {
       classifierRuntime = await ModelRuntime.create();
       await copyExtensionProviders(classifierRuntime);
@@ -1642,11 +1640,9 @@ ${context.command}
         await flushMirror(session, acceptedGeneration);
         if (!(await actingAsOwner(acceptedGeneration))) throw new Error("supervision session no longer owns the fleet lock");
         // The settlement baseline is taken at the wake's acceptance into the
-        // branch, not at the prompt's edge: every later durable report is
-        // this wake's handling producing an outcome (in practice only the
-        // branch's own turn reports), so the settled-prompt check below must
-        // count reports that land during the wake's pre-prompt work - the
-        // classifier's evidence gather and log append - as this wake's.
+        // branch: any durable report the branch's reporting path lands during
+        // this wake's handling counts as this wake's outcome. The classifier's
+        // evidence gather never bumps the revision; only fm_branch_report does.
         const reportRevisionBeforePrompt = durableReportRevision;
         const heartbeat = /^heartbeat($|:)/.test(message);
         // The posture is read here, at the tail of this wake, never earlier
@@ -1687,6 +1683,7 @@ ${context.command}
         // consumption-acknowledged main path. A routine verdict proceeds to
         // the branch and fires the detached shadow advisory trial beside
         // delivery (the shared module self-gates on config/classifier-shadow).
+        let shadowEvidence: ClassifierEvidence[] = [];
         if (!afk) {
           const passedSeqs = readPassedSeqs();
           const gone = [...passedSeqs].filter((s) => !scope.allSeqs.includes(s));
@@ -1716,11 +1713,13 @@ ${context.command}
             const coverSummary = passedToMainSummary(why, result.reason);
             for (const t of scope.eligibleTasks) {
               try {
-                const appended = await runOutcomeScript(classifierPassCoverArgv(t, coverSummary, message));
-                if (appended.ok) {
-                  await runOutcomeScript(markReadArgv(appended.stdout));
-                  await runOutcomeScript(markProcessedArgv(appended.stdout));
-                }
+                await enqueueDelivery(async () => {
+                  const appended = await runOutcomeScript(classifierPassCoverArgv(t, coverSummary, message));
+                  if (appended.ok) {
+                    await runOutcomeScript(markReadArgv(appended.stdout));
+                    await runOutcomeScript(markProcessedArgv(appended.stdout));
+                  }
+                });
               } catch {
                 // One task's covering row failing must not block the pass;
                 // the guard file still keeps main authoritative for the rows.
@@ -1728,17 +1727,7 @@ ${context.command}
             }
             throw new Error(`classifier routed the wake to main: ${result.verdict} (${result.reason})`);
           }
-          if (result.evidence.length > 0) {
-            shadowWakeCounter += 1;
-            void libRunShadowAdvisory(piShadowDeps(), {
-              wake: message,
-              seqs: scope.eligibleSeqs,
-              wakeKey: scope.eligibleWakeKey,
-              tasks: scope.eligibleTasks,
-              evidence: result.evidence,
-              wakeNo: shadowWakeCounter,
-            }).catch(() => {});
-          }
+          shadowEvidence = result.evidence;
         }
         const grant = await writeEligibleRowsSnapshot(
           state,
@@ -1748,6 +1737,17 @@ ${context.command}
         );
         if (grant === "main-owned") throw new Error("the wake rows are already claimed by main");
         if (grant !== "published") throw new Error("could not record the branch's eligible row snapshot");
+        if (shadowEvidence.length > 0) {
+          shadowWakeCounter += 1;
+          void libRunShadowAdvisory(piShadowDeps(), {
+            wake: message,
+            seqs: scope.eligibleSeqs,
+            wakeKey: scope.eligibleWakeKey,
+            tasks: scope.eligibleTasks,
+            evidence: shadowEvidence,
+            wakeNo: shadowWakeCounter,
+          }).catch(() => {});
+        }
         const entryOffset = sessionManager.getEntries().length;
         // A claimed check row names no task, so a prompt carrying one is not
         // scoped by task (only possible in the away posture).

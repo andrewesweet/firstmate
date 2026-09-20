@@ -57,6 +57,7 @@ export function runCommandAsync(
     let stderrBytes = 0;
     const maxBuffer = options.maxBuffer ?? DEFAULT_MAX_BUFFER;
     let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     const finish = (status: number | null, detail = ""): void => {
       if (settled) return;
       settled = true;
@@ -74,7 +75,7 @@ export function runCommandAsync(
       finish(null, error instanceof Error ? error.message : String(error));
       return;
     }
-    const timeout =
+    timeout =
       options.timeoutMs !== undefined
         ? setTimeout(() => {
             try {
