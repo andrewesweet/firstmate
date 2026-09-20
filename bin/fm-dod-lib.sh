@@ -289,7 +289,7 @@ fm_ask_user_escalation_block() {  # <data-dir> <task-id>
   local data=$1 id=$2
   cat <<EOF
    For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to \`$data/$id/nm-<run>-findings.txt\`, then report the gate with
-   \`needs-decision [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=$data/$id/nm-<run>-findings.txt\`
+   \`needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=$data/$id/nm-<run>-findings.txt\`
    naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
 EOF
 }
@@ -303,7 +303,7 @@ fm_dod_block() {  # <mode> <task-id> <data-dir>
 Delivery contract: mode=direct-PR
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
-When it is implemented and committed, push your branch and open a PR with \`gh-axi\`, then append \`done: PR {url}\` to the status file and stop.
+When it is implemented and committed, push your branch and open a PR with \`gh-axi\`, then append \`done [at=<epoch>]: PR {url}\` to the status file and stop.
 Do NOT run /no-mistakes. The configured merge authority decides whether to merge the PR; firstmate relays the outcome.
 EOF
       ;;
@@ -314,7 +314,7 @@ Delivery contract: mode=local-only
 This task ships **local-only**: no remote, no PR, no pipeline.
 The task is complete only when committed on your branch \`fm/$id\`. Do NOT push, do NOT open a PR, do NOT merge.
 Keep your branch a clean fast-forward onto the current default branch - if \`main\` has advanced, rebase onto it so the eventual merge stays a fast-forward.
-When it is implemented and committed, append \`done: ready in branch fm/$id\` to the status file and stop.
+When it is implemented and committed, append \`done [at=<epoch>]: ready in branch fm/$id\` to the status file and stop.
 The configured merge authority approves the ready branch, then firstmate merges it into local \`main\` through the guarded fast-forward path.
 EOF
       ;;
@@ -352,14 +352,14 @@ Two firstmate-specific rules layer on top of that guidance:
 At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; gh pr checks <n>\` is one blocking hold, not a poll.
 Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
 A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: when \`no-mistakes axi status\` shows a parked gate, feed each item to it with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
-When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to \`$data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=$data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
+When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to \`$data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
 A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`.
 Never hand-commit while a run is active and never start a second run while one is active.
 Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those paths first; never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered.
-A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
+A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [at=<epoch>] [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [at=<epoch>] [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
 Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
 
-When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done: PR {url} checks green\` and stop. You are finished.
+When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
 EOF
       ;;
     *)
