@@ -89,6 +89,31 @@ test_vendored_eligibility_module_is_generated_and_current() {
   pass "the vendored eligibility module is current with bin/fm-branch-shared-sync.sh and free of node:fs"
 }
 
+test_vendored_a4_modules_are_generated_and_current() {
+  local out module source tracked
+  for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts; do
+    source="$ROOT/lib/$module"
+    tracked="$MOD/lib/$module"
+    [ -f "$source" ] || fail "the shared A4 module is missing: $source"
+    [ -f "$tracked" ] || fail "the vendored A4 module is missing: $tracked"
+    out=$("$SYNC_GENERATOR" --print "$module") || fail "the generator cannot print $module"
+    [ "$out" = "$(cat "$tracked")" ] || fail "--print $module differs from the tracked vendored copy"
+    grep -q 'GENERATED FILE - DO NOT EDIT BY HAND' "$tracked" \
+      || fail "$tracked does not announce itself as generated"
+    if grep -q 'from "node:' "$tracked"; then
+      fail "$tracked imports node:, which the hooks-module validator refuses"
+    fi
+    # The vendored copy is the shared source verbatim under its generated
+    # header: strip everything through the header's Regenerate line and
+    # compare to the source byte for byte.
+    if [ "$(awk 'f{print} /^\/\/ Regenerate with/{f=1}' "$tracked")" != "$(cat "$source")" ]; then
+      fail "$tracked is not the source verbatim under its generated header"
+    fi
+  done
+  pass "the vendored report-sequence and provider-latch modules are current with bin/fm-branch-shared-sync.sh"
+}
+
 test_plugin_shape
 test_agent_definition_is_generated_and_current
 test_vendored_eligibility_module_is_generated_and_current
+test_vendored_a4_modules_are_generated_and_current

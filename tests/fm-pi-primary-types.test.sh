@@ -47,6 +47,8 @@ cp "$ROOT/.pi/extensions/lib/fm-calm-working-ship-sprite.ts" "$TMP_ROOT/.pi/exte
 cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$TMP_ROOT/.pi/extensions/lib/fm-native-contract.ts"
 cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" "$TMP_ROOT/.pi/extensions/lib/fm-operational-input.ts"
 cp "$ROOT/lib/fm-branch-eligibility.ts" "$TMP_ROOT/lib/fm-branch-eligibility.ts"
+cp "$ROOT/lib/fm-branch-report-sequence.ts" "$TMP_ROOT/lib/fm-branch-report-sequence.ts"
+cp "$ROOT/lib/fm-branch-provider-latch.ts" "$TMP_ROOT/lib/fm-branch-provider-latch.ts"
 ln -s "$PI_PACKAGE_DIR" "$TMP_ROOT/node_modules/@earendil-works/pi-coding-agent"
 ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-tui" "$TMP_ROOT/node_modules/@earendil-works/pi-tui"
 ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-ai" "$TMP_ROOT/node_modules/@earendil-works/pi-ai"

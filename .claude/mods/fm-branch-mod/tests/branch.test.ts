@@ -1081,3 +1081,121 @@ describe("watcher continuity", () => {
     expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-counters`) ?? "{}").monitorTaskId).toBe("m3");
   });
 });
+
+// The provider-error latch's wiring: turn.complete feeds the shared machine
+// (lib/fm-branch-provider-latch.ts vendored into lib/), turn.start honours its
+// admission verdict, and the ui log renders from the machine's structured
+// verdicts - never from host-side counting. The machine's own schedules
+// (threshold, doubling, probes, recovery) are proven byte-equal between the
+// lib source and the vendored copy in tests/fm-branch-report-sequence.test.sh;
+// only the host wiring lives here.
+describe("provider-error latch", () => {
+  // Same adoption pattern as watcher continuity: counters plus a send answer
+  // naming the resumed agent let the wake be absorbed, so its turn.complete is
+  // a branch turn.
+  const latchCounters = JSON.stringify({ lockPid: "4242", wakeCounter: 1, spawnCount: 1, sendCount: 1, branchGeneration: 1, branchAgentId: "" });
+  const SEND_ADOPTS_LATCH = '{"success":true,"resumedAgentId":"branch-agent-1"}';
+  const REPORT_HANDLED = { tool: "mcp__fm-branch-mod__fm_branch_report", agentId: "branch-agent-1", task: "t1", verdict: "routine", summary: "handled" } as const;
+
+  const settle = async ($: Engine, reason: string) => {
+    try {
+      await $.turn.complete({ agentId: "branch-agent-1", reason, usage: { input_tokens: 10 }, answer: "settled" });
+    } catch {
+      // The kit has no turn.complete implementation to stub; the hook above ran.
+    }
+    await drained();
+  };
+  const passReasons = (w: World) =>
+    w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).filter((e) => e.kind === "wake.passed").map((e) => `${e.data.why}:${e.data.source}`);
+  const sendCalls = (w: World) => w.toolCalls.filter((c) => c.tool === "SendMessage");
+
+  test("two provider-error turns latch the branch off, latched wakes pass to main, and the cooldown and a clean settlement both recover it", async ($: Engine, on: On) => {
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: latchCounters }, sendAnswer: SEND_ADOPTS_LATCH, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+
+    // First provider-error turn: counted, not latched - the next wake still
+    // reaches the branch.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "error");
+    expect(passReasons(w)).toEqual([]);
+
+    // Second provider-error turn: the machine latches and the host renders its
+    // note from the structured verdict. The failure path's fallback prompt
+    // embeds the wake text and re-routes; the admission gate sits above reason
+    // parsing in routeWake, so that fallback passes as latched too.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "error");
+    expect(w.logs.join("\n")).toContain("branch latched off for 5 minutes after 2 consecutive failures; wakes go to main");
+    expect(passReasons(w)).toEqual(["latched:post-release"]);
+
+    // While latched, the next wake passes to main unclassified and no branch
+    // send is attempted beyond the two adoptions above.
+    const sendsWhenLatched = sendCalls(w).length;
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(passReasons(w)).toEqual(["latched:post-release", "latched:stop-hook"]);
+    expect(sendCalls(w).length).toBe(sendsWhenLatched);
+
+    // Inside the cooldown nothing changes.
+    await w.clock.advance(60_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(passReasons(w)).toEqual(["latched:post-release", "latched:stop-hook", "latched:stop-hook"]);
+    expect(sendCalls(w).length).toBe(sendsWhenLatched);
+
+    // Well past the fixed five-minute deadline (clock advances include the
+    // engine's simulated latencies, so overshoot), the branch is admitted
+    // again, and a clean settlement recovers it fully.
+    await w.clock.advance(400_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    expect(passReasons(w)).toEqual(["latched:post-release", "latched:stop-hook", "latched:stop-hook"]);
+    await $.tool.call(REPORT_HANDLED);
+    await settle($, "stop");
+    expect(passReasons(w)).toEqual(["latched:post-release", "latched:stop-hook", "latched:stop-hook"]);
+
+    // A recovered latch starts counting from zero: one failure stays open (its
+    // fallback re-route finds no unread rows and is dropped, not passed).
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "error");
+    expect(passReasons(w)).toEqual(["latched:post-release", "latched:stop-hook", "latched:stop-hook"]);
+    expect(w.logs.join("\n")).not.toContain("after 3 consecutive failures");
+
+    // And two fresh failures latch again with a fresh five-minute term.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "error");
+    expect(w.logs.join("\n")).toContain("branch latched off for 5 minutes after 2 consecutive failures; wakes go to main");
+  });
+
+  test("a failed turn that still reported is a provider error; a report-less stop is also a failure; a healthy report resets", async ($: Engine, on: On) => {
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: latchCounters }, sendAnswer: SEND_ADOPTS_LATCH, evidence: [""] });
+    await $.session.start(sessionStart);
+    await drained();
+
+    // A report-less stop counts as one failure (the no-report seam).
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "stop");
+    expect(passReasons(w)).toEqual([]);
+
+    // A healthy reported turn resets the count: the next report-less stop is
+    // failure one again, so the branch never latches across these three turns.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await $.tool.call(REPORT_HANDLED);
+    await settle($, "stop");
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "stop");
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    await settle($, "stop");
+    expect(passReasons(w)).toEqual([]);
+    expect(w.logs.join("\n")).not.toContain("branch latched off");
+  });
+});

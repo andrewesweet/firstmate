@@ -47,6 +47,18 @@ import {
   statusKindFromMetaText,
 } from '../lib/fm-branch-eligibility.ts'
 import type { DecisionVerdictCache, FoldVocabulary, QueueMeta, StatusStat, StatusText } from '../lib/fm-branch-eligibility.ts'
+import {
+  appendFailureMessage,
+  markProcessedArgv,
+  markReadArgv,
+  reportAppendArgv,
+  reportSuccessMessage,
+  reportTaskScopeVerdict,
+  runSettlementStep,
+  validateBranchReport,
+  validateThroughValue,
+} from '../lib/fm-branch-report-sequence.ts'
+import { createProviderErrorLatch } from '../lib/fm-branch-provider-latch.ts'
 
 export const CLAUDE_CODE_PIN = '2.1.278'
 
@@ -86,8 +98,12 @@ const PLUGIN = 'fm-branch-mod'
 const BRANCH_NAME = 'fm-branch'
 const REPORT_TOOL = `mcp__${PLUGIN}__fm_branch_report`
 const PROCESSED_TOOL = `mcp__${PLUGIN}__fm_branch_processed`
-const PROVIDER_ERROR_LATCH_THRESHOLD = 2
-const PROVIDER_REPROBE_MS = 5 * 60 * 1000
+const PROVIDER_ERROR_LATCH_POLICY = {
+  threshold: 2,
+  baseCooldownMs: 5 * 60 * 1000,
+  maxCooldownMs: 5 * 60 * 1000,
+  recoveryProbe: false,
+}
 // The branch is bounded inside the mod: once a wake's per-step request context
 // (the turn's summed usage over its steps) passes this many tokens, the next
 // wake goes to a fresh agent seeded with the index note.
@@ -115,8 +131,14 @@ let pluginRoot = ''
 let generation = ''
 let activated = false
 let lockPid = ''
-let consecutiveErrors = 0
-let latchedUntil = 0
+// The provider-error latch (counting, cooldown, expiry) is the shared machine.
+// What counts as one failure is this host's declared seam: a completed branch
+// turn that ended in a provider error or produced no report. Its clock reads
+// the host time this module last observed through $.clock.now() - the mockable
+// time source in the engine and real time in production - never raw Date.now,
+// which the engine's mock clock does not move.
+let lastKnownNowMs = Date.now()
+const providerLatch = createProviderErrorLatch(PROVIDER_ERROR_LATCH_POLICY, () => lastKnownNowMs)
 let wakeCounter = 0
 let spawnCount = 0
 let sendCount = 0
@@ -497,7 +519,7 @@ function processingRequest(seq: number, task: string, summary: string, source: s
   )
 }
 
-async function serveReport($: any, e: any, agentId: string | undefined) {
+export async function serveReport($: any, e: any, agentId: string | undefined) {
   const task = String(e.task ?? '').trim()
   const verdict = String(e.verdict ?? '')
   const summary = String(e.summary ?? '').trim()
@@ -505,24 +527,26 @@ async function serveReport($: any, e: any, agentId: string | undefined) {
   const silent = e.silent === true
   const p = inFlight
   log($, 'report.call', { agentId, task, verdict, summary, silent, wakeNo: p?.wakeNo })
-  if (!task || !summary || (verdict !== 'routine' && verdict !== 'captain') || (silent && (task !== 'fleet' || verdict !== 'routine'))) {
-    return textResult('invalid report: task, verdict (routine|captain), and summary are required', true)
+  const validated = validateBranchReport({ task, verdict, summary, silent })
+  if (!validated.valid) {
+    return textResult(validated.message, true)
   }
-  if (p && !p.heartbeat && !p.tasks.has(task)) {
-    return textResult(`report not recorded: task must be ${[...p.tasks].join(' or ')} (this wake's own task), not '${task}'. Call fm_branch_report again with task=${[...p.tasks][0]} and the same verdict and summary.`)
+  // The task-in-scope rule is the shared module's; this host's refusal wording
+  // (the corrective re-report instruction, no row list) is a declared seam.
+  const scopeVerdict = reportTaskScopeVerdict(p && !p.heartbeat ? { rows: [], tasks: [...p.tasks] } : null, task)
+  if (!scopeVerdict.allowed) {
+    return textResult(`report not recorded: task must be ${scopeVerdict.tasks.join(' or ')} (this wake's own task), not '${task}'. Call fm_branch_report again with task=${scopeVerdict.tasks[0]} and the same verdict and summary.`)
   }
   if (p && p.reportedSeqs.length > 0 && !p.heartbeat) {
     log($, 'report.duplicate', { agentId, task, verdict, priorSeqs: p.reportedSeqs })
     return textResult(`already recorded seq ${p.reportedSeqs[p.reportedSeqs.length - 1]} for this wake; one report per wake is enough. Do not report again: run the exact --ack-through command the drain printed and end your turn with the word done.`)
   }
-  const args = ['append', '--task', task, '--verdict', verdict, '--summary', summary, '--silent', String(silent)]
-  if (wake) args.push('--wake', wake)
-  if (p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey)) args.push('--wake-key', p.wakeKey)
-  const appended = await outcome($, args)
-  if (!appended.ok) return textResult(`outcome store append failed (nothing merged): ${appended.detail}`, true)
+  const args = reportAppendArgv(validated, wake || null, p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey) ? ['--wake-key', p.wakeKey] : undefined)
+  const appended = await runSettlementStep('append', (argv) => outcome($, argv), args)
+  if (!appended.ok) return textResult(appendFailureMessage(appended.detail), true)
   const seq = Number(appended.stdout)
   if (p) p.reportedSeqs.push(seq)
-  const marked = await outcome($, ['mark-read', '--through', String(seq)])
+  const marked = await runSettlementStep('mark-read', (argv) => outcome($, argv), markReadArgv(seq))
   if (!marked.ok) return textResult(`recorded seq ${seq}, but cursor advancement failed: ${marked.detail}`, true)
   if (verdict === 'routine') {
     if (!silent) $.ui.log(`${BOAT} ${task}: ${summary}`)
@@ -532,16 +556,23 @@ async function serveReport($: any, e: any, agentId: string | undefined) {
     void $.prompt.submit({ text: processingRequest(seq, task, summary, 'branch verdict captain') }).catch((err: unknown) => log($, 'deliver.captain.error', { seq, error: String(err) }))
     log($, 'deliver.captain', { seq, task, summary, wakeNo: p?.wakeNo })
   }
-  return textResult(`recorded seq ${seq} and delivered [${verdict}] into main`)
+  return textResult(reportSuccessMessage(seq, validated.verdict))
 }
 
-async function serveProcessed($: any, e: any) {
+export async function serveProcessed($: any, e: any) {
   const through = Number(e.through)
-  if (!Number.isSafeInteger(through) || through < 1) return textResult('through must be a positive integer', true)
-  const r = await outcome($, ['mark-processed', '--through', String(through)])
-  log($, 'processed.call', { through, ok: r.ok, detail: r.detail })
+  if (!validateThroughValue(through)) return textResult('through must be a positive integer', true)
+  const r = await runSettlementStep('mark-processed', (argv) => outcome($, argv), markProcessedArgv(through))
+  log($, 'processed.call', { through, ok: r.ok, detail: r.ok ? '' : r.detail })
   if (!r.ok) return textResult(`processed marker not advanced: ${r.detail}`, true)
   return textResult(`captain outcomes through seq ${through} marked processed`)
+}
+
+// Behavior-neutral test seams (same precedent as scopeForUnreadWake): the
+// portable equivalence test drives the real handlers and plants the in-flight
+// wake record the scoping rule reads (tests/fm-branch-report-sequence.test.sh).
+export function __fmSetInFlight(p: InFlight | null): void {
+  inFlight = p
 }
 
 // Rewake banner in the Stop hook's own shape, so a wake main must take reaches
@@ -1144,6 +1175,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const reasons = reasonLines(wakeText)
   const reason = reasons.join('\n')
   const now = Number(await $.clock.now())
+  lastKnownNowMs = now
   // Dedupe key: the queue rows the wake resolves to, never the reason text,
   // because every wake of one task reads the same `signal: .../<task>.status`.
   let passKey = ''
@@ -1172,7 +1204,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     return 'passed' as const
   }
   if (!(await modeOn($))) return pass('no state/.branch-mod-mode')
-  if (Date.now() < latchedUntil) return pass('latched')
+  if (providerLatch.admitWake().decision === 'latched') return pass('latched')
   if (await $.fs.exists(`${state}/.afk`)) return pass('afk')
   if (reasons.length === 0) return pass('no actionable reason line (alarm or failure notice)')
   const heartbeat = reasons.some((r) => /^heartbeat($|:)/.test(r))
@@ -1664,20 +1696,20 @@ export function register(on: On) {
     }
     if (!p) return next(e)
     inFlight = null
+    lastKnownNowMs = Number(await $.clock.now())
     const providerError = e.reason === 'error' || e.reason === 'refusal'
     const noReport = p.reportedSeqs.length === 0
     if (p.granted) await grant($, ['release', generation]).catch(() => {})
     if (providerError || noReport) {
-      consecutiveErrors += 1
-      if (consecutiveErrors >= PROVIDER_ERROR_LATCH_THRESHOLD) {
-        latchedUntil = Date.now() + PROVIDER_REPROBE_MS
-        $.ui.log(`${PLUGIN}: branch latched off for 5 minutes after ${consecutiveErrors} consecutive failures; wakes go to main`)
+      const verdict = providerLatch.recordFailure()
+      if (verdict.armed) {
+        $.ui.log(`${PLUGIN}: branch latched off for 5 minutes after ${verdict.streak} consecutive failures; wakes go to main`)
       }
-      log($, 'branch.failed', { agentId, wakeNo: p.wakeNo, providerError, noReport, consecutiveErrors, latchedUntil })
+      log($, 'branch.failed', { agentId, wakeNo: p.wakeNo, providerError, noReport, consecutiveErrors: verdict.streak, latchedUntil: verdict.latchedUntil })
       for (const s of p.seqs) handledSeqs.delete(s)
       void $.prompt.submit({ text: `fm-branch-mod: fallback to main - the supervision branch could not handle this wake.\n${p.wakeText}` }).catch(() => {})
     } else {
-      consecutiveErrors = 0
+      providerLatch.recordSuccess()
       // Deterministic captain-class backstop over what the branch just covered.
       await backstopCheck($, p.tasks, p.wakeNo)
     }
