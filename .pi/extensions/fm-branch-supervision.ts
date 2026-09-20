@@ -1581,6 +1581,17 @@ ${context.command}
   }
 
   function piClassifierDeps(): ClassifierDeps {
+    // The supervision session's own model name - the pin when set, else
+    // main's session model, the same follow-main default the branch build
+    // applies - read before any completion call so the Pi default path
+    // never issues a failing haiku call first. The build's isolated runtime
+    // remains the authority on whether the branch can run the model; the
+    // classifier only needs the name.
+    const supervisionModelName = (): string | null => {
+      const pin = readModelPin();
+      if (pin) return `${pin.provider}/${pin.modelId}`;
+      return mainModel ? modelLabel(mainModel) : null;
+    };
     return {
       paths: { bin: join(fmRoot, "bin") },
       runScript: async (argv, opts) => {
@@ -1592,7 +1603,13 @@ ${context.command}
         return { exitCode: r.status ?? 1, stdout: r.stdout || "", stderr: r.stderr || "" };
       },
       readSystemPrompt: () => Promise.resolve(readFileSync(classifierSystemFile, "utf8")),
-      readClassifierModel: () => Promise.resolve(readConfigLine("classifier-model", "haiku")),
+      // The supervision session's own model - the pin when set, else main's
+      // own, the branch build's same resolution - is this host's default and
+      // its one-shot model-not-found fallback name, so the default path
+      // never issues a failing haiku call first.
+      readConfiguredModel: () => Promise.resolve(readConfigLine("classifier-model", "") || null),
+      readDefaultModel: () => Promise.resolve(supervisionModelName()),
+      readFallbackModel: () => Promise.resolve(supervisionModelName()),
       complete: classifierComplete,
       clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
     };

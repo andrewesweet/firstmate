@@ -65,7 +65,24 @@ PLAN='[
   "evidence":[{"exitCode":0,"stdout":"## task c-task status bytes 30-40\n","stderr":""},
               {"exitCode":0,"stdout":"## task a-task status bytes 1-2\n","stderr":""},
               {"exitCode":0,"stdout":"## task b-task status bytes 20-25\n","stderr":""}],
-  "answer":"{\"verdict\":\"captain\",\"reason\":\"multi\"}","config":"haiku"}
+  "answer":"{\"verdict\":\"captain\",\"reason\":\"multi\"}","config":"haiku"},
+ {"name":"fallback-on-not-found","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
+  "completeError":"classifier model not found: haiku","config":"haiku",
+  "fallbackModel":"anthropic/main-model","fallbackAnswer":"{\"verdict\":\"routine\",\"reason\":\"on the session model\"}"},
+ {"name":"fallback-unavailable","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
+  "completeError":"classifier model not found: zai/glm-flash","config":"zai/glm-flash"},
+ {"name":"quota-failure-never-falls-back","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
+  "completeError":"no quota left","config":"haiku","fallbackModel":"anthropic/main-model"},
+ {"name":"fallback-same-name-no-retry","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
+  "completeError":"classifier model not found: sonnet","config":"sonnet","fallbackModel":"sonnet"},
+ {"name":"default-when-unconfigured","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
+  "defaultModel":"haiku",
+  "answer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"}
 ]'
 
 # ---------- node drivers -----------------------------------------------------
@@ -85,7 +102,7 @@ const clock = { now: () => 1000 + nowTick++, iso: () => "T" };
 let systemReads = 0;
 for (const step of plan) {
   const spawns = [];
-  let completeReq = null;
+  const completeReqs = [];
   const deps = {
     paths: { bin: "/fake/bin" },
     runScript: async (argv, opts) => {
@@ -97,9 +114,15 @@ for (const step of plan) {
       systemReads++;
       return SYSTEM;
     },
-    readClassifierModel: async () => step.config,
+    readConfiguredModel: async () => step.config ?? null,
+    readDefaultModel: async () => step.defaultModel ?? null,
+    readFallbackModel: async () => step.fallbackModel ?? null,
     complete: async (req) => {
-      completeReq = req;
+      completeReqs.push(req);
+      // A retry on the host fallback (any name but the one resolved first)
+      // is scripted by fallbackAnswer; every other call answers or fails as
+      // the step names.
+      if (req.model !== (step.config ?? step.defaultModel) && step.fallbackAnswer !== undefined) return step.fallbackAnswer;
       if (step.completeError !== undefined) throw new Error(step.completeError);
       return step.answer;
     },
@@ -110,7 +133,7 @@ for (const step of plan) {
     name: step.name,
     result: o.result,
     recordLine: o.recordLine,
-    completeReq,
+    completeReqs,
     spawns,
   });
 }
@@ -125,7 +148,9 @@ const deps = {
     systemReads++;
     return SYSTEM;
   },
-  readClassifierModel: async () => "haiku",
+  readConfiguredModel: async () => null,
+  readDefaultModel: async () => "haiku",
+  readFallbackModel: async () => null,
   complete: async () => '{"verdict":"routine","reason":"ok"}',
   clock,
 };
@@ -166,7 +191,8 @@ const $ = {
         systemReads++;
         return SYSTEM;
       }
-      if (String(path).endsWith("classifier-model")) return evidenceQueue.config ?? "haiku";
+      if (String(path).endsWith("classifier-model")) return evidenceQueue.config ?? "";
+      if (String(path).endsWith("supervision-branch-model")) return evidenceQueue.fallbackModel ?? "";
       throw new Error("no file");
     },
     write: async () => {},
@@ -198,6 +224,9 @@ const $ = {
   model: {
     complete: async (req) => {
       completions.push(req);
+      // Mirrors the lib driver: a retry on the fallback name is scripted by
+      // fallbackAnswer; every other call answers or fails as the step names.
+      if (req.model !== (evidenceQueue.config ?? evidenceQueue.defaultModel) && evidenceQueue.fallbackAnswer !== undefined) return evidenceQueue.fallbackAnswer;
       if (evidenceQueue.completeError !== undefined) throw new Error(evidenceQueue.completeError);
       return evidenceQueue.answer;
     },
@@ -220,7 +249,7 @@ for (const step of plan) {
     name: step.name,
     result: r,
     recordLine: appends[0] ?? null,
-    completeReq: completions[0] ?? null,
+    completeReqs: completions.slice(),
     spawns: stepSpawns,
   });
 }
@@ -256,8 +285,11 @@ fi
 # path is a host seam, so full-argv equality is only pinned lib-vs-vendored).
 # The memo-reset and pass-cover records are lib-driver-only sections with
 # their own assertions below; classify() itself does not produce them.
+# The mod host cannot express an absent fallback name (its config read
+# always yields a name), so the no-fallback not-found fixture is lib-only,
+# like the lib-driver-only sections below.
 normalize_leg() {
-  jq -S 'map(select(.name != "system-reads-after-reset" and .name != "pass-cover"))
+  jq -S 'map(select(.name != "system-reads-after-reset" and .name != "pass-cover" and .name != "fallback-unavailable"))
     | map(.recordLine = (if .recordLine then ((.recordLine | fromjson) | .t = "T" | .ms = 0 | tostring) else .recordLine end)
     | .result = (if .result then (.result | .ms = 0) else .result end)
     | .spawns = ((.spawns // []) | map({task: (.argv[2] // null), timeoutMs: .opts.timeoutMs})))' "$1"
@@ -298,7 +330,7 @@ check_verdict 6 routine "" "a missing reason stays an empty string"
 check_verdict 7 routine "ok" "an evidence bundle without a byte range records -1 spans"
 
 # The failed gatherer's text is part of the prompt, byte-pinned.
-if [ "$(jq -r '.[1].completeReq.prompt' "$TMP_ROOT/lib.json" | grep -cFx '(evidence gatherer failed: spawn exploded)')" = "1" ] \
+if [ "$(jq -r '.[1].completeReqs[0].prompt' "$TMP_ROOT/lib.json" | grep -cFx '(evidence gatherer failed: spawn exploded)')" = "1" ] \
   && [ "$(jq -r '.[1].result.evidence[1].from' "$TMP_ROOT/lib.json")" = "-1" ] \
   && [ "$(jq -r '.[1].result.evidence[1].to' "$TMP_ROOT/lib.json")" = "-1" ]; then
   pass "a failed gatherer contributes its 300-capped failure text with -1 spans"
@@ -320,12 +352,12 @@ EVIDENCE (bash-gathered, read-only):
 
 
 Answer with the one JSON line.'
-jq -j '.[0].completeReq.system' "$TMP_ROOT/lib.json" > "$TMP_ROOT/system.txt"
+jq -j '.[0].completeReqs[0].system' "$TMP_ROOT/lib.json" > "$TMP_ROOT/system.txt"
 printf 'CLASSIFIER SYSTEM PROMPT v1\n' > "$TMP_ROOT/system-expected.txt"
-if [ "$(jq -r '.[0].completeReq.prompt' "$TMP_ROOT/lib.json")" = "$EXPECTED_PROMPT" ] \
+if [ "$(jq -r '.[0].completeReqs[0].prompt' "$TMP_ROOT/lib.json")" = "$EXPECTED_PROMPT" ] \
   && cmp -s "$TMP_ROOT/system.txt" "$TMP_ROOT/system-expected.txt" \
-  && [ "$(jq -r '.[0].completeReq.maxTokens' "$TMP_ROOT/lib.json")" = "200" ] \
-  && [ "$(jq -r '.[0].completeReq.model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
+  && [ "$(jq -r '.[0].completeReqs[0].maxTokens' "$TMP_ROOT/lib.json")" = "200" ] \
+  && [ "$(jq -r '.[0].completeReqs[0].model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
   pass "the classifier prompt, system, model, and 200-token cap are byte-stable"
 else
   fail "the classifier prompt construction drifted"
@@ -355,18 +387,67 @@ else
   fail "evidence bundle ordering drifted"
 fi
 
+# The per-host resolution rule and the one-shot model-not-found fallback
+# (steps 10-14): the explicit configured name wins, the host's default fills
+# the gap before any completion call, and only a not-found failure retries
+# once on the fallback name.
+if [ "$(jq -c '.[10].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku","anthropic/main-model"]' ] \
+  && [ "$(jq -r '.[10].completeReqs[0].prompt' "$TMP_ROOT/lib.json")" = "$(jq -r '.[10].completeReqs[1].prompt' "$TMP_ROOT/lib.json")" ] \
+  && [ "$(jq -r '.[10].completeReqs[0].system' "$TMP_ROOT/lib.json")" = "$(jq -r '.[10].completeReqs[1].system' "$TMP_ROOT/lib.json")" ] \
+  && [ "$(jq -r '.[10].completeReqs[1].maxTokens' "$TMP_ROOT/lib.json")" = "200" ] \
+  && [ "$(jq -r '.[10].result.verdict' "$TMP_ROOT/lib.json")" = "routine" ] \
+  && [ "$(jq -r '.[10].result.model' "$TMP_ROOT/lib.json")" = "anthropic/main-model" ] \
+  && [ "$(jq -r '.[10].recordLine | fromjson | .model' "$TMP_ROOT/lib.json")" = "anthropic/main-model" ]; then
+  pass "a not-found model retries the same request once on the fallback and the record names the model used"
+else
+  fail "the model-not-found fallback drifted (reqs=$(jq -c '.[10].completeReqs | map(.model)' "$TMP_ROOT/lib.json") result=$(jq -c '.[10].result | {model, verdict}' "$TMP_ROOT/lib.json")"
+fi
+
+if [ "$(jq -c '.[11].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["zai/glm-flash"]' ] \
+  && [ "$(jq -r '.[11].result.verdict' "$TMP_ROOT/lib.json")" = "uncertain" ] \
+  && [ "$(jq -r '.[11].result.reason' "$TMP_ROOT/lib.json")" = "model.complete failed: Error: classifier model not found: zai/glm-flash" ] \
+  && [ "$(jq -r '.[11].result.model' "$TMP_ROOT/lib.json")" = "zai/glm-flash" ]; then
+  pass "without a fallback name the not-found failure keeps today's failed-call surface"
+else
+  fail "the no-fallback not-found surface drifted"
+fi
+
+if [ "$(jq -c '.[12].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku"]' ] \
+  && [ "$(jq -r '.[12].result.reason' "$TMP_ROOT/lib.json")" = "model.complete failed: Error: no quota left" ] \
+  && [ "$(jq -r '.[12].result.model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
+  pass "a failure outside the not-found class never triggers the fallback"
+else
+  fail "the not-found-only fallback rule drifted"
+fi
+
+if [ "$(jq -c '.[13].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["sonnet"]' ] \
+  && [ "$(jq -r '.[13].result.verdict' "$TMP_ROOT/lib.json")" = "uncertain" ] \
+  && [ "$(jq -r '.[13].result.model' "$TMP_ROOT/lib.json")" = "sonnet" ]; then
+  pass "a fallback equal to the resolved name is not retried"
+else
+  fail "the same-name fallback guard drifted"
+fi
+
+if [ "$(jq -c '.[14].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku"]' ] \
+  && [ "$(jq -r '.[14].result.verdict' "$TMP_ROOT/lib.json")" = "routine" ] \
+  && [ "$(jq -r '.[14].result.model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
+  pass "an unconfigured classifier resolves the host's default before any completion call"
+else
+  fail "the host-default resolution drifted"
+fi
+
 # The system-prompt memo: one read for the whole plan, re-read after reset.
-if [ "$(jq -r '.[10].count' "$TMP_ROOT/lib.json")" = "1" ] \
-  && [ "$(jq -r '.[11].count' "$TMP_ROOT/lib.json")" = "2" ] \
-  && [ "$(jq -r '.[10].count' "$TMP_ROOT/mod.json")" = "1" ]; then
+if [ "$(jq -r '.[15].count' "$TMP_ROOT/lib.json")" = "1" ] \
+  && [ "$(jq -r '.[16].count' "$TMP_ROOT/lib.json")" = "2" ] \
+  && [ "$(jq -r '.[15].count' "$TMP_ROOT/mod.json")" = "1" ]; then
   pass "the classifier system prompt is read once per module lifetime; the test reset clears it"
 else
-  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[10].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[11].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[10].count' "$TMP_ROOT/mod.json"))"
+  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[15].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[16].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[15].count' "$TMP_ROOT/mod.json"))"
 fi
 
 # The classifier-pass covering rule, byte-pinned.
-if [ "$(jq -r '.[12].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
-  && [ "$(jq -c '.[12].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
+if [ "$(jq -r '.[17].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
+  && [ "$(jq -c '.[17].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
   pass "the classifier-pass covering summary and outcome-store argv are byte-stable"
 else
   fail "the classifier-pass covering rule drifted"

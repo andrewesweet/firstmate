@@ -52,7 +52,8 @@ A `needs-decision:` or `blocked:` line with a parseable key is never re-presente
 The classifier's decision core is the shared `lib/fm-branch-classifier.ts` (vendored here by `bin/fm-branch-shared-sync.sh`, imported directly by the Pi extension, whose integration is documented in [Pi supervision branch](pi-supervision-branch.md)); the behavior below is one capability on both hosts.
 
 A text-only classifier runs ahead of the branch on every eligible wake.
-It is one `$.model.complete` call on the model named by `config/classifier-model` (default `haiku`), with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
+It is one `$.model.complete` call on the model named by `config/classifier-model` (default `haiku`, the host default), with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
+A configured name that does not resolve on the host falls back once to the default, and the record names the model actually used.
 Only a confident `routine` verdict lets the wake go to the branch; `captain`, `uncertain`, a malformed answer, and a failed call all pass the wake to main, and main's direct handling is covered in the outcome store so the branch and the backstop never re-escalate it.
 The queue rows of a passed wake are recorded in `state/.branch-mod-passed` until main acknowledges them; while one is still queued, every later wake carrying it goes back to main without a classifier call, across a module reload or a session restart, because its lines are already history to the classifier.
 That re-pass treats every eligible row of the wake as passed, covered in the outcome store like a classifier pass, so a newer row queued beside the unacknowledged one is not re-escalated either.
@@ -145,7 +146,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
   The `session.start` event carries `persistenceOn` and `persistenceCause` (`default`, `inherited CLAUDE_CODE_CHILD_SESSION marker`, or `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE`), and every `agent.send` event names the resume target as `agentId` and `sessionId` (the primary session's transcript id, or `unavailable (<error>)` where the engine does not expose it), so a transcript regression is one log line.
 - `state/branch-mod-classifications.jsonl`: the classification log, same rotation; read by `bin/fm-branch-classifier-score.sh`.
 - `state/branch-mod-shadow.jsonl`: the shadow advisory trial log, one record per ablation or control call, same rotation; read by `bin/fm-branch-shadow-score.sh` and `bin/fm-branch-shadow-gates.sh`.
-- `config/classifier-model`: the model name `$.model.complete` is given (default `haiku`), written into every classification record.
+- `config/classifier-model`: the model name `$.model.complete` is given (default `haiku`; a name that does not resolve falls back once to the default), with the model actually used written into every classification record.
 - `config/classifier-shadow`: `jev` joins granted wakes to the shadow advisory trial; absent or any other value is off.
 - `config/supervision-branch-model`: the branch agent's model (default `sonnet`), shared with Pi.
 - The outcome store, cursors, and leases are the shared files listed under `AGENTS.md` section 2 for the Pi branch.
