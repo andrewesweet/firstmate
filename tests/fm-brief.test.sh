@@ -413,8 +413,12 @@ test_no_mistakes_dod_wording() {
   assert_grep "is work for the gate, never a non-required check to dismiss" "$brief" \
     "no-mistakes DOD must forbid dismissing review-bot or maintainer feedback"
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticked respond command must stay literal
-  assert_grep 'feed each item to the parked gate with `no-mistakes axi respond --action fix`' "$brief" \
-    "no-mistakes DOD must route review feedback through the fix action"
+  assert_grep 'when `no-mistakes axi status` shows a parked gate, feed each item to it with `no-mistakes axi respond --action fix`' "$brief" \
+    "no-mistakes DOD must route review feedback through the fix action on a parked gate"
+  assert_grep "shows no parked gate, write the comment's text and URL to a file and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=<path>\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping: on fix, commit the follow-up on your existing branch and push it through the pipeline; on dismiss, reply on the PR" "$brief" \
+    "no-mistakes DOD must route green-CI review feedback to firstmate as a keyed needs-decision the worker keeps polling behind"
+  assert_grep "Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those two paths first" "$brief" \
+    "no-mistakes DOD must re-read the PR for unactioned feedback before done"
   # shellcheck disable=SC2016  # single quotes are deliberate: the backticked keyed paused/resolved lines must stay literal
   assert_grep 'append `paused [key=nm-<run>-ci]: <what must happen>` once, keep polling, and when it clears append `resolved [key=nm-<run>-ci]: <how it cleared>` yourself' "$brief" \
     "no-mistakes DOD must report a maintainer-only wait as a keyed paused line the worker resolves itself"

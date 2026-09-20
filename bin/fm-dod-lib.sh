@@ -54,9 +54,13 @@
 # ordinary ship brief and the durable contract written during scout promotion.
 # The no-mistakes block is also the one owner of the worker's conduct at the CI
 # gate: every poll reads the PR's reviews and comments, not only its checks;
-# review-bot or maintainer feedback is fed to the gate through
+# review-bot or maintainer feedback is fed to a parked gate through
 # `no-mistakes axi respond --action fix`, never dismissed as a non-required
-# check; a maintainer-only wait (fork-workflow approval, flaky-job rerun) is a
+# check; feedback that lands while no gate is parked is a keyed
+# `needs-decision [key=pr-<n>-<comment-id>]` line the worker keeps polling
+# behind until firstmate answers fix (commit and push the follow-up on the
+# same branch) or dismiss (reply on the PR), and `done:` waits until the PR
+# holds no unactioned feedback; a maintainer-only wait (fork-workflow approval, flaky-job rerun) is a
 # keyed declared-external-wait line the worker resumes from itself, never
 # `blocked:`; and no single wait exceeds the harness command bound the block
 # already names. That contract came from a worker that sat at the gate for
@@ -332,7 +336,9 @@ Two firstmate-specific rules layer on top of that guidance:
 
 At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; gh pr checks <n>\` is one blocking hold, not a poll.
 Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
-A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: feed each item to the parked gate with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
+A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: when \`no-mistakes axi status\` shows a parked gate, feed each item to it with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
+When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to a file and append \`needs-decision [key=pr-<n>-<comment-id>]: review feedback file=<path>\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping: on fix, commit the follow-up on your existing branch and push it through the pipeline; on dismiss, reply on the PR.
+Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those two paths first.
 A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [key=nm-<run>-ci]: <what must happen>\` once, keep polling, and when it clears append \`resolved [key=nm-<run>-ci]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
 Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
 
