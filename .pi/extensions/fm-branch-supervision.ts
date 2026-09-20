@@ -129,6 +129,19 @@ import {
   classifyFirstmateOperationalText,
   encodeFirstmateOperationalInputWith,
 } from "./lib/fm-operational-input.ts";
+import {
+  appendFailureMessage,
+  markProcessedArgv,
+  markReadArgv,
+  parseOutcomeSeq,
+  reportAppendArgv,
+  reportSuccessMessage,
+  reportTaskScopeVerdict,
+  runSettlementStep,
+  validateBranchReport,
+  validateThroughValue,
+} from "../../lib/fm-branch-report-sequence.ts";
+import { createProviderErrorLatch, type ProviderErrorLatchPolicy } from "../../lib/fm-branch-provider-latch.ts";
 
 const extensionFile = fileURLToPath(import.meta.url);
 const extensionDir = dirname(extensionFile);
@@ -180,9 +193,14 @@ const PROCESSING_TRIGGERED_ATTEMPTS = 2;
 // room for a transient outage to recover on the next wake. A second consecutive
 // provider failure latches the branch off. While latched, main keeps every wake
 // except one branch recovery probe after each exponentially backed-off cooldown.
-const PROVIDER_ERROR_LATCH_THRESHOLD = 2;
-const PROVIDER_REPROBE_BASE_MS = 5 * 60 * 1000;
-const PROVIDER_REPROBE_MAX_MS = 60 * 60 * 1000;
+// The state machine behind that schedule is the shared provider-error latch
+// (lib/fm-branch-provider-latch.ts); these values are this host's policy for it.
+const PROVIDER_ERROR_LATCH_POLICY: ProviderErrorLatchPolicy = {
+  threshold: 2,
+  baseCooldownMs: 5 * 60 * 1000,
+  maxCooldownMs: 60 * 60 * 1000,
+  recoveryProbe: true,
+};
 // Appended to a wake message while the away-posture record exists. Per-wake
 // tail content, never prefix; bin/fm-branch-prompt.sh's fixed "Postures"
 // section is what this tail refers back to.
@@ -213,11 +231,6 @@ type OutcomeRow = {
   silent: boolean;
 };
 type VisibleOutcomeRecord = OutcomeRow & { version: 1 };
-type ProviderRecovery = {
-  cooldownMs: number;
-  retryNotBefore: number;
-  probeInFlight: boolean;
-};
 
 const scriptEnv = {
   ...process.env,
@@ -588,8 +601,10 @@ export default function (pi: ExtensionAPI) {
   };
   let branch: BranchSession | null = null;
   let branchBroken = "";
-  let consecutiveProviderErrors = 0;
-  let providerRecovery: ProviderRecovery | null = null;
+  // The provider-error latch (counting, cooldowns, probes, recovery) is the
+  // shared machine; branchBroken stays this host's wider broken view and also
+  // covers non-provider breakage such as build and reconcile failures.
+  const providerLatch = createProviderErrorLatch(PROVIDER_ERROR_LATCH_POLICY, () => Date.now());
   // A revision advances only after fm_branch_report has appended successfully,
   // so a prompt can prove that it created a durable outcome after claiming its
   // wake rows without relying on provider text or incidental session shape.
@@ -706,39 +721,25 @@ export default function (pi: ExtensionAPI) {
   }
 
   function recordSettledProviderError(detail: string): void {
-    consecutiveProviderErrors += 1;
-    if (consecutiveProviderErrors < PROVIDER_ERROR_LATCH_THRESHOLD && !providerRecovery) return;
-    const previousCooldownMs = providerRecovery?.cooldownMs;
-    const firstLatch = previousCooldownMs === undefined;
-    const cooldownMs = firstLatch
-      ? PROVIDER_REPROBE_BASE_MS
-      : Math.min(PROVIDER_REPROBE_MAX_MS, previousCooldownMs * 2);
-    branchBroken = detail;
-    providerRecovery = {
-      cooldownMs,
-      retryNotBefore: Date.now() + cooldownMs,
-      probeInFlight: false,
-    };
-    if (firstLatch) {
+    const verdict = providerLatch.recordFailure();
+    if (verdict.armed) branchBroken = detail;
+    if (verdict.firstLatch) {
       deliverBranchHealthNote("Supervision branch paused after repeated provider errors; main will handle wakes while it cools down.");
     }
   }
 
   function recordDurableBranchReport(reportGeneration: number, reportSelectionRevision: number): void {
     if (reportGeneration !== generation || reportSelectionRevision !== branchSelectionRevision) return;
-    consecutiveProviderErrors = 0;
-    if (!providerRecovery) return;
-    branchBroken = "";
-    providerRecovery = null;
-    deliverBranchHealthNote("Supervision branch recovered after a successful cooldown probe.");
+    const verdict = providerLatch.recordSuccess();
+    if (verdict.recovered) {
+      branchBroken = "";
+      deliverBranchHealthNote("Supervision branch recovered after a successful cooldown probe.");
+    }
   }
 
   function finishProviderProbe(probeGeneration: number, probeSelectionRevision: number): void {
-    if (probeGeneration !== generation || probeSelectionRevision !== branchSelectionRevision || !providerRecovery) return;
-    providerRecovery.probeInFlight = false;
-    if (branchBroken && providerRecovery.retryNotBefore <= Date.now()) {
-      providerRecovery.retryNotBefore = Date.now() + providerRecovery.cooldownMs;
-    }
+    if (probeGeneration !== generation || probeSelectionRevision !== branchSelectionRevision || !providerLatch.isArmed()) return;
+    providerLatch.finishProbe();
   }
 
   // Resolves one model against the isolated branch runtime using only the
@@ -1156,7 +1157,7 @@ export default function (pi: ExtensionAPI) {
         } else {
           deliverRoutineOutcome(row);
         }
-        if (!(await runOutcomeScript(["mark-read", "--through", String(row.seq)])).ok) return false;
+        if (!(await runSettlementStep(runOutcomeScript, markReadArgv(row.seq))).ok) return false;
       }
     }
     if (!present) return true;
@@ -1164,9 +1165,15 @@ export default function (pi: ExtensionAPI) {
   }
 
   function wakeScopeRefusal(task: string): string {
-    if (!wakeTaskScope || wakeTaskScope.tasks.has(task)) return "";
-    const named = [...wakeTaskScope.tasks].sort().join(", ");
-    const rows = wakeTaskScope.rows.join(", ");
+    const scopeVerdict = reportTaskScopeVerdict(
+      wakeTaskScope ? { rows: wakeTaskScope.rows, tasks: [...wakeTaskScope.tasks] } : null,
+      task,
+    );
+    if (scopeVerdict.allowed) return "";
+    // The rule is the shared module's; this host's refusal wording (with the
+    // wake's row list) is a declared host seam.
+    const named = [...scopeVerdict.tasks].sort().join(", ");
+    const rows = scopeVerdict.rows.join(", ");
     return `report refused: the wake being handled (row ${rows}) names ${named}, not ${task}; report only that task, never fleet or a task from memory`;
   }
 
@@ -1197,20 +1204,20 @@ export default function (pi: ExtensionAPI) {
         const summary = String((params as { summary: unknown }).summary || "").trim();
         const wake = String((params as { wake?: unknown }).wake ?? "").trim();
         const silent = (params as { silent?: unknown }).silent === true;
-        if (!task || !summary || (verdictRaw !== "routine" && verdictRaw !== "captain") || (silent && (task !== "fleet" || verdictRaw !== "routine"))) {
+        const validated = validateBranchReport({ task, verdict: verdictRaw, summary, silent });
+        if (!validated.valid) {
           return {
-            content: [{ type: "text", text: "invalid report: task, verdict (routine|captain), and summary are required" }],
+            content: [{ type: "text", text: validated.message }],
             details: undefined,
             isError: true,
           };
         }
-        const verdict = verdictRaw as Verdict;
+        const verdict = validated.verdict;
         const scopeRefusal = wakeScopeRefusal(task);
         if (scopeRefusal) {
           return { content: [{ type: "text", text: scopeRefusal }], details: undefined, isError: true };
         }
-        const appendArgs = ["append", "--task", task, "--verdict", verdict, "--summary", summary, "--silent", String(silent)];
-        if (wake) appendArgs.push("--wake", wake);
+        const appendArgs = reportAppendArgv(validated, wake || null);
         // Ownership, the durable append, and the delivery it authorizes are
         // ONE unit of the delivery queue: store-before-visible-delivery and
         // this report's place in sequence order are exactly what another
@@ -1223,17 +1230,16 @@ export default function (pi: ExtensionAPI) {
               isError: true,
             };
           }
-          const appended = await runOutcomeScript(appendArgs);
+          const appended = await runSettlementStep(runOutcomeScript, appendArgs);
           if (!appended.ok) {
             return {
-              content: [{ type: "text", text: `outcome store append failed (nothing merged): ${appended.detail}` }],
+              content: [{ type: "text", text: appendFailureMessage(appended.detail) }],
               details: undefined,
               isError: true,
             };
           }
           durableReportRevision += 1;
-          const seq = Number(appended.stdout);
-          if (!Number.isSafeInteger(seq) || seq < 1 || !(await reconcileUnreadOutcomes(toolGeneration))) {
+          if (parseOutcomeSeq(appended.stdout) === null || !(await reconcileUnreadOutcomes(toolGeneration))) {
             return {
               content: [{ type: "text", text: `recorded seq ${appended.stdout}, but visible delivery or cursor advancement failed` }],
               details: undefined,
@@ -1241,7 +1247,7 @@ export default function (pi: ExtensionAPI) {
             };
           }
           return {
-            content: [{ type: "text", text: `recorded seq ${appended.stdout} and delivered [${verdict}] into main` }],
+            content: [{ type: "text", text: reportSuccessMessage(appended.stdout, verdict) }],
             details: undefined,
           };
         });
@@ -1382,7 +1388,7 @@ ${context.command}
 
   async function ensureBranch(expectedGeneration: number, recoveryProbe = false): Promise<BranchSession> {
     if (!(await actingAsOwner(expectedGeneration))) throw new Error("supervision session was replaced or lost lock ownership");
-    if (branchBroken && !(recoveryProbe && providerRecovery?.probeInFlight)) throw new Error(branchBroken);
+    if (branchBroken && !(recoveryProbe && providerLatch.isProbing())) throw new Error(branchBroken);
     if (branch) return branch;
     while (true) {
       const buildRevision = branchSelectionRevision;
@@ -1571,8 +1577,7 @@ ${context.command}
   // Clearing the broken latch is what lets a corrected pin recover in place.
   function releaseBranchForSelectionChange(): void {
     branchBroken = "";
-    consecutiveProviderErrors = 0;
-    providerRecovery = null;
+    providerLatch.reset();
     const stale = branch;
     branch = null;
     if (!stale) return;
@@ -1628,15 +1633,11 @@ ${context.command}
     // effects.
     if (!offerEligible(offer)) return;
     if (!generationOwnsLockSync(generation)) return; // cold start pre-lock, secondary session, or shutdown
-    const recoveryProbe = Boolean(
-      branchBroken &&
-      providerRecovery &&
-      !providerRecovery.probeInFlight &&
-      Date.now() >= providerRecovery.retryNotBefore
-    );
+    const admission = providerLatch.admitWake();
+    const recoveryProbe = admission.decision === "probe";
     if (branchBroken && !recoveryProbe) return; // main owns every wake inside the cooldown window
     if (!collectCurrentMainDialog()) return;
-    if (recoveryProbe && providerRecovery) providerRecovery.probeInFlight = true;
+    if (recoveryProbe) providerLatch.beginProbe();
     offer.accept(enqueueWake(offer.message, generation, recoveryProbe, offer.awayOnly === true));
   });
 
@@ -1751,8 +1752,7 @@ ${context.command}
     // cancelled by its own recheck rather than racing this one.
     shuttingDown = false;
     branchBroken = "";
-    consecutiveProviderErrors = 0;
-    providerRecovery = null;
+    providerLatch.reset();
     generation += 1;
     mirrorCollection.collectAnchor = null;
     mirrorCollection.pendingCursor = null;
@@ -2249,7 +2249,9 @@ ${context.command}
     },
     execute: async (_toolCallId, params) => {
       const raw = (params as { through?: unknown }).through;
-      const through = typeof raw === "number" && Number.isSafeInteger(raw) && raw >= 1 ? raw : null;
+      // The safe-positive-integer rule is the shared module's; the coercion
+      // of raw input and this host's refusal wording are declared host seams.
+      const through = typeof raw === "number" && validateThroughValue(raw) ? raw : null;
       if (through === null) {
         return {
           content: [{ type: "text", text: "acknowledgement refused: through must be a positive outcome sequence number" }],
@@ -2276,7 +2278,7 @@ ${context.command}
             isError: true,
           };
         }
-        const marked = await runOutcomeScript(["mark-processed", "--through", String(through)]);
+        const marked = await runSettlementStep(runOutcomeScript, markProcessedArgv(through));
         if (!marked.ok) {
           return {
             content: [{ type: "text", text: `acknowledgement refused: ${marked.detail}` }],

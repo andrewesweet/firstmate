@@ -691,6 +691,7 @@ tests/fm-branch-claude-mod-live-e2e.test.sh 60
 tests/fm-branch-claude-mod-plugin.test.sh 60
 tests/fm-branch-claude-mod.test.sh 250
 tests/fm-branch-eligibility.test.sh 950
+tests/fm-branch-report-sequence.test.sh 551
 tests/fm-branch-mod-bin.test.sh 8000
 tests/fm-branch-supervision.test.sh 8915
 tests/fm-busy-adapter-wiring.test.sh 27817
@@ -1466,7 +1467,7 @@ families_for_changed_path() {
       ;;
     .pi/extensions/fm-branch-supervision.ts|.pi/extensions/lib/fm-async-exec.ts|\
     .pi/extensions/lib/fm-branch-dispatch.ts|.pi/extensions/lib/fm-native-contract.ts|\
-    lib/fm-branch-eligibility.ts)
+    lib/fm-branch-eligibility.ts|lib/fm-branch-report-sequence.ts|lib/fm-branch-provider-latch.ts)
       # The portable suites that actually load these files, named one by one.
       # Left unmapped, a Pi extension library resolves through the reference
       # scan, which widens to each referencing suite's WHOLE family - and
@@ -1475,7 +1476,13 @@ families_for_changed_path() {
       # joins the list because the dispatch lib imports it, so every suite
       # below loads it through .pi/extensions/lib/fm-branch-dispatch.ts, and
       # tests/fm-branch-eligibility.test.sh pins it directly.
+      # lib/fm-branch-report-sequence.ts and lib/fm-branch-provider-latch.ts
+      # (A4) are consumed by the Pi extension directly and by the mod through
+      # the vendored copies, so they select their own equivalence suite, the
+      # mod's portable checks, and the Pi suites plus typecheck that load the
+      # importing extension.
       printf '%s\n' __script__:fm-branch-eligibility.test.sh
+      printf '%s\n' __script__:fm-branch-report-sequence.test.sh
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' __script__:fm-pi-branch-extension.test.sh
       printf '%s\n' __script__:fm-pi-watch-extension.test.sh
@@ -1512,10 +1519,12 @@ families_for_changed_path() {
       ;;
     .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh|bin/fm-branch-shared-sync.sh)
       # The Claude Code supervision-branch mod, the generator of its agent
-      # definition, and the vendorer of its shared eligibility module: the
-      # portable Node checks, then the Claude-dependent guards (strict
-      # validation, the engine-hosted suite, and the pinned live run).
+      # definition, and the vendorer of its shared modules (the eligibility
+      # fold, the report/processed decision core, and the provider-error
+      # latch): the portable Node checks, then the Claude-dependent guards
+      # (strict validation, the engine-hosted suite, and the pinned live run).
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
+      printf '%s\n' __script__:fm-branch-report-sequence.test.sh
       printf '%s\n' live-harness-optin
       ;;
     bin/fm-sessionstart-run.sh|.claude/settings.json|.codex/hooks.json|\
