@@ -39,6 +39,9 @@
 //     stat and the read refuses the scan (Pi's rule; the mod has no check).
 //   - Wake identity: the mod's derivation - `<epoch>:<seq>` per claimed row,
 //     comma-joined; Pi stamps no wake keys today.
+//   - Line splitting: bash's `read -r` - a log or meta splits on `\n` alone,
+//     so a trailing `\r` stays on the line (a `kind=ship\r` meta is
+//     `unknown`, a note keeps its `\r`). The ports split on `\r?\n`.
 //   - Captain-held declaration check: bash's event scan (the mod's
 //     `lastStatusLine` ports it; Pi reads the raw last line) - the last
 //     RECOGNIZED event's verb must be the held verb, falling back to the
@@ -185,7 +188,7 @@ export function serializeOpenDecisions(open: readonly OpenDecisionRecord[]): str
 export function statusKindFromMetaText(metaText: string | null): string {
   if (metaText === null) return "unknown";
   let kind = "";
-  for (const line of metaText.split(/\r?\n/)) {
+  for (const line of metaText.split("\n")) {
     if (line.startsWith("kind=")) kind = line.slice(5);
   }
   if (!kind) kind = "ship";
@@ -275,17 +278,10 @@ export interface QueueMeta {
   window: string;
 }
 
-/** A status-log stat bound by the consumer:
- *   - ok: the stat version string for the verdict cache;
- *   - missing / refused: bash's empty-fold outcomes (absent, unreadable, or
- *     symlinked - never a scan refusal);
- *   - torn: the stat could not be trusted as a stable version - Pi's rule
- *     refuses the scan (header choice). */
-export type StatusStat =
-  | { state: "ok"; version: string | null }
-  | { state: "missing" }
-  | { state: "refused" }
-  | { state: "torn" };
+/** A status-log stat bound by the consumer: the stat version string for the
+ * verdict cache, or refused - bash's empty-fold outcome for an absent,
+ * unreadable, or symlinked log (never a scan refusal). */
+export type StatusStat = { state: "ok"; version: string | null } | { state: "refused" };
 
 /** A status-log read bound by the consumer: the bytes plus the post-read
  * stat version (null when the consumer cannot stat, which disables the torn
@@ -384,7 +380,6 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
   }
 
   const { resolveVerb, heldVerb, reservedPrefixes, pausedVerb } = inputs.env;
-  const vocab: FoldVocabulary = { resolveVerb, heldVerb, reservedPrefixes, pausedVerb };
   const eligibleSeqs: string[] = [];
   const eligibleWakeKey: string[] = [];
   const eligibleTasks = new Set<string>();
@@ -395,7 +390,7 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
   const checkSeqs: string[] = [];
   const heartbeatSeqs: string[] = [];
   const staleOwned = new Map<string, boolean>();
-  const verdictConfig = [resolveVerb, heldVerb, ...reservedPrefixes].join("\0");
+  const verdictConfig = [resolveVerb, heldVerb, pausedVerb, ...reservedPrefixes].join("\0");
 
   for (const line of rows) {
     const fields = line.split("\t");
@@ -488,10 +483,9 @@ function staleDecisionVerdict(
   if (memoized !== undefined) return memoized;
   const cache = inputs.cache;
   const stat = inputs.statStatus(task);
-  if (stat.state === "torn") return "torn";
   if (stat.state !== "ok") {
-    // missing/refused: bash's empty fold, uncached - an absent log may
-    // appear between scans.
+    // refused: bash's empty fold, uncached - an absent log may appear
+    // between scans.
     cache?.delete(task);
     memo.set(task, false);
     return false;
@@ -504,7 +498,7 @@ function staleDecisionVerdict(
     const read = inputs.readStatusText(task);
     if (read.state === "torn") return "torn";
     // refused after a clean stat: bash's empty fold (header choice).
-    const lines = read.state === "ok" ? read.text.split(/\r?\n/).filter((line) => /\S/.test(line)) : [];
+    const lines = read.state === "ok" ? read.text.split("\n").filter((line) => /\S/.test(line)) : [];
     if (
       read.state === "ok" &&
       read.version !== null &&
@@ -532,44 +526,33 @@ function staleDecisionVerdict(
 
 const defaultVerdictCache: DecisionVerdictCache = new Map();
 
-function isENOENT(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: string }).code === "ENOENT";
-}
-
-function statVersion(path: string): string {
-  const stat = lstatSync(path);
-  return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+/** The lstat version of a plain file, or null for a missing, unreadable, or
+ * symlinked path - bash's `[ -f ] && [ -r ] && [ ! -L ]` guard. */
+function statVersion(path: string): string | null {
+  try {
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink()) return null;
+    return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+  } catch {
+    return null;
+  }
 }
 
 function statStatusOnDisk(state: string, task: string): StatusStat {
-  const path = `${state}/${task}.status`;
-  let version: string;
-  try {
-    version = statVersion(path);
-  } catch (error) {
-    // bash's fold contract: absent or unreadable means empty, and a
-    // symlinked log is refused outright - never a scan refusal.
-    return isENOENT(error) ? { state: "missing" } : { state: "refused" };
-  }
-  return { state: "ok", version };
+  const version = statVersion(`${state}/${task}.status`);
+  return version === null ? { state: "refused" } : { state: "ok", version };
 }
 
 function readStatusTextOnDisk(state: string, task: string): StatusText {
   const path = `${state}/${task}.status`;
+  if (statVersion(path) === null) return { state: "refused" };
   let text: string;
   try {
     text = readFileSync(path, "utf8");
   } catch {
-    // bash's fold contract: unreadable means empty, not a scan refusal.
     return { state: "refused" };
   }
-  let version: string | null;
-  try {
-    version = statVersion(path);
-  } catch {
-    version = null;
-  }
-  return { state: "ok", text, version };
+  return { state: "ok", text, version: statVersion(path) };
 }
 
 function readMetaKindOnDisk(state: string, task: string): string {
@@ -642,7 +625,7 @@ export function scanStateDirectory(state: string, options: StateDirectoryScanOpt
 export function foldStatusLog(dir: string, task: string): string {
   const read = readStatusTextOnDisk(dir, task);
   if (read.state !== "ok") return "";
-  const lines = read.text.split(/\r?\n/);
+  const lines = read.text.split("\n");
   const vocab = foldVocabularyFromEnv((name) => process.env[name]);
   return serializeOpenDecisions(foldStatusLines(lines, vocab, readMetaKindOnDisk(dir, task)));
 }

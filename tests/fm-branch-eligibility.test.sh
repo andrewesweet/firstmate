@@ -30,8 +30,9 @@
 #     needs-decision followed by done: stays decision-owned there while bash,
 #     the mod, and the lib clear it;
 #   - symlink drift: Pi refuses a symlinked status log for the whole scan
-#     while bash's refusal names an empty fold (branch-eligible), the mod
-#     reads through, and the lib takes bash's outcome;
+#     and the mod reads through the link (decision-owned when the target
+#     holds an open decision) while bash's refusal names an empty fold
+#     (branch-eligible), which the lib takes;
 #   - torn-epoch drift: the mod and the lib validate the epoch field
 #     digit-wise and refuse the scan; Pi validates only the seq and claims
 #     the row.
@@ -67,10 +68,11 @@ build_fixtures() {
   printf 'blocked [key=deps]: upstream broke the API\nfailed: reproduced and reported upstream\n' >"$fx/scout-terminal/scout-c.status"
   printf 'kind=scout\nproject=demo\n' >"$fx/scout-terminal/scout-c.meta"
   printf '3\t3\tstale\tscout-c\tstale: waiting too long\n' >"$fx/scout-terminal/.wake-queue"
-  # Symlinked status log over a plain resolved log (bash truth: refusal means
-  # an empty fold, so the stale row stays branch-eligible).
+  # Symlinked status log over a log holding an open decision (bash truth:
+  # refusal means an empty fold, so the stale row stays branch-eligible; a
+  # read-through fold would mark it decision-owned instead).
   mkdir -p "$fx/symlink-log"
-  printf 'working: on it\n' >"$fx/symlink-log/ship-d-real.status"
+  printf 'needs-decision [key=dep]: pick\n' >"$fx/symlink-log/ship-d-real.status"
   ln -s ship-d-real.status "$fx/symlink-log/ship-d.status"
   printf 'kind=ship\nproject=demo\n' >"$fx/symlink-log/ship-d.meta"
   printf '4\t4\tstale\tship-d\tstale: waiting too long\n' >"$fx/symlink-log/.wake-queue"
@@ -277,13 +279,13 @@ test_scout_blocked_then_failed_agrees_across_all_folds() {
   pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
-test_symlinked_status_log_names_bash_truth_and_the_pi_drift() {
+test_symlinked_status_log_names_bash_truth_and_both_port_drifts() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
   # which names an empty fold - nothing holds ship-d and its stale row stays
-  # branch-eligible. The mod reads through the link and agrees, and the lib
-  # takes bash's outcome. Pi's statusFileVersion refuses the symlink for the
-  # whole scan (unsafe). This drift assertion retires once the Pi fold adopts
-  # the bash refusal shape.
+  # branch-eligible, and the lib takes bash's outcome. The mod reads through
+  # the link and sees the open decision (decision-owned); Pi's
+  # statusFileVersion refuses the symlink for the whole scan (unsafe). Both
+  # drift assertions retire once the ports adopt the bash refusal shape.
   local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
@@ -292,11 +294,12 @@ test_symlinked_status_log_names_bash_truth_and_the_pi_drift() {
   libfold=$(lib_fold "$dir" "ship-d")
   assert_equals "" "$fold" "symlink: bash truth - the refusal must name an empty fold"
   assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
-  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$mod" "symlink: mod reads through the link and agrees with bash truth"
-  assert_equals "$mod" "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
+  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
+  assert_equals '{"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-d"]}' "$mod" "symlink: documented drift - mod reads through the link and holds the row"
   assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$pi" "symlink: documented drift - pi refuses the whole scan"
-  assert_not_equals "$pi" "$mod" "symlink: the drift must remain visible until the Pi fold adopts the bash refusal shape"
-  pass "the symlink refusal names bash truth (branch-eligible) and pi's whole-scan refusal is asserted as documented drift"
+  assert_not_equals "$pi" "$lib" "symlink: the pi drift must remain visible until the Pi fold adopts the bash refusal shape"
+  assert_not_equals "$mod" "$lib" "symlink: the mod drift must remain visible until the mod fold adopts the bash refusal shape"
+  pass "the symlink refusal names bash truth (branch-eligible); pi's whole-scan refusal and the mod's read-through are asserted as documented drift"
 }
 
 test_torn_epoch_row_is_the_documented_epoch_validation_drift() {
@@ -386,7 +389,7 @@ test_verb_overrides_reach_the_bash_and_lib_folds_alike() {
 test_routine_signal_row_agrees_across_all_folds
 test_ship_terminal_declaration_is_the_documented_v8_drift
 test_scout_blocked_then_failed_agrees_across_all_folds
-test_symlinked_status_log_names_bash_truth_and_the_pi_drift
+test_symlinked_status_log_names_bash_truth_and_both_port_drifts
 test_torn_epoch_row_is_the_documented_epoch_validation_drift
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
 test_reserved_key_namespace_guard_agrees_across_all_folds
