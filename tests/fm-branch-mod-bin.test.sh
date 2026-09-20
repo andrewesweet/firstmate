@@ -194,8 +194,131 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "a stale record without a pane observation must be listed unscorable, never guessed: $(grep 1700:16 "$out")"
 
   FM_STATE_OVERRIDE="$state" "$GATES" "$state/absent.jsonl" > "$out" || fail "gates scorer failed on an absent log"
-  [ "$(wc -l < "$out" | tr -d ' ')" = 7 ] || fail "an absent log prints only the empty tables: $(cat "$out")"
+  [ "$(wc -l < "$out" | tr -d ' ')" = 11 ] || fail "an absent log prints only the empty tables, including evidence sufficiency: $(cat "$out")"
   pass "the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor"
+}
+
+test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
+  local dir state out n rc prefix_len
+  local base_t=1700000000
+
+  mk_rec() {  # <state> <task> <wakeKey> <wake-text> <noul-or-"-"> <t-offset>
+    local st=$1 task=$2 wk=$3 waketext=$4 noul=$5 off=$6 t sev answers facts
+    sev='["False alarm or no functional impact","Routine recoverable interruption or non-blocking failure","Task blocked or failed after normal recovery","Security, privacy, data-loss, irreversible, credential, or external-publication impact"]'
+    t=$(date -u -d "@$((base_t + off))" +%Y-%m-%dT%H:%M:%SZ)
+    if [ "$noul" != "-" ]; then
+      answers='{"no_new_outcome":{"type":"noul","noul":'$noul'}}'
+      facts='{"wake_key":"'"$wk"'","new_status_bytes":{"'"$task"'":0},"pane":"fm-'"$task"'","authoritative_pr":{"present":false},"severity_classes":'$sev'}'
+    else
+      answers='{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}'
+      facts='{"wake_key":"'"$wk"'","new_status_bytes":{"'"$task"'":0},"pane":"fm-'"$task"'","authoritative_pr":{"present":false},"severity_classes":'$sev',"stale_series":{"series_index":2},"pane_observation":{"progressing":true,"busy_source":"tmux","seconds_since_last_activity":5}}'
+    fi
+    printf '%s
+' '{"t":"'"$t"'","kind":"shadow","wake":"'"$waketext"'","seqs":["1"],"wakeKey":"'"$wk"'","tasks":["'"$task"'"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":'"$answers"',"facts":'"$facts"'}' >> "$st/branch-mod-shadow.jsonl"
+    FM_STATE_OVERRIDE="$st" "$ROOT/bin/fm-branch-outcome.sh" append --task "$task" --verdict routine --summary 'signal noted' --wake-key "$wk" >/dev/null
+  }
+
+  # (a) 60 clean routine fires at noul 0.9 plus 30 captain-labeled wakes below
+  # the fire floor: pass at bound 0.05 with min-positives 30, not yet at 31.
+  dir=$(make_case gates-sufficiency-a)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t1\nwindow=fm-t1\nbackend=tmux\n' > "$state/t1.meta"
+  printf 'working: t1\n' > "$state/t1.status"
+  for n in $(seq 1 60); do mk_rec "$state" t1 "1701:$n" 'signal: A' 0.9 "$n"; done
+  for n in $(seq 61 90); do
+    mk_rec "$state" t1 "1701:$n" 'signal: A' 0.5 "$n"
+    FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key "1701:$n" >/dev/null
+  done
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 > "$out"
+  rc=$?
+  [ "$rc" = 0 ] || fail "60 clean fires at a 0.05 bound with 30 positives must be sufficient: rc=$rc $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx 'sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0500, positives 30)' "$out" \
+    || fail "the pass verdict must carry the counted evidence: $(grep '^sufficiency: absorb' "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 31 > "$out"
+  [ "$?" = 1 ] || fail "min-positives 31 with only 30 positives must be not yet: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx 'sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0500, positives 30)' "$out" \
+    || fail "the not-yet verdict must name the shortfall: $(grep '^sufficiency: absorb' "$out")"
+
+  # (b) 99 clean fires and one loss-class wrong fire (n=100, k=1) with 30
+  # positives: the exact Clopper-Pearson upper bound 0.0466 passes at bound
+  # 0.05 and is not yet at 0.04.
+  dir=$(make_case gates-sufficiency-b)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t1\nwindow=fm-t1\nbackend=tmux\n' > "$state/t1.meta"
+  printf 'working: t1\n' > "$state/t1.status"
+  for n in $(seq 1 99); do mk_rec "$state" t1 "1702:$n" 'signal: A' 0.9 "$n"; done
+  for n in $(seq 101 129); do
+    mk_rec "$state" t1 "1702:$n" 'signal: A' 0.5 "$n"
+    FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key "1702:$n" >/dev/null
+  done
+  mk_rec "$state" t1 '1702:100' 'signal: A' 0.9 200
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key '1702:100' >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 > "$out"
+  rc=$?
+  [ "$rc" = 0 ] || fail "100 fires with 1 loss and a 0.0466 upper bound must pass at 0.05: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx '| absorb-no-new-outcome | 100 | 1 | 0.0466 | 30 |' "$out" \
+    || fail "the sufficiency row must carry the exact Clopper-Pearson bound: $(grep '^| absorb-no-new-outcome | 100' "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.04 --min-positives 30 > "$out"
+  [ "$?" = 1 ] || fail "a 0.0466 upper bound must be not yet at bound 0.04: $(grep '^sufficiency: absorb' "$out")"
+
+  # (c) usage errors exit 2 without touching the logs.
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient no-such-gate --bound 0.05 > "$out" 2>&1
+  [ "$?" = 2 ] || fail "an unknown gate must be a usage error: $(cat "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome > "$out" 2>&1
+  [ "$?" = 2 ] || fail "--sufficient without --bound must be a usage error: $(cat "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 1.5 > "$out" 2>&1
+  [ "$?" = 2 ] || fail "a bound outside (0,1] must be a usage error: $(cat "$out")"
+
+  # (d) the truth sidecar: fires scored while the task records were live stay
+  # readable from the snapshot after the records are gone, the snapshot is
+  # never rewritten with an absent read, and a wake with no snapshot stays
+  # out of the sufficiency counts.
+  dir=$(make_case gates-sufficiency-sidecar)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t9\nwindow=fm-t9\nbackend=tmux\n' > "$state/t9.meta"
+  printf 'working: t9\n' > "$state/t9.status"
+  printf 'id=t10\nwindow=fm-t10\nbackend=tmux\n' > "$state/t10.meta"
+  printf 'working: t10\n' > "$state/t10.status"
+  for n in 1 2; do mk_rec "$state" t9 "1703:$n" 'stale: fm-t9 (idle 900s, possible wedge, escalation 2)' - "$n"; done
+  mk_rec "$state" t10 '1703:9' 'stale: fm-t10 (idle 900s, possible wedge, escalation 2)' - 9
+  rm -f "$state/t10.meta" "$state/t10.status"
+
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "two fires with a 1.5 upper bound cannot pass at 0.05: $(grep '^sufficiency: stale' "$out")"
+  grep -Fx '| stale-active-suppress | 2 | 0 | 1.5000 | 0 |' "$out" \
+    || fail "only the two snapshotted fires may count; the pre-torn wake stays out: $(grep '^| stale-active-suppress | ' "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "only the wakes with live task records may be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
+  local truth_at
+  truth_at=$(sed -n 's/.*"read_at":\([0-9]*\).*/\1/p' "$state/.branch-shadow-truth.jsonl" | head -1)
+
+  rm -f "$state/t9.meta" "$state/t9.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "the sidecar must keep the counts stable after the task records are gone: $(grep '^sufficiency: stale' "$out")"
+  grep -Fx '| stale-active-suppress | 2 | 0 | 1.5000 | 0 |' "$out" \
+    || fail "the sufficiency counts must survive the teardown through the sidecar: $(grep '^| stale-active-suppress | ' "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "the sidecar must never be rewritten with an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
+  [ "$(sed -n 's/.*"read_at":\([0-9]*\).*/\1/p' "$state/.branch-shadow-truth.jsonl" | head -1)" = "$truth_at" ] \
+    || fail "the sidecar's read_at must stay the scoring-time snapshot: $(cat "$state/.branch-shadow-truth.jsonl")"
+  grep -F 'torn down (a task record is gone' "$out" >/dev/null \
+    || fail "the unreadable pre-torn wake must still be noted: $(grep -i torn "$out")"
+
+  # (e) ordinary and sufficiency runs share a byte-identical prefix: the
+  # sufficiency mode only appends its verdict lines to the ordinary output.
+  FM_STATE_OVERRIDE="$state" "$GATES" > "$dir/ordinary.out"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  prefix_len=$(wc -l < "$dir/ordinary.out" | tr -d ' ')
+  [ "$prefix_len" -gt 0 ] || fail "the ordinary run must print its tables: $(cat "$dir/ordinary.out")"
+  head -n "$prefix_len" "$out" | cmp -s - "$dir/ordinary.out" \
+    || fail "the sufficiency mode must not change the ordinary output: $(diff "$dir/ordinary.out" <(head -n "$prefix_len" "$out") | head)"
+  [ "$(wc -l < "$out" | tr -d ' ')" -gt "$prefix_len" ] \
+    || fail "the sufficiency run must append its verdict lines: $(tail -3 "$out")"
+
+  pass "the gates scorer sufficiency mode counts readable-truth fires against the caller's bound, sidecars the decaying truth at scoring time, never rewrites an absent read, and keeps the ordinary output byte-stable"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
@@ -581,3 +704,4 @@ test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env
 test_shadow_pane_helper_reports_only_what_it_can_read
 test_shadow_scorer_joins_records_to_outcomes_by_wake_identity
 test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions
+test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound

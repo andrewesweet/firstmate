@@ -86,8 +86,24 @@ The repeat-control table counts identical raw answers across the paired full cal
 A torn or malformed log line is skipped, never fatal.
 `bin/fm-branch-shadow-gates.sh [-v] [<shadow-log>] [<outcomes-file>]` scores candidate absorb/suppress/escalate gates over the same records, so the trial can say what each gate would have done before anyone acts on one: per wake it reports eligible, unscorable, fired, correct, wrong split into delay-class (the main path still surfaced the outcome later) versus loss-class (only the gate carried it) and missed, and sweeps floors 0.70-0.99 for the lowest floor with zero loss-class wrong fires and the fire rate there.
 The gate set is `absorb-no-new-outcome`, `absorb-routine-working`, `stale-active-suppress`, `pr-ready-arm`, `severity-alert`, and `candidate-order` (ranks candidates by their own Nouls; it has no missed column); a record joins ground truth from the outcome rows by wake key, from the wake-drain backstop's surfacing of uncovered captain lines, and from derivable main actions (a new worker incarnation after a stale wake, or a merge poll armed for one of the wake's tasks), and a record without facts, or without the inputs one gate needs, is unscorable for that gate rather than guessed.
-The derivable actions are read from the tasks' live `state/` records at scoring time, which teardown removes, so the tables are trustworthy only while the trial's tasks are live; wakes whose task records are gone are counted below the table, and their merge-poll and stale-repair truth reads as absent.
+The derivable actions are read from the tasks' live `state/` records at scoring time, which teardown removes, so every scoring run first snapshots what the merge-poll and stale-repair reads can see, while the wake's task records are still present, into the durable sidecar `state/.branch-shadow-truth.jsonl` (one JSON line per wake: `wakeKey`, `pr_truth`, `stale_repair`, `read_at`) and consults it before the live records.
+An entry is never overwritten with an absent read, so a decayed signal can never be rewritten as evidence; a wake whose task records are gone and which has no snapshot stays unreadable - counted below the table, and never counted as a fire outcome for the sufficiency verdict.
+The sufficiency table (fires with readable truth, loss-class wrong fires, the 95% upper bound on the loss-class wrong-fire rate, and positive-truth wakes) prints in both modes; in sufficiency mode `--sufficient <gate>[,<gate>...]|all --bound <p> [--min-positives <n>]` exits 0 only when every named gate's upper bound (3/n at zero loss, the exact Clopper-Pearson bound by bisection otherwise) is at or under the caller's bound and it holds at least `--min-positives` (default 30) eligible wakes whose joined label is main, so the trial's follow-ups can trigger on sample size instead of calendar dates.
+The severity-alert gate's positives do not occur at a usable live rate and are expected to be judged on a labelled replay set instead.
 Unmatched records - no outcome row carries their wake key - are reported separately and never counted as verdicts; `-v` lists every wrong or unscorable record by wake key with the deciding detail.
+
+Because the sufficiency verdict is a deterministic exit code, a home can arm one condition->action watch per bound instead of re-scoring by hand, and the watch fires exactly when the named gates' evidence reaches the bound:
+
+```sh
+bin/fm-procevent-when.sh arm shadow-sufficient-5pct --interval 3600 --stable 1 --deadline 7776000 \
+  --condition bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome,absorb-routine-working --bound 0.05 --min-positives 30 \
+  --action bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome,absorb-routine-working 0.05 shadow-sufficient-5pct
+```
+
+The condition's exit contract matches the when-watch's expectation exactly - 0 true, 1 not yet, 2 error - so a scorer read error surfaces as a condition error rather than a false true.
+The action appends exactly one durable `check` wake naming the evaluable gates so the next drain presents the evidence, and the distinct wake key keeps two armed bounds from deduping to one presentation between drains.
+The watch fires at most once per arming; `bin/fm-procevent-when.sh rebind-all` re-binds the action hash after a firstmate self-update, and `disarm` retires the watch.
+Arm from the code root so the relative `bin/...` paths resolve in the watcher's working directory, and give each armed bound its own watch name and wake key.
 
 ## Opting a home in
 
@@ -145,6 +161,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
   The `session.start` event carries `persistenceOn` and `persistenceCause` (`default`, `inherited CLAUDE_CODE_CHILD_SESSION marker`, or `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE`), and every `agent.send` event names the resume target as `agentId` and `sessionId` (the primary session's transcript id, or `unavailable (<error>)` where the engine does not expose it), so a transcript regression is one log line.
 - `state/branch-mod-classifications.jsonl`: the classification log, same rotation; read by `bin/fm-branch-classifier-score.sh`.
 - `state/branch-mod-shadow.jsonl`: the shadow advisory trial log, one record per ablation or control call, same rotation; read by `bin/fm-branch-shadow-score.sh` and `bin/fm-branch-shadow-gates.sh`.
+- `state/.branch-shadow-truth.jsonl`: the gates scorer's durable truth sidecar - the merge-poll and stale-repair reads snapshotted per wake while the task records were live, consulted before the live records and never overwritten with an absent read; owned by `bin/fm-branch-shadow-gates.sh`.
 - `config/classifier-model`: the model name `$.model.complete` is given; default, fallback, and the recorded model are owned by [configuration.md](configuration.md) "Claude Code supervision branch".
 - `config/classifier-shadow`: `jev` joins granted wakes to the shadow advisory trial; absent or any other value is off.
 - `config/supervision-branch-model`: the branch agent's model (default `sonnet`), shared with Pi.

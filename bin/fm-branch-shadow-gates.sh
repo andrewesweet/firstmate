@@ -36,9 +36,29 @@
 #     busy-state gen) as the stale repair; teardown is not a repair, since
 #     every task is torn down once it finishes. Teardown also removes the
 #     meta, pr-poll and busy-state records these two signals are read from,
-#     so the tables are only trustworthy while the trial's tasks are live:
-#     wakes whose task records are gone are counted and noted below the
-#     table, and their PR-arm and stale-repair truth reads as absent.
+#     so every scoring run first snapshots what those two reads can see,
+#     while the wake's task records are still present, into the durable
+#     sidecar $STATE/.branch-shadow-truth.jsonl (one JSON line per wake:
+#     wakeKey, pr_truth, stale_repair, read_at) and consults it before the
+#     live records; an entry is never overwritten with an absent read, so a
+#     decayed signal can never be rewritten as evidence. A wake whose task
+#     records are gone and which has no snapshot stays unreadable: it is
+#     counted and noted below the table, and is never counted as a fire
+#     outcome for the sufficiency verdict.
+#
+# Evidence sufficiency: the tables above say what the gates did; the
+# sufficiency mode says whether a gate has enough scored evidence to judge
+# at all, so the trial's follow-ups trigger on sample size instead of
+# calendar dates. At each record's own policy floor it counts, per gate,
+# the fires whose truth is readable (n), the loss-class wrong fires among
+# them (k), the 95% one-sided upper bound on the loss-class wrong-fire
+# rate (3/n when k = 0, the exact Clopper-Pearson binomial bound by
+# bisection otherwise - no new dependency), and the eligible wakes whose
+# joined truth label is main. A gate is sufficient when its upper bound is
+# at or under the caller's bound and it holds at least --min-positives
+# (default 30) such positives. The severity-alert gate's positives do not
+# occur at a usable live rate and are expected to be judged on a labelled
+# replay set instead.
 #
 # The gates, fired on a full record's facts and answers at a floor F:
 #   absorb-no-new-outcome   no_new_outcome Noul >= F and zero new status bytes
@@ -79,37 +99,99 @@
 #
 # Usage:
 #   bin/fm-branch-shadow-gates.sh [-v] [<shadow-log>] [<outcomes-file>]
+#   bin/fm-branch-shadow-gates.sh --sufficient <gate>[,<gate>...]|all \
+#       --bound <p> [--min-positives <n>] [-v] [<shadow-log>] [<outcomes-file>]
 #
 # The logs default to $STATE/branch-mod-shadow.jsonl and
 # $STATE/branch-outcomes.jsonl; each wake's task records are read from $STATE.
-# Exit 0 always; the tables are the result, and an absent shadow log prints
-# only the empty tables.
+# In the ordinary mode exit 0 always; the tables are the result, and an
+# absent shadow log prints only the empty tables. In the sufficiency mode
+# (--sufficient names the gates to judge, all judges the six) exit 0 only
+# when every named gate is sufficient at the caller's bound, 1 when any is
+# not yet, and 2 on a usage or read error; the sufficiency table prints in
+# both modes so the ordinary report shows progress toward a bound, while
+# the pre-existing tables' columns stay byte-stable.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=bin/fm-wake-lib.sh
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 _fm_wake_require_classify
 
 VERBOSE=0
+SUFF_LIST=''
+BOUND=''
+MIN_POSITIVES=30
 args=()
-for arg in "$@"; do
-  case "$arg" in
-    -v) VERBOSE=1 ;;
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -v) VERBOSE=1; shift ;;
     -h | --help) sed -n '2,/^set -eu/{/^set -eu/!p}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) args+=("$arg") ;;
+    --sufficient)
+      [ "$#" -ge 2 ] || { echo "fm-branch-shadow-gates: --sufficient needs a comma-separated gate list or all" >&2; exit 2; }
+      SUFF_LIST=$2
+      shift 2
+      ;;
+    --bound)
+      [ "$#" -ge 2 ] || { echo "fm-branch-shadow-gates: --bound needs a rate in (0,1]" >&2; exit 2; }
+      BOUND=$2
+      shift 2
+      ;;
+    --min-positives)
+      [ "$#" -ge 2 ] || { echo "fm-branch-shadow-gates: --min-positives needs a non-negative integer" >&2; exit 2; }
+      case "$2" in '' | *[!0-9]*) echo "fm-branch-shadow-gates: --min-positives needs a non-negative integer: $2" >&2; exit 2 ;; esac
+      MIN_POSITIVES=$2
+      shift 2
+      ;;
+    --sufficient=* | --bound=* | --min-positives=*)
+      echo "fm-branch-shadow-gates: separate the value with a space, not = : $1" >&2
+      exit 2
+      ;;
+    *) args+=("$1"); shift ;;
   esac
 done
 LOG=${args[0]:-$STATE/branch-mod-shadow.jsonl}
 OUTCOMES=${args[1]:-$STATE/branch-outcomes.jsonl}
 command -v jq >/dev/null 2>&1 || { echo "fm-branch-shadow-gates: jq is required" >&2; exit 2; }
 
+# The gate list is declared before the absent-log early exit so the
+# sufficiency mode can validate its named gates (and judge an absent log as
+# simply not yet) without a second owner for the set.
+GATES=(absorb-no-new-outcome absorb-routine-working stale-active-suppress pr-ready-arm severity-alert candidate-order)
+SUFF_MODE=0
+SUFF_GATES=()
+if [ -n "$SUFF_LIST" ] || [ -n "$BOUND" ]; then
+  SUFF_MODE=1
+  [ -n "$SUFF_LIST" ] && [ -n "$BOUND" ] || { echo "fm-branch-shadow-gates: --sufficient and --bound are required together" >&2; exit 2; }
+  case "$BOUND" in '' | *[!0-9.]*) echo "fm-branch-shadow-gates: --bound must be a number in (0,1]: $BOUND" >&2; exit 2 ;; esac
+  awk -v b="$BOUND" 'BEGIN { exit !(b + 0 > 0 && b + 0 <= 1) }' || { echo "fm-branch-shadow-gates: --bound must be in (0,1]: $BOUND" >&2; exit 2; }
+  if [ "$SUFF_LIST" = all ]; then
+    SUFF_GATES=("${GATES[@]}")
+  else
+    IFS=',' read -r -a SUFF_GATES <<< "$SUFF_LIST"
+    for g in "${SUFF_GATES[@]}"; do
+      known=0
+      for known_gate in "${GATES[@]}"; do
+        [ "$g" = "$known_gate" ] && known=1
+      done
+      [ "$known" = 1 ] || { echo "fm-branch-shadow-gates: unknown gate: $g" >&2; exit 2; }
+    done
+  fi
+fi
+
 STALE_SUPPRESS_WINDOW=1800
 
 if [ ! -f "$LOG" ]; then
   printf '### candidate gates over full-variant shadow records\n| gate | eligible | unscorable | fired | correct | wrong (delay-only) | wrong (loss) | missed (absorbed, gate silent) |\n|---|---|---|---|---|---|---|---|\n'
   printf '\n### floor sweep 0.70-0.99: lowest floor with zero loss-class wrong fires\n| gate | lowest clean floor | fires there | fire rate there |\n|---|---|---|---|\n'
+  printf '\n### evidence sufficiency: fires with readable truth, loss-class wrong fires, the 95%% upper bound on the loss-class wrong-fire rate, and positive-truth wakes\n| gate | fires | wrong (loss) | 95%% upper bound | positives |\n|---|---|---|---|---|\n'
+  if [ "$SUFF_MODE" = 1 ]; then
+    printf 'sufficiency bound=%s min-positives=%s gates=%s\n' "$BOUND" "$MIN_POSITIVES" "$SUFF_LIST"
+    for g in "${SUFF_GATES[@]}"; do
+      printf 'sufficiency: %s not yet (fires 0, loss 0, upper -, positives 0)\n' "$g"
+    done
+    exit 1
+  fi
   exit 0
 fi
 
@@ -247,6 +329,21 @@ done <<< "$REC_ROWS"
 
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 >= b + 0) }'; }
 
+# Truth sidecar: the durable snapshot of the merge-poll and stale-repair
+# reads (see the header). Loaded before any truth is consulted; written only
+# by snapshot_truth below, only while the wake's task records are present.
+TRUTH="$STATE/.branch-shadow-truth.jsonl"
+declare -A SC_PR=() SC_STALE=() SC_AT=()
+if [ -f "$TRUTH" ]; then
+  while IFS=$'\t' read -r wk spr sst sat; do
+    [ -n "$wk" ] || continue
+    SC_PR[$wk]=$spr
+    SC_STALE[$wk]=$sst
+    SC_AT[$wk]=$sat
+  done < <(jq -R -r 'fromjson? | select(type == "object" and (.wakeKey | type) == "string" and .wakeKey != "") |
+      [ .wakeKey, (if (.pr_truth == true or .pr_truth == 1) then 1 else 0 end), (if (.stale_repair == true or .stale_repair == 1) then 1 else 0 end), ((.read_at // 0) | tostring) ] | @tsv' "$TRUTH" 2>/dev/null || true)
+fi
+
 wake_label() {  # <wakeKey>: main | routine | unmatched
   [ -n "${WK_SEEN[$1]:-}" ] || { echo unmatched; return; }
   if [ -n "${WK_CAPTAIN[$1]:-}" ]; then echo main; else echo routine; fi
@@ -254,7 +351,7 @@ wake_label() {  # <wakeKey>: main | routine | unmatched
 wake_actionable() {  # <wakeKey>: captain label, backstop surfacing, a PR
   # reported in the joined rows, or - for a stale wake - a derivable repair
   if [ -n "${WK_CAPTAIN[$1]:-}" ] || [ -n "${WK_BACKSTOP[$1]:-}" ] || [ -n "${WK_PRROWS[$1]:-}" ]; then return 0; fi
-  if [ -n "${WK_ISSTALE[$1]:-}" ]; then wake_stale_repair "$1"; return; fi
+  if [ -n "${WK_ISSTALE[$1]:-}" ]; then wake_stale_repair_truth "$1"; return; fi
   return 1
 }
 wake_absorbable() {  # <wakeKey>: routine label and none of the actionable evidence
@@ -268,9 +365,13 @@ task_poll_armed() {  # <task>: merge poll armed or pr= recorded (task-scoped, re
   [ -f "$STATE/$task.pr-poll" ] && return 0
   [ -f "$STATE/$task.meta" ] && grep -q '^pr=' "$STATE/$task.meta" 2>/dev/null
 }
-wake_pr_truth() {  # <wakeKey>: PR in the joined rows or a merge poll armed for one of its tasks
+wake_pr_truth() {  # <wakeKey>: PR in the joined rows or a merge poll armed for one of its tasks; the sidecar snapshot answers for the task-record half
   [ -n "${WK_PRROWS[$1]:-}" ] && return 0
   local t
+  if [ -n "${SC_AT[$1]:-}" ]; then
+    [ "${SC_PR[$1]}" = 1 ] && return 0
+    return 1
+  fi
   for t in ${WK_TASKS[$1]:-}; do
     task_poll_armed "$t" && return 0
   done
@@ -296,6 +397,58 @@ wake_stale_repair() {  # <wakeKey>: a stale wake main had to act on - a worker
   done
   return 1
 }
+wake_stale_repair_truth() {  # <wakeKey>: the sidecar snapshot answers before the live busy-state records
+  if [ -n "${SC_AT[$1]:-}" ]; then
+    [ "${SC_STALE[$1]}" = 1 ] && return 0
+    return 1
+  fi
+  wake_stale_repair "$1"
+}
+wake_readable() {  # <wakeKey>: truth still derivable - a snapshot exists or every task record is present
+  local t
+  [ -n "${SC_AT[$1]:-}" ] && return 0
+  for t in ${WK_TASKS[$1]:-}; do
+    case "$t" in '' | *[!A-Za-z0-9._-]*) return 1 ;; esac
+    [ -f "$STATE/$t.meta" ] || return 1
+  done
+  return 0
+}
+
+# Snapshot pass: record what the merge-poll and stale-repair reads can see
+# for every wake whose task records are all still present and which has no
+# entry yet, so later runs after a teardown consult recorded evidence instead
+# of an absent read. Never overwritten with an absent read: no entry is
+# written (or rewritten) for a wake whose task records are gone.
+snapshot_truth() {
+  local wk t ok pr st at line lines=''
+  at=$(date +%s)
+  for wk in "${!WK_SEEN[@]}"; do
+    [ -z "${SC_AT[$wk]:-}" ] || continue
+    [ -n "${WKEPOCH[$wk]:-}" ] || continue
+    ok=1
+    for t in ${WK_TASKS[$wk]:-}; do
+      case "$t" in '' | *[!A-Za-z0-9._-]*) ok=0; break ;; esac
+      [ -f "$STATE/$t.meta" ] || { ok=0; break; }
+    done
+    [ "$ok" = 1 ] || continue
+    pr=0
+    st=0
+    for t in ${WK_TASKS[$wk]:-}; do
+      task_poll_armed "$t" && pr=1
+    done
+    wake_stale_repair "$wk" && st=1
+    printf -v line '{"wakeKey":"%s","pr_truth":%s,"stale_repair":%s,"read_at":%s}\n' "$wk" "$pr" "$st" "$at"
+    lines+="$line"
+    SC_PR[$wk]=$pr
+    SC_STALE[$wk]=$st
+    SC_AT[$wk]=$at
+  done
+  if [ -n "$lines" ]; then
+    [ -f "$TRUTH" ] || (umask 077; : > "$TRUTH")
+    printf '%s' "$lines" >> "$TRUTH"
+  fi
+}
+snapshot_truth
 
 pane_of() {  # <record-idx>: the window the record's own stale line names
   [ "${R_STALE[$1]}" != "-" ] || return 1
@@ -425,8 +578,11 @@ cand_order_eval() {  # <record-idx> <floor>
   done
 }
 
-GATES=(absorb-no-new-outcome absorb-routine-working stale-active-suppress pr-ready-arm severity-alert candidate-order)
 declare -A ELIG=() UNSC=() UNSC_REASON=() FIRED=() CORRECT=() WRONG_DELAY=() WRONG_LOSS=() MISSED=() VDETAIL=()
+# Sufficiency evidence per gate: fires whose truth is readable, loss-class
+# wrong fires among them, and eligible wakes whose joined label is main
+# (counted once per wake).
+declare -A SUFF_FIRED=() SUFF_LOSS=() SUFF_POS=() SUFF_POS_SEEN=()
 
 for gate in "${GATES[@]}"; do
   for i in "${!R_WK[@]}"; do
@@ -442,8 +598,15 @@ for gate in "${GATES[@]}"; do
     fi
     ELIG[$gate]=$(( ${ELIG[$gate]:-0} + 1 ))
     wk=${R_WK[$i]}
+    suff_readable=0
+    wake_readable "$wk" && suff_readable=1
+    if [ -z "${SUFF_POS_SEEN[$gate|$wk]:-}" ] && [ "$(wake_label "$wk")" = main ]; then
+      SUFF_POS_SEEN[$gate|$wk]=1
+      SUFF_POS[$gate]=$(( ${SUFF_POS[$gate]:-0} + 1 ))
+    fi
     if gate_fire "$gate" "$i" "$(gate_policy_floor "$gate" "$i")"; then
       FIRED[$gate]=$(( ${FIRED[$gate]:-0} + 1 ))
+      [ "$suff_readable" = 1 ] && SUFF_FIRED[$gate]=$(( ${SUFF_FIRED[$gate]:-0} + 1 ))
       case "$gate" in
         candidate-order)
           floor=$(gate_policy_floor "$gate" "$i")
@@ -524,6 +687,9 @@ for gate in "${GATES[@]}"; do
           fi
           ;;
       esac
+    fi
+    if [ "${VDETAIL["$gate|$i"]:-}" = loss ] && [ "$suff_readable" = 1 ]; then
+      SUFF_LOSS[$gate]=$(( ${SUFF_LOSS[$gate]:-0} + 1 ))
     fi
   done
 done
@@ -608,6 +774,61 @@ fi
 printf '\n### floor sweep 0.70-0.99: lowest floor with zero loss-class wrong fires, and the fire rate there\n'
 printf '| gate | lowest clean floor | fires there | fire rate there |\n|---|---|---|---|\n'
 printf '%s' "$SWEEP_OUT"
+
+# Evidence sufficiency: fires whose truth is readable (a snapshot or live
+# task records), loss-class wrong fires among them, the 95% one-sided upper
+# bound on the loss-class wrong-fire rate, and positive-truth wakes. Printed
+# in both modes; the verdict and exit code below only in sufficiency mode.
+suff_upper() {  # <n> <k>: 3/n at zero loss, the exact Clopper-Pearson upper
+  # bound otherwise (bisection on the binomial tail), "-" with no fires.
+  awk -v n="$1" -v k="$2" 'BEGIN {
+    if (n + 0 <= 0) { print "-"; exit }
+    if (k + 0 <= 0) { printf "%.4f\n", 3.0 / n; exit }
+    if (k + 0 >= n) { printf "1.0000\n"; exit }
+    lo = 0; hi = 1
+    while (hi - lo > 1e-10) {
+      mid = (lo + hi) / 2; q = 1 - mid
+      term = exp(n * log(q)); s = term
+      for (i = 0; i < k; i++) { term = term * (mid / q) * (n - i) / (i + 1); s += term }
+      if (s > 0.05) lo = mid; else hi = mid
+    }
+    printf "%.4f\n", (lo + hi) / 2
+  }'
+}
+printf '\n### evidence sufficiency: fires with readable truth, loss-class wrong fires, the 95%% upper bound on the loss-class wrong-fire rate, and positive-truth wakes\n'
+printf '| gate | fires | wrong (loss) | 95%% upper bound | positives |\n|---|---|---|---|---|\n'
+for gate in "${GATES[@]}"; do
+  sn=${SUFF_FIRED[$gate]:-0}
+  sk=${SUFF_LOSS[$gate]:-0}
+  printf '| %s | %s | %s | %s | %s |\n' "$gate" "$sn" "$sk" "$(suff_upper "$sn" "$sk")" "${SUFF_POS[$gate]:-0}"
+done
+
+if [ "$SUFF_MODE" = 1 ]; then
+  printf 'sufficiency bound=%s min-positives=%s gates=%s\n' "$BOUND" "$MIN_POSITIVES" "$SUFF_LIST"
+  all_pass=1
+  for gate in "${SUFF_GATES[@]}"; do
+    sn=${SUFF_FIRED[$gate]:-0}
+    sk=${SUFF_LOSS[$gate]:-0}
+    sp=${SUFF_POS[$gate]:-0}
+    su=$(suff_upper "$sn" "$sk")
+    bound_ok=0
+    if [ "$sn" -gt 0 ]; then
+      awk -v u="$su" -v b="$BOUND" 'BEGIN { exit !(u + 0 <= b + 0) }' && bound_ok=1
+    fi
+    if [ "$bound_ok" = 1 ] && [ "$sp" -ge "$MIN_POSITIVES" ]; then
+      printf 'sufficiency: %s pass (fires %s, loss %s, upper %s, positives %s)\n' "$gate" "$sn" "$sk" "$su" "$sp"
+    else
+      printf 'sufficiency: %s not yet (fires %s, loss %s, upper %s, positives %s)\n' "$gate" "$sn" "$sk" "$su" "$sp"
+      all_pass=0
+    fi
+  done
+  if [ "$all_pass" = 1 ]; then
+    printf 'sufficiency: every named gate has enough evidence\n'
+    exit 0
+  fi
+  printf 'sufficiency: not every named gate has enough evidence yet\n'
+  exit 1
+fi
 
 if [ "$VERBOSE" = 1 ]; then
   printf '\n# wakeKey\tgate\tverdict\tdetail\n'
