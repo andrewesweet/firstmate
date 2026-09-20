@@ -1,0 +1,22 @@
+# temp copy of repo layout; pure section of upstream lib edited (comment inserted above hasOpenNeedsDecision) so the vendored copy goes stale
+$ bin/fm-branch-shared-sync.sh --check; echo exit=$?
+stale: /tmp/fm-sync-stale.MFGH/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1
+
+$ bin/fm-branch-shared-sync.sh   # regenerate, then --check again
+exit=0
+exit=0
+$ grep -n "drift in the pure core" vendored copy
+211:// drift in the pure core
+
+# an edit after the "thin default bindings" marker is NOT vendored (node:fs section excluded)
+exit=0
+
+# hand-edited vendored copy is stale
+stale: /tmp/fm-sync-stale.MFGH/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1
+
+# structural guard: source loses its single node:fs import line
+fm-branch-shared-sync.sh: /tmp/fm-sync-stale.MFGH/lib/fm-branch-eligibility.ts no longer carries exactly one node:fs import line; update this generator
+stale: /tmp/fm-sync-stale.MFGH/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1

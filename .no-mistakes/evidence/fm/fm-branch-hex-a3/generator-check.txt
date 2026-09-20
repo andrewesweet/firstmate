@@ -1,0 +1,21 @@
+$ bin/fm-branch-shared-sync.sh --check; echo exit=$?
+exit=0
+
+$ bin/fm-branch-shared-sync.sh --print | cmp - .claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts; echo exit=$?
+exit=0
+
+$ grep -c "node:fs" .claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (import lines)
+(no import lines)
+
+$ head -7 vendored copy
+// GENERATED FILE - DO NOT EDIT BY HAND
+// Vendored from lib/fm-branch-eligibility.ts by bin/fm-branch-shared-sync.sh:
+// the pure v8 fold and eligible-rows scan only. The source file's thin
+// node:fs default bindings are excluded because a hooks module may import
+// only its own files by relative path and "claude-code"; the mod binds this
+// core through its host seam instead (hooks/branch.ts scopeForUnreadWake).
+// Regenerate with bin/fm-branch-shared-sync.sh.
+
+$ bin/fm-branch-shared-sync.sh --bogus; echo exit=$?
+usage: fm-branch-shared-sync.sh [--check|--print]
+exit=2

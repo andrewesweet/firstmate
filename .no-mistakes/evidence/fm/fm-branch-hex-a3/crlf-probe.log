@@ -1,0 +1,19 @@
+/tmp/tmp.EY3VnDXtfZ/tests/lib.sh: line 39: /tmp/tmp.EY3VnDXtfZ/tests/git-config-helpers.sh: No such file or directory
+bash fold: 0000000   d   e   p  \t   n   e   e   d   s   -   d   e   c   i   s   i
+0000020   o   n  \t   p   i   c   k  \r
+0000030
+lib  fold: 0000000   d   e   p  \t   n   e   e   d   s   -   d   e   c   i   s   i
+0000020   o   n  \t   p   i   c   k  \r
+0000030
+pi  scope: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+mod scope: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+lib scope: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+ok - CRLF status log: bash, lib, pi, mod agree (mod no longer splits on \r?\n)
+exit=0
+bash fold: []
+lib  fold: []
+pi  scope: {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["12"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+mod scope: {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["12"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+lib scope: {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["12"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+ok - CRLF resolved line: bash, lib, pi, mod agree
+exit=0

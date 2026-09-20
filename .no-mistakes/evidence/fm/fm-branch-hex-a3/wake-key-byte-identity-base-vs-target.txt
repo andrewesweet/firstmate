@@ -1,0 +1,9 @@
+== fixture multi: 7 queue rows (signal, decision-owned stale, heartbeat, check, fm- prefixed stale, turn-ended signal, window-keyed stale) ==
+-- heartbeat=0
+  base   04f8181: {"status":"safe","eligible":true,"eligibleSeqs":["11","15","16","17"],"eligibleWakeKey":"1700000001:11,1700000005:15,1700000006:16,1700000007:17","eligibleTasks":["ship-a","ship-c","scout-d"],"corrupted":false,"needsDecisionTasks":["ship-b"],"allSeqs":["11","12","13","14","15","16","17"]}
+  target f270f41: {"status":"safe","eligible":true,"eligibleSeqs":["11","15","16","17"],"eligibleWakeKey":"1700000001:11,1700000005:15,1700000006:16,1700000007:17","eligibleTasks":["ship-a","ship-c","scout-d"],"corrupted":false,"needsDecisionTasks":["ship-b"],"allSeqs":["11","12","13","14","15","16","17"]}
+  IDENTICAL Scope (eligibleWakeKey bytes, allSeqs, ordering)
+-- heartbeat=1
+  base   04f8181: {"status":"safe","eligible":true,"eligibleSeqs":["11","13","15","16","17"],"eligibleWakeKey":"1700000001:11,1700000003:13,1700000005:15,1700000006:16,1700000007:17","eligibleTasks":["ship-a","ship-c","scout-d"],"corrupted":false,"needsDecisionTasks":["ship-b"],"allSeqs":["11","12","13","14","15","16","17"]}
+  target f270f41: {"status":"safe","eligible":true,"eligibleSeqs":["11","13","15","16","17"],"eligibleWakeKey":"1700000001:11,1700000003:13,1700000005:15,1700000006:16,1700000007:17","eligibleTasks":["ship-a","ship-c","scout-d"],"corrupted":false,"needsDecisionTasks":["ship-b"],"allSeqs":["11","12","13","14","15","16","17"]}
+  IDENTICAL Scope (eligibleWakeKey bytes, allSeqs, ordering)

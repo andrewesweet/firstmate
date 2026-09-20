@@ -1,0 +1,43 @@
+$ bin/fm-branch-shared-sync.sh --check   # committed copy
+exit=0
+
+$ echo "// drift" >> vendored copy; --check
+stale: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2YYQV546YJ581C923GQ6PCW/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1
+
+$ bin/fm-branch-shared-sync.sh   # regenerate
+exit=0
+(clean = byte-identical to committed)
+
+$ --check after regenerate
+exit=0
+
+$ head -8 vendored copy
+// GENERATED FILE - DO NOT EDIT BY HAND
+// Vendored from lib/fm-branch-eligibility.ts by bin/fm-branch-shared-sync.sh:
+// the pure v8 fold and eligible-rows scan only. The source file's thin
+// node:fs default bindings are excluded because a hooks module may import
+// only its own files by relative path and "claude-code"; the mod binds this
+// core through its host seam instead (hooks/branch.ts scopeForUnreadWake).
+// Regenerate with bin/fm-branch-shared-sync.sh.
+// Shared wake-eligibility and status-decision fold for the supervision
+
+$ grep -c node:fs vendored copy
+0
+$ remove node:fs bindings marker from lib source; --print
+fm-branch-shared-sync.sh: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2YYQV546YJ581C923GQ6PCW/lib/fm-branch-eligibility.ts no longer marks its node:fs bindings section; update this generator
+exit=1
+
+$ add a second node:fs import to lib source; --check
+fm-branch-shared-sync.sh: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2YYQV546YJ581C923GQ6PCW/lib/fm-branch-eligibility.ts no longer carries exactly one node:fs import line; update this generator
+stale: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2YYQV546YJ581C923GQ6PCW/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1
+
+$ change lib source body (drift); --check
+exit=0
+ M tests/fm-branch-claude-mod-plugin.test.sh
+(previous case appended after the node:fs bindings marker, i.e. outside the vendored pure core - correctly not stale)
+$ change lib pure core (insert comment line before the bindings marker); --check
+stale: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M2YYQV546YJ581C923GQ6PCW/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts (run bin/fm-branch-shared-sync.sh)
+exit=1
+ M tests/fm-branch-claude-mod-plugin.test.sh

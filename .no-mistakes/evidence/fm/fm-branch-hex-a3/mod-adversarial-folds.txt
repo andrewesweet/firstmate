@@ -1,0 +1,43 @@
+== fixture crlf ==
+  ship-x.meta: $'kind=ship\nproject=demo'
+  ship-x.status: $'needs-decision [key=dep]: pick\r\nworking: still going\r'
+  bash fold : 0000000 d e p \t n e e d s - d e c i s i 0000020 o n \t p i c k \r 0000030 
+  mod       : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+  lib       : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+  pi        : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-x"]}
+  AGREE mod==lib==pi
+== fixture crlf-done ==
+  ship-y.meta: $'kind=ship\nproject=demo'
+  ship-y.status: $'needs-decision [key=dep]: pick\r\ndone: PR ready\r'
+  bash fold : 0000000 
+  mod       : {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+  lib       : {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+  pi        : {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["2"],"eligibleTasks":["ship-y"],"needsDecision":[]}
+  AGREE mod==lib==pi
+== fixture symlink-meta ==
+  ship-z-real.meta: $'kind=ship\nproject=demo'
+  ship-z.meta: $'kind=ship\nproject=demo'
+  ship-z.status: $'needs-decision [key=dep]: pick\ndone: PR ready'
+  bash fold : 0000000 d e p \t n e e d s - d e c i s i 0000020 o n \t p i c k 0000027 
+  mod       : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-z"]}
+  lib       : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-z"]}
+  pi        : {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-z"]}
+  AGREE mod==lib==pi
+== fixture verbs, defaults ==
+  mod: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+  lib: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+== fixture verbs, FM_CLASSIFY_RESOLVE_VERB=ack FM_CLASSIFY_CAPTAIN_HELD_VERB=hold ==
+  bash fold: ''
+  mod: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+  lib: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+  AGREE mod==lib under override (mod now reads FM_CLASSIFY_* through $.env.get)
+== fixture ack: status = 'needs-decision [key=swap]: pick a name' / 'ack [key=swap]: decided' ==
+-- documented defaults (ack is not a verb: swap stays open, row decision-owned)
+  bash fold: 'swap	needs-decision	pick a name'
+  mod: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+  lib: {"status":"unsafe","eligible":false,"corrupted":false,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":["ship-h"]}
+-- FM_CLASSIFY_RESOLVE_VERB=ack (ack closes swap: row branch-eligible)
+  bash fold: ''
+  mod: {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["10"],"eligibleTasks":["ship-h"],"needsDecision":[]}
+  lib: {"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["10"],"eligibleTasks":["ship-h"],"needsDecision":[]}
+  AGREE: override reached the mod through $.env.get and flipped the verdict

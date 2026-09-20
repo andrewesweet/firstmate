@@ -1,0 +1,9 @@
+ok - Claude Code 2.1.278 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage
+ok - a wake after the in-memory window reaches the same persisted agent: the send succeeds, no rotation
+ok - one spawn, every send successful, no dropped hand-back, no backstop delivery across the run
+ok - a minutes-later wake on an inherited CLAUDE_CODE_CHILD_SESSION rotates to a fresh agent (why=unresumable) and keeps the wake
+# lab logs kept at /tmp/fm-branch-claude-live-logs.v1BIJi (lab /tmp/fm-branch-claude-live.8Tp7yp)
+# lab logs kept at /tmp/fm-branch-claude-live-logs.MVWYNW (lab /tmp/fm-branch-claude-live.WRquAb)
+exit=0
