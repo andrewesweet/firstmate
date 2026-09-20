@@ -94,6 +94,9 @@ cat > "$PRIMARY_HOME/data/cm1/brief.md" <<'EOF'
 ## Captain's intent
 Exercise primary-home Herdr placement.
 
+## Published intent
+Restate the accepted placement change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the crewmate uses its primary home's workspace.
 EOF
@@ -108,6 +111,9 @@ cat > "$SM_HOME/data/cm2/brief.md" <<'EOF'
 # Task
 ## Captain's intent
 Exercise secondmate-owned Herdr placement.
+
+## Published intent
+Restate the accepted placement change neutrally for the pipeline reviewer.
 
 ## Firstmate spec
 Verify the crewmate uses its secondmate home's workspace.

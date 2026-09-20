@@ -401,6 +401,9 @@ write_ship_brief() {  # <home> <id> [description]
 ## Captain's intent
 $description
 
+## Published intent
+Restate the accepted change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify projected workspace behavior for $id.
 EOF

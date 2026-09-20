@@ -189,6 +189,9 @@ write_ship_brief() {  # <file> <id>
 ## Captain's intent
 Exercise Herdr launcher placement for $2.
 
+## Published intent
+Restate the accepted launcher change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the worker is placed in the correct workspace.
 EOF

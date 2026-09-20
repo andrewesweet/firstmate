@@ -157,6 +157,9 @@ add_ship_task() {
 ## Captain's intent
 Exercise relaunch behavior for $id.
 
+## Published intent
+Restate the accepted relaunch change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Preserve the task while replacing its agent process.
 EOF
@@ -982,8 +985,17 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract() {
     FM_HOME="$home" "$BRIEF" "$id" firstmate --scout >/dev/null \
       || fail "$mode: could not scaffold the scout brief"
     brief="$home/data/$id/brief.md"
-    sed 's/{TASK}/Fix the promotion relaunch contract./; s/{FIRSTMATE_SPEC}/Preserve the current delivery mode./' \
-      "$brief" > "$brief.filled"
+    awk '
+      /^## Firstmate spec$/ && !done {
+        print "## Published intent"
+        print "Restate the accepted change neutrally for the pipeline reviewer."
+        print ""
+        done = 1
+      }
+      { gsub(/\{TASK\}/, "Fix the promotion relaunch contract.") }
+      { gsub(/\{FIRSTMATE_SPEC\}/, "Preserve the current delivery mode.") }
+      { print }
+    ' "$brief" > "$brief.filled"
     mv "$brief.filled" "$brief"
     {
       echo "window=fmses:fm-$id"

@@ -222,6 +222,9 @@ make_spawn_case() {
 ## Captain's intent
 Exercise Kimi dispatch.
 
+## Published intent
+Restate the accepted Kimi change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify launch and delivery behavior.
 EOF

@@ -89,6 +89,9 @@ make_settle_case() {
 ## Captain's intent
 Exercise settled-worktree detection for $id.
 
+## Published intent
+Restate the accepted worktree change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Record only the pane's stable worktree.
 EOF

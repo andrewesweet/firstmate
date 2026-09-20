@@ -359,6 +359,22 @@ IFS= read -r -d '' TASK_SECTION <<'EOF' || true
 EOF
 TASK_SECTION=${TASK_SECTION%$'\n'}
 
+# The ship scaffold carries the published-intent subsection between the
+# captain's private ask and the build instructions: bin/fm-dod-lib.sh owns the
+# visibility-scoped contract for the statement firstmate fills it with.
+IFS= read -r -d '' SHIP_TASK_SECTION <<'EOF' || true
+# Task
+## Captain's intent
+{TASK}
+
+## Published intent
+{PUBLISHED_INTENT}
+
+## Firstmate spec
+{FIRSTMATE_SPEC}
+EOF
+SHIP_TASK_SECTION=${SHIP_TASK_SECTION%$'\n'}
+
 if [ "$KIND" = scout ]; then
 if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
   LAVISH_LINE='If your deliverable is a visual artifact the captain will review and iterate on, you may host the Lavish review loop yourself (poll, revise, re-serve, staying alive) instead of handing it back to firstmate.'
@@ -452,7 +468,7 @@ DOD=$(fm_dod_block "$MODE" "$ID") || exit 1
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
-$TASK_SECTION
+$SHIP_TASK_SECTION
 
 $HERDR_SECTION
 
@@ -515,4 +531,4 @@ Keep it proportionate: skip \`AGENTS.md\` edits for trivial tasks that produced 
 
 $DOD
 EOF
-echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK} and {FIRSTMATE_SPEC})"
+echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})"

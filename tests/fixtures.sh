@@ -245,6 +245,9 @@ fm_test_spawn_brief() {
 ## Captain's intent
 $intent
 
+## Published intent
+Restate the accepted change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Exercise the spawn behavior under test.
 EOF

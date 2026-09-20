@@ -295,6 +295,9 @@ cat > "$REMOTE_HOME/data/$RWORKER/brief.md" <<EOF
 ## Captain's intent
 Exercise the remote routed-task link for $RWORKER.
 
+## Published intent
+Restate the accepted trace-link change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Verify the spawned process records its own carrier and the routing link.
 EOF
