@@ -19,7 +19,6 @@ command -v jq >/dev/null || skip "jq prerequisite not found"
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 TMP_ROOT=$(fm_test_tmproot fm-branch-shadow)
-MOD="$ROOT/.claude/mods/fm-branch-mod"
 
 # ---------- fixture plan (one set, driven through every leg) -----------------
 # Each scenario drives one runShadowAdvisory call with its own config, state

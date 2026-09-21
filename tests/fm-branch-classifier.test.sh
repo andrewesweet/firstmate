@@ -26,7 +26,6 @@ command -v jq >/dev/null || skip "jq prerequisite not found"
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 TMP_ROOT=$(fm_test_tmproot fm-branch-classifier)
-MOD="$ROOT/.claude/mods/fm-branch-mod"
 
 # ---------- fixture plan (one set, driven through every leg) -----------------
 # Per step: the evidence gatherer's scripted result per task (in task order),
