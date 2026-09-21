@@ -15,8 +15,9 @@
 #   done_unseen_minutes=<positive int>   default 30
 # An unknown key or a malformed value is a loud refusal (exit 2, stderr names
 # the key) rather than a silent default, so a fat-fingered threshold cannot
-# masquerade as the intended one. done_unseen_minutes is read by the
-# fm-wake-lib.sh presentation hook, which re-resolves the same file. The file
+# masquerade as the intended one. Only this script parses the file; the
+# fm-wake-lib.sh presentation hook checks its existence and nothing more, so
+# every threshold, including done_unseen_minutes, is applied here. The file
 # is not inherited by secondmate homes; each home that wants the trigger
 # writes its own.
 #
