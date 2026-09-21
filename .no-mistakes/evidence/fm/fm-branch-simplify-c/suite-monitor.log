@@ -1,0 +1,11 @@
+ok - the mod hook's armMonitor binding routes the shared guard identically
+ok - a cold arm starts one Monitor task and records its task id
+ok - a second arm inside the stale window is a no-op
+ok - an armed claim older than the stale bound expires and the next arm site arms
+ok - a mode-off arm never starts a Monitor (the standing claim is untouched)
+ok - a denied Monitor start loses the claim
+ok - a throwing Monitor start records the error and loses the claim
+ok - the next arm after a lost claim recovers
+ok - the loop command keeps its exact prefix, rotate deadline, and re-arm gates
+ok - only the live monitor's own expiry re-arms; a foreign notice is ignored with the live id
+ok - a restored claim honours its arm time and falls back to the given now

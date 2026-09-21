@@ -1,0 +1,21 @@
+ok - the mod hook's status-note binding routes the shared module byte-identically
+ok - the reason-line filter keeps signal, stale, check, and heartbeat lines, trimmed, dropping prose and alarms
+ok - the rewake banner keeps the Stop hook's exact shape and bytes
+ok - a text without the monitor description is not ours
+ok - a monitor event block parses to its reason lines
+ok - an expiry notice riding the event stream expires the monitor and keeps the real events
+ok - a lone rotate notice expires the monitor with no reasons
+ok - an eventless notification counts as expired
+ok - the task-notice id parse finds the id or answers empty
+ok - the Stop-hook wake predicate needs both the summary and the watcher marker
+ok - the note slices the status log from the outcome index endpoint
+ok - a missing outcome index reads as no earlier outcome
+ok - a missing status log contributes no lines
+ok - the note keeps at most the last twelve fresh lines
+ok - a multi-task note carries one part per task in order
+ok - an index with a foreign header reads as no earlier outcome
+ok - no tasks answer an empty note
+ok - the processing request keeps its exact bytes
+ok - the tool-text coercion prefers text, then result, then empty
+ok - the Bash actor command wraps the original command with the identity exports
+ok - the version-probe parse takes the first token and accepts three dot-separated numbers

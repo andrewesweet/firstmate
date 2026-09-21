@@ -1,0 +1,9 @@
+ok - the mod hook's scan binding routes the shared module identically on every fixture
+ok - a working ship task's signal row scans safe and eligible with its wake key
+ok - an empty queue scans empty before any metadata enumeration can fail
+ok - a missing queue, an unreadable queue, and an unreadable meta each refuse the scan
+ok - a torn epoch field refuses the row set
+ok - an open captain decision makes the stale row decision-owned, not eligible
+ok - a symlinked status log reads as refused, so the stale row stays eligible (bash truth)
+ok - a task without a project leaves its row key unresolvable, so the scan refuses
+ok - a torn status read completes the scan instead of refusing it

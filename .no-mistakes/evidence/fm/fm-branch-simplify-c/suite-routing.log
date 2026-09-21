@@ -1,0 +1,22 @@
+ok - a missing mode switch passes the wake to main untouched
+ok - an away flag passes the wake to main
+ok - a wake with no actionable reason line passes to main
+ok - an empty queue under a signal reason is dropped (the other continuity path routed it)
+ok - an empty queue under a check reason still passes (main must acknowledge)
+ok - an unsafe scope passes the wake to main untouched
+ok - a captain classifier verdict passes the wake to main
+ok - the same passed wake inside the dedupe window is dropped
+ok - a passed row still queued after the window goes back to main unclassified
+ok - a routine verdict grants the wake and the branch takes it
+ok - a failed delivery releases the grant and passes the wake to main; the repeat is deduped
+ok - a main-owned publish verdict passes the wake to main
+ok - a missing session lock passes the wake to main
+ok - a wake arriving while the branch is busy is queued for the settlement
+ok - a wake already in the branch's hands is deduped
+ok - a latched provider passes the wake with the latched reason
+ok - a stale in-flight record frees the grant and the fresh wake is delivered
+ok - a classifier pass writes the covering captain row, advances the cursors, and gathers evidence
+ok - the granted wake carries the supervision prompt with its task scope note
+ok - a granted routine wake with evidence fires the shadow advisory with the wake key
+ok - a classifier pass records the passed rows durably
+ok - the mod hook's routeWake binding routes the shared decision identically on every shared step

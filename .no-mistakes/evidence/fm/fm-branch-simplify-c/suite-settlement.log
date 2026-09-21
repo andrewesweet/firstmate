@@ -1,0 +1,13 @@
+ok - the mod hook's backstop binding routes the shared rule identically
+ok - the backstop runs the covered check per task in order and logs its result first
+ok - each covered task delivers its deterministic prompt with the tab-stripped lines
+ok - a task with nothing covered delivers no prompt
+ok - a failed backstop submission is logged as backstop.error, never thrown
+ok - unset environment reads persistence on by default
+ok - the force variable restores persistence
+ok - the inherited child-session marker disables persistence
+ok - the force variable wins over the marker
+ok - the counters record keeps its pinned field order
+ok - the counters record parses or refuses, and applies only on the same lock pid
+ok - the usage fold sums the request tokens and divides by the step count
+ok - the rotation bound fires past 60000 per-step tokens, once per crossing

@@ -1,0 +1,2 @@
+ok - Claude Code 2.1.278 (Claude Code) validates the supervision-branch mod strictly: the documented hooks, the spawn, the classifier, and only the home-resolution, transcript-persistence, and fold-vocabulary environment
+ok - Claude Code 2.1.278 (Claude Code) runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn
