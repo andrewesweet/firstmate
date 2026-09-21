@@ -2370,6 +2370,74 @@ fm_wake_latest_event() {  # <validated-status-path> <tail-byte-cap>
 
 # Print supplemental drain-time context only after the caller has committed the
 # raw queue consumption and released the append lock.
+# --- durable retrospective trigger producer hook (bin/fm-retro-trigger.sh) ---
+# The cursor-backed presentation span in fm_wake_print_annotations sees each
+# unread status event line exactly once per drain, so it is the producer for
+# the needs-decision and blocked anomalies and the only candidate for
+# done-unseen. Best effort by contract: the hook never fails the drain and
+# never writes to the annotation stream. Inert unless config/retro-cadence
+# exists - the hook checks existence only, because bin/fm-retro-trigger.sh
+# alone parses the file and owns every threshold.
+FM_RETRO_TRIGGER_ACTIVE=
+fm_retro_trigger_active() {
+  if [ -z "${FM_RETRO_TRIGGER_ACTIVE:-}" ]; then
+    FM_RETRO_TRIGGER_ACTIVE=0
+    local config_dir
+    if [ -n "${FM_CONFIG_OVERRIDE:-}" ]; then
+      config_dir=$FM_CONFIG_OVERRIDE
+    else
+      config_dir="$FM_HOME/config"
+    fi
+    [ -f "$config_dir/retro-cadence" ] && FM_RETRO_TRIGGER_ACTIVE=1
+  fi
+  [ "$FM_RETRO_TRIGGER_ACTIVE" = 1 ]
+}
+
+# Bind a presented done: line to a queued wake row epoch for its key. The
+# binding holds only when this drain's unread span for the key holds exactly
+# one line and a direct signal row carries the key. The rows arrive deduped,
+# so the row found is the key's latest collapsed row, whose epoch is never
+# earlier than the row that surfaced the line: the wait since the done: line
+# is under-estimated, never over-estimated. Any other shape (multi-line span,
+# no signal row, historical turn-end rows) is not mechanically bindable - row
+# payloads carry file lists, never lines - so no epoch is printed and the
+# producer stays silent rather than approximating.
+fm_retro_trigger_done_epoch() {  # <status-key> <deduped-raw-rows>
+  local key=$1 rows=$2 span_count row_count
+  span_count=$(printf '%s\n' "$FM_WAKE_UNREAD_LINES" | LC_ALL=C wc -l)
+  [ "$span_count" -eq 1 ] || return 1
+  row_count=$(printf '%s\n' "$rows" | LC_ALL=C awk -F '\t' -v k="$key" '
+    NF >= 5 && $3 == "signal" && $4 == k { n++ } END { printf "%d", n + 0 }')
+  [ "$row_count" -eq 1 ] || return 1
+  printf '%s\n' "$rows" | LC_ALL=C awk -F '\t' -v k="$key" \
+    'NF >= 5 && $3 == "signal" && $4 == k { print $1; exit }'
+}
+
+fm_retro_trigger_observe_event() {  # <status-key> <event-line> <deduped-raw-rows>
+  local status_key=$1 event_line=$2 rows=$3 task kind evidence epoch
+  fm_retro_trigger_active || return 0
+  case "$event_line" in
+    needs-decision:*|needs-decision\ *) kind=needs-decision ;;
+    blocked:*|blocked\ *) kind=blocked ;;
+    done:*) kind=done-unseen ;;
+    *) return 0 ;;
+  esac
+  task=${status_key%.status}
+  case "$task" in ''|.*|*[!A-Za-z0-9._-]*) return 0 ;; esac
+  if [ "$kind" = done-unseen ]; then
+    epoch=$(fm_retro_trigger_done_epoch "$status_key" "$rows") || return 0
+    case "$epoch" in ''|*[!0-9]*) return 0 ;; esac
+    evidence="epoch=$epoch $(printf '%s\n' "$event_line" | LC_ALL=C cut -c1-80)"
+  else
+    evidence=$(printf '%s\n' "$event_line" | LC_ALL=C sed -n 's/.*\[key=\([^]]*\)\].*/\1/p')
+    [ -n "$evidence" ] \
+      || evidence=$(printf '%s\n' "$event_line" | LC_ALL=C cut -c1-80)
+  fi
+  "$FM_WAKE_LIB_DIR/fm-retro-trigger.sh" observe anomaly "$kind" "$task" "$evidence" \
+    >/dev/null || :
+  return 0
+}
+
 fm_wake_print_annotations() {  # <deduped-raw-rows> [<presentation-snapshot>]
   local rows=$1 snapshot=${2:-} manifest status_key mode path prefix line task endpoint
   local snapshot_task snapshot_endpoint _snapshot_ident offset last_event event_line
@@ -2447,6 +2515,7 @@ EOF
       fi
       line="$prefix: $status_key: $event_line"
       printf '%s\n' "$line" || return 1
+      fm_retro_trigger_observe_event "$status_key" "$event_line" "$rows"
     done <<EOF
 $FM_WAKE_UNREAD_LINES
 EOF

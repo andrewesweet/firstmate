@@ -293,6 +293,19 @@ The flag is per home and is not inherited by secondmate homes, because stow cade
 Only the file's presence is read, so its contents are ignored; remove it to return to the default contract on the next pass.
 The skill text owns the marker spelling, the tick order, and the reinforcement rule.
 
+## Retro cadence trigger (config/retro-cadence)
+
+The optional local, gitignored `config/retro-cadence` file opts this home into the durable retrospective trigger owned by `bin/fm-retro-trigger.sh`'s header.
+Without it every command is a silent no-op that creates nothing, which is the default and unchanged behavior.
+The file holds `KEY=VALUE` lines from exactly three optional keys: `spend_usd` fires once the known-lane closed-task cost reaches the value, `median_multiplier` fires when a known closure costs more than that multiple of the running median over at least three known closures, and `done_unseen_minutes` bounds how long a completed work line may wait in the durable wake queue.
+An unknown key, a malformed or non-positive value, or a symlinked config file is refused loudly with exit 2 instead of being treated as the default.
+`bin/fm-retro-trigger.sh observe` records idempotent receipts under `state/retro-trigger/`, and the first threshold crossing files exactly one scout work item through the home's configured backlog backend plus exactly one durable `check:` wake.
+While that work item is open, later observations only append receipts, and `reset <retro-id>` archives the generation and re-arms the trigger.
+Two producers feed it and both absorb every trigger failure: `bin/fm-teardown.sh` records a closure receipt after a ship or scout task's backlog close, and the wake-presentation annotations in `bin/fm-wake-lib.sh` record needs-decision, blocked, and done-unseen receipts.
+The done-unseen receipt records an epoch only when one durable wake row unambiguously carried the completed line; other shapes are skipped rather than approximated.
+Closures land in the unknown-cost lane today, so only explicitly reported `--cost` values feed the spend and median rules, and cost collection, CI-repair detection, cross-home aggregation, and dispatching the retrospectives themselves stay out of scope.
+The file is home-local and is not inherited by secondmate homes, because cadence is a property of the home doing the observing.
+
 ## Secondmate routes (data/secondmates.md)
 
 Persistent secondmate routes live locally in `data/secondmates.md`.

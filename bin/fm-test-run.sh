@@ -794,6 +794,7 @@ tests/fm-remote-secondmate-lifecycle-e2e.test.sh 241208
 tests/fm-remote-secondmate-parent-binding.test.sh 32176
 tests/fm-remote-secondmate-trace-context.test.sh 59689
 tests/fm-remote-transport-lanes.test.sh 62635
+tests/fm-retro-trigger.test.sh 20000
 tests/fm-rovo-harness.test.sh 14322
 tests/fm-rovo-signals-live-e2e.test.sh 48
 tests/fm-secondmate-harness.test.sh 163801
