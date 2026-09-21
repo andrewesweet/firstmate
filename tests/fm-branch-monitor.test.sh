@@ -240,6 +240,7 @@ fi
 
 # The loop command bytes, pinned: the rotate deadline is one monitor
 # timeout minus three minutes (1620s) and every path is JSON-quoted.
+# shellcheck disable=SC2016 # the loop command bytes are literal; $(...) belongs to the generated shell
 EXPECTED_COMMAND_PREFIX='cd "/work" && export FM_HOME="/fm/home" FM_STATE_OVERRIDE="/fm/home/state" FM_CONFIG_OVERRIDE="/fm/home/config"; A="/fm/code/bin/fm-watch-arm.sh"; Q="/fm/home/state/.wake-queue"; D="/fm/home/state/.watcher-down"; T0=$(date +%s); DL=$(( T0 + 1620 )); '
 CMD="$(step arm | jq -r '.command')"
 if case "$CMD" in "$EXPECTED_COMMAND_PREFIX"*) true;; *) false;; esac && [ "$(printf '%s' "$CMD" | grep -o 'rotate: loop exiting ahead of the monitor timeout' | wc -l)" = "2" ] && [ "$(printf '%s' "$CMD" | grep -c 'forced-rearm: queue or recovery marker still pending after %ss')" = "1" ]; then
