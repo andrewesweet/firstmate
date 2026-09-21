@@ -51,6 +51,18 @@
 # state/.watch-triage.log remains exclusively the watcher's absorbed-wake debug
 # log and is never written here.
 #
+# --follow-budget SECONDS: bound how long this arm parks on one watcher
+# cycle. When the budget elapses while a verified healthy watcher holds the
+# cycle - one this arm attached to, or its own confirmed started child - the
+# arm prints `watcher: follow budget elapsed (<disposition> left running)` and
+# exits 0 LEAVING THE WATCHER RUNNING, so a later arm attaches to the same
+# cycle. This exists for callers that must regain control before their host
+# kills the arm's process group (the fm-branch-mod continuity Monitor), because
+# that kill would take the watcher down with the arm. The bound never weakens
+# verification: a cycle that ends inside the budget is resolved exactly as
+# without the flag, a budget exit happens only while the watcher is verified
+# healthy, and FAILED verdicts stay loud.
+#
 # --restart: stop ONLY this FM_HOME's watcher (the pid recorded in THIS home's
 # state/.watch.lock) and own a fresh cycle, or attach if a verified live peer
 # wins the singleton while the duplicate child stands down. It
@@ -79,6 +91,8 @@ esac
 CONFIRM_TIMEOUT=${FM_ARM_CONFIRM_TIMEOUT:-$ARM_CONFIRM_DEFAULT}
 # Poll interval while attached to an existing healthy watcher.
 ATTACH_POLL=${FM_ARM_ATTACH_POLL:-0.5}
+# Poll interval while the follow budget parks on the started watcher child.
+ARM_FOLLOW_POLL=${FM_ARM_FOLLOW_POLL:-0.2}
 CYCLE_LOG="$STATE/.watch-cycle-exits.log"
 CYCLE_LOG_LOCK="$STATE/.watch-cycle-exits.lock"
 CYCLE_LOG_MAX_BYTES=${FM_WATCH_CYCLE_LOG_MAX_BYTES:-262144}
@@ -308,7 +322,8 @@ close_unobserved_cycle() {
 # Stay alive across identity-matched healthy holders. If one cycle ends, attach
 # to a verified successor. With no successor, report the wake that cycle durably
 # delivered, or fail loudly - never a clean empty completion that an adapter could
-# mistake for a no-op.
+# mistake for a no-op. Under a follow budget, the park ends at the deadline while
+# the current holder is verified healthy, leaving that watcher running.
 attach_and_wait() {
   local attached_pid=$1
   while :; do
@@ -318,6 +333,11 @@ attach_and_wait() {
         attached_pid=$HEALTHY_PID
         cycle_begin "$attached_pid" attached "$HEALTHY_IDENTITY"
         report_attached
+      fi
+      if follow_budget_active && follow_budget_elapsed; then
+        cycle_log_append 0 none follow-budget-elapsed "left-running:$attached_pid"
+        echo "watcher: follow budget elapsed (attached pid=$attached_pid left running)"
+        return 0
       fi
       sleep "$ATTACH_POLL"
       continue
@@ -385,6 +405,18 @@ handling_successor_generation() {
 mode=arm
 handling_generation=
 handling_watcher_pid=
+# The opt-in follow budget (seconds): 0 keeps the arm's park unbounded.
+follow_budget=0
+if [ "${1:-}" = --follow-budget ]; then
+  case "${2:-}" in
+    ''|*[!0-9]*|0)
+      echo "usage: $(basename "$0") [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]" >&2
+      exit 2
+      ;;
+  esac
+  follow_budget=$2
+  shift 2
+fi
 case "${1:-}" in
   ''|arm|--arm) mode=arm ;;
   --restart) mode=restart ;;
@@ -397,8 +429,16 @@ case "${1:-}" in
     case "$handling_watcher_pid" in ''|*[!0-9]*) echo "watcher: invalid successor watcher pid" >&2; exit 2 ;; esac
     [ "$#" -eq 4 ] || { echo "watcher: unexpected handling delivery arguments" >&2; exit 2; }
     ;;
-  *) echo "usage: $(basename "$0") [--restart | --handling-delivered GENERATION --watcher-pid PID]" >&2; exit 2 ;;
+  *) echo "usage: $(basename "$0") [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]" >&2; exit 2 ;;
 esac
+if [ "$follow_budget" -gt 0 ] && [ "$mode" != arm ]; then
+  echo "usage: $(basename "$0"): --follow-budget applies only to the default arm mode" >&2
+  exit 2
+fi
+FOLLOW_DEADLINE=0
+[ "$follow_budget" -eq 0 ] || FOLLOW_DEADLINE=$(( $(date +%s) + follow_budget ))
+follow_budget_active() { [ "$follow_budget" -gt 0 ]; }
+follow_budget_elapsed() { [ "$(date +%s)" -ge "$FOLLOW_DEADLINE" ]; }
 
 if [ "$mode" = handling-delivered ]; then
   fm_pid_alive "$handling_watcher_pid" \
@@ -478,14 +518,39 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
   echo "watcher: FAILED - no live watcher with a fresh beacon"
   exit 1
 }
+# The watcher's stderr and stdin are detached from this arm: a caller that
+# captures the arm through a pipe (`out=$("$A" ... 2>&1)`) reads until every
+# writer closes, so an inherited stderr would keep that caller blocked past a
+# follow-budget exit with the watcher still alive - and a reader-less pipe
+# would SIGPIPE the watcher's next diagnostic once the caller moved on.
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
-  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" &
+  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 else
-  "$WATCH" >"$child_out" &
+  "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 fi
 child=$!
 cycle_begin "$child" started "$(fm_pid_identity "$child" 2>/dev/null || true)"
 child_done=0
+
+# Park on the started watcher child until it exits, or until the follow budget
+# elapses with the child still alive. Bash reaps a dead background child while
+# this shell runs any foreground command, so kill -0 stops reporting the pid
+# once the child has exited and the trailing wait returns its recorded status;
+# the poll never parks on a zombie. Sets WAIT_CHILD_BUDGET_EXIT=1 when the
+# budget ends the park with the watcher child still running; otherwise returns
+# the child's own exit status.
+WAIT_CHILD_BUDGET_EXIT=0
+wait_child_close() {
+  WAIT_CHILD_BUDGET_EXIT=0
+  while fm_pid_alive "$child"; do
+    if follow_budget_active && follow_budget_elapsed; then
+      WAIT_CHILD_BUDGET_EXIT=1
+      return 0
+    fi
+    sleep "$ARM_FOLLOW_POLL"
+  done
+  wait "$child"
+}
 
 owned_child_finished() {
   local rc=$1 signal reason_type status
@@ -563,8 +628,19 @@ while :; do
       else
         echo "watcher: started pid=$child (beacon fresh)"
       fi
-      wait "$child"
+      wait_child_close
       rc=$?
+      if [ "$WAIT_CHILD_BUDGET_EXIT" = 1 ]; then
+        # The follow budget ended the park with the confirmed watcher child
+        # still running: leave it alive holding the singleton (a later arm
+        # attaches), instead of taking it down with this arm.
+        cycle_log_append 0 none follow-budget-elapsed "left-running:$child"
+        echo "watcher: follow budget elapsed (started pid=$child left running)"
+        rm -f "$child_out" 2>/dev/null || true
+        child=
+        child_out=
+        exit 0
+      fi
       owned_child_finished "$rc"
       exit $?
     fi

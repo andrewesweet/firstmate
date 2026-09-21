@@ -45,11 +45,17 @@ start_seed_watcher() {  # <state> <fakebin> <watch-out>
     || fail "seed watcher did not take the lock"
 }
 
-# Attach a real arm to the live cycle.
-start_attached_arm() {  # <state> <fakebin> <arm-out> <confirm-timeout>
-  local state=$1 fakebin=$2 armout=$3 confirm=$4 i
-  PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 \
-    FM_ARM_CONFIRM_TIMEOUT="$confirm" "$WATCH_ARM" > "$armout" &
+# Attach a real arm to the live cycle. An optional fifth argument bounds the
+# arm's park with --follow-budget so a case can exercise the bounded follow.
+start_attached_arm() {  # <state> <fakebin> <arm-out> <confirm-timeout> [follow-budget]
+  local state=$1 fakebin=$2 armout=$3 confirm=$4 budget=${5:-} i
+  if [ -n "$budget" ]; then
+    PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 \
+      FM_ARM_CONFIRM_TIMEOUT="$confirm" "$WATCH_ARM" --follow-budget "$budget" > "$armout" &
+  else
+    PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 \
+      FM_ARM_CONFIRM_TIMEOUT="$confirm" "$WATCH_ARM" > "$armout" &
+  fi
   ARM_PID=$!
   i=0
   while [ "$i" -lt 80 ]; do
@@ -155,6 +161,109 @@ start_rearm_arm() {  # <home> <state> <fakebin> <arm-out> [predecessor-arm-pid]
     i=$((i + 1))
   done
   return 0
+}
+
+test_follow_budget_returns_leaving_the_attached_watcher_running() {
+  local dir state fakebin out armout arm2out status
+  dir=$(make_case follow-budget-attached)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  out="$dir/watch.out"
+  armout="$dir/arm.out"
+  arm2out="$dir/arm2.out"
+  start_seed_watcher "$state" "$fakebin" "$out"
+  # A 2-second follow budget against a watcher that stays quiet: the arm must
+  # regain control at the deadline instead of parking on the healthy cycle
+  # until some host timeout kills the process group with the watcher in it.
+  start_attached_arm "$state" "$fakebin" "$armout" 1 2
+
+  wait_for_exit "$ARM_PID" 120
+  status=$?
+  expect_code 0 "$status" "a follow-budget arm must exit cleanly, not fail its cycle"
+  grep -qF "watcher: follow budget elapsed (attached pid=$SEED_PID left running)" "$armout" \
+    || fail "the budget exit did not name the attached watcher it left running: $(cat "$armout")"
+  ! grep -qF 'watcher: FAILED' "$armout" \
+    || fail "a budget exit on a healthy watcher reported a failure: $(cat "$armout")"
+  grep -q 'reason=follow-budget-elapsed' "$state/.watch-cycle-exits.log" \
+    || fail "the budget exit was not classified in the lifecycle ledger"
+  is_live_non_zombie "$SEED_PID" \
+    || fail "the follow-budget exit took the attached watcher down with the arm"
+  [ "$(cat "$state/.watch.lock/pid" 2>/dev/null)" = "$SEED_PID" ] \
+    || fail "the watcher the budget exit left running no longer holds the singleton lock"
+
+  # The continuity the flag exists for: the next arm attaches to the very
+  # watcher the budget exit left running, with no restart and no gap.
+  start_attached_arm "$state" "$fakebin" "$arm2out" 1
+  kill "$SEED_PID" 2>/dev/null || true
+  wait "$SEED_PID" 2>/dev/null || true
+  wait_for_exit "$ARM_PID" 200 >/dev/null 2>&1 || true
+  pass "watch-arm: a follow-budget arm returns at its deadline leaving the attached watcher running for the next arm"
+}
+
+test_follow_budget_returns_leaving_the_started_watcher_running() {
+  local dir home state fakebin armout arm2out status watcher_pid i
+  dir=$(make_case follow-budget-started)
+  home="$dir/home"
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/arm.out"
+  arm2out="$dir/arm2.out"
+  mkdir -p "$home/data"
+
+  # No watcher is live: the arm starts one, confirms it, and then parks on the
+  # child for the whole quiet cycle - the exact park that outlasts a host
+  # timeout. The budget must end the park with the confirmed child alive, and
+  # the caller must regain control at once: the continuity Monitor captures
+  # the arm through a command substitution, which returns only when every
+  # writer of that pipe has closed, so a watcher left holding the arm's stderr
+  # would park the caller past the very deadline the budget exists for.
+  (
+    out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+      FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+      FM_ARM_CONFIRM_TIMEOUT=5 FM_ARM_FOLLOW_POLL=0.1 \
+      "$WATCH_ARM" --follow-budget 2 2>&1)
+    status=$?
+    printf '%s\n' "$out" > "$armout"
+    exit "$status"
+  ) &
+  ARM_PID=$!
+  wait_for_exit "$ARM_PID" 120
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    kill "$(cat "$state/.watch.lock/pid" 2>/dev/null)" 2>/dev/null || true
+    fail "a follow-budget arm that started the watcher must return control to a pipe-capturing caller at its deadline (status $status): $(cat "$armout" 2>/dev/null)"
+  fi
+  grep -qF 'watcher: started pid=' "$armout" \
+    || fail "the budget arm never confirmed the watcher it started: $(cat "$armout")"
+  watcher_pid=$(sed -n 's/^watcher: follow budget elapsed (started pid=\([0-9][0-9]*\) left running)$/\1/p' "$armout")
+  [ -n "$watcher_pid" ] \
+    || fail "the budget exit did not name the started watcher it left running: $(cat "$armout")"
+  ! grep -qF 'watcher: FAILED' "$armout" \
+    || fail "a budget exit on a confirmed watcher reported a failure: $(cat "$armout")"
+  is_live_non_zombie "$watcher_pid" \
+    || fail "the follow-budget exit took the started watcher down with the arm"
+  [ "$(cat "$state/.watch.lock/pid" 2>/dev/null)" = "$watcher_pid" ] \
+    || fail "the watcher the budget exit left running no longer holds the singleton lock"
+  grep -q 'reason=follow-budget-elapsed' "$state/.watch-cycle-exits.log" \
+    || fail "the budget exit was not classified in the lifecycle ledger"
+
+  # The started watcher is orphaned but alive and healthy once its arm is
+  # gone; the successor arm attaches to it exactly as the continuity monitors
+  # do across their rotations.
+  PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+    FM_ARM_ATTACH_POLL=0.1 FM_ARM_CONFIRM_TIMEOUT=5 "$WATCH_ARM" > "$arm2out" 2>&1 &
+  ARM_PID=$!
+  i=0
+  while [ "$i" -lt 80 ]; do
+    grep -qF "watcher: attached pid=$watcher_pid" "$arm2out" 2>/dev/null && break
+    sleep 0.1
+    i=$((i + 1))
+  done
+  grep -qF "watcher: attached pid=$watcher_pid" "$arm2out" \
+    || fail "the successor arm did not attach to the watcher the budget exit left running: $(cat "$arm2out")"
+  kill "$watcher_pid" 2>/dev/null || true
+  wait_for_exit "$ARM_PID" 200 >/dev/null 2>&1 || true
+  pass "watch-arm: a follow-budget arm returns at its deadline leaving the watcher it started running for the next arm"
 }
 
 test_attached_arm_reports_the_delivered_wake() {
@@ -843,6 +952,8 @@ test_arm_refuses_an_unusable_launch_confirm_window() {
 
 test_attached_arm_reports_the_delivered_wake
 test_attached_arm_reports_the_delivered_wake_after_drain
+test_follow_budget_returns_leaving_the_attached_watcher_running
+test_follow_budget_returns_leaving_the_started_watcher_running
 test_arm_refuses_an_unusable_launch_confirm_window
 test_attached_arm_still_fails_on_a_wake_it_did_not_deliver
 test_rearm_resurfaces_durable_queue_and_remote_open_decision
