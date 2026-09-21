@@ -48,6 +48,7 @@ cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$TMP_ROOT/.pi/extensions/li
 cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" "$TMP_ROOT/.pi/extensions/lib/fm-operational-input.ts"
 cp "$ROOT/lib/fm-branch-classifier.ts" "$TMP_ROOT/lib/fm-branch-classifier.ts"
 cp "$ROOT/lib/fm-branch-eligibility.ts" "$TMP_ROOT/lib/fm-branch-eligibility.ts"
+cp "$ROOT/lib/fm-branch-eligibility-core.ts" "$TMP_ROOT/lib/fm-branch-eligibility-core.ts"
 cp "$ROOT/lib/fm-branch-shadow.ts" "$TMP_ROOT/lib/fm-branch-shadow.ts"
 cp "$ROOT/lib/fm-branch-report-sequence.ts" "$TMP_ROOT/lib/fm-branch-report-sequence.ts"
 cp "$ROOT/lib/fm-branch-provider-latch.ts" "$TMP_ROOT/lib/fm-branch-provider-latch.ts"

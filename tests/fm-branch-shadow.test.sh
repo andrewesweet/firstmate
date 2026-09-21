@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Colocated tests for lib/fm-branch-shadow.ts, its vendored mod copy, and the
-# mod hook's delegation. Three legs per fixture set: the shared lib module,
-# the vendored copy under the mod's lib/, and the REAL mod hook's
-# runShadowAdvisory() driven through a mock host. The first two must decide
-# byte-identically; the third must route the same module-owned bytes (results,
-# record lines, request bodies, and helper spawns with the host's bind path
-# and clock normalized away). Also pins: the record's field order and policy
-# payload the scorers parse, the facts object the six-gate scorer reads, the
-# jev answer rule, variant generation and the repeat control, bounds caps, and
+# Colocated tests for the shared shadow-advisory module
+# (.claude/mods/fm-branch-mod/lib/fm-branch-shadow.ts, the canonical copy
+# the repo's lib/ symlinks to) and the mod hook's delegation. Two legs per
+# fixture set: the shared module through the repo's lib/ symlink, and the
+# REAL mod hook's runShadowAdvisory() driven through a mock host. The
+# second must route the same module-owned bytes (results, record lines,
+# request bodies, and helper spawns with the host's bind path and clock
+# normalized away). Also pins: the record's field order and policy payload
+# the scorers parse, the facts object the six-gate scorer reads, the jev
+# answer rule, variant generation and the repeat control, bounds caps, and
 # the never-throw error surface (shadow.log.error, shadow.error).
 set -u
 # shellcheck source=tests/lib.sh
@@ -320,17 +321,16 @@ export FM_RS_ROOT="$ROOT"
 echo "$PLAN" > "$TMP_ROOT/plan.json"
 PLAN_ARG="$(cat "$TMP_ROOT/plan.json")"
 node --experimental-strip-types "$TMP_ROOT/shadow-run.mjs" "$ROOT/lib/fm-branch-shadow.ts" "$PLAN_ARG" > "$TMP_ROOT/lib.json"
-node --experimental-strip-types "$TMP_ROOT/shadow-run.mjs" "$MOD/lib/fm-branch-shadow.ts" "$PLAN_ARG" > "$TMP_ROOT/vendored.json"
 FM_RS_ROOT="$ROOT" node --experimental-strip-types "$TMP_ROOT/mod-shadow-run.mjs" "$PLAN_ARG" > "$TMP_ROOT/mod.json"
 # A crashed driver writes an empty or partial file whose legs would then
 # compare vacuously; require parseable non-empty output before comparing.
-for leg in lib vendored mod; do
+for leg in lib mod; do
   if [ ! -s "$TMP_ROOT/$leg.json" ] || ! jq -e 'type == "array" and length > 0' "$TMP_ROOT/$leg.json" > /dev/null; then
     fail "the $leg shadow driver produced no usable output"
   fi
 done
 
-# ---------- three-leg byte equality ------------------------------------------
+# ---------- two-leg byte equality --------------------------------------------
 # The mod leg must agree with the lib leg on every module-owned byte: the
 # shadow records with the host clock normalized away, the jev request bodies,
 # the pane helper spawns projected to task and timeout (the script's bind path
@@ -343,13 +343,7 @@ normalize_leg() {
     | map(.pane = (.pane | map({task: .task, timeoutMs: .timeoutMs})))' "$1"
 }
 normalize_leg "$TMP_ROOT/lib.json" > "$TMP_ROOT/lib-norm.json"
-normalize_leg "$TMP_ROOT/vendored.json" > "$TMP_ROOT/vendored-norm.json"
 normalize_leg "$TMP_ROOT/mod.json" > "$TMP_ROOT/mod-norm.json"
-if cmp -s "$TMP_ROOT/lib-norm.json" "$TMP_ROOT/vendored-norm.json"; then
-  pass "lib and vendored shadow legs decide byte-identically on every fixture"
-else
-  fail "lib and vendored shadow legs diverge"
-fi
 if cmp -s "$TMP_ROOT/lib-norm.json" "$TMP_ROOT/mod-norm.json"; then
   pass "the mod hook routes the shadow trial byte-identically to the shared module"
 else

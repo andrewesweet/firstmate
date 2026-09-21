@@ -1477,9 +1477,10 @@ families_for_changed_path() {
       # below loads it through .pi/extensions/lib/fm-branch-dispatch.ts, and
       # tests/fm-branch-eligibility.test.sh pins it directly.
       # lib/fm-branch-report-sequence.ts and lib/fm-branch-provider-latch.ts
-      # (A4) are consumed by the Pi extension directly and by the mod through
-      # the vendored copies, so they select their own equivalence suite, the
-      # mod's portable checks, and the Pi suites plus typecheck that load the
+      # (A4) are consumed by the Pi extension directly, and their tracked
+      # lib/ entries are symlinks into the mod's lib/ where the canonical
+      # copies live, so they select their own equivalence suite, the mod's
+      # portable checks, and the Pi suites plus typecheck that load the
       # importing extension.
       printf '%s\n' __script__:fm-branch-eligibility.test.sh
       printf '%s\n' __script__:fm-branch-report-sequence.test.sh
@@ -1517,12 +1518,12 @@ families_for_changed_path() {
       printf '%s\n' __script__:fm-pi-primary-types.test.sh
       printf '%s\n' live-harness-optin
       ;;
-    .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh|bin/fm-branch-shared-sync.sh)
-      # The Claude Code supervision-branch mod, the generator of its agent
-      # definition, and the vendorer of its shared modules (the eligibility
-      # fold, the report/processed decision core, and the provider-error
-      # latch): the portable Node checks, then the Claude-dependent guards
-      # (strict validation, the engine-hosted suite, and the pinned live run).
+    .claude/mods/fm-branch-mod/*|bin/fm-branch-agent-md.sh)
+      # The Claude Code supervision-branch mod and the generator of its agent
+      # definition (the mod's lib/ also carries the canonical shared modules
+      # the repo's lib/ symlinks to): the portable Node checks, then the
+      # Claude-dependent guards (strict validation, the engine-hosted suite,
+      # and the pinned live run).
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' __script__:fm-branch-report-sequence.test.sh
       printf '%s\n' live-harness-optin

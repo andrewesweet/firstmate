@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Drives the shared pre-branch classifier core (lib/fm-branch-classifier.ts)
-# from the two hosts that consume it plus its vendored copy, on one fixture
-# set (A5 of the supervision-branch hexagon refactor):
-#   - the lib leg: the module the Pi extension imports, through its declared
-#     seams (script runner, system-prompt and model-config reads, the model
-#     call, an injected clock);
-#   - the vendored leg: .claude/mods/fm-branch-mod/lib/fm-branch-classifier.ts,
-#     which must decide byte-identically;
+# Drives the shared pre-branch classifier core
+# (.claude/mods/fm-branch-mod/lib/fm-branch-classifier.ts, the canonical copy
+# the repo's lib/ symlinks to) from the two hosts that consume it, on one
+# fixture set (A5 of the supervision-branch hexagon refactor):
+#   - the lib leg: the module the Pi extension imports through the repo's
+#     symlink, through its declared seams (script runner, system-prompt and
+#     model-config reads, the model call, an injected clock);
 #   - the mod leg: the REAL Claude Code supervision-branch hook
 #     (.claude/mods/fm-branch-mod/hooks/branch.ts classify), bound through the
 #     exported bind() with a capturing process runner - its clock is host
@@ -87,7 +86,7 @@ PLAN='[
 
 # ---------- node drivers -----------------------------------------------------
 cat > "$TMP_ROOT/classifier-run.mjs" <<'DRIVER'
-// Drives one classifier module (lib or vendored) through the fixture plan
+// Drives one classifier module (lib or mod leg) through the fixture plan
 // with every seam captured: script spawns (argv + opts), the complete()
 // request, and the returned result plus the exact record line. The clock is
 // injected (iso -> "T", now -> fixed) so record bytes are leg-comparable.
@@ -259,27 +258,21 @@ export FM_RS_ROOT="$ROOT"
 echo "$PLAN" > "$TMP_ROOT/plan.json"
 PLAN_ARG="$(cat "$TMP_ROOT/plan.json")"
 node --experimental-strip-types "$TMP_ROOT/classifier-run.mjs" "$ROOT/lib/fm-branch-classifier.ts" "$PLAN_ARG" > "$TMP_ROOT/lib.json"
-node --experimental-strip-types "$TMP_ROOT/classifier-run.mjs" "$MOD/lib/fm-branch-classifier.ts" "$PLAN_ARG" > "$TMP_ROOT/vendored.json"
 node --experimental-strip-types "$TMP_ROOT/mod-classifier-run.mjs" "$PLAN_ARG" > "$TMP_ROOT/mod.json"
 # A crashed driver writes an empty or partial file whose legs would then
 # compare vacuously; require parseable non-empty output before comparing.
-for leg in lib vendored mod; do
+for leg in lib mod; do
   if [ ! -s "$TMP_ROOT/$leg.json" ] || ! jq -e 'type == "array" and length > 0' "$TMP_ROOT/$leg.json" > /dev/null; then
     fail "the $leg classifier driver produced no usable output"
   fi
 done
 
 # ---------- assertions -------------------------------------------------------
-if cmp -s "$TMP_ROOT/lib.json" "$TMP_ROOT/vendored.json"; then
-  pass "lib and vendored classifier legs decide byte-identically on every fixture"
-else
-  fail "lib and vendored classifier legs diverge"
-fi
 
 # The mod leg must agree with the lib leg on every module-owned byte: result,
 # complete request, the appended record line with the host clock normalized
 # away, and the spawns projected to the task and timeout (the script's bind
-# path is a host seam, so full-argv equality is only pinned lib-vs-vendored).
+# path is a host seam, so full-argv equality is only pinned on the lib leg).
 # The memo-reset and pass-cover records are lib-driver-only sections with
 # their own assertions below; classify() itself does not produce them.
 # The mod host cannot express an absent default name (its default is always
