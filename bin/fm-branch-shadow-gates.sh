@@ -39,10 +39,11 @@
 #     so while a wake's task records are all present the two reads are live
 #     and every scoring run records what they see into the durable sidecar
 #     $STATE/.branch-shadow-truth.jsonl (one JSON line per wake: wakeKey,
-#     pr_truth, stale_repair; a newer line is appended only when the live
-#     bits differ from the last recorded ones, and the last line per wake
-#     wins); the sidecar answers only once a task record is gone and is
-#     never written from an absent read, so a decayed signal can never be
+#     pr_truth, stale_repair). Both bits are events that only ever turn on,
+#     so the record is monotone: a newer line is appended only when a live
+#     read is 1 and the recorded bit is 0 (the last line per wake wins), a
+#     recorded 1 answers even while the records are present, and nothing
+#     is ever written from an absent read, so a decayed signal can never be
 #     rewritten as evidence. A wake whose task records are gone and which
 #     has no snapshot stays unreadable: it is
 #     counted and noted below the table, and is never counted as a fire
@@ -363,13 +364,11 @@ task_poll_armed() {  # <task>: merge poll armed or pr= recorded (task-scoped, re
   [ -f "$STATE/$task.pr-poll" ] && return 0
   [ -f "$STATE/$task.meta" ] && grep -q '^pr=' "$STATE/$task.meta" 2>/dev/null
 }
-wake_pr_truth() {  # <wakeKey>: PR in the joined rows or a merge poll armed for one of its tasks; the sidecar answers for the task-record half once a record is gone
+wake_pr_truth() {  # <wakeKey>: PR in the joined rows, a recorded merge poll, or one armed live for one of its tasks
   [ -n "${WK_PRROWS[$1]:-}" ] && return 0
+  [ "${SC_PR[$1]:-0}" = 1 ] && return 0
   local t
-  if ! wake_live "$1"; then
-    [ "${SC_PR[$1]:-0}" = 1 ]
-    return
-  fi
+  wake_live "$1" || return 1
   for t in ${WK_TASKS[$1]:-}; do
     task_poll_armed "$t" && return 0
   done
@@ -395,30 +394,27 @@ wake_stale_repair() {  # <wakeKey>: a stale wake main had to act on - a worker
   done
   return 1
 }
-wake_stale_repair_truth() {  # <wakeKey>: the live busy-state records while present, the sidecar once a record is gone
-  if ! wake_live "$1"; then
-    [ "${SC_STALE[$1]:-0}" = 1 ]
-    return
-  fi
-  wake_stale_repair "$1"
+wake_stale_repair_truth() {  # <wakeKey>: a recorded repair, or one read live from the busy-state records while present
+  [ "${SC_STALE[$1]:-0}" = 1 ] && return 0
+  wake_live "$1" && wake_stale_repair "$1"
 }
 wake_readable() {  # <wakeKey>: truth still derivable - every task record is present or a snapshot exists
   wake_live "$1" || [ -n "${SC_HAS[$1]:-}" ]
 }
 
 # Snapshot pass: record what the merge-poll and stale-repair reads see for
-# every wake whose task records are all still present, appending a newer
-# line only when the live bits differ from the last recorded ones, so later
-# runs after a teardown consult recorded evidence instead of an absent read.
-# Never written from an absent read: no line is appended for a wake whose
-# task records are gone.
+# every wake whose task records are all still present. Monotone: a newer
+# line is appended only when a live read is 1 and the recorded bit is 0,
+# never for a 1-to-0 change, so later runs after a teardown consult recorded
+# evidence instead of an absent read. Never written from an absent read: no
+# line is appended for a wake whose task records are gone.
 snapshot_truth() {
   local wk t pr st line lines=''
   for wk in "${!WK_SEEN[@]}"; do
     [ -n "${WKEPOCH[$wk]:-}" ] || continue
     wake_live "$wk" || continue
-    pr=0
-    st=0
+    pr=${SC_PR[$wk]:-0}
+    st=${SC_STALE[$wk]:-0}
     for t in ${WK_TASKS[$wk]:-}; do
       task_poll_armed "$t" && pr=1
     done

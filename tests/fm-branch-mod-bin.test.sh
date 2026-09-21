@@ -325,7 +325,13 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
     || fail "the sidecar's last line for the wake must carry the armed read: $(cat "$state/.branch-shadow-truth.jsonl")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "a line is appended only when the live bits change: $(cat "$state/.branch-shadow-truth.jsonl")"
-  rm -f "$state/t11.meta" "$state/t11.status" "$state/t11.pr-poll"
+  rm -f "$state/t11.pr-poll" "$state/t11.busy-state"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed in the teardown window"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "a retired poll while the meta is present must not flip the recorded truth: $(grep pr-ready-arm "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "a 1-to-0 live change must never be recorded: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t11.meta" "$state/t11.status"
   FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed after teardown"
   grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
     || fail "after teardown the sidecar must still read correct: $(grep pr-ready-arm "$out")"
