@@ -518,6 +518,11 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
   echo "watcher: FAILED - no live watcher with a fresh beacon"
   exit 1
 }
+# The watcher's stderr and stdin are detached from this arm: a caller that
+# captures the arm through a pipe (`out=$("$A" ... 2>&1)`) reads until every
+# writer closes, so an inherited stderr would keep that caller blocked past a
+# follow-budget exit with the watcher still alive - and a reader-less pipe
+# would SIGPIPE the watcher's next diagnostic once the caller moved on.
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 else
