@@ -1,0 +1,4 @@
+unsafe scope verdict: passed | passed after: ["5"] | writes: []
+cover rows on unsafe pass: [["append","--task","ship-a","scope unsafe: open captain decision on this task"]]
+safe scope (row 5 gone) verdict: dropped | passed after: [] | writes: [[]]
+PASS: unsafe scan keeps guard, safe scan sweeps it

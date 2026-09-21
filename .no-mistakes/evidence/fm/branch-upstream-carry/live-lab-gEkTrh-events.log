@@ -1,0 +1,6 @@
+{"t":"2026-09-21T22:57:20.892Z","kind":"agent.spawn","why":null,"via":null,"agentId":null}
+{"t":"2026-09-21T22:58:01.864Z","kind":"wake.passed","why":"classifier captain","via":null,"agentId":null}
+{"t":"2026-09-21T22:58:02.202Z","kind":"pass.cover","why":"classifier captain","via":null,"agentId":null}
+{"t":"2026-09-21T22:58:04.372Z","kind":"wake.passed.deduped","why":null,"via":null,"agentId":null}
+{"t":"2026-09-21T22:58:44.314Z","kind":"agent.send","why":null,"via":null,"agentId":"a7597f1ce9bdff1c9"}
+{"t":"2026-09-21T22:59:25.868Z","kind":"agent.send","why":null,"via":null,"agentId":"a7597f1ce9bdff1c9"}

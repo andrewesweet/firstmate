@@ -1,0 +1,7 @@
+{"t":"2026-09-21T23:01:09.050Z","kind":"agent.spawn","why":null,"via":null,"agentId":null}
+{"t":"2026-09-21T23:01:50.131Z","kind":"agent.send","why":null,"via":null,"agentId":"a9dcd7dbf2c5d3ef6"}
+{"t":"2026-09-21T23:01:50.160Z","kind":"agent.spawn","why":null,"via":null,"agentId":null}
+{"t":"2026-09-21T23:01:50.171Z","kind":"agent.rotated","why":"unresumable","via":null,"agentId":null}
+{"t":"2026-09-21T23:03:31.305Z","kind":"agent.send","why":null,"via":null,"agentId":"a2a06064cee834c4d"}
+{"t":"2026-09-21T23:03:31.332Z","kind":"agent.spawn","why":null,"via":null,"agentId":null}
+{"t":"2026-09-21T23:03:31.343Z","kind":"agent.rotated","why":"unresumable","via":null,"agentId":null}
