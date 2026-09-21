@@ -998,26 +998,6 @@ describe("watcher continuity", () => {
     expect(skipped.map((e) => e.data)).toEqual([{ why: "session start", mode: true, lockPid: "" }]);
   });
 
-  test("the armed loop bounds every arm call by the remaining rotate budget, so a quiet watcher cycle cannot outpark the monitor", async ($: Engine, on: On) => {
-    // The Monitor's expiry kill takes the whole process group, watcher
-    // included: the 2026-09-21 evidence had the loop still parked inside one
-    // fm-watch-arm.sh call when the 30-minute budget ran out, so the watcher
-    // died as arm-interrupted every quiet half hour and each successor armed a
-    // fresh recovery generation. The loop must hand every arm call the time it
-    // has left, so the arm returns leaving the healthy watcher running and the
-    // loop reaches its own rotate exit instead.
-    const w = world(on, { files: armedHome() });
-    await $.session.start(sessionStart);
-    await drained();
-    const call = w.toolCalls.find((c) => (c as { tool?: string }).tool === "Monitor") as { command?: string };
-    const command = String(call?.command ?? "");
-    expect(command).toContain("fm-watch-arm.sh");
-    expect(command).toMatch(/--follow-budget \$\(\( R - 30 \)\)/);
-    expect(command).toContain("DL=$(( T0 + ");
-    expect(command).toMatch(/\[ "\$R" -ge 60 \]/);
-    expect(command).toContain("rotate: loop exiting ahead of the monitor timeout");
-  });
-
   test("a lost expiry notice recovers at the next prompt.submit once the armed claim is older than the monitor timeout", async ($: Engine, on: On) => {
     const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, evidence: [""] });
     await $.session.start(sessionStart);

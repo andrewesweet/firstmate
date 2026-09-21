@@ -212,15 +212,27 @@ test_follow_budget_returns_leaving_the_started_watcher_running() {
 
   # No watcher is live: the arm starts one, confirms it, and then parks on the
   # child for the whole quiet cycle - the exact park that outlasts a host
-  # timeout. The budget must end the park with the confirmed child alive.
-  PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
-    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
-    FM_ARM_CONFIRM_TIMEOUT=5 FM_ARM_FOLLOW_POLL=0.1 \
-    "$WATCH_ARM" --follow-budget 2 > "$armout" 2>&1 &
+  # timeout. The budget must end the park with the confirmed child alive, and
+  # the caller must regain control at once: the continuity Monitor captures
+  # the arm through a command substitution, which returns only when every
+  # writer of that pipe has closed, so a watcher left holding the arm's stderr
+  # would park the caller past the very deadline the budget exists for.
+  (
+    out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+      FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+      FM_ARM_CONFIRM_TIMEOUT=5 FM_ARM_FOLLOW_POLL=0.1 \
+      "$WATCH_ARM" --follow-budget 2 2>&1)
+    status=$?
+    printf '%s\n' "$out" > "$armout"
+    exit "$status"
+  ) &
   ARM_PID=$!
   wait_for_exit "$ARM_PID" 120
   status=$?
-  expect_code 0 "$status" "a follow-budget arm that started the watcher must exit cleanly"
+  if [ "$status" -ne 0 ]; then
+    kill "$(cat "$state/.watch.lock/pid" 2>/dev/null)" 2>/dev/null || true
+    fail "a follow-budget arm that started the watcher must return control to a pipe-capturing caller at its deadline (status $status): $(cat "$armout" 2>/dev/null)"
+  fi
   grep -qF 'watcher: started pid=' "$armout" \
     || fail "the budget arm never confirmed the watcher it started: $(cat "$armout")"
   watcher_pid=$(sed -n 's/^watcher: follow budget elapsed (started pid=\([0-9][0-9]*\) left running)$/\1/p' "$armout")

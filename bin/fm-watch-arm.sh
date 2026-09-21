@@ -407,27 +407,16 @@ handling_generation=
 handling_watcher_pid=
 # The opt-in follow budget (seconds): 0 keeps the arm's park unbounded.
 follow_budget=0
-mode_args=
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --follow-budget)
-      case "${2:-}" in
-        ''|*[!0-9]*|0)
-          echo "usage: $(basename "$0") [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]" >&2
-          exit 2
-          ;;
-      esac
-      follow_budget=$2
-      shift 2
-      ;;
-    *)
-      mode_args="$mode_args $(printf '%s' "$1")"
-      shift
+if [ "${1:-}" = --follow-budget ]; then
+  case "${2:-}" in
+    ''|*[!0-9]*|0)
+      echo "usage: $(basename "$0") [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]" >&2
+      exit 2
       ;;
   esac
-done
-# shellcheck disable=SC2086 # Re-split by design: every remaining argument is a bare mode word.
-set -- $mode_args
+  follow_budget=$2
+  shift 2
+fi
 case "${1:-}" in
   ''|arm|--arm) mode=arm ;;
   --restart) mode=restart ;;
@@ -530,9 +519,9 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
   exit 1
 }
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
-  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" &
+  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 else
-  "$WATCH" >"$child_out" &
+  "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 fi
 child=$!
 cycle_begin "$child" started "$(fm_pid_identity "$child" 2>/dev/null || true)"
