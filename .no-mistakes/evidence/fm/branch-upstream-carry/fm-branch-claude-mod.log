@@ -1,4 +1,3 @@
 ok - the mod is one hooks module and one agent, reached only through --plugin-dir, with no command, skill, or classic hook path
 ok - agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns
-ok - the vendored eligibility module is current with bin/fm-branch-shared-sync.sh and free of node:fs
-ok - the vendored report-sequence, provider-latch, and classifier modules are current with bin/fm-branch-shared-sync.sh
+ok - lib/ resolves to the mod's canonical modules and the eligibility wrapper loads

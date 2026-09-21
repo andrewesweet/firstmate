@@ -1,0 +1,5 @@
+no server running on /tmp/tmux-1000/fm-pi-branch-responsiveness-712461
+not ok - Pi 0.85.1 never drew its TUI in the idle arm
+no server running on /tmp/tmux-1000/fm-pi-branch-responsiveness-712461
+not ok - Pi 0.85.1 never drew its TUI in the delivery arm
+not ok - the responsiveness probe produced no measurement against Pi 0.85.1

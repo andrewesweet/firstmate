@@ -1,4 +1,3 @@
-ok - lib and vendored classifier legs decide byte-identically on every fixture
 ok - the mod hook routes the classifier core byte-identically to the shared module
 ok - the evidence gatherer spawns bin/fm-wake-evidence.sh per task with its 25s timeout
 ok - a whitelisted verdict is trusted with its reason
