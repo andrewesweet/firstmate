@@ -1,0 +1,33 @@
+## lab m8jbuO
+{"t":"2026-09-21T14:18:00.697Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"All NEW lines are working progress updates from a dummy loop task with regular timestamps, indicating normal operation."}
+{"t":"2026-09-21T14:18:00.874Z","kind":"agent.spawn","verdict":null,"model":"sonnet","why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:18:00.889Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:18:05.373Z","kind":"report.call","verdict":"routine","model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:18:41.555Z","kind":"classifier","verdict":"captain","model":"haiku","why":null,"agent":null,"reason":"A NEW `done:` line appeared indicating the dummy task finished step 8 with a report, which the captain must be informed of even though the task is described as a dummy."}
+{"t":"2026-09-21T14:18:41.557Z","kind":"wake.passed","verdict":null,"model":null,"why":"classifier captain","agent":null,"reason":"signal: /tmp/fm-branch-claude-live.uI8mgu/home/state/dummy.status"}
+{"t":"2026-09-21T14:19:25.396Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"All NEW lines are standard working: progress updates from an ongoing dummy loop task with regular timestamps."}
+{"t":"2026-09-21T14:19:25.476Z","kind":"agent.send","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:19:25.476Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:19:29.736Z","kind":"report.call","verdict":"routine","model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:19:32.483Z","kind":"agent.notification.dropped","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:21:40.078Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"All NEW lines are working: progress updates from an ongoing dummy loop task with no errors, blocks, or completion."}
+{"t":"2026-09-21T14:21:40.185Z","kind":"agent.send","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:21:40.185Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:21:44.708Z","kind":"report.call","verdict":"routine","model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:21:47.859Z","kind":"agent.notification.dropped","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+## lab TCIeEc
+{"t":"2026-09-21T14:22:37.202Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"All NEW lines are working progress updates from a dummy loop task with no errors or completion."}
+{"t":"2026-09-21T14:22:37.319Z","kind":"agent.spawn","verdict":null,"model":"sonnet","why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:22:37.341Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:22:41.920Z","kind":"report.call","verdict":"routine","model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:23:19.699Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"NEW lines are working: progress updates from an ongoing dummy loop with no errors, blocks, or completion signals."}
+{"t":"2026-09-21T14:23:19.788Z","kind":"agent.send","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:23:19.822Z","kind":"agent.spawn","verdict":null,"model":"sonnet","why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:23:19.833Z","kind":"agent.rotated","verdict":null,"model":null,"why":"unresumable","agent":null,"reason":null}
+{"t":"2026-09-21T14:23:19.835Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:23:23.602Z","kind":"report.call","verdict":"routine","model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:24:56.041Z","kind":"classifier","verdict":"routine","model":"haiku","why":null,"agent":null,"reason":"All NEW lines are `working:` progress updates from an ongoing dummy loop task with regular step increments."}
+{"t":"2026-09-21T14:24:56.106Z","kind":"agent.send","verdict":null,"model":null,"why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:24:56.129Z","kind":"agent.spawn","verdict":null,"model":"sonnet","why":null,"agent":null,"reason":null}
+{"t":"2026-09-21T14:24:56.137Z","kind":"agent.rotated","verdict":null,"model":null,"why":"unresumable","agent":null,"reason":null}
+{"t":"2026-09-21T14:24:56.140Z","kind":"wake.delivered","verdict":null,"model":null,"why":null,"agent":null,"reason":null}

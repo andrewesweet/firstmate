@@ -1,0 +1,29 @@
+ok - the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file
+ok - a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold
+ok - only the lines between the previous outcome's endpoint and the routine outcome's endpoint are listed
+ok - a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it
+ok - the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it
+ok - the jev helper is off without a key: one unavailable line, exit 0, no network
+ok - the jev helper forwards the request and the key reaches curl only on the fd-3 header
+ok - an http failure becomes one unavailable record and never a nonzero exit
+ok - the pane helper reports only readable evidence and omits every field it cannot read
+ok - the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line in either log, counts unavailable records separately, and scores the repeat control outside the variant rows
+| absorb-no-new-outcome | 4 | 16 | 3 | 2 (66.7%) | 0 | 1 | 1 |
+| absorb-routine-working | 2 | 18 | 2 | 1 (50.0%) | 0 | 1 | 0 |
+| stale-active-suppress | 6 | 2 | 6 | 2 (33.3%) | 3 | 1 | 0 |
+| pr-ready-arm | 4 | 16 | 2 | 1 (50.0%) | 1 | 0 | 0 |
+| severity-alert | 2 | 18 | 1 | 0 (0.0%) | 1 | 0 | 1 |
+| candidate-order | 3 | 0 | 3 | 2 (66.7%) | 0 | 1 | - |
+unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record
+torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record
+| absorb-no-new-outcome | 0.96 | 0 | 0.0% |
+| stale-active-suppress | 0.91 | 0 | 0.0% |
+| pr-ready-arm | 0.70 | 2 | 50.0% |
+| candidate-order | - | - | - |
+1700:8	stale-active-suppress	loss	pane=fm-t4 window=1800s
+1700:10	stale-active-suppress	delay	pane=fm-t5 window=1800s
+1700:17	stale-active-suppress	correct	pane=fm-t7 window=1800s
+1700:11	candidate-order	loss	candidates=t1:0.9,t2:0.5 first_reported=t2
+1700:12	candidate-order	correct	candidates=t2:0.9,t1:0.5 first_reported=t2
+1700:20	stale-active-suppress	delay	pane=fm-t2 window=1800s
+ok - the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor

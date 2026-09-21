@@ -1,0 +1,17 @@
+ok - mod tool handlers and lib decide identically on every fixture (verdict, error shape, argv, unified text)
+ok - vendored report-sequence copy is byte-identical to lib on every fixture
+ok - module-owned texts are byte-identical between mod and lib
+ok - the task-scope refusal is the unified normal-result retry instruction on both adapters
+ok - host:markread-failed renders byte-identically on both adapters
+ok - host:through-refused renders byte-identically on both adapters
+ok - host:processed-failed renders byte-identically on both adapters
+ok - host:processed-success renders byte-identically on both adapters
+ok - mod task-scope refusal keeps its host wording (insertion order + corrective re-report)
+ok - mod mark-read failure keeps its host wording
+ok - mod processed success keeps its host wording for numeric and string inputs
+ok - mod through refusal keeps its host wording
+ok - mod duplicate-report guard (host-only mechanic) still fires
+ok - shared through rule refuses 0, -2, 2.5, and non-numeric through the mod
+ok - vendored latch copy is byte-identical to lib on both host policies
+ok - Pi latch schedule: 2 to latch, 5m base, failed probe doubles to 10m, one probe per cooldown, released probe does not extend, recovery resets
+ok - Mod latch schedule: 2 to latch, fixed 5m cooldown, doubled value capped back to 5m, no probe slot

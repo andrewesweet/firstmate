@@ -1,0 +1,3 @@
+$ printf '{"state":{},"questions":[{"id":"route"}]}' | FM_HOME=$H bin/fm-branch-shadow-jev.sh   # no TYPESAFE_API_KEY in env or .env
+{"ok":false,"unavailable":"key absent","model":"jev"}
+rc=0
