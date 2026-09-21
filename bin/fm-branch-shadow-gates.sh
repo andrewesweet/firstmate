@@ -344,6 +344,7 @@ wake_live() {  # <wakeKey>: every task record the truth reads need is present
   for t in ${WK_TASKS[$1]:-}; do
     case "$t" in '' | *[!A-Za-z0-9._-]*) return 1 ;; esac
     [ -f "$STATE/$t.meta" ] || return 1
+    [ "${LAST_EP[$t]:-0}" -eq 0 ] || [ -f "$STATE/$t.status" ] || return 1
   done
   return 0
 }

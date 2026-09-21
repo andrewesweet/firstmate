@@ -40,7 +40,7 @@ backstop_body() {  # <drain-output>
 }
 
 test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
-  local dir state out
+  local dir state out lines
   dir=$(make_case gates-scorer)
   state="$dir/state"
   out="$dir/gates.out"
@@ -197,7 +197,14 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
     || fail "the backstop-covered absorb must be listed as a loss while the status log is present: $(grep 1700:4 "$out")"
   [ "$(jq -r 'select(.wakeKey == "1700:4") | .backstop' "$state/.branch-shadow-truth.jsonl" | tail -1)" = 1 ] \
     || fail "the sidecar must record the live backstop surfacing: $(cat "$state/.branch-shadow-truth.jsonl")"
-  rm -f "$state/t1.status" "$state/t1.meta"
+  lines=$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')
+  rm -f "$state/t1.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed with the status log retired and the meta present"
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "a retired status log with the meta still present must not flip the recorded backstop loss: $(grep 1700:4 "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = "$lines" ] \
+    || fail "an absent status log must never be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t1.meta"
   FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed after the status log was retired"
   grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
     || fail "a retired status log must not flip the recorded backstop loss to correct: $(grep 1700:4 "$out")"
@@ -351,6 +358,25 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
     || fail "after teardown the sidecar must still read correct: $(grep pr-ready-arm "$out")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "the sidecar must never be written from an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
+
+  # (i) a retired status log while the meta is present is not live: the
+  # backstop bit is never snapshotted from the absent scan, so a wake with
+  # no earlier snapshot stays unreadable instead of reading a false 0.
+  dir=$(make_case gates-sufficiency-status-retired)
+  state="$dir/state"
+  out="$dir/status.out"
+  printf 'id=t14\nwindow=fm-t14\nbackend=tmux\n' > "$state/t14.meta"
+  printf 'working: t14\n' > "$state/t14.status"
+  mk_rec "$state" t14 1706:1 'signal: t14' 0.9 1
+  printf 'done: t14 finished\n' >> "$state/t14.status"
+  mk_rec "$state" t14 1706:2 'signal: t14' 0.9 2
+  rm -f "$state/t14.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "unreadable fires cannot pass: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx '| absorb-no-new-outcome | 0 | 0 | - | 0 |' "$out" \
+    || fail "a wake whose status log is retired must stay out of the counts, never read as a clean fire: $(grep '^| absorb-no-new-outcome | ' "$out")"
+  [ ! -e "$state/.branch-shadow-truth.jsonl" ] \
+    || fail "the sidecar must never be written from an absent status log: $(cat "$state/.branch-shadow-truth.jsonl")"
 
   # (g) candidate-order counts an absorb-all decision as evidence: zero
   # fires plus one absorb-all loss reads fires 1, loss 1.
