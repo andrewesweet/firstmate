@@ -40,7 +40,7 @@ backstop_body() {  # <drain-output>
 }
 
 test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
-  local dir state out
+  local dir state out lines
   dir=$(make_case gates-scorer)
   state="$dir/state"
   out="$dir/gates.out"
@@ -193,9 +193,228 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   grep -F $'1700:16\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
     || fail "a stale record without a pane observation must be listed unscorable, never guessed: $(grep 1700:16 "$out")"
 
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "the backstop-covered absorb must be listed as a loss while the status log is present: $(grep 1700:4 "$out")"
+  [ "$(jq -r 'select(.wakeKey == "1700:4") | .backstop' "$state/.branch-shadow-truth.jsonl" | tail -1)" = 1 ] \
+    || fail "the sidecar must record the live backstop surfacing: $(cat "$state/.branch-shadow-truth.jsonl")"
+  lines=$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')
+  rm -f "$state/t1.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed with the status log retired and the meta present"
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "a retired status log with the meta still present must not flip the recorded backstop loss: $(grep 1700:4 "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = "$lines" ] \
+    || fail "an absent status log must never be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t1.meta"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed after the status log was retired"
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "a retired status log must not flip the recorded backstop loss to correct: $(grep 1700:4 "$out")"
+
   FM_STATE_OVERRIDE="$state" "$GATES" "$state/absent.jsonl" > "$out" || fail "gates scorer failed on an absent log"
-  [ "$(wc -l < "$out" | tr -d ' ')" = 7 ] || fail "an absent log prints only the empty tables: $(cat "$out")"
+  [ "$(wc -l < "$out" | tr -d ' ')" = 11 ] || fail "an absent log prints only the empty tables, including evidence sufficiency: $(cat "$out")"
   pass "the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor"
+}
+
+test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
+  local dir state out n rc prefix_len
+  local base_t=1700000000
+
+  mk_rec() {  # <state> <task> <wakeKey> <wake-text> <noul-or-"-"> <t-offset>
+    local st=$1 task=$2 wk=$3 waketext=$4 noul=$5 off=$6 t sev answers facts
+    sev='["False alarm or no functional impact","Routine recoverable interruption or non-blocking failure","Task blocked or failed after normal recovery","Security, privacy, data-loss, irreversible, credential, or external-publication impact"]'
+    t=$(date -u -d "@$((base_t + off))" +%Y-%m-%dT%H:%M:%SZ)
+    if [ "$noul" != "-" ]; then
+      answers='{"no_new_outcome":{"type":"noul","noul":'$noul'}}'
+      facts='{"wake_key":"'"$wk"'","new_status_bytes":{"'"$task"'":0},"pane":"fm-'"$task"'","authoritative_pr":{"present":false},"severity_classes":'$sev'}'
+    else
+      answers='{"stale_state":{"type":"choice","choice":"active","confidence":0.9}}'
+      facts='{"wake_key":"'"$wk"'","new_status_bytes":{"'"$task"'":0},"pane":"fm-'"$task"'","authoritative_pr":{"present":false},"severity_classes":'$sev',"stale_series":{"series_index":2},"pane_observation":{"progressing":true,"busy_source":"tmux","seconds_since_last_activity":5}}'
+    fi
+    printf '%s
+' '{"t":"'"$t"'","kind":"shadow","wake":"'"$waketext"'","seqs":["1"],"wakeKey":"'"$wk"'","tasks":["'"$task"'"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":'"$answers"',"facts":'"$facts"'}' >> "$st/branch-mod-shadow.jsonl"
+    FM_STATE_OVERRIDE="$st" "$ROOT/bin/fm-branch-outcome.sh" append --task "$task" --verdict routine --summary 'signal noted' --wake-key "$wk" >/dev/null
+  }
+
+  # (a) 60 clean routine fires at noul 0.9 plus 30 captain-labeled wakes below
+  # the fire floor: pass at bound 0.05 with min-positives 30, not yet at 31.
+  dir=$(make_case gates-sufficiency-a)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t1\nwindow=fm-t1\nbackend=tmux\n' > "$state/t1.meta"
+  printf 'working: t1\n' > "$state/t1.status"
+  for n in $(seq 1 60); do mk_rec "$state" t1 "1701:$n" 'signal: A' 0.9 "$n"; done
+  for n in $(seq 61 90); do
+    mk_rec "$state" t1 "1701:$n" 'signal: A' 0.5 "$n"
+    FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key "1701:$n" >/dev/null
+  done
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 > "$out"
+  rc=$?
+  [ "$rc" = 0 ] || fail "60 clean fires at a 0.05 bound with 30 positives must be sufficient: rc=$rc $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx 'sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)' "$out" \
+    || fail "the pass verdict must carry the counted evidence: $(grep '^sufficiency: absorb' "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 31 > "$out"
+  [ "$?" = 1 ] || fail "min-positives 31 with only 30 positives must be not yet: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx 'sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0487, positives 30)' "$out" \
+    || fail "the not-yet verdict must name the shortfall: $(grep '^sufficiency: absorb' "$out")"
+
+  # (b) 99 clean fires and one loss-class wrong fire (n=100, k=1) with 30
+  # positives: the exact Clopper-Pearson upper bound 0.0466 passes at bound
+  # 0.05 and is not yet at 0.04.
+  dir=$(make_case gates-sufficiency-b)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t1\nwindow=fm-t1\nbackend=tmux\n' > "$state/t1.meta"
+  printf 'working: t1\n' > "$state/t1.status"
+  for n in $(seq 1 99); do mk_rec "$state" t1 "1702:$n" 'signal: A' 0.9 "$n"; done
+  for n in $(seq 101 129); do
+    mk_rec "$state" t1 "1702:$n" 'signal: A' 0.5 "$n"
+    FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key "1702:$n" >/dev/null
+  done
+  mk_rec "$state" t1 '1702:100' 'signal: A' 0.9 200
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t1 --verdict captain --summary 'escalated' --wake-key '1702:100' >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 > "$out"
+  rc=$?
+  [ "$rc" = 0 ] || fail "100 fires with 1 loss and a 0.0466 upper bound must pass at 0.05: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx '| absorb-no-new-outcome | 100 | 1 | 0.0466 | 30 |' "$out" \
+    || fail "the sufficiency row must carry the exact Clopper-Pearson bound: $(grep '^| absorb-no-new-outcome | 100' "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.04 --min-positives 30 > "$out"
+  [ "$?" = 1 ] || fail "a 0.0466 upper bound must be not yet at bound 0.04: $(grep '^sufficiency: absorb' "$out")"
+
+  # (c) usage errors exit 2 without touching the logs.
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient no-such-gate --bound 0.05 > "$out" 2>&1
+  [ "$?" = 2 ] || fail "an unknown gate must be a usage error: $(cat "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome > "$out" 2>&1
+  [ "$?" = 2 ] || fail "--sufficient without --bound must be a usage error: $(cat "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 1.5 > "$out" 2>&1
+  [ "$?" = 2 ] || fail "a bound outside (0,1] must be a usage error: $(cat "$out")"
+  mkdir "$state/unreadable.jsonl"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 "$state/unreadable.jsonl" > "$out" 2>&1
+  [ "$?" = 2 ] || fail "a log that exists but cannot be read must be a read error, not not-yet: $(tail -2 "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" "$state/unreadable.jsonl" > "$out" 2>&1 \
+    || fail "the ordinary mode keeps its exit-0 contract on an unreadable log: $(tail -2 "$out")"
+
+  # (d) the truth sidecar: fires scored while the task records were live stay
+  # readable from the snapshot after the records are gone, the snapshot is
+  # never rewritten with an absent read, and a wake with no snapshot stays
+  # out of the sufficiency counts.
+  dir=$(make_case gates-sufficiency-sidecar)
+  state="$dir/state"
+  out="$dir/sufficiency.out"
+  printf 'id=t9\nwindow=fm-t9\nbackend=tmux\n' > "$state/t9.meta"
+  printf 'working: t9\n' > "$state/t9.status"
+  printf 'id=t10\nwindow=fm-t10\nbackend=tmux\n' > "$state/t10.meta"
+  printf 'working: t10\n' > "$state/t10.status"
+  for n in 1 2; do mk_rec "$state" t9 "1703:$n" 'stale: fm-t9 (idle 900s, possible wedge, escalation 2)' - "$n"; done
+  mk_rec "$state" t10 '1703:9' 'stale: fm-t10 (idle 900s, possible wedge, escalation 2)' - 9
+  rm -f "$state/t10.meta" "$state/t10.status"
+
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "two fires with a 0.7764 upper bound cannot pass at 0.05: $(grep '^sufficiency: stale' "$out")"
+  grep -Fx '| stale-active-suppress | 2 | 0 | 0.7764 | 0 |' "$out" \
+    || fail "only the two snapshotted fires may count; the pre-torn wake stays out: $(grep '^| stale-active-suppress | ' "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "only the wakes with live task records may be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
+
+  rm -f "$state/t9.meta" "$state/t9.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "the sidecar must keep the counts stable after the task records are gone: $(grep '^sufficiency: stale' "$out")"
+  grep -Fx '| stale-active-suppress | 2 | 0 | 0.7764 | 0 |' "$out" \
+    || fail "the sufficiency counts must survive the teardown through the sidecar: $(grep '^| stale-active-suppress | ' "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "the sidecar must never be rewritten with an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
+  grep -F 'torn down (a task record is gone' "$out" >/dev/null \
+    || fail "the unreadable pre-torn wake must still be noted: $(grep -i torn "$out")"
+
+  # (f) live records stay the truth while present: a fire scored before the
+  # merge poll is armed reads delay, reads correct once the poll is armed
+  # (the sidecar's last line for the wake follows), and keeps reading
+  # correct after the task records are gone.
+  dir=$(make_case gates-sufficiency-live)
+  state="$dir/state"
+  out="$dir/live.out"
+  printf 'id=t11\nwindow=fm-t11\nbackend=tmux\n' > "$state/t11.meta"
+  printf 'working: t11\n' > "$state/t11.status"
+  printf '%s\n' '{"t":"2023-11-14T22:13:21Z","kind":"shadow","wake":"working: t11","seqs":["1"],"wakeKey":"1704:1","tasks":["t11"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}},"facts":{"wake_key":"1704:1","new_status_bytes":{"t11":10},"pane":"fm-t11","authoritative_pr":{"present":true,"pr":"ow/repo#11"},"severity_classes":["a","b","c","d"]}}' >> "$state/branch-mod-shadow.jsonl"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t11 --verdict routine --summary 'ready noted' --wake-key 1704:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed"
+  grep -F $'1704:1\tpr-ready-arm\tdelay' "$out" >/dev/null \
+    || fail "before the poll is armed the fire must read delay: $(grep pr-ready-arm "$out")"
+  : > "$state/t11.pr-poll"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed after arming"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "once the poll is armed the live read must win over the earlier snapshot: $(grep pr-ready-arm "$out")"
+  [ "$(jq -r 'select(.wakeKey == "1704:1") | .pr_truth' "$state/.branch-shadow-truth.jsonl" | tail -1)" = 1 ] \
+    || fail "the sidecar's last line for the wake must carry the armed read: $(cat "$state/.branch-shadow-truth.jsonl")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "a line is appended only when the live bits change: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t11.pr-poll" "$state/t11.busy-state"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed in the teardown window"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "a retired poll while the meta is present must not flip the recorded truth: $(grep pr-ready-arm "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "a 1-to-0 live change must never be recorded: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t11.meta" "$state/t11.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed after teardown"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "after teardown the sidecar must still read correct: $(grep pr-ready-arm "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "the sidecar must never be written from an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
+
+  # (i) a retired status log while the meta is present is not live: the
+  # backstop bit is never snapshotted from the absent scan, so a wake with
+  # no earlier snapshot stays unreadable instead of reading a false 0.
+  dir=$(make_case gates-sufficiency-status-retired)
+  state="$dir/state"
+  out="$dir/status.out"
+  printf 'id=t14\nwindow=fm-t14\nbackend=tmux\n' > "$state/t14.meta"
+  printf 'working: t14\n' > "$state/t14.status"
+  mk_rec "$state" t14 1706:1 'signal: t14' 0.9 1
+  printf 'done: t14 finished\n' >> "$state/t14.status"
+  mk_rec "$state" t14 1706:2 'signal: t14' 0.9 2
+  rm -f "$state/t14.status"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "unreadable fires cannot pass: $(grep '^sufficiency: absorb' "$out")"
+  grep -Fx '| absorb-no-new-outcome | 0 | 0 | - | 0 |' "$out" \
+    || fail "a wake whose status log is retired must stay out of the counts, never read as a clean fire: $(grep '^| absorb-no-new-outcome | ' "$out")"
+  [ ! -e "$state/.branch-shadow-truth.jsonl" ] \
+    || fail "the sidecar must never be written from an absent status log: $(cat "$state/.branch-shadow-truth.jsonl")"
+
+  # (g) candidate-order counts an absorb-all decision as evidence: zero
+  # fires plus one absorb-all loss reads fires 1, loss 1.
+  dir=$(make_case gates-sufficiency-cand)
+  state="$dir/state"
+  out="$dir/cand.out"
+  printf 'id=t12\nwindow=fm-t12\nbackend=tmux\n' > "$state/t12.meta"
+  printf 'id=t13\nwindow=fm-t13\nbackend=tmux\n' > "$state/t13.meta"
+  printf 'working: t12\n' > "$state/t12.status"
+  printf 'working: t13\n' > "$state/t13.status"
+  printf '%s\n' '{"t":"2023-11-14T22:13:22Z","kind":"shadow","wake":"signal: compound","seqs":["1"],"wakeKey":"1705:1","tasks":["t12","t13"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":{"candidates":{"t12":{"type":"noul","noul":0.5},"t13":{"type":"noul","noul":0.4}}},"facts":{"wake_key":"1705:1","new_status_bytes":{"t12":0,"t13":0},"pane":"fm-t12","authoritative_pr":{"present":false},"severity_classes":["a","b","c","d"],"candidates":{"t12":0.5,"t13":0.4}}}' >> "$state/branch-mod-shadow.jsonl"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t13 --verdict captain --summary 'escalated' --wake-key 1705:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t12 --verdict routine --summary 'noted' --wake-key 1705:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient candidate-order --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "one absorb-all loss cannot pass: $(grep '^sufficiency: candidate' "$out")"
+  grep -F '| candidate-order | 1 | 0 | 0 |' "$out" >/dev/null \
+    || fail "the ordinary table must show the gate silent: $(grep '^| candidate-order' "$out")"
+  grep -F 'sufficiency: candidate-order not yet (fires 1, loss 1,' "$out" >/dev/null \
+    || fail "an absorb-all loss must count as a decision and a loss: $(grep '^sufficiency: candidate' "$out")"
+
+  # (h) an absent log in sufficiency mode is not yet, never sufficient.
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient candidate-order --bound 0.05 --min-positives 0 "$state/absent.jsonl" > "$out"
+  [ "$?" = 1 ] || fail "an absent log must be not yet: $(tail -2 "$out")"
+  grep -Fx 'sufficiency: candidate-order not yet (fires 0, loss 0, upper -, positives 0)' "$out" >/dev/null \
+    || fail "an absent log prints the empty verdict: $(grep '^sufficiency' "$out")"
+
+  # (e) ordinary and sufficiency runs share a byte-identical prefix: the
+  # sufficiency mode only appends its verdict lines to the ordinary output.
+  FM_STATE_OVERRIDE="$state" "$GATES" > "$dir/ordinary.out"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
+  prefix_len=$(wc -l < "$dir/ordinary.out" | tr -d ' ')
+  [ "$prefix_len" -gt 0 ] || fail "the ordinary run must print its tables: $(cat "$dir/ordinary.out")"
+  head -n "$prefix_len" "$out" | cmp -s - "$dir/ordinary.out" \
+    || fail "the sufficiency mode must not change the ordinary output: $(diff "$dir/ordinary.out" <(head -n "$prefix_len" "$out") | head)"
+  [ "$(wc -l < "$out" | tr -d ' ')" -gt "$prefix_len" ] \
+    || fail "the sufficiency run must append its verdict lines: $(tail -3 "$out")"
+
+  pass "the gates scorer sufficiency mode counts readable-truth fires against the caller's bound, sidecars the decaying truth at scoring time, never rewrites an absent read, and keeps the ordinary output byte-stable"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
@@ -581,3 +800,4 @@ test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env
 test_shadow_pane_helper_reports_only_what_it_can_read
 test_shadow_scorer_joins_records_to_outcomes_by_wake_identity
 test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions
+test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound
