@@ -1935,6 +1935,9 @@ add_herdr_ship_task() {  # <case-dir> <id> [session] [surviving-pane]
 ## Captain's intent
 Exercise a herdr reclaim safely.
 
+## Published intent
+Restate the accepted reclaim change neutrally for the pipeline reviewer.
+
 ## Firstmate spec
 Keep the recorded endpoint when it outlives its server.
 EOF
