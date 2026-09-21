@@ -84,7 +84,7 @@ test_lib_resolves_to_the_mod_canonical_modules() {
   # the wrapper to prove it re-exports the core; the hooks-module validator
   # run by fm-branch-claude-mod-plugin.test.sh owns the no-node:-imports
   # check.
-  for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts fm-branch-classifier.ts fm-branch-shadow.ts; do
+  for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts fm-branch-classifier.ts fm-branch-shadow.ts fm-branch-text.ts fm-branch-scope.ts fm-branch-routing.ts fm-branch-delivery.ts fm-branch-monitor.ts fm-branch-settlement.ts; do
     [ -L "$ROOT/lib/$module" ] || fail "lib/$module is not a symlink; the canonical copy lives under the mod"
     [ "$(readlink "$ROOT/lib/$module")" = "../.claude/mods/fm-branch-mod/lib/$module" ] \
       || fail "lib/$module points at $(readlink "$ROOT/lib/$module" 2>/dev/null || echo nothing), expected the mod's canonical file"
