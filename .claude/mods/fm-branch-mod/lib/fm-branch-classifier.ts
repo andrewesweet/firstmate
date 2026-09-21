@@ -68,7 +68,8 @@ export interface ClassifierResult {
   ms: number;
   promptChars: number;
   answer: string;
-  model: string;
+  /** The model actually asked, or null when the host resolved none. */
+  model: string | null;
   evidence: ClassifierEvidence[];
 }
 
@@ -80,7 +81,7 @@ export interface ClassifierRecord {
   evidence: Array<{ task: string; from: number; to: number }>;
   verdict: string;
   reason: string;
-  model: string;
+  model: string | null;
   ms: number;
   answer: string;
 }
