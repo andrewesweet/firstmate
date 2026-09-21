@@ -16,7 +16,11 @@
 //     resolves the configured model name against its isolated runtime and
 //     calls pi-ai's completeSimple. Both receive the same request object
 //     ({model, system, prompt, maxTokens}) and return the answer text; a
-//     rejection is a failed call and routes the wake to main.
+//     rejection is a failed call and routes the wake to main. The one
+//     shared piece of that policy is model resolution: the explicit
+//     config/classifier-model name wins, otherwise each host's own default
+//     (haiku on the mod, the supervision branch's own model on Pi), then
+//     the model-not-found fallback below:
 //   - SCRIPT SPAWNS. The host binds cwd and environment; this module builds
 //     the argv (bash, the script under paths.bin, its arguments) and owns
 //     the timeouts.
@@ -56,7 +60,8 @@ export interface ClassifierResult {
   ms: number;
   promptChars: number;
   answer: string;
-  model: string;
+  /** The model actually asked, or null when the host resolved none. */
+  model: string | null;
   evidence: ClassifierEvidence[];
 }
 
@@ -68,19 +73,39 @@ export interface ClassifierRecord {
   evidence: Array<{ task: string; from: number; to: number }>;
   verdict: string;
   reason: string;
-  model: string;
+  model: string | null;
   ms: number;
   answer: string;
 }
 
+/** The model-not-found error class: the configured or default classifier
+ * model name does not resolve on this host. This class, and only this
+ * class, triggers the one-shot fallback retry in classifyWake; every other
+ * failure surfaces exactly as a failed call always has. Each host renders
+ * the class in its own failure text - Pi names the model as not found or
+ * unknown, Claude Code's $.model.complete reports "the request to <model>
+ * failed (HTTP 404)" - so the predicate matches the known phrasings rather
+ * than one host's exact string. */
+export function isClassifierModelNotFoundError(error: string): boolean {
+  return /model.*not found|not found.*model|unknown model|invalid model|not a valid model|HTTP 404/i.test(error);
+}
+
 /** The host surface the classifier runs against. runScript binds the host's
- * cwd and environment; readFile/readClassifierModel are the host's own
- * config reads (missing config falls back host-side). */
+ * cwd and environment; the three model reads are the host's own values,
+ * while the resolution rule itself (explicit wins, else default) is owned
+ * by classifyWake below. */
 export interface ClassifierDeps {
   paths: { bin: string };
   runScript(argv: string[], opts: { timeoutMs: number }): Promise<{ exitCode: number; stdout: string; stderr: string }>;
   readSystemPrompt(): Promise<string>;
-  readClassifierModel(): Promise<string>;
+  /** The explicit config/classifier-model name, or null when the operator
+   * set none. */
+  readConfiguredModel(): Promise<string | null>;
+  /** The host's own default model name: haiku on Claude Code, the
+   * supervision branch's own model on Pi (the pin, else the main session's
+   * model), or null when the host cannot resolve one. It is also the target
+   * of the one-shot model-not-found retry when a configured name fails. */
+  readDefaultModel(): Promise<string | null>;
   complete(req: { model: string; system: string; prompt: string; maxTokens: number }): Promise<string>;
   clock: { now(): number; iso(): string };
 }
@@ -205,14 +230,45 @@ export async function classifyWake(deps: ClassifierDeps, input: { wake: string; 
   const evidence: ClassifierEvidence[] = [];
   for (const task of input.tasks) evidence.push(await gatherClassifierEvidence(deps, task));
   const prompt = buildClassifierPrompt(input.wake, evidence);
-  const model = await deps.readClassifierModel();
+  // Which model to call is resolved here, once, before any completion call:
+  // the explicit configured name wins, otherwise the host's own default. A
+  // host that can resolve neither records the failed call without a
+  // completion attempt.
+  const model = (await deps.readConfiguredModel()) || (await deps.readDefaultModel());
   const t0 = deps.clock.now();
   let answer = "";
+  let usedModel = model;
   let completeError: string | null = null;
-  try {
-    answer = String(await deps.complete({ model, system, prompt, maxTokens: CLASSIFIER_MAX_TOKENS }));
-  } catch (error) {
-    completeError = String(error);
+  if (model) {
+    try {
+      answer = String(await deps.complete({ model, system, prompt, maxTokens: CLASSIFIER_MAX_TOKENS }));
+    } catch (error) {
+      completeError = String(error);
+      if (isClassifierModelNotFoundError(completeError)) {
+        // The one-shot model-not-found fallback, owned here so both hosts
+        // behave identically: retry the same request once on the host's
+        // default. A missing or failed default read, a default equal to the
+        // requested name, and a failed retry all leave today's failed-call
+        // surface, and the record carries the model actually used.
+        let fallback: string | null = null;
+        try {
+          fallback = await deps.readDefaultModel();
+        } catch {
+          fallback = null;
+        }
+        if (fallback && fallback !== model) {
+          usedModel = fallback;
+          try {
+            answer = String(await deps.complete({ model: fallback, system, prompt, maxTokens: CLASSIFIER_MAX_TOKENS }));
+            completeError = null;
+          } catch (retryError) {
+            completeError = String(retryError);
+          }
+        }
+      }
+    }
+  } else {
+    completeError = "no classifier model resolved on this host";
   }
   const parsed = interpretClassifierAnswer(answer, completeError);
   const result: ClassifierResult = {
@@ -221,7 +277,7 @@ export async function classifyWake(deps: ClassifierDeps, input: { wake: string; 
     ms: deps.clock.now() - t0,
     promptChars: prompt.length + system.length,
     answer: answer.slice(0, CLASSIFIER_ANSWER_CAP),
-    model,
+    model: usedModel,
     evidence,
   };
   const record = buildClassifierRecord({ clock: deps.clock, wake: input.wake, tasks: input.tasks, seqs: input.seqs, evidence, result });

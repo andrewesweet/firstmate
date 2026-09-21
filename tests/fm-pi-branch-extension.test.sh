@@ -179,10 +179,23 @@ export class ModelRuntime {
 // Stub of the classifier's model-name resolution: first exact provider or
 // id match, else a synthetic scope so a suite that binds no static models
 // still exercises the completion seam (the real resolver's diagnostics are
-// not this suite's unit).
+// not this suite's unit). Patterns land in __fmResolverPatterns, and names
+// listed in __fmUnresolvableModels fail resolution exactly as a host with
+// no such model would.
 export async function resolveModelScopeWithDiagnostics(patterns, modelRuntime) {
+  (globalThis.__fmResolverPatterns ??= []).push(...patterns.map((p) => String(p)));
   const pattern = String(patterns[0] ?? "");
+  if (globalThis.__fmUnresolvableModels?.has(pattern)) {
+    throw new Error(`classifier model not found: ${pattern}`);
+  }
+  // A "provider/id" pattern matches an exact catalog entry first, as the
+  // real resolver does for provider-qualified names.
+  const separator = pattern.indexOf("/");
+  const qualified = separator > 0 && separator < pattern.length - 1
+    ? { provider: pattern.slice(0, separator), id: pattern.slice(separator + 1) }
+    : null;
   const model =
+    (qualified && modelRuntime.models.find((m) => m.provider === qualified.provider && m.id === qualified.id)) ??
     modelRuntime.models.find((m) => m.provider === pattern || m.id === pattern) ??
     modelRuntime.models[0] ??
     { provider: "stub-classifier", id: pattern || "stub-model" };
@@ -748,7 +761,7 @@ const records = classRecords();
 if (records.length !== 1) throw new Error(`expected one classification record, got ${records.length}`);
 if (records[0].verdict !== "captain") throw new Error(`record lost the verdict: ${JSON.stringify(records[0])}`);
 if (records[0].wake !== offer.message) throw new Error(`record lost the wake: ${JSON.stringify(records[0])}`);
-if (records[0].model !== "haiku") throw new Error(`record lost the default model: ${JSON.stringify(records[0])}`);
+if (records[0].model !== "anthropic/main-model") throw new Error(`record lost the host-default model: ${JSON.stringify(records[0])}`);
 if (JSON.stringify(passedSeqs()) !== JSON.stringify(["1"])) throw new Error(`guard file wrong: ${readFileSync(passedFile, "utf8")}`);
 let cover = null;
 await settle(() => {
@@ -801,6 +814,179 @@ EOF
   out=$(cat "$TMP_ROOT/node-output")
   expect_code 0 "$status" "classifier pass cover and guard must hold: $out"
   pass "a captain-classified wake passes to main with cover rows, the guard file, and its sweep"
+}
+
+# The Pi host default, in three single-purpose drivers: an unconfigured
+# classifier runs on the supervision branch's own model (the pin, else
+# main's session model) with no failing haiku call first; an explicit
+# config/classifier-model still wins; an explicit unresolvable name falls
+# back once to the branch's model; and the durable record names the model
+# actually used. Each driver holds at most two wake turns because two
+# report-less, error-free branch turns arm the provider latch and a latched
+# branch rejects further wakes.
+test_classifier_default_resolves_per_host_on_pi() {
+  local repo home out status
+  repo="$TMP_ROOT/classifier-default-root"
+  home="$TMP_ROOT/classifier-default-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+// The catalog bindings let the stub resolver match the qualified names the
+// way a real host catalog does.
+registryModels.push({ provider: "anthropic", id: "main-model" });
+registryModels.push({ provider: "openai", id: "cheap-1" });
+await fire("session_start", {}, defaultSessionCtx);
+const classFile = `${home}/state/branch-mod-classifications.jsonl`;
+const classRecords = () => {
+  try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
+  catch { return []; }
+};
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+
+// 1. No config and no pin: the default path resolves main's session model
+// before any completion call, so the resolution sequence never names haiku
+// and the record carries the model used.
+const unpinned = dispatch("signal: unpinned default wake");
+if (!unpinned.accepted) throw new Error("branch did not accept the unpinned wake");
+try { await unpinned.settlement; } catch { /* the stubbed prompt reports nothing; the rejection is expected */ }
+await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "unpinned default wake prompt");
+if (JSON.stringify(globalThis.__fmResolverPatterns) !== JSON.stringify(["anthropic/main-model"])) {
+  throw new Error(`the unpinned default resolved through the wrong names: ${JSON.stringify(globalThis.__fmResolverPatterns)}`);
+}
+if ((globalThis.__fmClassifierCalls ?? []).length !== 1
+  || globalThis.__fmClassifierCalls[0].model.provider !== "anthropic"
+  || globalThis.__fmClassifierCalls[0].model.id !== "main-model") {
+  throw new Error(`the unpinned default did not complete on the session model: ${JSON.stringify(globalThis.__fmClassifierCalls)}`);
+}
+const records = classRecords();
+if (records.length !== 1 || records[0].model !== "anthropic/main-model" || records[0].verdict !== "routine") {
+  throw new Error(`the unpinned default record drifted: ${JSON.stringify(records)}`);
+}
+
+// 2. The pin: the same default path now resolves the pinned model.
+writeFileSync(`${home}/config/supervision-branch-model`, "openai/cheap-1\n");
+const pinned = dispatch("signal: pinned default wake");
+if (!pinned.accepted) throw new Error("branch did not accept the pinned wake");
+try { await pinned.settlement; } catch { }
+await settle(() => (globalThis.__fmPrompts ?? []).length === 2, "pinned default wake prompt");
+if (JSON.stringify(globalThis.__fmResolverPatterns) !== JSON.stringify(["anthropic/main-model", "openai/cheap-1"])) {
+  throw new Error(`the pinned default resolved through the wrong names: ${JSON.stringify(globalThis.__fmResolverPatterns)}`);
+}
+if ((globalThis.__fmClassifierCalls ?? []).length !== 2
+  || globalThis.__fmClassifierCalls[1].model.provider !== "openai"
+  || globalThis.__fmClassifierCalls[1].model.id !== "cheap-1") {
+  throw new Error(`the pinned default did not complete on the pinned model: ${JSON.stringify(globalThis.__fmClassifierCalls)}`);
+}
+if (classRecords().at(-1).model !== "openai/cheap-1") {
+  throw new Error(`the pinned default record lost the pinned model: ${JSON.stringify(classRecords().at(-1))}`);
+}
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "the Pi classifier default must resolve per host without a failing haiku call: $out"
+  pass "the Pi classifier default resolves the branch's model (pin, else main's session model) before any completion call"
+}
+
+# Driver 2 of 3: an explicit config/classifier-model wins over the pin,
+# resolving and completing exactly once.
+test_classifier_explicit_config_wins_on_pi() {
+  local repo home out status
+  repo="$TMP_ROOT/classifier-explicit-root"
+  home="$TMP_ROOT/classifier-explicit-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+registryModels.push({ provider: "anthropic", id: "main-model" });
+registryModels.push({ provider: "openai", id: "cheap-1" });
+writeFileSync(`${home}/config/supervision-branch-model`, "openai/cheap-1\n");
+writeFileSync(`${home}/config/classifier-model`, "anthropic/main-model\n");
+await fire("session_start", {}, defaultSessionCtx);
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+
+const explicit = dispatch("signal: explicit config wake");
+if (!explicit.accepted) throw new Error("branch did not accept the explicit-config wake");
+try { await explicit.settlement; } catch { }
+await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "explicit config wake prompt");
+if (JSON.stringify(globalThis.__fmResolverPatterns) !== JSON.stringify(["anthropic/main-model"])) {
+  throw new Error(`the explicit config did not win outright: ${JSON.stringify(globalThis.__fmResolverPatterns)}`);
+}
+if ((globalThis.__fmClassifierCalls ?? []).length !== 1) {
+  throw new Error(`the explicit config resolved or completed more than once: ${JSON.stringify(globalThis.__fmClassifierCalls)}`);
+}
+const record = JSON.parse(readFileSync(`${home}/state/branch-mod-classifications.jsonl`, "utf8").trim().split("\n").at(-1));
+if (record.model !== "anthropic/main-model") {
+  throw new Error(`the explicit-config record lost the model used: ${JSON.stringify(record)}`);
+}
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "the explicit classifier config must win over the pin with a single resolution: $out"
+  pass "the explicit classifier config wins over the pin and records the model used"
+}
+
+# Driver 3 of 3: an explicit name that does not resolve on this host falls
+# back once to the branch's own model; the record names the model used.
+test_classifier_unresolvable_falls_back_once_on_pi() {
+  local repo home out status
+  repo="$TMP_ROOT/classifier-fallback-root"
+  home="$TMP_ROOT/classifier-fallback-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home, registryModels } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+registryModels.push({ provider: "openai", id: "cheap-1" });
+writeFileSync(`${home}/config/supervision-branch-model`, "openai/cheap-1\n");
+writeFileSync(`${home}/config/classifier-model`, "ghost/model\n");
+globalThis.__fmUnresolvableModels = new Set(["ghost/model"]);
+await fire("session_start", {}, defaultSessionCtx);
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+
+const ghost = dispatch("signal: unresolvable config wake");
+if (!ghost.accepted) throw new Error("branch did not accept the unresolvable-config wake");
+try { await ghost.settlement; } catch { }
+await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "unresolvable config wake prompt");
+if (JSON.stringify(globalThis.__fmResolverPatterns) !== JSON.stringify(["ghost/model", "openai/cheap-1"])) {
+  throw new Error(`the unresolvable name did not fall back once to the branch's model: ${JSON.stringify(globalThis.__fmResolverPatterns)}`);
+}
+// The stub resolver fails the ghost name before any completion exists, so
+// exactly one completion lands - on the fallback model.
+if ((globalThis.__fmClassifierCalls ?? []).length !== 1
+  || globalThis.__fmClassifierCalls[0].model.provider !== "openai"
+  || globalThis.__fmClassifierCalls[0].model.id !== "cheap-1") {
+  throw new Error(`the fallback retry did not complete once on the branch's model: ${JSON.stringify(globalThis.__fmClassifierCalls)}`);
+}
+const record = JSON.parse(readFileSync(`${home}/state/branch-mod-classifications.jsonl`, "utf8").trim().split("\n").at(-1));
+if (record.model !== "openai/cheap-1" || record.verdict !== "routine") {
+  throw new Error(`the fallback record lost the model used: ${JSON.stringify(record)}`);
+}
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "the unresolvable classifier name must fall back once to the branch's model: $out"
+  pass "the unresolvable classifier name falls back once to the branch's model and records the model used"
 }
 
 # The shadow advisory trial: gated on config, detached behind a routine
@@ -1677,8 +1863,9 @@ test_branch_cache_key_is_per_home_stable() {
     PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$1" FM_ROOT_OVERRIDE="$ROOT" \
       DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, settle }; })()`);
-const { dispatch, settle } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, defaultSessionCtx }; })()`);
+const { fire, dispatch, settle, defaultSessionCtx } = globalThis.__t;
+await fire("session_start", {}, defaultSessionCtx);
 dispatch("signal: cache probe");
 await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "branch wake prompt");
 const loader = globalThis.__fmLoaders[0];
@@ -2211,11 +2398,11 @@ test_branch_predrain_recheck_keeps_a_heartbeat_a_co_present_check_arrives_under(
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages }; })()`);
-const { dispatch, fire, home, mainUserMessages } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages, defaultSessionCtx }; })()`);
+const { dispatch, fire, home, mainUserMessages, defaultSessionCtx } = globalThis.__t;
 import { appendFileSync, readFileSync } from "node:fs";
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 let releasePrompt;
 globalThis.__fmPromptGate = new Promise((resolve) => { releasePrompt = resolve; });
 const offer = dispatch("heartbeat", [], true, true);
@@ -2358,11 +2545,11 @@ test_branch_predrain_recheck_excludes_new_main_owned_row_without_deferring_eligi
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages }; })()`);
-const { dispatch, fire, home, mainUserMessages } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages, defaultSessionCtx }; })()`);
+const { dispatch, fire, home, mainUserMessages, defaultSessionCtx } = globalThis.__t;
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 let releasePrompt;
 globalThis.__fmPromptGate = new Promise((resolve) => { releasePrompt = resolve; });
 const offer = dispatch("signal: task-local wake");
@@ -2419,12 +2606,12 @@ test_branch_predrain_needs_decision_keeps_routine_row_branch_eligible() {
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { bus, fire, home, makeOffer, realRoot }; })()`);
-const { bus, fire, home, makeOffer, realRoot } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { bus, fire, home, makeOffer, realRoot, defaultSessionCtx }; })()`);
+const { bus, fire, home, makeOffer, realRoot, defaultSessionCtx } = globalThis.__t;
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-fire("session_start", {});
+fire("session_start", {}, defaultSessionCtx);
 writeFileSync(
   `${home}/state/.wake-queue`,
   "1\t1\tsignal\tbranch-driver.status\tsignal: routine progress\n" +
@@ -2479,12 +2666,12 @@ test_settled_branch_prompt_releases_unacknowledged_grant() {
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, realRoot, mainUserMessages }; })()`);
-const { dispatch, fire, home, realRoot, mainUserMessages } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, realRoot, mainUserMessages, defaultSessionCtx }; })()`);
+const { dispatch, fire, home, realRoot, mainUserMessages, defaultSessionCtx } = globalThis.__t;
 const { spawnSync } = await import("node:child_process");
 const { existsSync } = await import("node:fs");
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 const offer = dispatch("signal: unacknowledged branch wake");
 if (!offer.accepted) throw new Error("eligible wake was not accepted");
 for (let i = 0; i < 250 && (globalThis.__fmPrompts ?? []).length === 0; i += 1) {
@@ -2530,14 +2717,16 @@ test_post_construction_provider_error_falls_back_latches_and_recovers_on_cooldow
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { pi, makeOffer, dispatch, fire, settle, home, mainUserMessages, sentToMain }; })()`);
-const { pi, makeOffer, dispatch, fire, settle, home, mainUserMessages, sentToMain } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, makeOffer, dispatch, fire, settle, home, mainUserMessages, sentToMain, mainModel, modelRegistry }; })()`);
+const { pi, makeOffer, dispatch, fire, settle, home, mainUserMessages, sentToMain, mainModel, modelRegistry } = globalThis.__t;
 import { existsSync } from "node:fs";
 
 let now = 1_000_000;
 Date.now = () => now;
 const entries = [];
 await fire("session_start", {}, {
+  model: mainModel,
+  modelRegistry,
   sessionManager: {
     getSessionFile: () => `${home}/main.jsonl`,
     getEntries: () => entries,
@@ -2917,11 +3106,11 @@ test_main_owned_grant_result_falls_back_to_main() {
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages }; })()`);
-const { dispatch, fire, home, mainUserMessages } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages, defaultSessionCtx }; })()`);
+const { dispatch, fire, home, mainUserMessages, defaultSessionCtx } = globalThis.__t;
 import { writeFileSync } from "node:fs";
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 const offer = dispatch("signal: interrupted main claim");
 if (!offer.accepted) throw new Error("eligible wake was not accepted before the ownership recheck");
 writeFileSync(`${home}/state/.main-eligible-rows`, "1\n");
@@ -2955,11 +3144,11 @@ test_branch_predrain_recheck_noops_already_drained_wake() {
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages }; })()`);
-const { dispatch, fire, home, mainUserMessages } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, fire, home, mainUserMessages, defaultSessionCtx }; })()`);
+const { dispatch, fire, home, mainUserMessages, defaultSessionCtx } = globalThis.__t;
 import { writeFileSync } from "node:fs";
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 let releaseFirst;
 globalThis.__fmPromptGate = new Promise((resolve) => {
   releaseFirst = resolve;
@@ -3009,8 +3198,8 @@ test_branch_mirror_filters_order_and_cursor() {
   PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home }; })()`);
-const { fire, dispatch, settle, home } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home, mainModel, modelRegistry }; })()`);
+const { fire, dispatch, settle, home, mainModel, modelRegistry } = globalThis.__t;
 import { existsSync, readFileSync } from "node:fs";
 
 const entries = [
@@ -3023,6 +3212,8 @@ const entries = [
   { type: "message", message: { role: "user", content: `pad ${"x".repeat(5000)}\ntail: retain this request` } },
 ];
 const ctx = {
+  model: mainModel,
+  modelRegistry,
   sessionManager: {
     getSessionFile: () => `${home}/main-1.jsonl`,
     getEntries: () => entries,
@@ -4181,13 +4372,13 @@ SH
     FM_TEST_FAIL_MARKER="$home/state/release-failed-once" DRIVER_PRELUDE="$DRIVER_PRELUDE" \
     node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
 const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home, realRoot }; })()`);
-const { fire, dispatch, settle, home } = globalThis.__t;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home, realRoot, defaultSessionCtx }; })()`);
+const { fire, dispatch, settle, home, realRoot, defaultSessionCtx } = globalThis.__t;
 import { existsSync, writeFileSync } from "node:fs";
 
 writeFileSync(`${home}/state/.lease-task-old`, `branch\t${process.pid}\t123\n`);
 
-await fire("session_start", {});
+await fire("session_start", {}, defaultSessionCtx);
 if (!existsSync(`${home}/state/.lease-task-old`)) throw new Error("failed activation incorrectly committed lease cleanup");
 const offer = dispatch("signal: retry activation");
 if (!offer.accepted) throw new Error("later boundary did not retry failed activation");
@@ -4257,8 +4448,12 @@ test_queued_actions_recheck_lock_ownership() {
 const prelude = process.env.DRIVER_PRELUDE;
 await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home, mainUserMessages }; })()`);
 const { fire, dispatch, settle, home, mainUserMessages } = globalThis.__t;
-import { existsSync, unlinkSync } from "node:fs";
+import { existsSync, unlinkSync, writeFileSync } from "node:fs";
 
+// The classifier runs on an explicit configured model so this driver can
+// keep main's session model unknown, which its mirror-cursor scenario
+// depends on.
+writeFileSync(`${home}/config/classifier-model`, "haiku\n");
 let releasePrompt;
 globalThis.__fmPromptGate = new Promise((resolve) => { releasePrompt = resolve; });
 if (!dispatch("signal: active wake").accepted) throw new Error("first wake was not accepted");
@@ -4303,8 +4498,12 @@ test_stale_generation_boundaries_are_side_effect_free() {
 const prelude = process.env.DRIVER_PRELUDE;
 await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, home, sentToMain }; })()`);
 const { fire, dispatch, settle, home, sentToMain } = globalThis.__t;
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
+// An explicit configured classifier model keeps classification working while
+// main's session model stays unknown, which the generation scenarios here
+// depend on.
+writeFileSync(`${home}/config/classifier-model`, "haiku\n");
 if (!dispatch("signal: establish old branch").accepted) throw new Error("old branch wake was not accepted");
 await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "old branch prompt");
 const oldSession = globalThis.__fmSessions[0];
@@ -5249,6 +5448,10 @@ await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle
 const { fire, dispatch, settle, outcomeScript, sentToMain, mainEntries, home } = globalThis.__t;
 import { existsSync, writeFileSync } from "node:fs";
 
+// An explicit configured classifier model keeps classification working while
+// main's session model stays unknown; the replacement scenario here needs a
+// build that passes no model override.
+writeFileSync(`${home}/config/classifier-model`, "haiku\n");
 const firstEntries = [];
 const firstCtx = {
   sessionManager: { getSessionFile: () => `${home}/first.jsonl`, getEntries: () => firstEntries },
@@ -5669,6 +5872,9 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers
 test_real_pi_picker_primitives_stay_bounded_and_searchable
 test_branch_dispatch_two_stage_filter_and_prefix_contract
 test_classifier_pass_covers_rows_and_guards_passed_seqs
+test_classifier_default_resolves_per_host_on_pi
+test_classifier_explicit_config_wins_on_pi
+test_classifier_unresolvable_falls_back_once_on_pi
 test_shadow_trial_appends_and_away_skips_classification
 test_requested_healthy_outcome_and_unsolicited_routine_outcome_delivery
 test_captain_outcome_is_exactly_once_across_crash_reload_and_unrelated_response
