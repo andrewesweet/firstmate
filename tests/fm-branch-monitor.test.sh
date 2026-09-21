@@ -243,6 +243,7 @@ fi
 # shellcheck disable=SC2016 # the loop command bytes are literal; $(...) belongs to the generated shell
 EXPECTED_COMMAND_PREFIX='cd "/work" && export FM_HOME="/fm/home" FM_STATE_OVERRIDE="/fm/home/state" FM_CONFIG_OVERRIDE="/fm/home/config"; A="/fm/code/bin/fm-watch-arm.sh"; Q="/fm/home/state/.wake-queue"; D="/fm/home/state/.watcher-down"; T0=$(date +%s); while :; do out=$("$A" 2>&1); '
 CMD="$(step arm | jq -r '.command')"
+# shellcheck disable=SC2016 # the loop command bytes are literal; $(...) belongs to the generated shell
 if case "$CMD" in "$EXPECTED_COMMAND_PREFIX"*) true;; *) false;; esac && [ "$(printf '%s' "$CMD" | grep -c '\[ $(( $(date +%s) - T0 )) -lt 1620 \] || { printf '"'"'rotate: loop exiting ahead of the monitor timeout')" = "1" ] && [ "$(printf '%s' "$CMD" | grep -c 'forced-rearm: queue or recovery marker still pending after %ss')" = "1" ]; then
   pass "the loop command keeps its exact prefix, rotate deadline, and re-arm gates"
 else
