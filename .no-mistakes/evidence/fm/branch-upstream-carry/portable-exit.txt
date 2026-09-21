@@ -1,0 +1,7 @@
+fm-branch-claude-mod exit=0
+fm-branch-classifier exit=0
+fm-branch-report-sequence exit=0
+fm-branch-eligibility exit=0
+fm-branch-mod-bin exit=0
+plugin exit=0
+pi-ext exit=0

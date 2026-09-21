@@ -6,7 +6,6 @@ ok - a captain-classified wake passes to main with cover rows, the guard file, a
 ok - the Pi classifier default resolves the branch's model (pin, else main's session model) before any completion call
 ok - the explicit classifier config wins over the pin and records the model used
 ok - the unresolvable classifier name falls back once to the branch's model and records the model used
-ok - the gated shadow trial appends joined records and the away posture skips classification
 ok - requested and unsolicited healthy outcomes keep distinct delivery and event ownership
 ok - captain outcomes are exact and exactly once across crash, reload, busy main, compaction, and an unrelated assistant response
 ok - a captain outcome opens one sequence-keyed processing turn, survives empty and unrelated answers, is re-presented at run end and session start, and closes only on its acknowledgement
