@@ -771,9 +771,10 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  function finishProviderProbe(probeGeneration: number, probeSelectionRevision: number): void {
+  function finishProviderProbe(probeGeneration: number, probeSelectionRevision: number, probed: boolean): void {
     if (probeGeneration !== generation || probeSelectionRevision !== branchSelectionRevision || !providerLatch.isArmed()) return;
-    providerLatch.finishProbe();
+    if (probed) providerLatch.finishProbe();
+    else providerLatch.releaseProbe();
   }
 
   // Resolves one model against the isolated branch runtime using only the
@@ -1656,6 +1657,7 @@ ${context.command}
 
   function enqueueWake(message: string, acceptedGeneration: number, recoveryProbe = false, acceptedAwayOnly = false): Promise<void> {
     const acceptedSelectionRevision = branchSelectionRevision;
+    let promptAttempted = false;
     const delivery = branchChain
       .then(async () => {
         if (shuttingDown || acceptedGeneration !== generation) {
@@ -1797,6 +1799,7 @@ ${context.command}
         // lets this prompt proceed; the guarded scripts revalidate, and the
         // durable queue keeps every row (bin/fm-lease-lib.sh role-partition).
         const postureTail = afk ? await awayPostureTail() : "";
+        promptAttempted = true;
         try {
           await session.prompt(
             `FIRSTMATE SUPERVISION WAKE: ${message}\n\nHandle this per your operating procedure and finish with fm_branch_report.${postureTail}`,
@@ -1840,7 +1843,7 @@ ${context.command}
         throw error;
       })
       .finally(() => {
-        if (recoveryProbe) finishProviderProbe(acceptedGeneration, acceptedSelectionRevision);
+        if (recoveryProbe) finishProviderProbe(acceptedGeneration, acceptedSelectionRevision, promptAttempted);
       });
     branchChain = delivery.catch(() => {});
     return delivery;

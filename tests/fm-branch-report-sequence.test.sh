@@ -277,6 +277,7 @@ for (const step of schedule) {
     case "admit": v = { a: step.a, ...latch.admitWake() }; break;
     case "begin": latch.beginProbe(); v = { a: step.a, probing: latch.isProbing() }; break;
     case "finish": latch.finishProbe(); v = { a: step.a, probing: latch.isProbing(), armed: latch.isArmed() }; break;
+    case "release": latch.releaseProbe(); v = { a: step.a, probing: latch.isProbing(), armed: latch.isArmed() }; break;
     case "reset": latch.reset(); v = { a: step.a, armed: latch.isArmed(), probing: latch.isProbing() }; break;
     default: throw new Error(`unknown schedule action ${step.a}`);
   }
@@ -408,7 +409,13 @@ PI_SCHEDULE='[
  {"a":"fail","t":907000},
  {"a":"fail","t":908000},
  {"a":"reset","t":908001},
- {"a":"admit","t":908002}
+ {"a":"admit","t":908002},
+ {"a":"fail","t":908003},
+ {"a":"fail","t":908004},
+ {"a":"admit","t":1208004},
+ {"a":"begin","t":1208004},
+ {"a":"release","t":1208005},
+ {"a":"admit","t":1208006}
 ]'
 MOD_SCHEDULE='[
  {"a":"fail","t":0},
@@ -463,8 +470,13 @@ if jq -e '
   and .[16] == {"a":"fail","streak":2,"armed":true,"firstLatch":true,"cooldownMs":300000,"latchedUntil":1208000}
   and .[17] == {"a":"reset","armed":false,"probing":false}
   and .[18] == {"a":"admit","decision":"open"}
+  and .[20] == {"a":"fail","streak":2,"armed":true,"firstLatch":true,"cooldownMs":300000,"latchedUntil":1208004}
+  and .[21] == {"a":"admit","decision":"probe"}
+  and .[22] == {"a":"begin","probing":true}
+  and .[23] == {"a":"release","probing":false,"armed":true}
+  and .[24] == {"a":"admit","decision":"probe"}
 ' "$TMP_ROOT/pi-lib.json" >/dev/null; then
-  pass "Pi latch schedule: 2 to latch, 5m base, failed probe doubles to 10m, one probe per cooldown, recovery resets"
+  pass "Pi latch schedule: 2 to latch, 5m base, failed probe doubles to 10m, one probe per cooldown, released probe does not extend, recovery resets"
 else
   fail "Pi latch schedule diverged"
 fi

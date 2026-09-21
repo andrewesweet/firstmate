@@ -839,7 +839,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const scope = await scopeForUnreadWake($, heartbeat)
   log($, 'wake.scope', { reason, scope, source })
   const passedSeqs = await readPassedSeqs($)
-  if (scope.allSeqs || scope.status === 'empty') {
+  if (!scope.corrupted && (scope.allSeqs || scope.status === 'empty')) {
     const queued = new Set(scope.allSeqs ?? [])
     const gone = [...passedSeqs].filter((s) => !queued.has(s))
     if (gone.length > 0) {

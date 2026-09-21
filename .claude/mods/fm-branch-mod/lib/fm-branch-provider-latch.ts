@@ -140,6 +140,13 @@ export function createProviderErrorLatch(policy: ProviderErrorLatchPolicy, now: 
     }
   }
 
+  // Releases an admitted probe slot whose wake never reached the provider
+  // (the host routed it away before its prompt): nothing was probed, so the
+  // cooldown is not extended and the next admitted wake becomes the probe.
+  function releaseProbe(): void {
+    probeInFlight = false;
+  }
+
   // One host-counted clean settlement: resets the count and, when a latch
   // was active, clears it (the host renders its recovery notification from
   // the recovered flag).
@@ -172,5 +179,5 @@ export function createProviderErrorLatch(policy: ProviderErrorLatchPolicy, now: 
     return probeInFlight;
   }
 
-  return { recordFailure, admitWake, beginProbe, finishProbe, recordSuccess, reset, isArmed, isProbing };
+  return { recordFailure, admitWake, beginProbe, finishProbe, releaseProbe, recordSuccess, reset, isArmed, isProbing };
 }

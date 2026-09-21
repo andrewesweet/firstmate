@@ -447,6 +447,21 @@ describe("classification log", () => {
     expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-passed`) ?? "[]")).toEqual([]);
   });
 
+  test("an unsafe scan keeps the durable passed guard, so main still owns the passed rows once the queue reads cleanly again", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome(), classifierAnswer: '{"verdict":"captain","reason":"terminal line"}' });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(1);
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-passed`) ?? "[]")).toEqual(["12"]);
+    // A partially written row lands behind the still-queued passed row.
+    w.files.set(`${STATE}/.wake-queue`, "1700000000\t12\tsignal\tt1.status\tdone: PR https://x/1 checks green\nnot-an-epoch\t13\tsignal\tt1.status\tworking: b\n");
+    await w.clock.advance(91_000);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.submitted).toEqual([WAKE, WAKE]);
+    expect(w.completions.length).toBe(1);
+    expect(JSON.parse(w.files.get(`${STATE}/.branch-mod-passed`) ?? "[]")).toEqual(["12"]);
+  });
+
   test("a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row", async ($: Engine, on: On) => {
     const files = {
       ...armedHome(),
