@@ -1,7 +1,20 @@
 // fm-branch-mod: the firstmate supervision branch as a Claude Code hooks module,
 // with one persistent branch agent per session and a text-only classifier ahead
 // of it. docs/claude-supervision-branch.md owns the operator contract; this
-// header owns the module's own shape.
+// header owns the binding's own shape.
+//
+// The host-independent decision cores live in this mod's lib/ (the canonical
+// copies the repo's lib/ symlinks to): the text builders and parses
+// (lib/fm-branch-text.ts), the eligible-rows scan orchestration
+// (lib/fm-branch-scope.ts), the wake-routing decision (lib/fm-branch-
+// routing.ts), the delivery state machine (lib/fm-branch-delivery.ts), the
+// monitor guard (lib/fm-branch-monitor.ts), and the session and settlement
+// rules (lib/fm-branch-settlement.ts), beside the shared eligibility fold,
+// report-sequence, provider-latch, and classifier modules. This
+// file is the Claude Code binding: it keeps only what needs the host
+// object - the hook registrations, the raw $.agent.spawn / $.tool.call /
+// $.process.run wrappers, the $.clock reads, the Monitor task, the env and
+// fs seams the validator lists, and the tool.call/turn.step rewrites.
 //
 //   (a) prompt.submit: the Stop-hook rewake (or the continuity monitor's event)
 //       -> eligibility scope -> classifier -> grant -> deliver to the branch
@@ -15,12 +28,12 @@
 //       deterministic backstop (bin/fm-wake-evidence.sh --routine-covered) as a
 //       main prompt, then route any wake still queued.
 //   (f) turn.step effort rewrite for the branch's own agent ids.
-//   continuity: one Monitor task per session streams each watcher close as a
+// continuity: one Monitor task per session streams each watcher close as a
 //       task-notification into prompt.submit; armed at session start when the
 //       mode file is present and the session lock is held, on any captain
 //       prompt or stop-hook-sourced wake that finds no live monitor (a claim
-//       older than MONITOR_CLAIM_STALE_MS counts as dead), and from the
-//       branch's settlement - never dependent on a captain prompt to exist.
+//       older than the stale bound counts as dead), and from the branch's
+//       settlement - never dependent on a captain prompt to exist.
 //
 // The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
 // the version is read from the binary hosting the session (PATH `claude` is only
@@ -36,17 +49,18 @@
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
 import type { On } from 'claude-code'
-// The shared v8 fold and eligible-rows scan, imported from this mod's
-// canonical ../lib (the repo's lib/ points back at these files through
-// symlinks; the node:fs default bindings live in that wrapper, excluded
-// here: this module may import only its own files and "claude-code").
+// The shared cores, imported from this mod's canonical ../lib (the repo's
+// lib/ points back at these files through symlinks; the node:fs default
+// bindings live in that wrapper, excluded here: this module may import only
+// its own files and "claude-code").
 import {
   foldVocabularyFromEnv,
   hasOpenNeedsDecision,
   scopeForUnreadWake as libScopeForUnreadWake,
   statusKindFromMetaText,
 } from '../lib/fm-branch-eligibility.ts'
-import type { DecisionVerdictCache, FoldVocabulary, QueueMeta, StatusStat, StatusText } from '../lib/fm-branch-eligibility.ts'
+import type { FoldVocabulary } from '../lib/fm-branch-eligibility.ts'
+import { scanScope, statusKindOf, type Scope, type ScopeScanDeps } from '../lib/fm-branch-scope.ts'
 import {
   appendFailureMessage,
   markProcessedArgv,
@@ -62,43 +76,42 @@ import {
   classifierPassCoverArgv,
   classifyWake,
   passedToMainSummary,
+  type ClassifierEvidence,
   type ClassifierResult,
 } from '../lib/fm-branch-classifier.ts'
 import { createProviderErrorLatch } from '../lib/fm-branch-provider-latch.ts'
+import {
+  bashActorCommand,
+  isStopHookWakeText,
+  isVersionShaped,
+  newStatusLinesNote as libNewStatusLinesNote,
+  parseMonitorEvent,
+  processingRequest,
+  reasonLines,
+  rewakeBanner,
+  taskNoticeId,
+  toolText,
+  versionToken,
+} from '../lib/fm-branch-text.ts'
+import { createWakeRouter, type InFlight } from '../lib/fm-branch-routing.ts'
+import { createBranchDelivery } from '../lib/fm-branch-delivery.ts'
+import { createMonitorGuard, MONITOR_DESCRIPTION, MONITOR_TIMEOUT_MS } from '../lib/fm-branch-monitor.ts'
+import {
+  backstopCheck as libBackstopCheck,
+  BRANCH_ROTATE_TOKENS,
+  buildCountersText,
+  countersApplyVerdict,
+  parseCountersRecord,
+  rotateDue,
+  transcriptPersistenceFromEnv,
+  wakeUsageFold,
+} from '../lib/fm-branch-settlement.ts'
 
 export const CLAUDE_CODE_PIN = '2.1.278'
 
-type Scope = {
-  status: 'safe' | 'empty' | 'unsafe'
-  eligible: boolean
-  eligibleSeqs: string[]
-  // Durable wake identity: the wake-queue "epoch:seq" of every eligible row,
-  // comma-joined. Stamped onto the outcome row the branch reports for this
-  // wake, so retrospective scorers join by identity
-  // instead of agent-supplied wake text.
-  eligibleWakeKey: string
-  eligibleTasks: string[]
-  corrupted: boolean
-  needsDecisionTasks: string[]
-  allSeqs?: string[]
-}
-
-type InFlight = {
-  seqs: string[]
-  wakeKey: string
-  tasks: Set<string>
-  heartbeat: boolean
-  wakeText: string
-  reason: string
-  reportedSeqs: number[]
-  startedAt: number
-  granted: boolean
-  wakeNo: number
-  via: 'spawn' | 'send'
-}
+type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
 
 const PLUGIN = 'fm-branch-mod'
-const BRANCH_NAME = 'fm-branch'
 const REPORT_TOOL = `mcp__${PLUGIN}__fm_branch_report`
 const PROCESSED_TOOL = `mcp__${PLUGIN}__fm_branch_processed`
 const PROVIDER_ERROR_LATCH_POLICY = {
@@ -107,18 +120,7 @@ const PROVIDER_ERROR_LATCH_POLICY = {
   maxCooldownMs: 5 * 60 * 1000,
   recoveryProbe: false,
 }
-// The branch is bounded inside the mod: once a wake's per-step request context
-// (the turn's summed usage over its steps) passes this many tokens, the next
-// wake goes to a fresh agent seeded with the index note.
-const BRANCH_ROTATE_TOKENS = 60_000
-const MONITOR_DESCRIPTION = 'fm-branch-mod watcher continuity'
-const MONITOR_TIMEOUT_MS = 30 * 60 * 1000
-// An armed claim older than this with no expiry notice in hand is a dead
-// monitor whose notice was lost: the claim expires and the next arm site arms.
-const MONITOR_CLAIM_STALE_MS = MONITOR_TIMEOUT_MS + 5 * 60 * 1000
 const EVENT_LOG_CAP_BYTES = 4_000_000
-const PASSED_DEDUPE_MS = 90_000
-const INFLIGHT_STALE_MS = 180_000
 const BOAT = '⛵'
 const ANCHOR = '⚓'
 
@@ -142,26 +144,7 @@ let lockPid = ''
 let lastKnownNowMs = Date.now()
 const providerLatch = createProviderErrorLatch(PROVIDER_ERROR_LATCH_POLICY, () => lastKnownNowMs)
 let wakeCounter = 0
-let spawnCount = 0
-let sendCount = 0
-let branchGeneration = 1
-let rotatePending = false
 let stepsThisWake = 0
-let branchRef = ''
-let inFlight: InFlight | null = null
-let branchAgentId = ''
-const ownAgents = new Set<string>()
-const handledSeqs = new Set<string>()
-const recentPassed = new Map<string, number>()
-let monitorArmed = false
-let monitorTaskId = ''
-let monitorArmedAt = 0
-let armingNow = false
-let monitorArms = 0
-
-function branchName(): string {
-  return branchGeneration > 1 ? `${BRANCH_NAME}-${branchGeneration}` : BRANCH_NAME
-}
 
 function scriptEnv(extra: Record<string, string> = {}): Record<string, string> {
   return {
@@ -262,34 +245,38 @@ async function readLockPid($: any): Promise<string> {
 
 // Session counters survive a module reload (/reload-plugins): the file is
 // bound to the session lock pid, so a genuinely new session starts at zero.
+// The record shape and the same-lock rule are the settlement module's; this
+// binding assembles the fields from the machines that own them.
 async function saveCounters($: any): Promise<void> {
   try {
+    const d = delivery.snapshot()
+    const m = monitorGuard.snapshot()
     await $.fs.write(
       `${state}/.branch-mod-counters`,
-      JSON.stringify({ lockPid: lockPid || (await readLockPid($)), wakeCounter, spawnCount, sendCount, generation, branchGeneration, branchRef, branchAgentId, monitorTaskId, monitorArmedAt }),
+      buildCountersText({
+        lockPid: lockPid || (await readLockPid($)),
+        wakeCounter,
+        spawnCount: d.spawnCount,
+        sendCount: d.sendCount,
+        generation,
+        branchGeneration: d.branchGeneration,
+        branchRef: d.branchRef,
+        branchAgentId: d.branchAgentId,
+        monitorTaskId: m.monitorTaskId,
+        monitorArmedAt: m.monitorArmedAt,
+      }),
     )
   } catch {}
 }
 async function restoreCounters($: any): Promise<void> {
   try {
-    const j = JSON.parse(await $.fs.read(`${state}/.branch-mod-counters`))
+    const j = parseCountersRecord(await $.fs.read(`${state}/.branch-mod-counters`))
     const pid = await readLockPid($)
-    if (j.lockPid && j.lockPid === pid) {
+    if (j && countersApplyVerdict(j, pid)) {
       wakeCounter = j.wakeCounter ?? 0
-      spawnCount = j.spawnCount ?? 0
-      sendCount = j.sendCount ?? 0
-      branchGeneration = j.branchGeneration ?? 1
+      delivery.restoreFromCounters(j)
       if (j.generation) generation = j.generation
-      if (j.branchRef) branchRef = j.branchRef
-      if (j.branchAgentId) {
-        branchAgentId = j.branchAgentId
-        ownAgents.add(j.branchAgentId)
-      }
-      if (j.monitorTaskId) {
-        monitorTaskId = j.monitorTaskId
-        monitorArmedAt = j.monitorArmedAt ?? Number(await $.clock.now())
-        monitorArmed = true
-      }
+      monitorGuard.restoreFromCounters(j.monitorTaskId, j.monitorArmedAt, Number(await $.clock.now()))
       log($, 'counters.restored', { ...j, reason: 'same session lock pid (module reloaded)' })
     }
   } catch {}
@@ -309,12 +296,7 @@ async function ensureActivated($: any): Promise<boolean> {
   return activated
 }
 
-// ---- eligibility: the shared fold, imported from this mod's canonical ../lib ----
-
-// Cross-scan verdict cache keyed by task id, the shared lib's module-level
-// posture: one state directory per runtime, so task ids are stable keys and a
-// stale row's fold carries across scans on an unchanged stat version.
-const verdictCache: DecisionVerdictCache = new Map()
+// ---- eligibility: the shared fold, bound to the host seam ----
 
 // The FM_CLASSIFY_* names and defaults of bin/fm-classify-lib.sh. The hooks
 // host answers $.env.get name by name (no process global in the module
@@ -337,167 +319,30 @@ async function foldVocabulary($: any): Promise<FoldVocabulary> {
   return foldVocabularyFromEnv((name) => byName[name])
 }
 
-// The stat version of one state-directory file through the host seam, whose
-// stat answers { kind, size, mtimeMs, isLink } with lstat semantics (isLink
-// true for a symlink itself, the target's size/mtime when it resolves).
-// Returns null for a missing, unreadable, or symlinked path - bash's
-// `[ -f ] && [ -r ] && [ ! -L ]` guard, via the shared lib's stat rule.
-async function statVersionOf($: any, path: string): Promise<string | null> {
-  try {
-    const stat = await $.fs.stat(path)
-    if (stat.isLink) return null
-    return `${stat.size}:${stat.mtimeMs}`
-  } catch {
-    return null
-  }
-}
-
-// bin/fm-classify-lib.sh _fm_status_kind through the shared lib's parser: a
-// symlinked, missing, or unreadable meta names no kind (unknown).
-async function statusKind($: any, task: string): Promise<string> {
-  const path = `${state}/${task}.meta`
-  let metaText: string | null = null
-  try {
-    const stat = await $.fs.stat(path)
-    if (!stat.isLink) metaText = await $.fs.read(path)
-  } catch {
-    metaText = null
-  }
-  return statusKindFromMetaText(metaText)
-}
-
-// The eligible-rows scan, delegated to the canonical shared core under
-// ../lib. The host seam
-// is async while the core binds sync lookups, so the reads happen first: the
-// queue, every .meta record (one unreadable meta refuses the scan exactly as
-// the lib's node:fs binding does), each task's kind, and each project-bearing
-// task's log with the stat-read-stat torn check. The sync bindings then answer
-// from those pre-reads.
-export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
-  const unsafe: Scope = { status: 'unsafe', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: true, needsDecisionTasks: [] }
-  let queueText: string
-  try {
-    queueText = await $.fs.read(`${state}/.wake-queue`)
-  } catch {
-    return unsafe
-  }
-  // An empty queue is nothing to claim before any metadata enumeration can
-  // fail - the shared core's own ordering.
-  if (queueText.split(/\r?\n/).filter((l: string) => l.length > 0).length === 0) {
-    return { status: 'empty', eligible: false, eligibleSeqs: [], eligibleWakeKey: '', eligibleTasks: [], corrupted: false, needsDecisionTasks: [] }
-  }
-  const metas: QueueMeta[] = []
-  const kinds = new Map<string, string>()
-  try {
-    for (const entry of await $.fs.list(state)) {
-      if (!entry.name.endsWith('.meta')) continue
-      const task = entry.name.slice(0, -5)
-      const metaPath = `${state}/${entry.name}`
-      const text: string = await $.fs.read(metaPath)
-      const fields = text.split('\n')
-      metas.push({
-        task,
-        project: fields.find((l: string) => l.startsWith('project='))?.slice(8) ?? '',
-        window: fields.find((l: string) => l.startsWith('window='))?.slice(7) ?? '',
-      })
-      let kind: string
-      try {
-        kind = (await $.fs.stat(metaPath)).isLink ? 'unknown' : statusKindFromMetaText(text)
-      } catch {
-        kind = 'unknown'
-      }
-      kinds.set(task, kind)
-    }
-  } catch {
-    return unsafe
-  }
-  // The core resolves which stale rows fold a status log; every task the
-  // resolution can name is one with a project, so pre-read those logs and let
-  // the core consult the ones it needs.
-  const stats = new Map<string, StatusStat>()
-  const texts = new Map<string, StatusText>()
-  for (const { task, project } of metas) {
-    if (!project) continue
-    const path = `${state}/${task}.status`
-    const version = await statVersionOf($, path)
-    if (version === null) {
-      stats.set(task, { state: 'refused' })
-      texts.set(task, { state: 'refused' })
-      continue
-    }
-    stats.set(task, { state: 'ok', version })
-    let text: string
-    try {
-      text = await $.fs.read(path)
-    } catch {
-      texts.set(task, { state: 'refused' })
-      continue
-    }
-    const after = await statVersionOf($, path)
-    texts.set(task, after === null || after !== version ? { state: 'torn' } : { state: 'ok', text, version: after })
-  }
-  const libScope = libScopeForUnreadWake({
-    queueText,
-    metas,
-    statStatus: (task) => stats.get(task) ?? { state: 'refused' },
-    readStatusText: (task) => texts.get(task) ?? { state: 'refused' },
-    readKind: (task) => kinds.get(task) ?? 'unknown',
-    env: await foldVocabulary($),
-    heartbeat,
-    // The mod routes the away collapse before scoping (routeWake's .afk
-    // check), so the core's own afk branch stays off here.
-    afk: false,
-    cache: verdictCache,
-  })
+// The scan's IO seam over the host object: the shared scan module owns the
+// orchestration (queue read, meta enumeration, kinds, the torn check) and
+// the pure fold stays lib/fm-branch-eligibility.ts's, reached through the
+// core seam because a module in this lib/ may import nothing.
+function scopeScanDeps($: any): ScopeScanDeps {
   return {
-    status: libScope.status,
-    eligible: libScope.eligible,
-    eligibleSeqs: libScope.eligibleSeqs,
-    eligibleWakeKey: libScope.eligibleWakeKey,
-    eligibleTasks: libScope.eligibleTasks,
-    corrupted: libScope.corrupted,
-    needsDecisionTasks: libScope.needsDecisionTasks,
-    allSeqs: libScope.allSeqs,
+    readFile: (path: string) => $.fs.read(path),
+    listDir: (path: string) => $.fs.list(path),
+    stat: (path: string) => $.fs.stat(path),
+    vocabulary: () => foldVocabulary($),
+    core: { statusKindFromMetaText, scopeForUnreadWake: libScopeForUnreadWake as ScopeScanDeps['core']['scopeForUnreadWake'] },
   }
 }
 
-// Deterministic note of the status lines appended since the task's last outcome.
-async function newStatusLinesNote($: any, tasks: string[]): Promise<string> {
-  const parts: string[] = []
-  for (const task of tasks) {
-    let endpoint = 0
-    let lastSeq = ''
-    try {
-      const idx = (await $.fs.read(`${state}/.${task}.branch-outcome-index`)).split('\t')
-      if (idx[0] === 'fm-branch-outcome-index-v1' && /^[0-9]+$/.test(idx[2] ?? '')) {
-        endpoint = Number(idx[2])
-        lastSeq = idx[1]
-      }
-    } catch {
-      endpoint = 0
-    }
-    let text = ''
-    try {
-      text = await $.fs.read(`${state}/${task}.status`)
-    } catch {
-      text = ''
-    }
-    const fresh = text
-      .slice(endpoint)
-      .split('\n')
-      .filter((l: string) => l.trim())
-      .slice(-12)
-    if (!lastSeq) parts.push(`No earlier outcome exists for ${task}: the whole status log is new for this wake.`)
-    else parts.push(`Status lines of ${task} appended since your last outcome (seq ${lastSeq}):\n` + (fresh.length ? fresh.map((l: string) => `  ${l}`).join('\n') : '  (none - only a turn-end or pane signal)'))
-  }
-  return parts.length ? `\n\n${parts.join('\n\n')}` : ''
+// The eligible-rows scan, delegated to the shared module. Exported for the
+// portable tests (same precedent as serveReport).
+export async function scopeForUnreadWake($: any, heartbeat: boolean): Promise<Scope> {
+  return scanScope(scopeScanDeps($), state, heartbeat)
 }
 
-function reasonLines(text: string): string[] {
-  return text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => /^(signal:|stale:|check:|heartbeat($|:))/.test(l))
+// Deterministic note of the status lines appended since the task's last
+// outcome, through the shared text module. Exported for the portable tests.
+export async function newStatusLinesNote($: any, tasks: string[]): Promise<string> {
+  return libNewStatusLinesNote({ readFile: (path: string) => $.fs.read(path) }, state, tasks)
 }
 
 async function outcome($: any, args: string[]): Promise<{ ok: boolean; stdout: string; detail: string }> {
@@ -511,15 +356,89 @@ function textResult(text: string, isError = false) {
   return isError ? { deny: text } : { result: text }
 }
 
-// Processing request for main: exactly one main turn per captain outcome.
-function processingRequest(seq: number, task: string, summary: string, source: string): string {
-  return (
-    `This is a supervision processing request delivered automatically by the supervision branch (${source}). It was not typed by the captain. ` +
-    `The outcome below is already stored durably; the fleet event is already handled, so do not re-drain, re-run, or acknowledge the wake. ` +
-    `Process it now as firstmate: tell the captain the outcome in one sentence. ` +
-    `Then call fm_branch_processed with through=${seq} exactly once.\n\n[seq ${seq}] ${task}: ${summary}`
-  )
+// ---- the lib/ machines, bound per call to the host object ----
+// The validator's spelling rule for $ (always $.noun.event at the call
+// site, never held in a variable) is why every machine takes its deps per
+// call, exactly as classifierDeps($) always has.
+
+function deliveryDeps($: any) {
+  return {
+    log: (kind: string, data: unknown) => log($, kind, data),
+    sessionTranscriptId: () => sessionTranscriptId($),
+    sendMessage: (to: string, prompt: string) => $.tool.call({ tool: 'SendMessage', to, summary: 'fm-branch-mod wake', message: prompt }),
+    spawnAgent: (opts: Record<string, unknown>) => $.agent.spawn(opts),
+    listAgents: () => $.agent.list(),
+    readModel: () => readConfig($, 'supervision-branch-model', 'sonnet'),
+    saveCounters: () => saveCounters($),
+    toolText,
+    pluginName: PLUGIN,
+  }
 }
+
+const delivery = createBranchDelivery()
+const monitorGuard = createMonitorGuard()
+const router = createWakeRouter()
+
+function monitorDeps($: any) {
+  return {
+    log: (kind: string, data: unknown) => log($, kind, data),
+    clockNow: async () => Number(await $.clock.now()),
+    modeOn: () => modeOn($),
+    startMonitor: async (command: string) => {
+      const r = await $.tool.call({ tool: 'Monitor', command, description: MONITOR_DESCRIPTION, timeout_ms: MONITOR_TIMEOUT_MS })
+      return { text: toolText(r), deny: r?.deny }
+    },
+    saveCounters: () => saveCounters($),
+    paths: () => ({ cwd, home, state, config, bin }),
+  }
+}
+
+function routerDeps($: any) {
+  return {
+    log: (kind: string, data: unknown) => log($, kind, data),
+    reasonLines,
+    clockNow: async () => {
+      const now = Number(await $.clock.now())
+      lastKnownNowMs = now
+      return now
+    },
+    dateNow: () => Date.now(),
+    modeOn: () => modeOn($),
+    latched: () => providerLatch.admitWake().decision === 'latched',
+    afkPresent: () => $.fs.exists(`${state}/.afk`),
+    scopeFor: (heartbeat: boolean) => scopeForUnreadWake($, heartbeat),
+    readPassedSeqs: async () => [...(await readPassedSeqs($))],
+    writePassedSeqs: (seqs: string[]) => writePassedSeqs($, new Set(seqs)),
+    classify: (wake: string, tasks: string[], seqs: string[]) => classify($, wake, tasks, seqs),
+    ensureActivated: () => ensureActivated($),
+    grantPublish: (seqs: string[]) => grant($, ['publish', generation, ...seqs]),
+    grantRelease: () => grant($, ['release', generation]).catch(() => {}),
+    advanceEvidence: (task: string) => {
+      void $.process.run(['bash', `${bin}/fm-wake-evidence.sh`, task], { cwd, env: scriptEnv(), timeoutMs: 25000 }).catch(() => {})
+    },
+    runOutcome: (argv: string[]) => outcome($, argv),
+    passedToMainSummary,
+    classifierPassCoverArgv,
+    claimWakeNo: async () => {
+      wakeCounter += 1
+      await saveCounters($)
+      return wakeCounter
+    },
+    freshAgentNeeded: () => delivery.freshAgentNeeded(),
+    stateDir: () => state,
+    statusNote: (tasks: string[]) => newStatusLinesNote($, tasks),
+    resetStepCounter: () => {
+      stepsThisWake = 0
+    },
+    deliver: (prompt: string) => delivery.deliverToBranch(deliveryDeps($), prompt),
+    spawnSendCounts: () => {
+      const d = delivery.snapshot()
+      return { spawnCount: d.spawnCount, sendCount: d.sendCount }
+    },
+  }
+}
+
+// ---- report and processed tools ----
 
 export async function serveReport($: any, e: any, agentId: string | undefined) {
   const task = String(e.task ?? '').trim()
@@ -527,7 +446,7 @@ export async function serveReport($: any, e: any, agentId: string | undefined) {
   const summary = String(e.summary ?? '').trim()
   const wake = String(e.wake ?? '').trim()
   const silent = e.silent === true
-  const p = inFlight
+  const p = router.peekInFlight()
   log($, 'report.call', { agentId, task, verdict, summary, silent, wakeNo: p?.wakeNo })
   const validated = validateBranchReport({ task, verdict, summary, silent })
   if (!validated.valid) {
@@ -571,20 +490,16 @@ export async function serveProcessed($: any, e: any) {
 }
 
 // Behavior-neutral test seams (same precedent as scopeForUnreadWake): the
-// portable equivalence test drives the real handlers and plants the in-flight
+// portable equivalence tests drive the real handlers and plant the in-flight
 // wake record the scoping rule reads (tests/fm-branch-report-sequence.test.sh).
 export function __fmSetInFlight(p: InFlight | null): void {
-  inFlight = p
+  router.setInFlightForTest(p)
 }
 
-// Rewake banner in the Stop hook's own shape, so a wake main must take reaches
-// it exactly as the hook would have delivered it.
-function rewakeBanner(reason: string): string {
-  return (
-    `<task-notification>\n<summary>Stop hook feedback</summary>\n</task-notification>\n<system-reminder>\n` +
-    `Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.\n${reason}\n` +
-    `Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.\n</system-reminder>`
-  )
+// Route one watcher wake through the shared routing machine. Exported for
+// the portable tests (tests/fm-branch-routing.test.sh).
+export async function routeWake($: any, wakeText: string, source: string): Promise<'dropped' | 'passed'> {
+  return router.routeWake(routerDeps($), wakeText, source)
 }
 
 // ---- classifier ahead of the branch ----
@@ -621,374 +536,38 @@ export async function classify($: any, reason: string, tasks: string[], seqs: st
   return result
 }
 
+// ---- continuity monitor, through the shared guard ----
 
-// ---- delivery to the one persistent branch agent ----
-async function resolveBranchAgentId($: any): Promise<string> {
-  try {
-    const list = await $.agent.list()
-    const name = branchName()
-    const named = (list as any[]).filter((a) => a.name === name)
-    log($, 'agent.list', { count: (list as any[]).length, named })
-    const live = named.at(-1)
-    return live?.id ?? ''
-  } catch (error) {
-    log($, 'agent.list.error', { error: String(error) })
-    return ''
-  }
-}
-
-function toolText(r: any): string {
-  return String(r?.text ?? r?.result ?? '')
-}
-
-// One SendMessage to the named branch. The harness pins a name to the agent it
-// first reached in this conversation; when the name later resolves elsewhere
-// (module reload, second spawn) the reply is {"success":false,"message":"...
-// re-send with its ref: {"to": "fm-branch [3a11a1]"}"} and nothing is sent, so
-// the pinned ref is learned from that text and the send retried once.
-async function sendToBranch($: any, prompt: string): Promise<{ ok: boolean; id: string; detail: string; noAgent: boolean }> {
-  const name = branchName()
-  const sessionId = await sessionTranscriptId($)
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const to = branchRef ? `${name} [${branchRef}]` : name
-    let r: any
-    try {
-      r = await $.tool.call({ tool: 'SendMessage', to, summary: 'fm-branch-mod wake', message: prompt })
-    } catch (error) {
-      r = { deny: String(error) }
-    }
-    sendCount += 1
-    const text = toolText(r)
-    log($, 'agent.send', { to, agentId: branchAgentId, sessionId, sendCount, attempt, text: text.slice(0, 400), deny: r?.deny, isError: r?.isError })
-    if (r?.deny || r?.isError) {
-      const failure = String(r?.deny ?? text)
-      return { ok: false, id: '', detail: failure.slice(0, 300), noAgent: /no agent|not found|unknown agent|could not be resumed|no transcript found/i.test(failure) }
-    }
-    let j: any = {}
-    try {
-      j = JSON.parse(text)
-    } catch {}
-    if (j.success === false) {
-      const hint = text.match(new RegExp(`${name} \\[([0-9a-f]+)\\]`))
-      if (hint && hint[1] !== branchRef) {
-        branchRef = hint[1]
-        continue
-      }
-      return { ok: false, id: '', detail: String(j.message ?? text).slice(0, 300), noAgent: /no agent|not found|unknown agent|does not resolve|could not be resumed|no transcript found/i.test(text) }
-    }
-    if (j.pin?.ref) branchRef = j.pin.ref
-    return { ok: true, id: String(j.resumedAgentId ?? j.pin?.id ?? ''), detail: text.slice(0, 200), noAgent: false }
-  }
-  return { ok: false, id: '', detail: 'ref changed twice', noAgent: false }
-}
-
-async function spawnBranch($: any, prompt: string, model: string): Promise<{ ok: boolean; detail: string }> {
-  let spawned: any
-  try {
-    spawned = await $.agent.spawn({ prompt, description: 'firstmate supervision branch (persistent)', subagentType: `${PLUGIN}:${BRANCH_NAME}`, model, background: true, name: branchName() })
-  } catch (error) {
-    spawned = { deny: String(error) }
-  }
-  log($, 'agent.spawn', { model, name: branchName(), branchGeneration, result: spawned })
-  if (!spawned?.agentId) return { ok: false, detail: String(spawned?.deny ?? 'no agentId') }
-  spawnCount += 1
-  branchAgentId = spawned.agentId
-  ownAgents.add(branchAgentId)
-  branchRef = ''
-  await saveCounters($)
-  return { ok: true, detail: branchAgentId }
-}
-
-// One rotation per delivery: a fresh agent under the next generation name
-// takes over, and the old one simply never receives another message.
-async function rotateToFreshAgent($: any, prompt: string, model: string, why: string, sendDetail?: string): Promise<{ ok: boolean; via: 'spawn'; detail: string }> {
-  branchGeneration += 1
-  branchAgentId = ''
-  branchRef = ''
-  const s = await spawnBranch($, prompt, model)
-  log($, 'agent.rotated', { why, branchGeneration, name: branchName(), ok: s.ok, detail: s.detail, sendDetail })
-  await saveCounters($)
-  return { ok: s.ok, via: 'spawn', detail: s.detail }
-}
-
-async function deliverToBranch($: any, prompt: string): Promise<{ ok: boolean; via: 'spawn' | 'send'; detail: string }> {
-  const model = await readConfig($, 'supervision-branch-model', 'sonnet')
-  if (rotatePending) {
-    // The previous agent's context passed the bound.
-    rotatePending = false
-    return rotateToFreshAgent($, prompt, model, 'context bound')
-  }
-  if (!branchAgentId) {
-    // A module reload (/reload-plugins, or a hooks file save) resets this state
-    // while the named agent lives on in the session. $.agent.list() is scoped to
-    // this module instance, so adoption goes through SendMessage itself: a
-    // successful resume names the agent's id. A session that never spawned has
-    // nothing to adopt and spawns directly, so the first wake costs no refused
-    // send.
-    if (spawnCount > 0) {
-      const s = await sendToBranch($, prompt)
-      if (s.ok) {
-        log($, 'agent.adopted', { agentId: s.id, ref: branchRef })
-        branchAgentId = s.id
-        if (s.id) ownAgents.add(s.id)
-        await saveCounters($)
-        return { ok: true, via: 'send', detail: s.id }
-      }
-      log($, 'agent.adopt.failed', { detail: s.detail, noAgent: s.noAgent })
-    }
-    const spawned = await spawnBranch($, prompt, model)
-    return { ok: spawned.ok, via: 'spawn', detail: spawned.detail }
-  }
-  const s = await sendToBranch($, prompt)
-  if (!s.ok) {
-    // A resumed agent whose transcript was never written (a bridge primary
-    // runs with transcript saving off) is unreachable for good: rotate to a
-    // fresh agent instead of passing every later wake to main.
-    if (!s.noAgent) return { ok: false, via: 'send', detail: s.detail }
-    return rotateToFreshAgent($, prompt, model, 'unresumable', s.detail)
-  }
-  if (s.id && s.id !== branchAgentId) {
-    log($, 'agent.id.changed', { from: branchAgentId, to: s.id })
-    branchAgentId = s.id
-  }
-  if (s.id) ownAgents.add(s.id)
-  return { ok: true, via: 'send', detail: s.id || branchAgentId }
-}
-
-// Route one watcher wake: 'dropped' when the branch took it, 'passed' when main must handle it.
-async function routeWake($: any, wakeText: string, source: string): Promise<'dropped' | 'passed'> {
-  const reasons = reasonLines(wakeText)
-  const reason = reasons.join('\n')
-  const now = Number(await $.clock.now())
-  lastKnownNowMs = now
-  // Dedupe key: the queue rows the wake resolves to, never the reason text,
-  // because every wake of one task reads the same `signal: .../<task>.status`.
-  let passKey = ''
-  const pass = (why: string, extra: Record<string, unknown> = {}) => {
-    log($, 'wake.passed', { why, reason: reason || wakeText.slice(0, 300), source, ...extra })
-    if (passKey) recentPassed.set(passKey, now)
-    // Lines main handles become history for the classifier: advance its offset.
-    const tasks = new Set<string>([...((extra.seqsTasks as string[]) ?? []), ...((extra.needsDecisionTasks as string[]) ?? [])])
-    for (const t of tasks) void $.process.run(['bash', `${bin}/fm-wake-evidence.sh`, t], { cwd, env: scriptEnv(), timeoutMs: 25000 }).catch(() => {})
-    // A captain-class wake main takes directly still needs a covering CAPTAIN
-    // row in the outcome store: without it the branch's next wake note lists
-    // the line as "appended since your last outcome" and re-escalates what
-    // main already handled, and the backstop reads the line as uncovered.
-    if (/^(classifier|scope unsafe)/.test(why)) {
-      for (const t of tasks) {
-        void (async () => {
-          const coverSummary = passedToMainSummary(why, String(extra.classifierReason ?? 'open captain decision on this task'))
-          const a = await outcome($, classifierPassCoverArgv(t, coverSummary, reason))
-          if (!a.ok) return log($, 'pass.cover.error', { task: t, detail: a.detail })
-          const seq = Number(a.stdout)
-          await outcome($, ['mark-read', '--through', String(seq)])
-          const m = await outcome($, ['mark-processed', '--through', String(seq)])
-          log($, 'pass.cover', { task: t, seq, why, processed: m.ok, detail: m.detail })
-        })().catch((error) => log($, 'pass.cover.error', { task: t, detail: String(error) }))
-      }
-    }
-    return 'passed' as const
-  }
-  if (!(await modeOn($))) return pass('no state/.branch-mod-mode')
-  if (providerLatch.admitWake().decision === 'latched') return pass('latched')
-  if (await $.fs.exists(`${state}/.afk`)) return pass('afk')
-  if (reasons.length === 0) return pass('no actionable reason line (alarm or failure notice)')
-  const heartbeat = reasons.some((r) => /^heartbeat($|:)/.test(r))
-  const scope = await scopeForUnreadWake($, heartbeat)
-  log($, 'wake.scope', { reason, scope, source })
-  const passedSeqs = await readPassedSeqs($)
-  // Sweep only on a safe scan: an unsafe scope carries an empty allSeqs, and
-  // treating that as "nothing queued" would wipe rows main still owns.
-  if (!scope.corrupted && (scope.allSeqs || scope.status === 'empty')) {
-    const queued = new Set(scope.allSeqs ?? [])
-    const gone = [...passedSeqs].filter((s) => !queued.has(s))
-    if (gone.length > 0) {
-      for (const s of gone) passedSeqs.delete(s)
-      await writePassedSeqs($, passedSeqs)
-    }
-  }
-  passKey = `${scope.status}:${(scope.allSeqs ?? scope.eligibleSeqs).join(',')}:${scope.needsDecisionTasks.join(',')}`
-  const seenAt = recentPassed.get(passKey)
-  if (seenAt !== undefined && now - seenAt < PASSED_DEDUPE_MS) {
-    log($, 'wake.passed.deduped', { passKey, source, ageMs: now - seenAt })
-    return 'dropped'
-  }
-  // An empty queue under a signal/stale/heartbeat reason means the other
-  // continuity path (Stop hook vs Monitor) already routed this close: nothing
-  // for main to drain, so drop it. A `check:` reason (recovery marker,
-  // registered poll) still needs main's acknowledgement and is passed.
-  if (scope.status === 'empty' && !reasons.some((r) => /^check:/.test(r))) {
-    log($, 'wake.dropped.empty', { reason, source })
-    return 'dropped'
-  }
-  if (scope.status === 'empty' || scope.corrupted || scope.eligibleSeqs.length === 0) return pass(`scope ${scope.status}`, { needsDecisionTasks: scope.needsDecisionTasks, seqsTasks: scope.eligibleTasks })
-  // Dedupe: the Stop-hook arm and the monitor can both surface one wake, and a
-  // wake already in the branch's hands must not be granted twice.
-  if (scope.eligibleSeqs.every((s) => handledSeqs.has(s))) {
-    log($, 'wake.deduped', { seqs: scope.eligibleSeqs, source })
-    return 'dropped'
-  }
-  if (inFlight && Date.now() - inFlight.startedAt > INFLIGHT_STALE_MS) {
-    // A delivery that never settled (send refused, agent gone): free the grant
-    // and route afresh rather than queueing every later wake behind it.
-    log($, 'inflight.stale', { seqs: inFlight.seqs, wakeNo: inFlight.wakeNo, ageMs: Date.now() - inFlight.startedAt })
-    inFlight = null
-    for (const s of scope.eligibleSeqs) handledSeqs.delete(s)
-    await grant($, ['release', generation]).catch(() => {})
-  }
-  if (inFlight) {
-    // The grant file holds one row set at a time; the branch's settlement
-    // re-scopes the queue and routes what is still there.
-    log($, 'wake.queued', { seqs: scope.eligibleSeqs, source, inFlightSeqs: inFlight.seqs })
-    return 'dropped'
-  }
-  const unacknowledged = scope.eligibleSeqs.filter((s) => passedSeqs.has(s))
-  if (unacknowledged.length > 0) {
-    for (const s of scope.eligibleSeqs) passedSeqs.add(s)
-    await writePassedSeqs($, passedSeqs)
-    return pass('classifier skipped: rows already passed to main, unacknowledged', { classifierReason: `row ${unacknowledged.join(', ')} of this wake was already passed to main and is not yet acknowledged`, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
-  }
-  // Classifier ahead of the branch: only a confident routine verdict is
-  // granted; captain or uncertain goes to main untouched.
-  const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
-  // The event log keeps the record shape but never the evidence texts.
-  log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, verdict: c.verdict, reason: c.reason, ms: c.ms, promptChars: c.promptChars, answer: c.answer, model: c.model, estTokens: Math.ceil(c.promptChars / 4) })
-  if (c.verdict !== 'routine') {
-    for (const s of scope.eligibleSeqs) passedSeqs.add(s)
-    await writePassedSeqs($, passedSeqs)
-    return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
-  }
-  if (!(await ensureActivated($))) return pass('no lock pid / activation failed')
-  const rc = await grant($, ['publish', generation, ...scope.eligibleSeqs])
-  log($, 'grant.publish', { seqs: scope.eligibleSeqs, rc })
-  if (rc !== 0) return pass(rc === 3 ? 'main-owned' : `publish rc ${rc}`)
-  wakeCounter += 1
-  await saveCounters($)
-  const freshAgent = rotatePending || !branchAgentId
-  const scopeNote = heartbeat
-    ? ''
-    : `\n\nThis wake's rows resolve to task ${scope.eligibleTasks.join(', ')} (records: ${state}/${scope.eligibleTasks[0]}.meta and ${state}/${scope.eligibleTasks[0]}.status). Report with task=${scope.eligibleTasks[0]}, never fleet.` +
-      (await newStatusLinesNote($, scope.eligibleTasks))
-  const prompt = `FIRSTMATE SUPERVISION WAKE: ${reason}\n\n(wake ${wakeCounter} of this session)\nHandle this per your operating procedure and finish with fm_branch_report.` + scopeNote
-  inFlight = {
-    seqs: scope.eligibleSeqs,
-    wakeKey: scope.eligibleWakeKey,
-    tasks: new Set(scope.eligibleTasks),
-    heartbeat,
-    wakeText,
-    reason,
-    reportedSeqs: [],
-    startedAt: Date.now(),
-    granted: true,
-    wakeNo: wakeCounter,
-    via: freshAgent ? 'spawn' : 'send',
-  }
-  stepsThisWake = 0
-  const d = await deliverToBranch($, prompt)
-  log($, 'wake.delivered', { wakeNo: wakeCounter, seqs: scope.eligibleSeqs, ...d, spawnCount, sendCount, source })
-  if (!d.ok) {
-    inFlight = null
-    await grant($, ['release', generation]).catch(() => {})
-    return pass(`delivery failed via ${d.via}: ${d.detail}`)
-  }
-  for (const s of scope.eligibleSeqs) handledSeqs.add(s)
-  log($, 'wake.dropped', { wakeNo: wakeCounter, source })
-  return 'dropped'
-}
-
-// ---- continuity: one Monitor task per session, re-armed on expiry ----
-async function armMonitor($: any, why: string): Promise<void> {
-  if (armingNow) return
-  // Claim before the first await: the rotate event and the source-ended notice
-  // of one monitor arrive within milliseconds and would otherwise arm two loops.
-  armingNow = true
-  const now = Number(await $.clock.now())
-  if (monitorArmed) {
-    const ageMs = now - monitorArmedAt
-    if (ageMs < MONITOR_CLAIM_STALE_MS) {
-      armingNow = false
-      return
-    }
-    log($, 'monitor.stale.claim', { why, taskId: monitorTaskId, ageMs })
-  }
-  if (!(await modeOn($))) {
-    armingNow = false
-    return
-  }
-  monitorArmed = true
-  monitorArmedAt = now
-  monitorArms += 1
-  // Each watcher close prints its reason lines (one event); the loop re-arms
-  // the watcher itself so no per-wake background task is ever started.
-  // Re-arm only once the previous wake's rows are acknowledged (queue empty)
-  // and any recovery marker (state/.watcher-down) is absent or acked: arming
-  // over either makes the watcher announce `check: rearm-resurface` with a
-  // fresh recovery generation every cycle, which the Stop-hook model never does.
-  const command =
-    `cd ${JSON.stringify(cwd)} && export FM_HOME=${JSON.stringify(home)} FM_STATE_OVERRIDE=${JSON.stringify(state)} FM_CONFIG_OVERRIDE=${JSON.stringify(config)}; ` +
-    `A=${JSON.stringify(bin + '/fm-watch-arm.sh')}; Q=${JSON.stringify(state + '/.wake-queue')}; D=${JSON.stringify(state + '/.watcher-down')}; T0=$(date +%s); ` +
-    `while :; do out=$("$A" 2>&1); printf '%s\\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; ` +
-    `w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\\n' "$w"; ` +
-    // Leave before the Monitor's own kill: a natural exit leaves the watcher
-    // alive (no downtime, no recovery episode); the kill takes the whole
-    // process group with it.
-    `[ $(( $(date +%s) - T0 )) -lt ${Math.floor(MONITOR_TIMEOUT_MS / 1000) - 180} ] || { printf 'rotate: loop exiting ahead of the monitor timeout\\n'; exit 0; }; sleep 2; done`
-  try {
-    const r = await $.tool.call({ tool: 'Monitor', command, description: MONITOR_DESCRIPTION, timeout_ms: MONITOR_TIMEOUT_MS })
-    const text = toolText(r)
-    monitorTaskId = text.match(/Monitor started \(task ([a-z0-9]+)/)?.[1] ?? ''
-    log($, 'monitor.armed', { why, monitorArms, taskId: monitorTaskId, text: text.slice(0, 300), deny: r?.deny })
-    if (r?.deny) monitorArmed = false
-    await saveCounters($)
-  } catch (error) {
-    monitorArmed = false
-    log($, 'monitor.error', { why, error: String(error) })
-  } finally {
-    armingNow = false
-  }
+// Exported for the portable tests (tests/fm-branch-monitor.test.sh).
+export function armMonitor($: any, why: string): Promise<void> {
+  return monitorGuard.armMonitor(monitorDeps($), why)
 }
 
 // Turn a monitor event notification into the Stop hook's banner shape, or
 // null when the text is not one of ours / carries no actionable reason.
 function monitorEventBanner($: any, text: string): { banner: string | null; ours: boolean; expired: boolean } {
-  const ours = text.includes(MONITOR_DESCRIPTION)
-  if (!ours) return { banner: null, ours: false, expired: false }
-  // Events arrive as <event>line</event> blocks; the expiry notice arrives as an
-  // event too: `<event>[Monitor expired after 30m with N events delivered. ...]</event>`.
-  const all = [...text.matchAll(/<event>([\s\S]*?)<\/event>/g)].map((m) => m[1])
-  const events = all.filter((t) => !/^\s*(\[Monitor |rotate:)/.test(t))
-  const expired = all.length === 0 || events.length < all.length
-  const reasons = reasonLines(events.join('\n'))
-  log($, 'monitor.event', { reasons, expired, text: text.slice(0, 500) })
-  return { banner: reasons.length ? rewakeBanner(reasons.join('\n')) : null, ours: true, expired }
+  const parsed = parseMonitorEvent(text, MONITOR_DESCRIPTION)
+  if (!parsed.ours) return { banner: null, ours: false, expired: false }
+  log($, 'monitor.event', { reasons: parsed.reasons, expired: parsed.expired, text: text.slice(0, 500) })
+  return { banner: parsed.reasons.length ? rewakeBanner(parsed.reasons.join('\n')) : null, ours: true, expired: parsed.expired }
 }
 
-// ---- deterministic main-side backstop after a routine branch outcome ----
-async function backstopCheck($: any, tasks: Set<string>, wakeNo: number): Promise<void> {
-  for (const task of tasks) {
-    const r = await $.process.run(['bash', `${bin}/fm-wake-evidence.sh`, '--routine-covered', task], { cwd, env: scriptEnv(), timeoutMs: 15000 })
-    const lines = String(r.stdout)
-      .split('\n')
-      .filter((l: string) => l.trim())
-    log($, 'backstop.check', { task, wakeNo, rc: r.exitCode, lines, stderr: String(r.stderr).slice(0, 200) })
-    if (lines.length === 0) continue
-    const text =
-      `Supervision backstop (deterministic, delivered automatically by fm-branch-mod, not typed by the captain): the supervision branch marked a wake of task ${task} routine, but the status log carries ${lines.length} captain-facing line(s) it covered:\n` +
-      lines.map((l: string) => `  ${l.split('\t').slice(1).join('\t')}`).join('\n') +
-      `\n\nRun bin/fm-wake-drain.sh (its STATUS OUTCOME BACKSTOP section names the same line), tell the captain the outcome in one sentence, then run the exact --ack-through command it printed.`
-    try {
-      await $.prompt.submit({ text })
-      log($, 'backstop.delivered', { task, wakeNo, lines })
-    } catch (error) {
-      log($, 'backstop.error', { task, wakeNo, error: String(error) })
-    }
-  }
+// ---- deterministic backstop, through the shared settlement module ----
+
+// Exported for the portable tests (tests/fm-branch-settlement.test.sh).
+export function backstopCheck($: any, tasks: Set<string>, wakeNo: number): Promise<void> {
+  return libBackstopCheck(
+    {
+      log: (kind, data) => log($, kind, data),
+      runCovered: (task) => $.process.run(['bash', `${bin}/fm-wake-evidence.sh`, '--routine-covered', task], { cwd, env: scriptEnv(), timeoutMs: 15000 }),
+      submitPrompt: (text) => $.prompt.submit({ text }),
+    },
+    tasks,
+    wakeNo,
+  )
 }
 
-function bashRewrite(e: any, holder: string): any {
-  const command = String(e.command)
-  return { ...e, command: `export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=${holder || '$$'} FM_HOME=${JSON.stringify(home)} FM_STATE_OVERRIDE=${JSON.stringify(state)} FM_CONFIG_OVERRIDE=${JSON.stringify(config)}\n(\n${command}\n)` }
-}
+// ---- the version pin ----
 
 // The version pin: the module is measured against one Claude Code release and
 // refuses every other one, so a silent engine change cannot reroute wakes.
@@ -1000,34 +579,29 @@ function bashRewrite(e: any, holder: string): any {
 // as unavailable so a misresolved executable can never cause a false refusal.
 // The answer names which source decided and the probe's raw output, so a split
 // between the two is one log line.
-type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
-
 async function checkPin($: any): Promise<PinCheck> {
   let probe = ''
   try {
     const r = await $.process.run(['sh', '-c', 'exec "$(readlink /proc/$PPID/exe)" --version'], { timeoutMs: 10000 })
     probe = String(r.stdout ?? '').trim().slice(0, 200)
-    const version = probe.split(/\s+/)[0] ?? ''
-    if (/^\d+\.\d+\.\d+/.test(version)) return { version, source: 'running binary', probe }
+    const version = versionToken(probe)
+    if (isVersionShaped(version)) return { version, source: 'running binary', probe }
   } catch (error) {
     probe = `unreadable (${String(error)})`
   }
   try {
     const r = await $.process.run(['claude', '--version'], { timeoutMs: 10000 })
-    return { version: String(r.stdout ?? '').trim().split(/\s+/)[0] ?? '', source: 'PATH claude', probe }
+    return { version: versionToken(String(r.stdout ?? '').trim()), source: 'PATH claude', probe }
   } catch (error) {
     return { version: `unreadable (${String(error)})`, source: 'PATH claude', probe }
   }
 }
 
 // Row 3 of the branch-reuse RCA (2026-09-19): the next transcript regression
-// must be one log line instead of a scout. Persistence is off when the session
-// inherited the CLAUDE_CODE_CHILD_SESSION marker (a Herdr server started inside
-// a Claude session hands it to every pane) and back on when
-// CLAUDE_CODE_FORCE_SESSION_PERSISTENCE is set; the launch-option and test-env
-// disable causes are not visible to a hook, so their absence reads as default.
+// must be one log line instead of a scout. The rule is the settlement
+// module's; this binding reads the two environment names literally (strict
+// validation lists the variables a module reads).
 async function transcriptPersistence($: any): Promise<{ on: boolean; cause: string }> {
-  // Literal names only: strict validation lists the variables a module reads.
   let force = ''
   let marker = ''
   try {
@@ -1036,9 +610,7 @@ async function transcriptPersistence($: any): Promise<{ on: boolean; cause: stri
   try {
     marker = String(await $.env.get('CLAUDE_CODE_CHILD_SESSION') ?? '')
   } catch {}
-  if (force) return { on: true, cause: 'CLAUDE_CODE_FORCE_SESSION_PERSISTENCE' }
-  if (marker) return { on: false, cause: 'inherited CLAUDE_CODE_CHILD_SESSION marker' }
-  return { on: true, cause: 'default' }
+  return transcriptPersistenceFromEnv(force, marker)
 }
 
 // The primary session's transcript id: resume reads the branch agent's
@@ -1067,15 +639,10 @@ export function register(on: On) {
     refused = false
     generation = `cc${Date.now()}`
     activated = false
-    inFlight = null
-    branchAgentId = ''
-    spawnCount = 0
-    sendCount = 0
+    router.resetForSession()
+    delivery.resetForSession()
     wakeCounter = 0
-    branchGeneration = 1
-    rotatePending = false
-    monitorArmed = false
-    handledSeqs.clear()
+    monitorGuard.resetForSession()
     await restoreCounters($)
     // Continuity must not wait for a captain prompt: a module reload followed
     // by silence left no Monitor at all, so a Stop-hook-sourced wake the branch
@@ -1084,9 +651,9 @@ export function register(on: On) {
     // same evidence restoreCounters reads, never a new lock mechanism.
     // armMonitor's own claim keeps a restored live monitor from double-arming.
     const mode = await modeOn($)
-    const lockPid = await readLockPid($)
-    if (mode && lockPid) void armMonitor($, 'session start')
-    else log($, 'monitor.skipped', { why: 'session start', mode, lockPid })
+    const lockPidNow = await readLockPid($)
+    if (mode && lockPidNow) void armMonitor($, 'session start')
+    else log($, 'monitor.skipped', { why: 'session start', mode, lockPid: lockPidNow })
     try {
       await $.tool.register({
         name: 'fm_branch_report',
@@ -1132,7 +699,7 @@ export function register(on: On) {
     if (kind === 'peer') {
       const m = e.text.match(/<agent-message from="([^"]+)"/)
       const from = m?.[1] ?? ''
-      if (from.startsWith(BRANCH_NAME) || ownAgents.has(from) || /fm-branch/.test(e.text.slice(0, 200))) {
+      if (delivery.isOwnHandback(from, e.text)) {
         log($, 'handback.dropped', { from, text: e.text.slice(0, 300) })
         return { drop: `${PLUGIN}: branch hand-back suppressed` }
       }
@@ -1150,13 +717,10 @@ export function register(on: On) {
       if (mon.expired) {
         // Only the live monitor's own end re-arms: an older monitor's expiry
         // (after a reload reset this state) must not start a second loop.
-        const tid = e.text.match(/<task-id>([a-z0-9]+)<\/task-id>/)?.[1] ?? ''
-        if ((!monitorTaskId || tid === monitorTaskId) && !armingNow) {
-          monitorArmed = false
-          void armMonitor($, 'monitor expired')
-        } else {
-          log($, 'monitor.stale.expiry', { tid, live: monitorTaskId })
-        }
+        const tid = taskNoticeId(e.text)
+        const verdict = monitorGuard.noteExpiry(tid)
+        if (verdict.rearm) void armMonitor($, 'monitor expired')
+        else log($, 'monitor.stale.expiry', { tid, live: verdict.live })
       }
       if (!mon.banner) return { drop: `${PLUGIN}: monitor notice without a wake` }
       const verdict = await routeWake($, mon.banner, 'monitor')
@@ -1164,11 +728,11 @@ export function register(on: On) {
       return next({ ...e, text: mon.banner })
     }
     // A completed background agent's own notification (ours) must not open a main turn.
-    if (branchAgentId && (e.text.includes(branchAgentId) || /fm-branch\b/.test(e.text)) && !/Stop hook feedback/.test(e.text)) {
+    if (delivery.isOwnAgentNotification(e.text)) {
       log($, 'agent.notification.dropped', { text: e.text.slice(0, 300) })
       return { drop: `${PLUGIN}: branch agent notification suppressed` }
     }
-    const isWake = /<summary>Stop hook feedback<\/summary>/.test(e.text) && /firstmate watcher wake/.test(e.text)
+    const isWake = isStopHookWakeText(e.text)
     log($, 'prompt.submit', { origin: e.origin, isWake, text: e.text.slice(0, 600) })
     if (!isWake) return next(e)
     // A wake main's own Stop hook produced must always leave one live cycle
@@ -1189,11 +753,11 @@ export function register(on: On) {
     if (refused) return next(e)
     await ensureBound($)
     const agentId = (e as { agentId?: string }).agentId
-    if (agentId && ownAgents.has(agentId)) {
+    if (agentId && delivery.knowsAgent(agentId)) {
       if (e.tool === 'Bash') {
         const holder = lockPid || (await readLockPid($))
-        log($, 'tool.call.bash', { agentId, wakeNo: inFlight?.wakeNo, command: String((e as any).command).slice(0, 300) })
-        return next(bashRewrite(e, holder))
+        log($, 'tool.call.bash', { agentId, wakeNo: router.peekInFlight()?.wakeNo, command: String((e as any).command).slice(0, 300) })
+        return next({ ...e, command: bashActorCommand(String((e as any).command), holder, { home, state, config }) })
       }
       if (e.tool !== REPORT_TOOL) {
         log($, 'tool.call.denied', { agentId, tool: e.tool })
@@ -1202,18 +766,16 @@ export function register(on: On) {
     } else if (agentId && e.tool === REPORT_TOOL) {
       // Only the branch has this tool: an unknown caller is the branch under a new id.
       log($, 'agent.id.adopted', { agentId, via: 'report tool' })
-      ownAgents.add(agentId)
-      branchAgentId = agentId
-    } else if (agentId && e.tool === 'Bash' && !ownAgents.has(agentId) && branchAgentId) {
+      delivery.adoptAgent(agentId)
+    } else if (agentId && e.tool === 'Bash' && !delivery.knowsAgent(agentId) && delivery.currentAgentId()) {
       // A Bash call from an unknown subagent while our branch is the only
       // subagent we ever spawn is the branch under a new id (SendMessage resume).
-      const id = await resolveBranchAgentId($)
+      const id = await delivery.resolveNamedAgent(deliveryDeps($))
       log($, 'tool.call.unknown-agent', { agentId, resolved: id })
       if (id === agentId) {
-        ownAgents.add(agentId)
-        branchAgentId = agentId
+        delivery.adoptAgent(agentId)
         const holder = lockPid || (await readLockPid($))
-        return next(bashRewrite(e, holder))
+        return next({ ...e, command: bashActorCommand(String((e as any).command), holder, { home, state, config }) })
       }
     }
     if (e.tool === REPORT_TOOL) return serveReport($, e as any, agentId)
@@ -1225,9 +787,9 @@ export function register(on: On) {
   on('turn.step', async function* ($, e, next) {
     if (refused) return yield* next(e)
     const agentId = (e as { agentId?: string }).agentId
-    if (agentId && ownAgents.has(agentId)) {
+    if (agentId && delivery.knowsAgent(agentId)) {
       stepsThisWake += 1
-      log($, 'turn.step', { agentId, wakeNo: inFlight?.wakeNo, model: e.model, index: e.index, effort: e.effort, messageCount: e.messageCount })
+      log($, 'turn.step', { agentId, wakeNo: router.peekInFlight()?.wakeNo, model: e.model, index: e.index, effort: e.effort, messageCount: e.messageCount })
       return yield* next({ ...e, effort: 'low' })
     }
     return yield* next(e)
@@ -1236,7 +798,7 @@ export function register(on: On) {
   on('session.compact', async ($, e, next) => {
     if (refused) return next(e)
     await ensureBound($)
-    log($, 'session.compact', { agentId: (e as any).agentId, wakeNo: inFlight?.wakeNo })
+    log($, 'session.compact', { agentId: (e as any).agentId, wakeNo: router.peekInFlight()?.wakeNo })
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -1249,14 +811,12 @@ export function register(on: On) {
       log($, 'turn.complete.main', { reason: e.reason, usage: e.usage })
       return next(e)
     }
-    if (!ownAgents.has(agentId)) {
+    if (!delivery.knowsAgent(agentId)) {
       log($, 'turn.complete.other', { agentId, reason: e.reason, usage: e.usage })
       return next(e)
     }
-    const p = inFlight
-    const u = (e.usage ?? {}) as Record<string, number>
-    const wakeTokens = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0)
-    const stepContext = Math.ceil(wakeTokens / Math.max(stepsThisWake, 1))
+    const p = router.peekInFlight()
+    const { wakeTokens, stepContext } = wakeUsageFold((e.usage ?? {}) as Record<string, number>, stepsThisWake)
     log($, 'turn.complete.branch', {
       agentId,
       wakeNo: p?.wakeNo,
@@ -1271,14 +831,14 @@ export function register(on: On) {
       wake: p?.reason,
       answer: e.answer.slice(0, 400),
     })
-    if (stepContext > BRANCH_ROTATE_TOKENS && !rotatePending) {
+    if (rotateDue(stepContext, delivery.isRotatePending())) {
       // The bound lives here, in the mod, not in an autoCompactWindow setting.
-      rotatePending = true
+      delivery.setRotatePending(true)
       $.ui.log(`${PLUGIN}: branch context reached ${stepContext} tokens a step (> ${BRANCH_ROTATE_TOKENS}); the next wake opens a fresh branch agent`)
-      log($, 'rotate.pending', { wakeNo: p?.wakeNo, wakeTokens, stepContext, branchGeneration })
+      log($, 'rotate.pending', { wakeNo: p?.wakeNo, wakeTokens, stepContext, branchGeneration: delivery.branchGeneration() })
     }
     if (!p) return next(e)
-    inFlight = null
+    router.clearInFlight()
     lastKnownNowMs = Number(await $.clock.now())
     const providerError = e.reason === 'error' || e.reason === 'refusal'
     const noReport = p.reportedSeqs.length === 0
@@ -1289,7 +849,7 @@ export function register(on: On) {
         $.ui.log(`${PLUGIN}: branch latched off for 5 minutes after ${verdict.streak} consecutive failures; wakes go to main`)
       }
       log($, 'branch.failed', { agentId, wakeNo: p.wakeNo, providerError, noReport, consecutiveErrors: verdict.streak, latchedUntil: verdict.latchedUntil })
-      for (const s of p.seqs) handledSeqs.delete(s)
+      router.forgetHandled(p.seqs)
       void $.prompt.submit({ text: `fm-branch-mod: fallback to main - the supervision branch could not handle this wake.\n${p.wakeText}` }).catch(() => {})
     } else {
       providerLatch.recordSuccess()
@@ -1299,10 +859,10 @@ export function register(on: On) {
     // A branch-absorbed wake must always leave one live cycle behind: if the
     // branch settled a wake and no monitor is armed, arm one here so the next
     // watcher close still reaches a prompt.
-    if (!monitorArmed) void armMonitor($, 'branch settled without monitor')
+    if (!monitorGuard.isArmed()) void armMonitor($, 'branch settled without monitor')
     // Anything that arrived while the branch was busy is still in the queue.
     const scope = await scopeForUnreadWake($, false)
-    if (scope.eligibleSeqs.some((s) => !handledSeqs.has(s))) {
+    if (router.hasUnhandled(scope.eligibleSeqs)) {
       log($, 'wake.requeue', { seqs: scope.eligibleSeqs })
       await routeWake($, rewakeBanner(scope.eligibleSeqs.map((s) => `signal: queued row ${s} (re-scoped after branch settlement)`).join('\n')), 'post-release')
     }
