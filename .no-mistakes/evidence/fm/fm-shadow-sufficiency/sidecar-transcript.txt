@@ -1,0 +1,30 @@
+# score 1: a live+armed, b torn before first scoring
+| pr-ready-arm | 2 | 0 | 2 | 1 (50.0%) | 1 | 0 | 0 |
+torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record
+| pr-ready-arm | 0.70 | 2 | 100.0% |
+| pr-ready-arm | 1 | 0 | 0.9500 | 0 |
+1901:1	pr-ready-arm	correct	pr=ow/repo#1
+1901:2	pr-ready-arm	delay	pr=ow/repo#1
+1901:1	absorb-no-new-outcome	0	missing inputs for the gate
+1901:2	absorb-no-new-outcome	1	missing inputs for the gate
+1901:2	severity-alert	1	missing inputs for the gate
+1901:1	severity-alert	0	missing inputs for the gate
+1901:2	absorb-routine-working	1	missing inputs for the gate
+1901:1	absorb-routine-working	0	missing inputs for the gate
+$ cat state/.branch-shadow-truth.jsonl
+{"wakeKey":"1901:1","pr_truth":1,"stale_repair":0}
+# teardown a (poll gone, then meta gone); score 2
+| pr-ready-arm | 2 | 0 | 2 | 1 (50.0%) | 1 | 0 | 0 |
+torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record
+| pr-ready-arm | 0.70 | 2 | 100.0% |
+| pr-ready-arm | 1 | 0 | 0.9500 | 0 |
+1901:1	pr-ready-arm	correct	pr=ow/repo#1
+1901:2	pr-ready-arm	delay	pr=ow/repo#1
+1901:1	absorb-no-new-outcome	0	missing inputs for the gate
+1901:2	absorb-no-new-outcome	1	missing inputs for the gate
+1901:2	severity-alert	1	missing inputs for the gate
+1901:1	severity-alert	0	missing inputs for the gate
+1901:2	absorb-routine-working	1	missing inputs for the gate
+1901:1	absorb-routine-working	0	missing inputs for the gate
+$ cat state/.branch-shadow-truth.jsonl
+{"wakeKey":"1901:1","pr_truth":1,"stale_repair":0}

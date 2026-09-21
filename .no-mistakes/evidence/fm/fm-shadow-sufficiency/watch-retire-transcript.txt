@@ -1,0 +1,12 @@
+$ bin/fm-procevent-when.sh retire shadow-sufficient-2pct
+retired: when-shadow-sufficient-2pct
+retired: when-shadow-sufficient-2pct
+rc=0
+$ bin/fm-procevent-when.sh retire shadow-bad
+retired: when-shadow-bad
+retired: when-shadow-bad
+rc=0
+$ ls state/when
+when-shadow-sufficient-5pct.fired
+when-shadow-sufficient-5pct.spec
+when-shadow-sufficient-5pct.trust

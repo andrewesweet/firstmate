@@ -1,0 +1,33 @@
+### candidate gates over full-variant shadow records (ground truth: joined branch outcomes, backstop surfacing, and derivable main actions)
+| gate | eligible | unscorable | fired | correct | wrong (delay-only) | wrong (loss) | missed (absorbed, gate silent) |
+|---|---|---|---|---|---|---|---|
+| absorb-no-new-outcome | 90 | 0 | 60 | 60 (100.0%) | 0 | 0 | 0 |
+| absorb-routine-working | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| stale-active-suppress | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| pr-ready-arm | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| severity-alert | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| candidate-order | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | - |
+
+### floor sweep 0.70-0.99: lowest floor with zero loss-class wrong fires, and the fire rate there
+| gate | lowest clean floor | fires there | fire rate there |
+|---|---|---|---|
+| absorb-no-new-outcome | 0.70 | 60 | 66.7% |
+| absorb-routine-working | - | - | - |
+| stale-active-suppress | - | - | - |
+| pr-ready-arm | - | - | - |
+| severity-alert | - | - | - |
+| candidate-order | - | - | - |
+
+### evidence sufficiency: fires with readable truth, loss-class wrong fires, the 95% upper bound on the loss-class wrong-fire rate, and positive-truth wakes
+| gate | fires | wrong (loss) | 95% upper bound | positives |
+|---|---|---|---|---|
+| absorb-no-new-outcome | 60 | 0 | 0.0487 | 30 |
+| absorb-routine-working | 0 | 0 | - | 0 |
+| stale-active-suppress | 0 | 0 | - | 0 |
+| pr-ready-arm | 0 | 0 | - | 0 |
+| severity-alert | 0 | 0 | - | 0 |
+| candidate-order | 0 | 0 | - | 0 |
+sufficiency bound=0.05 min-positives=30 gates=absorb-no-new-outcome
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: every named gate has enough evidence
+rc=0

@@ -1,0 +1,19 @@
+$ bin/fm-procevent-when.sh arm shadow-sufficient-5pct --interval 1 --stable 1 --deadline 600 --condition-timeout 1800 --condition bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 --action bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome 0.05 shadow-sufficient-5pct
+armed: when-shadow-sufficient-5pct
+starts on the watcher's next cycle; or run: bin/fm-procevent.sh reconcile
+reminder: deterministic, safe, reversible actions only; judgment and destructive actions stay on the wake-and-decide path
+arm rc=0
+$ bin/fm-procevent-when.sh run when-shadow-sufficient-5pct
+when: when-shadow-sufficient-5pct
+status: fired
+detail: the condition held and the action exited 0
+condition_polls: 1
+action_exit: 0
+output:
+run rc=0
+$ cat state/.wake-queue
+1789951644	1	check	shadow-sufficient-5pct	check: shadow advisory trial gate sufficiency reached at bound 0.05 for absorb-no-new-outcome - score bin/fm-branch-shadow-gates.sh and judge the held follow-ups
+$ ls state/when
+when-shadow-sufficient-5pct.fired
+when-shadow-sufficient-5pct.spec
+when-shadow-sufficient-5pct.trust

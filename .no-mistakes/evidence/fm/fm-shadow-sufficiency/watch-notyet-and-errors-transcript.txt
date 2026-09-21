@@ -1,0 +1,38 @@
+# not-yet bound 0.02: watch polls, never fires within deadline
+armed: when-shadow-sufficient-2pct
+when: when-shadow-sufficient-2pct
+status: never-true
+detail: the condition never held for 1 consecutive polls within 8s of arming
+condition_polls: 5
+output:
+$ wc -l state/.wake-queue
+1
+# usage error in condition becomes condition-error, never a fire
+armed: when-shadow-bad
+when: when-shadow-bad
+status: condition-error
+detail: the condition exited 2 on 2 consecutive polls; the action was not run
+condition_polls: 2
+$ wc -l state/.wake-queue
+1
+# retire (documented stop verb)
+error: process-event state root is not a private directory
+error: cannot retire the watch source: when-shadow-sufficient-2pct
+error: process-event state root is not a private directory
+error: cannot retire the watch source: when-shadow-bad
+when-shadow-bad.spec
+when-shadow-bad.trust
+when-shadow-sufficient-2pct.spec
+when-shadow-sufficient-2pct.trust
+when-shadow-sufficient-5pct.fired
+when-shadow-sufficient-5pct.spec
+when-shadow-sufficient-5pct.trust
+# notify action rejects bad input
+fm-branch-shadow-sufficient-notify: the gate list is required
+rc=2
+fm-branch-shadow-sufficient-notify: the bound must be in (0,1]: 1.5
+rc=2
+fm-branch-shadow-sufficient-notify: the wake key must be path-safe: bad key/..
+rc=2
+$ wc -l state/.wake-queue
+1
