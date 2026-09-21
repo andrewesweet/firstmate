@@ -206,7 +206,7 @@ test_median_rule_bounds_and_fires() {
     && fail "median: 25 vs median 18 of 10,12,24,25 is below 2x and must not fire"
   rt_run "$home" observe closure e --cost 500 >/dev/null 2>&1
   assert_present "$home/state/retro-trigger/open-row" \
-    "median: 500 vs median 18 of 10,12,24,25,500 exceeds 2x and must fire"
+    "median: 500 vs median 24 of 10,12,24,25,500 exceeds 2x and must fire"
   pass "the median rule needs three known closures and a cost over the multiple"
 }
 
