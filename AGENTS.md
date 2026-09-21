@@ -392,7 +392,7 @@ An ask-user finding returns as `needs-decision`; firstmate loads `ask-user-autho
 Send the same worker one exact decision naming the decision key, step, action, affected finding IDs, instructions where needed, and exact response command, passing `--resolve-key` so the worker's open decision record closes at answer time.
 Require the matching `resolved` event, forbid `--yes`, and require the worker to process every synchronous return until completion or a genuinely new escalation.
 Resume fleet supervision immediately after the decision lands.
-Review feedback the worker cannot feed to a parked gate arrives as `needs-decision [key=pr-<n>-<comment-id>]` naming a file with the comment's text and URL; answer it `dismiss` or `fix`, and the worker applies a fix only at the run's next stopping point as `bin/fm-dod-lib.sh` states.
+Review feedback the worker cannot feed to a parked gate arrives as `needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]` naming a file with the comment's text and URL; answer it `dismiss` or `fix`, and the worker applies a fix only at the run's next stopping point as `bin/fm-dod-lib.sh` states.
 
 Judge validation by the currently attributed run step through `bin/fm-crew-state.sh`, not by shell liveness or the last status event.
 Running, fixing, or CI states remain working; parked approval or fix-review states require the worker to follow the active gate help; passed or checks-passed is done; failed or cancelled is failed exactly as `bin/fm-crew-state.sh` prints it - only that state line reclassifies an orphaned ci monitor after green checks as held-for-merge done, or a run record the `daemon status` probe leaves unverified as unknown, never the raw run record.
