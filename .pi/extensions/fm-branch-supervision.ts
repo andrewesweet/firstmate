@@ -1609,7 +1609,6 @@ ${context.command}
       // never issues a failing haiku call first.
       readConfiguredModel: () => Promise.resolve(readConfigLine("classifier-model", "") || null),
       readDefaultModel: () => Promise.resolve(supervisionModelName()),
-      readFallbackModel: () => Promise.resolve(supervisionModelName()),
       complete: classifierComplete,
       clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
     };

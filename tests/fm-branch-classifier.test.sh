@@ -68,17 +68,17 @@ PLAN='[
   "answer":"{\"verdict\":\"captain\",\"reason\":\"multi\"}","config":"haiku"},
  {"name":"fallback-on-not-found","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
-  "completeError":"classifier model not found: haiku","config":"haiku",
-  "fallbackModel":"anthropic/main-model","fallbackAnswer":"{\"verdict\":\"routine\",\"reason\":\"on the session model\"}"},
+  "completeError":"fm-branch-mod: $.model.complete: the request to opus-x failed (HTTP 404)","config":"opus-x",
+  "defaultModel":"haiku","fallbackAnswer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"},
  {"name":"fallback-unavailable","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
   "completeError":"classifier model not found: zai/glm-flash","config":"zai/glm-flash"},
  {"name":"quota-failure-never-falls-back","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
-  "completeError":"no quota left","config":"haiku","fallbackModel":"anthropic/main-model"},
+  "completeError":"no quota left","config":"haiku","defaultModel":"anthropic/main-model"},
  {"name":"fallback-same-name-no-retry","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
-  "completeError":"classifier model not found: sonnet","config":"sonnet","fallbackModel":"sonnet"},
+  "completeError":"classifier model not found: haiku","defaultModel":"haiku"},
  {"name":"default-when-unconfigured","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
   "defaultModel":"haiku",
@@ -116,7 +116,6 @@ for (const step of plan) {
     },
     readConfiguredModel: async () => step.config ?? null,
     readDefaultModel: async () => step.defaultModel ?? null,
-    readFallbackModel: async () => step.fallbackModel ?? null,
     complete: async (req) => {
       completeReqs.push(req);
       // A retry on the host fallback (any name but the one resolved first)
@@ -150,7 +149,6 @@ const deps = {
   },
   readConfiguredModel: async () => null,
   readDefaultModel: async () => "haiku",
-  readFallbackModel: async () => null,
   complete: async () => '{"verdict":"routine","reason":"ok"}',
   clock,
 };
@@ -192,7 +190,6 @@ const $ = {
         return SYSTEM;
       }
       if (String(path).endsWith("classifier-model")) return evidenceQueue.config ?? "";
-      if (String(path).endsWith("supervision-branch-model")) return evidenceQueue.fallbackModel ?? "";
       throw new Error("no file");
     },
     write: async () => {},
@@ -285,8 +282,8 @@ fi
 # path is a host seam, so full-argv equality is only pinned lib-vs-vendored).
 # The memo-reset and pass-cover records are lib-driver-only sections with
 # their own assertions below; classify() itself does not produce them.
-# The mod host cannot express an absent fallback name (its config read
-# always yields a name), so the no-fallback not-found fixture is lib-only,
+# The mod host cannot express an absent default name (its default is always
+# haiku), so the no-default not-found fixture is lib-only,
 # like the lib-driver-only sections below.
 normalize_leg() {
   jq -S 'map(select(.name != "system-reads-after-reset" and .name != "pass-cover" and .name != "fallback-unavailable"))
@@ -389,16 +386,16 @@ fi
 
 # The per-host resolution rule and the one-shot model-not-found fallback
 # (steps 10-14): the explicit configured name wins, the host's default fills
-# the gap before any completion call, and only a not-found failure retries
-# once on the fallback name.
-if [ "$(jq -c '.[10].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku","anthropic/main-model"]' ] \
+# the gap before any completion call, and only a not-found failure (here in
+# Claude Code's HTTP 404 phrasing) retries once on the default name.
+if [ "$(jq -c '.[10].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["opus-x","haiku"]' ] \
   && [ "$(jq -r '.[10].completeReqs[0].prompt' "$TMP_ROOT/lib.json")" = "$(jq -r '.[10].completeReqs[1].prompt' "$TMP_ROOT/lib.json")" ] \
   && [ "$(jq -r '.[10].completeReqs[0].system' "$TMP_ROOT/lib.json")" = "$(jq -r '.[10].completeReqs[1].system' "$TMP_ROOT/lib.json")" ] \
   && [ "$(jq -r '.[10].completeReqs[1].maxTokens' "$TMP_ROOT/lib.json")" = "200" ] \
   && [ "$(jq -r '.[10].result.verdict' "$TMP_ROOT/lib.json")" = "routine" ] \
-  && [ "$(jq -r '.[10].result.model' "$TMP_ROOT/lib.json")" = "anthropic/main-model" ] \
-  && [ "$(jq -r '.[10].recordLine | fromjson | .model' "$TMP_ROOT/lib.json")" = "anthropic/main-model" ]; then
-  pass "a not-found model retries the same request once on the fallback and the record names the model used"
+  && [ "$(jq -r '.[10].result.model' "$TMP_ROOT/lib.json")" = "haiku" ] \
+  && [ "$(jq -r '.[10].recordLine | fromjson | .model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
+  pass "a not-found model retries the same request once on the default and the record names the model used"
 else
   fail "the model-not-found fallback drifted (reqs=$(jq -c '.[10].completeReqs | map(.model)' "$TMP_ROOT/lib.json") result=$(jq -c '.[10].result | {model, verdict}' "$TMP_ROOT/lib.json")"
 fi
@@ -407,9 +404,9 @@ if [ "$(jq -c '.[11].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["zai
   && [ "$(jq -r '.[11].result.verdict' "$TMP_ROOT/lib.json")" = "uncertain" ] \
   && [ "$(jq -r '.[11].result.reason' "$TMP_ROOT/lib.json")" = "model.complete failed: Error: classifier model not found: zai/glm-flash" ] \
   && [ "$(jq -r '.[11].result.model' "$TMP_ROOT/lib.json")" = "zai/glm-flash" ]; then
-  pass "without a fallback name the not-found failure keeps today's failed-call surface"
+  pass "without a default name the not-found failure keeps today's failed-call surface"
 else
-  fail "the no-fallback not-found surface drifted"
+  fail "the no-default not-found surface drifted"
 fi
 
 if [ "$(jq -c '.[12].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku"]' ] \
@@ -420,10 +417,10 @@ else
   fail "the not-found-only fallback rule drifted"
 fi
 
-if [ "$(jq -c '.[13].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["sonnet"]' ] \
+if [ "$(jq -c '.[13].completeReqs | map(.model)' "$TMP_ROOT/lib.json")" = '["haiku"]' ] \
   && [ "$(jq -r '.[13].result.verdict' "$TMP_ROOT/lib.json")" = "uncertain" ] \
-  && [ "$(jq -r '.[13].result.model' "$TMP_ROOT/lib.json")" = "sonnet" ]; then
-  pass "a fallback equal to the resolved name is not retried"
+  && [ "$(jq -r '.[13].result.model' "$TMP_ROOT/lib.json")" = "haiku" ]; then
+  pass "a not-found default is not retried on itself"
 else
   fail "the same-name fallback guard drifted"
 fi

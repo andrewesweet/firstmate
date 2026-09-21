@@ -80,11 +80,13 @@ export interface ClassifierRecord {
 /** The model-not-found error class: the configured or default classifier
  * model name does not resolve on this host. This class, and only this
  * class, triggers the one-shot fallback retry in classifyWake; every other
- * failure surfaces exactly as a failed call always has. Both hosts render
- * the class in the failure text, so the predicate matches the known
- * phrasings rather than one host's exact string. */
+ * failure surfaces exactly as a failed call always has. Each host renders
+ * the class in its own failure text - Pi names the model as not found or
+ * unknown, Claude Code's $.model.complete reports "the request to <model>
+ * failed (HTTP 404)" - so the predicate matches the known phrasings rather
+ * than one host's exact string. */
 export function isClassifierModelNotFoundError(error: string): boolean {
-  return /model.*not found|not found.*model|unknown model|invalid model|not a valid model/i.test(error);
+  return /model.*not found|not found.*model|unknown model|invalid model|not a valid model|HTTP 404/i.test(error);
 }
 
 /** The host surface the classifier runs against. runScript binds the host's
@@ -100,11 +102,9 @@ export interface ClassifierDeps {
   readConfiguredModel(): Promise<string | null>;
   /** The host's own default model name: haiku on Claude Code, the
    * supervision branch's own model on Pi (the pin, else the main session's
-   * model), or null when the host cannot resolve one. */
+   * model), or null when the host cannot resolve one. It is also the target
+   * of the one-shot model-not-found retry when a configured name fails. */
   readDefaultModel(): Promise<string | null>;
-  /** The host session's own model name for the one-shot model-not-found
-   * retry; a missing or failed read means no fallback. */
-  readFallbackModel(): Promise<string | null>;
   complete(req: { model: string; system: string; prompt: string; maxTokens: number }): Promise<string>;
   clock: { now(): number; iso(): string };
 }
@@ -245,13 +245,13 @@ export async function classifyWake(deps: ClassifierDeps, input: { wake: string; 
       completeError = String(error);
       if (isClassifierModelNotFoundError(completeError)) {
         // The one-shot model-not-found fallback, owned here so both hosts
-        // behave identically: retry the same request once on the host's own
-        // model. A missing or failed fallback read, a fallback equal to the
+        // behave identically: retry the same request once on the host's
+        // default. A missing or failed default read, a default equal to the
         // requested name, and a failed retry all leave today's failed-call
         // surface, and the record carries the model actually used.
         let fallback: string | null = null;
         try {
-          fallback = await deps.readFallbackModel();
+          fallback = await deps.readDefaultModel();
         } catch {
           fallback = null;
         }

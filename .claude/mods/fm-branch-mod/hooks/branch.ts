@@ -600,11 +600,11 @@ function classifierDeps($: any) {
     runScript: (argv: string[], opts: { timeoutMs: number }) => $.process.run(argv, { cwd, env: scriptEnv(), timeoutMs: opts.timeoutMs }),
     readSystemPrompt: () => $.fs.read(`${pluginRoot}/classifier-system.txt`),
     // The explicit classifier-model line wins; this host's default is
-    // haiku, its fallback the branch agent's model. The shared module
-    // resolves configured-wins-then-default before any completion call.
+    // haiku, also the one-shot fallback when a configured name does not
+    // resolve. The shared module resolves configured-wins-then-default
+    // before any completion call.
     readConfiguredModel: async () => (await readConfig($, 'classifier-model', '')) || null,
     readDefaultModel: async () => 'haiku',
-    readFallbackModel: () => readConfig($, 'supervision-branch-model', 'sonnet'),
     complete: async (req: { model: string; system: string; prompt: string; maxTokens: number }) => String(await $.model.complete(req)),
     clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
   }
