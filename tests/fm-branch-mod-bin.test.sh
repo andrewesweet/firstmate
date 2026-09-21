@@ -270,6 +270,11 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
   [ "$?" = 2 ] || fail "--sufficient without --bound must be a usage error: $(cat "$out")"
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 1.5 > "$out" 2>&1
   [ "$?" = 2 ] || fail "a bound outside (0,1] must be a usage error: $(cat "$out")"
+  mkdir "$state/unreadable.jsonl"
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 "$state/unreadable.jsonl" > "$out" 2>&1
+  [ "$?" = 2 ] || fail "a log that exists but cannot be read must be a read error, not not-yet: $(tail -2 "$out")"
+  FM_STATE_OVERRIDE="$state" "$GATES" "$state/unreadable.jsonl" > "$out" 2>&1 \
+    || fail "the ordinary mode keeps its exit-0 contract on an unreadable log: $(tail -2 "$out")"
 
   # (d) the truth sidecar: fires scored while the task records were live stay
   # readable from the snapshot after the records are gone, the snapshot is

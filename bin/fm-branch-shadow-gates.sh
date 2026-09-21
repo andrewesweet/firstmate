@@ -228,7 +228,10 @@ REC_ROWS=$(jq -R -r '
     (($r.tasks // null) as $tsk | (if ($tsk | type) == "array" then ($tsk | length) else null end) // "-" | tostring),
     (if ($f.candidates | type) == "object" and ($f.candidates | length) > 0 then
       ($f.candidates | to_entries | sort_by(-(.value | if type == "number" then . else -1 end)) | map(.key + ":" + ((.value // "-") | tostring)) | join(",")) else "-" end)
-  ] | @tsv' "$LOG" 2>/dev/null || true)
+  ] | @tsv' "$LOG" 2>/dev/null) || {
+  if [ "$SUFF_MODE" = 1 ] && [ -e "$LOG" ]; then echo "fm-branch-shadow-gates: cannot read $LOG" >&2; exit 2; fi
+  REC_ROWS=''
+}
 
 # One TSV line per branch outcome row.
 OUT_ROWS=''

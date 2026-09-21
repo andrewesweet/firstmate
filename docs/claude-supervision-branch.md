@@ -96,14 +96,14 @@ Because the sufficiency verdict is a deterministic exit code, a home can arm one
 
 ```sh
 bin/fm-procevent-when.sh arm shadow-sufficient-5pct --interval 3600 --stable 1 --deadline 7776000 --condition-timeout 1800 \
-  --condition bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome,absorb-routine-working --bound 0.05 --min-positives 30 \
+  --condition "$PWD/bin/fm-branch-shadow-gates.sh" --sufficient absorb-no-new-outcome,absorb-routine-working --bound 0.05 --min-positives 30 \
   --action bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome,absorb-routine-working 0.05 shadow-sufficient-5pct
 ```
 
 The condition's exit contract matches the when-watch's expectation exactly - 0 true, 1 not yet, 2 error - so a scorer read error surfaces as a condition error rather than a false true; `--condition-timeout 1800` gives the scorer's floor sweep room on a full log, since the watch's 60s default would count a slow poll as a condition error.
 The action appends exactly one durable `check` wake naming the evaluable gates so the next drain presents the evidence, and the distinct wake key keeps two armed bounds from deduping to one presentation between drains.
 The watch fires at most once per arming; `bin/fm-procevent-when.sh rebind-all` re-binds the action hash after a firstmate self-update, and `retire` stops the watch.
-Arm from the code root so the relative `bin/...` paths resolve in the watcher's working directory, and give each armed bound its own watch name and wake key.
+The condition path must be absolute: the runner's working directory is the watcher's, not the arm command's, and only the action's executable is resolved to an absolute path at arming; give each armed bound its own watch name and wake key.
 
 ## Opting a home in
 
