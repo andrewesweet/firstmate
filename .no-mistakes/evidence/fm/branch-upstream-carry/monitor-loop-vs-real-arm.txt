@@ -1,0 +1,10 @@
+# monitorLoopCommand (HEAD 27bd25a) driven against real bin/fm-watch-arm.sh, rotateSecs=6, scratch FM_HOME
+
+# contrast: ae7c9d1 bytes (--follow-budget), same home, 8s
+quiet: usage: fm-watch-arm.sh [--restart | --handling-delivered GENERATION --watcher-pid PID]
+quiet: usage: fm-watch-arm.sh [--restart | --handling-delivered GENERATION --watcher-pid PID]
+quiet: usage: fm-watch-arm.sh [--restart | --handling-delivered GENERATION --watcher-pid PID]
+quiet: usage: fm-watch-arm.sh [--restart | --handling-delivered GENERATION --watcher-pid PID]
+
+# HEAD run: scratch home state/.watch-cycle-exits.log (watcher genuinely armed and followed until the 60s timeout killed the loop)
+arm_pid=503679	watcher_pid=503691	origin=started	started_at=1790023737	ended_at=1790023797	exit_code=143	signal=TERM	reason=arm-interrupted	beacon_age=14	lock_before=pid:503691|identity:linux-starttime=21204761 cmdline-hex=62617368002f746d702f666d2d6d6f6e69746f722d6c6f6f702d6b4474702f686f6d652f62696e2f666d2d77617463682e736800	lock_after=pid:503691|identity:linux-starttime=21204761 cmdline-hex=62617368002f746d702f666d2d6d6f6e69746f722d6c6f6f702d6b4474702f686f6d652f62696e2f666d2d77617463682e736800	successor=none

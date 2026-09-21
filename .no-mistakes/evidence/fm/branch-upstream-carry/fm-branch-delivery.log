@@ -1,0 +1,14 @@
+ok - the first delivery spawns the named branch agent once
+ok - the second delivery sends to the named agent
+ok - a learned pin ref pins every later send target
+ok - a ref-hint failure learns the new ref and retries the send once
+ok - an unresumable agent rotates to the next generation name
+ok - a plain send denial fails the delivery without rotating
+ok - a ref that changes twice fails the send outright
+ok - after a reload the delivery adopts the live named agent through the send itself
+ok - a failed adoption falls through to a spawn
+ok - a pending context bound rotates the next delivery under a fresh name
+ok - the own-agent bookkeeping gates ids, handbacks, and notifications
+ok - an adopted agent id becomes the pinned branch agent
+ok - the counters round-trip restores the delivery state and the own-agent set
+ok - the named-agent resolution finds the live branch agent under the current generation name
