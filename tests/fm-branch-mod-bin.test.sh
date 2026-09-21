@@ -193,6 +193,15 @@ test_gates_scorer_joins_full_records_to_outcomes_facts_and_derivable_actions() {
   grep -F $'1700:16\tstale-active-suppress\t' "$out" | grep -q 'missing inputs' \
     || fail "a stale record without a pane observation must be listed unscorable, never guessed: $(grep 1700:16 "$out")"
 
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "the backstop-covered absorb must be listed as a loss while the status log is present: $(grep 1700:4 "$out")"
+  [ "$(jq -r 'select(.wakeKey == "1700:4") | .backstop' "$state/.branch-shadow-truth.jsonl" | tail -1)" = 1 ] \
+    || fail "the sidecar must record the live backstop surfacing: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t1.status" "$state/t1.meta"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "verbose gates scorer failed after the status log was retired"
+  grep -F $'1700:4\tabsorb-no-new-outcome\tloss' "$out" >/dev/null \
+    || fail "a retired status log must not flip the recorded backstop loss to correct: $(grep 1700:4 "$out")"
+
   FM_STATE_OVERRIDE="$state" "$GATES" "$state/absent.jsonl" > "$out" || fail "gates scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 11 ] || fail "an absent log prints only the empty tables, including evidence sufficiency: $(cat "$out")"
   pass "the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor"

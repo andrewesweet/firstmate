@@ -35,19 +35,19 @@
 #     and, for stale wakes, a worker incarnation newer than the wake (the
 #     busy-state gen) as the stale repair; teardown is not a repair, since
 #     every task is torn down once it finishes. Teardown also removes the
-#     meta, pr-poll and busy-state records these two signals are read from,
-#     so while a wake's task records are all present the two reads are live
-#     and every scoring run records what they see into the durable sidecar
-#     $STATE/.branch-shadow-truth.jsonl (one JSON line per wake: wakeKey,
-#     pr_truth, stale_repair). Both bits are events that only ever turn on,
-#     so the record is monotone: a newer line is appended only when a live
-#     read is 1 and the recorded bit is 0 (the last line per wake wins), a
-#     recorded 1 answers even while the records are present, and nothing
-#     is ever written from an absent read, so a decayed signal can never be
-#     rewritten as evidence. A wake whose task records are gone and which
-#     has no snapshot stays unreadable: it is
-#     counted and noted below the table, and is never counted as a fire
-#     outcome for the sufficiency verdict.
+#     status, meta, pr-poll and busy-state records the backstop scan and
+#     these two signals are read from, so while a wake's task records are
+#     all present the reads are live and every scoring run records what
+#     they see into the durable sidecar $STATE/.branch-shadow-truth.jsonl
+#     (one JSON line per wake: wakeKey, pr_truth, stale_repair, backstop).
+#     All three bits are events that only ever turn on, so the record is
+#     monotone: a newer line is appended only when a live read is 1 and the
+#     recorded bit is 0 (the last line per wake wins), a recorded 1 answers
+#     even while the records are present, and nothing is ever written from
+#     an absent read, so a decayed signal can never be rewritten as
+#     evidence. A wake whose task records are gone and which has no
+#     snapshot stays unreadable: it is counted and noted below the table,
+#     and is never counted as a fire outcome for the sufficiency verdict.
 #
 # Evidence sufficiency: the tables above say what the gates did; the
 # sufficiency mode says whether a gate has enough scored evidence to judge
@@ -323,20 +323,21 @@ done <<< "$REC_ROWS"
 
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 >= b + 0) }'; }
 
-# Truth sidecar: the durable snapshot of the merge-poll and stale-repair
-# reads (see the header). Loaded before any truth is consulted, last line
+# Truth sidecar: the durable snapshot of the merge-poll, stale-repair and
+# backstop-surfacing reads (see the header). Loaded before any truth is consulted, last line
 # per wake wins; written only by snapshot_truth below, only while the wake's
 # task records are present.
 TRUTH="$STATE/.branch-shadow-truth.jsonl"
-declare -A SC_PR=() SC_STALE=() SC_HAS=()
+declare -A SC_PR=() SC_STALE=() SC_BACKSTOP=() SC_HAS=()
 if [ -f "$TRUTH" ]; then
-  while IFS=$'\t' read -r wk spr sst; do
+  while IFS=$'\t' read -r wk spr sst sbs; do
     [ -n "$wk" ] || continue
     SC_PR[$wk]=$spr
     SC_STALE[$wk]=$sst
+    SC_BACKSTOP[$wk]=$sbs
     SC_HAS[$wk]=1
   done < <(jq -R -r 'fromjson? | select(type == "object" and (.wakeKey | type) == "string" and .wakeKey != "") |
-      [ .wakeKey, (if .pr_truth == 1 then 1 else 0 end), (if .stale_repair == 1 then 1 else 0 end) ] | @tsv' "$TRUTH" 2>/dev/null || true)
+      [ .wakeKey, (if .pr_truth == 1 then 1 else 0 end), (if .stale_repair == 1 then 1 else 0 end), (if .backstop == 1 then 1 else 0 end) ] | @tsv' "$TRUTH" 2>/dev/null || true)
 fi
 wake_live() {  # <wakeKey>: every task record the truth reads need is present
   local t
@@ -351,9 +352,12 @@ wake_label() {  # <wakeKey>: main | routine | unmatched
   [ -n "${WK_SEEN[$1]:-}" ] || { echo unmatched; return; }
   if [ -n "${WK_CAPTAIN[$1]:-}" ]; then echo main; else echo routine; fi
 }
+wake_backstop_truth() {  # <wakeKey>: a recorded backstop surfacing, or one read live from the status log while present
+  [ "${SC_BACKSTOP[$1]:-0}" = 1 ] || [ -n "${WK_BACKSTOP[$1]:-}" ]
+}
 wake_actionable() {  # <wakeKey>: captain label, backstop surfacing, a PR
   # reported in the joined rows, or - for a stale wake - a derivable repair
-  if [ -n "${WK_CAPTAIN[$1]:-}" ] || [ -n "${WK_BACKSTOP[$1]:-}" ] || [ -n "${WK_PRROWS[$1]:-}" ]; then return 0; fi
+  if [ -n "${WK_CAPTAIN[$1]:-}" ] || [ -n "${WK_PRROWS[$1]:-}" ] || wake_backstop_truth "$1"; then return 0; fi
   if [ -n "${WK_ISSTALE[$1]:-}" ]; then wake_stale_repair_truth "$1"; return; fi
   return 1
 }
@@ -406,28 +410,31 @@ wake_readable() {  # <wakeKey>: truth still derivable - every task record is pre
   wake_live "$1" || [ -n "${SC_HAS[$1]:-}" ]
 }
 
-# Snapshot pass: record what the merge-poll and stale-repair reads see for
-# every wake whose task records are all still present. Monotone: a newer
+# Snapshot pass: record what the merge-poll, stale-repair and backstop reads
+# see for every wake whose task records are all still present. Monotone: a newer
 # line is appended only when a live read is 1 and the recorded bit is 0,
 # never for a 1-to-0 change, so later runs after a teardown consult recorded
 # evidence instead of an absent read. Never written from an absent read: no
 # line is appended for a wake whose task records are gone.
 snapshot_truth() {
-  local wk t pr st line lines=''
+  local wk t pr st bs line lines=''
   for wk in "${!WK_SEEN[@]}"; do
     [ -n "${WKEPOCH[$wk]:-}" ] || continue
     wake_live "$wk" || continue
     pr=${SC_PR[$wk]:-0}
     st=${SC_STALE[$wk]:-0}
+    bs=${SC_BACKSTOP[$wk]:-0}
     for t in ${WK_TASKS[$wk]:-}; do
       task_poll_armed "$t" && pr=1
     done
     wake_stale_repair "$wk" && st=1
-    [ -n "${SC_HAS[$wk]:-}" ] && [ "${SC_PR[$wk]}" = "$pr" ] && [ "${SC_STALE[$wk]}" = "$st" ] && continue
-    printf -v line '{"wakeKey":"%s","pr_truth":%s,"stale_repair":%s}\n' "$wk" "$pr" "$st"
+    [ -n "${WK_BACKSTOP[$wk]:-}" ] && bs=1
+    [ -n "${SC_HAS[$wk]:-}" ] && [ "${SC_PR[$wk]}" = "$pr" ] && [ "${SC_STALE[$wk]}" = "$st" ] && [ "${SC_BACKSTOP[$wk]}" = "$bs" ] && continue
+    printf -v line '{"wakeKey":"%s","pr_truth":%s,"stale_repair":%s,"backstop":%s}\n' "$wk" "$pr" "$st" "$bs"
     lines+="$line"
     SC_PR[$wk]=$pr
     SC_STALE[$wk]=$st
+    SC_BACKSTOP[$wk]=$bs
     SC_HAS[$wk]=1
   done
   if [ -n "$lines" ]; then
