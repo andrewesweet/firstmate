@@ -55,12 +55,11 @@ import type { On } from 'claude-code'
 // its own files and "claude-code").
 import {
   foldVocabularyFromEnv,
-  hasOpenNeedsDecision,
   scopeForUnreadWake as libScopeForUnreadWake,
   statusKindFromMetaText,
 } from '../lib/fm-branch-eligibility.ts'
 import type { FoldVocabulary } from '../lib/fm-branch-eligibility.ts'
-import { scanScope, statusKindOf, type Scope, type ScopeScanDeps } from '../lib/fm-branch-scope.ts'
+import { scanScope, type Scope, type ScopeScanDeps } from '../lib/fm-branch-scope.ts'
 import {
   appendFailureMessage,
   markProcessedArgv,
@@ -76,7 +75,6 @@ import {
   classifierPassCoverArgv,
   classifyWake,
   passedToMainSummary,
-  type ClassifierEvidence,
   type ClassifierResult,
 } from '../lib/fm-branch-classifier.ts'
 import { createProviderErrorLatch } from '../lib/fm-branch-provider-latch.ts'

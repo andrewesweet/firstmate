@@ -322,37 +322,29 @@ export interface UnreadWakeInputs {
   cache?: DecisionVerdictCache;
 }
 
-const EMPTY_SCOPE: UnreadWakeScope = {
-  status: "empty",
-  eligible: false,
-  corrupted: false,
-  eligibleSeqs: [],
-  eligibleWakeKey: "",
-  eligibleTasks: [],
-  needsDecisionKeys: [],
-  needsDecisionTasks: [],
-  allSeqs: [],
-  projects: [],
-  checkSeqs: [],
-  heartbeatSeqs: [],
-  taskByWakeKey: {},
-};
+/** The no-result scope for one scan exit: every collection is a fresh empty
+ * array and the object a fresh allocation, so no two exits ever share a
+ * mutable array. */
+function noScope(status: UnreadWakeScopeStatus, corrupted: boolean): UnreadWakeScope {
+  return {
+    status,
+    eligible: false,
+    corrupted,
+    eligibleSeqs: [],
+    eligibleWakeKey: "",
+    eligibleTasks: [],
+    needsDecisionKeys: [],
+    needsDecisionTasks: [],
+    allSeqs: [],
+    projects: [],
+    checkSeqs: [],
+    heartbeatSeqs: [],
+    taskByWakeKey: {},
+  };
+}
 
-const UNSAFE_SCOPE: UnreadWakeScope = {
-  status: "unsafe",
-  eligible: false,
-  corrupted: true,
-  eligibleSeqs: [],
-  eligibleWakeKey: "",
-  eligibleTasks: [],
-  needsDecisionKeys: [],
-  needsDecisionTasks: [],
-  allSeqs: [],
-  projects: [],
-  checkSeqs: [],
-  heartbeatSeqs: [],
-  taskByWakeKey: {},
-};
+const EMPTY_SCOPE = noScope("empty", false);
+const UNSAFE_SCOPE = noScope("unsafe", true);
 
 /** The eligible-rows and decision-owned classification both ports run, over
  * injected inputs (docs/watcher-continuity.md "Per-actor acknowledgement"

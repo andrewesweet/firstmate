@@ -2,6 +2,7 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import { runCommandAsync } from "./fm-async-exec.ts";
 import { scanStateDirectory } from "../../../lib/fm-branch-eligibility.ts";
+import type { UnreadWakeScope, UnreadWakeScopeStatus } from "../../../lib/fm-branch-eligibility.ts";
 
 // Shared wake-dispatch handshake between the Pi watcher extension (the
 // dispatcher) and the supervision-branch extension (the handler), carried over
@@ -43,69 +44,9 @@ export function afkPostureRecordPresent(state: string): boolean {
   }
 }
 
-export type UnreadWakeScopeStatus = "safe" | "empty" | "unsafe";
-
-export interface UnreadWakeScope {
-  status: UnreadWakeScopeStatus;
-  eligible: boolean;
-  /** Exact project values touched by the currently eligible rows (context only). */
-  projects: string[];
-  /**
-   * The exact durable-queue sequence numbers this scan proved safe for the
-   * branch to drain and acknowledge right now (docs/watcher-continuity.md
-   * "Per-actor acknowledgement" - the single owner of the consume contract
-   * bin/fm-wake-drain.sh implements against this list). Empty whenever
-   * `eligible` is false.
-   */
-  eligibleSeqs: string[];
-  /**
-   * The exact task ids the eligible signal/stale rows name (a signal row by
-   * its status-log key, a stale row through the task metadata recording that
-   * endpoint). The branch may report only these tasks while it handles the
-   * wake; `fleet` or a task it merely remembers is refused (docs/
-   * pi-supervision-branch.md "Components and their owners"). Empty for a
-   * heartbeat, which is not scoped by task.
-   */
-  eligibleTasks: string[];
-  /**
-   * True only when this scan itself is untrustworthy: the queue or its
-   * metadata could not be read, a line fails the structural tab-field check,
-   * or an unresolvable signal/stale row was found. False whenever the scan
-   * completed cleanly and simply found nothing (or nothing further) eligible
-   * for the branch right now: status "unsafe" with corrupted false is the
-   * ordinary "ordinary main-only content, nothing here for the branch" case,
-   * not a fault, and callers should treat it as ordinary absence rather than
-   * escalating. A main-owned check row is never a source of corruption in
-   * either mode.
-   */
-  corrupted: boolean;
-  /** The mod's `<epoch>:<seq>` wake keys for the eligible rows, comma-joined. */
-  eligibleWakeKey: string;
-  /**
-   * The exact "key" field of every decision-owned signal or stale row this
-   * scan excluded. Signal rows are marked by bin/fm-watch.sh; stale rows are
-   * decision-owned when their task has an open needs-decision or its current
-   * declaration is captain-held. fm-primary-pi-watch.ts cross-references these
-   * keys against the current trigger so its entire coalesced batch is forced
-   * to main.
-   */
-  needsDecisionKeys: string[];
-  /**
-   * The check-kind rows included in eligibleSeqs. Non-empty only in the away
-   * posture, where the branch takes main's rows too; a check row names no
-   * task, so a prompt that claims one is not scoped by task.
-   */
-  checkSeqs: string[];
-  /**
-   * The heartbeat rows included in eligibleSeqs. A heartbeat names no task,
-   * so a prompt that claims one is not scoped by task, including when a
-   * non-heartbeat wake claims it in the away posture.
-   */
-  heartbeatSeqs: string[];
-  /** The mod's every validated row seq (the passed-seqs sweep's queue view). */
-  allSeqs: string[];
-  taskByWakeKey: Record<string, string>;
-}
+// The Pi adapter consumes the mod's canonical scope type; re-exported so the
+// dispatch module keeps its original type surface.
+export type { UnreadWakeScope, UnreadWakeScopeStatus };
 
 // scopeForUnreadWake classifies the durable wake queue for the branch offer
 // handshake, bound to one state directory. The classification itself - the

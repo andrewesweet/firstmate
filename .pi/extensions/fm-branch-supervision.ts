@@ -149,12 +149,6 @@ import {
   passedToMainSummary,
   type ClassifierDeps,
 } from "../../lib/fm-branch-classifier.ts";
-import {
-  foldVocabularyFromEnv,
-  hasOpenNeedsDecision,
-  statusKindFromMetaText,
-} from "../../lib/fm-branch-eligibility.ts";
-
 const extensionFile = fileURLToPath(import.meta.url);
 const extensionDir = dirname(extensionFile);
 const root = resolve(extensionDir, "../..");
