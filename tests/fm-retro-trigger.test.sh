@@ -242,7 +242,7 @@ test_failed_wake_enqueue_is_retried_by_the_next_observe() {
   [ -e "$home/state/retro-trigger/open-row" ] \
     && fail "wake retry: no open-row marker may exist while the wake is unqueued"
   rmdir "$home/state/.wake-queue"
-  rt_run "$home" observe anomaly blocked t2 "second evidence" >/dev/null 2>&1 \
+  rt_run "$home" observe closure t2 >/dev/null 2>&1 \
     || fail "wake retry: the next observe must fire cleanly"
   assert_equals "1" "$(rt_wake_rows "$home")" \
     "wake retry: the next observe must enqueue the check wake"
@@ -250,7 +250,7 @@ test_failed_wake_enqueue_is_retried_by_the_next_observe() {
     "wake retry: the marker must land once the wake is queued"
   assert_equals "1" "$(rt_backlog_rows "$home")" \
     "wake retry: the retried firing must not file a second backlog row"
-  pass "a failed wake enqueue leaves no marker and the next observe retries without a second row"
+  pass "a failed wake enqueue leaves no marker and a non-firing observe retries without a second row"
 }
 
 test_done_unseen_threshold_is_script_owned() {

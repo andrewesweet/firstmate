@@ -70,16 +70,17 @@
 #       when it routes the retrospective. Safe to re-run; a repeated
 #       <retro-id> archives beside the first with a numeric suffix.
 #
-# Firing rule, evaluated once per NEW receipt while holding the lock and
-# never while this generation's trigger row is open (an open row absorbs
-# every later observe: the receipt is appended, nothing else is touched):
-#   1. any anomaly receipt fires;
+# Firing rule, evaluated once per NEW receipt against the generation's whole
+# receipt set while holding the lock and never while this generation's
+# trigger row is open (an open row absorbs every later observe: the receipt
+# is appended, nothing else is touched):
+#   1. any anomaly receipt in the generation fires;
 #   2. known-lane spend since the last reset reaching spend_usd fires;
-#   3. a known closure whose cost exceeds median_multiplier times the running
-#      median of all known closure costs of the generation, including the new
-#      one, fires - and only when at least three known closures exist.
+#   3. a known closure cost in the generation exceeding median_multiplier
+#      times the running median of all known closure costs of the generation
+#      fires - and only when at least three known closures exist.
 # A done-unseen observation under the threshold records nothing at all.
-# The first matching rule wins and names its receipt. Firing files exactly
+# The first matching rule wins and names the receipt just observed. Firing files exactly
 # one QUEUED backlog row in this home through bin/fm-tasks-axi.sh
 # (kind scout, repo -, stable id retro-trigger-<generation>, body naming the
 # receipt that fired and pointing at the store) and then enqueues exactly one
@@ -89,9 +90,10 @@
 #
 # Every command is safe to re-run. Every step's failure is reported on
 # stderr and exits non-zero with the durable prefix intact: a receipt that
-# landed but could not fire is retried by the next new receipt's observe,
-# because no open-row marker exists until both the backlog row and its check
-# wake have landed. The retry re-runs the whole firing step, so a failure
+# landed but could not fire is retried by the next observe of any new
+# receipt, firing or not: the rules read generation state, so a condition
+# once met stays met, and no open-row marker exists until both the backlog
+# row and its check wake have landed. The retry re-runs the whole firing step, so a failure
 # after either publication dedupes rather than duplicates: tasks-axi add is
 # idempotent for the stable row id, and the wake drain collapses repeated
 # (check, row-id) rows into one presentation.
@@ -301,28 +303,27 @@ rt_median() {  # (known costs on stdin) -> running median, two decimals
     }'
 }
 
-# Evaluate the firing rules for a just-written receipt; fire at most once per
-# generation. Caller holds the lock. Returns non-zero on a filing failure
-# with the reason already on stderr.
-rt_evaluate_firing() {  # <gen> <kind> <task> <cost> <lane>
-  local gen=$1 kind=$2 task=$3 cost=$4 lane=$5 fire_reason='' spend median
+# Evaluate the firing rules against the generation's whole receipt set after
+# a just-written receipt; fire at most once per generation. Caller holds the
+# lock. Returns non-zero on a filing failure with the reason already on
+# stderr.
+rt_evaluate_firing() {  # <gen> <kind> <task>
+  local gen=$1 kind=$2 task=$3 fire_reason='' anomalies spend median max
   [ -f "$RT_OPEN_ROW" ] && return 0
 
+  anomalies=$(rt_count_receipts "$gen" anomaly-)
+  spend=$(rt_known_costs "$gen" | awk '{ s += $1 } END { printf "%.2f", s + 0 }')
   if [ "$kind" != closure ]; then
     fire_reason="anomaly ${kind} recorded"
-  else
-    spend=$(rt_known_costs "$gen" | awk '{ s += $1 } END { printf "%.2f", s + 0 }')
-    if awk -v spend="$spend" -v threshold="$RT_SPEND_USD" \
-      'BEGIN { exit !(spend >= threshold) }'; then
-      fire_reason="known-lane spend ${spend} USD reached spend_usd ${RT_SPEND_USD}"
-    elif [ "$lane" = known ]; then
-      if [ "$(rt_known_costs "$gen" | wc -l)" -ge 3 ]; then
-        median=$(rt_known_costs "$gen" | rt_median)
-        if awk -v cost="$cost" -v median="$median" -v mult="$RT_MEDIAN_MULTIPLIER" \
-          'BEGIN { exit !(cost > median * mult) }'; then
-          fire_reason="closure cost ${cost} USD exceeds ${RT_MEDIAN_MULTIPLIER}x the running median ${median}"
-        fi
-      fi
+  elif [ "$anomalies" -gt 0 ]; then
+    fire_reason="${anomalies} anomaly receipt(s) recorded"
+  elif awk -v spend="$spend" -v threshold="$RT_SPEND_USD"     'BEGIN { exit !(spend >= threshold) }'; then
+    fire_reason="known-lane spend ${spend} USD reached spend_usd ${RT_SPEND_USD}"
+  elif [ "$(rt_known_costs "$gen" | wc -l)" -ge 3 ]; then
+    median=$(rt_known_costs "$gen" | rt_median)
+    max=$(rt_known_costs "$gen" | LC_ALL=C sort -n | tail -n 1)
+    if awk -v cost="$max" -v median="$median" -v mult="$RT_MEDIAN_MULTIPLIER"       'BEGIN { exit !(cost > median * mult) }'; then
+      fire_reason="closure cost ${max} USD exceeds ${RT_MEDIAN_MULTIPLIER}x the running median ${median}"
     fi
   fi
   [ -n "$fire_reason" ] || return 0
@@ -388,7 +389,7 @@ rt_observe_closure() {  # <task-id> [--cost <usd>]
   fi
   rt_write_receipt "$gen" "$name" closure "$task" "$lane" "${cost:--}" - \
     || { rt_lock_release; printf 'fm-retro-trigger: could not write the receipt for %s\n' "$task" >&2; exit 1; }
-  if ! rt_evaluate_firing "$gen" closure "$task" "$cost" "$lane"; then
+  if ! rt_evaluate_firing "$gen" closure "$task"; then
     rt_lock_release
     exit 1
   fi
@@ -426,7 +427,7 @@ rt_observe_anomaly() {  # <kind> <task-id> <evidence> (kind validated by main)
   fi
   rt_write_receipt "$gen" "$name" "$kind" "$task" - - "$evidence" \
     || { rt_lock_release; printf 'fm-retro-trigger: could not write the receipt for %s\n' "$task" >&2; exit 1; }
-  if ! rt_evaluate_firing "$gen" "$kind" "$task" - -; then
+  if ! rt_evaluate_firing "$gen" "$kind" "$task"; then
     rt_lock_release
     exit 1
   fi
