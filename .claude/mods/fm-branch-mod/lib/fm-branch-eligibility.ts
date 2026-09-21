@@ -322,9 +322,8 @@ export interface UnreadWakeInputs {
   cache?: DecisionVerdictCache;
 }
 
-/** The no-result scope for one scan exit: every collection is a fresh empty
- * array and the object a fresh allocation, so no two exits ever share a
- * mutable array. */
+/** The no-result scope literal shared by the empty and unsafe exits below;
+ * callers never mutate a returned scope. */
 function noScope(status: UnreadWakeScopeStatus, corrupted: boolean): UnreadWakeScope {
   return {
     status,
