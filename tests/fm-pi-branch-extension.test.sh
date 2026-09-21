@@ -2900,6 +2900,74 @@ EOF
   pass "provider-error latches cool down, re-probe once with backoff, and recover through a durable report"
 }
 
+# A latched branch's one recovery probe is admitted before the classifier
+# runs. When the classifier then routes that wake to main, nothing was
+# probed: the probe slot is released without extending the cooldown, so the
+# very next eligible wake is the probe and the branch can recover.
+test_probe_routed_away_by_classifier_releases_the_slot_without_extending_the_latch() {
+  local repo home out status
+  repo="$TMP_ROOT/probe-routed-away-root"
+  home="$TMP_ROOT/probe-routed-away-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, makeOffer, bus, settle, sentToMain, defaultSessionCtx, home }; })()`);
+const { fire, dispatch, makeOffer, bus, settle, sentToMain, defaultSessionCtx, home } = globalThis.__t;
+import { writeFileSync } from "node:fs";
+
+let now = 1_000_000;
+Date.now = () => now;
+await fire("session_start", {}, defaultSessionCtx);
+let attempt = 0;
+globalThis.__fmOnBranchPrompt = async ({ session }) => {
+  attempt += 1;
+  if (attempt === 3) {
+    const report = session.options.customTools.find((tool) => tool.name === "fm_branch_report");
+    const recorded = await report.execute("probe-ok", { task: "branch-driver", verdict: "routine", summary: "probe recovered" }, undefined, undefined, {});
+    if (recorded.isError) throw new Error(`probe report failed: ${JSON.stringify(recorded)}`);
+    session.messages.push({ role: "assistant", content: [], stopReason: "stop" });
+    return;
+  }
+  session.messages.push({ role: "assistant", content: [], stopReason: "error", errorMessage: "429: Monthly usage limit reached" });
+};
+
+for (const text of ["signal: e1", "signal: e2"]) {
+  const wake = dispatch(text);
+  if (!wake.accepted) throw new Error(`${text} was not accepted before the latch`);
+  await wake.settlement.catch(() => {});
+}
+if (dispatch("signal: latched").accepted) throw new Error("two provider errors did not latch the branch");
+
+// Cooldown elapses; the first admitted wake is the probe, and the classifier
+// routes it to main before any prompt.
+now += 5 * 60 * 1000;
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "captain", reason: "terminal line" });
+const routedAway = dispatch("signal: task-9 done: PR https://example.com/pr/9 checks green");
+if (!routedAway.accepted) throw new Error("the elapsed cooldown did not admit a probe");
+let rejection = "";
+try { await routedAway.settlement; } catch (error) { rejection = String(error.message); }
+if (!rejection.includes("classifier routed the wake to main")) throw new Error(`probe was not routed to main: ${rejection}`);
+if (attempt !== 2) throw new Error(`a routed-away probe still prompted the branch: attempts=${attempt}`);
+
+// Same instant, a fresh routine row: it must be admitted as the probe rather
+// than refused for another cooldown term, and its report must recover.
+writeFileSync(`${home}/state/.wake-queue`, "1\t2\tsignal\tbranch-driver.status\tsignal: real probe\n");
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+const probe = makeOffer("signal: real probe");
+bus.emit("fm-branch-supervision:dispatch", probe);
+if (!probe.accepted) throw new Error("the routed-away probe extended the latch: the next wake was refused instead of probing");
+await probe.settlement;
+await settle(() => sentToMain.some((sent) => sent.message.content.includes("Supervision branch recovered after a successful cooldown probe")), "recovery note");
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "a probe routed away by the classifier must release its slot without extending the latch: $out"
+  pass "a probe wake the classifier routes to main releases the probe slot; the next wake probes and recovers"
+}
+
 # The unified latch predicate (the mod's rule, adopted on Pi): a report-less,
 # error-free settlement is one consecutive failure exactly as a settled
 # provider error is, counted under Pi's schedule - two silent turns latch,
@@ -5893,6 +5961,7 @@ test_branch_predrain_recheck_excludes_new_main_owned_row_without_deferring_eligi
 test_branch_predrain_needs_decision_keeps_routine_row_branch_eligible
 test_settled_branch_prompt_releases_unacknowledged_grant
 test_post_construction_provider_error_falls_back_latches_and_recovers_on_cooldown
+test_probe_routed_away_by_classifier_releases_the_slot_without_extending_the_latch
 test_report_less_error_free_turns_count_toward_the_latch
 test_selection_change_does_not_corrupt_inflight_provider_state
 test_main_owned_grant_result_falls_back_to_main

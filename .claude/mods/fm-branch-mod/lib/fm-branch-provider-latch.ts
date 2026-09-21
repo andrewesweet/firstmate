@@ -15,8 +15,9 @@
 // latch is active (first latch takes the base cooldown, each later failure
 // doubles the active cooldown up to the cap), time-gated admission of one
 // recovery probe per cooldown when the policy arms probes, the probe-in-
-// flight slot, probe-failure cooldown extension, and full recovery (latch
-// cleared, count reset) on a clean settlement.
+// flight slot, probe-failure cooldown extension, release of a slot whose
+// wake never reached the provider, and full recovery (latch cleared, count
+// reset) on a clean settlement.
 //
 // Host seams - the FAILURE PREDICATE is unified (the captain's 2026-09-20
 // ruling adopted the mod's counting on Pi); the rest are declared, not

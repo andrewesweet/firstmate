@@ -839,6 +839,8 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   const scope = await scopeForUnreadWake($, heartbeat)
   log($, 'wake.scope', { reason, scope, source })
   const passedSeqs = await readPassedSeqs($)
+  // Sweep only on a safe scan: an unsafe scope carries an empty allSeqs, and
+  // treating that as "nothing queued" would wipe rows main still owns.
   if (!scope.corrupted && (scope.allSeqs || scope.status === 'empty')) {
     const queued = new Set(scope.allSeqs ?? [])
     const gone = [...passedSeqs].filter((s) => !queued.has(s))
