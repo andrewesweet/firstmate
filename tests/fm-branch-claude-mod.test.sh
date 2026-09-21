@@ -18,7 +18,6 @@ set -u
 
 MOD="$ROOT/.claude/mods/fm-branch-mod"
 GENERATOR="$ROOT/bin/fm-branch-agent-md.sh"
-SYNC_GENERATOR="$ROOT/bin/fm-branch-shared-sync.sh"
 TMP_ROOT=$(fm_test_tmproot fm-branch-claude-mod)
 
 command -v node >/dev/null 2>&1 || { echo "skip: node not found for the Claude Code supervision-branch mod checks"; exit 0; }
@@ -75,45 +74,32 @@ test_agent_definition_is_generated_and_current() {
   pass "agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns"
 }
 
-test_vendored_eligibility_module_is_generated_and_current() {
-  local out
-  out=$("$SYNC_GENERATOR" --check 2>&1) || fail "the vendored eligibility module is stale against lib/fm-branch-eligibility.ts: $out"
-  out=$("$SYNC_GENERATOR" --print) || fail "the generator cannot print the vendored module"
-  [ "$out" = "$(cat "$MOD/lib/fm-branch-eligibility.ts")" ] || fail "--print differs from the tracked vendored module"
-  "$SYNC_GENERATOR" --bogus >/dev/null 2>&1 && fail "an unknown generator argument was accepted"
-  grep -q 'GENERATED FILE - DO NOT EDIT BY HAND' "$MOD/lib/fm-branch-eligibility.ts" \
-    || fail "the vendored module does not announce itself as generated"
-  if grep -q 'from "node:fs"' "$MOD/lib/fm-branch-eligibility.ts"; then
-    fail "the vendored module imports node:fs, which the hooks-module validator refuses"
-  fi
-  pass "the vendored eligibility module is current with bin/fm-branch-shared-sync.sh and free of node:fs"
-}
-
-test_vendored_a4_modules_are_generated_and_current() {
-  local out module source tracked
+test_lib_resolves_to_the_mod_canonical_modules() {
+  local module
+  # The canon is inverted (docs/calm.md is the precedent): the mod's lib/
+  # holds the canonical shared modules a hooks module can import, and the
+  # repo's lib/ entries point at them - four tracked symlinks plus one
+  # wrapper that re-exports the eligibility core and adds its node:fs
+  # bindings. Assert the layout contract through the filesystem, then load
+  # the wrapper to prove it re-exports the core; the hooks-module validator
+  # run by fm-branch-claude-mod-plugin.test.sh owns the no-node:-imports
+  # check.
   for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts fm-branch-classifier.ts; do
-    source="$ROOT/lib/$module"
-    tracked="$MOD/lib/$module"
-    [ -f "$source" ] || fail "the shared A4 module is missing: $source"
-    [ -f "$tracked" ] || fail "the vendored A4 module is missing: $tracked"
-    out=$("$SYNC_GENERATOR" --print "$module") || fail "the generator cannot print $module"
-    [ "$out" = "$(cat "$tracked")" ] || fail "--print $module differs from the tracked vendored copy"
-    grep -q 'GENERATED FILE - DO NOT EDIT BY HAND' "$tracked" \
-      || fail "$tracked does not announce itself as generated"
-    if grep -q 'from "node:' "$tracked"; then
-      fail "$tracked imports node:, which the hooks-module validator refuses"
-    fi
-    # The vendored copy is the shared source verbatim under its generated
-    # header: strip everything through the header's Regenerate line and
-    # compare to the source byte for byte.
-    if [ "$(awk 'f{print} /^\/\/ Regenerate with/{f=1}' "$tracked")" != "$(cat "$source")" ]; then
-      fail "$tracked is not the source verbatim under its generated header"
-    fi
+    [ -L "$ROOT/lib/$module" ] || fail "lib/$module is not a symlink; the canonical copy lives under the mod"
+    [ "$(readlink "$ROOT/lib/$module")" = "../.claude/mods/fm-branch-mod/lib/$module" ] \
+      || fail "lib/$module points at $(readlink "$ROOT/lib/$module" 2>/dev/null || echo nothing), expected the mod's canonical file"
+    [ -f "$ROOT/lib/$module" ] || fail "lib/$module does not resolve to the mod's canonical file"
   done
-  pass "the vendored report-sequence, provider-latch, and classifier modules are current with bin/fm-branch-shared-sync.sh"
+  [ -L "$ROOT/lib/fm-branch-eligibility-core.ts" ] || fail "lib/fm-branch-eligibility-core.ts is not a symlink; the wrapper needs its core sibling"
+  [ "$(readlink "$ROOT/lib/fm-branch-eligibility-core.ts")" = "../.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts" ] \
+    || fail "lib/fm-branch-eligibility-core.ts points at $(readlink "$ROOT/lib/fm-branch-eligibility-core.ts" 2>/dev/null || echo nothing), expected the mod's canonical core"
+  [ -f "$ROOT/lib/fm-branch-eligibility.ts" ] && [ ! -L "$ROOT/lib/fm-branch-eligibility.ts" ] \
+    || fail "lib/fm-branch-eligibility.ts must be the wrapper file that adds the node:fs bindings"
+  node --experimental-strip-types -e 'import(process.argv[1] + "/lib/fm-branch-eligibility.ts").then((m) => { if (typeof m.scanStateDirectory !== "function" || typeof m.foldStatusLog !== "function") { console.error("wrapper bindings missing"); process.exit(1); } if (typeof m.scopeForUnreadWake !== "function" || typeof m.foldStatusLines !== "function") { console.error("core re-exports missing"); process.exit(1); } }).catch((e) => { console.error(String(e)); process.exit(1); })' "$ROOT" >/dev/null 2>&1 \
+    || fail "the eligibility wrapper does not load and re-export the mod's core with its bindings"
+  pass "lib/ resolves to the mod's canonical modules and the eligibility wrapper loads"
 }
 
 test_plugin_shape
 test_agent_definition_is_generated_and_current
-test_vendored_eligibility_module_is_generated_and_current
-test_vendored_a4_modules_are_generated_and_current
+test_lib_resolves_to_the_mod_canonical_modules

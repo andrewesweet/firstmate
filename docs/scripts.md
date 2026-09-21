@@ -116,7 +116,6 @@ The shared no-mistakes gate refusal for fleet lifecycle entrypoints is summarize
 | `fm-branch-prompt.sh`    | Emit the Pi supervision branch's byte-stable system prompt ([pi-supervision-branch.md](pi-supervision-branch.md)) |
 | `fm-branch-outcome.sh`   | Own the supervision branch's append-only outcome store, cursors, bounded status-coverage indexes, and session-start replay |
 | `fm-branch-agent-md.sh`  | Generate, print, or check the Claude Code supervision-branch mod's agent definition from the branch prompt plus its hooks-module addendum ([claude-supervision-branch.md](claude-supervision-branch.md)) |
-| `fm-branch-shared-sync.sh` | Vendor, print, or check the shared supervision-branch modules' pure cores (`lib/fm-branch-eligibility.ts`, `lib/fm-branch-report-sequence.ts`, `lib/fm-branch-provider-latch.ts`, `lib/fm-branch-classifier.ts`) as the committed copies inside the Claude Code supervision-branch mod ([claude-supervision-branch.md](claude-supervision-branch.md)) |
 | `fm-branch-classifier-score.sh` | Score the supervision-branch pre-branch classifier's durable classification log (both hosts) against the status lines main had to act on |
 | `fm-wake-evidence.sh`    | Print the supervision-branch pre-branch classifier's evidence bundle (both hosts) for one task, owning its read offset, or the routine-covered captain-facing lines the drain backstop re-presents |
 | `fm-lease.sh`            | Claim, release, inspect, and sweep per-task supervision leases                       |

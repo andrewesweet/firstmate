@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# Drives the shared report/processed decision core (lib/fm-branch-report-sequence.ts)
-# and the shared provider-error latch (lib/fm-branch-provider-latch.ts) from
-# the two hosts that consume them plus their vendored copies, on one fixture
-# set (A4 of the supervision-branch hexagon refactor):
+# Drives the shared report/processed decision core
+# (.claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts, the canonical
+# copy the repo's lib/ symlinks to) and the shared provider-error latch
+# (.claude/mods/fm-branch-mod/lib/fm-branch-provider-latch.ts) from the two
+# hosts that consume them, on one fixture set (A4 of the supervision-branch
+# hexagon refactor):
 #   - the mod leg: the REAL Claude Code supervision-branch tool handlers
 #     (.claude/mods/fm-branch-mod/hooks/branch.ts serveReport/serveProcessed),
 #     bound through the exported bind() with a capturing process runner, and
 #     the real latch wiring assertions live in the mod's own engine test
 #     (tests/fm-branch-claude-mod-plugin.test.sh) because the latch is driven
 #     from turn hooks that only that host can drive;
-#   - the lib leg: the shared modules the Pi extension imports, driven through
-#     the same handler logic the extension calls; the Pi host's own rendered
-#     strings (the task-scope refusal, the through refusal, the mark-read and
-#     mark-processed failures, the processed success tail) are pinned
-#     byte-exactly by tests/fm-pi-branch-extension.test.sh against the real
-#     extension, so this suite pins the shared core and the mod leg;
-#   - the vendored legs: the same drivers against
-#     .claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts and
-#     fm-branch-provider-latch.ts, which must decide byte-identically.
+#   - the lib leg: the shared modules the Pi extension imports (through the
+#     repo's lib/ symlinks), driven through the same handler logic the
+#     extension calls; the Pi host's own rendered strings (the task-scope
+#     refusal, the through refusal, the mark-read and mark-processed
+#     failures, the processed success tail) are pinned byte-exactly by
+#     tests/fm-pi-branch-extension.test.sh against the real extension, so
+#     this suite pins the shared core and the mod leg.
 # The lib and mod legs must agree on every admission/refusal verdict, its
 # error shape, and the exact store argv transcript (append/mark-read/
 # mark-processed), including the module-owned texts byte-for-byte. The
@@ -30,8 +30,7 @@
 # tests/fm-pi-branch-extension.test.sh, the mod's unchanged counting by its
 # engine suite. The latch schedules pin the threshold, first-latch cooldown,
 # doubling with the cap, probe admission/commit/settle semantics, and
-# recovery for both hosts' policies, byte-equal between lib and vendored
-# copies.
+# recovery for both hosts' policies.
 set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -83,7 +82,7 @@ DUP_PLAN='[
 
 # ---------- node drivers -----------------------------------------------------
 cat > "$TMP_ROOT/lib-report.mjs" <<'DRIVER'
-// Drives a report-sequence module (lib or vendored) through the fixture plan,
+// Drives a report-sequence module (the repo lib/ symlink or the mod leg) through the fixture plan,
 // replaying each host's declared host seams the same way so the legs are
 // comparable: admission/refusal class, error shape, the exact argv
 // transcript, and - since the captain's 2026-09-20 unification - the SAME
@@ -291,7 +290,6 @@ export FM_ROOT_OVERRIDE="$TMP_ROOT"
 
 # ---------- run the legs ------------------------------------------------------
 node "$TMP_ROOT/lib-report.mjs" "$ROOT/lib/fm-branch-report-sequence.ts" "$PLAN" > "$TMP_ROOT/lib.json"
-node "$TMP_ROOT/lib-report.mjs" "$ROOT/.claude/mods/fm-branch-mod/lib/fm-branch-report-sequence.ts" "$PLAN" > "$TMP_ROOT/vendored.json"
 node "$TMP_ROOT/mod-report.mjs" "$PLAN" > "$TMP_ROOT/mod.json"
 node "$TMP_ROOT/mod-report.mjs" "$DUP_PLAN" > "$TMP_ROOT/mod-dup.json"
 
@@ -307,13 +305,6 @@ if cmp -s "$TMP_ROOT/mod.norm" "$TMP_ROOT/lib.norm"; then
 else
   diff "$TMP_ROOT/lib.norm" "$TMP_ROOT/mod.norm" >&2 || true
   fail "mod and lib verdict/argv/text transcripts diverge"
-fi
-
-# ---------- vendored copies decide byte-identically to lib --------------------
-if cmp -s "$TMP_ROOT/lib.json" "$TMP_ROOT/vendored.json"; then
-  pass "vendored report-sequence copy is byte-identical to lib on every fixture"
-else
-  fail "vendored report-sequence copy diverges from lib"
 fi
 
 # ---------- module-owned texts are the same bytes in both hosts ---------------
@@ -436,21 +427,9 @@ run_latch() { # module policy schedule outfile
 run_latch "$ROOT/lib/fm-branch-provider-latch.ts" \
   '{"threshold":2,"baseCooldownMs":300000,"maxCooldownMs":3600000,"recoveryProbe":true}' \
   "$PI_SCHEDULE" "$TMP_ROOT/pi-lib.json"
-run_latch "$ROOT/.claude/mods/fm-branch-mod/lib/fm-branch-provider-latch.ts" \
-  '{"threshold":2,"baseCooldownMs":300000,"maxCooldownMs":3600000,"recoveryProbe":true}' \
-  "$PI_SCHEDULE" "$TMP_ROOT/pi-vendored.json"
 run_latch "$ROOT/lib/fm-branch-provider-latch.ts" \
   '{"threshold":2,"baseCooldownMs":300000,"maxCooldownMs":300000,"recoveryProbe":false}' \
   "$MOD_SCHEDULE" "$TMP_ROOT/modpol-lib.json"
-run_latch "$ROOT/.claude/mods/fm-branch-mod/lib/fm-branch-provider-latch.ts" \
-  '{"threshold":2,"baseCooldownMs":300000,"maxCooldownMs":300000,"recoveryProbe":false}' \
-  "$MOD_SCHEDULE" "$TMP_ROOT/modpol-vendored.json"
-
-if cmp -s "$TMP_ROOT/pi-lib.json" "$TMP_ROOT/pi-vendored.json" && cmp -s "$TMP_ROOT/modpol-lib.json" "$TMP_ROOT/modpol-vendored.json"; then
-  pass "vendored latch copy is byte-identical to lib on both host policies"
-else
-  fail "vendored latch copy diverges from lib"
-fi
 
 # Pin the shared machine's load-bearing schedule facts on the lib leg.
 if jq -e '

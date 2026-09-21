@@ -36,9 +36,10 @@
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
 import type { On } from 'claude-code'
-// The shared v8 fold and eligible-rows scan, vendored by
-// bin/fm-branch-shared-sync.sh (the source's node:fs default bindings are
-// excluded: this module may import only its own files and "claude-code").
+// The shared v8 fold and eligible-rows scan, imported from this mod's
+// canonical ../lib (the repo's lib/ points back at these files through
+// symlinks; the node:fs default bindings live in that wrapper, excluded
+// here: this module may import only its own files and "claude-code").
 import {
   foldVocabularyFromEnv,
   hasOpenNeedsDecision,
@@ -308,7 +309,7 @@ async function ensureActivated($: any): Promise<boolean> {
   return activated
 }
 
-// ---- eligibility: the shared fold, vendored (bin/fm-branch-shared-sync.sh) ----
+// ---- eligibility: the shared fold, imported from this mod's canonical ../lib ----
 
 // Cross-scan verdict cache keyed by task id, the shared lib's module-level
 // posture: one state directory per runtime, so task ids are stable keys and a
@@ -365,7 +366,8 @@ async function statusKind($: any, task: string): Promise<string> {
   return statusKindFromMetaText(metaText)
 }
 
-// The eligible-rows scan, delegated to the vendored shared core. The host seam
+// The eligible-rows scan, delegated to the canonical shared core under
+// ../lib. The host seam
 // is async while the core binds sync lookups, so the reads happen first: the
 // queue, every .meta record (one unreadable meta refuses the scan exactly as
 // the lib's node:fs binding does), each task's kind, and each project-bearing
@@ -589,8 +591,8 @@ function rewakeBanner(reason: string): string {
 // The classifier core - the evidence byte-range parse and failure text of
 // bin/fm-wake-evidence.sh, the prompt construction, the answer
 // interpretation rule, and the durable record shape - is the shared module
-// (vendored into ../lib by bin/fm-branch-shared-sync.sh); this host binds its
-// seams. Exported for the portable tests (same precedent as serveReport).
+// (the canonical copy under ../lib, which the repo's lib/ symlinks to); this
+// host binds its seams. Exported for the portable tests (same precedent as serveReport).
 function classifierDeps($: any) {
   return {
     paths: { bin },
