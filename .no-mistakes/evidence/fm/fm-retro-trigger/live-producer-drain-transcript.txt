@@ -1,0 +1,34 @@
+## 8. producer path: real bin/fm-wake-drain.sh presents a blocked: status line; hook records anomaly receipt and trigger fires
+1790027458	1	signal	crew.status	signal: crew
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2203016.1790027458.yLWTYP
+wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: blocked: waiting on credentials [key=cred-1]
+fm-retro-trigger: filed trigger row retro-trigger-g1790027458 (anomaly blocked recorded)
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+crew blocked: waiting on credentials [key=cred-1]
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+drain exit=0
+--- receipts
+/tmp/rt-live2.nXPQoj/state/retro-trigger/receipts/g1790027458/anomaly-blocked-72b23cc7.receipt
+kind=blocked
+task=crew
+lane=-
+cost=-
+evidence=cred-1
+epoch=1790027458
+--- status
+generation: g1790027458
+known_spend: 0.00
+known_closures: 0
+unknown_closures: 0
+median_known_cost: -
+anomalies: 1
+open_row: retro-trigger-g1790027458
+--- backlog
+- [ ] retro-trigger-g1790027458 - Run the retrospective due for trigger generation g1790027458 (repo: -) (kind: scout) (since 2026-09-21)
+--- wake queue
+1790027458	1	signal	crew.status	signal: crew
+1790027458	1	check	retro-trigger-g1790027458	check: retro trigger g1790027458 fired; queued backlog row retro-trigger-g1790027458 holds the next retrospective
+
+## 9. second drain of the same line is idempotent: still one receipt, one row
+drain exit=0
+receipts: 1; trigger rows: 1; check wakes: 1

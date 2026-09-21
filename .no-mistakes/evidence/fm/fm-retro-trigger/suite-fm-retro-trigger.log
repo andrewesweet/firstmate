@@ -1,0 +1,18 @@
+ok - absent config makes every command a silent no-op that creates nothing
+ok - an unknown key or malformed value is a loud refusal naming the key
+ok - closure receipts are idempotent per task id across both cost lanes
+ok - while the trigger row is open, observes append receipts and nothing else
+ok - known-lane spend reaching spend_usd files one row and one check wake
+ok - the median rule needs three known closures and a cost over the multiple
+ok - an anomaly receipt fires the trigger and dedupes on kind, task, and evidence
+ok - a failed wake enqueue leaves no marker and a non-firing observe retries without a second row
+ok - done-unseen observations apply the threshold and require a bound epoch
+ok - status reports lanes, spend, median, anomalies, and the open row
+ok - reset archives the generation under the retro id and starts the next one
+ok - without config the annotation hook prints annotations and creates nothing
+ok - the hook turns a presented needs-decision line into a keyed receipt
+ok - done-unseen binds only an exact single-line single-row epoch, never approximates
+ok - a presentation replay dedupes and a trigger failure never fails the drain
+ok - a teardown that closes its backlog records an unknown-lane closure receipt
+ok - teardown without config creates no store and still succeeds
+ok - a teardown absorbs a broken retro store and still closes its backlog

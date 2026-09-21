@@ -1,0 +1,88 @@
+## 1. inert without config
+$ status
+exit=0
+observe exit=0
+store exists? no
+
+## 2. opt in: spend_usd=50 median_multiplier=2
+$ observe closure a --cost 10; observe closure a --cost 999 (repeat, idempotent); observe closure b (unknown lane)
+generation: g1790027427
+known_spend: 10.00
+known_closures: 1
+unknown_closures: 1
+median_known_cost: 10.00
+anomalies: 0
+open_row: -
+
+## 3. median rule: 10,12,24 no fire (24 = 2x12); then 1,1,1 cheap closures must NOT fire on old max (round-3 remedy a)
+generation: g1790027427
+known_spend: 49.00
+known_closures: 6
+unknown_closures: 1
+median_known_cost: 5.50
+anomalies: 0
+open_row: -
+backlog rows: 0
+
+## 4. spend crossing: known 49 + closure h --cost 1 = 50 reaches spend_usd, fires exactly one row + one check wake
+fm-retro-trigger: filed trigger row retro-trigger-g1790027427 (known-lane spend 50.00 USD reached spend_usd 50)
+exit=0
+generation: g1790027427
+known_spend: 50.00
+known_closures: 7
+unknown_closures: 1
+median_known_cost: 1.00
+anomalies: 0
+open_row: retro-trigger-g1790027427
+--- data/backlog.md
+# Backlog
+
+## In flight
+## Queued
+- [ ] retro-trigger-g1790027427 - Run the retrospective due for trigger generation g1790027427 (repo: -) (kind: scout) (since 2026-09-21)
+  Durable retrospective trigger fired in generation g1790027427: known-lane spend 50.00 USD reached spend_usd 50. Receipt: closure receipt for task h. Receipts: /tmp/rt-live.CeO8cP/state/retro-trigger/receipts/g1790027427/ (bin/fm-retro-trigger.sh status). One open row absorbs later anomalies; run bin/fm-retro-trigger.sh reset <retro-id> when routing this retrospective.
+## Done
+--- state/.wake-queue
+1790027428	1	check	retro-trigger-g1790027427	check: retro trigger g1790027427 fired; queued backlog row retro-trigger-g1790027427 holds the next retrospective
+
+## 5. open row absorbs: two anomalies + more spend, no second row/wake
+generation: g1790027427
+known_spend: 550.00
+known_closures: 8
+unknown_closures: 1
+median_known_cost: 5.50
+anomalies: 2
+open_row: retro-trigger-g1790027427
+backlog trigger rows: 1; wake rows: 1
+
+## 6. reset retro-1 archives and re-arms; next anomaly fires a NEW row
+fm-retro-trigger: generation g1790027427 archived under /tmp/rt-live.CeO8cP/state/retro-trigger/archive/retro-1; next generation g1790027429
+generation: g1790027429
+known_spend: 0.00
+known_closures: 0
+unknown_closures: 0
+median_known_cost: -
+anomalies: 0
+open_row: -
+retro-1
+g1790027427
+fm-retro-trigger: filed trigger row retro-trigger-g1790027429 (anomaly blocked recorded)
+exit=0
+generation: g1790027429
+known_spend: 0.00
+known_closures: 0
+unknown_closures: 0
+median_known_cost: -
+anomalies: 1
+open_row: retro-trigger-g1790027429
+backlog trigger rows: 2; wake rows: 2
+--- data/backlog.md
+# Backlog
+
+## In flight
+## Queued
+- [ ] retro-trigger-g1790027427 - Run the retrospective due for trigger generation g1790027427 (repo: -) (kind: scout) (since 2026-09-21)
+  Durable retrospective trigger fired in generation g1790027427: known-lane spend 50.00 USD reached spend_usd 50. Receipt: closure receipt for task h. Receipts: /tmp/rt-live.CeO8cP/state/retro-trigger/receipts/g1790027427/ (bin/fm-retro-trigger.sh status). One open row absorbs later anomalies; run bin/fm-retro-trigger.sh reset <retro-id> when routing this retrospective.
+- [ ] retro-trigger-g1790027429 - Run the retrospective due for trigger generation g1790027429 (repo: -) (kind: scout) (since 2026-09-21)
+  Durable retrospective trigger fired in generation g1790027429: anomaly blocked recorded. Receipt: blocked anomaly receipt for task t3. Receipts: /tmp/rt-live.CeO8cP/state/retro-trigger/receipts/g1790027429/ (bin/fm-retro-trigger.sh status). One open row absorbs later anomalies; run bin/fm-retro-trigger.sh reset <retro-id> when routing this retrospective.
+## Done

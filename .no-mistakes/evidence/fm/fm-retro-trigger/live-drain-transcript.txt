@@ -1,0 +1,5 @@
+## 7. real drain presents the check wake row filed by the trigger
+1790027428	1	check	retro-trigger-g1790027427	check: retro trigger g1790027427 fired; queued backlog row retro-trigger-g1790027427 holds the next retrospective
+1790027429	2	check	retro-trigger-g1790027429	check: retro trigger g1790027429 fired; queued backlog row retro-trigger-g1790027429 holds the next retrospective
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 2188987.1790027428.uoNJo3
+drain exit=0
