@@ -1,0 +1,24 @@
+ok - the mod hook routes the shadow trial byte-identically to the shared module
+ok - a config other than jev keeps the whole shadow trial off
+ok - shadow records keep their pinned field order
+ok - one record per ablation variant, in the pinned order
+ok - shadow facts carry the byte-golden six-gate shape
+ok - authoritative PR facts fold the evidence's pull-request URL to its identity
+ok - unread status ids carry byte ranges from the outcome endpoint
+ok - prior outcomes carry their provenance and read-cursor state
+ok - fresh status lines ride the state at their bounded size
+ok - every tenth wake repeats the full variant as a control with an identical body
+ok - stale wakes ask the stale_state question and ablate current_state per variant
+ok - candidate Nouls fold per variant from each record's own answers
+ok - an unavailable jev answer records its reason without model or answers
+ok - a jev stdout with no JSON line records the plain unavailable marker
+ok - answers without numeric Nouls record the model but no candidates
+ok - an unavailable pane leaves pane fields absent from state and facts
+ok - a throwing pane helper is absorbed without surfacing an error
+ok - a throwing jev helper records its failure text capped at 200 characters
+ok - multibyte unread ids carry UTF-8 byte offsets
+ok - requestBytes equals the UTF-8 byte length of the request body
+ok - the jev request model and helper timeouts are byte-stable
+ok - a failing shadow-log append notifies per variant without throwing
+ok - a trial-level failure becomes one shadow.error notification
+fm-branch-shadow exit=0
