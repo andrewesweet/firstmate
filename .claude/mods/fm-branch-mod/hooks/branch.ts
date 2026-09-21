@@ -969,15 +969,21 @@ async function armMonitor($: any, why: string): Promise<void> {
   // and any recovery marker (state/.watcher-down) is absent or acked: arming
   // over either makes the watcher announce `check: rearm-resurface` with a
   // fresh recovery generation every cycle, which the Stop-hook model never does.
+  // The loop must leave before the Monitor's own kill: the kill takes the whole
+  // process group with it, watcher included, and one quiet watcher cycle can
+  // outpark any fixed deadline. So every fm-watch-arm.sh call carries the
+  // remaining budget as --follow-budget: the arm returns at the deadline
+  // leaving the verified healthy watcher running, the loop reaches its rotate
+  // check and exits cleanly, and the next Monitor's first arm attaches to the
+  // same watcher - no downtime episode, no empty rearm-resurface wake.
+  const rotateSecs = Math.floor(MONITOR_TIMEOUT_MS / 1000) - 180
   const command =
     `cd ${JSON.stringify(cwd)} && export FM_HOME=${JSON.stringify(home)} FM_STATE_OVERRIDE=${JSON.stringify(state)} FM_CONFIG_OVERRIDE=${JSON.stringify(config)}; ` +
-    `A=${JSON.stringify(bin + '/fm-watch-arm.sh')}; Q=${JSON.stringify(state + '/.wake-queue')}; D=${JSON.stringify(state + '/.watcher-down')}; T0=$(date +%s); ` +
-    `while :; do out=$("$A" 2>&1); printf '%s\\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; ` +
-    `w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\\n' "$w"; ` +
-    // Leave before the Monitor's own kill: a natural exit leaves the watcher
-    // alive (no downtime, no recovery episode); the kill takes the whole
-    // process group with it.
-    `[ $(( $(date +%s) - T0 )) -lt ${Math.floor(MONITOR_TIMEOUT_MS / 1000) - 180} ] || { printf 'rotate: loop exiting ahead of the monitor timeout\\n'; exit 0; }; sleep 2; done`
+    `A=${JSON.stringify(bin + '/fm-watch-arm.sh')}; Q=${JSON.stringify(state + '/.wake-queue')}; D=${JSON.stringify(state + '/.watcher-down')}; T0=$(date +%s); DL=$(( T0 + ${rotateSecs} )); ` +
+    `while :; do R=$(( DL - $(date +%s) )); [ "$R" -ge 60 ] || { printf 'rotate: loop exiting ahead of the monitor timeout\\n'; exit 0; }; ` +
+    `out=$("$A" --follow-budget $(( R - 30 )) 2>&1); printf '%s\\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; ` +
+    `w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ] && [ "$(date +%s)" -lt "$DL" ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\\n' "$w"; ` +
+    `[ "$(date +%s)" -lt "$DL" ] || { printf 'rotate: loop exiting ahead of the monitor timeout\\n'; exit 0; }; sleep 2; done`
   try {
     const r = await $.tool.call({ tool: 'Monitor', command, description: MONITOR_DESCRIPTION, timeout_ms: MONITOR_TIMEOUT_MS })
     const text = toolText(r)
