@@ -48,7 +48,7 @@ test_validate_strict() {
   expect_in_report "$report" "\$.model.complete" "the module never calls the classifier"
   expect_in_report "$report" "\$.tool.register" "the module never registers the branch's report tools"
   # The FM_CLASSIFY_* names are the fold vocabulary overrides bash honours
-  # (bin/fm-classify-lib.sh); the vendored shared fold reads them through
+  # (bin/fm-classify-lib.sh); the canonical shared fold reads them through
   # the host env seam so the mod's verdicts track bash under an override too.
   expect_in_report "$report" "env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CLASSIFY_CAPTAIN_HELD_VERB, FM_CLASSIFY_PAUSED_VERB, FM_CLASSIFY_RESERVED_KEY_PREFIXES, FM_CLASSIFY_RESOLVE_VERB, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE" "the module reads a different environment"
   expect_in_report "$report" "env writes: nothing" "the module writes the environment"

@@ -12,21 +12,22 @@
 #     (.claude/mods/fm-branch-mod/hooks/branch.ts), bound through its exported
 #     `bind` - both exports are behavior-neutral and exist so this test can
 #     drive the real implementation instead of a re-implementation;
-#   - the shared module lib/fm-branch-eligibility.ts (the bash v8 fold plus
-#     the guards the ports carry, one owner for the fold the other three
-#     restate), driven through its scanStateDirectory and foldStatusLog
+#   - the shared module .claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts
+#     (the bash v8 fold plus the guards the ports carry, one owner for the
+#     fold the other three restate), driven through the repo wrapper's
+#     (lib/fm-branch-eligibility.ts) scanStateDirectory and foldStatusLog
 #     bindings. The lib leg must be byte-equal to the bash leg on every
 #     fixture, including the drift cases below. The mod consumes the same
-#     module through bin/fm-branch-shared-sync.sh's vendored copy, bound via
-#     its host stat seam, so all three TypeScript legs share one fold.
+#     canonical module directly, bound via its host stat seam, so all three
+#     TypeScript legs share one fold.
 # One fixture set (status logs, wake-queue rows, task metas) is driven through
 # all four, and the TypeScript legs must emit byte-identical normalised scope
 # JSON wherever the folds agree. Bash contributes the fold truth alone:
 # no bash-side eligible-row scan exists (the extension computes the eligible
 # snapshot and bin/fm-wake-drain.sh consumes it), so the bash leg pins
 # `status_open_decisions` output and the join between fold truth and scope.
-# The Pi extension consumes the shared module (A2) and the mod its vendored
-# copy (A3), so both are pinned byte-equal to bash on every fixture, drift
+# The Pi extension and the mod both consume the shared canonical module
+# (A2/A3), so both are pinned byte-equal to bash on every fixture, drift
 # cases included:
 set -u
 
@@ -285,8 +286,8 @@ test_symlinked_status_log_is_bash_truth_in_all_four_legs() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
   # which names an empty fold - nothing holds ship-d and its stale row stays
   # branch-eligible. The lib takes bash's outcome, the Pi extension consumes
-  # the lib, and the mod consumes the lib through the vendored copy whose host
-  # stat seam refuses a symlinked log the same way, so all four agree.
+  # the lib, and the mod consumes the canonical module whose host stat seam
+  # refuses a symlinked log the same way, so all four agree.
   local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
@@ -297,7 +298,7 @@ test_symlinked_status_log_is_bash_truth_in_all_four_legs() {
   assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
   assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
   assert_equals "$lib" "$pi" "symlink: pi takes bash's outcome through the shared module"
-  assert_equals "$lib" "$mod" "symlink: the mod takes bash's outcome through the vendored copy and the host stat seam"
+  assert_equals "$lib" "$mod" "symlink: the mod takes bash's outcome through the canonical module and the host stat seam"
   pass "the symlink refusal names bash truth (branch-eligible); the Pi extension and the mod agree through the shared fold"
 }
 

@@ -1,10 +1,3 @@
-// GENERATED FILE - DO NOT EDIT BY HAND
-// Vendored from lib/fm-branch-eligibility.ts by bin/fm-branch-shared-sync.sh:
-// the pure v8 fold and eligible-rows scan only. The source file's thin
-// node:fs default bindings are excluded because a hooks module may import
-// only its own files by relative path and "claude-code"; the mod binds this
-// core through its host seam instead (hooks/branch.ts scopeForUnreadWake).
-// Regenerate with bin/fm-branch-shared-sync.sh.
 // Shared wake-eligibility and status-decision fold for the supervision
 // branch's TypeScript ports (docs/pi-supervision-branch.md,
 // docs/claude-supervision-branch.md). This module is the one owner of the
@@ -59,8 +52,10 @@
 // The core is pure: every file touch is an injected input, so each consumer
 // binds its own file access and tests/fm-branch-eligibility.test.sh drives
 // this module through the same fixtures as the implementations it replaces.
-// One thin default binding over node:fs is kept at the bottom for callers
-// that just have a state directory.
+// The repo's lib/fm-branch-eligibility.ts is a thin wrapper that adds the
+// node:fs default bindings for callers that just have a state directory; a
+// hooks module may import only its own files, so the Claude Code mod imports
+// this canonical core directly and binds its host seam itself.
 
 
 export interface OpenDecisionRecord {

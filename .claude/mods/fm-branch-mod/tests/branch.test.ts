@@ -1083,12 +1083,12 @@ describe("watcher continuity", () => {
 });
 
 // The provider-error latch's wiring: turn.complete feeds the shared machine
-// (lib/fm-branch-provider-latch.ts vendored into lib/), turn.start honours its
-// admission verdict, and the ui log renders from the machine's structured
-// verdicts - never from host-side counting. The machine's own schedules
-// (threshold, doubling, probes, recovery) are proven byte-equal between the
-// lib source and the vendored copy in tests/fm-branch-report-sequence.test.sh;
-// only the host wiring lives here.
+// (../lib/fm-branch-provider-latch.ts, the canonical copy the repo's lib/
+// symlinks to), turn.start honours its admission verdict, and the ui log
+// renders from the machine's structured verdicts - never from host-side
+// counting. The machine's own schedules (threshold, doubling, probes,
+// recovery) are pinned against the repo's lib leg in
+// tests/fm-branch-report-sequence.test.sh; only the host wiring lives here.
 describe("provider-error latch", () => {
   // Same adoption pattern as watcher continuity: counters plus a send answer
   // naming the resumed agent let the wake be absorbed, so its turn.complete is
