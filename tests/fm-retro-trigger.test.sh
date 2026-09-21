@@ -57,15 +57,20 @@ rt_seed_open_generation() {
   printf 'retro-trigger-%s\n' "$gen" > "$home/state/retro-trigger/open-row"
 }
 
-rt_receipt_count() {  # <home> -> number of receipts in the current generation
-  local home=$1 gen count=0 f
-  gen=$(cat "$home/state/retro-trigger/generation" 2>/dev/null)
-  [ -n "$gen" ] || { printf '0'; return 0; }
-  for f in "$home/state/retro-trigger/receipts/$gen"/*.receipt; do
-    [ -f "$f" ] || break
+rt_glob_count() {  # <glob...> -> number of existing paths the glob expanded to
+  local count=0 f
+  for f in "$@"; do
+    [ -e "$f" ] || break
     count=$((count + 1))
   done
   printf '%s\n' "$count"
+}
+
+rt_receipt_count() {  # <home> -> number of receipts in the current generation
+  local home=$1 gen
+  gen=$(cat "$home/state/retro-trigger/generation" 2>/dev/null)
+  [ -n "$gen" ] || { printf '0'; return 0; }
+  rt_glob_count "$home/state/retro-trigger/receipts/$gen"/*.receipt
 }
 
 rt_wake_rows() {  # <home> -> the durable wake queue's line count
@@ -223,7 +228,7 @@ test_anomaly_rule_fires_and_is_idempotent() {
   rt_run "$home" observe anomaly blocked t1 "first evidence" >/dev/null 2>&1
   rt_run "$home" observe anomaly blocked t1 "second evidence" >/dev/null 2>&1
   gen=$(cat "$home/state/retro-trigger/generation")
-  count=$(ls "$home/state/retro-trigger/receipts/$gen" | grep -c '^anomaly-blocked-')
+  count=$(rt_glob_count "$home/state/retro-trigger/receipts/$gen"/anomaly-blocked-*.receipt)
   assert_equals "2" "$count" \
     "anomaly: idempotency is per (kind, task, evidence); expected 2 receipts, got $count"
   pass "an anomaly receipt fires the trigger and dedupes on kind, task, and evidence"
@@ -315,7 +320,7 @@ test_reset_archives_and_starts_a_new_generation() {
   assert_equals "1" "$(rt_receipt_count "$home")" \
     "reset: the re-observe must land in the new generation"
   rt_run "$home" reset sprint-7 >/dev/null 2>&1
-  archived=$(ls -d "$home/state/retro-trigger/archive"/sprint-7-* 2>/dev/null | wc -l)
+  archived=$(rt_glob_count "$home/state/retro-trigger/archive"/sprint-7-*)
   [ "$archived" -ge 1 ] || fail "reset: a repeated retro id must archive beside the first"
   assert_equals "0" "$(rt_receipt_count "$home")" \
     "reset: the second archive starts another empty generation"
@@ -419,14 +424,13 @@ test_hook_replay_is_idempotent_and_failure_is_absorbed() {
   rt_config "$home" "spend_usd=10000"
   out=$(rt_annotate "$home" crew.status "needs-decision: pick [key=k2]" 1790000000)
   assert_contains "$out" "wake annotation:" "hook: the first annotation must print"
-  gen=$(cat "$home/state/retro-trigger/generation")
-  count=$(ls "$home/state/retro-trigger/receipts/$gen" 2>/dev/null | wc -l)
+  count=$(rt_receipt_count "$home")
   assert_equals "1" "$count" "hook: the first annotation records one receipt"
   # A presentation replay (crash recovery) must not duplicate the receipt.
   printf '%s\t1\tsignal\tcrew.status\tsignal: x\n' 1790000000 > "$home/state/.wake-queue"
   out=$(rt_annotate "$home" crew.status "needs-decision: pick [key=k2]" 1790000000)
   assert_contains "$out" "wake annotation:" "hook: the replay must still annotate"
-  count=$(ls "$home/state/retro-trigger/receipts/$gen" 2>/dev/null | wc -l)
+  count=$(rt_receipt_count "$home")
   assert_equals "1" "$count" "hook: the replay must not duplicate the receipt"
   # A failing tasks-axi makes the trigger's own fire fail; the hook absorbs it
   # and the annotation still prints with the receipt durably in place.
