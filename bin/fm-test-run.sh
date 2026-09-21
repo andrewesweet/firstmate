@@ -1467,7 +1467,8 @@ families_for_changed_path() {
       ;;
     .pi/extensions/fm-branch-supervision.ts|.pi/extensions/lib/fm-async-exec.ts|\
     .pi/extensions/lib/fm-branch-dispatch.ts|.pi/extensions/lib/fm-native-contract.ts|\
-    lib/fm-branch-eligibility.ts|lib/fm-branch-report-sequence.ts|lib/fm-branch-provider-latch.ts)
+    lib/fm-branch-eligibility.ts|lib/fm-branch-eligibility-core.ts|lib/fm-branch-report-sequence.ts|\
+    lib/fm-branch-provider-latch.ts|.claude/mods/fm-branch-mod/lib/fm-branch-*.ts)
       # The portable suites that actually load these files, named one by one.
       # Left unmapped, a Pi extension library resolves through the reference
       # scan, which widens to each referencing suite's WHOLE family - and
@@ -1484,6 +1485,8 @@ families_for_changed_path() {
       # importing extension.
       printf '%s\n' __script__:fm-branch-eligibility.test.sh
       printf '%s\n' __script__:fm-branch-report-sequence.test.sh
+      printf '%s\n' __script__:fm-branch-classifier.test.sh
+      printf '%s\n' __script__:fm-branch-shadow.test.sh
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' __script__:fm-pi-branch-extension.test.sh
       printf '%s\n' __script__:fm-pi-watch-extension.test.sh

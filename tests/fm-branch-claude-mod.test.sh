@@ -80,29 +80,21 @@ test_lib_resolves_to_the_mod_canonical_modules() {
   # holds the canonical shared modules a hooks module can import, and the
   # repo's lib/ entries point at them - four tracked symlinks plus one
   # wrapper that re-exports the eligibility core and adds its node:fs
-  # bindings. Assert the layout contract through the filesystem, not source
-  # bytes: each symlink must resolve to the mod's file, the mod's files must
-  # stay free of node: imports (the hooks-module validator refuses them),
-  # and the wrapper must both import the core and bind node:fs.
+  # bindings. Assert the layout contract through the filesystem, then load
+  # the wrapper to prove it re-exports the core; the hooks-module validator
+  # run by fm-branch-claude-mod-plugin.test.sh owns the no-node:-imports
+  # check.
   for module in fm-branch-report-sequence.ts fm-branch-provider-latch.ts fm-branch-classifier.ts fm-branch-shadow.ts; do
     [ -L "$ROOT/lib/$module" ] || fail "lib/$module is not a symlink; the canonical copy lives under the mod"
     [ "$(readlink "$ROOT/lib/$module")" = "../.claude/mods/fm-branch-mod/lib/$module" ] \
       || fail "lib/$module points at $(readlink "$ROOT/lib/$module" 2>/dev/null || echo nothing), expected the mod's canonical file"
     [ -f "$ROOT/lib/$module" ] || fail "lib/$module does not resolve to the mod's canonical file"
-    if grep -q 'from "node:' "$ROOT/.claude/mods/fm-branch-mod/lib/$module"; then
-      fail "the canonical $module imports node:, which the hooks-module validator refuses"
-    fi
   done
   [ -L "$ROOT/lib/fm-branch-eligibility-core.ts" ] || fail "lib/fm-branch-eligibility-core.ts is not a symlink; the wrapper needs its core sibling"
   [ "$(readlink "$ROOT/lib/fm-branch-eligibility-core.ts")" = "../.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts" ] \
     || fail "lib/fm-branch-eligibility-core.ts points at $(readlink "$ROOT/lib/fm-branch-eligibility-core.ts" 2>/dev/null || echo nothing), expected the mod's canonical core"
   [ -f "$ROOT/lib/fm-branch-eligibility.ts" ] && [ ! -L "$ROOT/lib/fm-branch-eligibility.ts" ] \
     || fail "lib/fm-branch-eligibility.ts must be the wrapper file that adds the node:fs bindings"
-  grep -q 'from "./fm-branch-eligibility-core.ts"' "$ROOT/lib/fm-branch-eligibility.ts" \
-    || fail "the eligibility wrapper does not import its core sibling symlink"
-  if grep -q 'from "node:fs"' "$ROOT/.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts"; then
-    fail "the canonical eligibility core imports node:fs, which the hooks-module validator refuses"
-  fi
   node --experimental-strip-types -e 'import(process.argv[1] + "/lib/fm-branch-eligibility.ts").then((m) => { if (typeof m.scanStateDirectory !== "function" || typeof m.foldStatusLog !== "function") { console.error("wrapper bindings missing"); process.exit(1); } if (typeof m.scopeForUnreadWake !== "function" || typeof m.foldStatusLines !== "function") { console.error("core re-exports missing"); process.exit(1); } }).catch((e) => { console.error(String(e)); process.exit(1); })' "$ROOT" >/dev/null 2>&1 \
     || fail "the eligibility wrapper does not load and re-export the mod's core with its bindings"
   pass "lib/ resolves to the mod's canonical modules and the eligibility wrapper loads"
