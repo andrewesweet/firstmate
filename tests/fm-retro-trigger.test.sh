@@ -203,7 +203,7 @@ test_median_rule_bounds_and_fires() {
     && fail "median: 24 is exactly 2x the median 12 and must not fire"
   rt_run "$home" observe closure d --cost 25 >/dev/null 2>&1
   [ -f "$home/state/retro-trigger/open-row" ] \
-    && fail "median: 25 vs median 17 of 10,12,24,25 is below 2x and must not fire"
+    && fail "median: 25 vs median 18 of 10,12,24,25 is below 2x and must not fire"
   rt_run "$home" observe closure e --cost 500 >/dev/null 2>&1
   assert_present "$home/state/retro-trigger/open-row" \
     "median: 500 vs median 18 of 10,12,24,25,500 exceeds 2x and must fire"
