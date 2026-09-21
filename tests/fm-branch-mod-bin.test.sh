@@ -292,8 +292,6 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
     || fail "only the two snapshotted fires may count; the pre-torn wake stays out: $(grep '^| stale-active-suppress | ' "$out")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "only the wakes with live task records may be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
-  local truth_at
-  truth_at=$(sed -n 's/.*"read_at":\([0-9]*\).*/\1/p' "$state/.branch-shadow-truth.jsonl" | head -1)
 
   rm -f "$state/t9.meta" "$state/t9.status"
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
@@ -302,10 +300,62 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
     || fail "the sufficiency counts must survive the teardown through the sidecar: $(grep '^| stale-active-suppress | ' "$out")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "the sidecar must never be rewritten with an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
-  [ "$(sed -n 's/.*"read_at":\([0-9]*\).*/\1/p' "$state/.branch-shadow-truth.jsonl" | head -1)" = "$truth_at" ] \
-    || fail "the sidecar's read_at must stay the scoring-time snapshot: $(cat "$state/.branch-shadow-truth.jsonl")"
   grep -F 'torn down (a task record is gone' "$out" >/dev/null \
     || fail "the unreadable pre-torn wake must still be noted: $(grep -i torn "$out")"
+
+  # (f) live records stay the truth while present: a fire scored before the
+  # merge poll is armed reads delay, reads correct once the poll is armed
+  # (the sidecar's last line for the wake follows), and keeps reading
+  # correct after the task records are gone.
+  dir=$(make_case gates-sufficiency-live)
+  state="$dir/state"
+  out="$dir/live.out"
+  printf 'id=t11\nwindow=fm-t11\nbackend=tmux\n' > "$state/t11.meta"
+  printf 'working: t11\n' > "$state/t11.status"
+  printf '%s\n' '{"t":"2023-11-14T22:13:21Z","kind":"shadow","wake":"working: t11","seqs":["1"],"wakeKey":"1704:1","tasks":["t11"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":{"phase":{"type":"choice","choice":"finished_ready","confidence":0.92}},"facts":{"wake_key":"1704:1","new_status_bytes":{"t11":10},"pane":"fm-t11","authoritative_pr":{"present":true,"pr":"ow/repo#11"},"severity_classes":["a","b","c","d"]}}' >> "$state/branch-mod-shadow.jsonl"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t11 --verdict routine --summary 'ready noted' --wake-key 1704:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed"
+  grep -F $'1704:1\tpr-ready-arm\tdelay' "$out" >/dev/null \
+    || fail "before the poll is armed the fire must read delay: $(grep pr-ready-arm "$out")"
+  : > "$state/t11.pr-poll"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed after arming"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "once the poll is armed the live read must win over the earlier snapshot: $(grep pr-ready-arm "$out")"
+  [ "$(jq -r 'select(.wakeKey == "1704:1") | .pr_truth' "$state/.branch-shadow-truth.jsonl" | tail -1)" = 1 ] \
+    || fail "the sidecar's last line for the wake must carry the armed read: $(cat "$state/.branch-shadow-truth.jsonl")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "a line is appended only when the live bits change: $(cat "$state/.branch-shadow-truth.jsonl")"
+  rm -f "$state/t11.meta" "$state/t11.status" "$state/t11.pr-poll"
+  FM_STATE_OVERRIDE="$state" "$GATES" -v > "$out" || fail "live scorer failed after teardown"
+  grep -F $'1704:1\tpr-ready-arm\tcorrect' "$out" >/dev/null \
+    || fail "after teardown the sidecar must still read correct: $(grep pr-ready-arm "$out")"
+  [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
+    || fail "the sidecar must never be written from an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
+
+  # (g) candidate-order counts an absorb-all decision as evidence: zero
+  # fires plus one absorb-all loss reads fires 1, loss 1.
+  dir=$(make_case gates-sufficiency-cand)
+  state="$dir/state"
+  out="$dir/cand.out"
+  printf 'id=t12\nwindow=fm-t12\nbackend=tmux\n' > "$state/t12.meta"
+  printf 'id=t13\nwindow=fm-t13\nbackend=tmux\n' > "$state/t13.meta"
+  printf 'working: t12\n' > "$state/t12.status"
+  printf 'working: t13\n' > "$state/t13.status"
+  printf '%s\n' '{"t":"2023-11-14T22:13:22Z","kind":"shadow","wake":"signal: compound","seqs":["1"],"wakeKey":"1705:1","tasks":["t12","t13"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{"choice_confidence_floor":0.85,"noul_grant_below":0.15,"noul_pass_above":0.85},"answers":{"candidates":{"t12":{"type":"noul","noul":0.5},"t13":{"type":"noul","noul":0.4}}},"facts":{"wake_key":"1705:1","new_status_bytes":{"t12":0,"t13":0},"pane":"fm-t12","authoritative_pr":{"present":false},"severity_classes":["a","b","c","d"],"candidates":{"t12":0.5,"t13":0.4}}}' >> "$state/branch-mod-shadow.jsonl"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t13 --verdict captain --summary 'escalated' --wake-key 1705:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-branch-outcome.sh" append --task t12 --verdict routine --summary 'noted' --wake-key 1705:1 >/dev/null
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient candidate-order --bound 0.05 --min-positives 0 > "$out"
+  [ "$?" = 1 ] || fail "one absorb-all loss cannot pass: $(grep '^sufficiency: candidate' "$out")"
+  grep -F '| candidate-order | 1 | 0 | 0 |' "$out" >/dev/null \
+    || fail "the ordinary table must show the gate silent: $(grep '^| candidate-order' "$out")"
+  grep -F 'sufficiency: candidate-order not yet (fires 1, loss 1,' "$out" >/dev/null \
+    || fail "an absorb-all loss must count as a decision and a loss: $(grep '^sufficiency: candidate' "$out")"
+
+  # (h) an absent log in sufficiency mode is not yet, never sufficient.
+  FM_STATE_OVERRIDE="$state" "$GATES" --sufficient candidate-order --bound 0.05 --min-positives 0 "$state/absent.jsonl" > "$out"
+  [ "$?" = 1 ] || fail "an absent log must be not yet: $(tail -2 "$out")"
+  grep -Fx 'sufficiency: candidate-order not yet (fires 0, loss 0, upper -, positives 0)' "$out" >/dev/null \
+    || fail "an absent log prints the empty verdict: $(grep '^sufficiency' "$out")"
 
   # (e) ordinary and sufficiency runs share a byte-identical prefix: the
   # sufficiency mode only appends its verdict lines to the ordinary output.
