@@ -57,8 +57,9 @@
 # them (k) - for candidate-order, whose ranked head and absorb-all are both
 # decisions, n is every readable eligible record and k the readable losses
 # among them - the 95% one-sided upper bound on the loss-class wrong-fire
-# rate (3/n when k = 0, the exact Clopper-Pearson binomial bound by
-# bisection otherwise - no new dependency), and the eligible wakes whose
+# rate (the exact Clopper-Pearson binomial bound by bisection - no new
+# dependency; as a rule of thumb roughly 60, 150, or 300 clean fires clear
+# a 0.05, 0.02, or 0.01 bound), and the eligible wakes whose
 # joined truth label is main. A gate is sufficient when its upper bound is
 # at or under the caller's bound and it holds at least --min-positives
 # (default 30) such positives. The severity-alert gate's positives do not
@@ -764,11 +765,10 @@ printf '%s' "$SWEEP_OUT"
 # task records), loss-class wrong fires among them, the 95% one-sided upper
 # bound on the loss-class wrong-fire rate, and positive-truth wakes. Printed
 # in both modes; the verdict and exit code below only in sufficiency mode.
-suff_upper() {  # <n> <k>: 3/n at zero loss, the exact Clopper-Pearson upper
-  # bound otherwise (bisection on the binomial tail), "-" with no fires.
+suff_upper() {  # <n> <k>: the exact Clopper-Pearson upper bound (bisection
+  # on the binomial tail), "-" with no fires.
   awk -v n="$1" -v k="$2" 'BEGIN {
     if (n + 0 <= 0) { print "-"; exit }
-    if (k + 0 <= 0) { printf "%.4f\n", 3.0 / n; exit }
     if (k + 0 >= n) { printf "1.0000\n"; exit }
     lo = 0; hi = 1
     while (hi - lo > 1e-10) {

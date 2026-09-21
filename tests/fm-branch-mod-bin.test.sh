@@ -233,11 +233,11 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 > "$out"
   rc=$?
   [ "$rc" = 0 ] || fail "60 clean fires at a 0.05 bound with 30 positives must be sufficient: rc=$rc $(grep '^sufficiency: absorb' "$out")"
-  grep -Fx 'sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0500, positives 30)' "$out" \
+  grep -Fx 'sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)' "$out" \
     || fail "the pass verdict must carry the counted evidence: $(grep '^sufficiency: absorb' "$out")"
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 31 > "$out"
   [ "$?" = 1 ] || fail "min-positives 31 with only 30 positives must be not yet: $(grep '^sufficiency: absorb' "$out")"
-  grep -Fx 'sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0500, positives 30)' "$out" \
+  grep -Fx 'sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0487, positives 30)' "$out" \
     || fail "the not-yet verdict must name the shortfall: $(grep '^sufficiency: absorb' "$out")"
 
   # (b) 99 clean fires and one loss-class wrong fire (n=100, k=1) with 30
@@ -287,8 +287,8 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
   rm -f "$state/t10.meta" "$state/t10.status"
 
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
-  [ "$?" = 1 ] || fail "two fires with a 1.5 upper bound cannot pass at 0.05: $(grep '^sufficiency: stale' "$out")"
-  grep -Fx '| stale-active-suppress | 2 | 0 | 1.5000 | 0 |' "$out" \
+  [ "$?" = 1 ] || fail "two fires with a 0.7764 upper bound cannot pass at 0.05: $(grep '^sufficiency: stale' "$out")"
+  grep -Fx '| stale-active-suppress | 2 | 0 | 0.7764 | 0 |' "$out" \
     || fail "only the two snapshotted fires may count; the pre-torn wake stays out: $(grep '^| stale-active-suppress | ' "$out")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "only the wakes with live task records may be snapshotted: $(cat "$state/.branch-shadow-truth.jsonl")"
@@ -296,7 +296,7 @@ test_gates_scorer_sufficiency_mode_judges_evidence_against_the_caller_bound() {
   rm -f "$state/t9.meta" "$state/t9.status"
   FM_STATE_OVERRIDE="$state" "$GATES" --sufficient stale-active-suppress --bound 0.05 --min-positives 0 > "$out"
   [ "$?" = 1 ] || fail "the sidecar must keep the counts stable after the task records are gone: $(grep '^sufficiency: stale' "$out")"
-  grep -Fx '| stale-active-suppress | 2 | 0 | 1.5000 | 0 |' "$out" \
+  grep -Fx '| stale-active-suppress | 2 | 0 | 0.7764 | 0 |' "$out" \
     || fail "the sufficiency counts must survive the teardown through the sidecar: $(grep '^| stale-active-suppress | ' "$out")"
   [ "$(wc -l < "$state/.branch-shadow-truth.jsonl" | tr -d ' ')" = 2 ] \
     || fail "the sidecar must never be rewritten with an absent read: $(cat "$state/.branch-shadow-truth.jsonl")"
