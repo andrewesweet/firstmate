@@ -49,13 +49,15 @@
 #       fm-wake-lib.sh presentation hook when it presents such a status
 #       line; evidence is the line's [key=...] decision key, else the first
 #       80 bytes. done-unseen is recorded only when the hook can bind the
-#       presented done: line to its own queued wake row epoch - exactly when
-#       the drain's unread span holds that one line and one direct signal
-#       row carries the key - and only when presentation time is at least
-#       done_unseen_minutes past that epoch; the evidence then names the
-#       epoch ("epoch=<epoch> <line>") and this script, not the hook,
-#       applies the threshold. A done: line whose epoch cannot be bound
-#       exactly is never approximated: the producer stays silent.
+#       presented done: line to a queued wake row epoch - when the drain's
+#       unread span holds that one line and a direct signal row carries the
+#       key; the bound epoch is that key's latest collapsed row epoch, which
+#       is never earlier than the row that surfaced the line, so the wait is
+#       under-estimated, never over-estimated - and only when presentation
+#       time is at least done_unseen_minutes past that epoch; the evidence
+#       then names the epoch ("epoch=<epoch> <line>") and this script, not
+#       the hook, applies the threshold. A done: line with no bindable epoch
+#       is never approximated: the producer stays silent.
 #       The other kinds are wired by producers (fm-wake-lib.sh's
 #       presentation hook; fm-teardown.sh's closure hook).
 #   status
@@ -87,8 +89,12 @@
 #
 # Every command is safe to re-run. Every step's failure is reported on
 # stderr and exits non-zero with the durable prefix intact: a receipt that
-# landed but could not fire is retried by the next observe, because no
-# open-row marker exists until the backlog row has landed.
+# landed but could not fire is retried by the next new receipt's observe,
+# because no open-row marker exists until both the backlog row and its check
+# wake have landed. The retry re-runs the whole firing step, so a failure
+# after either publication dedupes rather than duplicates: tasks-axi add is
+# idempotent for the stable row id, and the wake drain collapses repeated
+# (check, row-id) rows into one presentation.
 #
 # Producers never fail the operation they ride on: bin/fm-teardown.sh and
 # fm-wake-lib.sh's presentation hook call this script best-effort and keep
@@ -334,14 +340,14 @@ rt_fire() {  # <gen> <fire-reason> <receipt-summary>
       printf 'fm-retro-trigger: could not file trigger row %s\n' "$row_id" >&2
       return 1
     }
-  rt_atomic_write "$RT_OPEN_ROW" "$row_id" || {
-    printf 'fm-retro-trigger: filed %s but could not record the open-row marker\n' "$row_id" >&2
-    return 1
-  }
   if ! rt_enqueue_wake "$gen" "$row_id"; then
     printf 'fm-retro-trigger: filed %s but could not enqueue its check wake\n' "$row_id" >&2
     return 1
   fi
+  rt_atomic_write "$RT_OPEN_ROW" "$row_id" || {
+    printf 'fm-retro-trigger: filed and surfaced %s but could not record the open-row marker\n' "$row_id" >&2
+    return 1
+  }
   printf 'fm-retro-trigger: filed trigger row %s (%s)\n' "$row_id" "$fire_reason" >&2
   return 0
 }

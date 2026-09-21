@@ -229,6 +229,30 @@ test_anomaly_rule_fires_and_is_idempotent() {
   pass "an anomaly receipt fires the trigger and dedupes on kind, task, and evidence"
 }
 
+test_failed_wake_enqueue_is_retried_by_the_next_observe() {
+  local home
+  rt_skip_unless_fire "wake retry" || return 0
+  home=$(rt_home wake-retry)
+  rt_config "$home" "spend_usd=10000"
+  mkdir "$home/state/.wake-queue"
+  rt_run "$home" observe anomaly blocked t1 "first evidence" >/dev/null 2>&1 \
+    && fail "wake retry: a failed wake enqueue must exit non-zero"
+  assert_equals "1" "$(rt_backlog_rows "$home")" \
+    "wake retry: the backlog row must land before the wake"
+  [ -e "$home/state/retro-trigger/open-row" ] \
+    && fail "wake retry: no open-row marker may exist while the wake is unqueued"
+  rmdir "$home/state/.wake-queue"
+  rt_run "$home" observe anomaly blocked t2 "second evidence" >/dev/null 2>&1 \
+    || fail "wake retry: the next observe must fire cleanly"
+  assert_equals "1" "$(rt_wake_rows "$home")" \
+    "wake retry: the next observe must enqueue the check wake"
+  assert_present "$home/state/retro-trigger/open-row" \
+    "wake retry: the marker must land once the wake is queued"
+  assert_equals "1" "$(rt_backlog_rows "$home")" \
+    "wake retry: the retried firing must not file a second backlog row"
+  pass "a failed wake enqueue leaves no marker and the next observe retries without a second row"
+}
+
 test_done_unseen_threshold_is_script_owned() {
   local home now out
   home=$(rt_home done-unseen)
@@ -557,6 +581,7 @@ test_open_row_absorbs_every_later_observe
 test_spend_rule_fires_exactly_once
 test_median_rule_bounds_and_fires
 test_anomaly_rule_fires_and_is_idempotent
+test_failed_wake_enqueue_is_retried_by_the_next_observe
 test_done_unseen_threshold_is_script_owned
 test_status_reports_the_generation
 test_reset_archives_and_starts_a_new_generation

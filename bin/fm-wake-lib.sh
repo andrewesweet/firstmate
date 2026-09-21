@@ -2382,6 +2382,7 @@ FM_RETRO_TRIGGER_ACTIVE=
 fm_retro_trigger_active() {
   if [ -z "${FM_RETRO_TRIGGER_ACTIVE:-}" ]; then
     FM_RETRO_TRIGGER_ACTIVE=0
+    local config_dir
     if [ -n "${FM_CONFIG_OVERRIDE:-}" ]; then
       config_dir=$FM_CONFIG_OVERRIDE
     else
@@ -2392,13 +2393,15 @@ fm_retro_trigger_active() {
   [ "$FM_RETRO_TRIGGER_ACTIVE" = 1 ]
 }
 
-# Bind a presented done: line to its own queued wake row epoch, and only
-# that. The binding is exact only when this drain's unread span for the key
-# holds exactly one line and exactly one direct signal row carries the key:
-# that row is then unambiguously the wake that surfaced this line. Any other
-# shape (multi-line span, several rows, historical turn-end rows) is not
-# mechanically bindable - row payloads carry file lists, never lines - so no
-# epoch is printed and the producer stays silent rather than approximating.
+# Bind a presented done: line to a queued wake row epoch for its key. The
+# binding holds only when this drain's unread span for the key holds exactly
+# one line and a direct signal row carries the key. The rows arrive deduped,
+# so the row found is the key's latest collapsed row, whose epoch is never
+# earlier than the row that surfaced the line: the wait since the done: line
+# is under-estimated, never over-estimated. Any other shape (multi-line span,
+# no signal row, historical turn-end rows) is not mechanically bindable - row
+# payloads carry file lists, never lines - so no epoch is printed and the
+# producer stays silent rather than approximating.
 fm_retro_trigger_done_epoch() {  # <status-key> <deduped-raw-rows>
   local key=$1 rows=$2 span_count row_count
   span_count=$(printf '%s\n' "$FM_WAKE_UNREAD_LINES" | LC_ALL=C wc -l)
