@@ -1,0 +1,14 @@
+## A. wake during a budgeted Monitor loop
+signal surfaced after 3s (budget was 40s): signal: /tmp/fm-monitor-adv.v6qVRq/wake-in-budget/state/demo.status
+queue rows: 2
+loop exited rc=0 after 71s; tail: rotate: loop exiting ahead of the monitor timeout
+cycle ledger reasons: reason=actionable-signal 
+
+## B. watcher dies inside the follow budget
+arm exit rc=1 after 3s (budget 60s); output: watcher: attached pid=4153665 (beacon 0s)|watcher: FAILED - cycle ended without an actionable reason|
+
+## C. usage guards
+args [--follow-budget 0] -> rc=2: usage: fm-watch-arm.sh [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]
+args [--follow-budget abc] -> rc=2: usage: fm-watch-arm.sh [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]
+args [--follow-budget] -> rc=2: usage: fm-watch-arm.sh [--follow-budget SECONDS] [--restart | --handling-delivered GENERATION --watcher-pid PID]
+args [--follow-budget 5 --restart] -> rc=2: usage: fm-watch-arm.sh: --follow-budget applies only to the default arm mode

@@ -1,0 +1,29 @@
+# monitor command (MONITOR_TIMEOUT_MS=250000):
+cd "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M326X30VH2KNPFE35VRTFCF5" && export FM_HOME="/tmp/fm-monitor-live.ekTKIv/fixed-quiet-rotates-twice/home" FM_STATE_OVERRIDE="/tmp/fm-monitor-live.ekTKIv/fixed-quiet-rotates-twice/state" FM_CONFIG_OVERRIDE="/tmp/fm-monitor-live.ekTKIv/fixed-quiet-rotates-twice/home/config"; A="/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M326X30VH2KNPFE35VRTFCF5/bin/fm-watch-arm.sh"; Q="/tmp/fm-monitor-live.ekTKIv/fixed-quiet-rotates-twice/state/.wake-queue"; D="/tmp/fm-monitor-live.ekTKIv/fixed-quiet-rotates-twice/state/.watcher-down"; T0=$(date +%s); DL=$(( T0 + 70 )); while :; do R=$(( DL - $(date +%s) )); [ "$R" -ge 60 ] || { printf 'rotate: loop exiting ahead of the monitor timeout\n'; exit 0; }; out=$("$A" --follow-budget $(( R - 30 )) 2>&1); printf '%s\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ] && [ "$(date +%s)" -lt "$DL" ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\n' "$w"; [ "$(date +%s)" -lt "$DL" ] || { printf 'rotate: loop exiting ahead of the monitor timeout\n'; exit 0; }; sleep 2; done
+
+# ---- Monitor round 1 ----
+quiet: watcher: follow budget elapsed (started pid=3836055 left running)
+rotate: loop exiting ahead of the monitor timeout
+# round 1 result: loop exited rc=0 after 42s (timeout 250s)
+# round 1 watcher pid=3836055 alive=yes
+# round 1 state/.watcher-down: absent
+
+# ---- Monitor round 2 ----
+quiet: watcher: follow budget elapsed (attached pid=3836055 left running)
+rotate: loop exiting ahead of the monitor timeout
+# round 2 result: loop exited rc=0 after 42s (timeout 250s)
+# round 2 watcher pid=3836055 alive=yes
+# round 2 state/.watcher-down: absent
+
+# ---- Monitor round 3 ----
+quiet: watcher: follow budget elapsed (attached pid=3836055 left running)
+rotate: loop exiting ahead of the monitor timeout
+# round 3 result: loop exited rc=0 after 42s (timeout 250s)
+# round 3 watcher pid=3836055 alive=yes
+# round 3 state/.watcher-down: absent
+
+# .watch-cycle-exits.log (arm_pid watcher_pid origin exit signal reason successor):
+arm_pid=3836031 watcher_pid=3836055 origin=started exit_code=0 signal=none reason=follow-budget-elapsed successor=left-running:3836055
+arm_pid=3905862 watcher_pid=3836055 origin=attached exit_code=0 signal=none reason=follow-budget-elapsed successor=left-running:3836055
+arm_pid=3967660 watcher_pid=3836055 origin=attached exit_code=0 signal=none reason=follow-budget-elapsed successor=left-running:3836055
+# .watch-arm.watcher.err:

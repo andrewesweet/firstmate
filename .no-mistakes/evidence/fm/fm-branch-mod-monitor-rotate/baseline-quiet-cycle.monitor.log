@@ -1,0 +1,12 @@
+# monitor command:
+cd "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M326X30VH2KNPFE35VRTFCF5" && export FM_HOME="/tmp/fm-monitor-live.5V2Ada/baseline-quiet-cycle/home" FM_STATE_OVERRIDE="/tmp/fm-monitor-live.5V2Ada/baseline-quiet-cycle/state" FM_CONFIG_OVERRIDE="/tmp/fm-monitor-live.5V2Ada/baseline-quiet-cycle/home/config"; A="/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M326X30VH2KNPFE35VRTFCF5/bin/fm-watch-arm.sh"; Q="/tmp/fm-monitor-live.5V2Ada/baseline-quiet-cycle/state/.wake-queue"; D="/tmp/fm-monitor-live.5V2Ada/baseline-quiet-cycle/state/.watcher-down"; T0=$(date +%s); while :; do out=$("$A" 2>&1); printf '%s\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\n' "$w"; [ $(( $(date +%s) - T0 )) -lt 20 ] || { printf 'rotate: loop exiting ahead of the monitor timeout\n'; exit 0; }; sleep 2; done
+
+# monitor output:
+MONITOR-TIMEOUT: killing process group after 200s (like the Monitor tool)
+
+# result: loop killed rc=143 after 202s (timeout 200s)
+# watcher pid= alive=no
+# state/.watcher-down: pending:downtime:3999737.1790003083.OMBsVN
+# .watch-cycle-exits.log:
+# .watch-arm.watcher.err:
+Terminated
