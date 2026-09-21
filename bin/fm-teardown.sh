@@ -3376,6 +3376,16 @@ teardown_legacy_stamp_rollback() {
     fi
     exit 1
   fi
+  # Best-effort retrospective closure receipt (bin/fm-retro-trigger.sh): an
+  # opt-in local cadence may want this teardown as a retrospective input, and
+  # the backlog close transition above is the honest closure point. Strictly
+  # best effort - a receipt or trigger-filing failure never fails the
+  # teardown it rode on - and without config/retro-cadence the observer is a
+  # silent no-op that creates nothing.
+  if [ "$BACKLOG_TRANSITION" = close ] \
+    && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
+    "$SCRIPT_DIR/fm-retro-trigger.sh" observe closure "$ID" >/dev/null || :
+  fi
 else
   if [ "$CLEANUP_RECOVERY" = orca ]; then
     BACKLOG_SKIP_REASON="Orca cleanup recovery is not a launched backlog worker"
