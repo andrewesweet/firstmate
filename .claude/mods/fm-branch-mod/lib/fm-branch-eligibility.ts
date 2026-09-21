@@ -5,10 +5,14 @@
 // fold (bin/fm-classify-lib.sh `status_open_decisions`, fold version 8), the
 // Pi extension's `scopeForUnreadWake`
 // (.pi/extensions/lib/fm-branch-dispatch.ts, which now delegates here), and
-// the Claude mod's port (.claude/mods/fm-branch-mod/hooks/branch.ts, still
-// inline). tests/fm-branch-eligibility.test.sh pins this module against the
-// bash fold on one fixture set, so wherever this file and bash disagree, the
-// test fails.
+// the Claude mod's port (.claude/mods/fm-branch-mod/hooks/branch.ts, which
+// imports this file directly and binds it to its own host stat seam). This
+// file is the canonical copy: a hooks module may import only its own files,
+// so the repo's lib/fm-branch-eligibility-core.ts is a tracked symlink to it
+// and lib/fm-branch-eligibility.ts wraps it with the node:fs bindings.
+// tests/fm-branch-eligibility.test.sh pins this module against the bash fold
+// on one fixture set, so wherever this file and bash disagree, the test
+// fails.
 //
 // Behaviour is bash v8 truth wherever bin/fm-classify-lib.sh has an opinion.
 // Where bash has none, this module takes the stricter of the two ports and
@@ -24,9 +28,8 @@
 //     WHOLE open set when the task's kind is ship or scout; a secondmate's
 //     terminal event may describe other work and closes nothing.
 //   - Symlinked or unreadable status log: bash's outcome - that task's fold
-//     is empty, never a scan refusal. (The mod reads through the link; that
-//     drift is asserted in tests/fm-branch-eligibility.test.sh until the mod
-//     adopts this rule.)
+//     is empty, never a scan refusal. (The mod's stat seam refuses a
+//     symlinked log with lstat semantics, so all four legs agree.)
 //   - Symlinked, missing, or unreadable task meta: bash's rule - the kind is
 //     `unknown`, so the terminal close never applies; a readable meta
 //     silent about `kind=` means `ship`.
