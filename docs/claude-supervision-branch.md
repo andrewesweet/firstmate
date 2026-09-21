@@ -1,7 +1,7 @@
 # Claude Code supervision branch
 
 Fleet supervision on a Claude Code primary can run on a second, persistent agent inside the same `claude` process as the captain's chat, exactly as the [Pi supervision branch](pi-supervision-branch.md) does inside `pi`.
-The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks module (`hooks/branch.ts`), the vendored shared modules it delegates to (`lib/fm-branch-eligibility.ts`, `lib/fm-branch-report-sequence.ts`, and `lib/fm-branch-provider-latch.ts`, all generated), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
+The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks module (`hooks/branch.ts`), the vendored shared modules it delegates to (`lib/fm-branch-eligibility.ts`, `lib/fm-branch-report-sequence.ts`, `lib/fm-branch-provider-latch.ts`, and `lib/fm-branch-classifier.ts`, all generated), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
 This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, its version pin and the pin-bump procedure, its state and config files, the durable classification log and its scorer, and the bounds measured on the pinned Claude Code version.
 The module header owns the module's own shape, and [`pi-supervision-branch.md`](pi-supervision-branch.md) owns the design the two branches share: the outcome store, the leases, the verdict distinction, and the lost-wake backstop.
 
@@ -138,9 +138,10 @@ tests/fm-branch-claude-mod.test.sh
 tests/fm-branch-mod-bin.test.sh
 tests/fm-branch-eligibility.test.sh
 tests/fm-branch-report-sequence.test.sh
+tests/fm-branch-classifier.test.sh
 tests/fm-branch-claude-mod-plugin.test.sh
 FM_BRANCH_MOD_LIVE=1 tests/fm-branch-claude-mod-live-e2e.test.sh
 ```
 
-The first four are portable (Node and bash; the eligibility test drives the mod's exported `bind` and `scopeForUnreadWake`, see [`pi-supervision-branch.md`](pi-supervision-branch.md) for the four-fold guarantee it pins, and the report-sequence test drives the shared decision core and both latch policies through the mod's exported serving functions against one fixture transcript), the fifth runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` is exactly the pin and `tmux` exists; it also proves, across two labs, that a minutes-later wake resumes the persisted agent when transcript saving is on and rotates with `why=unresumable` when an inherited `CLAUDE_CODE_CHILD_SESSION` breaks resume.
+The first five are portable (Node and bash; the eligibility test drives the mod's exported `bind` and `scopeForUnreadWake`, see [`pi-supervision-branch.md`](pi-supervision-branch.md) for the four-fold guarantee it pins, the report-sequence test drives the shared decision core and both latch policies through the mod's exported serving functions against one fixture transcript, and the classifier test drives the shared classifier core, its vendored copy, and the mod's `classify` through `bind` on one fixture set, pinning the evidence argv, prompt, verdict rule, record shape, and cover argv byte-identical), the sixth runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` is exactly the pin and `tmux` exists; it also proves, across two labs, that a minutes-later wake resumes the persisted agent when transcript saving is on and rotates with `why=unresumable` when an inherited `CLAUDE_CODE_CHILD_SESSION` breaks resume.
 The dated results live in [`verification/runtime-backends.md`](verification/runtime-backends.md#claude-code-supervision-branch).
