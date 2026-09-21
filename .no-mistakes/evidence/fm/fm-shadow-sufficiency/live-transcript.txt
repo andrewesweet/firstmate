@@ -1,0 +1,168 @@
+== home: /tmp/nm-shadow-live/home.mZmlvx
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh   # ordinary report (new sufficiency table at the end)
+### candidate gates over full-variant shadow records (ground truth: joined branch outcomes, backstop surfacing, and derivable main actions)
+| gate | eligible | unscorable | fired | correct | wrong (delay-only) | wrong (loss) | missed (absorbed, gate silent) |
+|---|---|---|---|---|---|---|---|
+| absorb-no-new-outcome | 90 | 0 | 60 | 60 (100.0%) | 0 | 0 | 0 |
+| absorb-routine-working | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| stale-active-suppress | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| pr-ready-arm | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| severity-alert | 0 | 90 | 0 | 0 (0.0%) | 0 | 0 | 0 |
+| candidate-order | 0 | 0 | 0 | 0 (0.0%) | 0 | 0 | - |
+
+### floor sweep 0.70-0.99: lowest floor with zero loss-class wrong fires, and the fire rate there
+| gate | lowest clean floor | fires there | fire rate there |
+|---|---|---|---|
+| absorb-no-new-outcome | 0.70 | 60 | 66.7% |
+| absorb-routine-working | - | - | - |
+| stale-active-suppress | - | - | - |
+| pr-ready-arm | - | - | - |
+| severity-alert | - | - | - |
+| candidate-order | - | - | - |
+
+### evidence sufficiency: fires with readable truth, loss-class wrong fires, the 95% upper bound on the loss-class wrong-fire rate, and positive-truth wakes
+| gate | fires | wrong (loss) | 95% upper bound | positives |
+|---|---|---|---|---|
+| absorb-no-new-outcome | 60 | 0 | 0.0487 | 30 |
+| absorb-routine-working | 0 | 0 | - | 0 |
+| stale-active-suppress | 0 | 0 | - | 0 |
+| pr-ready-arm | 0 | 0 | - | 0 |
+| severity-alert | 0 | 0 | - | 0 |
+| candidate-order | 0 | 0 | - | 0 |
+exit=0
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30   # expect exit 0
+| candidate-order | 0 | 0 | - | 0 |
+sufficiency bound=0.05 min-positives=30 gates=absorb-no-new-outcome
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: every named gate has enough evidence
+exit=0
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 31   # expect exit 1 (not yet)
+sufficiency bound=0.05 min-positives=31 gates=absorb-no-new-outcome
+sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: not every named gate has enough evidence yet
+exit=1
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome,candidate-order --bound 0.05 --min-positives 0   # a second named gate with no evidence: exit 1
+sufficiency bound=0.05 min-positives=0 gates=absorb-no-new-outcome,candidate-order
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: candidate-order not yet (fires 0, loss 0, upper -, positives 0)
+sufficiency: not every named gate has enough evidence yet
+exit=1
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient bogus --bound 0.05   # usage error: exit 2
+fm-branch-shadow-gates: unknown gate: bogus
+exit=2
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 2   # bound out of range: exit 2
+fm-branch-shadow-gates: --bound must be in (0,1]: 2
+exit=2
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 0.05 /tmp/nm-shadow-live/home.mZmlvx/state/unreadable.jsonl   # existing-but-unreadable log: exit 2
+fm-branch-shadow-gates: cannot read /tmp/nm-shadow-live/home.mZmlvx/state/unreadable.jsonl
+exit=2
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh /tmp/nm-shadow-live/home.mZmlvx/state/unreadable.jsonl   # ordinary mode keeps exit 0 on the same log
+exit=0
+
+$ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M30TRJ424WQMRVFZ0T973XRJ/bin/fm-branch-shadow-gates.sh --sufficient absorb-no-new-outcome --bound 0.05 /tmp/nm-shadow-live/home.mZmlvx/state/absent.jsonl   # absent log: not yet, exit 1
+sufficiency: absorb-no-new-outcome not yet (fires 0, loss 0, upper -, positives 0)
+sufficiency: not every named gate has enough evidence yet
+exit=1
+
+$ cat /tmp/nm-shadow-live/home.mZmlvx/state/.branch-shadow-truth.jsonl | head -3 ; wc -l   # sidecar written from live reads
+{"wakeKey":"1701:68","pr_truth":0,"stale_repair":0,"backstop":0}
+{"wakeKey":"1701:69","pr_truth":0,"stale_repair":0,"backstop":0}
+{"wakeKey":"1701:64","pr_truth":0,"stale_repair":0,"backstop":0}
+90
+
+$ # adversarial: tear down every t1 record, rescore - counts must hold via the sidecar and no new lines
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: every named gate has enough evidence
+exit=0
+sidecar lines after teardown: 90
+
+$ # adversarial: a fresh wake whose task was torn down before any scoring run stays unreadable
+torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record
+| absorb-no-new-outcome | 60 | 0 | 0.0487 | 30 |
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sidecar lines: 90   (still no t2 line: 0)
+
+===================== when-watch: the documented arming, live =====================
+
+$ when arm shadow-sufficient-5pct --interval 0.5 --stable 1 --deadline 7776000 --condition-timeout 1800 --condition "$PWD/bin/fm-branch-shadow-gates.sh" --sufficient absorb-no-new-outcome --bound 0.05 --min-positives 30 --action bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome 0.05 shadow-sufficient-5pct
+armed: when-shadow-sufficient-5pct
+starts on the watcher's next cycle; or run: bin/fm-procevent.sh reconcile
+reminder: deterministic, safe, reversible actions only; judgment and destructive actions stay on the wake-and-decide path
+
+$ pe reconcile   # starts the real runner
+reconciled: published=0 started=1 stopped=0 uncertain=0 failed=0
+
+$ cat /tmp/nm-shadow-live/home.mZmlvx/state/procevent-inbox/when-shadow-sufficient-5pct.1.result
+when: when-shadow-sufficient-5pct
+status: fired
+detail: the condition held and the action exited 0
+condition_polls: 1
+action_exit: 0
+output:
+
+$ when classify /tmp/nm-shadow-live/home.mZmlvx/state/procevent-inbox/when-shadow-sufficient-5pct.1.result
+fired
+
+$ cat /tmp/nm-shadow-live/home.mZmlvx/state/.wake-queue   # the check wake the action appended
+1789958446	1	check	shadow-sufficient-5pct	check: shadow advisory trial gate sufficiency reached at bound 0.05 for absorb-no-new-outcome - score bin/fm-branch-shadow-gates.sh and judge the held follow-ups
+
+$ when retire shadow-sufficient-5pct
+retired: when-shadow-sufficient-5pct
+retired: when-shadow-sufficient-5pct
+
+===================== when-watch: not-yet bound never fires =====================
+
+$ when arm shadow-sufficient-1pct ... --bound 0.01 (upper 0.0487 > 0.01, so the condition stays 1)
+armed: when-shadow-sufficient-1pct
+starts on the watcher's next cycle; or run: bin/fm-procevent.sh reconcile
+reminder: deterministic, safe, reversible actions only; judgment and destructive actions stay on the wake-and-decide path
+reconciled: published=1 started=1 stopped=0 uncertain=0 failed=0
+results for 1pct after 6s: 0
+wake-queue rows naming shadow-sufficient-1pct: 0
+
+$ when retire shadow-sufficient-1pct
+retired: when-shadow-sufficient-1pct
+retired: when-shadow-sufficient-1pct
+
+===================== when-watch: read error surfaces as condition-error =====================
+
+$ when arm shadow-sufficient-err --error-budget 2 --condition ... /tmp/nm-shadow-live/home.mZmlvx/state/unreadable.jsonl
+armed: when-shadow-sufficient-err
+starts on the watcher's next cycle; or run: bin/fm-procevent.sh reconcile
+reminder: deterministic, safe, reversible actions only; judgment and destructive actions stay on the wake-and-decide path
+reconciled: published=1 started=1 stopped=0 uncertain=0 failed=0
+
+$ cat /tmp/nm-shadow-live/home.mZmlvx/state/procevent-inbox/when-shadow-sufficient-err.1.result
+when: when-shadow-sufficient-err
+status: condition-error
+detail: the condition exited 2 on 2 consecutive polls; the action was not run
+condition_polls: 2
+output:
+fm-branch-shadow-gates: cannot read /tmp/nm-shadow-live/home.mZmlvx/state/unreadable.jsonl
+wake-queue rows naming shadow-sufficient-err: 0
+retired: when-shadow-sufficient-err
+retired: when-shadow-sufficient-err
+
+===================== notify action alone =====================
+
+$ bin/fm-branch-shadow-sufficient-notify.sh   # no args: exit 2
+fm-branch-shadow-sufficient-notify: the gate list is required
+exit=2
+
+$ bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome 0.05 'bad key/..'   # exit 2
+fm-branch-shadow-sufficient-notify: the wake key must be path-safe: bad key/..
+exit=2
+
+$ bin/fm-branch-shadow-sufficient-notify.sh absorb-no-new-outcome,candidate-order 0.02 shadow-sufficient-2pct   # exit 0, appends one wake
+exit=0
+1789958456	6	check	shadow-sufficient-2pct	check: shadow advisory trial gate sufficiency reached at bound 0.02 for absorb-no-new-outcome candidate-order - score bin/fm-branch-shadow-gates.sh and judge the held follow-ups
+
+== done; home /tmp/nm-shadow-live/home.mZmlvx
