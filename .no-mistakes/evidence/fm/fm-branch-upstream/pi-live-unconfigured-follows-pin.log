@@ -1,0 +1,24 @@
+{
+  "scenario": "unconfigured-follows-pin",
+  "mainModel": "fm-live/fm-main",
+  "configuredClassifierModel": null,
+  "pin": "fm-live/fm-pinned",
+  "providerRequests": [
+    {
+      "model": "fm-pinned",
+      "kind": "classifier"
+    },
+    {
+      "model": "fm-pinned",
+      "kind": "branch"
+    }
+  ],
+  "settlement": "rejected: supervision branch provider failed after construction: 429: {\"message\":\"Monthly usage limit reached\",\"type\":\"insufficient_quota\"}",
+  "mainDelivery": "⁣FIRSTMATE_OP: v1 watcher: FIRSTMATE WATCHER WAKE: signal: unconfigured-follows-pin probe",
+  "record": {
+    "model": "fm-live/fm-pinned",
+    "verdict": "routine",
+    "answer": "{\"verdict\":\"routine\",\"reason\":\"probe\"}"
+  }
+}
+SCENARIO_OK

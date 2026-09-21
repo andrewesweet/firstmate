@@ -1,0 +1,7 @@
+{"t":"2026-09-20T23:52:06.945Z","verdict":"routine","model":"haiku","ms":1109,"reason":"All NEW lines are working: progress updates from a dummy loop task, which are routine status signals requiring no captain attention."}
+{"t":"2026-09-20T23:52:48.538Z","verdict":"captain","model":"haiku","ms":1056,"reason":"NEW `done:` line indicates a completed task with a report, which the captain must see regardless of the task being a dummy."}
+{"t":"2026-09-20T23:53:40.306Z","verdict":"routine","model":"haiku","ms":1094,"reason":"All NEW lines are working progress updates from an ongoing dummy loop task, with no completion, failure, blockage, or decision needed."}
+{"t":"2026-09-20T23:55:52.450Z","verdict":"routine","model":"haiku","ms":1020,"reason":"All NEW lines are `working:` progress updates from an ongoing dummy loop with no errors, blocks, or decisions needed."}
+{"t":"2026-09-20T23:56:53.954Z","verdict":"routine","model":"haiku","ms":1164,"reason":"All NEW lines are working: progress updates from an ongoing dummy loop task with regular step intervals."}
+{"t":"2026-09-20T23:57:38.349Z","verdict":"routine","model":"haiku","ms":1038,"reason":"Two consecutive NEW `working:` lines showing normal progress through a dummy loop task."}
+{"t":"2026-09-20T23:59:18.846Z","verdict":"routine","model":"haiku","ms":1100,"reason":"All NEW lines are working: progress updates from an ongoing dummy loop task."}

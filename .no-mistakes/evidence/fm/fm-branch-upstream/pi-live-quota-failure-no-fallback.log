@@ -1,0 +1,20 @@
+{
+  "scenario": "quota-failure-no-fallback",
+  "mainModel": "fm-live/fm-main",
+  "configuredClassifierModel": "fm-live/fm-explicit",
+  "pin": "fm-live/fm-pinned",
+  "providerRequests": [
+    {
+      "model": "fm-explicit",
+      "kind": "classifier"
+    }
+  ],
+  "settlement": "rejected: classifier routed the wake to main: uncertain (unparsed)",
+  "mainDelivery": "⁣FIRSTMATE_OP: v1 watcher: FIRSTMATE WATCHER WAKE: signal: quota-failure-no-fallback probe",
+  "record": {
+    "model": "fm-live/fm-explicit",
+    "verdict": "uncertain",
+    "answer": ""
+  }
+}
+SCENARIO_OK

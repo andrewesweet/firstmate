@@ -1,0 +1,5 @@
+# lab=explicit-sonnet-round2 classifier-model=sonnet supervision-branch-model=<absent>
+{"t":"2026-09-21T00:10:12.980Z","kind":"classifier","data":{"seqs":["1","2"],"tasks":["dummy"],"verdict":"routine","reason":"Only routine working: progress lines are new; no done/blocked/needs-decision present.","ms":1562,"promptChars":3185,"answer":"{\"verdict\": \"routine\", \"reason\": \"Only routine working: progress lines are new; no done/blocked/needs-decision present.\"}","model":"sonnet","estTokens":797}}
+# lab=unresolvable-name-round2 classifier-model=no-such-model-fm-probe supervision-branch-model=<absent>
+{"t":"2026-09-21T00:11:07.301Z","kind":"classifier","data":{"seqs":["1","2"],"tasks":["dummy"],"verdict":"routine","reason":"All NEW lines are working: progress updates from an ongoing dummy loop task with no errors or completion.","ms":1439,"promptChars":3185,"answer":"{\"verdict\": \"routine\", \"reason\": \"All NEW lines are working: progress updates from an ongoing dummy loop task with no errors or completion.\"}","model":"haiku","estTokens":797}}
+ok - probe complete
