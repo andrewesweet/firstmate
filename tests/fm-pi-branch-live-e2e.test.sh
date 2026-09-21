@@ -53,7 +53,6 @@ cp "$ROOT/.pi/extensions/fm-primary-pi-watch.ts" "$repo/.pi/extensions/fm-primar
 cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
 cp "$ROOT/lib/fm-branch-classifier.ts" "$repo/lib/fm-branch-classifier.ts"
 cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
-cp "$ROOT/lib/fm-branch-shadow.ts" "$repo/lib/fm-branch-shadow.ts"
 cp "$ROOT/lib/fm-branch-report-sequence.ts" "$repo/lib/fm-branch-report-sequence.ts"
 cp "$ROOT/lib/fm-branch-provider-latch.ts" "$repo/lib/fm-branch-provider-latch.ts"
 cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"

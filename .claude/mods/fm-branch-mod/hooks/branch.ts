@@ -35,7 +35,6 @@
 //   .branch-mod-passed              queue seqs passed to main with a cover row and not yet acknowledged
 //   branch-mod-events.jsonl         append-only event log, size-capped
 //   branch-mod-classifications.jsonl  one record per classifier call
-//   branch-mod-shadow.jsonl         one record per shadow advisory call (config/classifier-shadow = jev), size-capped
 import type { On } from 'claude-code'
 // The shared v8 fold and eligible-rows scan, vendored by
 // bin/fm-branch-shared-sync.sh (the source's node:fs default bindings are
@@ -62,10 +61,8 @@ import {
   classifierPassCoverArgv,
   classifyWake,
   passedToMainSummary,
-  type ClassifierEvidence,
   type ClassifierResult,
 } from '../lib/fm-branch-classifier.ts'
-import { runShadowAdvisory as libRunShadowAdvisory } from '../lib/fm-branch-shadow.ts'
 import { createProviderErrorLatch } from '../lib/fm-branch-provider-latch.ts'
 
 export const CLAUDE_CODE_PIN = '2.1.278'
@@ -75,8 +72,8 @@ type Scope = {
   eligible: boolean
   eligibleSeqs: string[]
   // Durable wake identity: the wake-queue "epoch:seq" of every eligible row,
-  // comma-joined. Stamped onto shadow records and onto the outcome row the
-  // branch reports for this wake, so retrospective scorers join by identity
+  // comma-joined. Stamped onto the outcome row the branch reports for this
+  // wake, so retrospective scorers join by identity
   // instead of agent-supplied wake text.
   eligibleWakeKey: string
   eligibleTasks: string[]
@@ -622,47 +619,6 @@ export async function classify($: any, reason: string, tasks: string[], seqs: st
   return result
 }
 
-// ---- shadow advisory trial (config/classifier-shadow) ----
-// When config/classifier-shadow names `jev`, every granted wake also issues a
-// detached, bounded question bundle to the TypeSafe System One model
-// (jev-latest) through bin/fm-branch-shadow-jev.sh, over the state this mod
-// just classified with. The trial must never delay or alter the wake: it runs
-// as a void promise beside delivery, each call has its own timeout, and one
-// record per ablation variant is appended to state/branch-mod-shadow.jsonl
-// for bin/fm-branch-shadow-score.sh. Any failure appends an `unavailable`
-// record and moves on. The API key lives only inside the bash helper;
-// TypeScript never reads it.
-// The trial core - the evidence parsers, the question bundle, the facts
-// object, the variant set, the answer parsing, and the record shape - is the
-// shared module (vendored into ../lib by bin/fm-branch-shared-sync.sh); this
-// host binds its seams. Exported for the portable tests (same precedent as
-// serveReport).
-function shadowDeps($: any) {
-  return {
-    paths: { bin, state },
-    readFile: (path: string) => $.fs.read(path),
-    hasOpenCall: async (task: string) => {
-      try {
-        const lines = (await $.fs.read(`${state}/${task}.status`)).split(/\r?\n/)
-        return hasOpenNeedsDecision(lines, await statusKind($, task), await foldVocabulary($))
-      } catch {
-        return false
-      }
-    },
-    runScript: (argv: string[], opts: { timeoutMs: number; stdin?: string }) =>
-      $.process.run(argv, { cwd, env: scriptEnv(), timeoutMs: opts.timeoutMs, ...(opts.stdin !== undefined ? { stdin: opts.stdin } : {}) }),
-    readConfig: (name: string, fallback: string) => readConfig($, name, fallback),
-    appendShadowRecord: async (line: string) => {
-      await appendLine($, `${state}/branch-mod-shadow.jsonl`, line, EVENT_LOG_CAP_BYTES)
-    },
-    onShadowError: (kind: 'shadow.error' | 'shadow.log.error', error: unknown) => log($, kind, { error: String(error) }),
-    clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
-  }
-}
-
-export async function runShadowAdvisory($: any, a: { wake: string; seqs: string[]; wakeKey: string; tasks: string[]; evidence: ClassifierEvidence[]; wakeNo: number }): Promise<void> {
-  return libRunShadowAdvisory(shadowDeps($), a)
-}
 
 // ---- delivery to the one persistent branch agent ----
 async function resolveBranchAgentId($: any): Promise<string> {
@@ -893,8 +849,7 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
   // Classifier ahead of the branch: only a confident routine verdict is
   // granted; captain or uncertain goes to main untouched.
   const c = await classify($, reason, scope.eligibleTasks, scope.eligibleSeqs)
-  // The event log keeps the record shape but never the evidence texts; the
-  // shadow advisory receives them in memory only.
+  // The event log keeps the record shape but never the evidence texts.
   log($, 'classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, verdict: c.verdict, reason: c.reason, ms: c.ms, promptChars: c.promptChars, answer: c.answer, model: c.model, estTokens: Math.ceil(c.promptChars / 4) })
   if (c.verdict !== 'routine') {
     for (const s of scope.eligibleSeqs) passedSeqs.add(s)
@@ -927,10 +882,6 @@ async function routeWake($: any, wakeText: string, source: string): Promise<'dro
     via: freshAgent ? 'spawn' : 'send',
   }
   stepsThisWake = 0
-  // Shadow advisory trial: detached and bounded, never delaying or altering
-  // the delivery below. Any failure is recorded as unavailable by the trial
-  // itself; nothing here may change the wake.
-  if (c.evidence.length > 0) void runShadowAdvisory($, { wake: reason, seqs: scope.eligibleSeqs, wakeKey: scope.eligibleWakeKey, tasks: scope.eligibleTasks, evidence: c.evidence, wakeNo: wakeCounter })
   const d = await deliverToBranch($, prompt)
   log($, 'wake.delivered', { wakeNo: wakeCounter, seqs: scope.eligibleSeqs, ...d, spawnCount, sendCount, source })
   if (!d.ok) {

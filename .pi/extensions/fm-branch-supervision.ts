@@ -148,9 +148,7 @@ import {
   classifyWake,
   passedToMainSummary,
   type ClassifierDeps,
-  type ClassifierEvidence,
 } from "../../lib/fm-branch-classifier.ts";
-import { runShadowAdvisory as libRunShadowAdvisory, type ShadowDeps } from "../../lib/fm-branch-shadow.ts";
 import {
   foldVocabularyFromEnv,
   hasOpenNeedsDecision,
@@ -175,16 +173,14 @@ const wakeGrantScript = join(fmRoot, "bin", "fm-wake-grant.sh");
 const loadedMarker = join(state, ".pi-branch-extension-loaded");
 const modelPinFile = join(config, "supervision-branch-model");
 const effortPinFile = join(config, "supervision-branch-effort");
-// The shared pre-branch classifier and shadow advisory trial (lib/
-// fm-branch-classifier.ts, lib/fm-branch-shadow.ts; docs/pi-supervision-branch.md
-// "Classifier and shadow trial"). The classifier's system prompt is the one
+// The shared pre-branch classifier (lib/fm-branch-classifier.ts;
+// docs/pi-supervision-branch.md "Classifier"). The classifier's system prompt is the one
 // tracked asset the Claude Code mod reads from its plugin root; both hosts
 // consume the same bytes, never a copy.
 const classifierSystemFile = join(fmRoot, ".claude", "mods", "fm-branch-mod", "classifier-system.txt");
 const classificationsFile = join(state, "branch-mod-classifications.jsonl");
-const shadowFile = join(state, "branch-mod-shadow.jsonl");
 const passedSeqsFile = join(state, ".branch-mod-passed");
-// Same rotation cap the mod applies to its classification and shadow logs.
+// Same rotation cap the mod applies to its classification log.
 const CLASSIFIER_LOG_CAP_BYTES = 4_000_000;
 
 // Same tool set in the same order on every request (part of the cached
@@ -1507,15 +1503,11 @@ ${context.command}
     return `\n\n${AWAY_POSTURE_TAIL}\n${readback || "(the record's read-back could not be rendered; treat the captain's words as unavailable, act on standing authority only, and hold on doubt)"}`;
   }
 
-  // ---- pre-branch classifier and shadow advisory trial (shared modules) ----
+  // ---- pre-branch classifier (shared module) ----
   // One lazily-created runtime serves every classifier call; the branch's own
   // runtime is created per branch and must not gate classification on a
   // branch existing.
   let classifierRuntime: ModelRuntime | null = null;
-  // The shadow trial's control cadence counts granted wakes of this process,
-  // exactly like the mod's per-session counter; a restart restarts the
-  // cadence, which is trial-internal and never a record-format fact.
-  let shadowWakeCounter = 0;
 
   function readConfigLine(name: string, fallback: string): string {
     try {
@@ -1616,44 +1608,6 @@ ${context.command}
     };
   }
 
-  function piShadowDeps(): ShadowDeps {
-    return {
-      // The shadow helpers resolve from this extension's own repository root,
-      // not FM_ROOT_OVERRIDE: in production the two are the same directory,
-      // while a fixture install can stub exactly these local helper scripts.
-      paths: { bin: join(root, "bin"), state },
-      readFile: (path) => Promise.resolve(readFileSync(path, "utf8")),
-      hasOpenCall: async (task) => {
-        try {
-          const lines = readFileSync(`${state}/${task}.status`, "utf8").split(/\r?\n/);
-          let metaText: string | null = null;
-          try {
-            metaText = readFileSync(`${state}/${task}.meta`, "utf8");
-          } catch {
-            metaText = null;
-          }
-          return hasOpenNeedsDecision(lines, statusKindFromMetaText(metaText), foldVocabularyFromEnv((name) => process.env[name]));
-        } catch {
-          return false;
-        }
-      },
-      runScript: async (argv, opts) => {
-        const r = await runCommandAsync(argv[0], argv.slice(1), {
-          cwd: fmRoot,
-          env: scriptEnv,
-          ...(opts.stdin !== undefined ? { input: opts.stdin } : {}),
-          timeoutMs: opts.timeoutMs,
-        });
-        return { exitCode: r.status ?? 1, stdout: r.stdout || "", stderr: r.stderr || "" };
-      },
-      readConfig: (name, fallback) => Promise.resolve(readConfigLine(name, fallback)),
-      appendShadowRecord: (line) => appendRecordLine(shadowFile, line),
-      // The mod surfaces trial failures in its event log; Pi has no such
-      // surface, and the records themselves carry every unavailable fact.
-      onShadowError: () => {},
-      clock: { now: () => Date.now(), iso: () => new Date().toISOString() },
-    };
-  }
 
   function enqueueWake(message: string, acceptedGeneration: number, recoveryProbe = false, acceptedAwayOnly = false): Promise<void> {
     const acceptedSelectionRevision = branchSelectionRevision;
@@ -1722,9 +1676,6 @@ ${context.command}
         // store (the mod's exact argv), the durable passed-seqs guard, and
         // a rejected settlement, which hands the wake back to the watcher's
         // consumption-acknowledged main path. A routine verdict proceeds to
-        // the branch and fires the detached shadow advisory trial beside
-        // delivery (the shared module self-gates on config/classifier-shadow).
-        let shadowEvidence: ClassifierEvidence[] = [];
         if (!afk) {
           const passedSeqs = readPassedSeqs();
           const gone = [...passedSeqs].filter((s) => !scope.allSeqs.includes(s));
@@ -1768,7 +1719,6 @@ ${context.command}
             }
             throw new Error(`classifier routed the wake to main: ${result.verdict} (${result.reason})`);
           }
-          shadowEvidence = result.evidence;
         }
         const grant = await writeEligibleRowsSnapshot(
           state,
@@ -1778,17 +1728,6 @@ ${context.command}
         );
         if (grant === "main-owned") throw new Error("the wake rows are already claimed by main");
         if (grant !== "published") throw new Error("could not record the branch's eligible row snapshot");
-        if (shadowEvidence.length > 0) {
-          shadowWakeCounter += 1;
-          void libRunShadowAdvisory(piShadowDeps(), {
-            wake: message,
-            seqs: scope.eligibleSeqs,
-            wakeKey: scope.eligibleWakeKey,
-            tasks: scope.eligibleTasks,
-            evidence: shadowEvidence,
-            wakeNo: shadowWakeCounter,
-          }).catch(() => {});
-        }
         const entryOffset = sessionManager.getEntries().length;
         // A claimed check row names no task, so a prompt carrying one is not
         // scoped by task (only possible in the away posture).

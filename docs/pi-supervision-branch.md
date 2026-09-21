@@ -50,7 +50,7 @@ The supervision branch itself is Pi-only by construction:
   Main keeps every wake during a five-minute cooldown, after which one wake may probe the branch while concurrent wakes still stay on main; each probe that settles with another failure doubles the next cooldown up to one hour, while a probe wake the classifier passes to main before it reaches the branch releases the probe slot without extending the cooldown, so the next admitted wake is the probe.
   A prompt from the current branch generation and model or effort selection that appends a durable `fm_branch_report` and then settles error-free clears both the latch and the failure streak and surfaces a one-line recovery note; a settled failure after that report wins instead, re-latches the branch, and extends the cooldown.
   A session replacement or branch model or effort change resets the recovery state immediately.
-  Before any row is claimed, every attended accepted wake passes the pre-branch classifier described in "Pre-branch classifier and the shadow trial" below; the away posture skips it.
+  Before any row is claimed, every attended accepted wake passes the pre-branch classifier described in "Pre-branch classifier" below; the away posture skips it.
 - Branch model and effort selection: the same extension registers `/supervision-model`, which picks the branch's model and then its reasoning effort, and applies both at the branch-session creation boundary; [configuration.md](configuration.md#pi-supervision-branch-model-and-effort-configsupervision-branch-model-configsupervision-branch-effort) owns the operator-facing schema and behavior.
 - Branch system prompt: `bin/fm-branch-prompt.sh`; its header owns the byte-stable-prefix contract (no timestamps, no fleet snapshot, no per-wake content).
 - Outcome store: `bin/fm-branch-outcome.sh`; its header owns the append-only format, read cursor, and bounded per-task status-coverage indexes.
@@ -129,9 +129,9 @@ The branch prompt's "Verdict: routine or captain" section owns the verdict crite
 Its "PR identity: copy or abstain" section owns where a PR URL in a summary or tool argument may come from: the task's ready status or `pr=` metadata, verbatim, or else only the identifier the branch actually has.
 Main can read the durable outcome store on demand through its `fm_branch_outcomes` tool.
 
-## Pre-branch classifier and the shadow trial
+## Pre-branch classifier
 
-Pi joins the classifier and shadow capabilities rather than staying Claude-only: both hosts run one shared core, the tracked `lib/fm-branch-classifier.ts` and `lib/fm-branch-shadow.ts` modules, which this extension imports directly while the Claude mod consumes vendored copies kept byte-identical by `bin/fm-branch-shared-sync.sh` (see [claude-supervision-branch.md](claude-supervision-branch.md)).
+Pi joins the classifier capability rather than staying Claude-only: both hosts run one shared core, the tracked `lib/fm-branch-classifier.ts` module, which this extension imports directly while the Claude mod consumes a vendored copy kept byte-identical by `bin/fm-branch-shared-sync.sh` (see [claude-supervision-branch.md](claude-supervision-branch.md)).
 
 On every accepted wake with eligible rows and no away-posture record, the extension classifies before any row is claimed: one `completeSimple` call on the model named by `config/classifier-model`, no thinking and `maxTokens` 200, over the wake's reason line and a bash-gathered evidence bundle from `bin/fm-wake-evidence.sh <task>` - the same offset ownership as the mod, `state/.<task>.classifier-offset`, removed by teardown.
 Unconfigured, the Pi default is the branch's own model - `config/supervision-branch-model` when pinned, else main's session model, the same follow-main default the branch build applies - resolved by name before any completion call, so the default path never issues a failing `haiku` call first.
@@ -143,13 +143,6 @@ Every classifier call appends one record to `state/branch-mod-classifications.js
 A failed log append is absorbed and never changes routing.
 
 The away posture skips the classifier entirely: the branch takes every row while the record exists, exactly as its row-exclusions lift there.
-
-`config/classifier-shadow` set to exactly `jev` joins each granted routine-classified wake with non-empty evidence (after the branch grant publishes) to the Jev shadow trial as a detached task beside delivery - it can never delay or alter the wake path.
-The shared module self-gates on the config value; the helper scripts (`bin/fm-branch-shadow-jev.sh`, `bin/fm-branch-shadow-pane.sh`) resolve from the extension's own repository root, which in production is the same directory as the tracked scripts.
-Answers append to `state/branch-mod-shadow.jsonl` with the same byte-stable record shape, wake-key stamping, policy floors, and facts object as the mod's trial, so `bin/fm-branch-shadow-score.sh` and `bin/fm-branch-shadow-gates.sh` score one log for both hosts; both logs rotate at the mod's 4MB cap; the extension appends through its own inline rotating-append snippet with the same cap.
-The repeat-control cadence counts wakes per extension process, the same per-incarnation semantics as the mod's per-lock-pid counter.
-On Pi the trial runs without pane-derived evidence (no pane tail, observation, window, or stale facts): `bin/fm-branch-shadow-pane.sh` is gated on the Claude mod marker `state/.branch-mod-mode`, which a Pi home does not have, so the `without_pane_tail` ablation is inert on Pi.
-Widening that gate is a reserved product call tracked as follow-up `fm-branch-shadow-pi-pane-evidence`.
 
 ## Heartbeat routing
 

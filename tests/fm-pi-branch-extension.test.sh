@@ -57,7 +57,6 @@ install_pi_branch_extension_fixture() {
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
   cp "$ROOT/lib/fm-branch-classifier.ts" "$repo/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
-  cp "$ROOT/lib/fm-branch-shadow.ts" "$repo/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$repo/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$repo/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
@@ -68,16 +67,6 @@ install_pi_branch_extension_fixture() {
   mkdir -p "$repo/bin"
   cp "$ROOT/bin/fm-operational-input.sh" "$repo/bin/fm-operational-input.sh"
   chmod +x "$repo/bin/fm-operational-input.sh"
-  # The shadow trial's pane helper runs for real against fixture state; the
-  # jev helper is stubbed because the real one calls the TypeSafe API.
-  cp "$ROOT/bin/fm-branch-shadow-pane.sh" "$repo/bin/fm-branch-shadow-pane.sh"
-  chmod +x "$repo/bin/fm-branch-shadow-pane.sh"
-  cat > "$repo/bin/fm-branch-shadow-jev.sh" <<'STUB'
-#!/usr/bin/env bash
-# Fixture stub: emits one well-formed success line without any network call.
-printf '%s\n' '{"ok":true,"model":"jev-stub","answers":{"state":{"answer":"the worker is working","confidence":"high"}}}'
-STUB
-  chmod +x "$repo/bin/fm-branch-shadow-jev.sh"
   cat > "$repo/node_modules/@earendil-works/pi-coding-agent/package.json" <<'JSON'
 {"name":"@earendil-works/pi-coding-agent","type":"module","exports":"./index.js"}
 JSON
@@ -987,82 +976,6 @@ EOF
   out=$(cat "$TMP_ROOT/node-output")
   expect_code 0 "$status" "the unresolvable classifier name must fall back once to the branch's model: $out"
   pass "the unresolvable classifier name falls back once to the branch's model and records the model used"
-}
-
-# The shadow advisory trial: gated on config, detached behind a routine
-# classification with evidence, appending one record per variant keyed by the
-# wake key; the away posture skips classification entirely.
-test_shadow_trial_appends_and_away_skips_classification() {
-  local repo home out status
-  repo="$TMP_ROOT/shadow-root"
-  home="$TMP_ROOT/shadow-home"
-  mkdir -p "$home/state" "$home/config"
-  install_pi_branch_extension_fixture "$repo"
-  printf 'jev\n' > "$home/config/classifier-shadow"
-  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
-    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
-const prelude = process.env.DRIVER_PRELUDE;
-await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home }; })()`);
-const { pi, fire, dispatch, settle, defaultSessionCtx, home } = globalThis.__t;
-import { readFileSync, writeFileSync } from "node:fs";
-
-writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
-await fire("session_start", {}, defaultSessionCtx);
-const classFile = `${home}/state/branch-mod-classifications.jsonl`;
-const shadowFile = `${home}/state/branch-mod-shadow.jsonl`;
-const classRecords = () => {
-  try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
-  catch { return []; }
-};
-const shadowRecords = () => {
-  try { return readFileSync(shadowFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); }
-  catch { return []; }
-};
-
-globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
-const offer = dispatch("signal: routine wake");
-try { await offer.settlement; } catch { /* the stubbed prompt reports nothing; the rejection is expected */ }
-const records = classRecords();
-if (records.length !== 1 || records[0].verdict !== "routine") {
-  throw new Error(`the routine wake was not classified once as routine: ${JSON.stringify(records)}`);
-}
-// The trial runs detached: wait for its four variant records (wakeNo 1 is
-// below the control cadence, so none is a repeat control).
-await settle(() => shadowRecords().length >= 4, "shadow trial records");
-const shadow = shadowRecords();
-const variants = new Set(shadow.map((record) => record.variant));
-if (variants.size !== 4
-  || !variants.has("full")
-  || !variants.has("without_current_state")
-  || !variants.has("without_prior_outcomes")
-  || !variants.has("without_pane_tail")) {
-  throw new Error(`shadow records lost the ablation variant set: ${JSON.stringify(shadow.map((r) => r.variant))}`);
-}
-const keys = new Set(shadow.map((record) => record.wakeKey));
-if (keys.size !== 1 || [...keys][0] === "") {
-  throw new Error(`shadow records lost the shared wake key: ${JSON.stringify([...keys])}`);
-}
-for (const record of shadow) {
-  if (record.kind !== "shadow") throw new Error(`shadow record lost its kind: ${JSON.stringify(record)}`);
-  if (record.model !== "jev-stub") throw new Error(`shadow record lost the helper model: ${JSON.stringify(record)}`);
-  if (record.unavailable !== null) throw new Error(`the helper answer did not parse: ${record.unavailable}`);
-  if (record.control !== false) throw new Error(`wake 1 produced a repeat control: ${JSON.stringify(record)}`);
-}
-
-// The away posture skips the classifier entirely: the branch takes the rows
-// and no classification record or shadow trial appears.
-writeFileSync(`${home}/state/.afk-contract`, "hold for the captain's return\n");
-const away = dispatch("signal: away wake");
-try { await away.settlement; } catch { /* the away branch's stubbed prompt reports nothing */ }
-await settle(() => (globalThis.__fmPrompts ?? []).length === 2, "away branch prompt");
-if (classRecords().length !== 1) throw new Error(`the away posture classified: ${JSON.stringify(classRecords())}`);
-if (shadowRecords().length !== 4) throw new Error(`the away posture ran a shadow trial: ${shadowRecords().length}`);
-process.exit(0);
-EOF
-  status=$?
-  out=$(cat "$TMP_ROOT/node-output")
-  expect_code 0 "$status" "shadow trial and away skip must hold: $out"
-  pass "the gated shadow trial appends joined records and the away posture skips classification"
 }
 
 test_branch_dispatch_two_stage_filter_and_prefix_contract() {
@@ -4772,7 +4685,6 @@ test_branch_dispatch_classifies_main_only_rows_and_writes_the_eligible_snapshot(
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
   cp "$ROOT/lib/fm-branch-classifier.ts" "$repo/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
-  cp "$ROOT/lib/fm-branch-shadow.ts" "$repo/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$repo/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$repo/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
@@ -5212,7 +5124,6 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers() {
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$fixture/.pi/extensions/lib/fm-branch-dispatch.ts"
   cp "$ROOT/lib/fm-branch-classifier.ts" "$fixture/lib/fm-branch-classifier.ts"
   cp "$ROOT/lib/fm-branch-eligibility.ts" "$fixture/lib/fm-branch-eligibility.ts"
-  cp "$ROOT/lib/fm-branch-shadow.ts" "$fixture/lib/fm-branch-shadow.ts"
   cp "$ROOT/lib/fm-branch-report-sequence.ts" "$fixture/lib/fm-branch-report-sequence.ts"
   cp "$ROOT/lib/fm-branch-provider-latch.ts" "$fixture/lib/fm-branch-provider-latch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$fixture/.pi/extensions/lib/fm-native-contract.ts"
@@ -5945,7 +5856,6 @@ test_classifier_pass_covers_rows_and_guards_passed_seqs
 test_classifier_default_resolves_per_host_on_pi
 test_classifier_explicit_config_wins_on_pi
 test_classifier_unresolvable_falls_back_once_on_pi
-test_shadow_trial_appends_and_away_skips_classification
 test_requested_healthy_outcome_and_unsolicited_routine_outcome_delivery
 test_captain_outcome_is_exactly_once_across_crash_reload_and_unrelated_response
 test_captain_outcome_processing_turn_is_sequence_keyed_and_re_presented
