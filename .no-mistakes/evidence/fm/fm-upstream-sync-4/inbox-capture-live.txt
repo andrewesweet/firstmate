@@ -1,0 +1,23 @@
+$ fm-inbox.sh note --request-id req-1 --json "ship the merge"
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1790018637-r8pA12","request_id":"req-1","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/fm-inbox-probe.qoH2/state/inbox/1790018637-r8pA12.note"}
+exit=0
+
+$ same request id again (retry)
+{"schema":"fm-inbox-note.v1","outcome":"replay","id":"1790018637-r8pA12","request_id":"req-1","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/fm-inbox-probe.qoH2/state/inbox/1790018637-r8pA12.note"}
+exit=0
+
+notes on disk: 1   inbox wakes queued: 1
+
+$ fm-inbox.sh ready
+{"schema":"fm-primary-ready.v1","home":"tmp/fm-inbox-probe.qoH2","observed_at":"2026-09-21T19:23:58Z","lock":{"state":"free","pid":null,"live_harness":false},"wake_consumer":{"state":"unknown","reason":"supervision-model-unknown-for-home","beacon_age_seconds":null},"posture":{"state":"present"},"can_receive":false}
+exit=0
+
+$ fm-inbox.sh receipts
+{"schema":"fm-inbox-receipts.v1","home":"tmp/fm-inbox-probe.qoH2","generated":"2026-09-21T19:23:58Z","pending":[{"id":"1790018637-r8pA12","at":"2026-09-21T19:23:57Z","source":"text","request_id":"req-1","body":"ship the merge","acknowledged":false,"announced":true,"reply":null}],"handled":[],"replies":[],"reply_cursor":"","omitted":[]}
+
+$ fm-inbox.sh reply --json 1790018637-r8pA12 "merged, thanks"
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1790018637-r8pA12","path":"/tmp/fm-inbox-probe.qoH2/state/inbox/.replies/1790018637-r8pA12"}
+exit=0
+
+$ fm-inbox.sh receipts --all-replies
+{"schema":"fm-inbox-receipts.v1","home":"tmp/fm-inbox-probe.qoH2","generated":"2026-09-21T19:23:58Z","pending":[{"id":"1790018637-r8pA12","at":"2026-09-21T19:23:57Z","source":"text","request_id":"req-1","body":"ship the merge","acknowledged":false,"announced":true,"reply":{"id":"1790018637-r8pA12","at":"2026-09-21T19:23:58Z","body":"merged, thanks","cursor":"000000000001"}}],"handled":[],"replies":[{"id":"1790018637-r8pA12","at":"2026-09-21T19:23:58Z","body":"merged, thanks","cursor":"000000000001"}],"reply_cursor":"000000000001","omitted":[]}

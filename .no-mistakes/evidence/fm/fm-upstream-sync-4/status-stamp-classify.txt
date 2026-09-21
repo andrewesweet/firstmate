@@ -1,0 +1,7 @@
+# stamped DOD status lines as a worker writes them, read back through bin/fm-classify-lib.sh
+line: needs-decision [at=1790018000] [key=nm-42-review]: ask-user findings=r1 file=/x/nm-42-findings.txt
+  verb=needs-decision  at_epoch=1790018000  open-needs-decision(run 42)=yes
+after resolved: open-needs-decision=no  open-decisions=[]
+line: done [at=1790018200]: PR https://github.com/x/y/pull/1 checks green
+  verb=done terminal=yes captain-relevant=yes at_epoch=1790018200
+  paused [at=1790018300] [key=nm-42-ci-wait]: fork-workflow approval => paused=yes

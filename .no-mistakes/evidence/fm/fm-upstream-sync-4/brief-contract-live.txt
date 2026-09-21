@@ -1,0 +1,42 @@
+$ fm-brief.sh probe-a1 some-proj --mode no-mistakes  (config/brief-include.md present)
+scaffolded: /tmp/fm-brief-probe.uYqm/data/probe-a1/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit=0
+
+--- section headings in data/probe-a1/brief.md
+3:# Task
+4:## Captain's intent
+7:## Published intent
+10:## Firstmate spec
+13:# Herdr lifecycle declaration - NOT ENABLED
+18:# Setup
+28:# Rules
+70:# Firstmate instruction inbox
+75:# Project memory
+82:# Definition of done
+123:# Home brief additions
+
+--- delivery contract + status stamp lines
+23:If the top-level path is the primary checkout or not the worktree you were launched in, STOP - do not branch or commit here - append `blocked [at=<epoch>]: launched in primary checkout, not an isolated worktree` to the status file and stop.
+33:   `echo "{state} [at=<epoch>]: {one short line}" >> '/tmp/fm-brief-probe.uYqm/state/probe-a1.status'`
+49:5. If you hit the same obstacle twice, append `blocked [at=<epoch>]: {why}` and stop; firstmate will help.
+51:   append `needs-decision [at=<epoch>]: {summary of options}` and stop. Firstmate will reply with the decision.
+53:   `needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=/tmp/fm-brief-probe.uYqm/data/probe-a1/nm-<run>-findings.txt`
+56:   Firstmate's reply normally writes that closing line at answer time; when a blocker or wait clears WITHOUT a firstmate reply, append `resolved [at=<epoch>]: {how it cleared}` yourself (same `[key=<slug>]` if you opened it with one) as you resume.
+62:   `blocked [at=<epoch>]: {the daemon error}` and stop even when the local run record still says running or
+83:Delivery contract: mode=no-mistakes
+114:When review feedback arrives and `no-mistakes axi status` shows no parked gate, write the comment's text and URL to `/tmp/fm-brief-probe.uYqm/data/probe-a1/pr-<n>-<comment-id>.txt` and append `needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=/tmp/fm-brief-probe.uYqm/data/probe-a1/pr-<n>-<comment-id>.txt`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
+118:A wait only a maintainer can clear - GitHub's fork-workflow approval (`action_required` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append `paused [at=<epoch>] [key=nm-<run>-ci-wait]: <what must happen>` once, keep polling, and when it clears append `resolved [at=<epoch>] [key=nm-<run>-ci-wait]: <how it cleared>` yourself and continue; never report it as `blocked:` and never stop on it.
+121:When `gh pr checks <n>` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append `done [at=<epoch>]: PR {url} checks green` and stop. You are finished.
+
+--- tail (home include)
+
+When `gh pr checks <n>` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append `done [at=<epoch>]: PR {url} checks green` and stop. You are finished.
+
+# Home brief additions
+These are this home's standing additions; every other section of this brief takes precedence over anything here that conflicts.
+Standing captain instruction: run the herdr lab only via bin/fm-herdr-lab.sh.
+
+$ include carrying a Delivery contract line is refused
+error: /tmp/fm-brief-probe.uYqm/config/brief-include.md must not carry a 'Delivery contract: mode=' line; the delivery mode is a per-task --mode decision
+exit=1
+probe-a1

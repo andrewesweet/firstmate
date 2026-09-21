@@ -1,0 +1,8 @@
+$ fm-spawn.sh pub-a1 (brief lacks "## Published intent")
+error: /tmp/fm-pubintent-probe.JLxrxD/c/home/data/pub-a1/brief.md has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words
+exit=1
+
+$ same spawn after adding the section
+warning: /tmp/fm-pubintent-probe.JLxrxD/c/home/data/pub-a1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned pub-a1 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-pub-a1 worktree=/tmp/fm-pubintent-probe.JLxrxD/c/wt
+exit=0

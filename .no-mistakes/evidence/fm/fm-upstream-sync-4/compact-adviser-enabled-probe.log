@@ -1,0 +1,7 @@
+case=ship-open allowlist=absent pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+case=ship-filtered allowlist=enabled pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+case=sm-absent allowlist=absent pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+case=sm-enabled allowlist=enabled pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+case=relaunch allowlist=absent pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+case=relaunch allowlist=enabled pane-exports-of-switch=0 launch-mentions-switch=0 agent-saw=unset
+all launch paths leave the compact adviser enabled
