@@ -175,8 +175,7 @@ export function interpretClassifierAnswer(answer: string, completeError: string 
 
 /** The covering summary a classifier pass writes into the outcome store, so
  * the branch's next wake note and the drain backstop read main's direct
- * handling as covered. The shadow module's provenance test matches the same
- * prefix. */
+ * handling as covered. */
 export function passedToMainSummary(why: string, classifierReason: string): string {
   return `Passed to main directly (${why}): ${classifierReason}`;
 }
