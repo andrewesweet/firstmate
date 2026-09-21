@@ -2437,14 +2437,16 @@ test_merged_poll_trace_spans_carry_origin_and_authority() {
       expected=external
       expected_count=1
     else
+      # The away-words authority model retires the per-task yolo tag and the
+      # per-task grant list at queue time: a yolo=on task and a words mandate
+      # both persist authority=away, and the merged span carries it.
       if [ "$posture" = yolo ]; then
         printf 'yolo=on\n' >> "$state/task-a.meta"
         write_away_record "$dir"
-        expected=yolo
       else
-        write_away_record "$dir" --grant task-a
-        expected=away-grant
+        write_away_record "$dir" --words 'merge task-a when green'
       fi
+      expected=away
       run_check_entry "$dir" task-a "$url" >/dev/null 2>&1 \
         || fail "$posture: could not arm the merge poll"
       queue_merge "$dir" "$url"
