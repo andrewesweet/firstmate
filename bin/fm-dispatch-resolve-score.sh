@@ -46,8 +46,8 @@
 #     sub-floor pick, so no spawn evidence exists there.
 #   Fractions print with four decimals; a zero denominator prints n/a.
 #
-# Exit 0 with the report; exit 2 only for an unreadable input (an unreadable or
-# malformed log or labels file).
+# Exit 0 with the report; exit 2 for a bad invocation (unknown flag, missing
+# jq) or an unreadable input (an unreadable or malformed log or labels file).
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
