@@ -66,6 +66,7 @@ if [ -f "$f" ]; then
   echo "## status lines appended since the last classified wake (NEW - judge these)"
   tail -c +$((off + 1)) "$f" | head -c 6000 | sed 's/^/  /'
   [ "$off" -lt "$size" ] || echo "  (none - this wake carries only a turn-end or pane signal)"
+  [ $((size - off)) -le 6000 ] || echo "## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle"
   echo "## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)"
   head -c "$off" "$f" | tail -n 4 | sed 's/^/  /'
   [ "$off" -gt 0 ] || echo "  (none)"

@@ -80,7 +80,54 @@ PLAN='[
  {"name":"default-when-unconfigured","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
   "defaultModel":"haiku",
-  "answer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"}
+  "answer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"},
+ {"name":"shortcircuit-terminal","tasks":["ship-a"],"seqs":["4"],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 100-240\n## current state (bin/fm-crew-state.sh ship-a)\nagent running\n## status lines appended since the last classified wake (NEW - judge these)\n  done: compiled the fleet chart\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  working: starting the fleet chart\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-routine-verbs","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: rebased onto merged main\n  resolved [at=10] [key=nm-1]: captain picked option a\n  paused: waiting on the upstream release\n  captain-held: transferred to the hold\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-mixed","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated\n  needs-decision [at=11] [key=nm-2]: pick the deploy window\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-tagged","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-fused-marker","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-9000\n## status lines appended since the last classified wake (NEW - judge these)\n  working: half line## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"truncated evidence\"}"},
+ {"name":"shortcircuit-truncated-clean-cut","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-9000\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated\n## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"cut at the cap\"}"},
+ {"name":"shortcircuit-fused-marker-untruncated","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-note-line","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  note: please confirm that session id is the current main session, or correct it\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"asks the supervisor\"}"},
+ {"name":"shortcircuit-unrecognised","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  deployed: site is live\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"routine\",\"reason\":\"on the model\"}"},
+ {"name":"shortcircuit-note-beside-done","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  done: chart compiled\n  note: please confirm the next step\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"note beside the done\"}"},
+ {"name":"shortcircuit-failed-gather","tasks":["ship-a","ship-b"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""},
+              {"exitCode":1,"stdout":"","stderr":"spawn exploded"}],
+  "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"gather failed\"}"},
+ {"name":"shortcircuit-zero-new","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 300-300\n## current state (bin/fm-crew-state.sh ship-a)\nagent running\n## status lines appended since the last classified wake (NEW - judge these)\n  (none - this wake carries only a turn-end or pane signal)\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  working: starting the fleet chart\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}"},
+ {"name":"shortcircuit-legacy-bare","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  merged\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"bare legacy line\"}"},
+ {"name":"shortcircuit-quoted-history-marker","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: parse the \"## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\" marker\n  blocked: needs a credential\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-quoted-new-marker-in-history","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 300-300\n## status lines appended since the last classified wake (NEW - judge these)\n  (none - this wake carries only a turn-end or pane signal)\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  working: quoting the \"## status lines appended since the last classified wake (NEW - judge these)\" header\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}"
+}
 ]'
 
 # ---------- node drivers -----------------------------------------------------
@@ -378,6 +425,52 @@ else
   fail "evidence bundle ordering drifted"
 fi
 
+# The deterministic verb route (steps 15-29): every NEW status line in every
+# gathered bundle carrying a recognised verb emits the whitelist verdict with
+# no completion request at all (even with a configured model name), while any
+# unrecognised line, a failed gather, a NEW block the gatherer marked
+# truncated, zero new bytes, or a bare legacy line keeps the model path. note: lines always keep the model path, including
+# beside a recognised verb - the widening that would silently change routing.
+route_step() {
+  local idx=$1 verdict=$2 reason=$3 label=$4
+  if [ "$(jq -c ".[$idx].completeReqs" "$TMP_ROOT/lib.json")" = "[]" ] \
+    && [ "$(jq -r ".[$idx].result.verdict" "$TMP_ROOT/lib.json")" = "$verdict" ] \
+    && [ "$(jq -r ".[$idx].result.reason" "$TMP_ROOT/lib.json")" = "$reason" ] \
+    && [ "$(jq -r ".[$idx].result.model" "$TMP_ROOT/lib.json")" = "null" ] \
+    && [ "$(jq -r ".[$idx].result.answer" "$TMP_ROOT/lib.json")" = "" ] \
+    && [ "$(jq -r ".[$idx].recordLine | fromjson | .model" "$TMP_ROOT/lib.json")" = "null" ]; then
+    pass "$label"
+  else
+    fail "$label (reqs=$(jq -c ".[$idx].completeReqs" "$TMP_ROOT/lib.json") result=$(jq -c ".[$idx].result | {verdict, reason, model}" "$TMP_ROOT/lib.json")"
+  fi
+}
+route_step 15 captain "deterministic verb route" "a terminal-verb wake takes the deterministic route with no model call and a null model record"
+route_step 16 routine "deterministic verb route" "nonterminal recognised verbs route routine; prose tokens and tags never widen the route"
+route_step 17 captain "deterministic verb route" "one terminal verb among recognised lines routes captain"
+route_step 18 captain "deterministic verb route" "emission-time tags never hide the verb"
+model_step() {
+  local idx=$1 verdict=$2 reason=$3 label=$4
+  if [ "$(jq -c ".[$idx].completeReqs | length" "$TMP_ROOT/lib.json")" = "1" ] \
+    && [ "$(jq -r ".[$idx].result.verdict" "$TMP_ROOT/lib.json")" = "$verdict" ] \
+    && [ "$(jq -r ".[$idx].result.reason" "$TMP_ROOT/lib.json")" = "$reason" ] \
+    && [ "$(jq -r ".[$idx].result.model" "$TMP_ROOT/lib.json")" = "haiku" ]; then
+    pass "$label"
+  else
+    fail "$label (reqs=$(jq -c ".[$idx].completeReqs" "$TMP_ROOT/lib.json") result=$(jq -c ".[$idx].result | {verdict, reason, model}" "$TMP_ROOT/lib.json")"
+  fi
+}
+model_step 19 uncertain "truncated evidence" "the gatherer's truncation marker keeps a cut NEW block on the model path, fused HISTORY marker and all"
+model_step 20 uncertain "cut at the cap" "the truncation marker refuses the route even when the cut landed on a line boundary"
+route_step 21 routine "deterministic verb route" "a fused HISTORY marker without the truncation marker never refuses the route"
+model_step 22 captain "asks the supervisor" "a note: line always keeps the model path"
+model_step 23 routine "on the model" "an unrecognised verb keeps the model path"
+model_step 24 captain "note beside the done" "a note: line beside a recognised verb keeps the model path"
+model_step 25 uncertain "gather failed" "a failed gather beside recognised lines keeps the model path"
+model_step 26 routine "nothing new" "a zero-new wake keeps the model path"
+model_step 27 captain "bare legacy line" "a bare legacy line never takes a route verdict: the free-text fallback stays off the short-circuit"
+route_step 28 captain "deterministic verb route" "a status line quoting the HISTORY marker phrase never closes the NEW block: the blocked line after it is still judged"
+model_step 29 routine "nothing new" "a HISTORY line quoting the NEW marker phrase never re-opens the block: a zero-new wake still keeps the model path"
+
 # The per-host resolution rule and the one-shot model-not-found fallback
 # (steps 10-14): the explicit configured name wins, the host's default fills
 # the gap before any completion call, and only a not-found failure (here in
@@ -428,17 +521,17 @@ else
 fi
 
 # The system-prompt memo: one read for the whole plan, re-read after reset.
-if [ "$(jq -r '.[15].count' "$TMP_ROOT/lib.json")" = "1" ] \
-  && [ "$(jq -r '.[16].count' "$TMP_ROOT/lib.json")" = "2" ] \
-  && [ "$(jq -r '.[15].count' "$TMP_ROOT/mod.json")" = "1" ]; then
+if [ "$(jq -r '.[30].count' "$TMP_ROOT/lib.json")" = "1" ] \
+  && [ "$(jq -r '.[31].count' "$TMP_ROOT/lib.json")" = "2" ] \
+  && [ "$(jq -r '.[30].count' "$TMP_ROOT/mod.json")" = "1" ]; then
   pass "the classifier system prompt is read once per module lifetime; the test reset clears it"
 else
-  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[15].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[16].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[15].count' "$TMP_ROOT/mod.json"))"
+  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[30].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[31].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[30].count' "$TMP_ROOT/mod.json"))"
 fi
 
 # The classifier-pass covering rule, byte-pinned.
-if [ "$(jq -r '.[17].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
-  && [ "$(jq -c '.[17].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
+if [ "$(jq -r '.[32].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
+  && [ "$(jq -c '.[32].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
   pass "the classifier-pass covering summary and outcome-store argv are byte-stable"
 else
   fail "the classifier-pass covering rule drifted"

@@ -5,7 +5,9 @@
 //
 // This module owns, once: the evidence-bundle byte-range parse of
 // bin/fm-wake-evidence.sh output and its failure text, the classifier prompt
-// construction, the model-answer interpretation rule (verdict whitelist,
+// construction, the deterministic verb route (the recognised-verb whitelist
+// that short-circuits the model call on every-verb new lines), the
+// model-answer interpretation rule (verdict whitelist,
 // unparsed and failed-call fallbacks), the durable classification-log record
 // shape and its serialization, and the classifier-pass covering-outcome rule
 // (the "Passed to main directly (...)" summary, its append argv, and the
@@ -245,6 +247,117 @@ export function serializeClassifierRecord(record: ClassifierRecord): string {
   return `${JSON.stringify(record)}\n`;
 }
 
+// ---- The deterministic verb route -----------------------------------------
+//
+// The recognised-verb vocabulary is mirrored from its one owner,
+// bin/fm-classify-lib.sh: the terminal captain verbs of
+// status_is_captain_relevant (done, needs-decision, blocked, failed) and the
+// nonterminal verbs it reads as routine (working, resolved, captain-held,
+// paused). Within that set a line is captain-relevant exactly when its verb
+// is terminal, so the route never needs the lib's legacy free-text fallback -
+// and deliberately never applies it: a line without a recognised verb (a
+// note: line, a bare legacy token such as "merged", continuation prose) is
+// unrecognised content that keeps the model path, per the replay evidence
+// that a note: line can carry a captain ask the verb whitelist cannot see.
+// The lib's per-home verb overrides (FM_CAPTAIN_RE and friends) are out of
+// scope for a host-agnostic module; a home running a custom vocabulary
+// simply keeps the model path, which is today's behavior.
+
+const CLASSIFIER_TERMINAL_VERBS = new Set(["done", "needs-decision", "blocked", "failed"]);
+const CLASSIFIER_ROUTINE_VERBS = new Set(["working", "resolved", "captain-held", "paused"]);
+const CLASSIFIER_DETERMINISTIC_REASON = "deterministic verb route";
+const CLASSIFIER_TRUNCATED_MARKER = "## the NEW block above stops at the 6000-byte cap";
+const CLASSIFIER_NEW_MARKER = "## status lines appended since the last classified wake";
+const CLASSIFIER_HISTORY_MARKER = "## earlier lines, already handled by earlier wakes";
+const CLASSIFIER_HISTORY_MARKER_LINE = `${CLASSIFIER_HISTORY_MARKER} (HISTORY - never escalate these)`;
+
+/** The leading verb of one status line, byte-faithful to
+ * bin/fm-classify-lib.sh status_line_verb: the text before the first colon,
+ * cut at the first "[", trimmed, with correlation tokens dropped so a
+ * "done [at=..] [key=..]:" or "done corr=<hex>:" line keeps its verb. */
+function statusLineVerb(line: string): string {
+  const colon = line.indexOf(":");
+  let v = colon >= 0 ? line.slice(0, colon) : line;
+  const bracket = v.indexOf("[");
+  if (bracket >= 0) v = v.slice(0, bracket);
+  v = v.trim();
+  if (v.includes("corr=")) {
+    const words = v.split(/\s+/).filter((w) => w !== "");
+    v = words.filter((w, i) => i === 0 || !/^corr=[0-9a-fA-F]{16}$/.test(w)).join(" ");
+  }
+  return v;
+}
+
+/** The NEW status lines one well-formed evidence bundle judges: the section
+ * between the gatherer's NEW and HISTORY markers with the gatherer's
+ * two-space line indent removed, blank lines and the gatherer's "(none"
+ * zero-new marker dropped. A section marker is one only at the start of its
+ * own line, so an indented status line quoting a marker phrase never ends or
+ * re-opens the judged section; the one exception is the gatherer's whole
+ * HISTORY marker line fused onto the tail of an indented line, which is what
+ * a status file whose last line carries no trailing newline produces, and
+ * that head is a NEW line and is judged. Returns null for a
+ * bundle the route must not judge: one with no status byte range - a failed
+ * or unparseable gather whose failure text is model evidence - and one
+ * carrying the gatherer's explicit truncation marker, which it emits on
+ * every platform whenever the 6,000-byte cap left status lines out of the
+ * bundle, where the lines past the cut may carry the captain-class one. */
+function classifierNewStatusLines(bundle: ClassifierEvidence): string[] | null {
+  if (bundle.from < 0 || bundle.to < 0) return null;
+  if (bundle.text.includes(CLASSIFIER_TRUNCATED_MARKER)) return null;
+  const out: string[] = [];
+  let inNew = false;
+  for (const line of bundle.text.split("\n")) {
+    if (line.startsWith(CLASSIFIER_NEW_MARKER)) {
+      inNew = true;
+      continue;
+    }
+    if (line.startsWith(CLASSIFIER_HISTORY_MARKER)) {
+      inNew = false;
+      continue;
+    }
+    if (line.endsWith(CLASSIFIER_HISTORY_MARKER_LINE)) {
+      if (inNew) {
+        const head = line.slice(0, line.length - CLASSIFIER_HISTORY_MARKER_LINE.length).replace(/^ {2}/, "");
+        if (head.trim() !== "" && !head.startsWith("(none")) out.push(head);
+      }
+      inNew = false;
+      continue;
+    }
+    if (!inNew) continue;
+    const s = line.replace(/^ {2}/, "");
+    if (s.trim() === "" || s.startsWith("(none")) continue;
+    out.push(s);
+  }
+  return out;
+}
+
+/** The deterministic verb route: the verdict code can emit when every NEW
+ * status line in every gathered bundle carries a recognised verb and at
+ * least one line exists - captain when any line's verb is terminal, routine
+ * otherwise. Null keeps the model path: any unrecognised line, a failed or
+ * unparseable gather, a NEW block the gatherer marked truncated, or zero
+ * new bytes is evidence a model must judge, exactly as it always has. Replay evidence (131 recorded classification
+ * calls): 110 of 131 fall in this class, the exact-verb route matched the
+ * recorded label on all of them, and the model call it replaces was wrong
+ * on 13 of the 131. */
+function deterministicVerbRoute(evidence: ClassifierEvidence[]): { verdict: string; reason: string } | null {
+  let any = false;
+  let captain = false;
+  for (const bundle of evidence) {
+    const lines = classifierNewStatusLines(bundle);
+    if (lines === null) return null;
+    for (const line of lines) {
+      any = true;
+      const verb = statusLineVerb(line);
+      if (CLASSIFIER_TERMINAL_VERBS.has(verb)) captain = true;
+      else if (!CLASSIFIER_ROUTINE_VERBS.has(verb)) return null;
+    }
+  }
+  if (!any) return null;
+  return { verdict: captain ? "captain" : "routine", reason: CLASSIFIER_DETERMINISTIC_REASON };
+}
+
 export interface ClassifyOutcome {
   result: ClassifierResult;
   record: ClassifierRecord;
@@ -259,12 +372,31 @@ export async function classifyWake(deps: ClassifierDeps, input: { wake: string; 
   const evidence: ClassifierEvidence[] = [];
   for (const task of input.tasks) evidence.push(await gatherClassifierEvidence(deps, task));
   const prompt = buildClassifierPrompt(input.wake, evidence);
+  // The deterministic verb route sits between the evidence and the model:
+  // the gathers above already advanced the classifier offset and fed the
+  // covering-outcome rule exactly as on any wake, so only the completion
+  // call is ever skipped, and the record keeps its exact shape with the
+  // model recorded as null (the scorer reads a null model as "unknown").
+  const routed = deterministicVerbRoute(evidence);
   // Which model to call is resolved here, once, before any completion call:
   // the explicit configured name wins, otherwise the host's own default. A
   // host that can resolve neither records the failed call without a
   // completion attempt.
-  const model = (await deps.readConfiguredModel()) || (await deps.readDefaultModel());
+  const model = routed ? null : (await deps.readConfiguredModel()) || (await deps.readDefaultModel());
   const t0 = deps.clock.now();
+  if (routed) {
+    const result: ClassifierResult = {
+      verdict: routed.verdict,
+      reason: routed.reason,
+      ms: deps.clock.now() - t0,
+      promptChars: prompt.length + system.length,
+      answer: "",
+      model: null,
+      evidence,
+    };
+    const record = buildClassifierRecord({ clock: deps.clock, wake: input.wake, tasks: input.tasks, seqs: input.seqs, evidence, result });
+    return { result, record, recordLine: serializeClassifierRecord(record) };
+  }
   let answer = "";
   let usedModel = model;
   let completeError: string | null = null;
