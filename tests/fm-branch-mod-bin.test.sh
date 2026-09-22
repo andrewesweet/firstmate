@@ -649,6 +649,23 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
     printf '  working: still building\n'
     printf '  done: PR https://example.test/11 checks green\n'
   } > "$dir/copy-no-history"
+  # The gatherer's 6,000-byte NEW cap can end the block mid-line, and sed
+  # leaves that partial line without a trailing newline, so the HISTORY
+  # marker fuses onto it exactly as written here.
+  {
+    printf '## task fused-new status bytes 0-500\n'
+    printf '## status lines appended since the last classified wake (NEW - judge these)\n'
+    printf '  working: still building\n'
+    printf '  done: PR http## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n'
+    printf '  working: an earlier line\n'
+  } > "$dir/copy-fused-new"
+  {
+    printf '## task fused-history status bytes 0-500\n'
+    printf '## status lines appended since the last classified wake (NEW - judge these)\n'
+    printf '  working: still building\n'
+    printf '  working: partial li## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n'
+    printf '  done: PR https://example.test/12 checks green\n'
+  } > "$dir/copy-fused-history"
   rm -f "$state/gone-routine.status" "$state/.gone-routine.classifier-offset" \
     "$state/gone-done.status" "$state/.gone-done.classifier-offset" \
     "$state/gone-big.status" "$state/.gone-big.classifier-offset"
@@ -679,6 +696,16 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
       '{t: "x", verdict: "routine", model: "opus",
         evidence: [{task: $task, from: 0, to: 400, text: $text, text_len: ($text | length)}],
         text_cap: 8192}'
+    # A fused marker still delimits the section: the partial NEW line fused
+    # ahead of it is judged, the already-handled lines after it are not.
+    jq -nc --arg task fused-new --rawfile text "$dir/copy-fused-new" \
+      '{t: "x", verdict: "routine", model: "opus",
+        evidence: [{task: $task, from: 0, to: 500, text: $text, text_len: ($text | length)}],
+        text_cap: 8192}'
+    jq -nc --arg task fused-history --rawfile text "$dir/copy-fused-history" \
+      '{t: "x", verdict: "routine", model: "opus",
+        evidence: [{task: $task, from: 0, to: 500, text: $text, text_len: ($text | length)}],
+        text_cap: 8192}'
   } > "$state/branch-mod-classifications.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SCORE" -v > "$out" || fail "scorer failed: $(cat "$out")"
@@ -696,8 +723,13 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
     fail "the beyond-the-NEW-cap copy wrongly agreed with its captain range: $(cat "$out")"
   fi
 
-  grep -q '^| opus | 2 | 2 / 0 / 0 | 0 | 0 | 0 | 0 | 2 |$' "$out" \
-    || fail "a captured copy missing a section marker was scored instead of counted unscorable: $(cat "$out")"
+  grep -q '^| opus | 4 | 4 / 0 / 0 | 1 | 0 | 0 | 1 | 2 |$' "$out" \
+    || fail "a captured copy missing a section marker was scored instead of counted unscorable, or a fused-marker copy was mislabelled: $(cat "$out")"
+  grep -qF 'record 9 (opus): label captain, verdict routine CAPTAIN MISS: fused-new,0,500+captured' "$out" \
+    || fail "the NEW line fused ahead of the HISTORY marker was dropped instead of judged: $(cat "$out")"
+  if grep -qF 'fused-history,0,500' "$out"; then
+    fail "the fused HISTORY marker let an already-handled line label the record: $(cat "$out")"
+  fi
   if grep -qF 'trunc,0,400' "$out"; then
     fail "the copy with no HISTORY marker fabricated a label from already-handled lines: $(cat "$out")"
   fi

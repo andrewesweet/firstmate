@@ -77,11 +77,21 @@ captured_has_markers() {
 # section markers; stdout is its NEW section with the gatherer's two-space
 # line indent removed - exactly the status lines the classifier was shown - so
 # the bundle's state output and its already-handled HISTORY lines never label
-# a record.
+# a record. When the gatherer's byte cap cut the NEW block mid-line the
+# HISTORY marker is fused onto that partial line: its prefix is the tail of a
+# line the classifier saw, so it is judged before the section closes.
 captured_new_lines() {
   awk '
     index($0, "## status lines appended since the last classified wake") { innew = 1; next }
-    index($0, "## earlier lines, already handled by earlier wakes") { innew = 0; next }
+    (i = index($0, "## earlier lines, already handled by earlier wakes")) {
+      if (innew) {
+        head = substr($0, 1, i - 1)
+        sub(/^  /, "", head)
+        if (head != "") print head
+      }
+      innew = 0
+      next
+    }
     innew { sub(/^  /, ""); print }
   '
 }
