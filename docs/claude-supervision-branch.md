@@ -64,7 +64,8 @@ The offset of the last classified bundle lives in `state/.<task>.classifier-offs
 
 Every classifier call appends one record to `state/branch-mod-classifications.jsonl`: the wake text, the tasks and queue sequences, the evidence per task (`{"task","from","to","text","text_len"}` - the byte range as always, plus a bounded copy of the bundle the model judged with the length it judged, middle-truncated to the first and last half of 8,192 characters past that cap), the record-level `text_cap` naming that bound, the verdict, the reason, the model name, the elapsed milliseconds, and the model's answer.
 `bin/fm-branch-classifier-score.sh [-v] [<log>]` scores that log retrospectively: each record is re-labelled from the status lines it judged, using the same captain-relevance test main applies (`status_is_captain_relevant`) - a record with a captured copy is labelled from the copy's NEW lines, older records fall back to their recorded byte ranges re-read from `state/<task>.status`, and the table mirrors the spike replay scorer, so a record whose label is `captain` and whose verdict was `routine` is a captain miss, and `-v` lists every disagreement with its task and byte range, marking the evidence that decided from a captured copy.
-Records with no captured copy whose status log was torn down count as unscorable, as does a failed gatherer's no-range entry even when its failure text was captured.
+A captured copy is labelled only when it carries both of the gatherer's section markers, NEW and HISTORY, because a copy missing either one no longer delimits the lines the classifier was shown.
+Records with no scorable evidence count as unscorable: no captured copy and byte ranges that no longer resolve (the status log was torn down), a captured copy missing a section marker, or a failed gatherer's no-range entry even when its failure text was captured.
 
 ### Shadow advisory trial
 
