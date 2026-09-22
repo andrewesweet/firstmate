@@ -253,17 +253,6 @@ rank_pick() {  # <percent> <sorted numbers...>: nearest-rank percentile
   shift $(( rank - 1 ))
   printf '%s' "$1"
 }
-median_pick() {  # <sorted numbers...>: the middle, or the mean of the two middles
-  local n=$#
-  [ "$n" -gt 0 ] || { printf '0'; return 0; }
-  if [ $(( n % 2 )) = 1 ]; then
-    shift $(( n / 2 ))
-    printf '%s' "$1"
-  else
-    shift $(( n / 2 - 1 ))
-    awk "BEGIN { printf \"%g\", ($1 + $2) / 2 }"
-  fi
-}
 COST_TSV=$(jq -R -r '
   fromjson? | select(type == "object") |
   [(if (.wakeKey // "") == "" then "-" else .wakeKey end),
@@ -271,39 +260,37 @@ COST_TSV=$(jq -R -r '
    (if (.usage | type) == "object" and (.usage.input_tokens | type) == "number" then (.usage.input_tokens | tostring) else "-" end),
    (if (.usage | type) == "object" and (.usage.output_tokens | type) == "number" then (.usage.output_tokens | tostring) else "-" end),
    (if (.ms | type) == "number" then (.ms | tostring) else "-" end)] | @tsv' "$LOG")
-declare -A COST_N=() COST_IN_SUM=() COST_OUT_SUM=() COST_IN_LIST=() COST_MS_LIST=()
+declare -A COST_N=() COST_IN_N=() COST_IN_SUM=() COST_OUT_SUM=() COST_MS_LIST=()
 declare -A WAKE_IN=() WAKE_OUT=() WAKE_N=()
 while IFS=$'\t' read -r cwake cvariant cin cout cms; do
   [ -n "$cwake" ] || continue
   COST_N[$cvariant]=$(( ${COST_N[$cvariant]:-0} + 1 ))
-  WAKE_N[$cwake]=$(( ${WAKE_N[$cwake]:-0} + 1 ))
+  [ "$cwake" != "-" ] && WAKE_N[$cwake]=$(( ${WAKE_N[$cwake]:-0} + 1 ))
   if [ "$cms" != "-" ]; then
     COST_MS_LIST[$cvariant]+="$cms"$'\n'
   fi
   if [ "$cin" != "-" ]; then
+    COST_IN_N[$cvariant]=$(( ${COST_IN_N[$cvariant]:-0} + 1 ))
     COST_IN_SUM[$cvariant]=$(( ${COST_IN_SUM[$cvariant]:-0} + cin ))
-    COST_IN_LIST[$cvariant]+="$cin"$'\n'
-    WAKE_IN[$cwake]=$(( ${WAKE_IN[$cwake]:-0} + cin ))
+    [ "$cwake" != "-" ] && WAKE_IN[$cwake]=$(( ${WAKE_IN[$cwake]:-0} + cin ))
   fi
   if [ "$cout" != "-" ]; then
     COST_OUT_SUM[$cvariant]=$(( ${COST_OUT_SUM[$cvariant]:-0} + cout ))
-    WAKE_OUT[$cwake]=$(( ${WAKE_OUT[$cwake]:-0} + cout ))
+    [ "$cwake" != "-" ] && WAKE_OUT[$cwake]=$(( ${WAKE_OUT[$cwake]:-0} + cout ))
   fi
 done <<< "$COST_TSV"
 printf '### cost (metered Jev usage the shim passed through; latency over every record, unavailable calls included)\n'
-printf '| variant | records | with usage | input tokens total | input tokens median | output tokens total | latency p50 ms | latency p95 ms |\n|---|---|---|---|---|---|---|---|\n'
+printf '| variant | records | with usage | input tokens total | output tokens total | latency p50 ms | latency p95 ms |\n|---|---|---|---|---|---|---|\n'
 for v in "${VARIANTS[@]}"; do
   [ -n "${COST_N[$v]:-}" ] || continue
-  in_sorted=()
   ms_sorted=()
-  [ -n "${COST_IN_LIST[$v]:-}" ] && mapfile -t in_sorted < <(printf '%s' "${COST_IN_LIST[$v]}" | sort -n)
   [ -n "${COST_MS_LIST[$v]:-}" ] && mapfile -t ms_sorted < <(printf '%s' "${COST_MS_LIST[$v]}" | sort -n)
-  printf '| %s | %s | %s | %s | %s | %s | %s | %s |\n' "$v" \
-    "${COST_N[$v]}" "${#in_sorted[@]}" "${COST_IN_SUM[$v]:-0}" "$(median_pick "${in_sorted[@]}")" \
+  printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$v" \
+    "${COST_N[$v]}" "${COST_IN_N[$v]:-0}" "${COST_IN_SUM[$v]:-0}" \
     "${COST_OUT_SUM[$v]:-0}" "$(rank_pick 50 "${ms_sorted[@]}")" "$(rank_pick 95 "${ms_sorted[@]}")"
 done
 if [ "${#WAKE_N[@]}" -gt 0 ]; then
-  printf 'per granted wake (all variants of one wake key summed):\n'
+  printf 'per granted wake (all variants of one wake key summed; records without a wake key excluded):\n'
   while IFS= read -r w; do
     [ -n "$w" ] || continue
     printf 'wake %s: input=%s output=%s records=%s\n' "$w" "${WAKE_IN[$w]:-0}" "${WAKE_OUT[$w]:-0}" "${WAKE_N[$w]}"

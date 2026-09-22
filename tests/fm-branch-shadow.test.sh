@@ -618,9 +618,10 @@ else
 fi
 
 # ---------- scorer cost section ----------------------------------------------
-# A fixture log with metered and unmetered records across two wakes: the cost
-# section prints exact per-variant totals with input median and nearest-rank
-# latency p50/p95, plus one summed line per granted wake.
+# A fixture log with metered and unmetered records across two wakes plus one
+# record without a wake key: the cost section prints exact per-variant totals
+# and nearest-rank latency p50/p95 over every record, plus one summed line per
+# granted wake that excludes the keyless record.
 COST_CASE=$(fm_test_tmproot fm-branch-shadow-cost)
 cat > "$COST_CASE/shadow.jsonl" <<'EOF'
 {"t":"1","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":10,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":10}}
@@ -629,14 +630,16 @@ cat > "$COST_CASE/shadow.jsonl" <<'EOF'
 {"t":"4","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":40,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":300,"output_tokens":30}}
 {"t":"5","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":50,"policy":{}}
 {"t":"6","wake":"signal: B","seqs":["2"],"wakeKey":"wk-2","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":50,"output_tokens":5}}
+{"t":"7","wake":"signal: C","seqs":["3"],"tasks":["t1"],"wakeNo":3,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":1,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":1000,"output_tokens":100}}
 EOF
 : > "$COST_CASE/outcomes.jsonl"
 COST_OUT=$(FM_STATE_OVERRIDE="$COST_CASE" "$ROOT/bin/fm-branch-shadow-score.sh" "$COST_CASE/shadow.jsonl" "$COST_CASE/outcomes.jsonl")
-if printf '%s\n' "$COST_OUT" | grep -q '^| full | 4 | 3 | 350 | 100 | 35 | 10 | 30 |$' \
-  && printf '%s\n' "$COST_OUT" | grep -q '^| without_current_state | 2 | 1 | 300 | 300 | 30 | 40 | 50 |$' \
+if printf '%s\n' "$COST_OUT" | grep -q '^| full | 5 | 4 | 1350 | 135 | 10 | 30 |$' \
+  && printf '%s\n' "$COST_OUT" | grep -q '^| without_current_state | 2 | 1 | 300 | 30 | 40 | 50 |$' \
   && printf '%s\n' "$COST_OUT" | grep -q '^wake wk-1: input=600 output=60 records=5$' \
-  && printf '%s\n' "$COST_OUT" | grep -q '^wake wk-2: input=50 output=5 records=1$'; then
-  pass "the scorer's cost section prints exact per-variant totals with median and latency percentiles plus one summed line per granted wake"
+  && printf '%s\n' "$COST_OUT" | grep -q '^wake wk-2: input=50 output=5 records=1$' \
+  && [ "$(printf '%s\n' "$COST_OUT" | grep -c '^wake ')" = "2" ]; then
+  pass "the scorer's cost section prints exact per-variant totals and latency percentiles plus one summed line per granted wake, excluding keyless records"
 else
   fail "the cost section drifted: $COST_OUT"
 fi
