@@ -24,8 +24,12 @@
 # two), with 0.85 / 0.15 / 0.85 as fallbacks. The repeat-control pair (the full
 # variant run twice on every tenth wake) is scored per question as raw call
 # noise only; the per-variant tallies skip the repeat so the full row stays one
-# sample per wake, like every ablation row. A torn or malformed log line is
-# skipped, never fatal.
+# sample per wake, like every ablation row. A final cost section meters the
+# trial: per variant the record count, records carrying the shim's usage
+# object, input/output token totals and latency p50/p95 over every record
+# (unavailable calls still cost time), plus one summed line per granted wake
+# key (records without a wake key are excluded there). A torn or malformed
+# log line is skipped, never fatal.
 #
 # Usage:
 #   bin/fm-branch-shadow-score.sh [-v] [<shadow-log>] [<outcomes-file>]
