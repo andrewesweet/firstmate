@@ -1,0 +1,21 @@
+# changed-file selection for an edit to .claude/mods/fm-branch-mod/hooks/branch.ts
+## BEFORE (bin/fm-test-run.sh at db3fed1^) - classifier and eligibility suites absent
+tests/fm-branch-claude-mod.test.sh
+tests/fm-branch-report-sequence.test.sh
+tests/fm-branch-text.test.sh
+tests/fm-branch-scope.test.sh
+tests/fm-branch-routing.test.sh
+tests/fm-branch-delivery.test.sh
+tests/fm-branch-monitor.test.sh
+tests/fm-branch-settlement.test.sh
+## AFTER (bin/fm-test-run.sh at db3fed1)
+tests/fm-branch-claude-mod.test.sh
+tests/fm-branch-report-sequence.test.sh
+tests/fm-branch-classifier.test.sh
+tests/fm-branch-eligibility.test.sh
+tests/fm-branch-text.test.sh
+tests/fm-branch-scope.test.sh
+tests/fm-branch-routing.test.sh
+tests/fm-branch-delivery.test.sh
+tests/fm-branch-monitor.test.sh
+tests/fm-branch-settlement.test.sh

@@ -1,0 +1,8 @@
+tests/fm-branch-claude-mod.test.sh
+tests/fm-branch-report-sequence.test.sh
+tests/fm-branch-text.test.sh
+tests/fm-branch-scope.test.sh
+tests/fm-branch-routing.test.sh
+tests/fm-branch-delivery.test.sh
+tests/fm-branch-monitor.test.sh
+tests/fm-branch-settlement.test.sh

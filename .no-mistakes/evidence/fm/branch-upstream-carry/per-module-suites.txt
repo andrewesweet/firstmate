@@ -1,0 +1,117 @@
+FM_TEST_BEGIN 2026-09-22T20:21:02Z tests/fm-branch-text.test.sh family=unclassified expected_gate_skip=none
+ok - the mod hook's status-note binding routes the shared module byte-identically
+ok - the reason-line filter keeps signal, stale, check, and heartbeat lines, trimmed, dropping prose and alarms
+ok - the rewake banner keeps the Stop hook's exact shape and bytes
+ok - a text without the monitor description is not ours
+ok - a monitor event block parses to its reason lines
+ok - an expiry notice riding the event stream expires the monitor and keeps the real events
+ok - a lone rotate notice expires the monitor with no reasons
+ok - an eventless notification counts as expired
+ok - the task-notice id parse finds the id or answers empty
+ok - the Stop-hook wake predicate needs both the summary and the watcher marker
+ok - the note slices the status log from the outcome index endpoint
+ok - a missing outcome index reads as no earlier outcome
+ok - a missing status log contributes no lines
+ok - the note keeps at most the last twelve fresh lines
+ok - a multi-task note carries one part per task in order
+ok - an index with a foreign header reads as no earlier outcome
+ok - no tasks answer an empty note
+ok - the processing request keeps its exact bytes
+ok - the tool-text coercion prefers text, then result, then empty
+ok - the Bash actor command wraps the original command with the identity exports
+ok - the version-probe parse takes the first token and accepts three dot-separated numbers
+FM_TEST_END 2026-09-22T20:21:03Z tests/fm-branch-text.test.sh exit=0 duration_ms=263 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:03Z tests/fm-branch-scope.test.sh family=unclassified expected_gate_skip=none
+ok - the mod hook's scan binding routes the shared module identically on every fixture
+ok - a working ship task's signal row scans safe and eligible with its wake key
+ok - an empty queue scans empty before any metadata enumeration can fail
+ok - a missing queue, an unreadable queue, and an unreadable meta each refuse the scan
+ok - a torn epoch field refuses the row set
+ok - an open captain decision makes the stale row decision-owned, not eligible
+ok - a symlinked status log reads as refused, so the stale row stays eligible (bash truth)
+ok - a task without a project leaves its row key unresolvable, so the scan refuses
+ok - a torn status read completes the scan instead of refusing it
+FM_TEST_END 2026-09-22T20:21:04Z tests/fm-branch-scope.test.sh exit=0 duration_ms=1278 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:04Z tests/fm-branch-routing.test.sh family=unclassified expected_gate_skip=none
+ok - a missing mode switch passes the wake to main untouched
+ok - an away flag passes the wake to main
+ok - a wake with no actionable reason line passes to main
+ok - an empty queue under a signal reason is dropped (the other continuity path routed it)
+ok - an empty queue under a check reason still passes (main must acknowledge)
+ok - an unsafe scope passes the wake to main untouched
+ok - a captain classifier verdict passes the wake to main
+ok - the same passed wake inside the dedupe window is dropped
+ok - a passed row still queued after the window goes back to main unclassified
+ok - a routine verdict grants the wake and the branch takes it
+ok - a failed delivery releases the grant and passes the wake to main; the repeat is deduped
+ok - a main-owned publish verdict passes the wake to main
+ok - a missing session lock passes the wake to main
+ok - a wake arriving while the branch is busy is queued for the settlement
+ok - a wake already in the branch's hands is deduped
+ok - a latched provider passes the wake with the latched reason
+ok - a stale in-flight record frees the grant and the fresh wake is delivered
+ok - a classifier pass writes the covering captain row, advances the cursors, and gathers evidence
+ok - the granted wake carries the supervision prompt with its task scope note
+ok - a classifier pass records the passed rows durably
+ok - the mod hook's routeWake binding routes the shared decision identically on every shared step
+FM_TEST_END 2026-09-22T20:21:06Z tests/fm-branch-routing.test.sh exit=0 duration_ms=1715 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:06Z tests/fm-branch-delivery.test.sh family=unclassified expected_gate_skip=none
+ok - the first delivery spawns the named branch agent once
+ok - the second delivery sends to the named agent
+ok - a learned pin ref pins every later send target
+ok - a ref-hint failure learns the new ref and retries the send once
+ok - an unresumable agent rotates to the next generation name
+ok - a plain send denial fails the delivery without rotating
+ok - a ref that changes twice fails the send outright
+ok - after a reload the delivery adopts the live named agent through the send itself
+ok - a failed adoption falls through to a spawn
+ok - a pending context bound rotates the next delivery under a fresh name
+ok - the own-agent bookkeeping gates ids, handbacks, and notifications
+ok - an adopted agent id becomes the pinned branch agent
+ok - the counters round-trip restores the delivery state and the own-agent set
+ok - the named-agent resolution finds the live branch agent under the current generation name
+FM_TEST_END 2026-09-22T20:21:06Z tests/fm-branch-delivery.test.sh exit=0 duration_ms=167 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:06Z tests/fm-branch-monitor.test.sh family=unclassified expected_gate_skip=none
+ok - the mod hook's armMonitor binding routes the shared guard identically
+ok - a cold arm starts one Monitor task and records its task id
+ok - a second arm inside the stale window is a no-op
+ok - an armed claim older than the stale bound expires and the next arm site arms
+ok - a mode-off arm never starts a Monitor (the standing claim is untouched)
+ok - a denied Monitor start loses the claim
+ok - a throwing Monitor start records the error and loses the claim
+ok - the next arm after a lost claim recovers
+ok - the loop command keeps its exact prefix, rotate deadline, and re-arm gates
+ok - only the live monitor's own expiry re-arms; a foreign notice is ignored with the live id
+ok - a restored claim honours its arm time and falls back to the given now
+FM_TEST_END 2026-09-22T20:21:06Z tests/fm-branch-monitor.test.sh exit=0 duration_ms=279 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:06Z tests/fm-branch-settlement.test.sh family=unclassified expected_gate_skip=none
+ok - the mod hook's backstop binding routes the shared rule identically
+ok - the backstop runs the covered check per task in order and logs its result first
+ok - each covered task delivers its deterministic prompt with the tab-stripped lines
+ok - a task with nothing covered delivers no prompt
+ok - a failed backstop submission is logged as backstop.error, never thrown
+ok - unset environment reads persistence on by default
+ok - the force variable restores persistence
+ok - the inherited child-session marker disables persistence
+ok - the force variable wins over the marker
+ok - the counters record keeps its pinned field order
+ok - the counters record parses or refuses, and applies only on the same lock pid
+ok - the usage fold sums the request tokens and divides by the step count
+ok - the rotation bound fires past 60000 per-step tokens, once per crossing
+FM_TEST_END 2026-09-22T20:21:06Z tests/fm-branch-settlement.test.sh exit=0 duration_ms=270 gate_skip=false
+FM_TEST_BEGIN 2026-09-22T20:21:06Z tests/fm-branch-mod-bin.test.sh family=unclassified expected_gate_skip=none
+ok - the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file
+ok - a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold
+ok - only the lines between the previous outcome's endpoint and the routine outcome's endpoint are listed
+ok - a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it
+ok - the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it
+FM_TEST_END 2026-09-22T20:21:16Z tests/fm-branch-mod-bin.test.sh exit=0 duration_ms=9102 gate_skip=false
+FM_TEST_SUMMARY total=7 failed=0 skipped_gate=0 duration_ms=13278
+FM_TEST_SUMMARY_FAMILY family=unclassified count=7 duration_ms=13074 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-branch-mod-bin.test.sh duration_ms=9102
+FM_TEST_SLOWEST rank=2 script=tests/fm-branch-routing.test.sh duration_ms=1715
+FM_TEST_SLOWEST rank=3 script=tests/fm-branch-scope.test.sh duration_ms=1278
+FM_TEST_SLOWEST rank=4 script=tests/fm-branch-monitor.test.sh duration_ms=279
+FM_TEST_SLOWEST rank=5 script=tests/fm-branch-settlement.test.sh duration_ms=270
+FM_TEST_SLOWEST rank=6 script=tests/fm-branch-text.test.sh duration_ms=263
+FM_TEST_SLOWEST rank=7 script=tests/fm-branch-delivery.test.sh duration_ms=167
