@@ -95,7 +95,7 @@ PLAN='[
   "config":"opus-x"},
  {"name":"shortcircuit-fused-marker","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: half line## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
-  "config":"opus-x"},
+  "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"truncated evidence\"}"},
  {"name":"shortcircuit-note-line","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  note: please confirm that session id is the current main session, or correct it\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
   "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"asks the supervisor\"}"},
@@ -416,8 +416,8 @@ fi
 # The deterministic verb route (steps 15-25): every NEW status line in every
 # gathered bundle carrying a recognised verb emits the whitelist verdict with
 # no completion request at all (even with a configured model name), while any
-# unrecognised line, a failed gather, zero new bytes, or a bare legacy line
-# keeps the model path. note: lines always keep the model path, including
+# unrecognised line, a failed gather, a NEW block the gatherer cut mid-line,
+# zero new bytes, or a bare legacy line keeps the model path. note: lines always keep the model path, including
 # beside a recognised verb - the widening that would silently change routing.
 route_step() {
   local idx=$1 verdict=$2 reason=$3 label=$4
@@ -436,7 +436,6 @@ route_step 15 captain "deterministic verb route" "a terminal-verb wake takes the
 route_step 16 routine "deterministic verb route" "nonterminal recognised verbs route routine; prose tokens and tags never widen the route"
 route_step 17 captain "deterministic verb route" "one terminal verb among recognised lines routes captain"
 route_step 18 captain "deterministic verb route" "emission-time tags never hide the verb"
-route_step 19 routine "deterministic verb route" "a NEW block cut mid-line still judges the head before the fused HISTORY marker"
 model_step() {
   local idx=$1 verdict=$2 reason=$3 label=$4
   if [ "$(jq -c ".[$idx].completeReqs | length" "$TMP_ROOT/lib.json")" = "1" ] \
@@ -448,6 +447,7 @@ model_step() {
     fail "$label (reqs=$(jq -c ".[$idx].completeReqs" "$TMP_ROOT/lib.json") result=$(jq -c ".[$idx].result | {verdict, reason, model}" "$TMP_ROOT/lib.json")"
   fi
 }
+model_step 19 uncertain "truncated evidence" "a NEW block the gatherer cut mid-line - the HISTORY marker fused onto it - keeps the model path"
 model_step 20 captain "asks the supervisor" "a note: line always keeps the model path"
 model_step 21 routine "on the model" "an unrecognised verb keeps the model path"
 model_step 22 captain "note beside the done" "a note: line beside a recognised verb keeps the model path"
