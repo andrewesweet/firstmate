@@ -447,6 +447,8 @@ test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
 
   FM_STATE_OVERRIDE="$state" "$EVIDENCE" 'bad task' > "$out" 2>&1 && fail "an invalid task id was accepted"
 
+  printf 'working: well under the cap\n' >> "$state/t1.status"
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" t1 > "$out" || fail "the uncapped evidence bundle failed"
   grep -q '^## the NEW block above stops at the 6000-byte cap' "$out" \
     && fail "an uncapped bundle claimed the NEW block was truncated"
   for i in $(seq 1 100); do printf 'working: %084d\n' "$i" >> "$state/t1.status"; done
