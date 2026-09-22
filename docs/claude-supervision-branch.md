@@ -71,7 +71,7 @@ Records whose status log was torn down count as unscorable.
 The trial's core is the shared `lib/fm-branch-shadow.ts` (the canonical copy under this mod's `lib/`, which the repo's `lib/` symlinks to and the Pi extension imports directly); the behavior below is one capability on both hosts.
 
 `config/classifier-shadow` set to exactly `jev` joins a home's granted wakes (confident routine, after publish) to the Jev shadow trial: the host assembles the evidence bundle a classifier call would see and asks the Jev model the same supervision questions as a detached advisory, so a slow, failed, or wrong answer never delays or alters the wake path.
-The questions mirror the classifier's with ablations: `route` (main vs routine), `phase`, `severity`, `no_new_outcome`, `stale_state` on stale wakes, and one per-candidate Noul per task on compound wakes; there is no recovery question, because recovery stays deterministic.
+The questions mirror the classifier's with ablations: `route` (main vs routine), `phase`, `severity`, `no_new_outcome`, `stale_state` on stale wakes, and one top-level `candidate:<task>` Noul per task on compound wakes (flattened, because the questions map accepts only typed questions); there is no recovery question, because recovery stays deterministic.
 Each granted wake runs four ablation variants - the full bundle, and one without current state, prior outcomes, or pane tail - plus a repeat control: on every tenth wake (by the session counter) the full bundle is asked twice, which measures raw call noise.
 That is at most five helper calls per wake, each answer call bounded to 10 seconds (pane gather 6), and any failure is logged and dropped.
 

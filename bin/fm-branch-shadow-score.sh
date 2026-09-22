@@ -96,6 +96,8 @@ ROWS=$(jq -R -r '
     [$r.answers // {} | to_entries |
       map(if .key == "candidates" and (.value | type == "object") then
             .value | to_entries | map({key: ("candidates." + .key), value: .value})
+          elif (.key | startswith("candidate:")) then
+            [{key: ("candidates." + (.key | ltrimstr("candidate:"))), value: .value}]
           else [.] end) | flatten |
       (if length == 0 then [{key: "NO_ANSWERS", value: {}}] else . end)[] |
       (.value | pol) as $p |

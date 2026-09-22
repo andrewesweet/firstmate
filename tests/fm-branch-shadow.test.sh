@@ -69,10 +69,10 @@ PLAN='[
           "evidence":[{"task":"ship-a","from":0,"to":12,"text":"## status lines appended since last outcome\n  done: a\n"},
                       {"task":"ship-b","from":0,"to":12,"text":"## status lines appended since last outcome\n  done: b\n"}]},
   "pane":[],
-  "jev":[{"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidates\":{\"ship-a\":{\"noul\":0.05},\"ship-b\":{\"noul\":0.95}}}}\n"},
-         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidates\":{\"ship-a\":{\"noul\":0.9},\"ship-b\":{\"noul\":0.2}}}}\n"},
-         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidates\":{\"ship-a\":{\"noul\":0.05},\"ship-b\":{\"noul\":0.95}}}}\n"},
-         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidates\":{\"ship-a\":{\"noul\":0.05},\"ship-b\":{\"noul\":0.95}}}}\n"}]},
+  "jev":[{"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidate:ship-a\":{\"type\":\"noul\",\"noul\":0.05},\"candidate:ship-b\":{\"type\":\"noul\",\"noul\":0.95}}}\n"},
+         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidate:ship-a\":{\"type\":\"noul\",\"noul\":0.9},\"candidate:ship-b\":{\"type\":\"noul\",\"noul\":0.2}}}\n"},
+         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidate:ship-a\":{\"type\":\"noul\",\"noul\":0.05},\"candidate:ship-b\":{\"type\":\"noul\",\"noul\":0.95}}}\n"},
+         {"stdout":"{\"ok\":true,\"model\":\"jev-7\",\"answers\":{\"candidate:ship-a\":{\"type\":\"noul\",\"noul\":0.05},\"candidate:ship-b\":{\"type\":\"noul\",\"noul\":0.95}}}\n"}]},
  {"name":"jev-unavailable","config":"jev","files":{},
   "args":{"wake":"heartbeat: sad","seqs":["7"],"wakeKey":"wk-sad","tasks":["ship-a"],"wakeNo":4,
           "evidence":[{"task":"ship-a","from":0,"to":12,"text":"## status lines appended since last outcome\n  done: x\n"}]},
@@ -442,15 +442,38 @@ else
   fail "the stale-wake variants drifted"
 fi
 
-# Compound wakes ask per-candidate Nouls with provenance, and each variant's
-# record folds only its own answers' Nouls into a copied facts object.
-if [ "$(jq -c '.[4].jev[0].stdin | fromjson | .questions.candidates | keys' "$TMP_ROOT/lib.json")" = '["ship-a","ship-b"]' ] \
+# A compound wake flattens each candidate into its own top-level typed
+# question (a nested questions.candidates entry is rejected with HTTP 422),
+# and each variant's record folds only its own flattened answers into facts.
+if [ "$(jq -r '.[4].jev[0].stdin | fromjson | .questions | has("candidates")' "$TMP_ROOT/lib.json")" = "false" ] \
+  && [ "$(jq -c '.[4].jev[0].stdin | fromjson | .questions | keys | map(select(startswith("candidate:"))) | sort' "$TMP_ROOT/lib.json")" = '["candidate:ship-a","candidate:ship-b"]' ] \
+  && [ "$(jq -r '.[4].jev[0].stdin | fromjson | [.questions[] | has("type")] | all' "$TMP_ROOT/lib.json")" = "true" ] \
   && [ "$(jq -c '.[4].records[0] | fromjson | .facts.candidates' "$TMP_ROOT/lib.json")" = '{"ship-a":0.05,"ship-b":0.95}' ] \
   && [ "$(jq -c '.[4].records[1] | fromjson | .facts.candidates' "$TMP_ROOT/lib.json")" = '{"ship-a":0.9,"ship-b":0.2}' ] \
   && [ "$(jq -r '.[4].records[0] | fromjson | .facts.wake_key' "$TMP_ROOT/lib.json")" = "wk-two" ]; then
-  pass "candidate Nouls fold per variant from each record's own answers"
+  pass "compound wakes ask one top-level typed question per candidate and fold the flattened answers per variant"
 else
-  fail "the per-variant candidate fold drifted"
+  fail "the flattened compound request or its per-variant candidate fold drifted"
+fi
+
+# A single-task wake emits no candidate questions at all.
+if [ "$(jq -r '.[1].jev[0].stdin | fromjson | .questions | has("candidates")' "$TMP_ROOT/lib.json")" = "false" ] \
+  && [ "$(jq -r '.[1].jev[0].stdin | fromjson | [.questions | keys[] | select(startswith("candidate:"))] | length' "$TMP_ROOT/lib.json")" = "0" ]; then
+  pass "a single-task wake emits no candidate questions"
+else
+  fail "a single-task wake grew candidate questions"
+fi
+
+# The score script still prints one per-candidate row per compound record.
+SCORE_CASE=$(fm_test_tmproot fm-branch-shadow-score-candidates)
+jq -r '.[4].records[0]' "$TMP_ROOT/lib.json" > "$SCORE_CASE/shadow.jsonl"
+: > "$SCORE_CASE/outcomes.jsonl"
+SCORE_OUT=$(FM_STATE_OVERRIDE="$SCORE_CASE" "$ROOT/bin/fm-branch-shadow-score.sh" "$SCORE_CASE/shadow.jsonl" "$SCORE_CASE/outcomes.jsonl")
+if printf '%s\n' "$SCORE_OUT" | grep -q 'candidates\.ship-a' \
+  && printf '%s\n' "$SCORE_OUT" | grep -q 'candidates\.ship-b'; then
+  pass "the score script still prints per-candidate rows for a compound record"
+else
+  fail "the score script lost the per-candidate rows: $SCORE_OUT"
 fi
 
 # The unavailable answers keep the record shaped: unavailable text, no model
