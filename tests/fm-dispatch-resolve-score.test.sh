@@ -113,6 +113,22 @@ assert_contains "$_out" '  profile_agreement: 0/0 = n/a' "empty joins print n/a,
 assert_contains "$_out" '    floor=0.6 * clear_frac=0.8571 (6/7) precision_vs_spawn=n/a (0/0)' "floors still score the resolve log with n/a precision"
 pass "a missing spawns log is coverage 0, not an error"
 
+# --- logs beyond one argv value's 128 KiB still score ---------------------------
+# 400 records padded to ~600 bytes each (the size of a live resolver record with
+# its probability vector, policy, and rules digest) make a log over 200 KiB.
+BIG_LOG="$TMP_ROOT/big-resolve.jsonl"
+pad=$(printf 'x%.0s' $(seq 1 560))
+: > "$BIG_LOG"
+for i in $(seq 1 400); do
+  printf '{"ts":"2030-01-01T00:00:01Z","task":"big%s","status":"clear","confidence":0.9,"rule":"rule_1 (Fast work.)","profile":"--harness \u0027claude\u0027","selected_option":"Fast work.","probabilities":"%s"}\n' "$i" "$pad"
+done >> "$BIG_LOG"
+[ "$(wc -c < "$BIG_LOG")" -gt 131072 ] || fail "big log fixture must exceed 128 KiB"
+_out=$(FM_DISPATCH_RESOLVE_LOG="$BIG_LOG" FM_DISPATCH_SPAWNS_LOG="$SPAWNS_LOG" "$TOOL" 2> "$TMP_ROOT/stderr")
+expect_code 0 "$?" "a resolve log over 128 KiB scores: $(cat "$TMP_ROOT/stderr")"
+assert_contains "$_out" '  resolve_log: '"$BIG_LOG"' records=400' "every record of the big log is read"
+assert_contains "$_out" '    floor=0.9 clear_frac=1.0000 (400/400)' "the floor curve covers every big-log record"
+pass "a log beyond one argv value still scores"
+
 # --- unreadable inputs exit 2 ---------------------------------------------------
 printf 'not json\n' > "$TMP_ROOT/bad.jsonl"
 _out=$(FM_DISPATCH_RESOLVE_LOG="$TMP_ROOT/bad.jsonl" FM_DISPATCH_SPAWNS_LOG="$SPAWNS_LOG" "$TOOL" 2> "$TMP_ROOT/stderr")

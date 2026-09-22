@@ -27,8 +27,8 @@
 #   fm-spawn.sh's task-record normalization.
 #
 # Metrics, printed on stdout:
-#   coverage: distinct spawned tasks (kind ship or scout) with a joined
-#     resolver record, over all distinct spawned tasks.
+#   coverage: distinct spawned tasks with a joined resolver record, over all
+#     distinct spawned tasks.
 #   clear_joined: joined (spawn, resolver) pairs whose resolver status is clear.
 #   profile_agreement: clear pairs whose resolver profile equals the spawned
 #     harness, model, and effort.
@@ -102,12 +102,17 @@ else
   LABELS_JSON='{}'
 fi
 
-# read_log <path> <kind>: prints a validated JSON array; a missing path is [].
-# Any malformed line (bad JSON, bad shape, bad timestamp) fails the whole read.
+WORK=$(mktemp -d) || die "cannot create a work directory"
+trap 'rm -rf "$WORK"' EXIT
+
+# read_log <path> <kind>: writes a validated JSON array to $WORK/<kind>.json;
+# a missing path is []. Any malformed line (bad JSON, bad shape, bad timestamp)
+# fails the whole read. The array goes to jq as a file, never as an argument,
+# so a log of any size scores.
 read_log() {
   local path=$1 kind=$2 filter
   if [ ! -e "$path" ] && [ ! -L "$path" ]; then
-    printf '[]\n'
+    printf '[]\n' > "$WORK/$kind.json"
     return 0
   fi
   [ -r "$path" ] || die "$kind log not readable: $path"
@@ -116,7 +121,6 @@ read_log() {
       split("\n") | map(select(test("^\\s*$") | not))
       | map(fromjson)
       | (if any(.[]; type != "object") then error("not an object") else . end)
-      | to_entries | map(.value + {_idx: .key})
       | map(. + {_epoch: (.ts | try (strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) catch "BAD")})
       | (if any(.[];
             ._epoch == "BAD" or (._epoch | type) != "number"
@@ -132,7 +136,6 @@ read_log() {
       split("\n") | map(select(test("^\\s*$") | not))
       | map(fromjson)
       | (if any(.[]; type != "object") then error("not an object") else . end)
-      | to_entries | map(.value + {_idx: .key})
       | map(. + {_epoch: (.ts | try (strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) catch "BAD")})
       | (if any(.[];
             ._epoch == "BAD" or (._epoch | type) != "number"
@@ -143,15 +146,15 @@ read_log() {
             or (.effort != null and ((.effort | type) != "string")))
          then error("bad spawn record") else . end)'
   fi
-  jq -R -s "$filter" "$path" || die "malformed $kind log: $path (one JSON object per line with a UTC ISO-8601 ts)"
+  jq -R -s "$filter" "$path" > "$WORK/$kind.json" || die "malformed $kind log: $path (one JSON object per line with a UTC ISO-8601 ts)"
 }
 
-RESOLVE_JSON=$(read_log "$RESOLVE_LOG" resolve) || exit 2
-SPAWNS_JSON=$(read_log "$SPAWNS_LOG" spawns) || exit 2
+read_log "$RESOLVE_LOG" resolve
+read_log "$SPAWNS_LOG" spawns
 
 # The join and every metric live in this one jq program; bash only formats.
 # shellcheck disable=SC2016  # the jq program's $names are jq variables, not shell expansions.
-SUMMARY=$(jq -cn --argjson resolve "$RESOLVE_JSON" --argjson spawns "$SPAWNS_JSON" \
+SUMMARY=$(jq -cn --slurpfile resolve "$WORK/resolve.json" --slurpfile spawns "$WORK/spawns.json" \
   --argjson labels "$LABELS_JSON" '
   def norm: if . == null or . == "" then "default" else . end;
   def sh_unescape: gsub("\u0027\\\\\u0027\u0027"; "\u0027");
@@ -162,14 +165,15 @@ SUMMARY=$(jq -cn --argjson resolve "$RESOLVE_JSON" --argjson spawns "$SPAWNS_JSO
     | ([.resolver.profile | prof_key("effort")][0] | norm) as $e
     | ($h != null and $h == .harness and $m == (.model | norm) and $e == (.effort | norm));
   def labelled($L): .task != null and ($L[.task] // "") != "";
-  ($resolve) as $R | ($spawns) as $S | ($labels) as $L | 0.6 as $live
+  def label_agrees($L): $L[.task] == .selected_option;
+  ($resolve[0]) as $R | ($spawns[0]) as $S | ($labels) as $L | 0.6 as $live
   | ([$S[] | . as $s | $s + {resolver: ([$R[] | select(.task != null and .task == $s.task and ._epoch <= $s._epoch)] | max_by(._epoch))}]) as $J
-  | ([$J[] | select(.kind != "secondmate") | .task] | unique) as $tasks
-  | ([$J[] | select(.kind != "secondmate" and .resolver != null) | .task] | unique) as $covered
-  | ([$J[] | select(.kind != "secondmate" and .resolver != null and .resolver.status == "clear")]) as $C
+  | ([$J[] | .task] | unique) as $tasks
+  | ([$J[] | select(.resolver != null) | .task] | unique) as $covered
+  | ([$J[] | select(.resolver != null and .resolver.status == "clear")]) as $C
   | ([$C[] | select(profile_agrees)]) as $A
-  | ([$C[] | select(labelled($L))]) as $LN
-  | ([$LN[] | select($L[.task] == .resolver.selected_option)]) as $LG
+  | ([$C[] | select(.resolver | labelled($L))]) as $LN
+  | ([$LN[] | select(.resolver | label_agrees($L))]) as $LG
   | ([$R[] | select((.confidence | type) == "number")]) as $P
   | {
       resolve_records: ($R | length), spawn_records: ($S | length),
@@ -180,7 +184,7 @@ SUMMARY=$(jq -cn --argjson resolve "$RESOLVE_JSON" --argjson spawns "$SPAWNS_JSO
         | ([$P[] | select(.confidence >= $f)]) as $wc
         | ([$C[] | select($f >= $live and .resolver.confidence >= $f)]) as $cp
         | ([$wc[] | select(labelled($L))]) as $ln
-        | ([$ln[] | select($L[.task] == .selected_option)]) as $lg
+        | ([$ln[] | select(label_agrees($L))]) as $lg
         | {floor: $f, live: ($f == $live), wc: ($wc | length),
            prec_n: (if $f >= $live then ($cp | length) else null end),
            prec_agree: ([$cp[] | select(profile_agrees)] | length),
