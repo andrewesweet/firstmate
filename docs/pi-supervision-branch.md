@@ -139,7 +139,7 @@ The one-shot fallback for a configured name that does not resolve, and the recor
 The classifier's model runtime is separate from the branch's and is resolved lazily; a completion failure outside the not-found class is a non-routine verdict, not an exception. The branch is constructed before the classifier runs, so a branch construction failure rejects the wake to main unclassified - the same fallback as the mod's latched pass.
 Only a confident `routine` verdict lets the wake reach the branch grant; `captain`, `uncertain`, a malformed answer, and a failed call pass the rows to main: the settlement rejects (the watcher's catch keeps its wake-to-main path), one durable covering captain row per eligible task is appended with the shared cover argv and immediately marked read and processed, and the rows are recorded in `state/.branch-mod-passed` - the same guard file the mod writes - until main acknowledges them.
 While a row is still queued, every later wake carrying it rejects without a classifier call; rows that have left the queue are swept from the guard at the next classification, so a stale guard cannot wedge the branch.
-Every classifier call appends one record to `state/branch-mod-classifications.jsonl`, the same log `bin/fm-branch-classifier-score.sh` scores, with the same byte-stable record shape on both hosts.
+Every classification appends one record to `state/branch-mod-classifications.jsonl`, the same log `bin/fm-branch-classifier-score.sh` scores, with the same byte-stable record shape on both hosts.
 A failed log append is absorbed and never changes routing.
 
 The away posture skips the classifier entirely: the branch takes every row while the record exists, exactly as its row-exclusions lift there.
