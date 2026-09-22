@@ -21,12 +21,16 @@
 #
 # The log defaults to $STATE/branch-mod-classifications.jsonl. -v lists every
 # record whose label and verdict disagree, marking the evidence that decided
-# from a captured copy. Records with no scorable evidence - no captured copy
-# and byte ranges that no longer resolve (the task's status log was torn
-# down), or a failed gatherer's no-range entry even when its failure text was
-# captured - count as unscorable and are excluded from the label columns.
-# Exit 0 always; the table is the result, and an absent log prints an empty
-# table.
+# from a captured copy. A captured copy is scorable only when it carries both
+# of the gatherer's section markers, NEW and HISTORY: a copy missing either
+# one does not delimit the lines the classifier was shown - truncation dropped
+# the boundary, or the task had no status log at all - so it counts as
+# unscorable rather than being labelled. Records with no scorable evidence -
+# no captured copy and byte ranges that no longer resolve (the task's status
+# log was torn down), a captured copy missing a section marker, or a failed
+# gatherer's no-range entry even when its failure text was captured - count as
+# unscorable and are excluded from the label columns. Exit 0 always; the table
+# is the result, and an absent log prints an empty table.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +43,7 @@ LOG=""
 for arg in "$@"; do
   case "$arg" in
     -v) VERBOSE=1 ;;
-    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) LOG=$arg ;;
   esac
 done
@@ -59,17 +63,25 @@ label_range() {
   echo routine
 }
 
-# captured_new_lines: stdin is a captured evidence bundle; stdout is its NEW
-# section with the gatherer's two-space line indent removed - exactly the
-# status lines the classifier was shown - so the bundle's state output and
-# its already-handled HISTORY lines never label a record. A bundle whose
-# HISTORY tail is so long that middle truncation dropped the HISTORY marker
-# scans to the end of the copy; the extra already-handled lines can only ever
-# push a label toward captain, never hide a miss.
+# captured_has_markers <copy>: true when the bundle carries both of the
+# gatherer's section markers, so its NEW section has a known start and end.
+# The HISTORY marker is matched anywhere in its line: when the gatherer's
+# byte cap ends the NEW block mid-line, the marker follows that partial line
+# without a newline between them.
+captured_has_markers() {
+  printf '%s\n' "$1" | grep -qF '## status lines appended since the last classified wake' &&
+    printf '%s\n' "$1" | grep -qF '## earlier lines, already handled by earlier wakes'
+}
+
+# captured_new_lines: stdin is a captured evidence bundle that carries both
+# section markers; stdout is its NEW section with the gatherer's two-space
+# line indent removed - exactly the status lines the classifier was shown - so
+# the bundle's state output and its already-handled HISTORY lines never label
+# a record.
 captured_new_lines() {
   awk '
-    /^## status lines appended since the last classified wake/ { innew = 1; next }
-    /^## earlier lines, already handled by earlier wakes/ { innew = 0; next }
+    index($0, "## status lines appended since the last classified wake") { innew = 1; next }
+    index($0, "## earlier lines, already handled by earlier wakes") { innew = 0; next }
     innew { sub(/^  /, ""); print }
   '
 }
@@ -107,10 +119,13 @@ while IFS=$'\t' read -r idx model verdict ev; do
     shown="${shown:+${shown};}"
     if [ -n "$tb64" ] && [ "$from" -ge 0 ] && [ "$to" -ge "$from" ]; then
       shown+="${task},${from},${to}+captured"
-      case "$(printf '%s' "$tb64" | base64 -d | captured_new_lines | label_captured)" in
-        captain) label=captain; scorable=1 ;;
-        routine) scorable=1 ;;
-      esac
+      copy=$(printf '%s' "$tb64" | base64 -d)
+      if captured_has_markers "$copy"; then
+        case "$(printf '%s\n' "$copy" | captured_new_lines | label_captured)" in
+          captain) label=captain; scorable=1 ;;
+          routine) scorable=1 ;;
+        esac
+      fi
     else
       shown+="${task},${from},${to}"
       case "$(label_range "$task" "$from" "$to")" in

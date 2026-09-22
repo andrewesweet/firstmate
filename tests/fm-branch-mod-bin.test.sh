@@ -640,6 +640,15 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
   to_big=$(wc -c < "$state/gone-big.status")
   FM_STATE_OVERRIDE="$state" "$EVIDENCE" gone-big > "$dir/bundle-big"
   to_t9=$(wc -c < "$state/t9.status")
+  # no-log has never had a status log, so the gatherer emits header and state
+  # only - a real bundle with neither section marker.
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" no-log > "$dir/bundle-no-log"
+  {
+    printf '## task trunc status bytes 0-400\n'
+    printf '## status lines appended since the last classified wake (NEW - judge these)\n'
+    printf '  working: still building\n'
+    printf '  done: PR https://example.test/11 checks green\n'
+  } > "$dir/copy-no-history"
   rm -f "$state/gone-routine.status" "$state/.gone-routine.classifier-offset" \
     "$state/gone-done.status" "$state/.gone-done.classifier-offset" \
     "$state/gone-big.status" "$state/.gone-big.classifier-offset"
@@ -661,6 +670,15 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
             , text_cap: 8192}
             | .evidence[0].text_len = (.evidence[0].text | length)'
     printf '{"t":"x","verdict":"uncertain","model":"sonnet","evidence":[{"task":"vanished","from":0,"to":11}]}\n'
+    # A copy of a task with no status log at all carries neither section
+    # marker, and a copy whose HISTORY marker was lost to truncation carries
+    # only the NEW one: neither delimits the lines the classifier was shown,
+    # so both must land in the unscorable column rather than be labelled.
+    cap_record routine opus no-log 0 "$dir/bundle-no-log"
+    jq -nc --arg task trunc --rawfile text "$dir/copy-no-history" \
+      '{t: "x", verdict: "routine", model: "opus",
+        evidence: [{task: $task, from: 0, to: 400, text: $text, text_len: ($text | length)}],
+        text_cap: 8192}'
   } > "$state/branch-mod-classifications.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SCORE" -v > "$out" || fail "scorer failed: $(cat "$out")"
@@ -678,8 +696,18 @@ test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
     fail "the beyond-the-NEW-cap copy wrongly agreed with its captain range: $(cat "$out")"
   fi
 
+  grep -q '^| opus | 2 | 2 / 0 / 0 | 0 | 0 | 0 | 0 | 2 |$' "$out" \
+    || fail "a captured copy missing a section marker was scored instead of counted unscorable: $(cat "$out")"
+  if grep -qF 'trunc,0,400' "$out"; then
+    fail "the copy with no HISTORY marker fabricated a label from already-handled lines: $(cat "$out")"
+  fi
+  if grep -qF 'no-log,0,0' "$out"; then
+    fail "the copy of a task with no status log was labelled instead of counted unscorable: $(cat "$out")"
+  fi
+
   FM_STATE_OVERRIDE="$state" "$SCORE" --help > "$out" || fail "scorer help failed"
   grep -q 'captured evidence copy' "$out" || fail "scorer help lost the captured-copy contract: $(cat "$out")"
+  grep -q 'section markers' "$out" || fail "scorer help lost the missing-marker rule: $(cat "$out")"
   pass "the scorer labels captured copies in place of deleted status logs, still labels range-only records from live bytes, and marks which evidence decided"
 }
 
