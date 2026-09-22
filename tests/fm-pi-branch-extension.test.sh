@@ -817,6 +817,62 @@ EOF
   pass "a captain-classified wake passes to main with cover rows, the guard file, and its sweep"
 }
 
+test_classifier_record_carries_the_captured_evidence_text() {
+  local repo home status out
+  repo="$TMP_ROOT/classifier-capture-root"
+  home="$TMP_ROOT/classifier-capture-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  # The driver's wake rows always name branch-driver.status, and its prelude
+  # writes that task's meta at startup, so both gathers must see the same
+  # meta the classification will see. The standalone gather runs with the
+  # same environment and working directory the extension's own gather runs
+  # with, so the two bundles are byte-identical; the offset reset makes the
+  # classification re-read from byte 0.
+  mkdir -p "$home/projects/approved"
+  printf 'project=%s/projects/approved\nwindow=fm-branch-driver\n' "$home" > "$home/state/branch-driver.meta"
+  printf 'working: a\ndone: PR https://example.com/pr/9 checks green\n' > "$home/state/branch-driver.status"
+  (cd "$ROOT" && FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$home/state" \
+    "$ROOT/bin/fm-wake-evidence.sh" branch-driver) > "$home/bundle.txt"
+  rm -f "$home/state/.branch-driver.classifier-offset"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home, makeOffer, bus }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home, makeOffer, bus } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+await fire("session_start", {}, defaultSessionCtx);
+const classFile = `${home}/state/branch-mod-classifications.jsonl`;
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "captain", reason: "the worker reports a blocked credential" });
+const offer = dispatch("signal: task-9 done: PR https://example.com/pr/9 checks green");
+let rejected = "";
+try { await offer.settlement; } catch (error) { rejected = String(error.message); }
+if (!rejected.includes("classifier routed the wake to main")) {
+  throw new Error(`the wake did not reach the classifier: ${rejected}`);
+}
+const records = (() => { try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); } catch { return []; } })();
+if (records.length !== 1) throw new Error(`expected one classification record, got ${records.length}`);
+const rec = records[0];
+const entry = rec.evidence[0];
+const bundle = readFileSync(`${home}/bundle.txt`, "utf8");
+const statusLog = readFileSync(`${home}/state/branch-driver.status`, "utf8");
+if (entry.task !== "branch-driver") throw new Error(`record lost the task: ${JSON.stringify(entry)}`);
+if (entry.from !== 0 || entry.to !== statusLog.length) {
+  throw new Error(`record byte range drifted: ${entry.from}-${entry.to} vs ${statusLog.length}`);
+}
+if (entry.text !== bundle) throw new Error(`captured copy is not the gatherer's bundle:\n${entry.text}\nvs\n${bundle}`);
+if (entry.text_len !== bundle.length) throw new Error(`captured length drifted: ${entry.text_len} vs ${bundle.length}`);
+if (rec.text_cap !== 8192) throw new Error(`record lost the capture cap: ${JSON.stringify(rec.text_cap)}`);
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "the pi classification record must carry the captured evidence text: $out"
+  pass "the pi classification record captures the evidence text it judged beside its byte range, with the cap named"
+}
+
 # The Pi host default, in three single-purpose drivers: an unconfigured
 # classifier runs on the supervision branch's own model (the pin, else
 # main's session model) with no failing haiku call first; an explicit
@@ -5877,6 +5933,7 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers
 test_real_pi_picker_primitives_stay_bounded_and_searchable
 test_branch_dispatch_two_stage_filter_and_prefix_contract
 test_classifier_pass_covers_rows_and_guards_passed_seqs
+test_classifier_record_carries_the_captured_evidence_text
 test_classifier_default_resolves_per_host_on_pi
 test_classifier_explicit_config_wins_on_pi
 test_classifier_unresolvable_falls_back_once_on_pi

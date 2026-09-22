@@ -611,6 +611,78 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
   pass "the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it"
 }
 
+test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges() {
+  local dir state out to_routine to_done to_big
+  dir=$(make_case scorer-captured)
+  state="$dir/state"
+  out="$dir/score.out"
+
+  # The live task t9 exercises the byte-range fallback; the three gone-*
+  # tasks keep their status lines only inside captured copies, exactly as
+  # records look after teardown deletes the log the ranges point at.
+  printf 'working: a\ndone: PR https://example.test/7 checks green\n' > "$state/t9.status"
+  printf 'working: h\ndone: PR https://example.test/8 checks green\n' > "$state/gone-done.status"
+  printf 'working: h\n' > "$state/gone-routine.status"
+  # gone-big carries its captain line beyond the 6,000-byte NEW block the
+  # gatherer emits, so its captured copy judges only routine lines while its
+  # recorded range still resolves to captain: labelling the copy and not the
+  # range is what proves the copy is preferred when both exist.
+  {
+    printf 'working: h\n'
+    for i in $(seq 1 70); do printf 'working: %084d\n' "$i"; done
+    printf 'done: PR https://example.test/10 checks green\n'
+  } > "$state/gone-big.status"
+
+  to_done=$(wc -c < "$state/gone-done.status")
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" gone-done > "$dir/bundle-done"
+  to_routine=$(wc -c < "$state/gone-routine.status")
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" gone-routine > "$dir/bundle-routine"
+  to_big=$(wc -c < "$state/gone-big.status")
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" gone-big > "$dir/bundle-big"
+  to_t9=$(wc -c < "$state/t9.status")
+  rm -f "$state/gone-routine.status" "$state/.gone-routine.classifier-offset" \
+    "$state/gone-done.status" "$state/.gone-done.classifier-offset" \
+    "$state/gone-big.status" "$state/.gone-big.classifier-offset"
+
+  cap_record() {  # <verdict> <model> <task> <to> <bundle-file>: one captured-copy record
+    jq -nc --arg verdict "$1" --arg model "$2" --arg task "$3" --argjson to "$4" --rawfile text "$5" \
+      '{t: "x", verdict: $verdict, model: $model,
+        evidence: [{task: $task, from: 0, to: $to, text: $text, text_len: ($text | length)}],
+        text_cap: 8192}'
+  }
+  {
+    printf '{"t":"x","verdict":"routine","model":"haiku","evidence":[{"task":"t9","from":0,"to":%s}]}\n' "$to_t9"
+    cap_record routine haiku gone-done "$to_done" "$dir/bundle-done"
+    cap_record routine haiku gone-big "$to_big" "$dir/bundle-big"
+    cap_record captain haiku gone-routine "$to_routine" "$dir/bundle-routine"
+    jq -nc '{t: "x", verdict: "uncertain", model: "haiku",
+            evidence: [{task: "gone-fail", from: -1, to: -1,
+                        text: "## task gone-fail\n(evidence gatherer failed: boom)\n", text_len: 0}]
+            , text_cap: 8192}
+            | .evidence[0].text_len = (.evidence[0].text | length)'
+    printf '{"t":"x","verdict":"uncertain","model":"sonnet","evidence":[{"task":"vanished","from":0,"to":11}]}\n'
+  } > "$state/branch-mod-classifications.jsonl"
+
+  FM_STATE_OVERRIDE="$state" "$SCORE" -v > "$out" || fail "scorer failed: $(cat "$out")"
+  grep -q '^| haiku | 5 | 3 / 1 / 1 | 2 | 0 | 1 | 1 | 1 |$' "$out" \
+    || fail "haiku row did not score the captured and fallback records together: $(cat "$out")"
+  grep -q '^| sonnet | 1 | 0 / 0 / 1 | 0 | 0 | 0 | 0 | 1 |$' "$out" \
+    || fail "sonnet row did not keep a range-only dead record unscorable: $(cat "$out")"
+  grep -qF "record 1 (haiku): label captain, verdict routine CAPTAIN MISS: t9,0,${to_t9}" "$out" \
+    || fail "the fallback record was not labelled from its byte range: $(cat "$out")"
+  grep -qF "record 2 (haiku): label captain, verdict routine CAPTAIN MISS: gone-done,0,${to_done}+captured" "$out" \
+    || fail "the torn-down task's captured copy did not label the captain miss: $(cat "$out")"
+  grep -qF "label routine, verdict captain: gone-routine,0,${to_routine}+captured" "$out" \
+    || fail "the routine-only captured copy did not override the captain verdict: $(cat "$out")"
+  if grep -qF 'gone-big' "$out"; then
+    fail "the beyond-the-NEW-cap copy wrongly agreed with its captain range: $(cat "$out")"
+  fi
+
+  FM_STATE_OVERRIDE="$state" "$SCORE" --help > "$out" || fail "scorer help failed"
+  grep -q 'captured evidence copy' "$out" || fail "scorer help lost the captured-copy contract: $(cat "$out")"
+  pass "the scorer labels captured copies in place of deleted status logs, still labels range-only records from live bytes, and marks which evidence decided"
+}
+
 test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env() {
   local dir home fakebin out code body
   dir=$(make_case jev-helper)
@@ -796,6 +868,7 @@ test_routine_covered_lines_surface_only_under_the_mod
 test_routine_covered_lines_are_byte_exact_across_outcomes
 test_routine_covered_lines_omitted_by_the_byte_cap_are_presented_on_the_next_drain
 test_scorer_labels_records_from_the_status_bytes_they_judged
+test_scorer_prefers_a_captured_evidence_copy_and_falls_back_to_byte_ranges
 test_shadow_jev_helper_keeps_the_key_off_argv_and_the_child_env
 test_shadow_pane_helper_reports_only_what_it_can_read
 test_shadow_scorer_joins_records_to_outcomes_by_wake_identity

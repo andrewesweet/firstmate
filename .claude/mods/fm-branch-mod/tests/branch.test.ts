@@ -61,6 +61,21 @@ function nth(values: string | string[] | undefined, index: number, fallback: str
   return values[Math.min(index, values.length - 1)] ?? fallback;
 }
 
+/** The evidence bundle a fm-wake-evidence.sh stub run answers when the test
+ * binds none, shared with the classification-log expectations that pin the
+ * record's captured copy against it. */
+function defaultEvidence(task: string): string {
+  return (
+    `## task ${task} status bytes 0-38\n` +
+    `## current state (bin/fm-crew-state.sh ${task})\n` +
+    `state: working\n` +
+    `## status lines appended since the last classified wake (NEW - judge these)\n` +
+    `  done: PR https://x/1 checks green\n` +
+    `## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n` +
+    `  (none)\n`
+  );
+}
+
 /**
  * The in-memory state directory with stat versions: every mutation bumps that
  * key's mtime, so the eligibility scan's stat-version cache keys move even when
@@ -192,15 +207,7 @@ function world(on: On, options: WorldOptions = {}): World {
     const script = String(argv[1] ?? "").split("/").pop() ?? "";
     if (script === "fm-wake-evidence.sh") {
       const index = runs.filter((r) => r.argv[1]?.endsWith("fm-wake-evidence.sh")).length - 1;
-      const fallback =
-        `## task ${argv[2]} status bytes 0-38\n` +
-        `## current state (bin/fm-crew-state.sh ${argv[2]})\n` +
-        `state: working\n` +
-        `## status lines appended since the last classified wake (NEW - judge these)\n` +
-        `  done: PR https://x/1 checks green\n` +
-        `## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n` +
-        `  (none)\n`;
-      return answer(nth(options.evidence, index, fallback));
+      return answer(nth(options.evidence, index, defaultEvidence(String(argv[2]))));
     }
     if (script === "fm-wake-grant.sh") return answer();
     if (script === "fm-branch-outcome.sh") return answer("7\n");
@@ -351,7 +358,7 @@ describe("transcript persistence log", () => {
 });
 
 describe("classification log", () => {
-  test("every classifier call appends one record with task, evidence byte offsets, verdict, and model", async ($: Engine, on: On) => {
+  test("every classifier call appends one record with task, evidence byte offsets and captured copy, verdict, and model", async ($: Engine, on: On) => {
     const w = world(on, {
       files: { ...armedHome(), [`${CONFIG}/classifier-model`]: "haiku-4-5\n" },
       classifierAnswer: 'Sure. {"verdict":"captain","reason":"a done line with a PR URL"}',
@@ -367,10 +374,31 @@ describe("classification log", () => {
     expect(records.length).toBe(1);
     expect(records[0].tasks).toEqual(["t1"]);
     expect(records[0].seqs).toEqual(["12"]);
-    expect(records[0].evidence).toEqual([{ task: "t1", from: 0, to: 38 }]);
+    expect(records[0].evidence).toEqual([
+      { task: "t1", from: 0, to: 38, text: defaultEvidence("t1"), text_len: defaultEvidence("t1").length },
+    ]);
+    expect(records[0].text_cap).toBe(8192);
     expect(records[0].verdict).toBe("captain");
     expect(records[0].model).toBe("haiku-4-5");
     expect(records[0].reason).toBe("a done line with a PR URL");
+  });
+
+  test("a bundle over the capture cap is recorded middle-truncated: first and last half of the cap, judged length kept", async ($: Engine, on: On) => {
+    const long = `## task t1 status bytes 0-20000\n${"x".repeat(20000)}\n`;
+    const w = world(on, {
+      files: armedHome(),
+      evidence: long,
+      classifierAnswer: '{"verdict":"routine","reason":"long bundle"}',
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+
+    const records = w.appended(CLASSIFICATIONS).map((line) => JSON.parse(line));
+    expect(records.length).toBe(1);
+    const entry = records[0].evidence[0];
+    expect(entry.text_len).toBe(long.length);
+    expect(entry.text).toBe(long.slice(0, 4096) + long.slice(long.length - 4096));
+    expect(records[0].text_cap).toBe(8192);
   });
 
   test("the classifier model defaults to haiku when config/classifier-model is absent", async ($: Engine, on: On) => {
