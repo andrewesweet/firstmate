@@ -1,0 +1,15 @@
+A: usage passed through unchanged (extra nested fields kept)
+http=200 exit=0 stdout={"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.9}},"usage":{"input_tokens":812,"output_tokens":60,"cache":{"read":5}}}
+
+B: no usage field -> usage null
+http=200 exit=0 stdout={"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.9}},"usage":null}
+
+C: usage present but answers not an object -> unavailable, no partial
+http=200 exit=0 stdout={"ok":false,"unavailable":"malformed response","model":"jev"}
+
+D: http 503 with usage in body -> unavailable
+http=503 exit=0 stdout={"ok":false,"unavailable":"http 503","model":"jev"}
+
+E: malformed body -> unavailable
+http=200 exit=0 stdout={"ok":false,"unavailable":"malformed response","model":"jev"}
+

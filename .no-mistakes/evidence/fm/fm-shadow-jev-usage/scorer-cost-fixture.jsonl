@@ -1,0 +1,12 @@
+{"t":"1","wakeKey":"wk-1","variant":"full","repeat":1,"ms":10,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":10}}
+{"t":"2","wakeKey":"wk-1","variant":"full","repeat":1,"ms":20,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":200,"output_tokens":20}}
+{"t":"3","wakeKey":"wk-1","variant":"full","repeat":1,"ms":30,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}
+{"t":"4","wakeKey":"wk-1","variant":"without_current_state","repeat":1,"ms":40,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":300,"output_tokens":30}}
+{"t":"5","wakeKey":"wk-1","variant":"without_current_state","repeat":1,"unavailable":"http 503","ms":50,"policy":{}}
+{"t":"6","wakeKey":"wk-2","variant":"full","repeat":1,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":50,"output_tokens":5}}
+{"t":"7","variant":"full","repeat":1,"ms":1,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":1000,"output_tokens":100}}
+{"t":"8","wakeKey":"","variant":"full","repeat":1,"ms":2,"policy":{},"answers":{},"usage":{"input_tokens":7,"output_tokens":7}}
+{"t":"9","wakeKey":"wk-3","variant":"full","repeat":1,"ms":3,"policy":{},"answers":{},"usage":{"input_tokens":"12","output_tokens":null}}
+{"t":"10","wakeKey":"wk-3","variant":"full","repeat":1,"ms":"slow","policy":{},"answers":{},"usage":"oops"}
+{"t":"11","wakeKey":"wk-3","variant":"without_pane_tail","repeat":1,"ms":1000000,"policy":{},"answers":{},"usage":{"input_tokens":1000000,"output_tokens":123456}}
+this line is torn {
