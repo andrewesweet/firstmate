@@ -78,6 +78,14 @@ export const SHADOW_CONTROL_EVERY = 10;
 export const SHADOW_LINES_PER_TASK = 12;
 export const SHADOW_PRIOR_PER_TASK = 4;
 export const SHADOW_MODEL = "jev-latest";
+/** Prefix flattening each compound-wake candidate into its own top-level
+ * typed question (`candidate:<task-id>`): the questions map accepts only
+ * typed questions, so a nested `candidates` entry is rejected (HTTP 422).
+ * The API names each key freely (https://docs.typesafe.ai/api: "A key you
+ * choose"), so the colon separator is safe next to hyphen-and-digit task
+ * ids; stripping this prefix reverses the fold, and both the request
+ * builder and the answer reader below share this one constant. */
+export const SHADOW_CANDIDATE_PREFIX = "candidate:";
 /** Policy floors written into every record: Choice confidence floor; a Noul
  * below the grant floor is a grant, above the pass floor a pass. */
 export const SHADOW_POLICY = { choice_confidence_floor: 0.85, noul_grant_below: 0.15, noul_pass_above: 0.85 };
@@ -243,9 +251,8 @@ export function buildShadowQuestions(a: { wake: string; tasks: string[] }, st: S
   if (a.tasks.length > 1) {
     const prior = (st.prior_outcomes as Array<Record<string, unknown>> | undefined) ?? [];
     const fresh = (st.fresh_status as Array<{ id: string; text: string }> | undefined) ?? [];
-    const cands: Record<string, unknown> = {};
     for (const t of a.tasks) {
-      cands[t] = {
+      questions[`${SHADOW_CANDIDATE_PREFIX}${t}`] = {
         type: "noul",
         instructions: {
           question: "Is this candidate a still-unreported actionable fact in this wake?",
@@ -259,7 +266,6 @@ export function buildShadowQuestions(a: { wake: string; tasks: string[] }, st: S
         },
       };
     }
-    questions.candidates = cands;
   }
   return questions;
 }
@@ -339,11 +345,14 @@ export function pickJsonLine(stdout: string): string | null {
   );
 }
 
-/** The candidate Nouls a record's own answers supply, keyed by task id. */
+/** The candidate Nouls a record's own answers supply, keyed by task id:
+ * the flattened `candidate:<task>` top-level answers. */
 export function candidateNouls(answers: unknown): Record<string, number> {
   const cands: Record<string, number> = {};
-  for (const [tid, c] of Object.entries(((answers as Record<string, unknown>)?.candidates ?? {}) as Record<string, unknown>)) {
-    if (c && typeof (c as Record<string, unknown>).noul === "number") cands[tid] = (c as Record<string, number>).noul;
+  const ans = ((answers ?? {}) as Record<string, unknown>);
+  for (const [key, c] of Object.entries(ans)) {
+    if (!key.startsWith(SHADOW_CANDIDATE_PREFIX)) continue;
+    if (c && typeof (c as Record<string, unknown>).noul === "number") cands[key.slice(SHADOW_CANDIDATE_PREFIX.length)] = (c as Record<string, number>).noul;
   }
   return cands;
 }

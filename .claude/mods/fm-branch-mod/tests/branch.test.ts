@@ -627,7 +627,7 @@ describe("shadow advisory", () => {
   const JEV_OK =
     '{"ok":true,"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"routine","confidence":0.9,"probabilities":{"routine":0.9,"main":0.1}},"phase":{"type":"choice","choice":"finished_ready","confidence":0.8,"probabilities":{}},"severity":{"type":"score","score":1,"confidence":0.7,"probabilities":[0.1,0.8,0.1,0.0]},"no_new_outcome":{"type":"noul","noul":0.3}}}';
   const JEV_COMPOUND =
-    '{"ok":true,"model":"jev-1.13.0","answers":{"candidates":{"t1":{"type":"noul","noul":0.3},"t2":{"type":"noul","noul":0.2}}}}';
+    '{"ok":true,"model":"jev-1.13.0","answers":{"candidate:t1":{"type":"noul","noul":0.3},"candidate:t2":{"type":"noul","noul":0.2}}}';
   const PANE_PRESENT =
     '{"task":"t1","tail":"pane last lines","observation":{"progressing":true,"seconds_since_last_activity":7,"busy_source":"pi-ext"}}';
   const shadowHome = (extra: Record<string, string> = {}): Record<string, string> => ({
@@ -835,11 +835,15 @@ describe("shadow advisory", () => {
 
     const full = JSON.parse(shadowRuns(w)[0].stdin ?? "{}");
     expect(full.state.wake).toContain("t1.status");
-    const cands = full.questions.candidates;
-    expect(Object.keys(cands).sort()).toEqual(["t1", "t2"]);
+    // Candidates ride as their own top-level typed questions: a nested
+    // questions.candidates entry is not a typed question and is rejected.
+    expect(full.questions.candidates).toBeUndefined();
+    expect(Object.keys(full.questions).filter((k: string) => k.startsWith("candidate:")).sort()).toEqual(["candidate:t1", "candidate:t2"]);
+    for (const q of Object.values(full.questions)) expect((q as { type?: string }).type).toBeDefined();
     // The compound facts name every candidate Noul that record's own answer gave.
     const compoundRecord = JSON.parse(w.appended(SHADOW_LOG)[0]);
     expect(compoundRecord.facts.candidates).toEqual({ t1: 0.3, t2: 0.2 });
+    const cands = { t1: full.questions["candidate:t1"], t2: full.questions["candidate:t2"] };
     expect(cands.t1.type).toBe("noul");
     expect(cands.t1.instructions.candidate).toBe("t1");
     expect(cands.t1.instructions.fresh_lines.length).toBeGreaterThan(0);
