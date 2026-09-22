@@ -7,7 +7,7 @@
 #       Read one complete TypeSafe System One request ({model, state, questions})
 #       from stdin, POST it to https://api.typesafe.ai/v1/systemone, and print
 #       exactly one JSON line on stdout:
-#         success:    {"ok":true,"model":"jev-1.13.0","answers":{...}}
+#         success:    {"ok":true,"model":"jev-1.13.0","answers":{...},"usage":{...}}
 #         any failure: {"ok":false,"unavailable":"<short cause>","model":"jev"}
 #       Exit 0 always; the caller records the unavailable result and moves on.
 #       The shadow advisory never affects routing, so no failure here may
@@ -58,7 +58,8 @@ HTTP=$(printf '%s' "$REQUEST" | curl -sS --max-time "$TS_TIMEOUT" -o "$RESP_FILE
   --data-binary @- 2>/dev/null) || HTTP=000
 [ "$HTTP" = 200 ] || unavailable "http $HTTP"
 
-# One JSON line out: model plus the answers object, validated just enough to
-# be a record. Anything else is unavailable, never a partial answer.
-jq -e -c '{ok: true, model: (.model // "jev"), answers: .answers} | select((.answers | type) == "object")' \
+# One JSON line out: model plus the answers object, with the response's own
+# usage object passed through unchanged (null when the response carries
+# none). Anything else is unavailable, never a partial answer.
+jq -e -c '{ok: true, model: (.model // "jev"), answers: .answers, usage: .usage} | select((.answers | type) == "object")' \
   "$RESP_FILE" 2>/dev/null || unavailable "malformed response"

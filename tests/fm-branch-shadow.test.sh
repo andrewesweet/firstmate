@@ -573,3 +573,70 @@ if [ "$(jq -r '.[13].errors | map(.kind) | join(",")' "$TMP_ROOT/lib.json")" = "
 else
   fail "the shadow.error surface drifted"
 fi
+
+# ---------- shim usage passthrough -------------------------------------------
+# A fake curl stands in for the network: the shim must pass the response's
+# usage object through unchanged, emit usage null when the response carries
+# none, and print only the safe fields on one line - never the key.
+SHIM_CASE=$(fm_test_tmproot fm-branch-shadow-jev-usage)
+mkdir -p "$SHIM_CASE/fakebin" "$SHIM_CASE/home"
+cat > "$SHIM_CASE/fakebin/curl" <<'SH'
+#!/usr/bin/env bash
+set -u
+_out=""
+_wfmt=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) _out=$2; shift 2 ;;
+    -w) _wfmt=$2; shift 2 ;;
+    *) shift ;;
+  esac
+done
+cat > /dev/null
+cat "${FAKE_JEV_RESPONSE:?}" > "${_out:?}"
+printf '%s\n' "${_wfmt//%\{http_code\}/200}"
+SH
+chmod +x "$SHIM_CASE/fakebin/curl"
+printf '%s\n' 'TYPESAFE_API_KEY=sk-jev-trial-key' > "$SHIM_CASE/home/.env"
+printf '%s' '{"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.91}},"usage":{"input_tokens":812,"output_tokens":60}}' > "$SHIM_CASE/response.json"
+SHIM_OUT=$(PATH="$SHIM_CASE/fakebin:$PATH" FM_HOME="$SHIM_CASE/home" FAKE_JEV_RESPONSE="$SHIM_CASE/response.json" "$ROOT/bin/fm-branch-shadow-jev.sh" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+if [ "$(printf '%s\n' "$SHIM_OUT" | wc -l | tr -d ' ')" = "1" ] \
+  && printf '%s' "$SHIM_OUT" | jq -e '.ok == true and .usage.input_tokens == 812 and .usage.output_tokens == 60' >/dev/null \
+  && printf '%s' "$SHIM_OUT" | jq -e 'keys_unsorted == ["ok","model","answers","usage"]' >/dev/null \
+  && ! printf '%s' "$SHIM_OUT" | grep -q 'sk-jev-trial-key'; then
+  pass "the shim passes the response usage through on one safe line without the key"
+else
+  fail "the shim did not pass usage through cleanly: $SHIM_OUT"
+fi
+
+printf '%s' '{"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.91}}}' > "$SHIM_CASE/response.json"
+SHIM_OUT=$(PATH="$SHIM_CASE/fakebin:$PATH" FM_HOME="$SHIM_CASE/home" FAKE_JEV_RESPONSE="$SHIM_CASE/response.json" "$ROOT/bin/fm-branch-shadow-jev.sh" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+if printf '%s' "$SHIM_OUT" | jq -e '.ok == true and .usage == null' >/dev/null; then
+  pass "a response without usage records usage null rather than inventing one"
+else
+  fail "a usage-less response did not record usage null: $SHIM_OUT"
+fi
+
+# ---------- scorer cost section ----------------------------------------------
+# A fixture log with metered and unmetered records across two wakes: the cost
+# section prints exact per-variant totals with input median and nearest-rank
+# latency p50/p95, plus one summed line per granted wake.
+COST_CASE=$(fm_test_tmproot fm-branch-shadow-cost)
+cat > "$COST_CASE/shadow.jsonl" <<'EOF'
+{"t":"1","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":10,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":10}}
+{"t":"2","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":20,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":200,"output_tokens":20}}
+{"t":"3","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":30,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}}}
+{"t":"4","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":40,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":300,"output_tokens":30}}
+{"t":"5","wake":"signal: A","seqs":["1"],"wakeKey":"wk-1","tasks":["t1"],"wakeNo":1,"variant":"without_current_state","repeat":1,"control":false,"unavailable":"http 503","requestBytes":10,"ms":50,"policy":{}}
+{"t":"6","wake":"signal: B","seqs":["2"],"wakeKey":"wk-2","tasks":["t1"],"wakeNo":2,"variant":"full","repeat":1,"control":false,"unavailable":null,"requestBytes":10,"ms":5,"policy":{},"answers":{"route":{"type":"choice","choice":"routine","confidence":0.9}},"usage":{"input_tokens":50,"output_tokens":5}}
+EOF
+: > "$COST_CASE/outcomes.jsonl"
+COST_OUT=$(FM_STATE_OVERRIDE="$COST_CASE" "$ROOT/bin/fm-branch-shadow-score.sh" "$COST_CASE/shadow.jsonl" "$COST_CASE/outcomes.jsonl")
+if printf '%s\n' "$COST_OUT" | grep -q '^| full | 4 | 3 | 350 | 100 | 35 | 10 | 30 |$' \
+  && printf '%s\n' "$COST_OUT" | grep -q '^| without_current_state | 2 | 1 | 300 | 300 | 30 | 40 | 50 |$' \
+  && printf '%s\n' "$COST_OUT" | grep -q '^wake wk-1: input=600 output=60 records=5$' \
+  && printf '%s\n' "$COST_OUT" | grep -q '^wake wk-2: input=50 output=5 records=1$'; then
+  pass "the scorer's cost section prints exact per-variant totals with median and latency percentiles plus one summed line per granted wake"
+else
+  fail "the cost section drifted: $COST_OUT"
+fi

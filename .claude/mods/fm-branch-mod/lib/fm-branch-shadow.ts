@@ -370,6 +370,8 @@ export interface ShadowRecordInput {
   unavailable: string | null;
   model: string;
   answers: unknown;
+  /** The shim's usage object, carried unchanged; absent when the shim sent none. */
+  usage?: unknown;
   /** The helper call's measured duration, milliseconds. */
   ms: number;
   facts: ShadowFacts;
@@ -402,6 +404,8 @@ export function buildShadowRecord(input: ShadowRecordInput): Record<string, unkn
   if (input.answers !== null) {
     record.model = input.model;
     record.answers = input.answers;
+    // The API's own token fields, unchanged: no renaming, no derived numbers.
+    if (input.usage !== null && input.usage !== undefined) record.usage = input.usage;
     // Candidate Nouls from this record's own answers, so each variant's facts
     // carry what that variant actually said.
     const cands = candidateNouls(input.answers);
@@ -542,6 +546,7 @@ async function runShadowRecord(
   let unavailable: string | null = null;
   let model = "";
   let answers: unknown = null;
+  let usage: unknown = null;
   try {
     const r = await deps.runScript(["bash", `${deps.paths.bin}/fm-branch-shadow-jev.sh`], {
       timeoutMs: SHADOW_TIMEOUT_MS,
@@ -552,6 +557,7 @@ async function runShadowRecord(
     if (j && j.ok === true) {
       model = String(j.model ?? "jev");
       answers = j.answers;
+      usage = j.usage ?? null;
     } else unavailable = String((j && j.unavailable) || "unavailable").slice(0, 200);
   } catch (error) {
     unavailable = `helper failed: ${String(error)}`.slice(0, 200);
@@ -569,6 +575,7 @@ async function runShadowRecord(
     unavailable,
     model,
     answers,
+    usage,
     ms: deps.clock.now() - t0,
     facts,
   });
