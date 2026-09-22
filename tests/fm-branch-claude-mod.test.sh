@@ -80,7 +80,8 @@ test_lib_resolves_to_the_mod_canonical_modules() {
   # holds the canonical shared modules a hooks module can import, and the
   # repo's lib/ entries point at them - the nine tracked module symlinks
   # below plus lib/fm-branch-eligibility-core.ts, and one wrapper that
-  # re-exports the eligibility core and adds its node:fs bindings. Assert the layout contract through the filesystem, then load
+  # re-exports the eligibility core and adds its node:fs bindings.
+  # Assert the layout contract through the filesystem, then load
   # the wrapper to prove it re-exports the core; the hooks-module validator
   # run by fm-branch-claude-mod-plugin.test.sh owns the no-node:-imports
   # check.
