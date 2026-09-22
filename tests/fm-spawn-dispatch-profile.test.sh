@@ -314,6 +314,7 @@ test_active_dispatch_profile_requires_explicit_harness_for_ship() {
   assert_contains "$out" "config/crew-dispatch.json is active - pass an explicit harness resolved from the dispatch rules" \
     "spawn did not explain the dispatch-profile backstop"
   assert_absent "$HOME_DIR/state/$id.meta" "ship refusal should happen before meta is written"
+  assert_absent "$HOME_DIR/data/dispatch-spawns.jsonl" "refused spawn must not record an actually-dispatched profile"
   pass "active crew-dispatch profile requires an explicit harness for ship spawns"
 }
 
@@ -366,6 +367,51 @@ test_active_dispatch_profile_allows_positional_harness() {
   assert_contains "$out" "spawned $id harness=codex" "spawn did not report positional codex harness"
   assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 high
   pass "active crew-dispatch profile allows the legacy positional harness form"
+}
+
+test_successful_spawn_appends_dispatch_spawn_record() {
+  local rec ship scout out status line relaunch_bin
+  ship=profile-spawn-record-ship-z16
+  scout=profile-spawn-record-scout-z16b
+  rec=$(make_spawn_case profile-spawn-record claude "$ship" "$scout")
+  read_case_record "$rec"
+  enable_dispatch_profile "$HOME_DIR"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$ship" "$PROJ_DIR" --harness codex --model gpt-5 --effort high)
+  expect_code 0 "$?" "ship spawn should succeed"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$scout" "$PROJ_DIR" --scout --harness claude)
+  expect_code 0 "$?" "scout spawn should succeed"
+  assert_equals '2' "$(wc -l < "$HOME_DIR/data/dispatch-spawns.jsonl")" "each successful spawn appends exactly one line"
+  line=$(sed -n '1p' "$HOME_DIR/data/dispatch-spawns.jsonl")
+  assert_equals "$ship" "$(jq -r .task <<<"$line")" "spawn line carries the task id"
+  assert_equals 'ship' "$(jq -r .kind <<<"$line")" "spawn line carries the kind"
+  assert_equals 'codex' "$(jq -r .harness <<<"$line")" "spawn line carries the dispatched harness"
+  assert_equals 'gpt-5' "$(jq -r .model <<<"$line")" "spawn line carries the dispatched model"
+  assert_equals 'high' "$(jq -r .effort <<<"$line")" "spawn line carries the dispatched effort"
+  line=$(sed -n '2p' "$HOME_DIR/data/dispatch-spawns.jsonl")
+  assert_equals "$scout" "$(jq -r .task <<<"$line")" "scout line carries the task id"
+  assert_equals 'scout' "$(jq -r .kind <<<"$line")" "scout line carries the kind"
+  assert_equals 'default' "$(jq -r .model <<<"$line")" "an unset model is recorded as default, matching the task record"
+  assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "spawn line timestamp is UTC ISO 8601"
+  assert_equals '6' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its six fields"
+  assert_not_contains "$(cat "$HOME_DIR/data/dispatch-spawns.jsonl")" 'Exercise the spawn behavior' "the brief text never reaches the spawn log"
+  # A relaunch needs its recorded window listed and its pane proven agent-free
+  # (a bare shell as pane_current_command); the shared fake tmux answers neither.
+  relaunch_bin="$CASE_DIR/relaunch-bin"
+  mkdir -p "$relaunch_bin"
+  ln -s "$FAKEBIN_DIR"/* "$relaunch_bin"/
+  rm "$relaunch_bin/tmux"
+  cat > "$relaunch_bin/tmux" <<SH
+#!/usr/bin/env bash
+case "\$*" in *pane_current_command*) printf 'bash\n'; exit 0 ;; esac
+exec "$FAKEBIN_DIR/tmux" "\$@"
+SH
+  chmod +x "$relaunch_bin/tmux"
+  out=$(FM_FAKE_DUPLICATE_WINDOW="fm-$ship" run_spawn "$HOME_DIR" "$WT_DIR" "$relaunch_bin" "$LAUNCH_LOG" "$ship" --relaunch --harness claude)
+  expect_code 0 "$?" "relaunch should succeed: $out"
+  assert_equals '2' "$(wc -l < "$HOME_DIR/data/dispatch-spawns.jsonl")" "a relaunch appends no spawn line"
+  pass "successful ship and scout spawns record the actually-dispatched profile; a relaunch does not"
 }
 
 test_active_dispatch_profile_allows_raw_launch_command() {
@@ -1629,6 +1675,7 @@ test_active_dispatch_profile_requires_explicit_harness_for_ship
 test_active_dispatch_profile_requires_explicit_harness_for_scout
 test_active_dispatch_profile_allows_explicit_harness
 test_active_dispatch_profile_allows_positional_harness
+test_successful_spawn_appends_dispatch_spawn_record
 test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort

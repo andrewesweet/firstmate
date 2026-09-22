@@ -399,6 +399,11 @@
 # active without a markdown file; any active automatic backend without
 # compatible tasks-axi refuses before creating lifecycle state.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> [mode=<mode> yolo=<on|off>] window=<backend-target> worktree=<path>
+# Every successful fresh ship or scout spawn also appends one JSON line (ts, task,
+# kind, harness, model, effort, resolved exactly as the task record records them)
+# to data/dispatch-spawns.jsonl for the offline typed-dispatch replay scorer; a
+# --relaunch never appends, and an unwritable log prints one stderr line and
+# never fails the spawn.
 # A ship task records the explicit mode/yolo it was passed; a secondmate spawn records
 # mode=secondmate, yolo=off, home=, and projects=; a scout records no mode/yolo.
 # When a carrier is resolved, ship and scout metadata also record home= as the
@@ -5180,4 +5185,17 @@ SPAWN_META_LOCK_HELD=0
 
 SPAWN_DELIVERY=
 [ -z "$MODE" ] || SPAWN_DELIVERY=" mode=$MODE yolo=$YOLO"
+# The actually-dispatched profile for the offline typed-dispatch replay scorer
+# (docs/configuration.md "Typed dispatch resolution" owns the operator contract).
+# Fresh ship and scout spawns only: secondmates are persistent agents, never
+# dispatch outcomes, and a relaunch re-runs a dispatch already recorded. Best
+# effort by design: one stderr line on failure, never a spawn failure.
+if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
+  SPAWN_DISPATCH_LINE=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg task "$ID" --arg kind "$KIND" --arg harness "$HARNESS" --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" '{ts: $ts, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort}') || SPAWN_DISPATCH_LINE=
+  if [ -n "$SPAWN_DISPATCH_LINE" ]; then
+    { mkdir -p "$DATA" && printf '%s\n' "$SPAWN_DISPATCH_LINE" >> "$DATA/dispatch-spawns.jsonl"; } 2>/dev/null || printf 'spawn: dispatch-spawn log unwritable: %s\n' "$DATA/dispatch-spawns.jsonl" >&2
+  else
+    printf 'spawn: dispatch-spawn log unwritable: %s\n' "$DATA/dispatch-spawns.jsonl" >&2
+  fi
+fi
 echo "spawned $ID harness=$HARNESS kind=$KIND$SPAWN_DELIVERY window=$META_WINDOW worktree=$WT"
