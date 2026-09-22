@@ -352,9 +352,11 @@ else
   fail "the classifier prompt construction drifted"
 fi
 
-# Record shape: field order pinned (the scorers parse this log).
-EXPECTED_RECORD='{"t":"T","wake":"heartbeat: captain-clean","tasks":["ship-a"],"seqs":["1","2"],"evidence":[{"task":"ship-a","from":100,"to":240}],"verdict":"captain","reason":"needs human","model":"haiku","ms":0,"answer":"{\"verdict\":\"captain\",\"reason\":\"needs human\"}"}'
-if [ "$(jq -r '.[0].recordLine | fromjson | keys_unsorted | join(",")' "$TMP_ROOT/lib.json")" = "t,wake,tasks,seqs,evidence,verdict,reason,model,ms,answer" ] \
+# Record shape: field order pinned (the scorers parse this log). The captured
+# copy rides beside the byte range, whole at this size, and text_cap names the
+# bound every evidence text obeys.
+EXPECTED_RECORD='{"t":"T","wake":"heartbeat: captain-clean","tasks":["ship-a"],"seqs":["1","2"],"evidence":[{"task":"ship-a","from":100,"to":240,"text":"## task ship-a status bytes 100-240\n## status lines appended since last outcome\n  done: compiled the fleet chart\n","text_len":113}],"text_cap":8192,"verdict":"captain","reason":"needs human","model":"haiku","ms":0,"answer":"{\"verdict\":\"captain\",\"reason\":\"needs human\"}"}'
+if [ "$(jq -r '.[0].recordLine | fromjson | keys_unsorted | join(",")' "$TMP_ROOT/lib.json")" = "t,wake,tasks,seqs,evidence,text_cap,verdict,reason,model,ms,answer" ] \
   && [ "$(jq -r '.[0].recordLine' "$TMP_ROOT/lib-norm.json")" = "$EXPECTED_RECORD" ]; then
   pass "the classification record keeps its pinned field order and byte shape"
 else

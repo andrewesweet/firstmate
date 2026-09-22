@@ -54,6 +54,15 @@ export const CLASSIFIER_MAX_TOKENS = 200;
 export const CLASSIFIER_EVIDENCE_TIMEOUT_MS = 25_000;
 /** The durable record keeps at most this many characters of the raw answer. */
 export const CLASSIFIER_ANSWER_CAP = 400;
+/** The durable record captures at most this many characters of each evidence
+ * bundle beside its byte range, so a classification stays scorable after
+ * teardown deletes the status log the range points at. The cap is measured,
+ * not round: the recorded log's per-bundle status byte ranges run p50 90 /
+ * p90 812 / p99 4,197 bytes (319 records, 469 bundles, measured 2026-09-28),
+ * and the gatherer bounds every bundle at a 1,500-byte state section plus a
+ * 6,000-byte NEW block plus fixed markers, so 8,192 captures over 99% of
+ * bundles whole while bounding every record entry. */
+export const CLASSIFIER_EVIDENCE_TEXT_CAP = 8192;
 
 export interface ClassifierResult {
   verdict: string;
@@ -71,7 +80,13 @@ export interface ClassifierRecord {
   wake: string;
   tasks: string[];
   seqs: string[];
-  evidence: Array<{ task: string; from: number; to: number }>;
+  /** The byte range stays the scoring reference exactly as it always was;
+   * `text` is the bounded copy of the bundle the model judged and `text_len`
+   * the length it judged, so text_len - text.length is what the cap omitted
+   * and a copy shorter than text_cap is always whole. */
+  evidence: Array<{ task: string; from: number; to: number; text: string; text_len: number }>;
+  /** The capture cap every evidence text above was bounded by. */
+  text_cap: number;
   verdict: string;
   reason: string;
   model: string | null;
@@ -187,6 +202,15 @@ export function classifierPassCoverArgv(task: string, summary: string, wake: str
   return ["append", "--task", task, "--verdict", "captain", "--summary", summary, "--silent", "false", "--wake", wake];
 }
 
+/** The bounded evidence copy a record stores: the whole bundle when it fits
+ * the cap, otherwise exactly the first and last half of the cap with the
+ * middle omitted, so neither end of a long bundle is lost. */
+export function captureEvidenceCopy(text: string): { text: string; len: number } {
+  if (text.length <= CLASSIFIER_EVIDENCE_TEXT_CAP) return { text, len: text.length };
+  const half = CLASSIFIER_EVIDENCE_TEXT_CAP / 2;
+  return { text: text.slice(0, half) + text.slice(text.length - half), len: text.length };
+}
+
 /** The durable classification-log record, field order pinned: the scorers
  * (bin/fm-branch-classifier-score.sh) parse it, and byte-stability keeps the
  * log diffable across refactors. */
@@ -203,7 +227,11 @@ export function buildClassifierRecord(input: {
     wake: input.wake,
     tasks: input.tasks,
     seqs: input.seqs,
-    evidence: input.evidence.map((b) => ({ task: b.task, from: b.from, to: b.to })),
+    evidence: input.evidence.map((b) => {
+      const copy = captureEvidenceCopy(b.text);
+      return { task: b.task, from: b.from, to: b.to, text: copy.text, text_len: copy.len };
+    }),
+    text_cap: CLASSIFIER_EVIDENCE_TEXT_CAP,
     verdict: input.result.verdict,
     reason: input.result.reason,
     model: input.result.model,
