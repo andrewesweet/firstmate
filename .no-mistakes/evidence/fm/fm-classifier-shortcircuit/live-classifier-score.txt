@@ -1,0 +1,4 @@
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| opus-x | 3 | 0 / 0 / 3 | 0 | 0 | 3 | 0 | 0 |
+| unknown | 5 | 2 / 3 / 0 | 0 | 2 | 1 | 2 | 0 |

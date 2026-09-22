@@ -1,0 +1,148 @@
+{
+  "state": "/tmp/fm-live-classifier-Vbqxa3/state",
+  "out": [
+    {
+      "name": "all-routine-verbs",
+      "appended": "working: rebased onto merged main\npaused: waiting on the upstream release\n",
+      "verdict": "routine",
+      "reason": "deterministic verb route",
+      "model": null,
+      "modelCalls": 0,
+      "completions": [],
+      "recordModel": null,
+      "recordVerdict": "routine",
+      "recordEvidenceBytes": [
+        "0-74"
+      ],
+      "offsetBefore": "(none)",
+      "offsetAfter": "74"
+    },
+    {
+      "name": "terminal-verb-blocked",
+      "appended": "blocked: needs a credential\n",
+      "verdict": "captain",
+      "reason": "deterministic verb route",
+      "model": null,
+      "modelCalls": 0,
+      "completions": [],
+      "recordModel": null,
+      "recordVerdict": "captain",
+      "recordEvidenceBytes": [
+        "74-102"
+      ],
+      "offsetBefore": "74",
+      "offsetAfter": "102"
+    },
+    {
+      "name": "tagged-done",
+      "appended": "done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n",
+      "verdict": "captain",
+      "reason": "deterministic verb route",
+      "model": null,
+      "modelCalls": 0,
+      "completions": [],
+      "recordModel": null,
+      "recordVerdict": "captain",
+      "recordEvidenceBytes": [
+        "102-169"
+      ],
+      "offsetBefore": "102",
+      "offsetAfter": "169"
+    },
+    {
+      "name": "unrecognised-note-line",
+      "appended": "note: please confirm the session id is current\n",
+      "verdict": "uncertain",
+      "reason": "MODEL WAS CALLED",
+      "model": "opus-x",
+      "modelCalls": 1,
+      "completions": [
+        {
+          "model": "opus-x",
+          "promptTail": "pended since the last classified wake (NEW - judge these)\n  note: please confirm the session id is current\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  working: rebased onto merged main\n  paused: waiting on the upstream release\n  blocked: needs a credential\n  done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n\n\nAnswer with the one JSON line."
+        }
+      ],
+      "recordModel": "opus-x",
+      "recordVerdict": "uncertain",
+      "recordEvidenceBytes": [
+        "169-216"
+      ],
+      "offsetBefore": "169",
+      "offsetAfter": "216"
+    },
+    {
+      "name": "zero-new-bytes",
+      "appended": "",
+      "verdict": "uncertain",
+      "reason": "MODEL WAS CALLED",
+      "model": "opus-x",
+      "modelCalls": 1,
+      "completions": [
+        {
+          "model": "opus-x",
+          "promptTail": "assified wake (NEW - judge these)\n  (none - this wake carries only a turn-end or pane signal)\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  paused: waiting on the upstream release\n  blocked: needs a credential\n  done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n  note: please confirm the session id is current\n\n\nAnswer with the one JSON line."
+        }
+      ],
+      "recordModel": "opus-x",
+      "recordVerdict": "uncertain",
+      "recordEvidenceBytes": [
+        "216-216"
+      ],
+      "offsetBefore": "216",
+      "offsetAfter": "216"
+    },
+    {
+      "name": "truncated-new-block-hides-blocked",
+      "appended": "working: 000000000000000000000000000000000000000000000000000000000000000000000000000000000001\nworking: 00000000000000000... (8501 bytes)",
+      "verdict": "uncertain",
+      "reason": "MODEL WAS CALLED",
+      "model": "opus-x",
+      "modelCalls": 1,
+      "completions": [
+        {
+          "model": "opus-x",
+          "promptTail": "NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  paused: waiting on the upstream release\n  blocked: needs a credential\n  done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n  note: please confirm the session id is current\n\n\nAnswer with the one JSON line."
+        }
+      ],
+      "recordModel": "opus-x",
+      "recordVerdict": "uncertain",
+      "recordEvidenceBytes": [
+        "216-8717"
+      ],
+      "offsetBefore": "216",
+      "offsetAfter": "8717"
+    },
+    {
+      "name": "quoted-history-marker-then-blocked",
+      "appended": "working: parse the \"## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\" marker\nblocked: needs a credential\n",
+      "verdict": "captain",
+      "reason": "deterministic verb route",
+      "model": null,
+      "modelCalls": 0,
+      "completions": [],
+      "recordModel": null,
+      "recordVerdict": "captain",
+      "recordEvidenceBytes": [
+        "8717-8857"
+      ],
+      "offsetBefore": "8717",
+      "offsetAfter": "8857"
+    },
+    {
+      "name": "fused-history-marker-no-trailing-newline",
+      "appended": "",
+      "verdict": "routine",
+      "reason": "deterministic verb route",
+      "model": null,
+      "modelCalls": 0,
+      "completions": [],
+      "recordModel": null,
+      "recordVerdict": "routine",
+      "recordEvidenceBytes": [
+        "8857-8885"
+      ],
+      "offsetBefore": "8857",
+      "offsetAfter": "8885"
+    }
+  ]
+}
