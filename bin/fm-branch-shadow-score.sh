@@ -94,9 +94,7 @@ ROWS=$(jq -R -r '
     [[($r.wakeKey // "" | if . == "" then "-" else . end), $r.variant, ($r.repeat | tostring), "UNAVAILABLE", "-", "-", $r.unavailable] | @tsv]
   else
     [$r.answers // {} | to_entries |
-      map(if .key == "candidates" and (.value | type == "object") then
-            .value | to_entries | map({key: ("candidates." + .key), value: .value})
-          elif (.key | startswith("candidate:")) then
+      map(if (.key | startswith("candidate:")) then
             [{key: ("candidates." + (.key | ltrimstr("candidate:"))), value: .value}]
           else [.] end) | flatten |
       (if length == 0 then [{key: "NO_ANSWERS", value: {}}] else . end)[] |

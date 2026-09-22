@@ -346,20 +346,13 @@ export function pickJsonLine(stdout: string): string | null {
 }
 
 /** The candidate Nouls a record's own answers supply, keyed by task id:
- * the flattened `candidate:<task>` top-level answers, plus the pre-fix
- * nested `answers.candidates` object so old log lines still fold. */
+ * the flattened `candidate:<task>` top-level answers. */
 export function candidateNouls(answers: unknown): Record<string, number> {
   const cands: Record<string, number> = {};
   const ans = ((answers ?? {}) as Record<string, unknown>);
   for (const [key, c] of Object.entries(ans)) {
     if (!key.startsWith(SHADOW_CANDIDATE_PREFIX)) continue;
     if (c && typeof (c as Record<string, unknown>).noul === "number") cands[key.slice(SHADOW_CANDIDATE_PREFIX.length)] = (c as Record<string, number>).noul;
-  }
-  const legacy = ans.candidates;
-  if (legacy && typeof legacy === "object") {
-    for (const [tid, c] of Object.entries(legacy as Record<string, unknown>)) {
-      if (!(tid in cands) && c && typeof (c as Record<string, unknown>).noul === "number") cands[tid] = (c as Record<string, number>).noul;
-    }
   }
   return cands;
 }
