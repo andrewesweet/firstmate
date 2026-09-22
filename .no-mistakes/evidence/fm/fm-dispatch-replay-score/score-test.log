@@ -1,0 +1,6 @@
+ok - labeled replay: coverage, clear-only agreements, override rate, and the floor curve
+ok - unlabeled replay omits every label-derived metric
+ok - a missing spawns log is coverage 0, not an error
+ok - a log beyond one argv value still scores
+ok - unreadable inputs exit 2 with a named error
+# all fm-dispatch-resolve-score tests passed
