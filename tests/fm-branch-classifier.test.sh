@@ -120,7 +120,13 @@ PLAN='[
   "config":"haiku","answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}"},
  {"name":"shortcircuit-legacy-bare","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  merged\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
-  "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"bare legacy line\"}"
+  "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"bare legacy line\"}"},
+ {"name":"shortcircuit-quoted-history-marker","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: parse the \"## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\" marker\n  blocked: needs a credential\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
+ {"name":"shortcircuit-quoted-new-marker-in-history","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 300-300\n## status lines appended since the last classified wake (NEW - judge these)\n  (none - this wake carries only a turn-end or pane signal)\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  working: quoting the \"## status lines appended since the last classified wake (NEW - judge these)\" header\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"routine\",\"reason\":\"nothing new\"}"
 }
 ]'
 
@@ -419,7 +425,7 @@ else
   fail "evidence bundle ordering drifted"
 fi
 
-# The deterministic verb route (steps 15-27): every NEW status line in every
+# The deterministic verb route (steps 15-29): every NEW status line in every
 # gathered bundle carrying a recognised verb emits the whitelist verdict with
 # no completion request at all (even with a configured model name), while any
 # unrecognised line, a failed gather, a NEW block the gatherer marked
@@ -462,6 +468,8 @@ model_step 24 captain "note beside the done" "a note: line beside a recognised v
 model_step 25 uncertain "gather failed" "a failed gather beside recognised lines keeps the model path"
 model_step 26 routine "nothing new" "a zero-new wake keeps the model path"
 model_step 27 captain "bare legacy line" "a bare legacy line never takes a route verdict: the free-text fallback stays off the short-circuit"
+route_step 28 captain "deterministic verb route" "a status line quoting the HISTORY marker phrase never closes the NEW block: the blocked line after it is still judged"
+model_step 29 routine "nothing new" "a HISTORY line quoting the NEW marker phrase never re-opens the block: a zero-new wake still keeps the model path"
 
 # The per-host resolution rule and the one-shot model-not-found fallback
 # (steps 10-14): the explicit configured name wins, the host's default fills
@@ -513,17 +521,17 @@ else
 fi
 
 # The system-prompt memo: one read for the whole plan, re-read after reset.
-if [ "$(jq -r '.[28].count' "$TMP_ROOT/lib.json")" = "1" ] \
-  && [ "$(jq -r '.[29].count' "$TMP_ROOT/lib.json")" = "2" ] \
-  && [ "$(jq -r '.[28].count' "$TMP_ROOT/mod.json")" = "1" ]; then
+if [ "$(jq -r '.[30].count' "$TMP_ROOT/lib.json")" = "1" ] \
+  && [ "$(jq -r '.[31].count' "$TMP_ROOT/lib.json")" = "2" ] \
+  && [ "$(jq -r '.[30].count' "$TMP_ROOT/mod.json")" = "1" ]; then
   pass "the classifier system prompt is read once per module lifetime; the test reset clears it"
 else
-  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[28].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[29].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[28].count' "$TMP_ROOT/mod.json"))"
+  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[30].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[31].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[30].count' "$TMP_ROOT/mod.json"))"
 fi
 
 # The classifier-pass covering rule, byte-pinned.
-if [ "$(jq -r '.[30].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
-  && [ "$(jq -c '.[30].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
+if [ "$(jq -r '.[32].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
+  && [ "$(jq -c '.[32].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
   pass "the classifier-pass covering summary and outcome-store argv are byte-stable"
 else
   fail "the classifier-pass covering rule drifted"

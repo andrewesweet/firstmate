@@ -267,6 +267,9 @@ const CLASSIFIER_TERMINAL_VERBS = new Set(["done", "needs-decision", "blocked", 
 const CLASSIFIER_ROUTINE_VERBS = new Set(["working", "resolved", "captain-held", "paused"]);
 const CLASSIFIER_DETERMINISTIC_REASON = "deterministic verb route";
 const CLASSIFIER_TRUNCATED_MARKER = "## the NEW block above stops at the 6000-byte cap";
+const CLASSIFIER_NEW_MARKER = "## status lines appended since the last classified wake";
+const CLASSIFIER_HISTORY_MARKER = "## earlier lines, already handled by earlier wakes";
+const CLASSIFIER_HISTORY_MARKER_LINE = `${CLASSIFIER_HISTORY_MARKER} (HISTORY - never escalate these)`;
 
 /** The leading verb of one status line, byte-faithful to
  * bin/fm-classify-lib.sh status_line_verb: the text before the first colon,
@@ -288,9 +291,12 @@ function statusLineVerb(line: string): string {
 /** The NEW status lines one well-formed evidence bundle judges: the section
  * between the gatherer's NEW and HISTORY markers with the gatherer's
  * two-space line indent removed, blank lines and the gatherer's "(none"
- * zero-new marker dropped. The HISTORY marker is matched mid-line, because
- * a NEW block cut at the byte cap can fuse it onto the tail of the last
- * partial line; that head is a NEW line and is judged. Returns null for a
+ * zero-new marker dropped. A section marker is one only at the start of its
+ * own line, so an indented status line quoting a marker phrase never ends or
+ * re-opens the judged section; the one exception is the gatherer's whole
+ * HISTORY marker line fused onto the tail of an indented line, which is what
+ * a status file whose last line carries no trailing newline produces, and
+ * that head is a NEW line and is judged. Returns null for a
  * bundle the route must not judge: one with no status byte range - a failed
  * or unparseable gather whose failure text is model evidence - and one
  * carrying the gatherer's explicit truncation marker, which it emits on
@@ -302,14 +308,17 @@ function classifierNewStatusLines(bundle: ClassifierEvidence): string[] | null {
   const out: string[] = [];
   let inNew = false;
   for (const line of bundle.text.split("\n")) {
-    if (line.includes("## status lines appended since the last classified wake")) {
+    if (line.startsWith(CLASSIFIER_NEW_MARKER)) {
       inNew = true;
       continue;
     }
-    const hist = line.indexOf("## earlier lines, already handled by earlier wakes");
-    if (hist >= 0) {
+    if (line.startsWith(CLASSIFIER_HISTORY_MARKER)) {
+      inNew = false;
+      continue;
+    }
+    if (line.endsWith(CLASSIFIER_HISTORY_MARKER_LINE)) {
       if (inNew) {
-        const head = line.slice(0, hist).replace(/^ {2}/, "");
+        const head = line.slice(0, line.length - CLASSIFIER_HISTORY_MARKER_LINE.length).replace(/^ {2}/, "");
         if (head.trim() !== "" && !head.startsWith("(none")) out.push(head);
       }
       inNew = false;
