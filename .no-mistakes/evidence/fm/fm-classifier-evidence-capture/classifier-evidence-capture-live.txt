@@ -1,0 +1,39 @@
+=== Live drive: real bin/fm-wake-evidence.sh gatherer + real classifier record builder + real bin/fm-branch-classifier-score.sh ===
+
+--- 1. task 'shipper' classified while its status log is live (record written by classifyWake) ---
+{"evidence":[{"task":"shipper","from":0,"to":81,"text_len":393,"captured_chars":393}],"text_cap":8192,"verdict":"routine"}
+
+--- 2. status log deleted (teardown), then the scorer ---
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 1 | 1 / 0 / 0 | 1 | 0 | 0 | 0 | 0 |
+
+### label != verdict
+- record 1 (haiku): label captain, verdict routine CAPTAIN MISS: shipper,0,81+captured
+
+--- 3. same post-teardown log through the BASE commit b53a3ec scorer (before this change) ---
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 1 | 1 / 0 / 0 | 0 | 0 | 0 | 0 | 1 |
+
+--- 4. fused HISTORY marker produced by the real gatherer's 6000-byte NEW cap ---
+69:  done: PR https://example.test/77 checks green after a long tail 00000000000000## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)
+
+--- 5. post-teardown scorer over fused / big / no-status-log records (HEAD) ---
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 3 | 3 / 0 / 0 | 1 | 0 | 0 | 1 | 1 |
+
+### label != verdict
+- record 2 (haiku): label captain, verdict routine CAPTAIN MISS: fused,0,6110+captured
+
+--- 6. same records through the PARENT commit 77a8c6a scorer (fused captain line dropped: 0 misses) ---
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 3 | 3 / 0 / 0 | 0 | 0 | 0 | 2 | 1 |
+
+--- 7. over-cap bundle: 11272-char bundle captured at the 8192 cap, record line 8539 bytes ---
+{"evidence":[{"task":"huge","from":4840,"to":12406,"text_len":11272,"captured_chars":8192}],"text_cap":8192}
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| haiku | 1 | 1 / 0 / 0 | 0 | 0 | 0 | 0 | 1 |
