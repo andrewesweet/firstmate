@@ -63,14 +63,16 @@ function nth(values: string | string[] | undefined, index: number, fallback: str
 
 /** The evidence bundle a fm-wake-evidence.sh stub run answers when the test
  * binds none, shared with the classification-log expectations that pin the
- * record's captured copy against it. */
+ * record's captured copy against it. Its one NEW line carries no recognised
+ * verb, so every test binding no evidence takes the classifier's model path;
+ * the deterministic verb route has its own bundles below. */
 function defaultEvidence(task: string): string {
   return (
     `## task ${task} status bytes 0-38\n` +
     `## current state (bin/fm-crew-state.sh ${task})\n` +
     `state: working\n` +
     `## status lines appended since the last classified wake (NEW - judge these)\n` +
-    `  done: PR https://x/1 checks green\n` +
+    `  note: PR https://x/1 checks green\n` +
     `## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n` +
     `  (none)\n`
   );
@@ -361,7 +363,7 @@ describe("classification log", () => {
   test("every classifier call appends one record with task, evidence byte offsets and captured copy, verdict, and model", async ($: Engine, on: On) => {
     const w = world(on, {
       files: { ...armedHome(), [`${CONFIG}/classifier-model`]: "haiku-4-5\n" },
-      classifierAnswer: 'Sure. {"verdict":"captain","reason":"a done line with a PR URL"}',
+      classifierAnswer: 'Sure. {"verdict":"captain","reason":"a note line with a PR URL"}',
     });
     await $.session.start(sessionStart);
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
@@ -380,7 +382,41 @@ describe("classification log", () => {
     expect(records[0].text_cap).toBe(8192);
     expect(records[0].verdict).toBe("captain");
     expect(records[0].model).toBe("haiku-4-5");
-    expect(records[0].reason).toBe("a done line with a PR URL");
+    expect(records[0].reason).toBe("a note line with a PR URL");
+  });
+
+  test("a wake whose new lines all carry recognised verbs is routed with no model call at all", async ($: Engine, on: On) => {
+    const w = world(on, {
+      files: { ...armedHome(), [`${CONFIG}/classifier-model`]: "haiku-4-5\n" },
+      evidence: "## task t1 status bytes 0-38\n## status lines appended since the last classified wake (NEW - judge these)\n  done: PR https://x/1 checks green\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n",
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+
+    expect(w.completions).toEqual([]);
+    const records = w.appended(CLASSIFICATIONS).map((line) => JSON.parse(line));
+    expect(records.length).toBe(1);
+    expect(records[0].verdict).toBe("captain");
+    expect(records[0].reason).toBe("deterministic verb route");
+    expect(records[0].model).toBe(null);
+    // A terminal verb is captain, so main keeps the wake and the branch is never granted.
+    expect(w.submitted).toEqual([WAKE]);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(false);
+  });
+
+  test("nonterminal recognised verbs route routine with no model call and the wake still reaches the branch", async ($: Engine, on: On) => {
+    const w = world(on, {
+      files: armedHome(),
+      evidence: "## task t1 status bytes 0-38\n## status lines appended since the last classified wake (NEW - judge these)\n  working: still on the chart\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n",
+    });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+
+    expect(w.completions).toEqual([]);
+    const records = w.appended(CLASSIFICATIONS).map((line) => JSON.parse(line));
+    expect(records[0].verdict).toBe("routine");
+    expect(records[0].model).toBe(null);
+    expect(w.runs.some((r) => r.argv[1]?.endsWith("fm-wake-grant.sh") && r.argv[2] === "publish")).toBe(true);
   });
 
   test("a bundle over the capture cap is recorded middle-truncated: first and last half of the cap, judged length kept", async ($: Engine, on: On) => {
@@ -766,7 +802,7 @@ describe("shadow advisory", () => {
       "## task t1 status bytes 0-38\n" +
       "## current state (bin/fm-crew-state.sh t1)\nstate: working\n" +
       "## status lines appended since the last classified wake (NEW - judge these)\n" +
-      "  done: PR https://github.com/ow/repo/pull/7 checks green\n" +
+      "  note: PR https://github.com/ow/repo/pull/7 checks green\n" +
       "## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n";
     const w = world(on, {
       files: shadowHome(),
