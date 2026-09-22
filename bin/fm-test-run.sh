@@ -1545,6 +1545,8 @@ families_for_changed_path() {
       # suite, and the pinned live run).
       printf '%s\n' __script__:fm-branch-claude-mod.test.sh
       printf '%s\n' __script__:fm-branch-report-sequence.test.sh
+      printf '%s\n' __script__:fm-branch-classifier.test.sh
+      printf '%s\n' __script__:fm-branch-eligibility.test.sh
       printf '%s\n' __script__:fm-branch-text.test.sh
       printf '%s\n' __script__:fm-branch-scope.test.sh
       printf '%s\n' __script__:fm-branch-routing.test.sh
