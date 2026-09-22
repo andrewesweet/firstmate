@@ -370,7 +370,7 @@ test_active_dispatch_profile_allows_positional_harness() {
 }
 
 test_successful_spawn_appends_dispatch_spawn_record() {
-  local rec ship scout out status line
+  local rec ship scout out status line relaunch_bin
   ship=profile-spawn-record-ship-z16
   scout=profile-spawn-record-scout-z16b
   rec=$(make_spawn_case profile-spawn-record claude "$ship" "$scout")
@@ -396,7 +396,22 @@ test_successful_spawn_appends_dispatch_spawn_record() {
   assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "spawn line timestamp is UTC ISO 8601"
   assert_equals '6' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its six fields"
   assert_not_contains "$(cat "$HOME_DIR/data/dispatch-spawns.jsonl")" 'Exercise the spawn behavior' "the brief text never reaches the spawn log"
-  pass "successful ship and scout spawns record the actually-dispatched profile"
+  # A relaunch needs its recorded window listed and its pane proven agent-free
+  # (a bare shell as pane_current_command); the shared fake tmux answers neither.
+  relaunch_bin="$CASE_DIR/relaunch-bin"
+  mkdir -p "$relaunch_bin"
+  ln -s "$FAKEBIN_DIR"/* "$relaunch_bin"/
+  rm "$relaunch_bin/tmux"
+  cat > "$relaunch_bin/tmux" <<SH
+#!/usr/bin/env bash
+case "\$*" in *pane_current_command*) printf 'bash\n'; exit 0 ;; esac
+exec "$FAKEBIN_DIR/tmux" "\$@"
+SH
+  chmod +x "$relaunch_bin/tmux"
+  out=$(FM_FAKE_DUPLICATE_WINDOW="fm-$ship" run_spawn "$HOME_DIR" "$WT_DIR" "$relaunch_bin" "$LAUNCH_LOG" "$ship" --relaunch --harness claude)
+  expect_code 0 "$?" "relaunch should succeed: $out"
+  assert_equals '2' "$(wc -l < "$HOME_DIR/data/dispatch-spawns.jsonl")" "a relaunch appends no spawn line"
+  pass "successful ship and scout spawns record the actually-dispatched profile; a relaunch does not"
 }
 
 test_active_dispatch_profile_allows_raw_launch_command() {

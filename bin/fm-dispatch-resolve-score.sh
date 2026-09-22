@@ -2,7 +2,7 @@
 # fm-dispatch-resolve-score.sh - offline replay scorer for typed dispatch resolution.
 #
 # Usage:
-#   fm-dispatch-resolve-score.sh [--labels <file>] [--floors <comma list>]
+#   fm-dispatch-resolve-score.sh [--labels <file>]
 #
 # Pure bash and jq: no network, no key, never touches the live resolver, and
 # never changes its selection, floor, output block, or outcome-log shape.
@@ -16,7 +16,7 @@
 #   zero records, never an error: a missing spawns log reports coverage 0.
 #   Adjudicated labels are captain-private and live in data/, never tracked;
 #   this tool only consumes the given labels file, one
-#   `<task><TAB><rule id or when text>` per line, blank lines and `#` comments
+#   `<task><TAB><rule when text>` per line, blank lines and `#` comments
 #   ignored. It never runs the resolver against retained briefs.
 #
 # Join: each spawn row joins the latest resolver row for the same task whose ts
@@ -34,18 +34,20 @@
 #     harness, model, and effort.
 #   override_rate: clear pairs whose spawn differs from the resolver profile.
 #   rule_agreement (labels only): clear pairs whose task carries a label and
-#     whose resolver selected_option or rule id equals that label.
-#   floors: for each floor (default 0.3 to 0.9 by 0.1, the live 0.6 floor
-#     marked with `*`), over resolver records with status clear or ambiguous
-#     and a numeric confidence: clear_frac is the fraction at or above the
-#     floor that would stay clear, and precision_vs_spawn (plus
-#     precision_vs_label when labels are given) is the agreement of the clear,
-#     spawn-joined subset of those picks. Ambiguous records count toward
-#     clear_frac but never toward precision: they carry no profile to judge.
+#     whose resolver selected_option equals that label.
+#   floors: for each floor 0.3 to 0.9 by 0.1 (the live 0.6 floor marked with
+#     `*`), over every resolver record with a numeric confidence, a record
+#     counting as clear at floor f when its confidence is at or above f:
+#     clear_frac is the fraction of records clear at f; precision_vs_label
+#     (labels only) is the fraction of labelled records clear at f whose
+#     selected_option equals the label; precision_vs_spawn is the profile
+#     agreement of the clear, spawn-joined pairs at or above f. Below the live
+#     floor precision_vs_spawn prints n/a: no task was ever dispatched on a
+#     sub-floor pick, so no spawn evidence exists there.
 #   Fractions print with four decimals; a zero denominator prints n/a.
 #
 # Exit 0 with the report; exit 2 only for an unreadable input (an unreadable or
-# malformed log or labels file, or malformed floors).
+# malformed log or labels file).
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -61,23 +63,19 @@ usage() {
   ' "$0"
 }
 
-LABELS='' FLOORS='0.3,0.4,0.5,0.6,0.7,0.8,0.9'
+LABELS=''
 want_value=
 for a in "$@"; do
   if [ -n "$want_value" ]; then
     case "$a" in
     --*) die "--$want_value needs a value" ;;
     esac
-    case "$want_value" in
-    labels) LABELS=$a ;;
-    floors) FLOORS=$a ;;
-    esac
+    LABELS=$a
     want_value=
     continue
   fi
   case "$a" in
   --labels) want_value=labels ;;
-  --floors) want_value=floors ;;
   -h | --help) usage; exit 0 ;;
   -*) die "unknown flag $a" ;;
   *) die "unexpected argument $a" ;;
@@ -89,15 +87,7 @@ RESOLVE_LOG="${FM_DISPATCH_RESOLVE_LOG:-$FM_HOME/data/dispatch-resolve.jsonl}"
 SPAWNS_LOG="${FM_DISPATCH_SPAWNS_LOG:-$FM_HOME/data/dispatch-spawns.jsonl}"
 command -v jq >/dev/null 2>&1 || die "jq required"
 
-# Floors: comma list of numbers in [0,1], sorted and deduplicated.
-FLOORS_JSON=$(jq -cn --arg s "$FLOORS" '
-  ($s | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $items
-  | ($items | map(try tonumber catch "BAD")) as $nums
-  | if ($items | length) == 0 or any($nums[]; . == "BAD" or (type) != "number" or . < 0 or . > 1)
-    then error("bad floors")
-    else ($nums | unique | sort) end') || die "malformed --floors: $FLOORS (comma-separated numbers 0..1)"
-
-# Labels: one <task><TAB><rule id or when text> per line; blanks and # comments ignored.
+# Labels: one <task><TAB><rule when text> per line; blanks and # comments ignored.
 if [ -n "$LABELS" ]; then
   [ -r "$LABELS" ] || die "labels file not readable: $LABELS"
   LABELS_JSON=$(jq -R -s '
@@ -107,7 +97,7 @@ if [ -n "$LABELS" ]; then
     | (if any(.[]; length < 2 or .[0] == "" or ((.[1:] | join("\t")) == ""))
        then error("bad labels") else . end)
     | map({key: .[0], value: (.[1:] | join("\t"))})
-    | from_entries' "$LABELS") || die "malformed labels file: $LABELS (one <task><TAB><rule id or when text> per line)"
+    | from_entries' "$LABELS") || die "malformed labels file: $LABELS (one <task><TAB><rule when text> per line)"
 else
   LABELS_JSON='{}'
 fi
@@ -162,48 +152,39 @@ SPAWNS_JSON=$(read_log "$SPAWNS_LOG" spawns) || exit 2
 # The join and every metric live in this one jq program; bash only formats.
 # shellcheck disable=SC2016  # the jq program's $names are jq variables, not shell expansions.
 SUMMARY=$(jq -cn --argjson resolve "$RESOLVE_JSON" --argjson spawns "$SPAWNS_JSON" \
-  --argjson labels "$LABELS_JSON" --argjson floors "$FLOORS_JSON" '
+  --argjson labels "$LABELS_JSON" '
   def norm: if . == null or . == "" then "default" else . end;
   def sh_unescape: gsub("\u0027\\\\\u0027\u0027"; "\u0027");
   def prof_key($k): (capture("--" + $k + " \u0027(?<v>([^\u0027]|\u0027\\\\\u0027\u0027)*)\u0027") | .v)? | select(. != null) | sh_unescape;
-  def choice_id: (split(" (")[0]);
-  ($resolve) as $R | ($spawns) as $S | ($labels) as $L | ($floors) as $F
+  def profile_agrees:
+    ([.resolver.profile | prof_key("harness")][0]) as $h
+    | ([.resolver.profile | prof_key("model")][0] | norm) as $m
+    | ([.resolver.profile | prof_key("effort")][0] | norm) as $e
+    | ($h != null and $h == .harness and $m == (.model | norm) and $e == (.effort | norm));
+  def labelled($L): .task != null and ($L[.task] // "") != "";
+  ($resolve) as $R | ($spawns) as $S | ($labels) as $L | 0.6 as $live
   | ([$S[] | . as $s | $s + {resolver: ([$R[] | select(.task != null and .task == $s.task and ._epoch <= $s._epoch)] | max_by(._epoch))}]) as $J
   | ([$J[] | select(.kind != "secondmate") | .task] | unique) as $tasks
   | ([$J[] | select(.kind != "secondmate" and .resolver != null) | .task] | unique) as $covered
   | ([$J[] | select(.kind != "secondmate" and .resolver != null and .resolver.status == "clear")]) as $C
-  | ([$C[] | select(
-      ([.resolver.profile | prof_key("harness")][0]) as $h
-      | ([.resolver.profile | prof_key("model")][0] | norm) as $m
-      | ([.resolver.profile | prof_key("effort")][0] | norm) as $e
-      | ($h != null and $h == .harness and $m == (.model | norm) and $e == (.effort | norm)))]) as $A
-  | ([$C[] | select(
-      ($L[.task] // null) as $lab
-      | ($lab != null and $lab != ""
-         and ($lab == .resolver.selected_option
-              or $lab == (.resolver.rule // "" | choice_id))))]) as $LG
-  | ([$C[] | select(($L[.task] // null) != null and ($L[.task] // "") != "")]) as $LN
-  | ([$R[] | select((.status == "clear" or .status == "ambiguous") and ((.confidence | type) == "number"))]) as $P
+  | ([$C[] | select(profile_agrees)]) as $A
+  | ([$C[] | select(labelled($L))]) as $LN
+  | ([$LN[] | select($L[.task] == .resolver.selected_option)]) as $LG
+  | ([$R[] | select((.confidence | type) == "number")]) as $P
   | {
       resolve_records: ($R | length), spawn_records: ($S | length),
       spawned_tasks: ($tasks | length), covered_tasks: ($covered | length),
       clear_joined: ($C | length), agree: ($A | length),
       label_n: ($LN | length), label_agree: ($LG | length), pop: ($P | length),
-      floors: [$F[] | . as $f
+      floors: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 | . as $f
         | ([$P[] | select(.confidence >= $f)]) as $wc
-        | ([$C[] | select(.resolver.confidence >= $f)]) as $cp
-        | ([$cp[] | select(
-            ([.resolver.profile | prof_key("harness")][0]) as $h
-            | ([.resolver.profile | prof_key("model")][0] | norm) as $m
-            | ([.resolver.profile | prof_key("effort")][0] | norm) as $e
-            | ($h != null and $h == .harness and $m == (.model | norm) and $e == (.effort | norm)))]) as $pa
-        | ([$cp[] | select(($L[.task] // null) != null and ($L[.task] // "") != "")]) as $ln
-        | ([$ln[] | select(
-            ($L[.task]) as $lab
-            | ($lab == .resolver.selected_option
-               or $lab == (.resolver.rule // "" | choice_id)))]) as $lg
-        | {floor: $f, wc: ($wc | length), prec_n: ($cp | length),
-           prec_agree: ($pa | length), lab_n: ($ln | length), lab_agree: ($lg | length)}]
+        | ([$C[] | select($f >= $live and .resolver.confidence >= $f)]) as $cp
+        | ([$wc[] | select(labelled($L))]) as $ln
+        | ([$ln[] | select($L[.task] == .selected_option)]) as $lg
+        | {floor: $f, live: ($f == $live), wc: ($wc | length),
+           prec_n: (if $f >= $live then ($cp | length) else null end),
+           prec_agree: ([$cp[] | select(profile_agrees)] | length),
+           lab_n: ($ln | length), lab_agree: ($lg | length)}]
     }') || die "scoring failed"
 
 fmt_frac() {  # <num> <den>: four decimals, or n/a on a zero denominator.
@@ -248,10 +229,14 @@ pop=$(jq -r .pop <<<"$SUMMARY")
     lab_n=$(jq -r .lab_n <<<"$row")
     lab_agree=$(jq -r .lab_agree <<<"$row")
     mark=''
-    if [ "$(fmt_floor "$f")" = 0.6 ]; then mark=' *'; fi
-    line=$(printf '    floor=%s%s clear_frac=%s (%s/%s) precision_vs_spawn=%s (%s/%s)' \
-      "$(fmt_floor "$f")" "$mark" "$(fmt_frac "$wc" "$pop")" "$wc" "$pop" \
-      "$(fmt_frac "$prec_agree" "$prec_n")" "$prec_agree" "$prec_n")
+    if [ "$(jq -r .live <<<"$row")" = true ]; then mark=' *'; fi
+    if [ "$prec_n" = null ]; then
+      spawn_col='n/a'
+    else
+      spawn_col=$(printf '%s (%s/%s)' "$(fmt_frac "$prec_agree" "$prec_n")" "$prec_agree" "$prec_n")
+    fi
+    line=$(printf '    floor=%s%s clear_frac=%s (%s/%s) precision_vs_spawn=%s' \
+      "$(fmt_floor "$f")" "$mark" "$(fmt_frac "$wc" "$pop")" "$wc" "$pop" "$spawn_col")
     if [ -n "$LABELS" ]; then
       line="$line$(printf ' precision_vs_label=%s (%s/%s)' "$(fmt_frac "$lab_agree" "$lab_n")" "$lab_agree" "$lab_n")"
     fi
