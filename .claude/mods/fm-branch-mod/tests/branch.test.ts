@@ -701,6 +701,22 @@ describe("shadow advisory", () => {
     expect(Object.keys(requests[0].questions).sort()).toEqual(["no_new_outcome", "phase", "route", "severity"]);
   });
 
+  test("records carry the shim's usage unchanged and omit it when the shim sends none", async ($: Engine, on: On) => {
+    const withUsage = JEV_OK.replace('"answers"', '"usage":{"input_tokens":812,"output_tokens":60},"answers"');
+    const w = world(on, { files: shadowHome(), shadowAnswer: [withUsage, JEV_OK, JEV_OK, JEV_OK], paneAnswer: PANE_PRESENT });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+
+    const records = w.appended(SHADOW_LOG).map((line) => JSON.parse(line));
+    expect(records.length).toBe(4);
+    expect(records[0].usage).toEqual({ input_tokens: 812, output_tokens: 60 });
+    expect(Object.keys(records[0]).join(",")).toBe(
+      "t,kind,wake,seqs,wakeKey,tasks,wakeNo,variant,repeat,control,unavailable,requestBytes,ms,policy,model,answers,usage,facts",
+    );
+    for (const r of records.slice(1)) expect(r).not.toHaveProperty("usage");
+  });
+
   test("fields with no evidence are omitted, never invented: no pane data makes full byte-identical to without_pane_tail", async ($: Engine, on: On) => {
     const w = world(on, { files: shadowHome(), shadowAnswer: JEV_OK });
     await $.session.start(sessionStart);

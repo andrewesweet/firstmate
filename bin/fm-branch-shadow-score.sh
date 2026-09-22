@@ -24,8 +24,12 @@
 # two), with 0.85 / 0.15 / 0.85 as fallbacks. The repeat-control pair (the full
 # variant run twice on every tenth wake) is scored per question as raw call
 # noise only; the per-variant tallies skip the repeat so the full row stays one
-# sample per wake, like every ablation row. A torn or malformed log line is
-# skipped, never fatal.
+# sample per wake, like every ablation row. A final cost section meters the
+# trial: per variant the record count, records carrying the shim's usage
+# object, input/output token totals and latency p50/p95 over every record
+# (unavailable calls still cost time), plus one summed line per granted wake
+# key (records without a wake key are excluded there). A torn or malformed
+# log line is skipped, never fatal.
 #
 # Usage:
 #   bin/fm-branch-shadow-score.sh [-v] [<shadow-log>] [<outcomes-file>]
@@ -238,5 +242,62 @@ if [ "${#CTRL1[@]}" -gt 0 ]; then
     [ "${pairs:-0}" -gt 0 ] || continue
     printf '| %s | %s | %s |\n' "$cq" "$pairs" "$same"
   done
+fi
+
+# ---------- cost: the metered Jev usage and latency per variant ----------------
+# Token fields are the API's own usage object the shim passed through;
+# latency is every record's ms, so unavailable calls still cost time.
+rank_pick() {  # <percent> <sorted numbers...>: nearest-rank percentile
+  local p=$1; shift
+  local n=$#
+  [ "$n" -gt 0 ] || { printf '0'; return 0; }
+  local rank=$(( (p * n + 99) / 100 ))
+  [ "$rank" -lt 1 ] && rank=1
+  [ "$rank" -gt "$n" ] && rank=$n
+  shift $(( rank - 1 ))
+  printf '%s' "$1"
+}
+COST_TSV=$(jq -R -r '
+  fromjson? | select(type == "object") |
+  [(if (.wakeKey // "") == "" then "-" else .wakeKey end),
+   (.variant // "?"),
+   (if (.usage | type) == "object" and (.usage.input_tokens | type) == "number" then (.usage.input_tokens | tostring) else "-" end),
+   (if (.usage | type) == "object" and (.usage.output_tokens | type) == "number" then (.usage.output_tokens | tostring) else "-" end),
+   (if (.ms | type) == "number" then (.ms | tostring) else "-" end)] | @tsv' "$LOG")
+declare -A COST_N=() COST_IN_N=() COST_IN_SUM=() COST_OUT_SUM=() COST_MS_LIST=()
+declare -A WAKE_IN=() WAKE_OUT=() WAKE_N=()
+while IFS=$'\t' read -r cwake cvariant cin cout cms; do
+  [ -n "$cwake" ] || continue
+  COST_N[$cvariant]=$(( ${COST_N[$cvariant]:-0} + 1 ))
+  [ "$cwake" != "-" ] && WAKE_N[$cwake]=$(( ${WAKE_N[$cwake]:-0} + 1 ))
+  if [ "$cms" != "-" ]; then
+    COST_MS_LIST[$cvariant]+="$cms"$'\n'
+  fi
+  if [ "$cin" != "-" ]; then
+    COST_IN_N[$cvariant]=$(( ${COST_IN_N[$cvariant]:-0} + 1 ))
+    COST_IN_SUM[$cvariant]=$(( ${COST_IN_SUM[$cvariant]:-0} + cin ))
+    [ "$cwake" != "-" ] && WAKE_IN[$cwake]=$(( ${WAKE_IN[$cwake]:-0} + cin ))
+  fi
+  if [ "$cout" != "-" ]; then
+    COST_OUT_SUM[$cvariant]=$(( ${COST_OUT_SUM[$cvariant]:-0} + cout ))
+    [ "$cwake" != "-" ] && WAKE_OUT[$cwake]=$(( ${WAKE_OUT[$cwake]:-0} + cout ))
+  fi
+done <<< "$COST_TSV"
+printf '### cost (metered Jev usage the shim passed through; latency over every record, unavailable calls included)\n'
+printf '| variant | records | with usage | input tokens total | output tokens total | latency p50 ms | latency p95 ms |\n|---|---|---|---|---|---|---|\n'
+for v in "${VARIANTS[@]}"; do
+  [ -n "${COST_N[$v]:-}" ] || continue
+  ms_sorted=()
+  [ -n "${COST_MS_LIST[$v]:-}" ] && mapfile -t ms_sorted < <(printf '%s' "${COST_MS_LIST[$v]}" | sort -n)
+  printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$v" \
+    "${COST_N[$v]}" "${COST_IN_N[$v]:-0}" "${COST_IN_SUM[$v]:-0}" \
+    "${COST_OUT_SUM[$v]:-0}" "$(rank_pick 50 "${ms_sorted[@]}")" "$(rank_pick 95 "${ms_sorted[@]}")"
+done
+if [ "${#WAKE_N[@]}" -gt 0 ]; then
+  printf 'per granted wake (all variants of one wake key summed; records without a wake key excluded):\n'
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    printf 'wake %s: input=%s output=%s records=%s\n' "$w" "${WAKE_IN[$w]:-0}" "${WAKE_OUT[$w]:-0}" "${WAKE_N[$w]}"
+  done < <(printf '%s\n' "${!WAKE_N[@]}" | LC_ALL=C sort)
 fi
 exit 0
