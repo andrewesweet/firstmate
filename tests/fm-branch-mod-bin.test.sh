@@ -446,7 +446,20 @@ test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
     || fail "a shrunken log did not reset the offset: $(head -n 1 "$out")"
 
   FM_STATE_OVERRIDE="$state" "$EVIDENCE" 'bad task' > "$out" 2>&1 && fail "an invalid task id was accepted"
-  pass "the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file"
+
+  grep -q '^## the NEW block above stops at the 6000-byte cap' "$out" \
+    && fail "an uncapped bundle claimed the NEW block was truncated"
+  for i in $(seq 1 100); do printf 'working: %084d\n' "$i" >> "$state/t1.status"; done
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" t1 > "$out" || fail "the capped evidence bundle failed"
+  grep -qF '## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle' "$out" \
+    || fail "a NEW block over the 6000-byte cap was not marked truncated: $(head -c 400 "$out")"
+  awk 'index($0, "## the NEW block above stops") { seen=1; next } seen && /^## earlier lines/ { ok=1 } END { exit ok ? 0 : 1 }' "$out" \
+    || fail "the truncation marker was not emitted directly before the HISTORY marker"
+
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" t1 > "$out" || fail "the post-cap evidence bundle failed"
+  grep -q '^## the NEW block above stops at the 6000-byte cap' "$out" \
+    && fail "a bundle with no new bytes still claimed the NEW block was truncated"
+  pass "the evidence bundle presents NEW and HISTORY lines by byte offset, marks a NEW block cut at the 6000-byte cap, and owns the per-task offset file"
 }
 
 test_routine_covered_lines_surface_only_under_the_mod() {

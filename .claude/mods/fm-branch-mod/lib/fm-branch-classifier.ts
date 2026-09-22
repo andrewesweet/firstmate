@@ -266,6 +266,7 @@ export function serializeClassifierRecord(record: ClassifierRecord): string {
 const CLASSIFIER_TERMINAL_VERBS = new Set(["done", "needs-decision", "blocked", "failed"]);
 const CLASSIFIER_ROUTINE_VERBS = new Set(["working", "resolved", "captain-held", "paused"]);
 const CLASSIFIER_DETERMINISTIC_REASON = "deterministic verb route";
+const CLASSIFIER_TRUNCATED_MARKER = "## the NEW block above stops at the 6000-byte cap";
 
 /** The leading verb of one status line, byte-faithful to
  * bin/fm-classify-lib.sh status_line_verb: the text before the first colon,
@@ -287,14 +288,17 @@ function statusLineVerb(line: string): string {
 /** The NEW status lines one well-formed evidence bundle judges: the section
  * between the gatherer's NEW and HISTORY markers with the gatherer's
  * two-space line indent removed, blank lines and the gatherer's "(none"
- * zero-new marker dropped. Returns null for a bundle the route must not
- * judge: one with no status byte range - a failed or unparseable gather
- * whose failure text is model evidence - and one whose HISTORY marker
- * arrives fused onto preceding text, the gatherer's visible signature of
- * the 6,000-byte NEW-block cap cutting a status line mid-way, where the
- * lines past the cut may carry the captain-class one. */
+ * zero-new marker dropped. The HISTORY marker is matched mid-line, because
+ * a NEW block cut at the byte cap can fuse it onto the tail of the last
+ * partial line; that head is a NEW line and is judged. Returns null for a
+ * bundle the route must not judge: one with no status byte range - a failed
+ * or unparseable gather whose failure text is model evidence - and one
+ * carrying the gatherer's explicit truncation marker, which it emits on
+ * every platform whenever the 6,000-byte cap left status lines out of the
+ * bundle, where the lines past the cut may carry the captain-class one. */
 function classifierNewStatusLines(bundle: ClassifierEvidence): string[] | null {
   if (bundle.from < 0 || bundle.to < 0) return null;
+  if (bundle.text.includes(CLASSIFIER_TRUNCATED_MARKER)) return null;
   const out: string[] = [];
   let inNew = false;
   for (const line of bundle.text.split("\n")) {
@@ -304,7 +308,10 @@ function classifierNewStatusLines(bundle: ClassifierEvidence): string[] | null {
     }
     const hist = line.indexOf("## earlier lines, already handled by earlier wakes");
     if (hist >= 0) {
-      if (hist > 0) return null;
+      if (inNew) {
+        const head = line.slice(0, hist).replace(/^ {2}/, "");
+        if (head.trim() !== "" && !head.startsWith("(none")) out.push(head);
+      }
       inNew = false;
       continue;
     }
@@ -320,8 +327,8 @@ function classifierNewStatusLines(bundle: ClassifierEvidence): string[] | null {
  * status line in every gathered bundle carries a recognised verb and at
  * least one line exists - captain when any line's verb is terminal, routine
  * otherwise. Null keeps the model path: any unrecognised line, a failed or
- * unparseable gather, a NEW block the gatherer cut mid-line, or zero new
- * bytes is evidence a model must judge, exactly as it always has. Replay evidence (131 recorded classification
+ * unparseable gather, a NEW block the gatherer marked truncated, or zero
+ * new bytes is evidence a model must judge, exactly as it always has. Replay evidence (131 recorded classification
  * calls): 110 of 131 fall in this class, the exact-verb route matched the
  * recorded label on all of them, and the model call it replaces was wrong
  * on 13 of the 131. */

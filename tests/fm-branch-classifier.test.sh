@@ -94,8 +94,14 @@ PLAN='[
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  done [at=123] [key=nm-9]: PR https://example.com/pr/9 checks green\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
   "config":"opus-x"},
  {"name":"shortcircuit-fused-marker","tasks":["ship-a"],"seqs":[],
-  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: half line## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-9000\n## status lines appended since the last classified wake (NEW - judge these)\n  working: half line## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
   "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"truncated evidence\"}"},
+ {"name":"shortcircuit-truncated-clean-cut","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-9000\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated\n## the NEW block above stops at the 6000-byte cap - status lines past the cut are not in this bundle\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"haiku","answer":"{\"verdict\":\"uncertain\",\"reason\":\"cut at the cap\"}"},
+ {"name":"shortcircuit-fused-marker-untruncated","tasks":["ship-a"],"seqs":[],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  working: charts updated## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
+  "config":"opus-x"},
  {"name":"shortcircuit-note-line","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-300\n## status lines appended since the last classified wake (NEW - judge these)\n  note: please confirm that session id is the current main session, or correct it\n## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)\n  (none)\n","stderr":""}],
   "config":"haiku","answer":"{\"verdict\":\"captain\",\"reason\":\"asks the supervisor\"}"},
@@ -413,11 +419,11 @@ else
   fail "evidence bundle ordering drifted"
 fi
 
-# The deterministic verb route (steps 15-25): every NEW status line in every
+# The deterministic verb route (steps 15-27): every NEW status line in every
 # gathered bundle carrying a recognised verb emits the whitelist verdict with
 # no completion request at all (even with a configured model name), while any
-# unrecognised line, a failed gather, a NEW block the gatherer cut mid-line,
-# zero new bytes, or a bare legacy line keeps the model path. note: lines always keep the model path, including
+# unrecognised line, a failed gather, a NEW block the gatherer marked
+# truncated, zero new bytes, or a bare legacy line keeps the model path. note: lines always keep the model path, including
 # beside a recognised verb - the widening that would silently change routing.
 route_step() {
   local idx=$1 verdict=$2 reason=$3 label=$4
@@ -447,13 +453,15 @@ model_step() {
     fail "$label (reqs=$(jq -c ".[$idx].completeReqs" "$TMP_ROOT/lib.json") result=$(jq -c ".[$idx].result | {verdict, reason, model}" "$TMP_ROOT/lib.json")"
   fi
 }
-model_step 19 uncertain "truncated evidence" "a NEW block the gatherer cut mid-line - the HISTORY marker fused onto it - keeps the model path"
-model_step 20 captain "asks the supervisor" "a note: line always keeps the model path"
-model_step 21 routine "on the model" "an unrecognised verb keeps the model path"
-model_step 22 captain "note beside the done" "a note: line beside a recognised verb keeps the model path"
-model_step 23 uncertain "gather failed" "a failed gather beside recognised lines keeps the model path"
-model_step 24 routine "nothing new" "a zero-new wake keeps the model path"
-model_step 25 captain "bare legacy line" "a bare legacy line never takes a route verdict: the free-text fallback stays off the short-circuit"
+model_step 19 uncertain "truncated evidence" "the gatherer's truncation marker keeps a cut NEW block on the model path, fused HISTORY marker and all"
+model_step 20 uncertain "cut at the cap" "the truncation marker refuses the route even when the cut landed on a line boundary"
+route_step 21 routine "deterministic verb route" "a fused HISTORY marker without the truncation marker never refuses the route"
+model_step 22 captain "asks the supervisor" "a note: line always keeps the model path"
+model_step 23 routine "on the model" "an unrecognised verb keeps the model path"
+model_step 24 captain "note beside the done" "a note: line beside a recognised verb keeps the model path"
+model_step 25 uncertain "gather failed" "a failed gather beside recognised lines keeps the model path"
+model_step 26 routine "nothing new" "a zero-new wake keeps the model path"
+model_step 27 captain "bare legacy line" "a bare legacy line never takes a route verdict: the free-text fallback stays off the short-circuit"
 
 # The per-host resolution rule and the one-shot model-not-found fallback
 # (steps 10-14): the explicit configured name wins, the host's default fills
@@ -505,17 +513,17 @@ else
 fi
 
 # The system-prompt memo: one read for the whole plan, re-read after reset.
-if [ "$(jq -r '.[26].count' "$TMP_ROOT/lib.json")" = "1" ] \
-  && [ "$(jq -r '.[27].count' "$TMP_ROOT/lib.json")" = "2" ] \
-  && [ "$(jq -r '.[26].count' "$TMP_ROOT/mod.json")" = "1" ]; then
+if [ "$(jq -r '.[28].count' "$TMP_ROOT/lib.json")" = "1" ] \
+  && [ "$(jq -r '.[29].count' "$TMP_ROOT/lib.json")" = "2" ] \
+  && [ "$(jq -r '.[28].count' "$TMP_ROOT/mod.json")" = "1" ]; then
   pass "the classifier system prompt is read once per module lifetime; the test reset clears it"
 else
-  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[26].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[27].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[26].count' "$TMP_ROOT/mod.json"))"
+  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[28].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[29].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[28].count' "$TMP_ROOT/mod.json"))"
 fi
 
 # The classifier-pass covering rule, byte-pinned.
-if [ "$(jq -r '.[28].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
-  && [ "$(jq -c '.[28].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
+if [ "$(jq -r '.[30].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
+  && [ "$(jq -c '.[30].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
   pass "the classifier-pass covering summary and outcome-store argv are byte-stable"
 else
   fail "the classifier-pass covering rule drifted"
