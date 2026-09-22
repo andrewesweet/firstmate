@@ -566,6 +566,20 @@ outcome: passed
 EOF
 }
 
+run_passed_with_override() {  # <branch>
+  cat <<EOF
+run:
+  id: "01RUN"
+  branch: $1
+  status: completed
+  head: "${FM_FAKE_RUN_HEAD:-abc1234}"
+  pr: "https://github.com/o/r/pull/1"
+  findings: none
+outcome: passed-with-override
+ci_override_reason: "live checks not all passed: Lint (fail)"
+EOF
+}
+
 run_passed_with_pr() {  # <branch> <pr-url>
   cat <<EOF
 run:
@@ -1312,6 +1326,22 @@ test_terminal_passed() {
   pass "terminal passed run is authoritative"
 }
 
+test_terminal_passed_with_override() {
+  reset_fakes
+  local d; d=$(new_case passed-with-override)
+  make_repo_on_branch "$d/wt" fm/feat-override
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-override.meta" "window=fm:fm-feat-override" "worktree=$d/wt" "kind=ship"
+  FM_FAKE_AXI_STATUS="$(run_passed_with_override fm/feat-override)"
+  local out; out=$(run_crew_state "$d" feat-override)
+  assert_contains "$out" "state: done" "passed-with-override run -> done, not unknown"
+  assert_contains "$out" "source: run-step" "passed-with-override -> run-step source"
+  assert_contains "$out" "run passed: PR merged" "passed-with-override run reports merged only after the PR record says merged"
+  assert_not_contains "$out" "state: unknown" "passed-with-override must not fall through to unknown"
+  assert_not_contains "$out" "outcome: passed-with-override" "passed-with-override must not surface as a raw unmapped outcome detail"
+  pass "terminal passed-with-override run reads done like a clean pass"
+}
+
 test_terminal_passed_uses_matching_retirement_receipt_without_forge() {
   reset_fakes
   local d url read_log out
@@ -1895,6 +1925,40 @@ test_no_run_busy_pane() {
   assert_contains "$out" "source: pane" "busy record -> pane source"
   assert_contains "$out" "claude-hook" "the working verdict names its semantic source"
   pass "no run + a busy semantic record reads working, attributed to its source"
+}
+
+# A launch pinned at the fm-spawn seed (no hook has posted yet) whose pane
+# renders a recognized interactive prompt must read unknown, never working -
+# this is the load-bearing link the launch-prompt backstop depends on:
+# fm-watch.sh's pause_state_class absorbs a stale pane as "provably working"
+# whenever THIS script reports `state: working · source: pane`, so if this
+# authoritative read still said working, the watcher would silently swallow
+# the wake even though bin/fm-busy-lib.sh's own classifier had already flipped
+# to unknown launch-prompt. crew_busy_verdict must therefore capture a real
+# tail for every harness, not only grok, so the backstop's own tail-based
+# check ever runs here at all.
+test_no_run_launch_prompt_parked_is_not_working() {
+  reset_fakes
+  local d; d=$(new_case launch-prompt)
+  make_repo_on_branch "$d/wt" fm/feat-lp
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-lp.meta" "window=fm:fm-feat-lp" "worktree=$d/wt" "kind=ship" "harness=claude"
+  FM_FAKE_AXI_STATUS=""
+  FM_FAKE_RUNS_LIST=""
+  FM_FAKE_BUSY=1
+  FM_FAKE_BUSY_TEXT='Quick safety check: Is this a project you created or one you trust? ...
+> No, exit
+  Yes, I trust this folder
+Enter to confirm . Esc to cancel'
+  export FM_FAKE_BUSY_TEXT
+  # arm only, never apply: the launch turn has never advanced past the seed
+  # fm-spawn.sh writes at spawn time.
+  "$ROOT/bin/fm-busy-event.sh" arm "$d/state" feat-lp >/dev/null
+  local out; out=$(run_crew_state "$d" feat-lp)
+  assert_not_contains "$out" "state: working" "a launch parked on its trust dialog must never read working"
+  assert_contains "$out" "state: unknown" "a parked launch reads unknown, not busy or idle"
+  assert_contains "$out" "launch-prompt" "the unknown verdict names the launch-prompt backstop as its source"
+  pass "a launch parked on a recognized interactive prompt never reads working, closing the absorb path a stale watcher poll depends on"
 }
 
 # A converted adapter must NOT read working from rendered footer text: the
@@ -4849,6 +4913,7 @@ test_ci_fixing_after_green_stays_working
 test_top_level_fixing_ci_running_after_green_stays_working
 test_top_level_fixing_done_log_stays_working
 test_terminal_passed
+test_terminal_passed_with_override
 test_terminal_passed_uses_matching_retirement_receipt_without_forge
 test_terminal_passed_no_forge_switch_skips_read_but_keeps_receipt
 test_terminal_passed_with_open_pr_does_not_claim_merged
@@ -4875,6 +4940,7 @@ test_terminal_run_without_live_sibling_is_unchanged
 test_coarse_run_does_not_probe_other_branch_ci_log_for_ready_status
 test_other_branch_run_ignored
 test_no_run_busy_pane
+test_no_run_launch_prompt_parked_is_not_working
 test_no_run_footer_text_alone_is_not_working
 test_no_run_grok_uses_isolated_fallback
 test_no_run_herdr_unknown_uses_backend_capture
