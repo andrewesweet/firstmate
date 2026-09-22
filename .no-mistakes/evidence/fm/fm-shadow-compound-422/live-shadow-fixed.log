@@ -1,0 +1,61 @@
+## lib: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M340HRR0N2XH3428GCECCJDW/lib/fm-branch-shadow.ts
+## fake systemone (typed-questions-only) on 127.0.0.1:44849
+--- request question keys/types as received by the API:
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidate:ship-a","t":"noul"},{"k":"candidate:ship-b","t":"noul"}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidate:ship-a","t":"noul"},{"k":"candidate:ship-b","t":"noul"}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidate:ship-a","t":"noul"},{"k":"candidate:ship-b","t":"noul"}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidate:ship-a","t":"noul"},{"k":"candidate:ship-b","t":"noul"}]
+--- shadow.jsonl records:
+{"variant":"full","model":"jev-fake","unavailable":null,"candidates":{"ship-a":0.1,"ship-b":0.9},"answer_keys":["candidate:ship-a","candidate:ship-b","no_new_outcome","phase","route","severity"]}
+{"variant":"without_current_state","model":"jev-fake","unavailable":null,"candidates":{"ship-a":0.1,"ship-b":0.9},"answer_keys":["candidate:ship-a","candidate:ship-b","no_new_outcome","phase","route","severity"]}
+{"variant":"without_prior_outcomes","model":"jev-fake","unavailable":null,"candidates":{"ship-a":0.1,"ship-b":0.9},"answer_keys":["candidate:ship-a","candidate:ship-b","no_new_outcome","phase","route","severity"]}
+{"variant":"without_pane_tail","model":"jev-fake","unavailable":null,"candidates":{"ship-a":0.1,"ship-b":0.9},"answer_keys":["candidate:ship-a","candidate:ship-b","no_new_outcome","phase","route","severity"]}
+--- fm-branch-shadow-score.sh:
+### route (label: the joined branch outcome verdict)
+| variant | scored | raw agreement | policy agreement | confident disagreement | uncertain | unavailable |
+|---|---|---|---|---|---|---|
+unmatched (no outcome row carries this wake key; never counted as a verdict): full=1 without_current_state=1 without_prior_outcomes=1 without_pane_tail=1
+
+### phase (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | routine=1 | 0 (0.0%) | 0 |
+| without_current_state | 1 | routine=1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 1 | routine=1 | 0 (0.0%) | 0 |
+| without_pane_tail | 1 | routine=1 | 0 (0.0%) | 0 |
+
+### severity (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | 1=1 | 1 (100.0%) | 0 |
+| without_current_state | 1 | 1=1 | 1 (100.0%) | 0 |
+| without_prior_outcomes | 1 | 1=1 | 1 (100.0%) | 0 |
+| without_pane_tail | 1 | 1=1 | 1 (100.0%) | 0 |
+
+### no_new_outcome (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | false=1 | 0 (0.0%) | 0 |
+| without_current_state | 1 | false=1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 1 | false=1 | 0 (0.0%) | 0 |
+| without_pane_tail | 1 | false=1 | 0 (0.0%) | 0 |
+
+### candidates.ship-a (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | false=1 | 0 (0.0%) | 0 |
+| without_current_state | 1 | false=1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 1 | false=1 | 0 (0.0%) | 0 |
+| without_pane_tail | 1 | false=1 | 0 (0.0%) | 0 |
+
+### candidates.ship-b (no durable label in the outcome record; distribution and policy uncertainty only)
+| variant | records | answers | uncertain | unavailable |
+|---|---|---|---|---|
+| full | 1 | true=1 | 0 (0.0%) | 0 |
+| without_current_state | 1 | true=1 | 0 (0.0%) | 0 |
+| without_prior_outcomes | 1 | true=1 | 0 (0.0%) | 0 |
+| without_pane_tail | 1 | true=1 | 0 (0.0%) | 0 |
+
+### repeat control (full variant run twice on one wake; raw call agreement)
+| question | full pairs | identical answers |
+|---|---|---|

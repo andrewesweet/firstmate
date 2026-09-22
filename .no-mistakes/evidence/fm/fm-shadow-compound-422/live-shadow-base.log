@@ -1,0 +1,14 @@
+## lib: /home/andre/.no-mistakes/evidence/01M340HRR0N2XH3428GCECCJDW/fm-branch-shadow.base.ts
+## fake systemone (typed-questions-only) on 127.0.0.1:45595
+--- request question keys/types as received by the API:
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidates","t":null}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidates","t":null}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidates","t":null}]
+[{"k":"route","t":"choice"},{"k":"phase","t":"choice"},{"k":"severity","t":"score"},{"k":"no_new_outcome","t":"noul"},{"k":"candidates","t":null}]
+--- shadow.jsonl records:
+--- fm-branch-shadow-score.sh:
+--- shadow.jsonl records (base lib, same fake API):
+{"variant":"full","model":null,"unavailable":"http 422","candidates":null}
+{"variant":"without_current_state","model":null,"unavailable":"http 422","candidates":null}
+{"variant":"without_prior_outcomes","model":null,"unavailable":"http 422","candidates":null}
+{"variant":"without_pane_tail","model":null,"unavailable":"http 422","candidates":null}
