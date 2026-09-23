@@ -126,7 +126,7 @@ The condition path must be absolute: the runner's working directory is the watch
 
 ## Launch settings
 
-Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
+Measured on Claude Code 2.1.281 (2026-09-23); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` in the environment: a Herdr server started inside a Claude session hands the pane its `CLAUDE_CODE_CHILD_SESSION` marker, which switches transcript saving off, and without a disk transcript every resume of the branch agent fails once Claude Code evicts the finished agent from memory 30-60 s after it completes; set in the main home after the branch-reuse root-cause report of 2026-09-19 measured 25 of 25 rotations failing this way.
@@ -144,7 +144,7 @@ Measured on Claude Code 2.1.278 (2026-09-19); `tests/fm-branch-claude-mod-live-e
 
 ## Version pin
 
-The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.278`).
+The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.281`).
 At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable); on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version> (<source>); built for <pin>`, and passes every hook through untouched for the rest of the session.
 Both the `session.start` and the `pin.refused` event record `pinSource` (`running binary` or `PATH claude`) and the probe's raw `--version` output as `probe`, so a split between the running binary and PATH is one log line.
 A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
