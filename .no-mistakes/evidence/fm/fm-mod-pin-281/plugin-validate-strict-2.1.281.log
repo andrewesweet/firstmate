@@ -1,0 +1,10 @@
+Validating plugin manifest: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M382Z4YA6H4H7DWJ1C6KX8PY/.claude/mods/fm-branch-mod/.claude-plugin/plugin.json
+
+Validating hooks: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M382Z4YA6H4H7DWJ1C6KX8PY/.claude/mods/fm-branch-mod/hooks/hooks.json
+
+  ❯ ./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete
+  ❯ ./branch.ts calls: $.agent.list (via deliveryDeps), $.agent.spawn (via deliveryDeps), $.clock.now, $.env.get (via bind, foldVocabulary, transcriptPersistence), $.fs.exists (via modeOn, routerDeps), $.fs.list (via scopeScanDeps), $.fs.read (via classifierDeps, newStatusLinesNote, readConfig, readLockPid, readPassedSeqs, restoreCounters, scopeScanDeps, shadowDeps), $.fs.stat (via scopeScanDeps), $.fs.write (via saveCounters, writePassedSeqs), $.model.complete (via classifierDeps), $.process.run (via appendLine, backstopCheck, checkPin, classifierDeps, grant, outcome, routerDeps, shadowDeps), $.prompt.submit, $.session.cwd (via ensureBound), $.session.id (via sessionTranscriptId), $.tool.call (via deliveryDeps, monitorDeps), $.tool.register, $.ui.log
+  ❯ ./branch.ts env writes: nothing
+  ❯ ./branch.ts env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CLASSIFY_CAPTAIN_HELD_VERB, FM_CLASSIFY_PAUSED_VERB, FM_CLASSIFY_RESERVED_KEY_PREFIXES, FM_CLASSIFY_RESOLVE_VERB, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE
+
+✔ Validation passed
