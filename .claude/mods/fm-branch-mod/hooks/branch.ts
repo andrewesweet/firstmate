@@ -109,7 +109,7 @@ import {
   wakeUsageFold,
 } from '../lib/fm-branch-settlement.ts'
 
-export const CLAUDE_CODE_PIN = '2.1.278'
+export const CLAUDE_CODE_PIN = '2.1.281'
 
 type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
 
