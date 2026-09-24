@@ -416,10 +416,12 @@
 # compatible tasks-axi refuses before creating lifecycle state.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> [mode=<mode> yolo=<on|off>] window=<backend-target> worktree=<path>
 # Every successful fresh ship or scout spawn also appends one JSON line (ts, task,
-# kind, harness, model, effort, resolved exactly as the task record records them)
-# to data/dispatch-spawns.jsonl for the offline typed-dispatch replay scorer; a
-# --relaunch never appends, and an unwritable log prints one stderr line and
-# never fails the spawn.
+# kind, harness, model, effort, resolved exactly as the task record records them,
+# plus brief_sha256, the SHA-256 of the exact data/<id>/brief.md bytes as they
+# stand at spawn) to data/dispatch-spawns.jsonl for the offline typed-dispatch
+# replay scorer; a --relaunch never appends, and an unwritable log prints one
+# stderr line and never fails the spawn. A hashing failure degrades by omitting
+# brief_sha256, never by failing the spawn; brief text is never recorded.
 # A ship task records the explicit mode/yolo it was passed; a secondmate spawn records
 # mode=secondmate, yolo=off, home=, and projects=; a scout records no mode/yolo.
 # When a carrier is resolved, ship and scout metadata also record home= as the
@@ -5264,7 +5266,22 @@ SPAWN_DELIVERY=
 # dispatch outcomes, and a relaunch re-runs a dispatch already recorded. Best
 # effort by design: one stderr line on failure, never a spawn failure.
 if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
-  SPAWN_DISPATCH_LINE=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg task "$ID" --arg kind "$KIND" --arg harness "$HARNESS" --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" '{ts: $ts, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort}') || SPAWN_DISPATCH_LINE=
+  # The digest binds the exact task-brief bytes (data/<id>/brief.md as they
+  # stand at spawn; the launch-brief.md overlay in $BRIEF is derived from it),
+  # reusing the resolve log's shasum-first digest shape. A hashing failure
+  # degrades by omitting the field, never by failing the spawn.
+  SPAWN_BRIEF_FILE=${SOURCE_BRIEF:-$BRIEF}
+  SPAWN_BRIEF_DIGEST_RAW=''
+  if [ -n "$SPAWN_BRIEF_FILE" ] && [ -r "$SPAWN_BRIEF_FILE" ]; then
+    if command -v shasum >/dev/null 2>&1; then
+      SPAWN_BRIEF_DIGEST_RAW=$(shasum -a 256 "$SPAWN_BRIEF_FILE" 2>/dev/null) || SPAWN_BRIEF_DIGEST_RAW=''
+    elif command -v sha256sum >/dev/null 2>&1; then
+      SPAWN_BRIEF_DIGEST_RAW=$(sha256sum "$SPAWN_BRIEF_FILE" 2>/dev/null) || SPAWN_BRIEF_DIGEST_RAW=''
+    fi
+  fi
+  SPAWN_BRIEF_DIGEST=${SPAWN_BRIEF_DIGEST_RAW%% *}
+  if [ -n "$SPAWN_BRIEF_DIGEST" ]; then SPAWN_BRIEF_DIGEST="sha256:$SPAWN_BRIEF_DIGEST"; fi
+  SPAWN_DISPATCH_LINE=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg task "$ID" --arg kind "$KIND" --arg harness "$HARNESS" --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg brief_digest "$SPAWN_BRIEF_DIGEST" '{ts: $ts, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort} + (if $brief_digest == "" then {} else {brief_sha256: $brief_digest} end)') || SPAWN_DISPATCH_LINE=
   if [ -n "$SPAWN_DISPATCH_LINE" ]; then
     { mkdir -p "$DATA" && printf '%s\n' "$SPAWN_DISPATCH_LINE" >> "$DATA/dispatch-spawns.jsonl"; } 2>/dev/null || printf 'spawn: dispatch-spawn log unwritable: %s\n' "$DATA/dispatch-spawns.jsonl" >&2
   else

@@ -120,6 +120,14 @@ assert_meta_profile() {
   assert_grep "effort=$effort" "$meta" "meta missing effort=$effort"
 }
 
+spawn_brief_sha256() {  # <path>: sha256:<hex> of the exact bytes, resolve-log shape
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print "sha256:" $1}'
+  else
+    sha256sum "$1" | awk '{print "sha256:" $1}'
+  fi
+}
+
 test_no_profile_keeps_claude_profile_defaults() {
   local rec id out status expected launch
   id=profile-off-z1
@@ -389,12 +397,15 @@ test_successful_spawn_appends_dispatch_spawn_record() {
   assert_equals 'codex' "$(jq -r .harness <<<"$line")" "spawn line carries the dispatched harness"
   assert_equals 'gpt-5' "$(jq -r .model <<<"$line")" "spawn line carries the dispatched model"
   assert_equals 'high' "$(jq -r .effort <<<"$line")" "spawn line carries the dispatched effort"
+  assert_equals '7' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its seven fields"
+  assert_equals "$(spawn_brief_sha256 "$HOME_DIR/data/$ship/brief.md")" "$(jq -r .brief_sha256 <<<"$line")" "spawn line identifies the exact brief bytes by SHA-256"
   line=$(sed -n '2p' "$HOME_DIR/data/dispatch-spawns.jsonl")
   assert_equals "$scout" "$(jq -r .task <<<"$line")" "scout line carries the task id"
   assert_equals 'scout' "$(jq -r .kind <<<"$line")" "scout line carries the kind"
   assert_equals 'default' "$(jq -r .model <<<"$line")" "an unset model is recorded as default, matching the task record"
+  assert_equals '7' "$(jq -r 'keys | length' <<<"$line")" "scout line carries only its seven fields"
+  assert_equals "$(spawn_brief_sha256 "$HOME_DIR/data/$scout/brief.md")" "$(jq -r .brief_sha256 <<<"$line")" "scout line identifies the exact brief bytes by SHA-256"
   assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "spawn line timestamp is UTC ISO 8601"
-  assert_equals '6' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its six fields"
   assert_not_contains "$(cat "$HOME_DIR/data/dispatch-spawns.jsonl")" 'Exercise the spawn behavior' "the brief text never reaches the spawn log"
   # A relaunch needs its recorded window listed and its pane proven agent-free
   # (a bare shell as pane_current_command); the shared fake tmux answers neither.
@@ -412,6 +423,26 @@ SH
   expect_code 0 "$?" "relaunch should succeed: $out"
   assert_equals '2' "$(wc -l < "$HOME_DIR/data/dispatch-spawns.jsonl")" "a relaunch appends no spawn line"
   pass "successful ship and scout spawns record the actually-dispatched profile; a relaunch does not"
+}
+
+test_unwritable_dispatch_spawn_log_never_fails_spawn() {
+  local rec id out status
+  id=profile-spawn-log-unwritable-z17
+  rec=$(make_spawn_case profile-spawn-log-unwritable claude "$id")
+  read_case_record "$rec"
+  enable_dispatch_profile "$HOME_DIR"
+  # A directory at the log path makes the append fail while the spawn itself
+  # stays fully writable, proving the best-effort contract.
+  mkdir "$HOME_DIR/data/dispatch-spawns.jsonl"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$PROJ_DIR" --harness codex --model gpt-5 --effort high)
+  status=$?
+  expect_code 0 "$status" "an unwritable spawn log still exits 0"
+  assert_contains "$out" "spawned $id harness=codex" "an unwritable spawn log leaves the spawn outcome intact"
+  assert_contains "$out" "spawn: dispatch-spawn log unwritable: $HOME_DIR/data/dispatch-spawns.jsonl" "a failed spawn-log write names the log path on stderr"
+  assert_equals '1' "$(grep -c 'dispatch-spawn log unwritable' <<<"$out")" "a failed spawn-log write reports exactly one stderr line"
+  pass "an unwritable dispatch-spawn log never fails the spawn"
 }
 
 test_active_dispatch_profile_allows_raw_launch_command() {
@@ -1676,6 +1707,7 @@ test_active_dispatch_profile_requires_explicit_harness_for_scout
 test_active_dispatch_profile_allows_explicit_harness
 test_active_dispatch_profile_allows_positional_harness
 test_successful_spawn_appends_dispatch_spawn_record
+test_unwritable_dispatch_spawn_log_never_fails_spawn
 test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort

@@ -7,7 +7,8 @@
 # A fake quota-axi serves the selected schema-5 fixture. No case touches the
 # network, and the absent-key case proves the tool makes no call
 # at all. The outcome-log cases prove every resolved call appends exactly one
-# JSON line to the home's data/dispatch-resolve.jsonl, that the key and the
+# JSON line to the home's data/dispatch-resolve.jsonl, that the line carries
+# the SHA-256 of the exact brief bytes, that the key and the
 # brief text never reach it, and that a failed write leaves the block and the
 # exit code untouched.
 set -u
@@ -290,6 +291,7 @@ assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "the runner-up marg
 assert_equals 'string:1' "$(jq -r '.policy.version | type + ":" + .' <<<"$line")" "the dispatch policy version is logged as a string"
 assert_equals '0.6' "$(jq -r .policy.confidence_floor <<<"$line")" "the confidence floor in force is logged"
 assert_equals "$(file_sha256 "$BASE_RULES")" "$(jq -r .rules_digest <<<"$line")" "the exact rules bytes are identified by SHA-256"
+assert_equals "$(file_sha256 "$BRIEF")" "$(jq -r .brief_sha256 <<<"$line")" "the exact brief bytes are identified by SHA-256"
 assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the logged timestamp is UTC ISO 8601"
 assert_not_contains "$(cat "$DISPATCH_LOG")" "$KEY" "the API key never reaches the log"
 assert_not_contains "$(cat "$DISPATCH_LOG")" 'off-by-one in the pager' "the brief text never reaches the log"
@@ -303,6 +305,7 @@ assert_equals 'null' "$(jq -r .profile <<<"$line")" "a non-clear outcome logs no
 assert_contains "$(jq -r .reason <<<"$line")" 'confidence 0.41 below floor 0.6' "the non-clear reason is logged"
 assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "an ambiguous result retains the selected probability"
 assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "an ambiguous result retains the runner-up margin"
+assert_equals "$(file_sha256 "$BRIEF")" "$(jq -r .brief_sha256 <<<"$line")" "a non-clear outcome still identifies the exact brief bytes"
 write_response "$RESPONSE" rule_3 0.95
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
 line=$(tail -n 1 "$DISPATCH_LOG")
@@ -316,6 +319,7 @@ cp "$BRIEF" "$TASK_BRIEF"
 write_response "$RESPONSE" rule_4 0.9
 TYPESAFE_API_KEY=$KEY run code out err "$TASK_BRIEF"
 assert_equals 'task-abc-123' "$(jq -r .task <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the task id comes from the brief's data/<id> parent"
+assert_equals "$(file_sha256 "$TASK_BRIEF")" "$(jq -r .brief_sha256 <<<"$(tail -n 1 "$DISPATCH_LOG")")" "the digest follows the brief file actually read"
 write_response "$RESPONSE" rule_4 0.9
 _out=$(cd "$HOME_DIR" && PATH="$FAKEBIN:$BASE_PATH" FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="$KEY" "$TOOL" data/task-abc-123/brief.md --project pager 2> "$TMP_ROOT/stderr")
 expect_code 0 "$?" "a relative data/<id>/brief.md path from the home exits 0"
@@ -761,6 +765,7 @@ line=$(tail -n 1 "$DISPATCH_LOG")
 assert_equals 'null' "$(jq -r .tokens <<<"$line")" "an outcome without a parsed answer logs no tokens"
 assert_equals '[null,null,null,null,null]' "$(jq -c '[.model,.probabilities,.selected_option,.selected_probability,.runner_up_margin]' <<<"$line")" "an error without a response logs null response telemetry"
 assert_equals "$(file_sha256 "$BASE_RULES")" "$(jq -r .rules_digest <<<"$line")" "an error still identifies the rules snapshot it resolved against"
+assert_equals "$(file_sha256 "$BRIEF")" "$(jq -r .brief_sha256 <<<"$line")" "an error still identifies the exact brief bytes"
 reset_log
 TYPESAFE_API_KEY=$KEY FAKE_CURL_HTTP=429 run code out err "$BRIEF"
 expect_code 0 "$code" "http 429 exits 0"
