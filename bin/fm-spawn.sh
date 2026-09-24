@@ -5270,10 +5270,9 @@ if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
   # stand at spawn; the launch-brief.md overlay in $BRIEF is derived from it),
   # reusing the resolve log's shasum-first digest shape. A hashing failure
   # degrades by omitting the field, never by failing the spawn.
-  SPAWN_BRIEF_FILE=${SOURCE_BRIEF:-$BRIEF}
   SPAWN_BRIEF_DIGEST=''
-  if [ -n "$SPAWN_BRIEF_FILE" ] && [ -r "$SPAWN_BRIEF_FILE" ]; then
-    SPAWN_BRIEF_DIGEST=$(fm_pr_sha256 "$SPAWN_BRIEF_FILE") || SPAWN_BRIEF_DIGEST=''
+  if [ -r "$SOURCE_BRIEF" ]; then
+    SPAWN_BRIEF_DIGEST=$(fm_pr_sha256 "$SOURCE_BRIEF") || SPAWN_BRIEF_DIGEST=''
   fi
   if [ -n "$SPAWN_BRIEF_DIGEST" ]; then SPAWN_BRIEF_DIGEST="sha256:$SPAWN_BRIEF_DIGEST"; fi
   SPAWN_DISPATCH_LINE=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg task "$ID" --arg kind "$KIND" --arg harness "$HARNESS" --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg brief_digest "$SPAWN_BRIEF_DIGEST" '{ts: $ts, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort} + (if $brief_digest == "" then {} else {brief_sha256: $brief_digest} end)') || SPAWN_DISPATCH_LINE=

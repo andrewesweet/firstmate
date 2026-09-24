@@ -268,13 +268,13 @@ fi
 [ -r "$BRIEF" ] || die "brief file not readable: $BRIEF"
 # The digest binds the exact brief bytes that are routed, so a later offline
 # replay can prove a recovered brief byte-identical; the snapshot is both hashed
-# and sent, a hashing failure degrades to null rather than refusing the intake,
-# and brief text is never recorded.
+# and sent, hashing is required exactly like the rules digest, and brief text is
+# never recorded.
 BRIEF_SNAPSHOT=$(mktemp) || die "mktemp failed"
 trap 'rm -f "$BRIEF_SNAPSHOT"' EXIT
 cp "$BRIEF" "$BRIEF_SNAPSHOT" || die "could not snapshot brief file: $BRIEF"
 chmod 400 "$BRIEF_SNAPSHOT" || die "could not protect brief snapshot"
-BRIEF_DIGEST=$(sha256_file "$BRIEF_SNAPSHOT") || BRIEF_DIGEST=''
+BRIEF_DIGEST=$(sha256_file "$BRIEF_SNAPSHOT") || die "could not hash brief file: $BRIEF (shasum or sha256sum required)"
 [ -e "$RULES_PATH" ] || [ -L "$RULES_PATH" ] || no_rules
 [ -r "$RULES_PATH" ] || die "rules file not readable: $RULES_PATH"
 command -v jq >/dev/null 2>&1 || die "jq required"
