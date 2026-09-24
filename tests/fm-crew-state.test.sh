@@ -2145,7 +2145,11 @@ test_merged_pr_reads_done_under_captured_meta() {
   pass "recorded merged PR reads done under the fleet snapshot's captured meta"
 }
 
-test_no_mistakes_prevalidation_done_stays_done() {
+# On this fork a no-mistakes worker starts validation itself, so a bare
+# pre-validation `done:` has no legitimate producer: the same named-head gate
+# that blocks a CI-ready done whose head lives only in the disposable copy
+# must read the bare done as blocked rather than current-state done.
+test_no_mistakes_prevalidation_done_is_blocked() {
   reset_fakes
   local d out
   d=$(new_case preval-done)
@@ -2161,9 +2165,10 @@ test_no_mistakes_prevalidation_done_stays_done() {
   FM_FAKE_BUSY=0
   arm_idle_record "$d/state" preval
   out=$(run_crew_state "$d" preval)
-  assert_contains "$out" "state: done" "no-mistakes pre-validation done: remains done"
-  assert_not_contains "$out" "state: blocked" "pre-validation done: must not be the named-head gate"
-  pass "no-mistakes pre-validation done: stays current-state done"
+  assert_contains "$out" "state: blocked" "a bare no-mistakes pre-validation done: must be the named-head gate"
+  assert_contains "$out" "unreachable outside the worker copy" "the bare done refusal must name the unpushed head"
+  assert_not_contains "$out" "state: done" "a bare pre-validation done: must not read current-state done"
+  pass "no-mistakes pre-validation done: reads blocked, not done"
 }
 
 test_moved_remote_branch_without_named_head_is_blocked() {
@@ -5419,7 +5424,7 @@ test_coarse_run_does_not_probe_other_branch_ci_log_for_ready_status
 test_other_branch_run_ignored
 test_unpushed_ship_done_is_blocked
 test_merged_pr_reads_done_under_captured_meta
-test_no_mistakes_prevalidation_done_stays_done
+test_no_mistakes_prevalidation_done_is_blocked
 test_moved_remote_branch_without_named_head_is_blocked
 test_no_run_busy_pane
 test_no_run_overview_zero_branch_falls_through
