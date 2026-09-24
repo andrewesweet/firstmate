@@ -122,5 +122,7 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
     [ -z "$authority" ] || MERGE_SPAN_ATTRS+=("firstmate.merge.authority=$authority")
     fm_trace_span_emit "$state/$id.meta" firstmate.pr.merged - - "${MERGE_SPAN_ATTRS[@]}"
   fi
+  # Opt-in fleet activity ledger (docs/fleet-ledger.md); off costs one file test.
+  [ ! -e "${FM_CONFIG_OVERRIDE:-$home/config}/fleet-ledger" ] || [ "$status" -ne 0 ] || FM_HOME=$home FM_STATE_OVERRIDE=$state "$_FM_MERGE_OUTCOME_LIB_DIR/fm-fleet-ledger.sh" merged "$id" pr "$FM_PR_URL" || true
   return "$status"
 }

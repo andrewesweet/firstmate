@@ -331,6 +331,34 @@ test_faster_paths_use_configured_authority_without_stacked_review() {
   pass "fm-brief.sh: faster paths use configured authority without stacked review"
 }
 
+# A PR-based ship must not report done on a draft, which cannot be merged; a
+# lane that deliberately holds a draft declares a wait instead. local-only opens
+# no PR, so it must not carry the requirement.
+test_pr_based_dod_requires_non_draft() {
+  local home mode id brief
+  home="$TMP_ROOT/draft-dod-home"
+  mkdir -p "$home/data"
+  for mode in no-mistakes direct-PR local-only; do
+    id="brief-draft-$mode"
+    FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode "$mode" >/dev/null 2>&1
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$mode: brief was not scaffolded"
+    if [ "$mode" = local-only ]; then
+      assert_no_grep "isDraft" "$brief" "$mode: a branch-only delivery must not require a non-draft PR"
+      continue
+    fi
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
+    assert_grep 'confirm it is not a draft (`gh pr view <url> --json isDraft` must print false)' "$brief" \
+      "$mode: done must require reading the PR back from the forge as non-draft"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
+    assert_grep 'mark it ready with `gh-axi pr ready`' "$brief" \
+      "$mode: a draft must be marked ready before done"
+    assert_grep "If you deliberately keep the PR a draft, append \`paused" "$brief" \
+      "$mode: a deliberate draft must declare a wait instead of done"
+  done
+  pass "fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait"
+}
+
 # Pin the specific line the bug lived on: the no-mistakes DOD's no-mistakes
 # reference must render as plain prose with no dangling apostrophe artifact.
 test_no_mistakes_dod_wording() {
@@ -446,6 +474,34 @@ test_no_mistakes_dod_wording() {
   assert_no_grep "no-mistakes refuses" "$brief" \
     "no-mistakes DOD must not claim the tool itself refuses --yes"
   pass "fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright"
+}
+
+# The green-PR report must not depend on a status poll: `axi status` never
+# reports `checks-passed` while the ci step monitors the PR for merge, so a
+# worker told to wait on it for the next gate or outcome never learned its PR
+# went green (2026-09-22, PR #5317). The rendered DOD must make the drive
+# call's own return the green signal and reattach after a bounded return.
+test_no_mistakes_dod_green_detection() {
+  local home id brief
+  home="$TMP_ROOT/green-detection-home"
+  mkdir -p "$home/data"
+  id="brief-green-b1"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "brief was not scaffolded"
+  assert_grep "Only a drive call's return reports the green PR" "$brief" \
+    "no-mistakes DOD must make the drive call's return the green signal"
+  assert_grep "never reports \`checks-passed\` while the ci step is still monitoring the PR for merge" "$brief" \
+    "no-mistakes DOD must say axi status cannot show a green PR in merge monitoring"
+  assert_grep "never wait on a status poll for the next gate or outcome" "$brief" \
+    "no-mistakes DOD must forbid waiting on a status poll"
+  assert_grep "reattach at once by re-running \`no-mistakes axi run\` without flags" "$brief" \
+    "no-mistakes DOD must reattach the drive call after a bounded return"
+  assert_grep "once checks are green it returns \`checks-passed\` immediately" "$brief" \
+    "no-mistakes DOD must say a reattach reports an already-green PR"
+  assert_no_grep "poll \`no-mistakes axi status\` from a separate call" "$brief" \
+    "no-mistakes DOD still makes a status poll the wait for the next gate or outcome"
+  pass "fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll"
 }
 
 test_ask_user_escalation_format() {
@@ -998,9 +1054,9 @@ test_scout_lavish_line_follows_presentation_floor() {
       assert_no_grep "$hosting" "$brief" "$label: scout brief offered a below-floor Lavish"
     fi
   done <<'ROWS'
-lavish-axi at the floor^0.1.46^hosting
+lavish-axi at the floor^0.1.77^hosting
 lavish-axi above the floor^0.2.0^hosting
-lavish-axi just below the floor^0.1.45^text
+lavish-axi just below the floor^0.1.76^text
 absent lavish-axi^absent^text
 ROWS
   pass "fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor"
@@ -1128,6 +1184,8 @@ test_ship_mode_is_explicit_not_registry
 test_delivery_flags_are_refused_where_they_do_not_apply
 test_faster_paths_use_configured_authority_without_stacked_review
 test_no_mistakes_dod_wording
+test_no_mistakes_dod_green_detection
+test_pr_based_dod_requires_non_draft
 test_ask_user_escalation_format
 test_ship_project_memory_wording
 test_herdr_lab_contract_is_explicit_and_complete
