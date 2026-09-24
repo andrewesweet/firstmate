@@ -266,15 +266,20 @@ fi
 # ---- inputs --------------------------------------------------------------------
 [ -n "$BRIEF" ] || die "brief file required (see --help)"
 [ -r "$BRIEF" ] || die "brief file not readable: $BRIEF"
-# The digest binds the exact brief bytes as read, so a later offline replay can
-# prove a recovered brief byte-identical; a hashing failure degrades to null,
-# never to a refused intake, and brief text is never recorded.
-BRIEF_DIGEST=$(sha256_file "$BRIEF") || BRIEF_DIGEST=''
+# The digest binds the exact brief bytes that are routed, so a later offline
+# replay can prove a recovered brief byte-identical; the snapshot is both hashed
+# and sent, a hashing failure degrades to null rather than refusing the intake,
+# and brief text is never recorded.
+BRIEF_SNAPSHOT=$(mktemp) || die "mktemp failed"
+trap 'rm -f "$BRIEF_SNAPSHOT"' EXIT
+cp "$BRIEF" "$BRIEF_SNAPSHOT" || die "could not snapshot brief file: $BRIEF"
+chmod 400 "$BRIEF_SNAPSHOT" || die "could not protect brief snapshot"
+BRIEF_DIGEST=$(sha256_file "$BRIEF_SNAPSHOT") || BRIEF_DIGEST=''
 [ -e "$RULES_PATH" ] || [ -L "$RULES_PATH" ] || no_rules
 [ -r "$RULES_PATH" ] || die "rules file not readable: $RULES_PATH"
 command -v jq >/dev/null 2>&1 || die "jq required"
 RULES=$(mktemp) || die "mktemp failed"
-trap 'rm -f "$RULES"' EXIT
+trap 'rm -f "$BRIEF_SNAPSHOT" "$RULES"' EXIT
 cp "$RULES_PATH" "$RULES" || die "could not snapshot rules file: $RULES_PATH"
 chmod 400 "$RULES" || die "could not protect rules snapshot"
 RULES_DIGEST=$(sha256_file "$RULES") || die "could not hash rules file: $RULES_PATH (shasum or sha256sum required)"
@@ -380,9 +385,9 @@ fi
 
 RESP_FILE=$(mktemp) || die "mktemp failed"
 QUOTA=$(mktemp) || { rm -f "$RESP_FILE"; die "mktemp failed"; }
-trap 'rm -f "$RULES" "$RESP_FILE" "$QUOTA"' EXIT
+trap 'rm -f "$BRIEF_SNAPSHOT" "$RULES" "$RESP_FILE" "$QUOTA"' EXIT
 command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
-  REQUEST=$(jq -n --rawfile brief "$BRIEF" --arg project "$PROJECT" --arg model "$TS_MODEL" \
+  REQUEST=$(jq -n --rawfile brief "$BRIEF_SNAPSHOT" --arg project "$PROJECT" --arg model "$TS_MODEL" \
     --arg none_criterion "$DEFAULT_WHEN" --slurpfile rules "$RULES" '
     ($rules[0]) as $cfg |
     ($cfg.rules | to_entries | map({key: ("rule_" + ((.key + 1) | tostring)), value: .value.when}) | from_entries) as $criteria |
