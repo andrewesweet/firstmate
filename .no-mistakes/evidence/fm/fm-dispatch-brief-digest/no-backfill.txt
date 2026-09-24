@@ -1,0 +1,11 @@
+=== pre-existing row before spawn ===
+{"ts":"2026-01-01T00:00:00Z","task":"old-task-z0","kind":"ship","harness":"claude","model":"opus","effort":"high"}
+warning: /tmp/fm-live-nobackfill.OwxuZu/home/data/live-ship-z4/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/tmp/fm-live-nobackfill.OwxuZu/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/fm-live-nobackfill.OwxuZu/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned live-ship-z4 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-live-ship-z4 worktree=/tmp/fm-live-nobackfill.OwxuZu/wt
+spawn exit=0
+=== log after spawn ===
+{"ts":"2026-01-01T00:00:00Z","task":"old-task-z0","kind":"ship","harness":"claude","model":"opus","effort":"high"}
+{"ts":"2026-09-24T23:48:52Z","task":"live-ship-z4","kind":"ship","harness":"codex","model":"gpt-5","effort":"high","brief_sha256":"sha256:aee3e77a03e5abddf57f9ed07b2c97e6b84a1bc6f2df649e8ea26184843018f8"}
+OLD ROW UNCHANGED (no backfill)

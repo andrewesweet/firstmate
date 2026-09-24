@@ -1,0 +1,32 @@
+=== fresh ship spawn: dispatch-spawns row binds data/<id>/brief.md, not the launch-brief.md overlay ===
+warning: /tmp/fm-live-spawn-digest2.O9denY/home/data/live-ship-z3/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/tmp/fm-live-spawn-digest2.O9denY/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/fm-live-spawn-digest2.O9denY/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned live-ship-z3 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-live-ship-z3 worktree=/tmp/fm-live-spawn-digest2.O9denY/wt
+exit=0
+dispatch-spawns row: {"ts":"2026-09-24T23:48:25Z","task":"live-ship-z3","kind":"ship","harness":"codex","model":"gpt-5","effort":"high","brief_sha256":"sha256:6b8cb4230900322dac0127005e1bd01e81607680951b8896a6a4f215987cd18f"}
+brief.md        sha256:6b8cb4230900322dac0127005e1bd01e81607680951b8896a6a4f215987cd18f
+launch-brief.md sha256:c460ff14c0aa2a007e3b209d2b72f3bdb3b11727384ee7485b7cf4aff135cea7
+logged          sha256:6b8cb4230900322dac0127005e1bd01e81607680951b8896a6a4f215987cd18f
+
+=== offline replay: verify a recovered brief against the logged digest ===
+recovered (untouched copy): sha256:6b8cb4230900322dac0127005e1bd01e81607680951b8896a6a4f215987cd18f  verdict=IDENTICAL
+recovered (tampered copy):  sha256:0ec027788c2da812184352a1435f8ba9ee57cc031a820ecab028185fe43e7b4e  verdict=DIFFERENT
+
+=== offline scorer still replays logs carrying brief_sha256 ===
+dispatch-resolve-score:
+  resolve_log: /tmp/fm-live-spawn-digest2.O9denY/resolve.jsonl records=1
+  spawns_log: /tmp/fm-live-spawn-digest2.O9denY/home/data/dispatch-spawns.jsonl records=1
+  coverage: 1/1 = 1.0000
+  clear_joined: 1
+  profile_agreement: 1/1 = 1.0000
+  override_rate: 0/1 = 0.0000
+  floors:
+    floor=0.3 clear_frac=1.0000 (1/1) precision_vs_spawn=n/a
+    floor=0.4 clear_frac=1.0000 (1/1) precision_vs_spawn=n/a
+    floor=0.5 clear_frac=1.0000 (1/1) precision_vs_spawn=n/a
+    floor=0.6 * clear_frac=1.0000 (1/1) precision_vs_spawn=1.0000 (1/1)
+    floor=0.7 clear_frac=1.0000 (1/1) precision_vs_spawn=1.0000 (1/1)
+    floor=0.8 clear_frac=1.0000 (1/1) precision_vs_spawn=1.0000 (1/1)
+    floor=0.9 clear_frac=1.0000 (1/1) precision_vs_spawn=1.0000 (1/1)
+scorer exit=0

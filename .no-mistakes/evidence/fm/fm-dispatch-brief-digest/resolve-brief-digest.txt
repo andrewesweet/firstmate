@@ -1,0 +1,36 @@
+=== scenario A: resolve records brief_sha256 of exact brief bytes ===
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 7   tokens: 812/60
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.96
+  probabilities: rule_1=0.02 rule_2=0.96 default=0.02
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=projected_exhaustion  -> eligible
+  profile: --harness 'claude' --model 'sonnet' --effort 'high'
+exit=0
+log line: {"ts":"2026-09-24T23:48:42Z","task":null,"project":"pager","status":"clear","confidence":0.96,"rule":"rule_2 (A simple bug fix with a stated root cause.)","profile":"--harness 'claude' --model 'sonnet' --effort 'high'","reason":null,"latency_ms":7,"tokens":{"input_tokens":812,"output_tokens":60},"model":"jev-1.13.0","probabilities":{"rule_1":0.02,"rule_2":0.96,"default":0.02},"selected_option":"A simple bug fix with a stated root cause.","selected_probability":0.96,"runner_up_margin":0.94,"policy":{"version":"1","confidence_floor":0.6},"rules_digest":"sha256:0622f2979cd4b81103056ac0c73795e9f0659e21e07816957d1bf3c94e8b8e6c","brief_sha256":"sha256:b583297e7de200955d3cc8e5bd2d4490878936b8c3e3b823392b9929763496f1"}
+sha256sum of brief on disk: sha256:b583297e7de200955d3cc8e5bd2d4490878936b8c3e3b823392b9929763496f1
+logged brief_sha256:        sha256:b583297e7de200955d3cc8e5bd2d4490878936b8c3e3b823392b9929763496f1
+MATCH: digest identifies routed brief
+PRIVACY OK: no brief text in log
+
+=== scenario B (adversarial): brief rewritten mid-resolve; digest must match the bytes actually routed ===
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 6   tokens: 812/60
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.96
+  probabilities: rule_1=0.02 rule_2=0.96 default=0.02
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=projected_exhaustion  -> eligible
+  profile: --harness 'claude' --model 'sonnet' --effort 'high'
+brief on disk after run: TOTALLY DIFFERENT BRIEF BYTES
+routed request brief contains: # Task
+logged brief_sha256: sha256:b583297e7de200955d3cc8e5bd2d4490878936b8c3e3b823392b9929763496f1
+sha256 of original bytes: sha256:b583297e7de200955d3cc8e5bd2d4490878936b8c3e3b823392b9929763496f1
+sha256 of mutated file:   sha256:db35f4cfd0a0022b828071337791e9cd01e1f0f0a30392fd7b55e5c27db7282d
+
+=== scenario C (adversarial): no shasum/sha256sum on PATH ===
+error: could not hash brief file: /tmp/fmlive/run.yxIWUA/brief.md (shasum or sha256sum required)
+exit=2
+log line count after: 2
+workdir: /tmp/fmlive/run.yxIWUA
