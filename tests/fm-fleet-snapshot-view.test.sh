@@ -1133,15 +1133,20 @@ EOF
 
 ## Done
 EOF
+  # The done must be one the named-head gate accepts, so this covers the
+  # terminal-child inventory rather than the ship gate: a CI-ready done naming
+  # the task's recorded pr= whose forge head fm-pr-check.sh recorded.
   fm_write_meta "$home/state/terminal-ship.meta" \
     "window=firstmate:fm-terminal-ship" \
     "worktree=$home/projects/terminal" \
     "project=alpha" \
     "harness=claude" \
     "kind=ship" \
-    "mode=no-mistakes"
+    "mode=no-mistakes" \
+    "pr=https://github.com/o/r/pull/8" \
+    "pr_head=1111111111111111111111111111111111111111"
   record_claude_idle "$home/state" terminal-ship
-  printf 'done: complete\n' > "$home/state/terminal-ship.status"
+  printf 'done: PR https://github.com/o/r/pull/8 checks green\n' > "$home/state/terminal-ship.status"
   out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --secondmate-home-summary)
   printf '%s' "$out" | jq -e '
     .valid == false

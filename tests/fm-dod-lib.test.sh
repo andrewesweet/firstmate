@@ -83,15 +83,34 @@ test_moved_branch_without_named_head_is_refused() {
   pass "a moved remote branch that lacks the named head is refused"
 }
 
-test_no_mistakes_prevalidation_done_is_not_gated() {
-  local repo wt
+# On this fork a no-mistakes worker starts validation itself, so a bare
+# pre-validation `done:` has no legitimate producer and must not close the
+# ship: it is gated like every other ship done, in no-mistakes mode and in
+# empty mode, while a CI-ready done keeps its acceptance path.
+test_no_mistakes_and_empty_bare_done_is_gated() {
+  local repo wt sha meta state rc reason
   repo="$TMP_ROOT/preval-repo"
   wt="$TMP_ROOT/preval-wt"
+  state="$TMP_ROOT/preval-state"
+  mkdir -p "$state"
   fm_git_worktree "$repo" "$wt" fm/preval
   git -C "$wt" commit -q --allow-empty -m 'only in the disposable copy'
-  accept_done ship no-mistakes "$wt" "$repo" 'done: implementation complete' \
-    || fail "no-mistakes pre-validation done: must not require named-head reachability"
-  pass "no-mistakes pre-validation done: is not gated"
+  sha=$(git -C "$wt" rev-parse HEAD)
+  meta="$state/preval.meta"
+  printf 'kind=ship\nmode=no-mistakes\nworktree=%s\nproject=%s\npr=https://github.com/o/r/pull/8\npr_head=%s\n' \
+    "$wt" "$repo" "$sha" > "$meta"
+  for mode in no-mistakes ''; do
+    rc=0
+    reason=$(accept_done ship "$mode" "$wt" "$repo" 'done: implementation complete' "$state" preval "$meta") || rc=$?
+    [ "$rc" -eq 1 ] || fail "$mode bare pre-validation done: was accepted"
+    case "$reason" in
+      *"named head $sha is unreachable outside the worker copy") ;;
+      *) fail "$mode bare done refusal did not name the unpushed head: $reason" ;;
+    esac
+  done
+  accept_done ship no-mistakes "$wt" "$repo" "done: PR https://github.com/o/r/pull/8 checks green" "$state" preval "$meta" \
+    || fail "a CI-ready no-mistakes done: was refused"
+  pass "bare no-mistakes and empty-mode done: is gated while CI-ready is accepted"
 }
 
 test_local_only_linked_branch_is_accepted() {
@@ -305,7 +324,7 @@ test_non_done_lines_are_not_gated() {
 
 test_scout_done_is_not_gated
 test_unpushed_ship_done_is_refused
-test_no_mistakes_prevalidation_done_is_not_gated
+test_no_mistakes_and_empty_bare_done_is_gated
 test_remote_containing_named_head_is_accepted
 test_moved_branch_without_named_head_is_refused
 test_free_text_sha_is_not_the_named_head
