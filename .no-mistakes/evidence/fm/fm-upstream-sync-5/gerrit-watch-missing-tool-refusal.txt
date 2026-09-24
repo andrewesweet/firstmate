@@ -1,0 +1,6 @@
+$ bin/fm-pr-check.sh gwatch-1 https://review.example.com/c/group/apps/console/+/4201
+error: watching a Gerrit change requires gerrit-axi on PATH
+exit=1
+
+# nothing armed:
+gwatch-1.meta

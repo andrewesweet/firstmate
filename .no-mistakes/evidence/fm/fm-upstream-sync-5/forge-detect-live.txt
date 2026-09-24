@@ -1,0 +1,10 @@
+# fm-forge-detect.sh live drive
+$ bin/fm-forge-detect.sh gerritclone
+forge=gerrit evidence=origin remote ssh://review.example.com:29418/demo uses SSH port 29418
+$ bin/fm-forge-detect.sh plainclone
+forge=none
+$ bin/fm-forge-detect.sh refspecclone
+forge=gerrit evidence=origin push refspec HEAD:refs/for/main targets refs/for/
+$ bin/fm-forge-detect.sh /tmp/not-a-repo-xyz
+error: /tmp/not-a-repo-xyz is not a git work tree
+exit=2

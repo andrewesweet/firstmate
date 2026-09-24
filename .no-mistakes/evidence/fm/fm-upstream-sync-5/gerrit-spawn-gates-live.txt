@@ -1,0 +1,13 @@
+# isolated home, fake tmux that always exits 1, so nothing can be created
+
+# 1. gerrit no-mistakes brief with Published intent left unfilled
+$ fm-spawn.sh g1 <proj> claude --mode no-mistakes --yolo off
+error: /tmp/fmlab-rnk6tW/spawndrive/home/data/g1/brief.md still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; fill ## Captain's intent, ## Published intent, and ## Firstmate spec before spawn
+exit=1
+
+# 2. brief fully filled, --yolo on against a forge=gerrit project
+$ fm-spawn.sh g2 <proj> claude --mode no-mistakes --yolo on
+error: --yolo on is refused for g2: proj is registered forge=gerrit, where yolo is inactive because a Code-Review+2 is a positive attributed claim that a named human approved and firstmate must not manufacture one (captain's decision 2026-09-15); spawn with --yolo off
+exit=1
+
+# state left behind by the refusals:

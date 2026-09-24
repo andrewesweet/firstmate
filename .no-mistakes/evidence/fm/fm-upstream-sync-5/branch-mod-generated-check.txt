@@ -1,0 +1,2 @@
+$ bin/fm-branch-agent-md.sh --check
+exit=0

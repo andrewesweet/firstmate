@@ -1,0 +1,13 @@
+# flag absent (opt-in off)
+$ bin/fm-fleet-ledger.sh dispatched t1 ship demoproj claude opus
+exit=0
+state/fleet-ledger.jsonl exists: no
+
+# turn on: touch config/fleet-ledger
+$ cat state/fleet-ledger.jsonl | jq -c .
+{"v":1,"ts":1790215289,"event":"task.dispatched","task":"t1","kind":"ship","project":"demoproj","harness":"claude","model":"opus"}
+{"v":1,"ts":1790215289,"event":"task.status","task":"t1","state":"working","key":null,"text":" implementing"}
+{"v":1,"ts":1790215289,"event":"task.status","task":"t1","state":"needs-decision","key":"k9","text":" which forge"}
+{"v":1,"ts":1790215289,"event":"task.status","task":"t1","state":"done","key":null,"text":" shipped"}
+{"v":1,"ts":1790215289,"event":"task.pr_ready","task":"t1","pr":"https://review.example.com/c/group/apps/console/+/4201"}
+{"v":1,"ts":1790215289,"event":"task.cleaned_up","task":"t1"}

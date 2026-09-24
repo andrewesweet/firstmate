@@ -1,0 +1,14 @@
+$ bin/fm-project-mode.sh --forge console
+gerrit
+exit=0
+$ bin/fm-project-mode.sh --forge website
+none
+exit=0
+$ bin/fm-project-mode.sh --forge broken
+refused: unknown forge "bogus" registered for broken in /tmp/fmlab-rnk6tW/pmhome/data/projects.md; the accepted value is forge=gerrit, or no forge token at all for a forge whose pull requests no-mistakes already drives; correct the registry entry
+exit=3
+$ bin/fm-project-mode.sh --forge localish
+refused: localish is registered local-only with forge=gerrit in /tmp/fmlab-rnk6tW/pmhome/data/projects.md; local-only publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; register no-mistakes or direct-PR to publish through the forge, or drop the forge token to keep the project local
+exit=3
+$ bin/fm-project-mode.sh console   # posture stays two words, forge only via --forge
+no-mistakes off
