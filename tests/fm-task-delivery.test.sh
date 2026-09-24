@@ -1147,6 +1147,15 @@ test_forge_gerrit_changes_what_no_mistakes_means() {
   assert_grep 'Pass `--skip push,pr,ci` on every `no-mistakes axi run` for this task' "$brief" \
     "the worker was not given the skip vocabulary the forge requires"
   assert_grep 'skip nothing else' "$brief" "nothing stopped the worker skipping the review itself"
+  # The fork's workers start validation themselves; a gerrit lane must not park
+  # on a pre-validation done: waiting for a firstmate instruction that never comes.
+  assert_grep 'start /no-mistakes yourself to validate' "$brief" \
+    "the gerrit no-mistakes contract did not tell the worker to start validation itself"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'do not append `done:` and wait for firstmate' "$brief" \
+    "the gerrit no-mistakes contract did not forbid the done-then-relay wait"
+  assert_no_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+    "the gerrit no-mistakes contract still routes validation through a firstmate relay"
   assert_grep 'branch_sync.next_action' "$brief" \
     "the worker was not told where to read whether custody must be recovered"
   assert_grep 'recover_custody' "$brief" "the worker was not told which state requires recovery"
