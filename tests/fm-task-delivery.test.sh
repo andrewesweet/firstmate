@@ -1108,7 +1108,8 @@ EOF
   FM_HOME="$home" "$BRIEF" forge-yolo-s1 proj --mode no-mistakes --forge gerrit >/dev/null \
     || fail "a gerrit ship brief should scaffold"
   fill_brief_subsections "$home/data/forge-yolo-s1/brief.md" \
-    "Run the review loop on the Gerrit project." "Ship the review pass."
+    "Run the review loop on the Gerrit project." "Ship the review pass." \
+    "Run the Gerrit review loop for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-yolo-s1 "$proj" claude --mode no-mistakes --yolo on 2>&1)
   status=$?
   [ "$status" -ne 0 ] || fail "a spawn with --yolo on launched on a gerrit-forge project"
@@ -1267,7 +1268,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" forge-agree-a5 proj --mode no-mistakes --forge gerrit >/dev/null \
     || fail "a gerrit ship brief should scaffold"
-  fill_brief_subsections "$home/data/forge-agree-a5/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/forge-agree-a5/brief.md" "Run the review loop." "Ship it." \
+    "Run the Gerrit review loop for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a5 "$proj" claude --mode no-mistakes --yolo off 2>&1)
   status=$?
   [ "$status" -ne 0 ] || fail "a gerrit brief launched on a project with no registered forge"
@@ -1326,7 +1328,8 @@ STUB
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
     || fail "scout brief generation should succeed"
   fill_brief_subsections "$home/data/$id/brief.md" \
-    "Fix what the investigation found on the Gerrit project." "Carry over only the fix."
+    "Fix what the investigation found on the Gerrit project." "Carry over only the fix." \
+    "Fix the investigated Gerrit project defect and carry over only that fix."
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode no-mistakes --yolo off 2>&1) \
     || fail "promotion should take the registered forge with no flag to remember"
