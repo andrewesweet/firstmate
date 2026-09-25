@@ -60,8 +60,9 @@
 #   one, else null), model, probabilities (the response's own vector keyed by
 #   the offered rule_N and default choice ids), selected_option (the chosen
 #   rule's `when` text or the fixed none option), selected_probability,
-#   runner_up_margin, policy (version and confidence_floor), and rules_digest
-#   (the SHA-256 of the rules snapshot). Response-derived fields are null when
+#   runner_up_margin, policy (version and confidence_floor), rules_digest
+#   (the SHA-256 of the rules snapshot), and brief_sha256 (the SHA-256 of the
+#   exact brief bytes as read). Response-derived fields are null when
 #   the response did not supply them. Never recorded: the API key, the brief
 #   text, and the request body. A failed append (unwritable directory,
 #   read-only home) prints one "dispatch-resolve: outcome log unwritable:
@@ -140,6 +141,7 @@ done
 
 LAT_MS=null
 RULES_DIGEST=''
+BRIEF_DIGEST=''
 RESPONSE_TELEMETRY='{}'
 # option_label maps a choice id (rule_N or default) to its offered `when` text.
 # shellcheck disable=SC2016  # jq program: $c, $none and $rules are jq variables, not shell expansions.
@@ -186,7 +188,7 @@ log_dispatch_outcome() {
     --arg project "$PROJECT" \
     --arg status "$1" --arg confidence "$2" --arg rule "$3" --arg profile "$4" --arg reason "$5" \
     --arg policy_version "$DISPATCH_POLICY_VERSION" --arg floor "$CONFIDENCE_FLOOR" \
-    --arg rules_digest "$RULES_DIGEST" --argjson telemetry "$RESPONSE_TELEMETRY" \
+    --arg rules_digest "$RULES_DIGEST" --arg brief_digest "$BRIEF_DIGEST" --argjson telemetry "$RESPONSE_TELEMETRY" \
     --argjson latency "$LAT_MS" '
     def n: if . == "" then null else . end;
     {ts: $ts, task: ($task | n), project: ($project | n), status: $status,
@@ -198,7 +200,8 @@ log_dispatch_outcome() {
      selected_probability: ($telemetry.selected_probability // null),
      runner_up_margin: ($telemetry.runner_up_margin // null),
      policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
-     rules_digest: ($rules_digest | n)}') || {
+     rules_digest: ($rules_digest | n),
+     brief_sha256: ($brief_digest | n)}') || {
     printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
     return 0
   }
@@ -215,7 +218,7 @@ log_dispatch_result() {
     --arg task "$DISPATCH_TASK_ID" \
     --arg project "$PROJECT" \
     --arg policy_version "$DISPATCH_POLICY_VERSION" --arg floor "$CONFIDENCE_FLOOR" \
-    --arg rules_digest "$RULES_DIGEST" --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" \
+    --arg rules_digest "$RULES_DIGEST" --arg brief_digest "$BRIEF_DIGEST" --arg none "$DEFAULT_WHEN" --slurpfile rules "$RULES" \
     --argjson result "$RESULT" "$OPTION_LABEL_JQ"'
   ($result) as $r |
   ($r.probabilities[$r.rule]) as $selected_probability |
@@ -242,7 +245,8 @@ log_dispatch_result() {
     selected_probability: $selected_probability,
     runner_up_margin: (if $selected_probability != null and $runner_up != null then $selected_probability - $runner_up else null end),
     policy: {version: $policy_version, confidence_floor: ($floor | tonumber)},
-    rules_digest: (if $rules_digest == "" then null else $rules_digest end)
+    rules_digest: (if $rules_digest == "" then null else $rules_digest end),
+    brief_sha256: (if $brief_digest == "" then null else $brief_digest end)
   }') || {
     printf 'dispatch-resolve: outcome log unwritable: %s\n' "$DISPATCH_LOG" >&2
     return 0
@@ -262,11 +266,20 @@ fi
 # ---- inputs --------------------------------------------------------------------
 [ -n "$BRIEF" ] || die "brief file required (see --help)"
 [ -r "$BRIEF" ] || die "brief file not readable: $BRIEF"
+# The digest binds the exact brief bytes that are routed, so a later offline
+# replay can prove a recovered brief byte-identical; the snapshot is both hashed
+# and sent, hashing is required exactly like the rules digest, and brief text is
+# never recorded.
+BRIEF_SNAPSHOT=$(mktemp) || die "mktemp failed"
+trap 'rm -f "$BRIEF_SNAPSHOT"' EXIT
+cp "$BRIEF" "$BRIEF_SNAPSHOT" || die "could not snapshot brief file: $BRIEF"
+chmod 400 "$BRIEF_SNAPSHOT" || die "could not protect brief snapshot"
+BRIEF_DIGEST=$(sha256_file "$BRIEF_SNAPSHOT") || die "could not hash brief file: $BRIEF (shasum or sha256sum required)"
 [ -e "$RULES_PATH" ] || [ -L "$RULES_PATH" ] || no_rules
 [ -r "$RULES_PATH" ] || die "rules file not readable: $RULES_PATH"
 command -v jq >/dev/null 2>&1 || die "jq required"
 RULES=$(mktemp) || die "mktemp failed"
-trap 'rm -f "$RULES"' EXIT
+trap 'rm -f "$BRIEF_SNAPSHOT" "$RULES"' EXIT
 cp "$RULES_PATH" "$RULES" || die "could not snapshot rules file: $RULES_PATH"
 chmod 400 "$RULES" || die "could not protect rules snapshot"
 RULES_DIGEST=$(sha256_file "$RULES") || die "could not hash rules file: $RULES_PATH (shasum or sha256sum required)"
@@ -372,9 +385,9 @@ fi
 
 RESP_FILE=$(mktemp) || die "mktemp failed"
 QUOTA=$(mktemp) || { rm -f "$RESP_FILE"; die "mktemp failed"; }
-trap 'rm -f "$RULES" "$RESP_FILE" "$QUOTA"' EXIT
+trap 'rm -f "$BRIEF_SNAPSHOT" "$RULES" "$RESP_FILE" "$QUOTA"' EXIT
 command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
-  REQUEST=$(jq -n --rawfile brief "$BRIEF" --arg project "$PROJECT" --arg model "$TS_MODEL" \
+  REQUEST=$(jq -n --rawfile brief "$BRIEF_SNAPSHOT" --arg project "$PROJECT" --arg model "$TS_MODEL" \
     --arg none_criterion "$DEFAULT_WHEN" --slurpfile rules "$RULES" '
     ($rules[0]) as $cfg |
     ($cfg.rules | to_entries | map({key: ("rule_" + ((.key + 1) | tostring)), value: .value.when}) | from_entries) as $criteria |
