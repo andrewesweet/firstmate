@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests for the per-task spend capture: bin/fm-spend-query.sh's record
-# resolution (env overrides, spawn_gen epoch window, malformed id and missing
-# record refusals, the python3-absent unmeasured fallback) and
+# resolution (env overrides, the spawn-epoch-to-activity-sidecar window,
+# malformed id and missing record refusals, the python3-absent unmeasured
+# fallback) and
 # bin/fm-spend-query.py's measurement (Claude api-equiv pricing with
 # message-id dedupe and mandatory window bounding, Pi recorded costs, explicit
 # unmeasured reasons for uncovered runtimes and missing logs, and
@@ -37,6 +38,9 @@ sq_meta() {
     printf 'spawn_gen=s1700000000.123.abc\n'
     printf '%s\n' "$@"
   } > "$home/state/$task.meta"
+  # The window's end bound is the newest mtime among the task's own activity
+  # sidecars, so a fixture record needs one to be measurable at all.
+  : > "$home/state/$task.turn-ended"
 }
 
 sq_claude_dir() {  # <home> <worktree>
@@ -141,16 +145,6 @@ test_pi_signed_uses_the_pi_parser() {
   pass "pi-signed routes to Pi's session-log location"
 }
 
-test_omp_is_unmeasured_until_verified() {
-  local home out
-  home=$(sq_home omp-unmeasured)
-  sq_meta "$home" task-o1 harness=omp model=m effort=medium
-  out=$(sq_query "$home" task-o1)
-  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "omp stays unmeasured"
-  assert_contains "$(jq -r .unmeasured_reason <<<"$out")" "never verified" "omp's reason names the missing verification"
-  pass "omp records why it is unmeasured rather than borrowing Pi's parser silently"
-}
-
 test_missing_session_logs_record_unmeasured_with_window() {
   local home out
   home=$(sq_home claude-missing-logs)
@@ -213,6 +207,57 @@ test_record_without_a_first_epoch_falls_back_to_spawn_gen() {
   pass "a record without spawn_epoch_first bounds the window at its spawn_gen epoch"
 }
 
+test_successor_calls_after_the_task_activity_bound_are_excluded() {
+  local home dir out
+  home=$(sq_home claude-pooled-slot)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  # The task's own call, then a successor task's call in the same pooled-slot
+  # log directory after this task's last activity sidecar touch.
+  {
+    printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"mine","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+    printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T23:30:00.000Z","message":{"id":"successor","model":"claude-opus-4-1","usage":{"input_tokens":900000,"output_tokens":90000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+  } > "$dir/s1.jsonl"
+  sq_meta "$home" task-p1
+  TZ=UTC0 touch -t 202311142230 "$home/state/task-p1.turn-ended"
+
+  out=$(sq_query "$home" task-p1)
+  assert_equals '1' "$(jq -r .calls <<<"$out")" "a successor task's later calls in the same pooled slot are excluded"
+  assert_equals '1700000000' "$(jq -r .window.start_epoch <<<"$out")" "the window still starts at the task's first spawn epoch"
+  assert_equals '1700001000' "$(jq -r .window.end_epoch <<<"$out")" "the window ends at the newest task-owned activity sidecar mtime"
+  jq -e '.usd < 0.02' <<<"$out" >/dev/null \
+    || fail "the successor's tokens were priced into this task's figure: $out"
+  pass "the measured window ends at the task's own activity bound, not at teardown time"
+}
+
+test_record_without_an_activity_sidecar_is_unmeasured() {
+  local home dir out
+  home=$(sq_home claude-no-sidecar)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"m1","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$dir/s1.jsonl"
+  sq_meta "$home" task-p2
+  rm -f "$home/state/task-p2.turn-ended"
+
+  out=$(sq_query "$home" task-p2)
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "without a task-owned activity bound the answer is unmeasured"
+  assert_contains "$(jq -r .unmeasured_reason <<<"$out")" "no task-owned activity bound" "the reason names the missing bound"
+  pass "a record with no activity sidecar records an explicit unmeasured line"
+}
+
+test_progress_sidecar_alone_bounds_the_window() {
+  local home dir out
+  home=$(sq_home claude-progress-bound)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"m1","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$dir/s1.jsonl"
+  sq_meta "$home" task-p3
+  rm -f "$home/state/task-p3.turn-ended"
+  TZ=UTC0 touch -t 202311142240 "$home/state/task-p3.progress"
+
+  out=$(sq_query "$home" task-p3)
+  assert_equals '1' "$(jq -r .calls <<<"$out")" "the progress sidecar alone bounds a measurable window"
+  assert_equals '1700001600' "$(jq -r .window.end_epoch <<<"$out")" "the progress sidecar mtime is the window end"
+  pass "either activity sidecar can bound the window"
+}
+
 test_unmeasured_flag_emits_the_schema_shape() {
   local home out
   home=$(sq_home claude-unmeasured-flag)
@@ -254,7 +299,7 @@ test_wrapper_falls_back_to_unmeasured_without_python3() {
   # Build a PATH without python3 so the wrapper's own fallback answers.
   shadow="$TMP_ROOT/nopython-bin"
   mkdir -p "$shadow"
-  for cmd in bash jq sed stat date cat tail dirname basename head grep; do
+  for cmd in bash jq sed stat uname date cat tail dirname basename head grep; do
     cmd=$(command -v "$cmd" 2>/dev/null) || continue
     case "$cmd" in /*) ln -sf "$cmd" "$shadow/$(basename "$cmd")" ;; esac
   done
@@ -305,25 +350,16 @@ test_brief_composition_refuses_unreadable_inputs() {
   pass "the composition measure refuses unreadable inputs"
 }
 
-# ---
-
-make_case() {
-  local name=$1 dir
-  dir="$TMP_ROOT/case-$name"
-  mkdir -p "$dir"
-  printf '%s\n' "$dir"
-}
-
 test_parser_direct_invocation_bounds_with_explicit_window() {
   local home dir out
   home=$(sq_home claude-explicit-window)
   dir=$(sq_claude_dir "$home" "$home/wt")
   printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"m1","model":"claude-opus-4-1","usage":{"input_tokens":10,"output_tokens":5,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$dir/s.jsonl"
   out=$(HOME="$home/home" python3 "$PARSER" --task t --harness claude --worktree "$home/wt" \
-    --spawn-epoch 1700000000 --now 1700000100)
+    --spawn-epoch 1700000000 --end-epoch 1700000100)
   assert_equals '1' "$(jq -r .calls <<<"$out")" "an explicit window admits in-window records"
   out=$(HOME="$home/home" python3 "$PARSER" --task t --harness claude --worktree "$home/wt" \
-    --spawn-epoch 1700000400 --now 1700000500)
+    --spawn-epoch 1700000400 --end-epoch 1700000500)
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "a record outside an explicit window is excluded"
   pass "the parser honors explicitly bounded windows"
 }
@@ -332,11 +368,13 @@ test_claude_measures_deduped_window_bounded_api_equiv
 test_pi_records_the_runtime_cost
 test_uncovered_runtime_records_explicit_reason
 test_pi_signed_uses_the_pi_parser
-test_omp_is_unmeasured_until_verified
 test_missing_session_logs_record_unmeasured_with_window
 test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen
 test_relaunched_task_bounds_the_window_at_its_first_spawn
 test_record_without_a_first_epoch_falls_back_to_spawn_gen
+test_successor_calls_after_the_task_activity_bound_are_excluded
+test_record_without_an_activity_sidecar_is_unmeasured
+test_progress_sidecar_alone_bounds_the_window
 test_unmeasured_flag_emits_the_schema_shape
 test_wrapper_refuses_bad_invocations
 test_wrapper_falls_back_to_unmeasured_without_python3

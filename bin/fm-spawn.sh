@@ -4701,6 +4701,10 @@ else
   SPAWN_FRESH_COMMIT_PENDING=1
 fi
 SPAWN_META_PATH=$SPAWN_META_TMP
+# The owned-key list names every key this block rewrites; every other key in the
+# prior record is passed through unchanged. spawn_epoch_first must stay OFF the
+# list: a relaunch carries the first incarnation's epoch so the spend window
+# still spans the whole task (bin/fm-spend-query.sh).
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {

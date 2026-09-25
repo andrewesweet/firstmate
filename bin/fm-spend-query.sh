@@ -2,14 +2,17 @@
 # fm-spend-query.sh [--unmeasured <reason>] <task-id> - print one JSON object
 # with this task's model-spend figures (bin/fm-spend-query.py owns the schema),
 # resolved from the task's own record: state/<id>.meta supplies kind, harness,
-# model, effort, and worktree, and the measurement window runs from the epoch
-# the task first started at to now. That start is spawn_epoch_first= when the
-# record carries it (bin/fm-spawn.sh stamps it at the first spawn and carries it
-# across relaunches, so a relaunched task still measures every incarnation),
-# otherwise the epoch inside spawn_gen=, which a relaunch restamps. A record
-# with neither cannot be window-bounded honestly (worktrees are pooled and
-# reused), so the answer is an explicit unmeasured line, never a partial
-# figure.
+# model, effort, and worktree, and the measurement window is
+# [earliest spawn epoch, newest task-owned activity sidecar mtime].
+# The start is spawn_epoch_first= when the record carries it (bin/fm-spawn.sh
+# stamps it at the first spawn and carries it across relaunches, so a relaunched
+# task still measures every incarnation), otherwise the epoch inside spawn_gen=,
+# which a relaunch restamps. The end is the newest mtime among the task's own
+# state sidecars (state/<id>.turn-ended, state/<id>.progress): worktrees are
+# pooled and handed on the moment a worker exits, so a window that ran to now
+# would price a successor task's calls as this task's. A record without either
+# bound cannot be window-bounded honestly, so the answer is an explicit
+# unmeasured line, never a partial or inflated figure.
 # --unmeasured <reason> skips measurement and emits the schema's unmeasured
 # shape for the task directly; bin/fm-teardown.sh's failed-query fallback calls
 # it so the shell shape has exactly one definition (this file) beside the
@@ -27,6 +30,9 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=bin/fm-lock-lib.sh
+. "$SCRIPT_DIR/fm-lock-lib.sh"
 
 usage() {
   sed -n '2,${/^#/!q;p;}' "$0" | sed 's/^# \{0,1\}//'
@@ -122,6 +128,22 @@ if [ -z "$SPAWN_EPOCH" ]; then
   exit 0
 fi
 
+END_EPOCH=''
+for sidecar in "$STATE/$ID.turn-ended" "$STATE/$ID.progress"; do
+  [ -e "$sidecar" ] || continue
+  sidecar_mtime=$(fm_lock_path_mtime "$sidecar") || continue
+  case "$sidecar_mtime" in
+  '' | *[!0-9]*) continue ;;
+  esac
+  if [ -z "$END_EPOCH" ] || [ "$sidecar_mtime" -gt "$END_EPOCH" ]; then
+    END_EPOCH=$sidecar_mtime
+  fi
+done
+if [ -z "$END_EPOCH" ]; then
+  emit_unmeasured "no task-owned activity bound available"
+  exit 0
+fi
+
 # Without python3 there is no honest measurement path; emit the schema's
 # unmeasured shape rather than failing (jq is already a firstmate dependency).
 if ! command -v python3 >/dev/null 2>&1; then
@@ -131,6 +153,6 @@ fi
 
 PY_ARGS=(--task "$ID" --kind "$KIND" --harness "${HARNESS:-unknown}"
   --model "${MODEL:-default}" --effort "${EFFORT:-default}" --worktree "$WORKTREE"
-  --spawn-epoch "$SPAWN_EPOCH")
+  --spawn-epoch "$SPAWN_EPOCH" --end-epoch "$END_EPOCH")
 
 exec python3 "$SCRIPT_DIR/fm-spend-query.py" "${PY_ARGS[@]}"

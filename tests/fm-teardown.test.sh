@@ -4264,6 +4264,8 @@ test_teardown_measures_claude_spend_from_fixture_logs() {
   mkdir -p "$case_dir/home/.claude/projects/$dir"
   printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"msg_1","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":98000,"cache_creation_input_tokens":1000,"cache_creation":{"ephemeral_5m_input_tokens":1000,"ephemeral_1h_input_tokens":0}}}}' \
     > "$case_dir/home/.claude/projects/$dir/s1.jsonl"
+  # The measured window ends at the newest task-owned activity sidecar mtime.
+  : > "$case_dir/state/task-x1.turn-ended"
   seed_backlog_in_flight "$case_dir"
 
   # HOME is pinned so the query resolves the fixture's own session logs.
@@ -4291,6 +4293,7 @@ test_teardown_survives_a_broken_spend_query() {
   # the stub below breaks it; without one the query would answer unmeasured
   # on its own and never exercise the failed-query fallback.
   sed -i 's/^spawn_gen=.*/spawn_gen=s1700000000.1.x/' "$case_dir/state/task-x1.meta"
+  : > "$case_dir/state/task-x1.turn-ended"
   seed_backlog_in_flight "$case_dir"
   # A python3 stub that is found but fails: the query exits nonzero, so the
   # teardown's own fallback builds the unmeasured line.

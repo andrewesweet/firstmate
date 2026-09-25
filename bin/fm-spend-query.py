@@ -47,14 +47,14 @@ runtime; everything else records an explicit unmeasured reason:
                             carries that cost, otherwise unmeasured
                 pi-signed   the same Pi binary selected by launch markers, so
                             the same session logs and the same parser as pi
-    unmeasured  omp         a Pi fork whose format is expected to match but
-                            which was never verified against an installed
-                            runtime here
-                codex, opencode, grok, kimi, cursor, gemini, muse, rovo,
-                agy, devin  no verified stable per-call usage parser
+    unmeasured  omp, codex, opencode, grok, kimi, cursor, gemini, muse,
+                rovo, agy, devin  no verified stable per-call usage parser
 
-The time bound is mandatory: pooled worktrees are reused across tasks, so
-records outside [start, end] are ignored by every parser.
+The time bound is mandatory: pooled worktrees are reused across tasks and a
+slot is handed on the moment a worker exits, so records outside [start, end]
+are ignored by every parser. bin/fm-spend-query.sh resolves that window from
+the task's own record and activity sidecars; a direct invocation here must pass
+the bounds it means with --spawn-epoch and --end-epoch.
 
 The rate table below is the one place USD-per-million-token assumptions live.
 These are assumed list rates, not quotes, and they can go stale; an
@@ -68,7 +68,6 @@ import json
 import os
 import re
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -84,9 +83,6 @@ RATE_TABLE = [
 ]
 DEFAULT_RATES = RATE_TABLE[0][1]
 
-UNMEASURED_RUNTIME_REASONS = {
-    "omp": "Pi-fork session format expected but never verified against an installed runtime",
-}
 UNMEASURED_DEFAULT_REASON = "no verified per-call usage parser for this runtime"
 
 
@@ -278,14 +274,13 @@ def build_line(args) -> dict:
         "effort": args.effort or "default",
     }
     if harness not in RUNTIMES:
-        reason = UNMEASURED_RUNTIME_REASONS.get(harness, UNMEASURED_DEFAULT_REASON)
-        return unmeasured(base, reason)
+        return unmeasured(base, UNMEASURED_DEFAULT_REASON)
     if not args.worktree:
         return unmeasured(base, "task record carries no worktree path")
 
     start = datetime.fromtimestamp(args.spawn_epoch, tz=timezone.utc) if args.spawn_epoch is not None else None
-    end = datetime.fromtimestamp(args.now, tz=timezone.utc) if args.now is not None else None
-    window = {"start_epoch": args.spawn_epoch, "end_epoch": args.now}
+    end = datetime.fromtimestamp(args.end_epoch, tz=timezone.utc) if args.end_epoch is not None else None
+    window = {"start_epoch": args.spawn_epoch, "end_epoch": args.end_epoch}
 
     parse, resolve_log_dir, usd_lane = RUNTIMES[harness]
     log_dir = resolve_log_dir(args.worktree)
@@ -321,10 +316,8 @@ def main() -> int:
     parser.add_argument("--effort", default="")
     parser.add_argument("--worktree", default="")
     parser.add_argument("--spawn-epoch", type=int, default=None)
-    parser.add_argument("--now", type=int, default=None)
+    parser.add_argument("--end-epoch", type=int, default=None)
     args = parser.parse_args()
-    if args.now is None:
-        args.now = int(time.time())
     print(json.dumps(build_line(args)))
     return 0
 
