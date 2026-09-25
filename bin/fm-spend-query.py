@@ -227,9 +227,6 @@ def parse_pi(log_dir: Path, start, end):
     return calls, cache_read_total, round(usd, 4), models, cost_complete
 
 
-PARSERS = {"claude": parse_claude, "pi": parse_pi, "pi-signed": parse_pi}
-
-
 def claude_log_dir(worktree: str) -> Path:
     return Path.home() / ".claude" / "projects" / munge_claude_dir(worktree)
 
@@ -239,12 +236,20 @@ def pi_log_dir(worktree: str) -> Path:
     return Path(agent_dir) / "sessions" / munge_pi_dir(worktree)
 
 
-def measured(harness: str, worktree: str, start, end):
-    if harness == "claude":
-        return PARSERS[harness](claude_log_dir(worktree), start, end) + (True,)
-    if harness in ("pi", "pi-signed"):
-        return PARSERS[harness](pi_log_dir(worktree), start, end)
-    raise KeyError(harness)
+def parse_claude_complete(log_dir: Path, start, end):
+    """Claude Code logs no per-call price, so its cost is always complete at
+    the assumed rates: the api-equiv lane never reports a runtime bill."""
+    return parse_claude(log_dir, start, end) + (True,)
+
+
+# One row per covered runtime: parser (returning calls, cache reads, usd,
+# models, cost_complete), session-log resolver, and USD lane. A runtime absent
+# from this table records an explicit unmeasured reason.
+RUNTIMES = {
+    "claude": (parse_claude_complete, claude_log_dir, "api-equiv"),
+    "pi": (parse_pi, pi_log_dir, "recorded"),
+    "pi-signed": (parse_pi, pi_log_dir, "recorded"),
+}
 
 
 def unmeasured(base: dict, reason: str) -> dict:
@@ -272,7 +277,7 @@ def build_line(args) -> dict:
         "model": args.model or "default",
         "effort": args.effort or "default",
     }
-    if harness not in PARSERS:
+    if harness not in RUNTIMES:
         reason = UNMEASURED_RUNTIME_REASONS.get(harness, UNMEASURED_DEFAULT_REASON)
         return unmeasured(base, reason)
     if not args.worktree:
@@ -282,14 +287,15 @@ def build_line(args) -> dict:
     end = datetime.fromtimestamp(args.now, tz=timezone.utc) if args.now is not None else None
     window = {"start_epoch": args.spawn_epoch, "end_epoch": args.now}
 
-    log_dir = claude_log_dir(args.worktree) if harness == "claude" else pi_log_dir(args.worktree)
+    parse, resolve_log_dir, usd_lane = RUNTIMES[harness]
+    log_dir = resolve_log_dir(args.worktree)
     if not log_dir.is_dir():
         return unmeasured({**base, "window": window}, f"no session log directory found for the task worktree: {log_dir}")
 
-    calls, cache_read, usd, models, cost_complete = measured(harness, args.worktree, start, end)
+    calls, cache_read, usd, models, cost_complete = parse(log_dir, start, end)
     if not calls:
         return unmeasured({**base, "window": window}, "no model-call usage records found inside the task window")
-    if harness != "claude" and not cost_complete:
+    if not cost_complete:
         return unmeasured({**base, "window": window}, "runtime log lacks per-call cost for some or all calls")
 
     context_total = sum(calls)
@@ -300,12 +306,9 @@ def build_line(args) -> dict:
         "mean_context_tokens": round(context_total / len(calls)),
         "cache_read_share": round(cache_read / context_total, 3) if context_total else 0.0,
         "models": sorted(models),
+        "usd_lane": usd_lane,
+        "usd": usd,
     })
-    if harness == "claude":
-        line["usd_lane"] = "api-equiv"
-    else:
-        line["usd_lane"] = "recorded"
-    line["usd"] = usd
     return line
 
 

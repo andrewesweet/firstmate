@@ -1560,10 +1560,17 @@ spend_outcome_fields() {
 # schema).
 
 # Merge the query's object with the teardown's own ts and outcome fields and
-# append exactly one line to the home's spend ledger.
+# append exactly one line to the home's spend ledger. One line per closed task
+# is the ledger's contract, and a teardown that refuses after this point tells
+# the operator to rerun, so a task the ledger already names appends nothing.
 spend_ledger_append() {  # <line>
   local line=$1 merged
   [ -n "$line" ] || return 1
+  if [ -f "$DATA/spend-ledger.jsonl" ] \
+    && jq -e -n --arg task "$ID" \
+      'first(inputs | select(.task == $task))' "$DATA/spend-ledger.jsonl" >/dev/null 2>&1; then
+    return 0
+  fi
   merged=$(jq -c \
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg outcome "$TEARDOWN_SPEND_OUTCOME" \

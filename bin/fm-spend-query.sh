@@ -2,13 +2,14 @@
 # fm-spend-query.sh [--unmeasured <reason>] <task-id> - print one JSON object
 # with this task's model-spend figures (bin/fm-spend-query.py owns the schema),
 # resolved from the task's own record: state/<id>.meta supplies kind, harness,
-# model, effort, and worktree, and the measurement window runs from the task's
-# spawn_gen epoch to now. spawn_gen is epoch-shaped on every task this home
-# spawned; a record without one cannot be window-bounded honestly (worktrees
-# are pooled and reused), so the answer is an explicit unmeasured line, never
-# a partial figure. A relaunched task measures its current incarnation:
-# spawn_gen is restamped at relaunch, so earlier incarnations' records fall
-# outside the window by design.
+# model, effort, and worktree, and the measurement window runs from the epoch
+# the task first started at to now. That start is spawn_epoch_first= when the
+# record carries it (bin/fm-spawn.sh stamps it at the first spawn and carries it
+# across relaunches, so a relaunched task still measures every incarnation),
+# otherwise the epoch inside spawn_gen=, which a relaunch restamps. A record
+# with neither cannot be window-bounded honestly (worktrees are pooled and
+# reused), so the answer is an explicit unmeasured line, never a partial
+# figure.
 # --unmeasured <reason> skips measurement and emits the schema's unmeasured
 # shape for the task directly; bin/fm-teardown.sh's failed-query fallback calls
 # it so the shell shape has exactly one definition (this file) beside the
@@ -91,6 +92,7 @@ EFFORT=$(meta_get effort)
 KIND=$(meta_get kind)
 WORKTREE=$(meta_get worktree)
 SPAWN_GEN=$(meta_get spawn_gen)
+SPAWN_EPOCH_FIRST=$(meta_get spawn_epoch_first)
 
 if [ -n "$UNMEASURED_REASON" ]; then
   emit_unmeasured "$UNMEASURED_REASON"
@@ -98,13 +100,19 @@ if [ -n "$UNMEASURED_REASON" ]; then
 fi
 
 SPAWN_EPOCH=''
-case "$SPAWN_GEN" in
-s[0-9]*)
-  SPAWN_EPOCH=$(printf '%s' "$SPAWN_GEN" | sed -n 's/^s\([0-9][0-9]*\)\..*/\1/p')
-  ;;
+case "$SPAWN_EPOCH_FIRST" in
+'' | *[!0-9]*) ;;
+*) SPAWN_EPOCH=$SPAWN_EPOCH_FIRST ;;
 esac
 if [ -z "$SPAWN_EPOCH" ]; then
-  # Without an epoch-shaped spawn_gen the window's start cannot be bounded:
+  case "$SPAWN_GEN" in
+  s[0-9]*)
+    SPAWN_EPOCH=$(printf '%s' "$SPAWN_GEN" | sed -n 's/^s\([0-9][0-9]*\)\..*/\1/p')
+    ;;
+  esac
+fi
+if [ -z "$SPAWN_EPOCH" ]; then
+  # Without an epoch on the record the window's start cannot be bounded:
   # the record is appended to throughout the task's life, so its mtime sits
   # near the task's end, and a window that starts there would price a final
   # slice of the task's calls as the whole task. Worktrees are pooled and
@@ -122,7 +130,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 PY_ARGS=(--task "$ID" --kind "$KIND" --harness "${HARNESS:-unknown}"
-  --model "${MODEL:-default}" --effort "${EFFORT:-default}" --worktree "$WORKTREE")
-[ -z "$SPAWN_EPOCH" ] || PY_ARGS+=(--spawn-epoch "$SPAWN_EPOCH")
+  --model "${MODEL:-default}" --effort "${EFFORT:-default}" --worktree "$WORKTREE"
+  --spawn-epoch "$SPAWN_EPOCH")
 
 exec python3 "$SCRIPT_DIR/fm-spend-query.py" "${PY_ARGS[@]}"

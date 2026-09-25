@@ -431,6 +431,10 @@
 # resolved spawning FM_HOME; secondmate home= names its own provisioned home.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
+# A fresh spawn also records spawn_epoch_first= as that first token's epoch; a
+# relaunch carries the existing value unchanged, so the record always names the
+# epoch the task's first incarnation started at (bin/fm-spend-query.sh bounds a
+# whole-task measurement window from it).
 # When the home session's frozen trace-context decision is enabled (see
 # docs/configuration.md and bin/fm-trace-context-lib.sh), the meta also records
 # one W3C traceparent= carrier, the same value injected into the pane as
@@ -4682,6 +4686,8 @@ fi
 META_WINDOW=$T
 [ "$BACKEND" = orca ] && META_WINDOW=$W
 SPAWN_GEN="s$(date +%s).${BASHPID:-$$}.$RANDOM"
+SPAWN_EPOCH_FIRST=${SPAWN_GEN#s}
+SPAWN_EPOCH_FIRST=${SPAWN_EPOCH_FIRST%%.*}
 SPAWN_META_PATH="$STATE/$ID.meta"
 if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1
@@ -4718,6 +4724,7 @@ preserve_relaunch_meta() {
   echo "effort=${EFFORT:-default}"
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"
   echo "spawn_gen=$SPAWN_GEN"
+  [ "$RELAUNCH" -eq 1 ] || echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST"
   # Default-off writes no traceparent= line.
   # backend= is written only for a non-default (non-tmux) backend, so the
   # default path's meta stays byte-identical (absent backend= means tmux;

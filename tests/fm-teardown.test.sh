@@ -4312,6 +4312,26 @@ test_teardown_survives_a_broken_spend_query() {
   pass "a broken spend query never fails the cleanup and still records unmeasured"
 }
 
+test_teardown_rerun_does_not_duplicate_the_spend_ledger_line() {
+  local case_dir seeded
+  case_dir=$(make_case spend-ledger-rerun)
+  write_meta "$case_dir" no-mistakes ship
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  seed_backlog_in_flight "$case_dir"
+  # The state a rerun teardown starts from: an earlier run appended this
+  # task's line, then a later step refused and told the operator to rerun.
+  seeded='{"schema":1,"task":"task-x1","usd_lane":"unmeasured","usd":null,"unmeasured_reason":"earlier run","ts":"2023-11-14T22:13:30Z"}'
+  printf '%s\n' "$seeded" > "$case_dir/data/spend-ledger.jsonl"
+
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "rerun teardown failed while capturing spend: $(cat "$case_dir/stderr")"
+  assert_equals '1' "$(wc -l < "$case_dir/data/spend-ledger.jsonl")" "a rerun appends no second line for the same closed task"
+  assert_equals "$seeded" "$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")" "the already-recorded line is left untouched"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "the skipped ledger append disturbed the backlog close"
+  pass "a rerun teardown keeps one spend ledger line per closed task"
+}
+
 test_teardown_records_a_scout_report_outcome() {
   local case_dir line
   case_dir=$(make_case spend-ledger-scout)
@@ -4336,4 +4356,5 @@ test_teardown_appends_one_unmeasured_spend_ledger_line
 test_teardown_measures_claude_spend_from_fixture_logs
 test_teardown_survives_a_broken_spend_query
 test_teardown_records_a_scout_report_outcome
+test_teardown_rerun_does_not_duplicate_the_spend_ledger_line
 test_run_abort_precedes_process_reap_precedes_worktree_removal

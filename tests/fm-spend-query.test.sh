@@ -181,6 +181,38 @@ test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen() {
   pass "the query answers unmeasured when no epoch-shaped spawn_gen bounds the window"
 }
 
+test_relaunched_task_bounds_the_window_at_its_first_spawn() {
+  local home dir out
+  home=$(sq_home claude-relaunched)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  # A relaunched record: spawn_gen is the second incarnation's stamp, while
+  # spawn_epoch_first still names the first incarnation's epoch.
+  sq_meta "$home" task-r9 'spawn_gen=s1700009000.9.z' 'spawn_epoch_first=1700000000'
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"msg_first","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' \
+    > "$dir/first.jsonl"
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-15T00:43:30.000Z","message":{"id":"msg_second","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' \
+    > "$dir/second.jsonl"
+  out=$(sq_query "$home" task-r9)
+  assert_equals '1700000000' "$(jq -r .window.start_epoch <<<"$out")" "the window starts at the first incarnation's epoch"
+  assert_equals '2' "$(jq -r .calls <<<"$out")" "both incarnations' calls are measured"
+  pass "a relaunched task measures every incarnation from spawn_epoch_first"
+}
+
+test_record_without_a_first_epoch_falls_back_to_spawn_gen() {
+  local home dir out
+  home=$(sq_home claude-no-first-epoch)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  # The fixture record carries spawn_gen only, as a pre-spawn_epoch_first
+  # record does.
+  sq_meta "$home" task-r10
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"msg_1","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' \
+    > "$dir/s1.jsonl"
+  out=$(sq_query "$home" task-r10)
+  assert_equals '1700000000' "$(jq -r .window.start_epoch <<<"$out")" "without spawn_epoch_first the window falls back to the spawn_gen epoch"
+  assert_equals '1' "$(jq -r .calls <<<"$out")" "the fallback window still measures the task's calls"
+  pass "a record without spawn_epoch_first bounds the window at its spawn_gen epoch"
+}
+
 test_unmeasured_flag_emits_the_schema_shape() {
   local home out
   home=$(sq_home claude-unmeasured-flag)
@@ -190,10 +222,8 @@ test_unmeasured_flag_emits_the_schema_shape() {
   assert_equals 'spend query failed' "$(jq -r .unmeasured_reason <<<"$out")" "--unmeasured carries the caller's reason"
   assert_equals 'task-h8' "$(jq -r .task <<<"$out")" "--unmeasured keeps the record's own fields"
   assert_equals 'claude' "$(jq -r .harness <<<"$out")" "--unmeasured reads the task record's harness"
-  set +e
   FM_STATE_OVERRIDE="$home/state" "$QUERY" --unmeasured 'any reason' no-such-task >/dev/null 2>&1
   local rc=$?
-  set -e
   [ "$rc" -eq 2 ] || fail "--unmeasured without a task record must refuse"
   pass "the --unmeasured flag emits the schema shape without measuring"
 }
@@ -202,21 +232,15 @@ test_wrapper_refuses_bad_invocations() {
   local home out rc
   home=$(sq_home claude-refusals)
   sq_meta "$home" task-f6
-  set +e
   sq_query "$home" nope > "$TMP_ROOT/o1" 2> "$TMP_ROOT/e1"
   rc=$?
-  set -e
   expect_code 2 "$rc" "a missing task record refuses with exit 2"
   assert_contains "$(cat "$TMP_ROOT/e1")" "no readable task record" "a missing record names the record path"
-  set +e
   HOME="$home/home" FM_STATE_OVERRIDE="$home/state" "$QUERY" 'bad id;' >/dev/null 2>&1
   rc=$?
-  set -e
   expect_code 2 "$rc" "a malformed task id refuses with exit 2"
-  set +e
   HOME="$home/home" FM_STATE_OVERRIDE="$home/state" "$QUERY" >/dev/null 2>&1
   rc=$?
-  set -e
   expect_code 2 "$rc" "a missing task id argument refuses with exit 2"
   HOME="$home/home" FM_STATE_OVERRIDE="$home/state" "$QUERY" --help > "$TMP_ROOT/o2" 2>&1
   assert_contains "$(cat "$TMP_ROOT/o2")" "fm-spend-query.sh" "help prints the command contract"
@@ -272,15 +296,11 @@ test_brief_composition_refuses_unreadable_inputs() {
   dir="$TMP_ROOT/composition-bad"
   mkdir -p "$dir"
   printf 'content\n' > "$dir/brief.md"
-  set +e
   "$COMPOSITION" "$dir/brief.md" "$dir/missing.md" >/dev/null 2>&1
   rc=$?
-  set -e
   expect_code 2 "$rc" "a missing scaffold refuses instead of printing a guess"
-  set +e
   "$COMPOSITION" "$dir/missing.md" "$dir/brief.md" >/dev/null 2>&1
   rc=$?
-  set -e
   expect_code 2 "$rc" "a missing brief refuses instead of printing a guess"
   pass "the composition measure refuses unreadable inputs"
 }
@@ -315,6 +335,8 @@ test_pi_signed_uses_the_pi_parser
 test_omp_is_unmeasured_until_verified
 test_missing_session_logs_record_unmeasured_with_window
 test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen
+test_relaunched_task_bounds_the_window_at_its_first_spawn
+test_record_without_a_first_epoch_falls_back_to_spawn_gen
 test_unmeasured_flag_emits_the_schema_shape
 test_wrapper_refuses_bad_invocations
 test_wrapper_falls_back_to_unmeasured_without_python3
