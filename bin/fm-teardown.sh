@@ -1554,21 +1554,10 @@ spend_outcome_fields() {
 }
 
 # When the spend query itself cannot run (it normally answers with an explicit
-# unmeasured line, so this path is rare), append the same schema's unmeasured
-# shape with the record's own fields rather than no line at all.
-spend_unmeasured_line() {  # <reason>
-  local reason=$1 harness model effort
-  harness=$(grep '^harness=' "$META" | cut -d= -f2- || :)
-  model=$(grep '^model=' "$META" | cut -d= -f2- || :)
-  effort=$(grep '^effort=' "$META" | cut -d= -f2- || :)
-  jq -cn \
-    --arg task "$ID" --arg kind "$KIND" \
-    --arg harness "${harness:-unknown}" --arg model "${model:-default}" \
-    --arg effort "${effort:-default}" --arg reason "$reason" \
-    '{schema: 1, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
-      window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
-      usd_lane: "unmeasured", usd: null, models: [], unmeasured_reason: $reason}'
-}
+# unmeasured line, so this path is rare), ask the same wrapper for its
+# unmeasured shape directly so the shell copy of that shape stays defined in
+# exactly one place (bin/fm-spend-query.sh; bin/fm-spend-query.py owns the
+# schema).
 
 # Merge the query's object with the teardown's own ts and outcome fields and
 # append exactly one line to the home's spend ledger.
@@ -3528,7 +3517,7 @@ teardown_legacy_stamp_rollback() {
     spend_outcome_fields
     TEARDOWN_SPEND_LINE=''
     if ! TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-query.sh" "$ID" 2>/dev/null); then
-      TEARDOWN_SPEND_LINE=$(spend_unmeasured_line "spend query failed")
+      TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-query.sh" --unmeasured "spend query failed" "$ID" 2>/dev/null || :)
     fi
     if ! spend_ledger_append "$TEARDOWN_SPEND_LINE"; then
       echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2

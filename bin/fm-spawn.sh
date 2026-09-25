@@ -5309,7 +5309,12 @@ if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
         "$SCRIPT_DIR/fm-brief.sh" "$ID" "${PROJ_NAME:-$(basename "${PROJ_ABS:-repo}")}" \
         ${SPAWN_PROBE_FLAGS[@]+"${SPAWN_PROBE_FLAGS[@]}"} >/dev/null 2>&1 \
         && [ -r "$SPAWN_PROBE_HOME/$ID/brief.md" ]; then
+        # The scaffold bakes the probe home's absolute paths into its
+        # status-append, inbox, and report lines; map them onto this task's
+        # real data and state paths so those scaffold lines compare equal
+        # instead of counting as task-specific text.
         SPAWN_BRIEF_COMPOSITION=$(python3 "$SCRIPT_DIR/fm-brief-composition.py" \
+          --map "$SPAWN_PROBE_HOME/state=$STATE" --map "$SPAWN_PROBE_HOME=$DATA" \
           "$SOURCE_BRIEF" "$SPAWN_PROBE_HOME/$ID/brief.md" 2>/dev/null || :)
       fi
       rm -rf "$SPAWN_PROBE_HOME" || :

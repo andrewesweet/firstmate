@@ -17,7 +17,8 @@ Schema 1, one JSON object per run:
     calls                  deduplicated model calls inside the window
     mean_context_tokens    mean of input + cache_read + cache_write per call
     cache_read_share       cache-read share of the context tokens, 0..1
-    usd_lane               "recorded"  the runtime logged its own cost
+    usd_lane               "recorded"  the runtime logged its own per-call
+                                       cost for every call in the window
                            "api-equiv" priced here at assumed list rates
                            "flat"      reserved for a producer that knows the
                                        task ran under a flat plan; this query
@@ -41,8 +42,9 @@ runtime; everything else records an explicit unmeasured reason:
                             sharing the id; Claude Code logs no price, so USD
                             is api-equiv at the assumed rates below
                 pi          <agent-dir>/sessions/--<munged-cwd>--/*.jsonl;
-                            per-message usage plus the cost Pi itself recorded,
-                            so USD is "recorded"
+                            per-message usage plus the cost Pi itself recorded;
+                            USD is "recorded" only when every in-window call
+                            carries that cost, otherwise unmeasured
                 pi-signed   the same Pi binary selected by launch markers, so
                             the same session logs and the same parser as pi
     unmeasured  omp         a Pi fork whose format is expected to match but
@@ -191,11 +193,18 @@ def parse_claude(log_dir: Path, start, end):
 
 
 def parse_pi(log_dir: Path, start, end):
-    """Sum per-message usage and the cost Pi itself recorded."""
+    """Sum per-message usage and the cost Pi itself recorded.
+
+    Returns cost_complete alongside the sums: a recorded-lane figure is only
+    honest when every in-window call carries the runtime's own cost, so a log
+    with any costless call is reported as unmeasured instead of a 0-cost
+    "recorded" figure.
+    """
     calls = []
     models = set()
     usd = 0.0
     cache_read_total = 0
+    cost_complete = True
     for path in sorted(log_dir.glob("*.jsonl")):
         for record in jsonl_records(path):
             message = record.get("message")
@@ -208,10 +217,14 @@ def parse_pi(log_dir: Path, start, end):
                 continue
             calls.append(usage.get("input", 0) + usage.get("cacheRead", 0) + usage.get("cacheWrite", 0))
             cache_read_total += usage.get("cacheRead", 0)
-            usd += ((usage.get("cost") or {}).get("total") or 0.0)
+            cost = (usage.get("cost") or {}).get("total")
+            if not isinstance(cost, (int, float)):
+                cost_complete = False
+            else:
+                usd += cost
             if isinstance(message.get("model"), str):
                 models.add(message["model"])
-    return calls, cache_read_total, round(usd, 4), models
+    return calls, cache_read_total, round(usd, 4), models, cost_complete
 
 
 PARSERS = {"claude": parse_claude, "pi": parse_pi, "pi-signed": parse_pi}
@@ -228,7 +241,7 @@ def pi_log_dir(worktree: str) -> Path:
 
 def measured(harness: str, worktree: str, start, end):
     if harness == "claude":
-        return PARSERS[harness](claude_log_dir(worktree), start, end)
+        return PARSERS[harness](claude_log_dir(worktree), start, end) + (True,)
     if harness in ("pi", "pi-signed"):
         return PARSERS[harness](pi_log_dir(worktree), start, end)
     raise KeyError(harness)
@@ -273,9 +286,11 @@ def build_line(args) -> dict:
     if not log_dir.is_dir():
         return unmeasured({**base, "window": window}, f"no session log directory found for the task worktree: {log_dir}")
 
-    calls, cache_read, usd, models = measured(harness, args.worktree, start, end)
+    calls, cache_read, usd, models, cost_complete = measured(harness, args.worktree, start, end)
     if not calls:
         return unmeasured({**base, "window": window}, "no model-call usage records found inside the task window")
+    if harness != "claude" and not cost_complete:
+        return unmeasured({**base, "window": window}, "runtime log lacks per-call cost for some or all calls")
 
     context_total = sum(calls)
     line = dict(base)

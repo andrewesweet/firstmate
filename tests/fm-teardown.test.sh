@@ -4287,6 +4287,10 @@ test_teardown_survives_a_broken_spend_query() {
   local case_dir line broken_bin
   case_dir=$(make_case spend-ledger-broken)
   write_meta "$case_dir" no-mistakes ship
+  # An epoch-shaped spawn_gen keeps the query on its measurement path, where
+  # the stub below breaks it; without one the query would answer unmeasured
+  # on its own and never exercise the failed-query fallback.
+  sed -i 's/^spawn_gen=.*/spawn_gen=s1700000000.1.x/' "$case_dir/state/task-x1.meta"
   seed_backlog_in_flight "$case_dir"
   # A python3 stub that is found but fails: the query exits nonzero, so the
   # teardown's own fallback builds the unmeasured line.
@@ -4332,3 +4336,4 @@ test_teardown_appends_one_unmeasured_spend_ledger_line
 test_teardown_measures_claude_spend_from_fixture_logs
 test_teardown_survives_a_broken_spend_query
 test_teardown_records_a_scout_report_outcome
+test_run_abort_precedes_process_reap_precedes_worktree_removal

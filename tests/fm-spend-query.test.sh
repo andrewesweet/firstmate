@@ -164,18 +164,38 @@ test_missing_session_logs_record_unmeasured_with_window() {
 
 # --- Wrapper record resolution --------------------------------------------------
 
-test_wrapper_falls_back_to_meta_mtime_without_spawn_gen() {
-  local home epoch out
+test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen() {
+  local home out
   home=$(sq_home claude-mtime)
   sq_meta "$home" task-e5
-  # Drop the spawn_gen line so the record predates that field; the meta's own
-  # mtime is then the honest window start.
+  # Drop the spawn_gen line so no epoch-shaped spawn stamp bounds the window:
+  # the record is appended to throughout the task's life, so its mtime sits
+  # near the task's end, and a window that starts there would price a final
+  # slice of the task's calls as the whole task.
   grep -v '^spawn_gen=' "$home/state/task-e5.meta" > "$home/state/task-e5.meta.tmp"
   mv "$home/state/task-e5.meta.tmp" "$home/state/task-e5.meta"
-  epoch=$(stat -c %Y "$home/state/task-e5.meta" 2>/dev/null || stat -f %m "$home/state/task-e5.meta")
   out=$(sq_query "$home" task-e5)
-  assert_equals "$epoch" "$(jq -r .window.start_epoch <<<"$out")" "a record without spawn_gen bounds its window at the record's mtime"
-  pass "the window falls back to the record mtime when spawn_gen predates it"
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "a record without an epoch-shaped spawn_gen is unmeasured, not partially measured"
+  assert_contains "$(jq -r .unmeasured_reason <<<"$out")" "no spawn epoch on record" "the unmeasured reason names the unbounded window"
+  assert_equals 'null' "$(jq -r .window <<<"$out")" "no window is claimed when it cannot be bounded"
+  pass "the query answers unmeasured when no epoch-shaped spawn_gen bounds the window"
+}
+
+test_unmeasured_flag_emits_the_schema_shape() {
+  local home out
+  home=$(sq_home claude-unmeasured-flag)
+  sq_meta "$home" task-h8
+  out=$(FM_STATE_OVERRIDE="$home/state" "$QUERY" --unmeasured 'spend query failed' task-h8)
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "--unmeasured emits the unmeasured lane"
+  assert_equals 'spend query failed' "$(jq -r .unmeasured_reason <<<"$out")" "--unmeasured carries the caller's reason"
+  assert_equals 'task-h8' "$(jq -r .task <<<"$out")" "--unmeasured keeps the record's own fields"
+  assert_equals 'claude' "$(jq -r .harness <<<"$out")" "--unmeasured reads the task record's harness"
+  set +e
+  FM_STATE_OVERRIDE="$home/state" "$QUERY" --unmeasured 'any reason' no-such-task >/dev/null 2>&1
+  local rc=$?
+  set -e
+  [ "$rc" -eq 2 ] || fail "--unmeasured without a task record must refuse"
+  pass "the --unmeasured flag emits the schema shape without measuring"
 }
 
 test_wrapper_refuses_bad_invocations() {
@@ -294,7 +314,8 @@ test_uncovered_runtime_records_explicit_reason
 test_pi_signed_uses_the_pi_parser
 test_omp_is_unmeasured_until_verified
 test_missing_session_logs_record_unmeasured_with_window
-test_wrapper_falls_back_to_meta_mtime_without_spawn_gen
+test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen
+test_unmeasured_flag_emits_the_schema_shape
 test_wrapper_refuses_bad_invocations
 test_wrapper_falls_back_to_unmeasured_without_python3
 test_brief_composition_splits_scaffold_from_task

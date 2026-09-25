@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# fm-spend-query.sh <task-id> - print one JSON object with this task's
-# model-spend figures (bin/fm-spend-query.py owns the schema), resolved from
-# the task's own record: state/<id>.meta supplies kind, harness, model, effort,
-# and worktree, and the measurement window runs from the record's spawn time
-# (the spawn_gen epoch; the meta mtime when the record predates spawn_gen) to
-# now. A relaunched task measures its current incarnation: spawn_gen is
-# restamped at relaunch, so earlier incarnations' records fall outside the
-# window by design.
+# fm-spend-query.sh [--unmeasured <reason>] <task-id> - print one JSON object
+# with this task's model-spend figures (bin/fm-spend-query.py owns the schema),
+# resolved from the task's own record: state/<id>.meta supplies kind, harness,
+# model, effort, and worktree, and the measurement window runs from the task's
+# spawn_gen epoch to now. spawn_gen is epoch-shaped on every task this home
+# spawned; a record without one cannot be window-bounded honestly (worktrees
+# are pooled and reused), so the answer is an explicit unmeasured line, never
+# a partial figure. A relaunched task measures its current incarnation:
+# spawn_gen is restamped at relaunch, so earlier incarnations' records fall
+# outside the window by design.
+# --unmeasured <reason> skips measurement and emits the schema's unmeasured
+# shape for the task directly; bin/fm-teardown.sh's failed-query fallback calls
+# it so the shell shape has exactly one definition (this file) beside the
+# schema owner in bin/fm-spend-query.py.
 # bin/fm-spend-query.py owns the schema, the runtime coverage list, and the
 # assumed-rate table. Every supported runtime is either measured there or
 # returns an explicit unmeasured line; a runtime whose logs cannot be parsed
@@ -25,14 +31,23 @@ usage() {
   sed -n '2,${/^#/!q;p;}' "$0" | sed 's/^# \{0,1\}//'
 }
 
+UNMEASURED_REASON=''
 case "${1:-}" in
+--unmeasured)
+  [ $# -ge 2 ] || {
+    echo "error: usage: fm-spend-query.sh --unmeasured <reason> <task-id>" >&2
+    exit 2
+  }
+  UNMEASURED_REASON=$2
+  shift 2
+  ;;
 -h | --help)
   usage
   exit 0
   ;;
 esac
 [ $# -eq 1 ] || {
-  echo "error: usage: fm-spend-query.sh <task-id>" >&2
+  echo "error: usage: fm-spend-query.sh [--unmeasured <reason>] <task-id>" >&2
   exit 2
 }
 
@@ -60,12 +75,27 @@ meta_get() {
   sed -n "s/^$1=//p" "$META" | tail -1
 }
 
+emit_unmeasured() {  # <reason>
+  jq -cn \
+    --arg task "$ID" --arg kind "${KIND:-}" --arg harness "${HARNESS:-unknown}" \
+    --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg reason "$1" \
+    '{schema: 1, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
+      window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
+      usd_lane: "unmeasured", usd: null, models: [],
+      unmeasured_reason: $reason}'
+}
+
 HARNESS=$(meta_get harness)
 MODEL=$(meta_get model)
 EFFORT=$(meta_get effort)
 KIND=$(meta_get kind)
 WORKTREE=$(meta_get worktree)
 SPAWN_GEN=$(meta_get spawn_gen)
+
+if [ -n "$UNMEASURED_REASON" ]; then
+  emit_unmeasured "$UNMEASURED_REASON"
+  exit 0
+fi
 
 SPAWN_EPOCH=''
 case "$SPAWN_GEN" in
@@ -74,24 +104,20 @@ s[0-9]*)
   ;;
 esac
 if [ -z "$SPAWN_EPOCH" ]; then
-  # Records written before spawn_gen carried the epoch: fall back to the
-  # record's own mtime (GNU stat first, then BSD).
-  SPAWN_EPOCH=$(stat -c %Y "$META" 2>/dev/null || stat -f %m "$META" 2>/dev/null || true)
-  case "$SPAWN_EPOCH" in
-    '' | *[!0-9]*) SPAWN_EPOCH='' ;;
-  esac
+  # Without an epoch-shaped spawn_gen the window's start cannot be bounded:
+  # the record is appended to throughout the task's life, so its mtime sits
+  # near the task's end, and a window that starts there would price a final
+  # slice of the task's calls as the whole task. Worktrees are pooled and
+  # reused, so widening the window instead would admit a successor task's
+  # calls. The honest answer is the explicit unmeasured line.
+  emit_unmeasured "no spawn epoch on record; session window cannot be bounded"
+  exit 0
 fi
 
 # Without python3 there is no honest measurement path; emit the schema's
 # unmeasured shape rather than failing (jq is already a firstmate dependency).
 if ! command -v python3 >/dev/null 2>&1; then
-  jq -cn \
-    --arg task "$ID" --arg kind "$KIND" --arg harness "${HARNESS:-unknown}" \
-    --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" \
-    '{schema: 1, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
-      window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
-      usd_lane: "unmeasured", usd: null, models: [],
-      unmeasured_reason: "python3 is unavailable, so no session log can be read"}'
+  emit_unmeasured "python3 is unavailable, so no session log can be read"
   exit 0
 fi
 
