@@ -4217,4 +4217,118 @@ test_exec_changed_process_is_still_reaped
 test_process_spawned_during_grace_is_reaped_on_later_pass
 test_persistent_scan_refuses_after_bounded_retries
 test_process_exit_during_identity_lookup_does_not_refuse
-test_run_abort_precedes_process_reap_precedes_worktree_removal
+
+# --- spend ledger capture ---------------------------------------------------
+
+test_teardown_appends_one_unmeasured_spend_ledger_line() {
+  local case_dir line
+  case_dir=$(make_case spend-ledger-unmeasured)
+  write_meta "$case_dir" no-mistakes ship
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  seed_backlog_in_flight "$case_dir"
+
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "teardown failed while capturing spend: $(cat "$case_dir/stderr")"
+  [ -f "$case_dir/data/spend-ledger.jsonl" ] \
+    || fail "teardown wrote no spend ledger line"
+  assert_equals '1' "$(wc -l < "$case_dir/data/spend-ledger.jsonl")" "one closed task appends exactly one ledger line"
+  line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
+  assert_equals '1' "$(jq -r .schema <<<"$line")" "the ledger line is schema version 1"
+  assert_equals 'task-x1' "$(jq -r .task <<<"$line")" "the ledger line names the closed task"
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "a record without harness session logs is unmeasured"
+  assert_equals 'null' "$(jq -r .usd <<<"$line")" "an unmeasured line carries no USD figure"
+  [ -n "$(jq -r .unmeasured_reason <<<"$line")" ] \
+    || fail "an unmeasured ledger line must state its reason"
+  assert_equals 'pr' "$(jq -r .outcome <<<"$line")" "the ledger line records the closed ship's PR outcome"
+  assert_equals 'https://github.com/example/repo/pull/7' "$(jq -r .outcome_ref <<<"$line")" "the ledger line records the PR URL"
+  assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the ledger line carries a UTC timestamp"
+  pass "a closed ship appends one schema-versioned spend ledger line with its outcome"
+}
+
+test_teardown_measures_claude_spend_from_fixture_logs() {
+  local case_dir dir line
+  case_dir=$(make_case spend-ledger-measured)
+  fm_write_meta "$case_dir/state/task-x1.meta" \
+    "window=firstmate:fm-task-x1" \
+    "endpoint_task_id=task-x1" \
+    "worktree=$case_dir/wt" \
+    "project=$case_dir/project" \
+    'kind=ship' \
+    'mode=no-mistakes' \
+    'harness=claude' \
+    'model=claude-opus-4-1' \
+    'effort=xhigh' \
+    'spawn_gen=s1700000000.1.x'
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  dir=$(printf '%s' "$case_dir/wt" | sed 's/[^A-Za-z0-9]/-/g')
+  mkdir -p "$case_dir/home/.claude/projects/$dir"
+  printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"msg_1","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":98000,"cache_creation_input_tokens":1000,"cache_creation":{"ephemeral_5m_input_tokens":1000,"ephemeral_1h_input_tokens":0}}}}' \
+    > "$case_dir/home/.claude/projects/$dir/s1.jsonl"
+  seed_backlog_in_flight "$case_dir"
+
+  # HOME is pinned so the query resolves the fixture's own session logs.
+  FM_ROOT_OVERRIDE="$ROOT" \
+  FM_STATE_OVERRIDE="$case_dir/state" \
+  FM_DATA_OVERRIDE="$case_dir/data" \
+  FM_CONFIG_OVERRIDE="$case_dir/config" \
+  HOME="$case_dir/home" \
+  PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
+    "$TEARDOWN" task-x1 > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "teardown failed while measuring spend: $(cat "$case_dir/stderr")"
+  line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
+  assert_equals 'api-equiv' "$(jq -r .usd_lane <<<"$line")" "Claude spend is priced in the api-equiv lane"
+  assert_equals '1' "$(jq -r .calls <<<"$line")" "the measured line counts the window's deduplicated calls"
+  jq -e '.usd > 0.07 and .usd < 0.08' <<<"$line" >/dev/null \
+    || fail "the measured ledger line did not carry the priced USD figure: $line"
+  pass "a closed ship with session logs records measured api-equiv spend"
+}
+
+test_teardown_survives_a_broken_spend_query() {
+  local case_dir line broken_bin
+  case_dir=$(make_case spend-ledger-broken)
+  write_meta "$case_dir" no-mistakes ship
+  seed_backlog_in_flight "$case_dir"
+  # A python3 stub that is found but fails: the query exits nonzero, so the
+  # teardown's own fallback builds the unmeasured line.
+  broken_bin="$case_dir/broken-bin"
+  mkdir -p "$broken_bin"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$broken_bin/python3"
+  chmod +x "$broken_bin/python3"
+
+  FM_TEARDOWN_TEST_PATH="$broken_bin:$PATH" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "teardown failed when the spend query broke: $(cat "$case_dir/stderr")"
+  [ -f "$case_dir/data/spend-ledger.jsonl" ] \
+    || fail "a broken spend query must still leave an explicit unmeasured line"
+  line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "the fallback line is unmeasured"
+  assert_contains "$(jq -r .unmeasured_reason <<<"$line")" "spend query failed" "the fallback names the failed capture"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "a broken spend capture disturbed the backlog close"
+  pass "a broken spend query never fails the cleanup and still records unmeasured"
+}
+
+test_teardown_records_a_scout_report_outcome() {
+  local case_dir line
+  case_dir=$(make_case spend-ledger-scout)
+  write_meta "$case_dir" local-only scout
+  mkdir -p "$case_dir/data/task-x1"
+  printf '%s\n' '# Findings' > "$case_dir/data/task-x1/report.md"
+  seed_backlog_in_flight "$case_dir" scout
+  # Scouts refuse cleanup until their captain-call inventory is attested.
+  FM_STATE_OVERRIDE="$case_dir/state" FM_DATA_OVERRIDE="$case_dir/data" \
+    FM_CONFIG_OVERRIDE="$case_dir/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete task-x1 --none >/dev/null
+
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "scout teardown failed while capturing spend: $(cat "$case_dir/stderr")"
+  line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
+  assert_equals 'report' "$(jq -r .outcome <<<"$line")" "a closed scout's outcome is its report"
+  assert_contains "$(jq -r .outcome_ref <<<"$line")" "data/task-x1/report.md" "the report outcome names the report path"
+  pass "a closed scout records its report as the ledger outcome"
+}
+
+test_teardown_appends_one_unmeasured_spend_ledger_line
+test_teardown_measures_claude_spend_from_fixture_logs
+test_teardown_survives_a_broken_spend_query
+test_teardown_records_a_scout_report_outcome

@@ -307,8 +307,28 @@ An unknown key, a malformed or non-positive value, or a symlinked config file is
 While that work item is open, later observations only append receipts, and `reset <retro-id>` archives the generation and re-arms the trigger.
 Two producers feed it and both absorb every trigger failure: `bin/fm-teardown.sh` records a closure receipt after a ship or scout task's backlog close, and the wake-presentation annotations in `bin/fm-wake-lib.sh` record needs-decision, blocked, and done-unseen receipts.
 The done-unseen receipt records an epoch only when one durable wake row unambiguously carried the completed line; other shapes are skipped rather than approximated.
-Closures land in the unknown-cost lane today, so only explicitly reported `--cost` values feed the spend and median rules, and cost collection, CI-repair detection, cross-home aggregation, and dispatching the retrospectives themselves stay out of scope.
+A teardown whose best-effort spend capture measured a figure feeds it to the closure receipt, landing that closure in the known lane; every other closure stays in the unknown lane rather than guessing (see ["Task spend ledger"](#task-spend-ledger-dataspend-ledgerjsonl)).
+Cost collection beyond the local session logs, CI-repair detection, cross-home aggregation, and dispatching the retrospectives themselves stay out of scope.
 The file is home-local and is not inherited by secondmate homes, because cadence is a property of the home doing the observing.
+
+## Task spend ledger (data/spend-ledger.jsonl)
+
+Every closed ship or scout task appends one best-effort JSON line to the home's gitignored `data/spend-ledger.jsonl`, so a retrospective can read closed-task model spend instead of reconstructing it by hand.
+`bin/fm-teardown.sh` is the single producer and appends on the successful backlog close only; a refused teardown never records, and a capture or append failure never fails the cleanup - a failed append prints one stderr line and leaves the ledger without that task's line.
+`bin/fm-spend-query.sh <task-id>` owns the line schema (schema version 1) and prints the same object standalone: it resolves the task's worker session logs from the task's own record, bounds every record to the task's spawn-to-now window because worktrees are pooled and reused, deduplicates multi-record model calls, and reports call count, mean context tokens, cache-read share, and a USD figure under an explicit lane label - `recorded` when the runtime logged its own cost (Pi), `api-equiv` when the figure is priced locally at assumed list rates (Claude), `flat` reserved for a producer that positively knows a flat-plan task, and `unmeasured` with a stated reason whenever no honest figure exists.
+Runtimes whose session logs have no verified per-call usage parser record the unmeasured lane instead of a guess; the coverage list and the assumed-rate table live in exactly one place, `bin/fm-spend-query.py`'s header.
+The query itself never blocks a task and makes no model calls; capture is a local file read bounded to the closed task's own window.
+The teardown's ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_ref` naming the PR URL, `local-main`, `report` with the report path, or none).
+
+## Standing data sources for retrospectives
+
+Five durable, home-local logs record what actually happened, and a retrospective reads them instead of asking anyone to reconstruct events:
+
+- `data/dispatch-resolve.jsonl` - one line per typed-dispatch resolution, with outcome, confidence, per-rule probabilities, and the exact rules and brief digests (see "Typed dispatch resolution").
+- `data/dispatch-spawns.jsonl` - one line per successful fresh ship or scout spawn, with the actually dispatched harness, model, and effort, the exact brief digest, and the brief's scaffold-versus-task token split.
+- `state/branch-mod-classifications.jsonl` - one record per supervision-branch classifier call (see [claude-supervision-branch.md](claude-supervision-branch.md)).
+- `state/branch-outcomes.jsonl` - the supervision branch's durable outcome store, owned by `bin/fm-branch-outcome.sh`.
+- `data/spend-ledger.jsonl` - one line per closed ship or scout task with its measured or explicitly unmeasured model spend (see ["Task spend ledger"](#task-spend-ledger-dataspend-ledgerjsonl)).
 
 ## Secondmate routes (data/secondmates.md)
 
@@ -590,7 +610,7 @@ The resolver and bootstrap copy an environment-provided key into a non-exported 
 The resolver sends the key to `curl` only as a header read from a file descriptor, never on argv, and nothing prints, logs, or writes it.
 Every resolved call also appends one JSON line to the home's gitignored `data/dispatch-resolve.jsonl` recording the UTC time, task id, project, outcome status, confidence, matched rule, chosen profile or non-clear reason, call latency and token counts, concrete response model, full probability vector keyed by the offered `rule_N` and `default` choice ids, selected option text and probability, selected-to-runner-up probability margin, policy version and confidence floor, a SHA-256 digest of the exact rules snapshot, and a SHA-256 digest of the exact brief bytes that were routed; response fields unavailable on an error are null, the API key, brief text, and request body are never recorded, and the off path and exit-2 configuration errors write nothing because they are not calls.
 A failed log write prints one stderr line and never blocks the intake or changes the outcome.
-Every successful fresh ship or scout spawn appends one JSON line to the home's gitignored `data/dispatch-spawns.jsonl` carrying the UTC time, task id, kind, the harness, model, and effort the task was actually dispatched on, resolved exactly as the task record records them, and a SHA-256 digest of the exact task-brief bytes as they stand at spawn; a `--relaunch` never appends, a hashing failure omits the digest rather than failing the spawn, brief text is never recorded, and an unwritable log prints one stderr line and never fails the spawn.
+Every successful fresh ship or scout spawn appends one JSON line to the home's gitignored `data/dispatch-spawns.jsonl` carrying the UTC time, task id, kind, the harness, model, and effort the task was actually dispatched on, resolved exactly as the task record records them, a SHA-256 digest of the exact task-brief bytes as they stand at spawn, and the brief's composition split - `scaffold_tokens`, `task_tokens`, and `fixed_share` from `bin/fm-brief-composition.py`, which compares the filled brief with a fresh same-shape `fm-brief.sh` scaffold so a retrospective can tell reusable scaffold weight from the intake's own words; a `--relaunch` never appends, a hashing failure omits the digest and a failed composition probe omits the three composition fields rather than failing the spawn, brief text is never recorded, and an unwritable log prints one stderr line and never fails the spawn.
 `bin/fm-dispatch-resolve-score.sh` replays the two logs offline, with an optional adjudicated labels file (one `<task><TAB><rule when text>` per line), reporting clear-only rule and profile agreement, override rate, coverage, and the precision-versus-abstention curve across confidence floors, so the fixed 0.6 floor can be judged from local evidence before it is changed; the script's header owns its exact join and metric definitions, and live selection is unchanged.
 The resolver fixes the endpoint at `https://api.typesafe.ai`, model at `jev-latest`, confidence floor at 0.6, and request timeout at 5 seconds; `TYPESAFE_API_KEY` is its only resolver-specific environment setting.
 The live rule-match evidence is recorded in [`verification/dispatch-resolve.md`](verification/dispatch-resolve.md).
