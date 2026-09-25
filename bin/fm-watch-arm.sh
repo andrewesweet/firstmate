@@ -565,6 +565,10 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
 # writer closes, so an inherited stderr would keep that caller blocked past a
 # follow-budget exit with the watcher still alive - and a reader-less pipe
 # would SIGPIPE the watcher's next diagnostic once the caller moved on.
+# The side file is also the reason surface: this arm reports the watcher's
+# dying diagnostics (a home-gone exit, a startup refusal) in its FAILED line,
+# so each spawn starts a fresh side file and never relays a predecessor's.
+: >"$STATE/.watch-arm.watcher.err" 2>/dev/null || true
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"$STATE/.watch-arm.watcher.err" </dev/null &
 else
@@ -582,6 +586,26 @@ child_done=0
 # budget ends the park with the watcher child still running; otherwise returns
 # the child's own exit status.
 WAIT_CHILD_BUDGET_EXIT=0
+
+# Relay the started watcher's home-gone exit reason when its own stderr cannot
+# carry it. The watcher echoes its teardown reason to stderr, which this arm
+# detaches into $STATE/.watch-arm.watcher.err to keep pipes from blocking a
+# follow-budget park - but a torn-down temporary home unlinks that side file
+# with the rest of $STATE, losing the dying write. Re-derive the watcher's own
+# home-gone conditions (bin/fm-watch.sh's poll-loop head) and print its exact
+# line so the operator still reads one reason for the exit.
+relay_watcher_gone_reason() {
+  if [ -n "${FM_HOME:-}" ] && [ "${WATCH_HOME_EXISTED:-1}" -eq 1 ] && [ ! -d "$FM_HOME" ]; then
+    printf 'watcher: exiting - home no longer exists: %s\n' "$FM_HOME"
+  elif [ ! -d "$STATE" ]; then
+    printf 'watcher: exiting - state directory no longer exists: %s\n' "$STATE"
+  elif [ ! -e "$WATCH_LOCK/pid" ]; then
+    printf 'watcher: exiting - state directory was torn down (singleton lock removed): %s\n' "$STATE"
+  elif [ ! -d "$SCRIPT_DIR" ]; then
+    printf 'watcher: exiting - code root no longer exists: %s\n' "$SCRIPT_DIR"
+  fi
+}
+
 wait_child_close() {
   WAIT_CHILD_BUDGET_EXIT=0
   while fm_pid_alive "$child"; do
@@ -636,8 +660,15 @@ owned_child_finished() {
   [ "$signal" = none ] || reason_type="signal-exit"
   cycle_log_append "$rc" "$signal" "$reason_type" none
   print_watch_output "$child_out"
+  relay_watcher_gone_reason
   if ! grep -q '^watcher: FAILED' "$child_out" 2>/dev/null; then
-    echo "watcher: FAILED - watcher cycle exited $rc without an actionable reason"
+    watcher_err_tail=$(tail -n 4 "$STATE/.watch-arm.watcher.err" 2>/dev/null | tr '\n' ' ')
+    watcher_err_tail=${watcher_err_tail% }
+    if [ -n "$watcher_err_tail" ]; then
+      echo "watcher: FAILED - watcher cycle exited $rc without an actionable reason; watcher stderr: $watcher_err_tail"
+    else
+      echo "watcher: FAILED - watcher cycle exited $rc without an actionable reason"
+    fi
   fi
   rm -f "$child_out" 2>/dev/null || true
   child=
