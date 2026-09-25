@@ -205,10 +205,9 @@ SH
       ;;
     gated-actionable)
       # Cycle whose watcher closes only when the test releases it, so a second
-      # session can fire its Stop while the cycle is still under way.
-      cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
-#!/usr/bin/env bash
-echo "$$" >> "$FM_HOME/state/arm-ran"
+      # session can fire its Stop while the cycle is still under way. Appends
+      # after the shared prelude so a handling successor still records apart.
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
 while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
 printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
 touch "$FM_HOME/state/.last-watcher-beat"
