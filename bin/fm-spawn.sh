@@ -2962,44 +2962,18 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
   fi
+  PUBLISHED_INTENT=
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-    if ! fm_brief_task_heading_present "$BRIEF" "## Published intent"; then
-      echo "error: $BRIEF has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words" >&2
-      exit 1
-    fi
-    PUBLISHED_INTENT=$(fm_brief_task_heading_body "$BRIEF" "## Published intent")
-    if [ -z "$(printf '%s' "$PUBLISHED_INTENT" | tr -d '[:space:]')" ]; then
-      echo "error: $BRIEF ## Published intent is empty; firstmate fills it before spawn, since this no-mistakes ship passes it as --intent" >&2
-      exit 1
-    fi
-    if PUBLISHED_ADDRESS_LINE=$(fm_brief_published_intent_address_line "$BRIEF"); then
-      echo "error: $BRIEF ## Published intent has an operator-address line: $PUBLISHED_ADDRESS_LINE; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent" >&2
-      exit 1
+    # The value is extracted here but validated only after the delivery-contract
+    # drift checks below, so a brief whose mode, forge, or ship branch disagrees
+    # with this spawn is refused for that drift first.
+    if fm_brief_task_heading_present "$BRIEF" "## Published intent"; then
+      PUBLISHED_INTENT=$(fm_brief_task_heading_body "$BRIEF" "## Published intent")
     fi
   fi
-  # Use the existing launch-brief overlay for every worker kind, including
-  # pre-scope briefs and relaunches. Charters never enter this worker path.
   SOURCE_BRIEF=$BRIEF
-  BRIEF="$DATA/$ID/launch-brief.md"
-  BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
-  {
-    fm_brief_worker_role "$STATE" "$ID" &&
-      printf '\n' &&
-      cat "$SOURCE_BRIEF" &&
-      if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-        fm_brief_intent_overlay "$PUBLISHED_INTENT"
-      fi
-  } >"$BRIEF_TMP" || {
-    rm -f -- "$BRIEF_TMP"
-    echo "error: could not render current launch contract for $SOURCE_BRIEF" >&2
-    exit 1
-  }
-  if ! mv "$BRIEF_TMP" "$BRIEF"; then
-    rm -f -- "$BRIEF_TMP"
-    echo "error: could not publish current launch contract for $SOURCE_BRIEF" >&2
-    exit 1
-  fi
 fi
+
 
 delivery_rigor_rank() { # <mode> -> 3 (most rigor) .. 1 (least); 0 = not a task mode
   case "$1" in
@@ -3095,6 +3069,49 @@ if [ "$KIND" = ship ]; then
   STANDING_BRANCH=$("$FM_ROOT/bin/fm-project-mode.sh" --branch-prefix "$PROJ_NAME" 2>/dev/null) || STANDING_BRANCH=
   if [ "$BRANCH" != "$STANDING_BRANCH$ID" ]; then
     echo "notice: $ID ships branch=$BRANCH while $PROJ_NAME registers the ship-branch prefix '$STANDING_BRANCH' (branch $STANDING_BRANCH$ID) - the task's branch and PR will read as firstmate-authored; proceed only on a current explicit captain instruction or an intake judgment you can state" >&2
+  fi
+  # Published-intent validation runs after every delivery-contract drift check
+  # above: the pipeline publishes this statement as the no-mistakes PR intent,
+  # so a brief that cannot be launched on this spawn's contract is refused for
+  # the contract drift before the published-intent contract adds its own
+  # refusals (migration, empty body, operator-address line).
+  if [ "$MODE" = no-mistakes ]; then
+    if ! fm_brief_task_heading_present "$BRIEF" "## Published intent"; then
+      echo "error: $BRIEF has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words" >&2
+      exit 1
+    fi
+    if [ -z "$(printf '%s' "$PUBLISHED_INTENT" | tr -d '[:space:]')" ]; then
+      echo "error: $BRIEF ## Published intent is empty; firstmate fills it before spawn, since this no-mistakes ship passes it as --intent" >&2
+      exit 1
+    fi
+    if PUBLISHED_ADDRESS_LINE=$(fm_brief_published_intent_address_line "$BRIEF"); then
+      echo "error: $BRIEF ## Published intent has an operator-address line: $PUBLISHED_ADDRESS_LINE; firstmate rewrites it without a Captain label or direct address before spawn, since the pipeline publishes it as the PR intent" >&2
+      exit 1
+    fi
+  fi
+fi
+
+# Use the existing launch-brief overlay for every worker kind, including
+# pre-scope briefs and relaunches. Charters never enter this worker path.
+if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
+  BRIEF="$DATA/$ID/launch-brief.md"
+  BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
+  {
+    fm_brief_worker_role "$STATE" "$ID" &&
+      printf '\n' &&
+      cat "$SOURCE_BRIEF" &&
+      if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
+        fm_brief_intent_overlay "$PUBLISHED_INTENT"
+      fi
+  } >"$BRIEF_TMP" || {
+    rm -f -- "$BRIEF_TMP"
+    echo "error: could not render current launch contract for $SOURCE_BRIEF" >&2
+    exit 1
+  }
+  if ! mv "$BRIEF_TMP" "$BRIEF"; then
+    rm -f -- "$BRIEF_TMP"
+    echo "error: could not publish current launch contract for $SOURCE_BRIEF" >&2
+    exit 1
   fi
 fi
 
