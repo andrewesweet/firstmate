@@ -1,0 +1,19 @@
+## case home-removed: watcher pid=2241842
+arm exit=1
+home present: no; state present: yes
+--- arm operator output ---
+watcher: started pid=2241842 (beacon fresh)
+watcher: exiting - home no longer exists: /tmp/fm-live-arm-home-removed.37NkTx/home
+watcher: FAILED - watcher cycle exited 1 without an actionable reason; watcher stderr: watcher: exiting - home no longer exists: /tmp/fm-live-arm-home-removed.37NkTx/home
+
+--- leftover stderr side files in TMPDIR ---
+1
+## case plain-nonzero: watcher pid=2245218
+arm exit=143
+home present: yes; state present: yes
+--- arm operator output ---
+watcher: started pid=2245218 (beacon fresh)
+watcher: FAILED - watcher cycle exited 143 without an actionable reason
+
+--- leftover stderr side files in TMPDIR ---
+1

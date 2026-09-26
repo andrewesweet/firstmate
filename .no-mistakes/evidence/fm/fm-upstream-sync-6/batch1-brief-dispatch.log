@@ -1,0 +1,157 @@
+FM_TEST_BEGIN 2026-09-26T05:17:59Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: bash -n succeeds
+/tmp/fm-test-run.PAuITk/w1/tmp/fm-brief.ynOhna/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
+ok - fm-brief.sh: no-mistakes ask-user findings use one event plus a verbatim snapshot
+ok - fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} and {FIRSTMATE_SPEC} fills cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: ship and scout scaffolds teach validation-round pauses
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+ok - fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor
+ok - fm-brief.sh: the home brief include lands last on ship and scout, verbatim, and fails closed
+ok - fm-brief.sh: --branch-prefix omitted defaults every ship mode to fm/<task-id>
+ok - fm-brief.sh: a --branch-prefix override renders identically across every generated section
+ok - fm-brief.sh: an empty --branch-prefix override resolves to a bare <task-id> branch
+ok - fm-brief.sh: --branch-prefix is refused on scout and secondmate scaffolds
+ok - fm-brief.sh: --branch-prefix value is validated against embedded spaces and a leading dash
+Switched to a new branch '$(touch${IFS}/tmp/fm-test-run.PAuITk/w1/tmp/fm-brief.ynOhna/branch-prefix-shell-safe-marker)brief-branch-safe-g3'
+ok - fm-brief.sh: ref-format-valid shell metacharacters stay literal in generated branch commands
+ok - fm-brief.sh: every crewmate scaffold forbids administering the shared worktree pool
+FM_TEST_END 2026-09-26T05:18:21Z tests/fm-brief.test.sh exit=0 duration_ms=21944 gate_skip=false
+FM_TEST_BEGIN 2026-09-26T05:18:21Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - every resolved call appends one JSON outcome line, and a failed write never blocks the intake
+ok - rules snapshots and shell quoting preserve the profile protocol
+ok - no-rule fallback, Agy, Gemini, and documented configurations resolve
+ok - ambiguous: confidence below the fixed floor hands the decision back
+ok - per-rule confidence floors fall to the most probable runner-up that clears its own floor
+ok - only the brief's task sections and scout tag reach the model, with a whole-brief fallback
+ok - escalate: a rule declared approval: captain never yields a profile
+ok - rule floor: known shortfall falls through while unavailable evidence escalates
+ok - declared provider and profile floor evidence are applied in code
+ok - nonnumeric spendPriority evidence is never ranked
+ok - partial and missing quota evidence remain eligible but unranked
+ok - provider-wide and exact quota rows combine into one limiting candidate
+ok - default: no rule matched resolves among the default profiles
+ok - tie: equal spendPriority never breaks by array order
+ok - no rankable candidate: the tool escalates instead of guessing
+ok - native Codex binds to codex-home before default, independently of Pi accounts and row order
+ok - Pi native adapters bind to codex-home with existing fallbacks and schema 5 compatibility
+ok - schema 6: each candidate binds to its account row; schema 5 is unchanged
+ok - quota evidence comes from one quota-axi --json read, and its failure is an error outcome
+ok - API, transport, and response failures are error outcomes with exit 0
+ok - configuration errors exit 2 before any network call
+# all fm-dispatch-resolve tests passed
+FM_TEST_END 2026-09-26T05:18:47Z tests/fm-dispatch-resolve.test.sh exit=0 duration_ms=25525 gate_skip=false
+FM_TEST_BEGIN 2026-09-26T05:18:47Z tests/fm-spawn-dispatch-profile.test.sh family=backend-dispatch expected_gate_skip=none
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+ok - secondmate launch inherits the allowlist for subsequent worker launches
+ok - local inheritance preserves the allowlist on source errors and mirrors proven absence
+ok - remote inheritance preserves the allowlist on source errors and mirrors proven absence
+ok - fm-spawn: actual ship/scout launch commands deliver the worker role contract
+ok - no --model/--effort records defaults and types the claude launch instructions
+ok - non-cursor launches clear inherited Cursor identity markers
+ok - relative home overrides ignore CDPATH and become absolute before spawn launch construction
+ok - FM_HOME defaults resolve relative paths and preserve absolute spellings
+ok - absolute override spellings are preserved in spawn launch paths
+ok - unresolvable relative spawn overrides fail with named diagnostics
+ok - active crew-dispatch profile requires an explicit harness for ship spawns
+ok - active crew-dispatch profile requires an explicit harness for scout spawns
+ok - active crew-dispatch profile allows an explicit resolved harness
+ok - active crew-dispatch profile allows the legacy positional harness form
+ok - successful ship and scout spawns record the actually-dispatched profile; a relaunch does not
+ok - an unwritable dispatch-spawn log never fails the spawn
+ok - a failed composition probe omits its fields without failing the spawn
+ok - the composition probe scaffolds against the ship-branch prefix the spawn selected
+ok - active crew-dispatch profile allows the raw launch-command escape hatch
+ok - claude receives --model and --effort profile flags
+ok - codex receives --model and model_reasoning_effort profile flags
+ok - codex Luna receives --model and model_reasoning_effort max profile flags
+ok - codex omits max for models without the catalog capability
+ok - a codex crewmate launches with no hook layer and keeps its turn-end signal
+ok - a codex crewmate's notify override still runs the operator's notify program
+ok - a codex crewmate without a host notify program keeps the bare turn-end touch
+ok - a codex secondmate keeps the project hook layer its primary session runs on
+ok - grok receives --model and --reasoning-effort profile flags
+ok - grok omits unsupported max reasoning effort
+ok - grok omits unsupported xhigh reasoning effort
+ok - cursor receives its model-qualified reasoning class and exact task workspace
+ok - cursor refuses model ids absent from its resolved binary's live catalog
+ok - cursor preserves the requested model when its live catalog is unreachable
+ok - opencode receives --model and omits the unsupported effort axis
+ok - native effort validator checks harness and model as separate axes
+ok - Ultra is explicit for native Pi and Pi-signed, including direct-PR, and refuses unsupported profiles before provisioning
+ok - batch dispatch preserves native Ultra in metadata and launch flags
+ok - pi receives --model and --thinking max profile flags
+ok - Pi launch probing omits --tui-mode on older Pi and preserves it on supporting Pi
+ok - pi-signed shares Pi launch semantics while preserving its configured and recorded identity
+ok - pi worker extension caps contextWindow at 144000 only when the live session model is zai/glm-5.3-flash
+ok - pi-signed refuses safely and actionably when the selected executable is unavailable
+ok - pi-signed is a distinct persistent secondmate runtime with shared Pi supervision semantics
+ok - batch dispatch forwards shared --harness, --model, and --effort to every pair
+ok - claude forwards firstmate's CLAUDE_CONFIG_DIR so the crewmate uses the same credential store
+ok - the primary-owned Lavish server address reaches every worker launch
+cat: /tmp/fm-spawn-dispatch-profile.zk5y07/profile-lavish-ambient/pane.log: No such file or directory
+ok - absent Lavish configuration preserves the destination environment
+ok - claude omits the config-dir prefix when firstmate runs with the single-store default
+ok - config/claude-permission-mode=bypass launches exactly as an absent file does
+ok - config/claude-permission-mode=auto replaces --dangerously-skip-permissions with --permission-mode auto
+ok - config/claude-permission-mode=auto reaches scout launches too
+ok - an unrecognized config/claude-permission-mode token refuses before any endpoint or metadata
+ok - config/claude-permission-mode changes claude launches only
+ok - config/claude-function-hooks presence adds exactly CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 to the crewmate environment prefix
+ok - non-claude harnesses do not receive the claude CLAUDE_CONFIG_DIR prefix
+ok - a claude task launch establishes only Firstmate's task control channels through the system prompt
+ok - a persistent claude secondmate keeps its supervisor contract without a task-worker authority overlay
+ok - fm-spawn: a Claude launch longer than 1024 bytes is delivered intact through the staging path
+ok - a claude crewmate launch carries the attribution-off policy in its own settings
+ok - a claude secondmate launch carries the attribution-off policy too
+ok - active crew-dispatch profile does not block secondmate launches
+# all fm-spawn-dispatch-profile tests passed
+FM_TEST_END 2026-09-26T05:23:17Z tests/fm-spawn-dispatch-profile.test.sh exit=0 duration_ms=270117 gate_skip=false
+FM_TEST_BEGIN 2026-09-26T05:23:17Z tests/fm-dispatch-resolve-score.test.sh family=unclassified expected_gate_skip=none
+ok - labeled replay: coverage, clear-only agreements, override rate, and the floor curve
+ok - unlabeled replay omits every label-derived metric
+ok - a missing spawns log is coverage 0, not an error
+ok - a log beyond one argv value still scores
+ok - unreadable inputs exit 2 with a named error
+# all fm-dispatch-resolve-score tests passed
+FM_TEST_END 2026-09-26T05:23:19Z tests/fm-dispatch-resolve-score.test.sh exit=0 duration_ms=2149 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=320082
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=270117 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=21944 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=25525 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=2149 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-spawn-dispatch-profile.test.sh duration_ms=270117
+FM_TEST_SLOWEST rank=2 script=tests/fm-dispatch-resolve.test.sh duration_ms=25525
+FM_TEST_SLOWEST rank=3 script=tests/fm-brief.test.sh duration_ms=21944
+FM_TEST_SLOWEST rank=4 script=tests/fm-dispatch-resolve-score.test.sh duration_ms=2149

@@ -1,0 +1,11 @@
+### merge commit 824e99a parents (fork main <- upstream main)
+824e99a Merge upstream main (b805823a) into fork main
+parents: 02201bb b805823
+### upstream range endpoints are ancestors of the target
+fdd36879 ancestor-of-4f0a9d3: yes
+b805823a ancestor-of-4f0a9d3: yes
+### upstream commit count reachable from the merge's second parent but not its first
+40
+### no rebase/squash: both parents present on the branch merge too
+cbdffcb Merge fork main (ed80c050) into fm/fm-upstream-sync-6
+parents: 3a2ea2d ed80c05

@@ -1,0 +1,191 @@
+FM_TEST_BEGIN 2026-09-26T05:31:48Z tests/fm-branch-mod-bin.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - the evidence bundle presents NEW and HISTORY lines by byte offset, marks a NEW block cut at the 6000-byte cap, and owns the per-task offset file
+ok - a captain-facing line covered only by a ROUTINE branch outcome surfaces once on the main drain, only under the mod, even behind a newer routine line, and keyed decisions stay in the fold
+ok - only the lines between the previous outcome's endpoint and the routine outcome's endpoint are listed
+ok - a routine-covered line omitted by the byte cap is presented on the next drain, and neither a later covered line nor the uncovered newest line acknowledges past it
+ok - the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it
+ok - the scorer labels captured copies in place of deleted status logs, still labels range-only records from live bytes, and marks which evidence decided
+ok - the jev helper is off without a key: one unavailable line, exit 0, no network
+ok - the jev helper forwards the request and the key reaches curl only on the fd-3 header
+ok - an http failure becomes one unavailable record and never a nonzero exit
+ok - the pane helper reports only readable evidence and omits every field it cannot read
+ok - the shadow scorer joins records to the branch verdict by durable wake key, reports unmatched records separately, skips a torn line in either log, counts unavailable records separately, and scores the repeat control outside the variant rows
+| absorb-no-new-outcome | 4 | 16 | 3 | 2 (66.7%) | 0 | 1 | 1 |
+| absorb-routine-working | 2 | 18 | 2 | 1 (50.0%) | 0 | 1 | 0 |
+| stale-active-suppress | 6 | 2 | 6 | 2 (33.3%) | 3 | 1 | 0 |
+| pr-ready-arm | 4 | 16 | 2 | 1 (50.0%) | 1 | 0 | 0 |
+| severity-alert | 2 | 18 | 1 | 0 (0.0%) | 1 | 0 | 1 |
+| candidate-order | 3 | 0 | 3 | 2 (66.7%) | 0 | 1 | - |
+unmatched (no outcome row carries this wake key; never counted as a verdict): 1 record
+torn down (a task record is gone, so the merge-poll and stale-repair truth for these wakes is no longer readable): 1 record
+| absorb-no-new-outcome | 0.96 | 0 | 0.0% |
+| stale-active-suppress | 0.91 | 0 | 0.0% |
+| pr-ready-arm | 0.70 | 2 | 50.0% |
+| candidate-order | - | - | - |
+1700:8	stale-active-suppress	loss	pane=fm-t4 window=1800s
+1700:10	stale-active-suppress	delay	pane=fm-t5 window=1800s
+1700:17	stale-active-suppress	correct	pane=fm-t7 window=1800s
+1700:11	candidate-order	loss	candidates=t1:0.9,t2:0.5 first_reported=t2
+1700:12	candidate-order	correct	candidates=t2:0.9,t1:0.5 first_reported=t2
+1700:20	stale-active-suppress	delay	pane=fm-t2 window=1800s
+ok - the gates scorer scores only full-variant records with facts, joins ground truth from outcomes, backstop surfacing, and derivable main actions, splits wrong fires into delay and loss, and sweeps for the lowest clean floor
+sufficiency: absorb-no-new-outcome pass (fires 60, loss 0, upper 0.0487, positives 30)
+sufficiency: absorb-no-new-outcome not yet (fires 60, loss 0, upper 0.0487, positives 30)
+| absorb-no-new-outcome | 100 | 1 | 0.0466 | 30 |
+| stale-active-suppress | 2 | 0 | 0.7764 | 0 |
+| stale-active-suppress | 2 | 0 | 0.7764 | 0 |
+| absorb-no-new-outcome | 0 | 0 | - | 0 |
+ok - the gates scorer sufficiency mode counts readable-truth fires against the caller's bound, sidecars the decaying truth at scoring time, never rewrites an absent read, and keeps the ordinary output byte-stable
+FM_TEST_END 2026-09-26T05:34:46Z tests/fm-branch-mod-bin.test.sh exit=0 duration_ms=177996 gate_skip=false
+FM_TEST_BEGIN 2026-09-26T05:34:46Z tests/fm-branch-claude-mod.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - the mod is one hooks module and one agent, reached only through --plugin-dir, with no command, skill, or classic hook path
+ok - agents/fm-branch.md is current with bin/fm-branch-agent-md.sh and names the agent and tools the module spawns
+ok - lib/ resolves to the mod's canonical modules and the eligibility wrapper loads
+FM_TEST_END 2026-09-26T05:34:46Z tests/fm-branch-claude-mod.test.sh exit=0 duration_ms=458 gate_skip=false
+FM_TEST_BEGIN 2026-09-26T05:34:46Z tests/fm-claude-stop-autoarm.test.sh family=standalone expected_gate_skip=none
+FM_TEST_BEGIN 2026-09-26T05:34:46Z tests/fm-pi-branch-extension.test.sh family=standalone expected_gate_skip=none
+FM_TEST_BEGIN 2026-09-26T05:34:47Z tests/fm-branch-supervision.test.sh family=standalone expected_gate_skip=none
+ok - branch prompt is byte-stable across homes, cwd, timezone, and time, above the cache floor
+ok - outcome store is append-only and refuses sequence reuse after a torn tail
+ok - only routine fleet outcomes can be silent
+ok - startup replay cannot advance the cursor across an unrendered captain outcome
+ok - malformed and ahead-of-store cursor state fail closed before any outcome can be skipped
+ok - cursor advancement refuses to legitimize an ahead processed marker
+ok - middle sequence conflicts fail closed for every store read and append
+ok - outcome stores require terminated single-line JSON records
+ok - the processed marker is sequence-bound, never ahead of the read cursor, never backwards, and migrates delivered history once
+ok - lease exclusivity, same-actor refresh, release, staleness, and sweep hold
+ok - fm-control and fm-teardown refuse the other actor's live lease and pass through otherwise
+ok - PR merge, local landing, and new-task spawn refuse the branch actor and spare main
+ok - a home without a live branch lease takes no lock and clears leftover leases in any calling context
+ok - an unmarked main honors a live branch lease across processes and ignores a previous session's
+ok - a lease file makes an unmarked guard exclude a concurrent claim for the complete mutation
+ok - an opted-in home's unmarked main excludes the host's first claim for its whole mutation, and other homes take no lock
+ok - lease liveness requires an exact valid session-lock pid
+ok - concurrent stale-lease claims serialize so exactly one actor succeeds
+ok - guard stale cleanup cannot race with or delete a newer lease claim
+ok - lease guard excludes a concurrent actor for the complete mutation
+ok - a claim naming the other actor fails loudly instead of silently impersonating it
+ok - release commands authorize the caller and bulk release drops only that actor's leases
+ok - the branch cannot force a teardown or bypass fm-control for a relaunch
+ok - the away-posture record relocates the PR merge and a spawn under the spend cap to the branch, never local landing, and only while confirmed and valid
+ok - relocated branch spawn admits only already-queued dispatchable work, including on a manual-backend home
+ok - the away spend cap is rechecked under the task-set lock so concurrent spawns cannot both publish
+FM_TEST_END 2026-09-26T05:35:32Z tests/fm-branch-supervision.test.sh exit=0 duration_ms=45210 gate_skip=false
+ok - auto-arm: inert in a linked child worktree even when in-flight
+ok - auto-arm: inert with no session lock
+ok - auto-arm: a demonstrably dead recorded session owner is reclaimed through fm-lock.sh before arming
+ok - auto-arm: inert without arm, rewake, or lock replacement when another live harness owns the home
+ok - auto-arm: inert while AFK owns supervision
+ok - auto-arm: stale-owner recovery leaves the AFK and supervision-need gates unchanged
+ok - auto-arm: resolves the outermost pid of a nested contiguous claude ancestry (bg-spare chain)
+ok - auto-arm: inert with nothing in flight and no X-mode need
+ok - auto-arm: actionable close translates to exactly one exit-2 rewake with reason
+ok - auto-arm: actionable close survives a healthy successor without duplicate delivery
+ok - auto-arm: an attached cycle's end starts a handling successor named after the closed arm before the rewake
+ok - auto-arm: an unconfirmed handling successor is reported in the rewake instead of blocking it
+ok - auto-arm: bounded failure verification emits one automatic-mechanism alarm
+ok - auto-arm: consecutive failures keep Stop-owned retry without repeating notice
+ok - auto-arm: marker-write refusal defers delivery until one successor commits the notice
+ok - auto-arm: unverified clean close exhausts retries and fails closed
+ok - auto-arm: post-alarm actionable outcomes cannot continue or reset failure state
+ok - auto-arm: benign cycle end with a live watcher and fresh beacon stays silent across the next cycle
+ok - auto-arm: budget contention preserves the episode and forces a reset retry
+ok - auto-arm: owner-mutex contention preserves successor episode state
+ok - auto-arm: X-mode poll need arms the cycle even with no tasks in flight
+ok - auto-arm: a registered custom check arms the cycle even with no tasks in flight
+ok - auto-arm: concurrent firings admit one owner and one rewake translation
+ok - auto-arm: TERM mid-arm commits a durable failure and exits 2 for rewake
+ok - auto-arm: an abandoned owner claim is reclaimed so a lapsed cycle re-arms
+ok - auto-arm: a legacy owner still arming is never reclaimed while its watcher keeps beating
+ok - auto-arm: a fresh legacy arming claim is never reclaimed while its startup window is still open
+ok - auto-arm: a live claim the ledger does not name is never reclaimed
+ok - auto-arm: a claim whose pid was reused is reclaimed even while its ledger entry still reads arming
+ok - auto-arm: a reused-pid claim is reclaimed even with no ledger entry to prove it
+ok - auto-arm: an identity-matched owner still arming is never reclaimed
+ok - auto-arm: the guard's terminal-check claim is never reclaimed
+ok - auto-arm: a stuck live legacy owner is retired via TERM and its lock reclaimed
+ok - auto-arm: a SIGSTOPped legacy owner is reclaimed with TERM pending and dies on continue
+ok - auto-arm: a live open generation claim defers concurrent firings with no lock held
+ok - auto-arm: a hung generation owner with no watcher beat is superseded so re-arming self-heals
+ok - auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake
+ok - auto-arm: a claim is open only under a numeric session lock its owner descends from
+ok - auto-arm: an identityless arming ledger never defers the gate (reused-pid loophole closed)
+ok - auto-arm: a superseded owner never re-invokes the arm and leaves its successor's claim untouched
+ok - auto-arm: a superseded owner goes silent - one supersession episode, one translation, no held mutex
+ok - auto-arm: need vanishing mid-cycle closes without a rewake
+ok - auto-arm: mid-cycle AFK hands triage to the daemon with no rewake
+ok - auto-arm: active in a marked secondmate home
+ok - auto-arm: a long FM_POLL with FM_GUARD_GRACE unset reaches fm-watch-arm.sh with the derived grace
+ok - auto-arm: without config/supervision-host the hook runs the arm exactly as before
+ok - auto-arm: an opted-in home runs the host bound to its generation, and a host line rewakes like a wake
+ok - auto-arm: a wake the host hands back under the away record says it is automatic supervision, not a return
+ok - auto-arm: without the host the rewake banner is unchanged, eight wake lines at most
+ok - auto-arm: a host handback delivers every host line, while its wake lines keep their cap
+ok - auto-arm: a host that stood down closes silently without a retry
+ok - auto-arm: a host that died without a close is retried, then reported as a failure
+ok - fm-lock: shared session-lock lib preserves the status path
+ok - auto-arm: stands down only on a pi-code-delivered transcript_path (/.pi/)
+FM_TEST_END 2026-09-26T05:35:47Z tests/fm-claude-stop-autoarm.test.sh exit=0 duration_ms=60010 gate_skip=false
+ok - fm_branch_outcomes hides through ToolExecutionComponent while Calm-off and HTML export stay stock
+ok - the installed Pi still bounds the picker's list and ranks its search
+ok - branch owns accepted wakes with a stable prefix and deterministic verdict-driven delivery
+ok - a captain outcome reaches main's model as one typed, sequence-keyed processing request while routine notes stay plain
+ok - a captain-classified wake passes to main with cover rows, the guard file, and its sweep
+ok - the pi classification record captures the evidence text it judged beside its byte range, with the cap named
+ok - the Pi classifier default resolves the branch's model (pin, else main's session model) before any completion call
+ok - the explicit classifier config wins over the pin and records the model used
+ok - the unresolvable classifier name falls back once to the branch's model and records the model used
+ok - the gated shadow trial appends joined records and the away posture skips classification
+ok - requested and unsolicited healthy outcomes keep distinct delivery and event ownership
+ok - captain outcomes are exact and exactly once across crash, reload, busy main, compaction, and an unrelated assistant response
+ok - a captain outcome opens one sequence-keyed processing turn, survives empty and unrelated answers, is re-presented at run end and session start, and closes only on its acknowledgement
+ok - scopeForUnreadWake excludes every main-only class without vetoing eligible task-local rows, and writes the eligible snapshot
+ok - branch prompt_cache_key is stable per home across sessions and distinct between homes
+ok - branch default-on eligibility (task-scoped, heartbeat, legacy flag ignored) binds and a broken branch rejects to watcher fallback
+ok - under the away-posture record the wake carries the verbatim read-back tail, claims every row, opens no processing turn, cancels a pending request, and presents the accumulated rows after archive
+ok - an accepted away-only wake rejects after archive, while a drained task-local wake stays a quiet no-op
+ok - a claimed heartbeat row on a non-heartbeat away wake lifts task scoping for the fleet report
+ok - a heartbeat review survives a check row arriving before its drain
+ok - fm_branch_report refuses a task the wake did not name, fleet included, while a heartbeat is unscoped
+ok - pre-drain eligibility re-check excludes a newly main-owned row without deferring eligible work
+ok - a co-present needs-decision row neither vetoes nor falsely settles routine branch delivery
+ok - a settled branch turn without a durable outcome falls back and releases its grant for main replay
+ok - provider-error latches cool down, re-probe once with backoff, and recover through a durable report
+ok - report-less error-free turns latch the branch, recover through probes, and double the cooldown
+ok - selection changes preserve in-flight transcript ownership and reset provider-error streaks
+ok - a stale main claim returns the durable wake to watcher delivery
+ok - pre-drain eligibility re-check no-ops an already-drained wake
+ok - dialog mirror filters tool and operational traffic, lands before wakes, and keeps a durable cursor
+ok - the dialog mirror re-anchors for each session's new branch conversation and stays incremental within it
+ok - every main session start begins a new branch conversation while one session keeps its own
+ok - the current pin state binds every branch build, and clearing it returns the branch to main's model
+ok - unpinned branches follow main model changes live while pinned branches stay fixed
+ok - supervision-model command persists the captain's pick and rebinds the live branch
+ok - supervision-model opens a bounded searchable list, follow main first, and pins the branch alone
+ok - branch model picker keeps follow main first and filters the eligible catalog
+ok - the effort pin binds every branch build, and clearing it returns the branch to main's effort
+ok - unpinned branches follow main effort changes live while pinned branches stay fixed
+ok - an extension-registered provider resolves in the isolated branch runtime
+ok - supervision-model runs an effort picker after the model picker and persists both independently
+ok - an unusable model pin rejects to watcher fallback and an unparseable one is treated as no pin
+ok - replacement activation cleans old branch leases and retries failed cleanup
+ok - branch activates on a cold start once the lock is acquired, never before
+ok - queued wakes and mirrors stop mutating branch state after lock ownership is lost
+ok - stale reports, shells, mirrors, cursors, leases, and prompts perform no side effects
+ok - a Pi session that does not own the lock accepts nothing and mutates no branch state
+ok - an extension rebind re-mirrors undelivered dialog instead of dropping it
+ok - outcome delivery keeps the event loop running and interleaved reports stay ordered and exactly once
+ok - a session replaced mid-delivery cancels cleanly and the stored outcome still arrives exactly once
+ok - a failing store script surfaces to the branch, its outcome is neither lost nor delivered twice, and fm_branch_processed renders the unified wordings byte-exactly
+ok - a failed cursor write re-delivers a routine note exactly once more while a captain outcome stays deduplicated
+FM_TEST_END 2026-09-26T05:37:33Z tests/fm-pi-branch-extension.test.sh exit=0 duration_ms=166783 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=0 skipped_gate=0 duration_ms=345782
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=458 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=3 duration_ms=272003 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=177996 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-branch-mod-bin.test.sh duration_ms=177996
+FM_TEST_SLOWEST rank=2 script=tests/fm-pi-branch-extension.test.sh duration_ms=166783
+FM_TEST_SLOWEST rank=3 script=tests/fm-claude-stop-autoarm.test.sh duration_ms=60010
+FM_TEST_SLOWEST rank=4 script=tests/fm-branch-supervision.test.sh duration_ms=45210
+FM_TEST_SLOWEST rank=5 script=tests/fm-branch-claude-mod.test.sh duration_ms=458

@@ -1,0 +1,12 @@
+### rule_2 picked, but its own min_confidence 0.95 beats its 0.80 probability
+dispatch-resolve:
+  status: ambiguous
+  model: jev-1.13.0   latency_ms: 10   tokens: 800/50
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.97
+  probabilities: rule_1=0.09 rule_2=0.80 default=0.11
+  reason: rule_2 probability 0.80 below its floor 0.95; no other option clears its own floor
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.46  runway=through_reset  -> eligible
+exit=0
+
+### outcome log row (task id now read from the data/<id>/brief.md path)
+{'task': 't-920', 'status': 'ambiguous', 'confidence': 0.97, 'rule': 'rule_2 (A simple bug fix with a stated root cause.)', 'reason': 'rule_2 probability 0.80 below its floor 0.95; no other option clears its own floor', 'selected_option': 'A simple bug fix with a stated root cause.', 'selected_probability': 0.8, 'runner_up_margin': 0.6900000000000001, 'brief_sha256': 'sha256:2cd0032808e39f9ea761724705dab49047b4a206bb11f05363a9afd99aafdf53'}

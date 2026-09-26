@@ -1,0 +1,9 @@
+### brief for T-910
+scaffolded
+### spawn a pinned Pi worker with an unqualified model
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.Dbvp4j
+error: config/pi-account pins Pi workers to providers (openai-codex-work), so a Pi launch needs --model <provider>/<id> naming one of them; 'gpt-5' names no provider, and Firstmate does not guess one
+exit=1
+### spawn a pinned Pi worker naming an undeclared provider
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.Dbvp4j
+error: config/pi-account pins Pi workers to providers (openai-codex-work), but --model 'anthropic/opus' names provider 'anthropic'

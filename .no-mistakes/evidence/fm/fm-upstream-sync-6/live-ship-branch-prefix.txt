@@ -1,0 +1,17 @@
+### fm-project-mode.sh --branch-prefix acme-web
+rel/
+### fm-project-mode.sh --branch-prefix acme  (no branch= token -> default)
+fm/
+### fm-project-mode.sh --branch-prefix unregistered-proj
+warn: project "unregistered-proj" not in registry; defaulting to no-mistakes off
+fm/
+### brief scaffold with the resolved prefix
+4:## Captain's intent
+7:## Published intent
+10:## Firstmate spec
+25:1. First action: create your branch: `git checkout -b rel/T-901 --`
+90:Delivery contract: mode=no-mistakes
+91:Ship branch: rel/T-901
+### --branch-prefix refused on a scout brief
+error: --branch-prefix applies only to ship briefs; a scout makes no branch and a secondmate charter is not a delivery contract
+exit=1

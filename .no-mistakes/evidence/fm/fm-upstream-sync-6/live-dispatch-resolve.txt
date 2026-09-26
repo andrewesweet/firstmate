@@ -1,0 +1,47 @@
+### off path: no TYPESAFE_API_KEY (fully live, no stub reached)
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-live-dr.0Cr379/home/.env)
+exit=0
+
+### on, clear: rule matched above its own 0.95 floor
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 18   tokens: 812/60
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.97
+  probabilities: rule_1=0.02 rule_2=0.97 default=0.01
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.46  runway=through_reset  -> eligible
+  profile: --harness 'claude' --model 'sonnet' --effort 'high'
+exit=0
+
+### request state carries only the brief's task sections (no other brief prose)
+{
+ "model": "jev-latest",
+ "state": {
+  "task": {
+   "project": "demo",
+   "brief": "## Captain's intent\nPager shows one row twice.\n\n## Firstmate spec\nRoot cause is the `<=` on line 40 of pager.sh; expect one page per call.\n"
+  }
+ },
+ "questions": {
+  "rule": {
+   "type": "choice",
+   "instructions": "Which ONE dispatch rule best fits `task` (read `task.brief` and `task.project`)? Each option is the rule's own matching condition; pick `default` when no rule's condition is met, including when a rule's own exemption text excludes this task.",
+   "criteria": {
+    "rule_1": "New feature work on the app.",
+    "rule_2": "A simple bug fix with a stated root cause.",
+    "default": "No listed rule applies to this task."
+   }
+  }
+ }
+}
+
+### same brief, confidence 0.80 under the rule's declared min_confidence 0.95
+dispatch-resolve: error (response is not a rule Choice answer)
+dispatch-resolve:
+  status: error
+  reason: response is not a rule Choice answer
+exit=0
+
+### outcome log $FM_HOME/data/dispatch-resolve.jsonl
+{'task': None, 'project': 'demo', 'status': 'clear', 'confidence': 0.97, 'rule': 'rule_2 (A simple bug fix with a stated root cause.)', 'profile': "--harness 'claude' --model 'sonnet' --effort 'high'", 'reason': None, 'model': 'jev-1.13.0', 'brief_sha256': 'sha256:2cd0032808e39f9ea761724705dab49047b4a206bb11f05363a9afd99aafdf53', 'rules_digest': 'sha256:a04d30f28426483d44ae4ea5874a3a80e9bb24e51d55cd7ed9f43f315b2a533d', 'policy': {'version': '1', 'confidence_floor': 0.6}}
+{'task': None, 'project': 'demo', 'status': 'error', 'confidence': 0.8, 'rule': None, 'profile': None, 'reason': 'response is not a rule Choice answer', 'model': 'jev-1.13.0', 'brief_sha256': 'sha256:2cd0032808e39f9ea761724705dab49047b4a206bb11f05363a9afd99aafdf53', 'rules_digest': 'sha256:a04d30f28426483d44ae4ea5874a3a80e9bb24e51d55cd7ed9f43f315b2a533d', 'policy': {'version': '1', 'confidence_floor': 0.6}}
