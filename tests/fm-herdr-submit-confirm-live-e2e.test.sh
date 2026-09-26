@@ -88,25 +88,35 @@ lab pane run "$PANE" "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEN
 
 idle=0
 i=0
-while [ "$i" -lt 45 ]; do
-  st=$(lab agent get "$PANE" 2>/dev/null | jq -r '.result.agent.agent_status // empty')
-  case "$st" in
-    idle|done) idle=1; break ;;
-    blocked)
+while [ "$i" -lt 60 ]; do
+  screen=$(lab pane read "$PANE" --source visible 2>/dev/null || true)
+  case "$screen" in
+    *'Yes, I trust this folder'*)
       # A fresh checkout path stops on Claude's folder-trust prompt, which the
       # pre-send proof would read as a non-empty composer. Accept it and keep
       # waiting for a real idle composer. The prompt preselects "No, exit", so
-      # move to "Yes" before confirming; a bare Enter quits Claude.
-      case "$(lab pane read "$PANE" --source visible 2>/dev/null || true)" in
-        *'Yes, I trust this folder'*) lab pane send-keys "$PANE" down enter >/dev/null \
-          || fail "could not accept Claude's folder-trust prompt" ;;
+      # move to "Yes" before confirming; a bare Enter quits Claude. Herdr can
+      # report the agent idle while this prompt is still up, so the wait keys
+      # off the rendered screen rather than the native status alone.
+      lab pane send-keys "$PANE" down enter >/dev/null \
+        || fail "could not accept Claude's folder-trust prompt"
+      ;;
+    *'bypass permissions on'*)
+      st=$(lab agent get "$PANE" 2>/dev/null | jq -r '.result.agent.agent_status // empty')
+      case "$st" in idle|done) idle=1; break ;; esac
+      ;;
+    *)
+      # Under a shell that treats herdr's pane run as a bracketed paste the
+      # launch command is typed but never executed, so submit it once.
+      case "$screen" in
+        *'claude --dangerously-skip-permissions'*) lab pane send-keys "$PANE" enter >/dev/null || true ;;
       esac
       ;;
   esac
   i=$((i + 1))
   sleep 1
 done
-[ "$idle" = 1 ] || fail "Claude Code ($VERSION) on $HERDR_VER never registered an idle agent in the lab pane"
+[ "$idle" = 1 ] || fail "Claude Code ($VERSION) on $HERDR_VER never rendered an idle composer in the lab pane"
 
 TOKEN="FMHERDRPONG$$_$RANDOM"
 verdict=$(fm_backend_herdr_send_text_submit "$TARGET" "Reply with exactly $TOKEN and nothing else." 3 0.4 0.4) \
