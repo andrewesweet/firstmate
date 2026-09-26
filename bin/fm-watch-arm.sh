@@ -570,11 +570,11 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
 # dying diagnostics (a home-gone exit, a startup refusal) in its FAILED line,
 # so each spawn owns its own side file and never reads, truncates, or relays a
 # concurrent arm's watcher stderr.
-child_err=$(mktemp "$STATE/.watch-arm-stderr.XXXXXX") || child_err=/dev/null
+child_err=$(mktemp "$STATE/.watch-arm-stderr.XXXXXX") || child_err=
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
-  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"$child_err" </dev/null &
+  FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"${child_err:-/dev/null}" </dev/null &
 else
-  "$WATCH" >"$child_out" 2>>"$child_err" </dev/null &
+  "$WATCH" >"$child_out" 2>>"${child_err:-/dev/null}" </dev/null &
 fi
 child=$!
 cycle_begin "$child" started "$(fm_pid_identity "$child" 2>/dev/null || true)"
