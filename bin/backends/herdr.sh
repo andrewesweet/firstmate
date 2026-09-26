@@ -3085,21 +3085,12 @@ fm_backend_herdr_visible_capture_ansi() {  # <target>
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible --format ansi 2>/dev/null
 }
 
-fm_backend_herdr_capture_ansi() {  # <target> <lines>
-  fm_backend_herdr_target_ready "$1" || return 1
-  local lines=${2:-200} fetch out
-  case "$lines" in ''|*[!0-9]*) lines=200 ;; esac
-  fetch=$lines
-  case "$fetch" in ''|*[!0-9]*) fetch=200 ;; *) [ "$fetch" -ge 200 ] || fetch=200 ;; esac
-  out=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source recent --lines "$fetch" --format ansi 2>/dev/null) || return 1
-  printf '%s' "$out" | tail -n "$lines"
-}
-
 # --- herdr composer capture and capability primitives -----------------------
 #
 # These functions are the ONLY herdr-specific composer knowledge left: the
-# ANSI pane capture (with its small-N workaround), the native `agent get`
-# identity probe, and the capability descriptor. Every shape - the bordered
+# ANSI viewport capture (`--source visible`, which needs no line count and so
+# no small-N workaround), the native `agent get` identity probe, and the
+# capability descriptor. Every shape - the bordered
 # box, the bare agent-glyph row, opencode's left-bar, and pi's
 # identity-gated separated pair (which this adapter pioneered) - now lives in
 # the shared owner (bin/fm-composer-lib.sh, fm_composer_classify_screen), so
@@ -3356,7 +3347,8 @@ fm_backend_herdr_composer_payload_shown() {  # <text> <after>
 # as delete-to-line-start, repeated across lines of a multiline draft; Ctrl+C
 # is not used because it interrupts a running turn. Live Claude deletes one
 # wrapped screen row per press, so a single-line leftover can need several
-# presses. The press count is bounded by the rows the proof capture covers.
+# presses. The press count comes from fm_backend_herdr_proof_lines, which
+# sizes it from the payload length, not from the viewport read.
 # 0 only when the composer is verified empty again.
 fm_backend_herdr_composer_clear() {  # <target> <text>
   local target=$1 text=$2 presses i=0
