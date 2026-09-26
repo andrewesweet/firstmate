@@ -572,9 +572,10 @@ ARM_HOME_EXISTED=0
 # would SIGPIPE the watcher's next diagnostic once the caller moved on.
 # The side file is also the reason surface: this arm reports the watcher's
 # dying diagnostics (a home-gone exit, a startup refusal) in its FAILED line,
-# so each spawn owns its own side file and never reads, truncates, or relays a
-# concurrent arm's watcher stderr.
-child_err=$(mktemp "$STATE/.watch-arm-stderr.XXXXXX") || child_err=
+# so each spawn owns its own side file, outside $STATE so a torn-down home
+# cannot unlink the watcher's dying write, and never reads, truncates, or
+# relays a concurrent arm's watcher stderr.
+child_err=$(mktemp "${TMPDIR:-/tmp}/fm-watch-arm-stderr.XXXXXX") || child_err=
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" 2>>"${child_err:-/dev/null}" </dev/null &
 else
@@ -594,19 +595,15 @@ child_done=0
 WAIT_CHILD_BUDGET_EXIT=0
 
 # Relay the started watcher's home-gone exit reason when its own stderr cannot
-# carry it. The watcher echoes its teardown reason to stderr, which this arm
-# detaches into a per-spawn $STATE side file to keep pipes from blocking a
-# follow-budget park - but a torn-down temporary home unlinks that side file
-# with the rest of $STATE, losing the dying write. Re-derive the watcher's own
-# home-gone conditions (bin/fm-watch.sh's poll-loop head) and print its exact
-# line so the operator still reads one reason for the exit.
+# carry it: the watcher's stdout side file lives in $STATE, so a torn-down home
+# takes the wake output with it. Only evidence that survives lock release and
+# child reaping is read here - a released lock proves nothing once the
+# watcher's own EXIT trap has run.
 relay_watcher_gone_reason() {
   if [ "$ARM_HOME_EXISTED" -eq 1 ] && [ ! -d "$FM_HOME" ]; then
     printf 'watcher: exiting - home no longer exists: %s\n' "$FM_HOME"
   elif [ ! -d "$STATE" ]; then
     printf 'watcher: exiting - state directory no longer exists: %s\n' "$STATE"
-  elif [ -n "$child_out" ] && [ ! -e "$child_out" ]; then
-    printf 'watcher: exiting - state directory was torn down (singleton lock removed): %s\n' "$STATE"
   elif [ ! -d "$SCRIPT_DIR" ]; then
     printf 'watcher: exiting - code root no longer exists: %s\n' "$SCRIPT_DIR"
   fi
