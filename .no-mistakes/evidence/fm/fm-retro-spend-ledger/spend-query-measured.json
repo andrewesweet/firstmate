@@ -1,0 +1,1 @@
+{"schema": 1, "task": "t-live", "kind": "ship", "harness": "claude", "model": "claude-opus-4-1", "effort": "xhigh", "window": {"start_epoch": 1790383949, "end_epoch": 1790383979}, "calls": 2, "mean_context_tokens": 26900, "cache_read_share": 0.929, "models": ["claude-opus-4-1"], "usd_lane": "api-equiv", "usd": 0.069}

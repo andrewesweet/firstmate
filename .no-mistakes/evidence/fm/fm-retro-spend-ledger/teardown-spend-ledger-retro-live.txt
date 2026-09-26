@@ -1,0 +1,18 @@
+teardown exit=0
+--- operator-visible teardown output ---
+/tmp/fm-teardown-tests.yLDjrb/live-spend-retro/project: already current
+teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.yLDjrb/live-spend-retro/wt)
+Backlog: task-x1 is closed in /tmp/fm-teardown-tests.yLDjrb/live-spend-retro/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- data/spend-ledger.jsonl (the new ledger) ---
+{"schema":1,"task":"task-x1","kind":"ship","harness":"claude","model":"claude-opus-4-1","effort":"xhigh","window":{"start_epoch":1700000000,"end_epoch":1700000045},"calls":2,"mean_context_tokens":75250,"cache_read_share":0.983,"models":["claude-opus-4-1"],"usd_lane":"api-equiv","usd":0.1052,"ts":"2026-09-26T01:09:02Z","outcome":"pr","outcome_ref":"https://github.com/example/repo/pull/7"}
+--- retrospective closure receipt for the same task ---
+/tmp/fm-teardown-tests.yLDjrb/live-spend-retro/state/retro-trigger/receipts/g1790384942/closure-task-x1.receipt
+kind=closure
+task=task-x1
+lane=known
+cost=0.1052
+evidence=-
+epoch=1790384942
+--- backlog row after close ---
+done
+--- rerun: same teardown again ---

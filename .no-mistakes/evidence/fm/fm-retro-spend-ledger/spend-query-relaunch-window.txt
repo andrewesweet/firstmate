@@ -1,0 +1,6 @@
+--- relaunched task: spawn_gen restamped to a later incarnation, spawn_epoch_first unchanged ---
+spawn_gen=s1790383974.9.9
+spawn_epoch_first=1790383949
+{"window":{"start_epoch":1790383949,"end_epoch":1790383979},"calls":3,"usd":0.072}
+--- same record WITHOUT spawn_epoch_first: window starts at the later incarnation only ---
+{"window":{"start_epoch":1790383974,"end_epoch":1790383979},"calls":1,"usd":0.003}

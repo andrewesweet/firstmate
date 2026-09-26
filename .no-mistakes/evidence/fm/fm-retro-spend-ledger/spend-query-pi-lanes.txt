@@ -1,0 +1,4 @@
+--- pi: every call carries the runtime cost -> recorded lane ---
+{"schema": 1, "task": "t-pi", "kind": "ship", "harness": "pi", "model": "claude-opus-4-1", "effort": "xhigh", "window": {"start_epoch": 1790383949, "end_epoch": 1790383979}, "calls": 2, "mean_context_tokens": 1000, "cache_read_share": 0.85, "models": ["pi-1"], "usd_lane": "recorded", "usd": 0.04}
+--- adversarial: one pi call logs no cost -> unmeasured, never 0.0 recorded ---
+{"schema": 1, "task": "t-pi", "kind": "ship", "harness": "pi", "model": "claude-opus-4-1", "effort": "xhigh", "window": {"start_epoch": 1790383949, "end_epoch": 1790383979}, "calls": null, "mean_context_tokens": null, "cache_read_share": null, "usd_lane": "unmeasured", "usd": null, "models": [], "unmeasured_reason": "runtime log lacks per-call cost for some or all calls"}

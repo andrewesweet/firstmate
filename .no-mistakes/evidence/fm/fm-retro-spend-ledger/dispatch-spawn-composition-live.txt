@@ -1,0 +1,8 @@
+ship spawn exit=0
+scout spawn exit=0
+--- data/dispatch-spawns.jsonl after two real spawns ---
+{"ts":"2026-09-26T00:58:05Z","task":"live-composition-ship","kind":"ship","harness":"claude","model":"claude-opus-4-1","effort":"xhigh","brief_sha256":"sha256:5bdc190e12db069a3abd2f3ba7e8f4e2ee376d1face296283f39895fa6acc6fb","scaffold_tokens":16,"task_tokens":34,"fixed_share":0.328}
+{"ts":"2026-09-26T00:58:10Z","task":"live-composition-scout","kind":"scout","harness":"claude","model":"default","effort":"default","brief_sha256":"sha256:45a206767b99394155eafcccd333d9f2087bfa4eff1eb78b7036a8643b18ffd8","scaffold_tokens":11,"task_tokens":39,"fixed_share":0.229}
+--- the task records' first-spawn epoch ---
+/tmp/fm-spawn-dispatch-profile.LtP8UP/live-composition/home/state/live-composition-ship.meta:spawn_gen=s1790384284.2522645.29439
+/tmp/fm-spawn-dispatch-profile.LtP8UP/live-composition/home/state/live-composition-ship.meta:spawn_epoch_first=1790384284

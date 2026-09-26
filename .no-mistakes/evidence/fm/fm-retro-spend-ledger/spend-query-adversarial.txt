@@ -1,0 +1,13 @@
+--- boundary: final call timestamped inside the turn-end touch second ---
+{"schema": 1, "task": "t-live", "kind": "ship", "harness": "claude", "model": "claude-opus-4-1", "effort": "xhigh", "window": {"start_epoch": 1790383949, "end_epoch": 1790383979}, "calls": 3, "mean_context_tokens": 17967, "cache_read_share": 0.928, "models": ["claude-opus-4-1"], "usd_lane": "api-equiv", "usd": 0.072}
+--- adversarial: record with no spawn epoch at all ---
+{"schema":1,"task":"t-noepoch","kind":"ship","harness":"claude","model":"claude-opus-4-1","effort":"xhigh","window":null,"calls":null,"mean_context_tokens":null,"cache_read_share":null,"usd_lane":"unmeasured","usd":null,"models":[],"unmeasured_reason":"no spawn epoch on record; session window cannot be bounded"}
+--- adversarial: record with no activity sidecar ---
+{"schema":1,"task":"t-nosidecar","kind":"ship","harness":"claude","model":"claude-opus-4-1","effort":"xhigh","window":null,"calls":null,"mean_context_tokens":null,"cache_read_share":null,"usd_lane":"unmeasured","usd":null,"models":[],"unmeasured_reason":"no task-owned activity bound available"}
+--- uncovered runtime (codex) ---
+{"schema": 1, "task": "t-codex", "kind": "ship", "harness": "codex", "model": "claude-opus-4-1", "effort": "xhigh", "window": null, "calls": null, "mean_context_tokens": null, "cache_read_share": null, "usd_lane": "unmeasured", "usd": null, "models": [], "unmeasured_reason": "no verified per-call usage parser for this runtime"}
+--- malformed id / missing record refusals ---
+error: invalid task id: ../etc/passwd
+exit=2
+error: no readable task record for nosuchtask at /tmp/fm-spend-live.m7ilaP/home/state/nosuchtask.meta
+exit=2

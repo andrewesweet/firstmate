@@ -1,0 +1,11 @@
+--- scaffold split WITHOUT the probe path map (paths diverge) ---
+{"scaffold_tokens": 1447, "task_tokens": 315, "fixed_share": 0.821}
+--- scaffold split WITH the probe path map (as fm-spawn.sh calls it) ---
+{"scaffold_tokens": 1715, "task_tokens": 47, "fixed_share": 0.973}
+--- lines the map reclaims as scaffold ---
+>    `echo "{state} [at=<epoch>]: {one short line}" >> '/tmp/fm-comp-live.sEiw9b/probe-home-much-longer-name/state/t-com
+> Firstmate steers you through durable message files in '/tmp/fm-comp-live.sEiw9b/probe-home-much-longer-name/state/t-co
+> When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - lis
+> Write your findings to `/tmp/fm-comp-live.sEiw9b/probe-home-much-longer-name/t-comp/report.md`.
+--- adversarial: --map without a value is refused ---
+exit=2
