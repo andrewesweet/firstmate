@@ -440,16 +440,24 @@
 # Every successful fresh ship or scout spawn also appends one JSON line (ts, task,
 # kind, harness, model, effort, resolved exactly as the task record records them,
 # plus brief_sha256, the SHA-256 of the exact data/<id>/brief.md bytes as they
-# stand at spawn) to data/dispatch-spawns.jsonl for the offline typed-dispatch
+# stand at spawn, plus scaffold_tokens, task_tokens, and fixed_share from
+# bin/fm-brief-composition.py's scaffold-versus-intake split of the same brief)
+# to data/dispatch-spawns.jsonl for the offline typed-dispatch
 # replay scorer; a --relaunch never appends, and an unwritable log prints one
 # stderr line and never fails the spawn. A hashing failure degrades by omitting
-# brief_sha256, never by failing the spawn; brief text is never recorded.
+# brief_sha256, and a failed composition probe omits the three composition
+# fields; both never fail the spawn, and brief text is never recorded.
 # A ship task records the explicit mode/yolo it was passed; a secondmate spawn records
 # mode=secondmate, yolo=off, home=, and projects=; a scout records no mode/yolo.
 # When a carrier is resolved, ship and scout metadata also record home= as the
 # resolved spawning FM_HOME; secondmate home= names its own provisioned home.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
+# A fresh spawn also records spawn_epoch_first= as that first token's epoch; a
+# relaunch carries the existing value unchanged, and seeds it from the prior
+# record's spawn_gen epoch when the record predates the field, so the record
+# always names the earliest incarnation epoch this home can still name
+# (bin/fm-spend-query.sh bounds a whole-task measurement window from it).
 # When the home session's frozen trace-context decision is enabled (see
 # docs/configuration.md and bin/fm-trace-context-lib.sh), the meta also records
 # one W3C traceparent= carrier, the same value injected into the pane as
@@ -4802,6 +4810,8 @@ fi
 META_WINDOW=$T
 [ "$BACKEND" = orca ] && META_WINDOW=$W
 SPAWN_GEN="s$(date +%s).${BASHPID:-$$}.$RANDOM"
+SPAWN_EPOCH_FIRST=${SPAWN_GEN#s}
+SPAWN_EPOCH_FIRST=${SPAWN_EPOCH_FIRST%%.*}
 SPAWN_META_PATH="$STATE/$ID.meta"
 if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1
@@ -4815,6 +4825,23 @@ else
   SPAWN_FRESH_COMMIT_PENDING=1
 fi
 SPAWN_META_PATH=$SPAWN_META_TMP
+# A relaunch of a record written before spawn_epoch_first existed seeds the field
+# from that record's own spawn_gen epoch, so the spend window still starts at the
+# earliest incarnation this home can still name.
+SPAWN_EPOCH_FIRST_BACKFILL=
+if [ "$RELAUNCH" -eq 1 ] \
+  && [ -z "$(fm_meta_get "$RELAUNCH_META" spawn_epoch_first)" ]; then
+  case "$SPAWN_SPAN_GEN_PRIOR" in
+  s[0-9]*)
+    SPAWN_EPOCH_FIRST_BACKFILL=${SPAWN_SPAN_GEN_PRIOR#s}
+    SPAWN_EPOCH_FIRST_BACKFILL=${SPAWN_EPOCH_FIRST_BACKFILL%%.*}
+    ;;
+  esac
+fi
+# The owned-key list names every key this block rewrites; every other key in the
+# prior record is passed through unchanged. spawn_epoch_first must stay OFF the
+# list: a relaunch carries the first incarnation's epoch so the spend window
+# still spans the whole task (bin/fm-spend-query.sh).
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
@@ -4843,6 +4870,11 @@ preserve_relaunch_meta() {
   [ -z "$WORKER_ACCOUNT_PROVIDER" ] || echo "account_provider=$WORKER_ACCOUNT_PROVIDER"
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"
   echo "spawn_gen=$SPAWN_GEN"
+  if [ "$RELAUNCH" -eq 1 ]; then
+    [ -z "$SPAWN_EPOCH_FIRST_BACKFILL" ] || echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST_BACKFILL"
+  else
+    echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST"
+  fi
   # Default-off writes no traceparent= line.
   # backend= is written only for a non-default (non-tmux) backend, so the
   # default path's meta stays byte-identical (absent backend= means tmux;
@@ -5421,7 +5453,54 @@ if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
     SPAWN_BRIEF_DIGEST=$(fm_pr_sha256 "$SOURCE_BRIEF") || SPAWN_BRIEF_DIGEST=''
   fi
   if [ -n "$SPAWN_BRIEF_DIGEST" ]; then SPAWN_BRIEF_DIGEST="sha256:$SPAWN_BRIEF_DIGEST"; fi
+  # Brief composition (bin/fm-brief-composition.py owns the measure): split
+  # the filled brief's token estimate into its reusable scaffold and the
+  # task-specific intake, by comparing against a fresh same-shape fm-brief.sh
+  # scaffold generated into a temporary home with the flags the filled brief
+  # itself declares. Best effort like the rest of this line: any probe failure
+  # omits the fields, never fails the spawn, and the measure is local string
+  # work - no model calls and no session reading.
+  SPAWN_BRIEF_COMPOSITION=''
+  if [ -r "$SOURCE_BRIEF" ] && command -v python3 >/dev/null 2>&1; then
+    SPAWN_PROBE_HOME=$(mktemp -d "${TMPDIR:-/tmp}/fm-spawn-brief-probe.XXXXXX") || SPAWN_PROBE_HOME=''
+    if [ -n "$SPAWN_PROBE_HOME" ]; then
+      SPAWN_PROBE_FLAGS=()
+      if [ "$KIND" = scout ]; then
+        SPAWN_PROBE_FLAGS+=(--scout)
+      else
+        SPAWN_PROBE_FLAGS+=(--mode "$MODE")
+        [ -z "$BRIEF_FORGE" ] || [ "$BRIEF_FORGE" = none ] || SPAWN_PROBE_FLAGS+=(--forge "$BRIEF_FORGE")
+      fi
+      # The enabled Herdr section differs byte-for-byte from the disabled
+      # marker text, so the filled brief tells which scaffold shape to compare
+      # against; a Herdr-driven scout must not be measured against the
+      # unguarded scaffold's smaller Herdr section.
+      if grep -q '^# Herdr lifecycle declaration' "$SOURCE_BRIEF" 2>/dev/null \
+        && ! grep -q '^# Herdr lifecycle declaration - NOT ENABLED' "$SOURCE_BRIEF"; then
+        SPAWN_PROBE_FLAGS+=(--herdr-lab)
+      fi
+      if FM_DATA_OVERRIDE="$SPAWN_PROBE_HOME" FM_STATE_OVERRIDE="$SPAWN_PROBE_HOME/state" \
+        FM_CONFIG_OVERRIDE="$CONFIG" \
+        "$SCRIPT_DIR/fm-brief.sh" "$ID" "${PROJ_NAME:-$(basename "${PROJ_ABS:-repo}")}" \
+        ${SPAWN_PROBE_FLAGS[@]+"${SPAWN_PROBE_FLAGS[@]}"} >/dev/null 2>&1 \
+        && [ -r "$SPAWN_PROBE_HOME/$ID/brief.md" ]; then
+        # The scaffold bakes the probe home's absolute paths into its
+        # status-append, inbox, and report lines; map them onto this task's
+        # real data and state paths so those scaffold lines compare equal
+        # instead of counting as task-specific text.
+        SPAWN_BRIEF_COMPOSITION=$(python3 "$SCRIPT_DIR/fm-brief-composition.py" \
+          --map "$SPAWN_PROBE_HOME/state=$STATE" --map "$SPAWN_PROBE_HOME=$DATA" \
+          "$SOURCE_BRIEF" "$SPAWN_PROBE_HOME/$ID/brief.md" 2>/dev/null || :)
+      fi
+      rm -rf "$SPAWN_PROBE_HOME" || :
+    fi
+  fi
   SPAWN_DISPATCH_LINE=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg task "$ID" --arg kind "$KIND" --arg harness "$HARNESS" --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg brief_digest "$SPAWN_BRIEF_DIGEST" '{ts: $ts, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort} + (if $brief_digest == "" then {} else {brief_sha256: $brief_digest} end)') || SPAWN_DISPATCH_LINE=
+  if [ -n "$SPAWN_DISPATCH_LINE" ] && [ -n "$SPAWN_BRIEF_COMPOSITION" ]; then
+    SPAWN_COMPOSITION_MERGED=$(jq -c '. + $composition' \
+      --argjson composition "$SPAWN_BRIEF_COMPOSITION" <<<"$SPAWN_DISPATCH_LINE" 2>/dev/null) || SPAWN_COMPOSITION_MERGED=''
+    [ -z "$SPAWN_COMPOSITION_MERGED" ] || SPAWN_DISPATCH_LINE=$SPAWN_COMPOSITION_MERGED
+  fi
   if [ -n "$SPAWN_DISPATCH_LINE" ]; then
     { mkdir -p "$DATA" && printf '%s\n' "$SPAWN_DISPATCH_LINE" >> "$DATA/dispatch-spawns.jsonl"; } 2>/dev/null || printf 'spawn: dispatch-spawn log unwritable: %s\n' "$DATA/dispatch-spawns.jsonl" >&2
   else

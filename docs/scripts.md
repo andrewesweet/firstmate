@@ -152,6 +152,9 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-parent-channel-lib.sh` | Resolve a secondmate home's parent channel and append a captain-facing outcome line to it at most once |
 | `fm-promote.sh`          | Promote a scout task in place to a protected ship task with an explicit delivery mode, write the ship instructions carrying that mode's definition of done, and supersede the task's brief so a later relaunch cannot revive stale scout delivery text |
 | `fm-retro-trigger.sh`    | Record durable closure and anomaly receipts and queue exactly one retrospective work item when an opt-in cadence threshold fires |
+| `fm-spend-query.sh`      | Print one closed task's model-spend JSON from its own record and session logs, with an explicit lane and unmeasured reasons over guesses |
+| `fm-spend-query.py`      | Schema and parser owner for the spend query: window-bounded, deduplicated usage with the one assumed-rate table |
+| `fm-brief-composition.py` | Split a task brief's token estimate into scaffold versus task-specific intake against a fresh same-shape scaffold |
 | `fm-teardown.sh`         | Fail-closed teardown: return landed ship worktrees, require completed scout deliverables, retire secondmate homes |
 | `fm-harness.sh`          | Detect the running harness, resolve crew or secondmate harness, model, and effort, and validate the native-only `ultra` effort |
 | `fm-lock.sh`             | Per-home firstmate session lock                                                      |

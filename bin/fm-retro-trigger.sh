@@ -40,8 +40,9 @@
 #       of the same task id in the same generation changes nothing, whatever
 #       the cost arguments. With --cost the receipt lands in the known lane;
 #       without it, the unknown lane. The unknown lane is the honest default:
-#       today no producer carries a cost figure, and the flag exists so a
-#       later cost source can feed the known lane without changing the store.
+#       bin/fm-teardown.sh feeds a measured figure when its best-effort spend
+#       capture produced one (bin/fm-spend-query.sh), and every other closure
+#       stays in the unknown lane rather than guessing.
 #   observe anomaly <kind> <task-id> <evidence>
 #       kinds: needs-decision, blocked, ci-repair, done-unseen.
 #       Idempotent per (kind, task-id, evidence). ci-repair has no mechanical

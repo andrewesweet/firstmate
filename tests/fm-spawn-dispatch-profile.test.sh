@@ -397,14 +397,18 @@ test_successful_spawn_appends_dispatch_spawn_record() {
   assert_equals 'codex' "$(jq -r .harness <<<"$line")" "spawn line carries the dispatched harness"
   assert_equals 'gpt-5' "$(jq -r .model <<<"$line")" "spawn line carries the dispatched model"
   assert_equals 'high' "$(jq -r .effort <<<"$line")" "spawn line carries the dispatched effort"
-  assert_equals '7' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its seven fields"
+  assert_equals '10' "$(jq -r 'keys | length' <<<"$line")" "spawn line carries only its ten fields"
   assert_equals "$(spawn_brief_sha256 "$HOME_DIR/data/$ship/brief.md")" "$(jq -r .brief_sha256 <<<"$line")" "spawn line identifies the exact brief bytes by SHA-256"
+  jq -e '.scaffold_tokens > 0 and .task_tokens > 0 and .fixed_share > 0 and .fixed_share < 1' <<<"$line" >/dev/null \
+    || fail "ship line's composition split is missing or out of range: $line"
   line=$(sed -n '2p' "$HOME_DIR/data/dispatch-spawns.jsonl")
   assert_equals "$scout" "$(jq -r .task <<<"$line")" "scout line carries the task id"
   assert_equals 'scout' "$(jq -r .kind <<<"$line")" "scout line carries the kind"
   assert_equals 'default' "$(jq -r .model <<<"$line")" "an unset model is recorded as default, matching the task record"
-  assert_equals '7' "$(jq -r 'keys | length' <<<"$line")" "scout line carries only its seven fields"
+  assert_equals '10' "$(jq -r 'keys | length' <<<"$line")" "scout line carries only its ten fields"
   assert_equals "$(spawn_brief_sha256 "$HOME_DIR/data/$scout/brief.md")" "$(jq -r .brief_sha256 <<<"$line")" "scout line identifies the exact brief bytes by SHA-256"
+  jq -e '.scaffold_tokens > 0 and .task_tokens > 0 and .fixed_share > 0 and .fixed_share < 1' <<<"$line" >/dev/null \
+    || fail "scout line's composition split is missing or out of range: $line"
   assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "spawn line timestamp is UTC ISO 8601"
   assert_not_contains "$(cat "$HOME_DIR/data/dispatch-spawns.jsonl")" 'Exercise the spawn behavior' "the brief text never reaches the spawn log"
   # A relaunch needs its recorded window listed and its pane proven agent-free
@@ -443,6 +447,31 @@ test_unwritable_dispatch_spawn_log_never_fails_spawn() {
   assert_contains "$out" "spawn: dispatch-spawn log unwritable: $HOME_DIR/data/dispatch-spawns.jsonl" "a failed spawn-log write names the log path on stderr"
   assert_equals '1' "$(grep -c 'dispatch-spawn log unwritable' <<<"$out")" "a failed spawn-log write reports exactly one stderr line"
   pass "an unwritable dispatch-spawn log never fails the spawn"
+}
+
+test_failed_composition_probe_omits_fields() {
+  local rec id out status line broken_bin
+  id=profile-composition-broken-z18
+  rec=$(make_spawn_case profile-composition-broken claude "$id")
+  read_case_record "$rec"
+  enable_dispatch_profile "$HOME_DIR"
+  # A python3 that is found but fails: the composition probe degrades and the
+  # line ships without the three composition fields.
+  broken_bin="$CASE_DIR/broken-bin"
+  mkdir -p "$broken_bin"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$broken_bin/python3"
+  chmod +x "$broken_bin/python3"
+
+  out=$(PATH="$broken_bin:$PATH" run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$PROJ_DIR" --harness codex --model gpt-5 --effort high)
+  status=$?
+  expect_code 0 "$status" "a failed composition probe never fails the spawn"
+  assert_contains "$out" "spawned $id harness=codex" "a failed composition probe leaves the spawn outcome intact"
+  assert_equals '1' "$(wc -l < "$HOME_DIR/data/dispatch-spawns.jsonl")" "the spawn still records its dispatch line"
+  line=$(sed -n '1p' "$HOME_DIR/data/dispatch-spawns.jsonl")
+  assert_equals '7' "$(jq -r 'keys | length' <<<"$line")" "a failed probe omits the three composition fields"
+  assert_equals 'null' "$(jq -r '.scaffold_tokens // "null"' <<<"$line")" "no scaffold_tokens field is written on a failed probe"
+  pass "a failed composition probe omits its fields without failing the spawn"
 }
 
 test_active_dispatch_profile_allows_raw_launch_command() {
@@ -1708,6 +1737,7 @@ test_active_dispatch_profile_allows_explicit_harness
 test_active_dispatch_profile_allows_positional_harness
 test_successful_spawn_appends_dispatch_spawn_record
 test_unwritable_dispatch_spawn_log_never_fails_spawn
+test_failed_composition_probe_omits_fields
 test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
