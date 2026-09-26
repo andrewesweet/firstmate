@@ -432,9 +432,10 @@
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # A fresh spawn also records spawn_epoch_first= as that first token's epoch; a
-# relaunch carries the existing value unchanged, so the record always names the
-# epoch the task's first incarnation started at (bin/fm-spend-query.sh bounds a
-# whole-task measurement window from it).
+# relaunch carries the existing value unchanged, and seeds it from the prior
+# record's spawn_gen epoch when the record predates the field, so the record
+# always names the earliest incarnation epoch this home can still name
+# (bin/fm-spend-query.sh bounds a whole-task measurement window from it).
 # When the home session's frozen trace-context decision is enabled (see
 # docs/configuration.md and bin/fm-trace-context-lib.sh), the meta also records
 # one W3C traceparent= carrier, the same value injected into the pane as
@@ -4701,6 +4702,19 @@ else
   SPAWN_FRESH_COMMIT_PENDING=1
 fi
 SPAWN_META_PATH=$SPAWN_META_TMP
+# A relaunch of a record written before spawn_epoch_first existed seeds the field
+# from that record's own spawn_gen epoch, so the spend window still starts at the
+# earliest incarnation this home can still name.
+SPAWN_EPOCH_FIRST_BACKFILL=
+if [ "$RELAUNCH" -eq 1 ] \
+  && [ -z "$(fm_meta_get "$RELAUNCH_META" spawn_epoch_first)" ]; then
+  case "$SPAWN_SPAN_GEN_PRIOR" in
+  s[0-9]*)
+    SPAWN_EPOCH_FIRST_BACKFILL=${SPAWN_SPAN_GEN_PRIOR#s}
+    SPAWN_EPOCH_FIRST_BACKFILL=${SPAWN_EPOCH_FIRST_BACKFILL%%.*}
+    ;;
+  esac
+fi
 # The owned-key list names every key this block rewrites; every other key in the
 # prior record is passed through unchanged. spawn_epoch_first must stay OFF the
 # list: a relaunch carries the first incarnation's epoch so the spend window
@@ -4728,7 +4742,11 @@ preserve_relaunch_meta() {
   echo "effort=${EFFORT:-default}"
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"
   echo "spawn_gen=$SPAWN_GEN"
-  [ "$RELAUNCH" -eq 1 ] || echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST"
+  if [ "$RELAUNCH" -eq 1 ]; then
+    [ -z "$SPAWN_EPOCH_FIRST_BACKFILL" ] || echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST_BACKFILL"
+  else
+    echo "spawn_epoch_first=$SPAWN_EPOCH_FIRST"
+  fi
   # Default-off writes no traceparent= line.
   # backend= is written only for a non-default (non-tmux) backend, so the
   # default path's meta stays byte-identical (absent backend= means tmux;

@@ -44,8 +44,6 @@ def parse_maps(args: list[str]) -> list[tuple[str, str]]:
             if i >= len(args):
                 return []
             arg = args[i]
-        elif arg.startswith("--map="):
-            arg = arg[len("--map="):]
         else:
             i += 1
             continue
@@ -61,15 +59,13 @@ def parse_maps(args: list[str]) -> list[tuple[str, str]]:
 def main() -> int:
     args = sys.argv[1:]
     maps = parse_maps(args)
-    if not maps and any(a == "--map" or a.startswith("--map=") for a in args):
+    if not maps and any(a == "--map" for a in args):
         return 2
     paths = []
     i = 0
     while i < len(args):
         if args[i] == "--map":
             i += 2
-        elif args[i].startswith("--map="):
-            i += 1
         else:
             paths.append(args[i])
             i += 1

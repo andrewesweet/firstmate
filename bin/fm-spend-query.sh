@@ -41,7 +41,7 @@ usage() {
 UNMEASURED_REASON=''
 case "${1:-}" in
 --unmeasured)
-  [ $# -ge 2 ] || {
+  [ $# -ge 2 ] && [ -n "$2" ] || {
     echo "error: usage: fm-spend-query.sh --unmeasured <reason> <task-id>" >&2
     exit 2
   }

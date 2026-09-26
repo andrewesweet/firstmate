@@ -270,6 +270,9 @@ test_unmeasured_flag_emits_the_schema_shape() {
   FM_STATE_OVERRIDE="$home/state" "$QUERY" --unmeasured 'any reason' no-such-task >/dev/null 2>&1
   local rc=$?
   [ "$rc" -eq 2 ] || fail "--unmeasured without a task record must refuse"
+  FM_STATE_OVERRIDE="$home/state" "$QUERY" --unmeasured '' task-h8 >/dev/null 2>&1
+  rc=$?
+  [ "$rc" -eq 2 ] || fail "--unmeasured with an empty reason must refuse instead of measuring"
   pass "the --unmeasured flag emits the schema shape without measuring"
 }
 
