@@ -85,7 +85,12 @@ fm_pid_identity() {
   # Pin LC_ALL=C so lstart's date format is locale-invariant: the identity is
   # written under one locale but re-read under the machine's ambient locale, which
   # would otherwise mismatch on a non-C locale (e.g. ko_KR) and reject a live watcher.
-  out=$(LC_ALL=C ps -p "$pid" -o lstart= -o command= 2>/dev/null) || return 1
+  # Pin COLUMNS wide so the command column is never cut to the ambient terminal
+  # width: the identity is written from a wide shell but re-read inside a
+  # narrow-COLUMNS hook, where a truncated command would likewise reject a live
+  # watcher (issue #799). This mirrors fm_pending_reply_pid_identity, which pins the
+  # same width for the same reason.
+  out=$(COLUMNS=10000 LC_ALL=C ps -p "$pid" -o lstart= -o command= 2>/dev/null) || return 1
   [ -n "$out" ] || return 1
   printf '%s\n' "$out" | sed 's/^[[:space:]]*//'
 }
@@ -931,13 +936,26 @@ fm_recovery_marker_reopen_announced() {
 }
 
 fm_lock_try_acquire() {
-  local lockdir=$1 pid steal cur rc steal_owner primary_owner current
+  local lockdir=$1 pid steal cur rc steal_owner primary_owner current parent
   FM_LOCK_HELD_PID=
   FM_LOCK_OWNER_DIR=
   FM_LOCK_RECOVERED_PID=
 
   if fm_lock_try_create "$lockdir"; then
     return 0
+  fi
+
+  # A create failure into a parent directory that cannot be written is
+  # structural, not contention: a torn-down state directory can never be
+  # created into, and the steal path below lives in that same parent, so
+  # recursing on "$lockdir.steal" would never terminate. Report the failure
+  # instead of recursing. A lock that is merely absent at this instant, with a
+  # usable parent, is an ordinary race and still takes the steal path below -
+  # that path re-reads the lock and recreates it.
+  parent=${lockdir%/*}
+  [ "$parent" != "$lockdir" ] || parent=.
+  if [ ! -d "$parent" ] || [ ! -w "$parent" ]; then
+    return 1
   fi
 
   fm_current_pid current || return 1
@@ -2150,6 +2168,18 @@ fm_wake_actor_pending_count() {  # <actor> [<rows-file> <owner-file>]
   # reaches END after failing to open the queue would otherwise report 0 rows.
   case "$count" in ''|*[!0-9]*) count=1 ;; esac
   printf '%s\n' "$count"
+}
+
+# Print which of the given sequence numbers are still queued, one per line.
+# Read without the queue lock, like the count above, so it answers for a
+# caller that asks only after the actor that could consume those rows is done.
+# Fails when the queue exists but cannot be read.
+fm_wake_rows_queued() {  # <seq>...
+  [ -f "$FM_WAKE_QUEUE" ] || return 0
+  awk -F '\t' -v seqs="$*" '
+    BEGIN { n = split(seqs, list, " "); for (i = 1; i <= n; i++) want[list[i]] = 1 }
+    NF >= 5 && $2 ~ /^[0-9]+$/ && ($2 in want) { print $2 }
+  ' "$FM_WAKE_QUEUE"
 }
 
 # --- signal announcement signatures -----------------------------------------
