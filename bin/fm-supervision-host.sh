@@ -170,12 +170,12 @@ esac
 # later host run without the mod clears the marker so a renewed conflict is
 # surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive into the exec (the
 # arm forwards it to its first cycle); the actor marks must not.
+unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
 HOST_MOD_NOTICE="$STATE/.supervision-host-mod-conflict"
 if [ -e "$STATE/.branch-mod-mode" ]; then
   if (set -o noclobber; : > "$HOST_MOD_NOTICE") 2>/dev/null; then
     printf '%s\n' "supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm"
   fi
-  unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
   if [ "$FIRST_ARM_RESTART" -eq 1 ]; then
     exec "$SCRIPT_DIR/fm-watch-arm.sh" --restart
   fi
@@ -204,7 +204,7 @@ PRIMARY=${FM_SUPERVISION_HOST_PRIMARY:-}
 # The owner's predecessor arm belongs to the first cycle only.
 OWNER_PREDECESSOR=${FM_WATCH_PREDECESSOR_ARM_PID:-}
 case "$OWNER_PREDECESSOR" in *[!0-9]*) OWNER_PREDECESSOR= ;; esac
-unset FM_WATCH_PREDECESSOR_ARM_PID FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
+unset FM_WATCH_PREDECESSOR_ARM_PID
 
 HOST_RECORD="$STATE/.supervision-host"
 ENGINE_RECORD="$STATE/.supervision-host-engine"
