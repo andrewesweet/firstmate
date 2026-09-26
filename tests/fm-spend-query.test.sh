@@ -362,6 +362,48 @@ test_brief_composition_splits_scaffold_from_task() {
   pass "the composition measure splits the filled brief into scaffold and task tokens"
 }
 
+test_brief_composition_maps_probe_paths_onto_the_real_home() {
+  local dir out unmapped reversed rc
+  dir="$TMP_ROOT/composition-map"
+  mkdir -p "$dir"
+  # The real brief bakes the live home's absolute paths; the probe scaffold
+  # bakes the throwaway probe home's. Only the path map makes those scaffold
+  # lines compare equal, so only the intake's own line is task-specific.
+  {
+    printf 'shared plain scaffold line\n'
+    printf 'append status to /real/state/task.status when the turn ends\n'
+    printf 'read the inbox at /real/data/task/inbox.md before replying\n'
+    printf 'captain words unique to this task\n'
+  } > "$dir/brief.md"
+  {
+    printf 'shared plain scaffold line\n'
+    printf 'append status to /probe/state/task.status when the turn ends\n'
+    printf 'read the inbox at /probe/task/inbox.md before replying\n'
+    printf 'placeholder line only in the scaffold\n'
+  } > "$dir/scaffold.md"
+
+  out=$("$COMPOSITION" "$dir/brief.md" "$dir/scaffold.md" \
+    --map '/probe/state=/real/state' --map '/probe=/real/data')
+  assert_equals '8' "$(jq -r .task_tokens <<<"$out")" "with the path map only the intake's own line is task-specific"
+
+  # Longest source first is the measure's own rule: the state mapping must win
+  # over the home mapping whatever order the caller passes them in.
+  reversed=$("$COMPOSITION" "$dir/brief.md" "$dir/scaffold.md" \
+    --map '/probe=/real/data' --map '/probe/state=/real/state')
+  assert_equals "$out" "$reversed" "the map is applied longest source first regardless of argument order"
+
+  unmapped=$("$COMPOSITION" "$dir/brief.md" "$dir/scaffold.md")
+  jq -e --argjson mapped "$(jq -r .task_tokens <<<"$out")" '.task_tokens > $mapped' <<<"$unmapped" >/dev/null \
+    || fail "without the map the baked path lines must count as task-specific: $unmapped"
+  jq -e --argjson mapped "$(jq -r .fixed_share <<<"$out")" '.fixed_share < $mapped' <<<"$unmapped" >/dev/null \
+    || fail "without the map the fixed share must be understated: $unmapped"
+
+  "$COMPOSITION" "$dir/brief.md" "$dir/scaffold.md" --map >/dev/null 2>&1
+  rc=$?
+  [ "$rc" -eq 2 ] || fail "--map without a value must refuse instead of measuring unmapped"
+  pass "the scaffold path map makes the probe home's baked paths count as scaffold"
+}
+
 test_brief_composition_refuses_unreadable_inputs() {
   local dir rc
   dir="$TMP_ROOT/composition-bad"
@@ -415,6 +457,7 @@ test_unmeasured_flag_emits_the_schema_shape
 test_wrapper_refuses_bad_invocations
 test_wrapper_falls_back_to_unmeasured_without_python3
 test_brief_composition_splits_scaffold_from_task
+test_brief_composition_maps_probe_paths_onto_the_real_home
 test_brief_composition_refuses_unreadable_inputs
 test_parser_direct_invocation_bounds_with_explicit_window
 
