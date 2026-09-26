@@ -109,23 +109,22 @@ fm_lint_worker() {  # <manifest> <output-dir> <shard-index>
       shellcheck_args+=(--extended-analysis=false)
     fi
     : > "$output.out"
-    if [ "${FM_LINT_INTERNAL_FOLLOW_SOURCES:-1}" -eq 1 ]; then
-      "$FM_LINT_SHELLCHECK" "${shellcheck_args[@]}" -- "${roots[@]}" >> "$output.out" 2>&1 &
+    # One ShellCheck process per root, in manifest order. A single process for
+    # the whole shard keeps every root's extended-analysis state resident, so
+    # peak memory grows with the shard instead of staying at its largest root -
+    # enough for two CI shards to exhaust the runner. Per-root invocations give
+    # identical diagnostics in identical order and return that memory between
+    # roots.
+    for path in "${roots[@]}"; do
+      invocation_rc=0
+      "$FM_LINT_SHELLCHECK" "${shellcheck_args[@]}" -- "$path" >> "$output.out" 2>&1 &
       FM_LINT_WORKER_SHELLCHECK_PID=$!
-      wait "$FM_LINT_WORKER_SHELLCHECK_PID" || rc=$?
+      wait "$FM_LINT_WORKER_SHELLCHECK_PID" || invocation_rc=$?
       FM_LINT_WORKER_SHELLCHECK_PID=
-    else
-      for path in "${roots[@]}"; do
-        invocation_rc=0
-        "$FM_LINT_SHELLCHECK" "${shellcheck_args[@]}" -- "$path" >> "$output.out" 2>&1 &
-        FM_LINT_WORKER_SHELLCHECK_PID=$!
-        wait "$FM_LINT_WORKER_SHELLCHECK_PID" || invocation_rc=$?
-        FM_LINT_WORKER_SHELLCHECK_PID=
-        if [ "$rc" -eq 0 ] && [ "$invocation_rc" -ne 0 ]; then
-          rc=$invocation_rc
-        fi
-      done
-    fi
+      if [ "$rc" -eq 0 ] && [ "$invocation_rc" -ne 0 ]; then
+        rc=$invocation_rc
+      fi
+    done
     trap - HUP INT TERM
   else
     : > "$output.out"

@@ -945,6 +945,14 @@ fm_lock_try_acquire() {
     return 0
   fi
 
+  # A create failure with no lock present at all is structural, not contention:
+  # a torn-down state directory can never be created into, and the steal path
+  # below lives in that same parent, so recursing on "$lockdir.steal" would
+  # never terminate. Report the failure instead of recursing.
+  if [ ! -e "$lockdir" ] && [ ! -L "$lockdir" ]; then
+    return 1
+  fi
+
   fm_current_pid current || return 1
   pid=$(cat "$lockdir/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && [ "$pid" = "$current" ]; then

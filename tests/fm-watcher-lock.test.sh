@@ -337,6 +337,32 @@ test_lock_single_winner_under_concurrency() {
   pass "concurrent fm_lock_try_acquire yields exactly one winner"
 }
 
+# A lock whose parent directory has been removed can never be created, so the
+# acquire must report that failure instead of recursing into its steal lock -
+# which lives in the same missing parent. A torn-down state directory used to
+# make fm_lock_try_acquire recurse without end, so every bounded caller (the
+# watch arm's cycle log, for one) hung instead of closing.
+test_lock_try_acquire_fails_when_its_parent_directory_is_gone() {
+  local dir state lockdir pid rc
+  dir=$(make_case lock-parent-gone)
+  state="$dir/state"
+  # A lock directory under a parent that is not there: the same shape a
+  # torn-down state directory leaves behind for a process that still holds its
+  # paths.
+  lockdir="$dir/gone/.contend.lock"
+  FM_STATE_OVERRIDE="$state" bash -c '
+    . "$1"
+    fm_lock_try_acquire "$2"
+  ' _ "$LIB" "$lockdir" &
+  pid=$!
+  rc=0
+  wait_for_exit "$pid" 100 >/dev/null 2>&1 || rc=$?
+  [ "$rc" -ne 124 ] || fail "fm_lock_try_acquire never returned with its parent directory gone"
+  [ "$rc" -ne 0 ] || fail "fm_lock_try_acquire claimed a lock it could not create"
+  [ ! -e "$lockdir.steal" ] || fail "acquire recursed into a steal lock under a missing parent"
+  pass "acquire with a missing parent directory fails instead of recursing"
+}
+
 test_lock_steals_dead_pid_lock() {
   local dir state lockdir dead rc newpid
   dir=$(make_case lock-dead-steal)
@@ -1260,6 +1286,7 @@ test_live_stale_watch_lock_is_actionable
 test_live_stalled_watch_lock_is_replaced_past_hard_bound
 test_guard_warnings
 test_lock_single_winner_under_concurrency
+test_lock_try_acquire_fails_when_its_parent_directory_is_gone
 test_lock_steals_dead_pid_lock
 test_lock_stale_steal_single_winner_under_concurrency
 test_lock_live_steal_mutex_is_not_reclaimed
