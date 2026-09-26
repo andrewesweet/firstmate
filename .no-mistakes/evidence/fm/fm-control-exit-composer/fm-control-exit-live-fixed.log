@@ -1,0 +1,13 @@
+claude=2.1.283 (Claude Code) herdr=herdr 0.9.0
+agent={"agent":"claude","agent_status":"idle"}
+=== bin/fm-control.sh hexit exit ===
+rc=0
+output=stopped hexit harness=claude backend=herdr endpoint=fm-lab-ctl-exit-2008888:w1:p2 worktree=/tmp/fm-ctl-exit.6V2VC6/wt
+=== pane after exit ===
+
+
+
+wt on  hexit ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/andrew.sweet@dbaihackathon2026outlook.onmicrosoft.co
+m  7s
+(ins)I
+agent_still_registered=no

@@ -1,0 +1,13 @@
+claude=2.1.283 (Claude Code) herdr=herdr 0.9.0
+agent={"agent":"claude","agent_status":"idle"}
+=== bin/fm-control.sh hexit exit ===
+rc=1
+output=error: the exit command could not be sent to task hexit on herdr
+=== pane after exit ===
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PE…
+  [CAVEMAN:ULTRA]                                                                         Ctrl+Y to paste deleted text
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                    /rc
+agent_still_registered=yes
