@@ -1,0 +1,24 @@
+# Live conflict episode, fresh lab home (/tmp/fm-lab.ZKEmd4)
+# both opt-ins: config/supervision-host + state/.branch-mod-mode
+
+$ fm-supervision-host.sh park            # 1st run of the episode
+supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm
+watcher: started pid=1151612 (beacon fresh)
+rc=124
+state/.supervision-host-mod-conflict: present
+state/.supervision-host (host pid record): absent
+state/.supervision-host-engine: absent
+
+$ fm-supervision-host.sh park            # 2nd run, same episode: notice suppressed
+watcher: started pid=1195726 (beacon fresh)
+check: rearm-resurface
+rc=0
+
+$ rm state/.branch-mod-mode && fm-supervision-host.sh park   # mod gone: host runs as host, clears marker
+supervision-host stood down: this session does not own supervision
+state/.supervision-host-mod-conflict: absent
+
+$ touch state/.branch-mod-mode && fm-supervision-host.sh park   # renewed conflict: surfaced again
+supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm
+check: rearm-resurface
+rc=0

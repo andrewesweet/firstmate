@@ -1,0 +1,14 @@
+# Adversarial: mutate the host entry so it drifts from the shared fold
+
+## mutation A: drop the entry's afk flag parsing (else if (arg === "--afk") afk = true; -> no-op)
+  entry: {"status":"unsafe","corrupted":false,"eligibleSeqs":[],"eligibleTasks":[]}
+  fn:    {"status":"safe","corrupted":false,"eligibleSeqs":["6"],"eligibleTasks":["mate-f"]}
+not ok - host entry parity failed: 
+
+## mutation B: drop the heartbeat term from the entry's unscoped derivation
+host entry unscoped differs from its function on /tmp/fm-branch-eligibility.St7o47/fx/torn-epoch with --heartbeat --afk: entry=false fn=true
+host entry unscoped differs from its function on /tmp/fm-branch-eligibility.St7o47/fx/v8-ship with --heartbeat --afk: entry=false fn=true
+not ok - host entry parity failed: 
+
+## restored:
+(clean)
