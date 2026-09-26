@@ -38,12 +38,13 @@
 # home with both opt-ins would have two consumers of the same wakes. Before
 # anything else the host steps aside: it execs the plain watcher arm
 # (fm-watch-arm.sh, forwarding --restart and the owner's
-# FM_WATCH_PREDECESSOR_ARM_PID), so the home's supervision is exactly what the
-# owner arms without the host, and prints one "supervision-host:" notice
-# saying so - once per conflict episode, guarded by the
-# state/.supervision-host-mod-conflict marker; a later host run that finds no
-# mod clears the marker, so a renewed conflict is surfaced again. From the
-# exec on, the arm's own close contract judges the cycle.
+# FM_WATCH_PREDECESSOR_ARM_PID), so the watcher cycle is the ordinary watcher
+# arm's, while an owner that launched the host still applies its own host-mode
+# close handling (which is what makes the notice below actionable), and prints
+# one "supervision-host:" notice naming the conflict - once per episode,
+# guarded by the state/.supervision-host-mod-conflict marker; a later host run
+# that finds no mod clears the marker, so a renewed conflict is surfaced
+# again. From the exec on, the arm's own close contract judges the cycle.
 #
 # THE LOOP. It owns watcher cycles through bin/fm-watch-arm.sh. On each
 # actionable close:
@@ -171,7 +172,6 @@ esac
 # arm forwards it to its first cycle); the actor marks must not.
 HOST_MOD_NOTICE="$STATE/.supervision-host-mod-conflict"
 if [ -e "$STATE/.branch-mod-mode" ]; then
-  mkdir -p "$STATE" 2>/dev/null || true
   if (set -o noclobber; : > "$HOST_MOD_NOTICE") 2>/dev/null; then
     printf '%s\n' "supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm"
   fi
