@@ -33,6 +33,18 @@
 # cycle only, for owners that start their own successor after every close
 # (OpenCode, omp).
 #
+# MUTUAL EXCLUSION. The Claude Code supervision-branch mod's opt-in
+# (state/.branch-mod-mode) runs the branch in the captain's own process, so a
+# home with both opt-ins would have two consumers of the same wakes. Before
+# anything else the host steps aside: it execs the plain watcher arm
+# (fm-watch-arm.sh, forwarding --restart and the owner's
+# FM_WATCH_PREDECESSOR_ARM_PID), so the home's supervision is exactly what the
+# owner arms without the host, and prints one "supervision-host:" notice
+# saying so - once per conflict episode, guarded by the
+# state/.supervision-host-mod-conflict marker; a later host run that finds no
+# mod clears the marker, so a renewed conflict is surfaced again. From the
+# exec on, the arm's own close contract judges the cycle.
+#
 # THE LOOP. It owns watcher cycles through bin/fm-watch-arm.sh. On each
 # actionable close:
 #   - attended (no away-posture record state/.afk-contract): it exits with the
@@ -105,7 +117,9 @@
 # engine, model, session id, main-session key, turn count, running cost),
 # .supervision-host-turn and .supervision-host-receipts (the current turn's
 # report scope and the reports it recorded), .supervision-host-prompt and
-# .supervision-host-wake (the prompt and wake text of the current turn), and
+# .supervision-host-wake (the prompt and wake text of the current turn),
+# .supervision-host-mod-conflict (the both-opt-ins notice marker of the
+# mutual-exclusion step-aside), and
 # .supervision-host.log (a bounded ledger of where every close went, with each
 # engine turn's usage and outcome).
 #
@@ -146,6 +160,28 @@ case "${1:-}" in
   -h|--help) sed -n '2,/^set -u/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
   *) echo "usage: fm-supervision-host.sh park [--restart]" >&2; exit 2 ;;
 esac
+
+# Mutual exclusion with the Claude Code supervision-branch mod: its opt-in
+# (state/.branch-mod-mode) runs the branch in the captain's own process, so a
+# home with both opt-ins would have two consumers of the same wakes. Step
+# aside into the plain watcher arm; the conflict is surfaced once per episode
+# (noclobber create-then-print so two racing hosts surface it once), and a
+# later host run without the mod clears the marker so a renewed conflict is
+# surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive into the exec (the
+# arm forwards it to its first cycle); the actor marks must not.
+HOST_MOD_NOTICE="$STATE/.supervision-host-mod-conflict"
+if [ -e "$STATE/.branch-mod-mode" ]; then
+  mkdir -p "$STATE" 2>/dev/null || true
+  if (set -o noclobber; : > "$HOST_MOD_NOTICE") 2>/dev/null; then
+    printf '%s\n' "supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm"
+  fi
+  unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
+  if [ "$FIRST_ARM_RESTART" -eq 1 ]; then
+    exec "$SCRIPT_DIR/fm-watch-arm.sh" --restart
+  fi
+  exec "$SCRIPT_DIR/fm-watch-arm.sh"
+fi
+rm -f "$HOST_MOD_NOTICE" 2>/dev/null || true
 
 numeric_or() {  # <value> <default>
   case "$1" in ''|0*|*[!0-9]*) printf '%s\n' "$2" ;; *) printf '%s\n' "$1" ;; esac

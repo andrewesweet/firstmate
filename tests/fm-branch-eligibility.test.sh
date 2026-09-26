@@ -20,6 +20,11 @@
 #     fixture, including the drift cases below. The mod consumes the same
 #     canonical module directly, bound via its host stat seam, so all three
 #     TypeScript legs share one fold.
+#   - bin/fm-branch-dispatch.mjs scope, the supervision host's command entry
+#     to the Pi leg's function. It is not a fifth implementation, but the
+#     host shell reaches the fold only through it, so a parity leg spawns it
+#     on every fixture and pins its printed verdict (status, corrupted, rows,
+#     tasks, and the unscoped derivation) to the function's own verdict.
 # One fixture set (status logs, wake-queue rows, task metas) is driven through
 # all four, and the TypeScript legs must emit byte-identical normalised scope
 # JSON wherever the folds agree. Bash contributes the fold truth alone:
@@ -225,6 +230,61 @@ const { foldStatusLog } = await import(pathToFileURL(`${root}/lib/fm-branch-elig
 const [dir, task] = process.argv.slice(2);
 process.stdout.write(foldStatusLog(dir, task));
 JS
+  # The host-entry parity leg: spawn bin/fm-branch-dispatch.mjs scope against
+  # each fixture and compare its printed verdict with the function it wraps.
+  cat >"$TMP_ROOT/host-scope-parity.mjs" <<'JS'
+import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
+const root = process.env.FM_ELIGIBILITY_ROOT;
+if (!root) throw new Error("FM_ELIGIBILITY_ROOT required");
+const entry = `${root}/bin/fm-branch-dispatch.mjs`;
+const { scopeForUnreadWake } = await import(pathToFileURL(`${root}/.pi/extensions/lib/fm-branch-dispatch.ts`).href);
+const sortedUnique = (xs) => [...new Set(xs)].sort();
+const norm = (status, corrupted, seqs, tasks) => JSON.stringify({
+  status,
+  corrupted,
+  eligibleSeqs: sortedUnique(seqs),
+  eligibleTasks: sortedUnique(tasks),
+});
+let failed = false;
+for (const dir of process.argv.slice(2)) {
+  const printed = spawnSync(process.execPath, [entry, "scope"], {
+    env: { ...process.env, FM_STATE_OVERRIDE: dir },
+    encoding: "utf8",
+  });
+  if (printed.status !== 0) {
+    console.error(`host entry failed on ${dir}: ${printed.stderr}`);
+    process.exit(1);
+  }
+  const parse = Object.fromEntries(
+    printed.stdout.trim().split("\n").map((line) => {
+      const i = line.indexOf("=");
+      return [line.slice(0, i), line.slice(i + 1)];
+    }),
+  );
+  const fn = scopeForUnreadWake(dir, false, false);
+  const entryVerdict = norm(
+    parse.status,
+    parse.corrupted === "1",
+    (parse.rows ?? "").split(" ").filter(Boolean),
+    (parse.tasks ?? "").split(" ").filter(Boolean),
+  );
+  const fnVerdict = norm(fn.status, !!fn.corrupted, fn.eligibleSeqs, fn.eligibleTasks);
+  if (entryVerdict !== fnVerdict) {
+    console.error(`host entry verdict differs from its function on ${dir}:\n  entry: ${entryVerdict}\n  fn:    ${fnVerdict}`);
+    failed = true;
+  }
+  // The entry derives unscoped itself (heartbeat || checkSeqs || heartbeatSeqs);
+  // heartbeat is false here, so pin that derivation to the function's fields.
+  const entryUnscoped = parse.unscoped === "1";
+  const fnUnscoped = fn.checkSeqs.length > 0 || fn.heartbeatSeqs.length > 0;
+  if (entryUnscoped !== fnUnscoped) {
+    console.error(`host entry unscoped differs from its function on ${dir}: entry=${entryUnscoped} fn=${fnUnscoped}`);
+    failed = true;
+  }
+}
+process.exit(failed ? 1 : 0);
+JS
 }
 
 write_runners
@@ -385,6 +445,13 @@ test_verb_overrides_reach_the_bash_and_lib_folds_alike() {
   pass "the FM_CLASSIFY_* verb overrides reach the bash fold and the lib alike, in the fold and the held-declaration verdict"
 }
 
+test_host_command_entry_matches_the_shared_fold_on_every_fixture() {
+  local out
+  out=$(FM_ELIGIBILITY_ROOT="$ROOT" node "$TMP_ROOT/host-scope-parity.mjs" "$FIXTURES"/*) \
+    || fail "host entry parity failed: $out"
+  pass "host entry: bin/fm-branch-dispatch.mjs scope prints the shared fold's verdict on every fixture"
+}
+
 test_routine_signal_row_agrees_across_all_folds
 test_ship_terminal_declaration_agrees_across_all_folds
 test_scout_blocked_then_failed_agrees_across_all_folds
@@ -393,3 +460,4 @@ test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
 test_reserved_key_namespace_guard_agrees_across_all_folds
 test_verb_overrides_reach_the_bash_and_lib_folds_alike
+test_host_command_entry_matches_the_shared_fold_on_every_fixture
