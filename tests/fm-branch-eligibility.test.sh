@@ -231,7 +231,9 @@ const [dir, task] = process.argv.slice(2);
 process.stdout.write(foldStatusLog(dir, task));
 JS
   # The host-entry parity leg: spawn bin/fm-branch-dispatch.mjs scope against
-  # each fixture and compare its printed verdict with the function it wraps.
+  # each fixture in every mode bin/fm-supervision-host.sh uses (handle_away
+  # always passes --afk, and --heartbeat on a heartbeat close) and compare each
+  # printed verdict with the function it wraps.
   cat >"$TMP_ROOT/host-scope-parity.mjs" <<'JS'
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
@@ -246,41 +248,49 @@ const norm = (status, corrupted, seqs, tasks) => JSON.stringify({
   eligibleSeqs: sortedUnique(seqs),
   eligibleTasks: sortedUnique(tasks),
 });
+const MODES = [
+  { flags: [], heartbeat: false, afk: false },
+  { flags: ["--afk"], heartbeat: false, afk: true },
+  { flags: ["--heartbeat", "--afk"], heartbeat: true, afk: true },
+];
 let failed = false;
 for (const dir of process.argv.slice(2)) {
-  const printed = spawnSync(process.execPath, [entry, "scope"], {
-    env: { ...process.env, FM_STATE_OVERRIDE: dir },
-    encoding: "utf8",
-  });
-  if (printed.status !== 0) {
-    console.error(`host entry failed on ${dir}: ${printed.stderr}`);
-    process.exit(1);
-  }
-  const parse = Object.fromEntries(
-    printed.stdout.trim().split("\n").map((line) => {
-      const i = line.indexOf("=");
-      return [line.slice(0, i), line.slice(i + 1)];
-    }),
-  );
-  const fn = scopeForUnreadWake(dir, false, false);
-  const entryVerdict = norm(
-    parse.status,
-    parse.corrupted === "1",
-    (parse.rows ?? "").split(" ").filter(Boolean),
-    (parse.tasks ?? "").split(" ").filter(Boolean),
-  );
-  const fnVerdict = norm(fn.status, !!fn.corrupted, fn.eligibleSeqs, fn.eligibleTasks);
-  if (entryVerdict !== fnVerdict) {
-    console.error(`host entry verdict differs from its function on ${dir}:\n  entry: ${entryVerdict}\n  fn:    ${fnVerdict}`);
-    failed = true;
-  }
-  // The entry derives unscoped itself (heartbeat || checkSeqs || heartbeatSeqs);
-  // heartbeat is false here, so pin that derivation to the function's fields.
-  const entryUnscoped = parse.unscoped === "1";
-  const fnUnscoped = fn.checkSeqs.length > 0 || fn.heartbeatSeqs.length > 0;
-  if (entryUnscoped !== fnUnscoped) {
-    console.error(`host entry unscoped differs from its function on ${dir}: entry=${entryUnscoped} fn=${fnUnscoped}`);
-    failed = true;
+  for (const mode of MODES) {
+    const label = mode.flags.length ? mode.flags.join(" ") : "(no flags)";
+    const printed = spawnSync(process.execPath, [entry, "scope", ...mode.flags], {
+      env: { ...process.env, FM_STATE_OVERRIDE: dir },
+      encoding: "utf8",
+    });
+    if (printed.status !== 0) {
+      console.error(`host entry failed on ${dir} with ${label}: ${printed.stderr}`);
+      process.exit(1);
+    }
+    const parse = Object.fromEntries(
+      printed.stdout.trim().split("\n").map((line) => {
+        const i = line.indexOf("=");
+        return [line.slice(0, i), line.slice(i + 1)];
+      }),
+    );
+    const fn = scopeForUnreadWake(dir, mode.heartbeat, mode.afk);
+    const entryVerdict = norm(
+      parse.status,
+      parse.corrupted === "1",
+      (parse.rows ?? "").split(" ").filter(Boolean),
+      (parse.tasks ?? "").split(" ").filter(Boolean),
+    );
+    const fnVerdict = norm(fn.status, !!fn.corrupted, fn.eligibleSeqs, fn.eligibleTasks);
+    if (entryVerdict !== fnVerdict) {
+      console.error(`host entry verdict differs from its function on ${dir} with ${label}:\n  entry: ${entryVerdict}\n  fn:    ${fnVerdict}`);
+      failed = true;
+    }
+    // The entry derives unscoped itself (heartbeat || checkSeqs || heartbeatSeqs),
+    // so pin that derivation per mode against the function's fields.
+    const entryUnscoped = parse.unscoped === "1";
+    const fnUnscoped = mode.heartbeat || fn.checkSeqs.length > 0 || fn.heartbeatSeqs.length > 0;
+    if (entryUnscoped !== fnUnscoped) {
+      console.error(`host entry unscoped differs from its function on ${dir} with ${label}: entry=${entryUnscoped} fn=${fnUnscoped}`);
+      failed = true;
+    }
   }
 }
 process.exit(failed ? 1 : 0);
@@ -449,7 +459,7 @@ test_host_command_entry_matches_the_shared_fold_on_every_fixture() {
   local out
   out=$(FM_ELIGIBILITY_ROOT="$ROOT" node "$TMP_ROOT/host-scope-parity.mjs" "$FIXTURES"/*) \
     || fail "host entry parity failed: $out"
-  pass "host entry: bin/fm-branch-dispatch.mjs scope prints the shared fold's verdict on every fixture"
+  pass "host entry: bin/fm-branch-dispatch.mjs scope prints the shared fold's verdict on every fixture in each mode the host uses"
 }
 
 test_routine_signal_row_agrees_across_all_folds
