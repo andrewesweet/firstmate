@@ -5468,7 +5468,7 @@ if [ "$RELAUNCH" -eq 0 ] && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
       if [ "$KIND" = scout ]; then
         SPAWN_PROBE_FLAGS+=(--scout)
       else
-        SPAWN_PROBE_FLAGS+=(--mode "$MODE")
+        SPAWN_PROBE_FLAGS+=(--mode "$MODE" --branch-prefix "$BRANCH_PREFIX")
         [ -z "$BRIEF_FORGE" ] || [ "$BRIEF_FORGE" = none ] || SPAWN_PROBE_FLAGS+=(--forge "$BRIEF_FORGE")
       fi
       # The enabled Herdr section differs byte-for-byte from the disabled

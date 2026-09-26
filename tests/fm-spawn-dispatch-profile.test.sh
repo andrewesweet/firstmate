@@ -474,6 +474,46 @@ test_failed_composition_probe_omits_fields() {
   pass "a failed composition probe omits its fields without failing the spawn"
 }
 
+# Scaffolds a real fm-brief.sh ship brief (so its Ship branch line and branch
+# commands match the prefix the spawn will select) and fills its three
+# placeholder sites, as the documented intake fill does.
+scaffold_filled_ship_brief() {  # <home> <id> [branch-prefix]
+  local home=$1 id=$2 brief args=(--mode local-only) content
+  [ "$#" -lt 3 ] || args+=(--branch-prefix "$3")
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_CONFIG_OVERRIDE="$home/config" "$ROOT/bin/fm-brief.sh" "$id" project "${args[@]}" >/dev/null
+  brief="$home/data/$id/brief.md"
+  content=$(cat "$brief")
+  content=${content//'{TASK}'/Keep the composition probe honest across ship-branch prefixes.}
+  content=${content//'{FIRSTMATE_SPEC}'/Exercise the spawn composition probe under test.}
+  content=${content//'{PUBLISHED_INTENT}'/Restate the accepted change neutrally for the pipeline reviewer.}
+  printf '%s\n' "$content" > "$brief"
+}
+
+test_composition_probe_scaffold_tracks_the_ship_branch_prefix() {
+  local rec plain prefixed plain_line prefixed_line
+  plain=profile-composition-prefix-plain-z18b
+  prefixed=profile-composition-prefix-custom-z18c
+  rec=$(make_spawn_case profile-composition-prefix claude)
+  read_case_record "$rec"
+  enable_dispatch_profile "$HOME_DIR"
+  scaffold_filled_ship_brief "$HOME_DIR" "$plain"
+  scaffold_filled_ship_brief "$HOME_DIR" "$prefixed" contrib/
+
+  run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$plain" "$PROJ_DIR" --mode local-only --yolo off --harness codex >/dev/null
+  expect_code 0 "$?" "the default-prefix ship spawn should succeed"
+  run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$prefixed" "$PROJ_DIR" --mode local-only --yolo off --branch-prefix contrib/ --harness codex >/dev/null
+  expect_code 0 "$?" "the prefixed ship spawn should succeed"
+
+  plain_line=$(grep -F "\"task\":\"$plain\"" "$HOME_DIR/data/dispatch-spawns.jsonl")
+  prefixed_line=$(grep -F "\"task\":\"$prefixed\"" "$HOME_DIR/data/dispatch-spawns.jsonl")
+  assert_equals "$(jq -r .task_tokens <<<"$plain_line")" "$(jq -r .task_tokens <<<"$prefixed_line")" \
+    "a custom ship-branch prefix must not move scaffold branch lines into the task-specific measure"
+  pass "the composition probe scaffolds against the ship-branch prefix the spawn selected"
+}
+
 test_active_dispatch_profile_allows_raw_launch_command() {
   local rec id out status launch
   id=profile-raw-z15
@@ -1738,6 +1778,7 @@ test_active_dispatch_profile_allows_positional_harness
 test_successful_spawn_appends_dispatch_spawn_record
 test_unwritable_dispatch_spawn_log_never_fails_spawn
 test_failed_composition_probe_omits_fields
+test_composition_probe_scaffold_tracks_the_ship_branch_prefix
 test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
