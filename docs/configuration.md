@@ -320,6 +320,7 @@ The host runs the supervision branch's contract on a headless engine session bes
 [docs/supervision-host.md](supervision-host.md) defines its design, current scope, and verified engines.
 A Claude, Cursor, OpenCode, omp, Grok, or Codex primary can run the host, only while away.
 With the file present, the primary's arm owner runs the host in place of the watcher arm.
+The one exception is a home that also enables the Claude Code supervision-branch mod (`state/.branch-mod-mode`): the two opt-ins are mutually exclusive, the host steps aside to the plain watcher arm, and [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns what happens.
 The host handles wakes on the engine while `state/.afk-contract` exists.
 On that home, `/afk` launches no away daemon; `/quiet` still does.
 

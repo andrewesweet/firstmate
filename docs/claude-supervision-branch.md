@@ -124,6 +124,14 @@ The condition path must be absolute: the runner's working directory is the watch
 4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported rather than discovered when the mod refuses to load.
 5. Launch the primary with the settings below.
 
+### Mutual exclusion with the supervision host
+
+A home must not enable both `state/.branch-mod-mode` and `config/supervision-host`: the mod consumes the primary's wakes inside the captain's own Claude process, while the host runs them through a headless engine beside it, so a home with both opt-ins would have two consumers of the same wakes.
+The opt-ins are mutually exclusive by construction, with the host stepping aside: when `state/.branch-mod-mode` is present, `bin/fm-supervision-host.sh` execs the plain watcher arm even though `config/supervision-host` opts in, so the watcher cycle is the ordinary watcher arm's - an owner that launched the host still applies its own host-mode close handling, which is what makes the notice actionable - and it prints one `supervision-host:` notice naming the conflict - once per episode, suppressed by a marker until a later host run finds no mod, so a renewed conflict is surfaced again (`bin/fm-supervision-host.sh`'s header owns the mechanics).
+Only a host run can clear that marker, so a conflict ended by removing `config/supervision-host` rather than `state/.branch-mod-mode` leaves `state/.supervision-host-mod-conflict` in place - no host runs to clear it - and a conflict re-created later by re-adding the host opt-in is not noticed again, even though the host still steps aside on every run it makes with the mod present.
+The mod's own path is unchanged: an owner only launches the host when `config/supervision-host` exists, so with only the mod enabled every wake is consumed as this doc describes.
+Wake eligibility itself is one implementation for both (`tests/fm-branch-eligibility.test.sh` pins the host's command entry, the Pi extension, the mod, and the shared lib to one verdict); the exclusivity is about who consumes a wake, not about which rows each would claim.
+
 ## Launch settings
 
 Measured on Claude Code 2.1.281 (2026-09-23); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
