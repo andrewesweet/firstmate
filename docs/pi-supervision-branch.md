@@ -71,7 +71,7 @@ This in-process supervision branch is Pi-only by construction:
   A home on any harness that already has an outcome store still receives the shared drain compatibility recovery described in [Lost-wake outcome backstop](#lost-wake-outcome-backstop).
 - It does not change which harness is primary and never moves a home to Pi.
 
-On an opted-in non-Pi home, the supervision host runs the away branch beside the primary.
+On an opted-in non-Pi home, the supervision host runs the branch beside the primary, away and on Claude and Cursor also attended.
 [supervision-host.md](supervision-host.md) owns its scope and mechanism.
 
 ## Components and their owners
@@ -615,7 +615,7 @@ Each relocated script keeps its own gate, enforcing exactly what a script can ch
 
 | Script | Gate while away |
 | --- | --- |
-| `bin/fm-pr-merge.sh` | Merges any pull request green at its live head, synchronously, under the record lock, and refuses `--allow-red` while away, so the green gate is absolute in this posture; which pull request the words meant is the branch's reading. |
+| `bin/fm-pr-merge.sh` | Merges any pull request green at its live head, synchronously, under the record lock, and refuses `--allow-red` and `--allow-missing` while away, so the green gate is absolute in this posture; which pull request the words meant is the branch's reading. |
 | `bin/fm-spawn.sh` | Dispatches only queued work whose blockers cleared - already queued, or filed by the branch because the words explicitly call for it; refuses a fresh ordinary spawn for either actor once the home holds as many ordinary task records as the record's spend cap (relaunches and secondmates exempt). |
 | `bin/fm-send.sh --resolve-key` | Answers a decision the words pre-answer, or one `ask-user-authority`'s judgment (carried verbatim in the branch prompt) lets firstmate decide. |
 | `bin/fm-merge-local.sh` | Never relocated. |
@@ -665,7 +665,7 @@ At that moment the branch reports any refusal instead of concluding there is "no
 - Store append-only behavior, the captain cursor barrier, and the processed marker's sequence bounds.
 - Leases, guards, and non-branch-home invariance.
 - The away relocation: only under a valid live record, never for local-only landing, queued-only branch dispatch rather than orphaned in-flight recovery, the spend cap for both actors and its lock-held recheck, and the attended guarded-action behavior restored by archive or an invalid record.
-`tests/fm-afk-return.test.sh` covers the ordered cleanup-due section, its durable merge-marker requirement, and exclusion of a done task without durable merge evidence.
+`tests/fm-afk-return.test.sh` covers the ordered cleanup-due section, its durable merge-marker requirement, and exclusion of both a done task without durable merge evidence and a persistent secondmate carrying that evidence.
 `tests/fm-branch-eligibility.test.sh` pins the four-fold equivalence of the wake-eligibility and open-decision classification: one fixture set of status logs, wake-queue rows, and task metas driven through the bash fold (`status_open_decisions`), the Pi extension's `scopeForUnreadWake`, the mod's exported `scopeForUnreadWake` bound through its exported `bind` (both exports are behavior-neutral and exist for this test), and the shared module `lib/fm-branch-eligibility.ts`, asserting byte-identical normalised scope JSON wherever the folds agree.
 `lib/fm-branch-eligibility.ts` is the shared fold both TypeScript folds adopt - the bash v8 rule plus the guards the ports carry, with bash's behaviour wherever bash has one - re-exporting the canonical core under the mod's `lib/` and adding the `node:fs` bindings, and its leg must be byte-equal to the bash fold on every fixture.
 The Pi extension consumes the shared module: `.pi/extensions/lib/fm-branch-dispatch.ts` delegates its `scopeForUnreadWake` to it and its inline fold is deleted, so the Pi branch's eligibility verdicts come from the same code the equivalence test proves equal to bash.
@@ -676,7 +676,7 @@ Two further supervision behaviors are extracted the same way (A4), their remaini
 `tests/fm-pr-merge.test.sh` covers the branch actor merging a green task under the record, being refused on a red check or `--allow-red` under it, being held without a grant, and being refused at the partition while attended; `tests/fm-send-resolve-key.test.sh` covers the decision-answer partition (a needs-decision or captain-held key refuses the attended branch before anything is sent, a `blocked:` key stays ordinary steering, and the record relocates the answer).
 `tests/fm-pi-watch-extension.test.sh` covers the away eligibility collapse (check-kind and decision-owned triggers offered) with the broken-queue vetoes and the watcher-failure alarm still reaching main, and `tests/fm-pi-branch-extension.test.sh` covers the posture tail with the verbatim read-back, the unscoped claim of check and heartbeat rows, no processing turn under the record, cancellation of a request pending when the record appears, and the re-presentation at the first run boundary after archive.
 
-`tests/fm-pr-merge.test.sh` covers the branch actor merging a green task under the record, being refused on a red check or `--allow-red` under it, and being refused at the partition while attended.
+`tests/fm-pr-merge.test.sh` covers the branch actor merging a green task under the record, being refused on a red check, an unreported required check, or `--allow-red`/`--allow-missing` under it, and being refused at the partition while attended.
 
 `tests/fm-send-resolve-key.test.sh` covers the decision-answer partition:
 
