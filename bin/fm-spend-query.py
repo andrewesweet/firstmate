@@ -13,7 +13,10 @@ Schema 1, one JSON object per run:
                            when the record omits them)
     window                 {"start_epoch": N, "end_epoch": N} records were
                            bounded to, or null when the window could not be
-                           established
+                           established. Both bounds are whole seconds and the
+                           end bound covers its whole second, because the
+                           producer reads it from a file mtime while records
+                           carry sub-second timestamps.
     calls                  deduplicated model calls inside the window
     mean_context_tokens    mean of input + cache_read + cache_write per call
     cache_read_share       cache-read share of the context tokens, 0..1
@@ -140,7 +143,7 @@ def in_window(record: dict, start: datetime | None, end: datetime | None) -> dat
         return None
     if start is not None and ts < start:
         return None
-    if end is not None and ts > end:
+    if end is not None and ts >= end:
         return None
     return ts
 
@@ -286,7 +289,7 @@ def build_line(args) -> dict:
         )
 
     start = datetime.fromtimestamp(args.spawn_epoch, tz=timezone.utc)
-    end = datetime.fromtimestamp(args.end_epoch, tz=timezone.utc)
+    end = datetime.fromtimestamp(args.end_epoch + 1, tz=timezone.utc)
     window = {"start_epoch": args.spawn_epoch, "end_epoch": args.end_epoch}
 
     parse, resolve_log_dir, usd_lane = RUNTIMES[harness]

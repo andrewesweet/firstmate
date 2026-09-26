@@ -10,7 +10,10 @@
 # which a relaunch restamps. The end is the newest mtime among the task's own
 # state sidecars (state/<id>.turn-ended, state/<id>.progress): worktrees are
 # pooled and handed on the moment a worker exits, so a window that ran to now
-# would price a successor task's calls as this task's. A record without either
+# would price a successor task's calls as this task's. That mtime is a whole
+# second and the turn-end touch lands just after the turn's last call, so the
+# end bound covers its whole second: a record timestamped inside the touch's
+# own second is measured. A record without either
 # bound cannot be window-bounded honestly, so the answer is an explicit
 # unmeasured line, never a partial or inflated figure.
 # --unmeasured <reason> skips measurement and emits the schema's unmeasured

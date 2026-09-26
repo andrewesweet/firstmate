@@ -229,6 +229,29 @@ test_successor_calls_after_the_task_activity_bound_are_excluded() {
   pass "the measured window ends at the task's own activity bound, not at teardown time"
 }
 
+test_final_call_inside_the_bound_second_is_measured() {
+  local home dir out
+  home=$(sq_home claude-bound-second)
+  dir=$(sq_claude_dir "$home" "$home/wt")
+  # The turn's last call at 22:30:00.400Z, then the turn-end touch landing
+  # later in that same wall-clock second; the mtime is whole seconds, so the
+  # last call must still count. The successor's call a second later must not.
+  {
+    printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"mid","model":"claude-opus-4-1","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+    printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:30:00.400Z","message":{"id":"last","model":"claude-opus-4-1","usage":{"input_tokens":4000,"output_tokens":2000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+    printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:30:01.000Z","message":{"id":"successor","model":"claude-opus-4-1","usage":{"input_tokens":900000,"output_tokens":90000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+  } > "$dir/s1.jsonl"
+  sq_meta "$home" task-p4
+  TZ=UTC0 touch -t 202311142230 "$home/state/task-p4.turn-ended"
+
+  out=$(sq_query "$home" task-p4)
+  assert_equals '2' "$(jq -r .calls <<<"$out")" "the turn's final call inside the bound's own second is measured"
+  assert_equals '1700001000' "$(jq -r .window.end_epoch <<<"$out")" "the reported end bound stays the sidecar mtime"
+  jq -e '.usd < 0.1' <<<"$out" >/dev/null \
+    || fail "a record past the bound's second was priced into the figure: $out"
+  pass "the end bound covers its whole second, so the turn's last call is not dropped"
+}
+
 test_record_without_an_activity_sidecar_is_unmeasured() {
   local home dir out
   home=$(sq_home claude-no-sidecar)
@@ -385,6 +408,7 @@ test_wrapper_answers_unmeasured_without_an_epoch_shaped_spawn_gen
 test_relaunched_task_bounds_the_window_at_its_first_spawn
 test_record_without_a_first_epoch_falls_back_to_spawn_gen
 test_successor_calls_after_the_task_activity_bound_are_excluded
+test_final_call_inside_the_bound_second_is_measured
 test_record_without_an_activity_sidecar_is_unmeasured
 test_progress_sidecar_alone_bounds_the_window
 test_unmeasured_flag_emits_the_schema_shape
