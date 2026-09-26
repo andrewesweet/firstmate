@@ -608,6 +608,14 @@ relay_watcher_gone_reason() {
 
 wait_child_close() {
   WAIT_CHILD_BUDGET_EXIT=0
+  # Without a follow budget there is nothing to time: park on the child with a
+  # plain blocking wait, exactly as upstream does. kill -0 keeps reporting an
+  # unreaped zombie alive, so the polling loop below cannot be trusted to notice
+  # the child's death whenever the shell's reaping lags a poll.
+  if ! follow_budget_active; then
+    wait "$child"
+    return $?
+  fi
   while fm_pid_alive "$child"; do
     if follow_budget_active && follow_budget_elapsed; then
       WAIT_CHILD_BUDGET_EXIT=1
