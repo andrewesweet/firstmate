@@ -54,7 +54,8 @@ The time bound is mandatory: pooled worktrees are reused across tasks and a
 slot is handed on the moment a worker exits, so records outside [start, end]
 are ignored by every parser. bin/fm-spend-query.sh resolves that window from
 the task's own record and activity sidecars; a direct invocation here must pass
-the bounds it means with --spawn-epoch and --end-epoch.
+the bounds it means with --spawn-epoch and --end-epoch, and a measurement asked
+for without them is refused rather than answered over an unbounded window.
 
 The rate table below is the one place USD-per-million-token assumptions live.
 These are assumed list rates, not quotes, and they can go stale; an
@@ -278,8 +279,14 @@ def build_line(args) -> dict:
     if not args.worktree:
         return unmeasured(base, "task record carries no worktree path")
 
-    start = datetime.fromtimestamp(args.spawn_epoch, tz=timezone.utc) if args.spawn_epoch is not None else None
-    end = datetime.fromtimestamp(args.end_epoch, tz=timezone.utc) if args.end_epoch is not None else None
+    if args.spawn_epoch is None or args.end_epoch is None:
+        raise SystemExit(
+            "error: a measured figure needs both --spawn-epoch and --end-epoch; "
+            "worktrees are pooled, so an unbounded window would sum other tasks' calls"
+        )
+
+    start = datetime.fromtimestamp(args.spawn_epoch, tz=timezone.utc)
+    end = datetime.fromtimestamp(args.end_epoch, tz=timezone.utc)
     window = {"start_epoch": args.spawn_epoch, "end_epoch": args.end_epoch}
 
     parse, resolve_log_dir, usd_lane = RUNTIMES[harness]

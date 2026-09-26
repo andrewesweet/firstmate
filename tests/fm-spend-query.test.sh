@@ -354,7 +354,7 @@ test_brief_composition_refuses_unreadable_inputs() {
 }
 
 test_parser_direct_invocation_bounds_with_explicit_window() {
-  local home dir out
+  local home dir out rc
   home=$(sq_home claude-explicit-window)
   dir=$(sq_claude_dir "$home" "$home/wt")
   printf '%s\n' '{"type":"assistant","timestamp":"2023-11-14T22:13:30.000Z","message":{"id":"m1","model":"claude-opus-4-1","usage":{"input_tokens":10,"output_tokens":5,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$dir/s.jsonl"
@@ -364,7 +364,16 @@ test_parser_direct_invocation_bounds_with_explicit_window() {
   out=$(HOME="$home/home" python3 "$PARSER" --task t --harness claude --worktree "$home/wt" \
     --spawn-epoch 1700000400 --end-epoch 1700000500)
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "a record outside an explicit window is excluded"
-  pass "the parser honors explicitly bounded windows"
+  HOME="$home/home" python3 "$PARSER" --task t --harness claude --worktree "$home/wt" >/dev/null 2>&1
+  rc=$?
+  [ "$rc" -ne 0 ] || fail "a measurement without window bounds must refuse instead of summing the pooled worktree"
+  HOME="$home/home" python3 "$PARSER" --task t --harness claude --worktree "$home/wt" \
+    --spawn-epoch 1700000000 >/dev/null 2>&1
+  rc=$?
+  [ "$rc" -ne 0 ] || fail "a measurement with only a start bound must refuse"
+  out=$(HOME="$home/home" python3 "$PARSER" --task t --harness codex --worktree "$home/wt")
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$out")" "an uncovered runtime still answers unmeasured without bounds"
+  pass "the parser honors explicitly bounded windows and refuses an unbounded measurement"
 }
 
 test_claude_measures_deduped_window_bounded_api_equiv
