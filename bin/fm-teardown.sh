@@ -6,7 +6,7 @@
 # since secondmates are not backlog items), then refresh/prune the project's
 # clone for PR-based ship tasks. On that same close, a ship or scout task also
 # appends one best-effort schema-versioned line to the home's
-# data/spend-ledger.jsonl (bin/fm-spend-query.sh owns the schema; capture
+# data/spend-ledger.jsonl (bin/fm-spend-query.py owns the schema; capture
 # never blocks or fails the cleanup and an unmeasured figure is recorded
 # explicitly, never guessed), and feeds the same figure to the retrospective
 # closure receipt when one exists.
@@ -3515,7 +3515,7 @@ teardown_legacy_stamp_rollback() {
   # The same close is also the spend capture point: the task's outcome and
   # record are both still in hand, so the closed ship or scout appends one
   # best-effort schema-versioned line to the home's spend ledger
-  # (bin/fm-spend-query.sh owns the schema) and feeds the measured figure, when
+  # (bin/fm-spend-query.py owns the schema) and feeds the measured figure, when
   # one exists, to the observe call below. An unmeasured figure leaves the
   # closure in the unknown-cost lane. Capture never blocks or fails the
   # teardown: a failed append prints one stderr line and cleanup continues.
