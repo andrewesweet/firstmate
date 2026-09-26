@@ -355,7 +355,7 @@ It does this because it holds no handle on the watcher's stdout and cannot read 
 The opt-in `--follow-budget SECONDS` bounds the park, not the cycle: when the deadline elapses while a verified healthy watcher holds the cycle - one the arm attached to, or its own confirmed started child - the arm prints `watcher: follow budget elapsed (<disposition> left running)`, exits 0, and leaves that watcher running for a later arm to attach to.
 The caller the flag exists for is the fm-branch-mod continuity Monitor, whose own expiry kill takes the whole process group - watcher included - so its loop bounds every arm call by its remaining time and rotates itself ahead of the kill (see [`claude-supervision-branch.md`](claude-supervision-branch.md)).
 A cycle that ends inside the budget is resolved exactly as without the flag, and the budget never silences a FAILED verdict: the bounded exit happens only while the watcher is verified healthy.
-A started watcher's stderr goes to `state/.watch-arm.watcher.err` rather than the arm's own stderr, so a caller capturing the arm through a pipe regains control at the budget exit instead of waiting on the still-running watcher.
+A started watcher's stderr goes to a per-spawn `state/.watch-arm-stderr.*` side file rather than the arm's own stderr, so a caller capturing the arm through a pipe regains control at the budget exit instead of waiting on the still-running watcher.
 
 ### Terminal-delivery ledger
 Before releasing its singleton lock after printing an actionable reason, the watcher records that reason with its PID and process identity in `state/.watch-deliveries.log`.

@@ -509,6 +509,10 @@ test_composition_probe_scaffold_tracks_the_ship_branch_prefix() {
 
   plain_line=$(grep -F "\"task\":\"$plain\"" "$HOME_DIR/data/dispatch-spawns.jsonl")
   prefixed_line=$(grep -F "\"task\":\"$prefixed\"" "$HOME_DIR/data/dispatch-spawns.jsonl")
+  jq -e '.scaffold_tokens > 0 and .task_tokens > 0' <<<"$plain_line" >/dev/null \
+    || fail "the default-prefix line carries no composition split to compare: $plain_line"
+  jq -e '.scaffold_tokens > 0 and .task_tokens > 0' <<<"$prefixed_line" >/dev/null \
+    || fail "the prefixed line carries no composition split to compare: $prefixed_line"
   assert_equals "$(jq -r .task_tokens <<<"$plain_line")" "$(jq -r .task_tokens <<<"$prefixed_line")" \
     "a custom ship-branch prefix must not move scaffold branch lines into the task-specific measure"
   pass "the composition probe scaffolds against the ship-branch prefix the spawn selected"
