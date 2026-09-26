@@ -44,7 +44,10 @@
 # one "supervision-host:" notice naming the conflict - once per episode,
 # guarded by the state/.supervision-host-mod-conflict marker; a later host run
 # that finds no mod clears the marker, so a renewed conflict is surfaced
-# again. From the exec on, the arm's own close contract judges the cycle.
+# again. Only a host run clears it, so a conflict ended by removing
+# config/supervision-host instead leaves the marker behind and a conflict
+# re-created later is not surfaced again. From the exec on, the arm's own
+# close contract judges the cycle.
 #
 # THE LOOP. It owns watcher cycles through bin/fm-watch-arm.sh. On each
 # actionable close:
@@ -168,8 +171,10 @@ esac
 # aside into the plain watcher arm; the conflict is surfaced once per episode
 # (noclobber create-then-print so two racing hosts surface it once), and a
 # later host run without the mod clears the marker so a renewed conflict is
-# surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive into the exec (the
-# arm forwards it to its first cycle); the actor marks must not.
+# surfaced again - only a host run clears it, so a conflict ended by removing
+# config/supervision-host leaves the marker behind and a re-created conflict is
+# not surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive into the exec
+# (the arm forwards it to its first cycle); the actor marks must not.
 unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
 HOST_MOD_NOTICE="$STATE/.supervision-host-mod-conflict"
 if [ -e "$STATE/.branch-mod-mode" ]; then

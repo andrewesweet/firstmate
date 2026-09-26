@@ -398,26 +398,31 @@ test_step_aside_forwards_the_arms_restart_flag_and_env() {
   ln -s "$ROOT/bin/"*.sh "$tree/" || fail "fixture: could not link the bin tree"
   rm "$tree/fm-watch-arm.sh"
   # The step-aside exec's the arm beside itself, so a stub arm records the
-  # exact argv and environment the real arm would receive.
+  # exact argv and environment the real arm would receive; the host is invoked
+  # carrying the branch-actor marks, so the recorded marks can only read unset
+  # if the host itself scrubbed them.
   cat > "$tree/fm-watch-arm.sh" <<'SH'
 #!/usr/bin/env bash
 printf 'argv=%s\n' "$*" > "$FM_HOME/state/arm-received"
 printf 'predecessor=%s\n' "${FM_WATCH_PREDECESSOR_ARM_PID:-}" >> "$FM_HOME/state/arm-received"
 printf 'actor=%s\n' "${FM_SUPERVISION_ACTOR:-unset}" >> "$FM_HOME/state/arm-received"
+printf 'turn=%s\n' "${FM_BRANCH_REPORT_TURN:-unset}" >> "$FM_HOME/state/arm-received"
 printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
 SH
   chmod +x "$tree/fm-watch-arm.sh"
   enable_mod "$home"
 
-  FM_HOME="$home" PATH="$home/fakebin:$PATH" FM_WATCH_PREDECESSOR_ARM_PID=4242 \
+  FM_HOME="$home" FM_WATCH_PREDECESSOR_ARM_PID=4242 \
+    FM_SUPERVISION_ACTOR=branch FM_BRANCH_REPORT_TURN=1 \
     "$tree/fm-supervision-host.sh" park --restart > "$home/host.out" 2>&1
   assert_re '^argv=--restart$' "$home/state/arm-received" "the step-aside must forward --restart to the plain arm"
   assert_re '^predecessor=4242$' "$home/state/arm-received" "the owner's predecessor arm must survive into the exec"
   assert_re '^actor=unset$' "$home/state/arm-received" "the branch-actor marks must not leak into the exec'd arm"
+  assert_re '^turn=unset$' "$home/state/arm-received" "the branch report turn must not leak into the exec'd arm"
   assert_re '^watcher: started pid=' "$home/host.out" "the owner must see the arm's own status line"
 
   rm -f "$home/state/arm-received" "$home/state/.supervision-host-mod-conflict" "$home/host.out"
-  FM_HOME="$home" PATH="$home/fakebin:$PATH" \
+  FM_HOME="$home" FM_SUPERVISION_ACTOR=branch FM_BRANCH_REPORT_TURN=1 \
     "$tree/fm-supervision-host.sh" park > "$home/host.out" 2>&1
   assert_re '^argv=$' "$home/state/arm-received" "a plain park must exec the arm with no positional"
   pass "host: the step-aside execs the plain arm with --restart forwarded, the owner predecessor kept, and the actor marks cleared"
