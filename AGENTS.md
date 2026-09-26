@@ -103,6 +103,7 @@ data/                personal fleet records; LOCAL, gitignored as a whole
   secondmates.md      local and remote secondmate routing table; firstmate-private, maintained by the secondmate seed helpers (section 6)
   dispatch-resolve.jsonl  append-only outcome log for typed dispatch resolution, one JSON line per resolved call; never carries the API key or brief text (docs/configuration.md "Typed dispatch resolution")
   dispatch-spawns.jsonl  append-only actually-dispatched profile log for the offline dispatch replay scorer, one JSON line per successful fresh ship or scout spawn, never a relaunch (docs/configuration.md "Typed dispatch resolution")
+  spend-ledger.jsonl  append-only closed-task model-spend ledger, one best-effort schema-versioned line per closed ship or scout task; bin/fm-spend-query.sh answers standalone and bin/fm-spend-query.py owns the schema (docs/configuration.md "Task spend ledger")
   <id>/brief.md      per-task crewmate brief, or per-secondmate charter brief when kind=secondmate
   <id>/report.md     scout task deliverable, written by the crewmate; survives teardown
 projects/            cloned repos; gitignored; read-only except under hard rule 1's concrete captain-approved project operation exception

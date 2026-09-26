@@ -4,7 +4,12 @@
 # clear volatile state, and transition this home's backlog item for ship and
 # scout tasks before reporting success (a secondmate teardown transitions none,
 # since secondmates are not backlog items), then refresh/prune the project's
-# clone for PR-based ship tasks.
+# clone for PR-based ship tasks. On that same close, a ship or scout task also
+# appends one best-effort schema-versioned line to the home's
+# data/spend-ledger.jsonl (bin/fm-spend-query.py owns the schema; capture
+# never blocks or fails the cleanup and an unmeasured figure is recorded
+# explicitly, never guessed), and feeds the same figure to the retrospective
+# closure receipt when one exists.
 # An endpoint whose close could not do its job REFUSES before any record naming
 # it is removed: those records are the only thing that names what survived, so
 # reporting such a close as a completed cleanup strands the endpoint instead of
@@ -1521,6 +1526,62 @@ work_is_landed() {
 # deliverable is its report, a local-only ship lands on local main, and every
 # other ship carries the PR recorded on its own record.
 BACKLOG_DONE_ARGS=()
+# Name what the closed task delivered, for the spend ledger's outcome fields:
+# the merged PR URL for a PR ship, local main for a local-only ship, the scout
+# report for a scout, and nothing when a ship closed without either.
+spend_outcome_fields() {
+  TEARDOWN_SPEND_OUTCOME=''
+  TEARDOWN_SPEND_REF=''
+  local data_relative
+  case "$KIND" in
+    scout)
+      if [ -f "$DATA/$ID/report.md" ]; then
+        TEARDOWN_SPEND_OUTCOME=report
+        if data_relative=$(fm_backlog_data_relative "$DATA"); then
+          TEARDOWN_SPEND_REF="$data_relative/$ID/report.md"
+        fi
+      fi
+      ;;
+    ship)
+      if [ "$MODE" = local-only ]; then
+        TEARDOWN_SPEND_OUTCOME=local-main
+      elif [ -n "$PR_URL" ]; then
+        TEARDOWN_SPEND_OUTCOME='pr'
+        TEARDOWN_SPEND_REF=$PR_URL
+      fi
+      ;;
+  esac
+}
+
+# When the spend query itself cannot run (it normally answers with an explicit
+# unmeasured line, so this path is rare), ask the same wrapper for its
+# unmeasured shape directly so the shell copy of that shape stays defined in
+# exactly one place (bin/fm-spend-query.sh; bin/fm-spend-query.py owns the
+# schema).
+
+# Merge the query's object with the teardown's own ts and outcome fields and
+# append exactly one line to the home's spend ledger. One line per closed task
+# is the ledger's contract, and a teardown that refuses after this point tells
+# the operator to rerun, so a task the ledger already names appends nothing.
+spend_ledger_append() {  # <line>
+  local line=$1 merged
+  [ -n "$line" ] || return 1
+  if [ -f "$DATA/spend-ledger.jsonl" ] \
+    && jq -e -n --arg task "$ID" \
+      'first(inputs | select(.task == $task))' "$DATA/spend-ledger.jsonl" >/dev/null 2>&1; then
+    return 0
+  fi
+  merged=$(jq -c \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg outcome "$TEARDOWN_SPEND_OUTCOME" \
+    --arg ref "$TEARDOWN_SPEND_REF" \
+    '. + {ts: $ts}
+      + (if $outcome == "" then {} else {outcome: $outcome} end)
+      + (if $ref == "" then {} else {outcome_ref: $ref} end)' <<<"$line") || return 1
+  [ -n "$merged" ] || return 1
+  printf '%s\n' "$merged" >> "$DATA/spend-ledger.jsonl" || return 1
+}
+
 backlog_done_args() {
   local data_relative
   BACKLOG_DONE_ARGS=()
@@ -3451,9 +3512,32 @@ teardown_legacy_stamp_rollback() {
   # best effort - a receipt or trigger-filing failure never fails the
   # teardown it rode on - and without config/retro-cadence the observer is a
   # silent no-op that creates nothing.
+  # The same close is also the spend capture point: the task's outcome and
+  # record are both still in hand, so the closed ship or scout appends one
+  # best-effort schema-versioned line to the home's spend ledger
+  # (bin/fm-spend-query.py owns the schema) and feeds the measured figure, when
+  # one exists, to the observe call below. An unmeasured figure leaves the
+  # closure in the unknown-cost lane. Capture never blocks or fails the
+  # teardown: a failed append prints one stderr line and cleanup continues.
   if [ "$BACKLOG_TRANSITION" = close ] \
     && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
-    "$SCRIPT_DIR/fm-retro-trigger.sh" observe closure "$ID" >/dev/null || :
+    spend_outcome_fields
+    TEARDOWN_SPEND_LINE=''
+    if ! TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-query.sh" "$ID" 2>/dev/null); then
+      TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-query.sh" --unmeasured "spend query failed" "$ID" 2>/dev/null || :)
+    fi
+    if ! spend_ledger_append "$TEARDOWN_SPEND_LINE"; then
+      echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2
+    fi
+    TEARDOWN_SPEND_COST=$(jq -r 'if .usd_lane != "unmeasured" and (.usd | type == "number") then (.usd | tostring) else empty end' <<<"$TEARDOWN_SPEND_LINE" 2>/dev/null || :)
+    case "$TEARDOWN_SPEND_COST" in
+      '' | *[!0-9.]*) TEARDOWN_SPEND_COST='' ;;
+    esac
+    if [ -n "$TEARDOWN_SPEND_COST" ]; then
+      "$SCRIPT_DIR/fm-retro-trigger.sh" observe closure "$ID" --cost "$TEARDOWN_SPEND_COST" >/dev/null || :
+    else
+      "$SCRIPT_DIR/fm-retro-trigger.sh" observe closure "$ID" >/dev/null || :
+    fi
   fi
 else
   if [ "$CLEANUP_RECOVERY" = orca ]; then
