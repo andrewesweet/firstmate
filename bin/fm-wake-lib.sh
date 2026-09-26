@@ -936,7 +936,7 @@ fm_recovery_marker_reopen_announced() {
 }
 
 fm_lock_try_acquire() {
-  local lockdir=$1 pid steal cur rc steal_owner primary_owner current
+  local lockdir=$1 pid steal cur rc steal_owner primary_owner current parent
   FM_LOCK_HELD_PID=
   FM_LOCK_OWNER_DIR=
   FM_LOCK_RECOVERED_PID=
@@ -945,11 +945,16 @@ fm_lock_try_acquire() {
     return 0
   fi
 
-  # A create failure with no lock present at all is structural, not contention:
-  # a torn-down state directory can never be created into, and the steal path
-  # below lives in that same parent, so recursing on "$lockdir.steal" would
-  # never terminate. Report the failure instead of recursing.
-  if [ ! -e "$lockdir" ] && [ ! -L "$lockdir" ]; then
+  # A create failure into a parent directory that cannot be written is
+  # structural, not contention: a torn-down state directory can never be
+  # created into, and the steal path below lives in that same parent, so
+  # recursing on "$lockdir.steal" would never terminate. Report the failure
+  # instead of recursing. A lock that is merely absent at this instant, with a
+  # usable parent, is an ordinary race and still takes the steal path below -
+  # that path re-reads the lock and recreates it.
+  parent=${lockdir%/*}
+  [ "$parent" != "$lockdir" ] || parent=.
+  if [ ! -d "$parent" ] || [ ! -w "$parent" ]; then
     return 1
   fi
 
