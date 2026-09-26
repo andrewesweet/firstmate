@@ -561,6 +561,10 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
   echo "watcher: FAILED - no live watcher with a fresh beacon"
   exit 1
 }
+# A home that never existed (a state-only fixture) is not a home that
+# disappeared, exactly as bin/fm-watch.sh records before its own poll loop.
+ARM_HOME_EXISTED=0
+[ -z "${FM_HOME:-}" ] || [ ! -d "$FM_HOME" ] || ARM_HOME_EXISTED=1
 # The watcher's stderr and stdin are detached from this arm: a caller that
 # captures the arm through a pipe (`out=$("$A" ... 2>&1)`) reads until every
 # writer closes, so an inherited stderr would keep that caller blocked past a
@@ -597,11 +601,11 @@ WAIT_CHILD_BUDGET_EXIT=0
 # home-gone conditions (bin/fm-watch.sh's poll-loop head) and print its exact
 # line so the operator still reads one reason for the exit.
 relay_watcher_gone_reason() {
-  if [ -n "${FM_HOME:-}" ] && [ ! -d "$FM_HOME" ]; then
+  if [ "$ARM_HOME_EXISTED" -eq 1 ] && [ ! -d "$FM_HOME" ]; then
     printf 'watcher: exiting - home no longer exists: %s\n' "$FM_HOME"
   elif [ ! -d "$STATE" ]; then
     printf 'watcher: exiting - state directory no longer exists: %s\n' "$STATE"
-  elif [ ! -e "$WATCH_LOCK/pid" ]; then
+  elif [ -n "$child_out" ] && [ ! -e "$child_out" ]; then
     printf 'watcher: exiting - state directory was torn down (singleton lock removed): %s\n' "$STATE"
   elif [ ! -d "$SCRIPT_DIR" ]; then
     printf 'watcher: exiting - code root no longer exists: %s\n' "$SCRIPT_DIR"

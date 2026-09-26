@@ -1176,6 +1176,36 @@ test_watcher_exits_when_its_home_is_removed() {
   pass "watch-arm: a watcher exits within one poll when its home is removed"
 }
 
+# An ordinary nonzero watcher exit with the home and state directory intact must
+# not be relabelled as a teardown: the watcher's own EXIT trap releases the
+# singleton lock on every exit it owns, so a released lock is no evidence at all
+# by the time the arm inspects it.
+test_arm_does_not_relabel_a_plain_nonzero_exit_as_teardown() {
+  local dir home state fakebin armout
+  dir=$(make_case plain-nonzero-exit)
+  home="$dir/home"
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/arm.out"
+  mkdir -p "$home/data"
+  start_owned_watcher "$home" "$state" "$fakebin" "$armout"
+
+  kill -TERM "$WATCH_PID" 2>/dev/null || fail "could not signal watcher pid $WATCH_PID"
+  wait_for_pid_gone "$WATCH_PID" 60     || { kill -TERM "$WATCH_PID" 2>/dev/null; fail "watcher pid $WATCH_PID outlived its own nonzero exit"; }
+  wait_for_exit "$ARM_PID" 200 >/dev/null 2>&1 || true
+  [ -d "$home" ] || fail "the fixture home vanished, so this case proves nothing"
+  [ -d "$state" ] || fail "the fixture state directory vanished, so this case proves nothing"
+  ! grep -qF 'singleton lock removed' "$armout" \
+    || fail "arm relabelled a plain nonzero exit as a state teardown: $(cat "$armout")"
+  ! grep -qF 'watcher: exiting - home no longer exists' "$armout" \
+    || fail "arm claimed the intact home was gone: $(cat "$armout")"
+  ! grep -qF 'watcher: exiting - state directory no longer exists' "$armout" \
+    || fail "arm claimed the intact state directory was gone: $(cat "$armout")"
+  grep -q '^watcher: FAILED' "$armout" \
+    || fail "arm did not report the nonzero cycle at all: $(cat "$armout")"
+  pass "watch-arm: a plain nonzero watcher exit is not relabelled as a teardown"
+}
+
 # tests/lib.sh's exit-time reaper must stop a watcher a suite armed for a
 # temporary home, through the home-scoped stop, so no test leaves one behind.
 # The reaper is driven with a private registry so this suite's own registry
@@ -1205,6 +1235,7 @@ test_arm_refuses_a_disposable_validation_checkout
 test_watcher_exits_when_its_state_directory_is_removed
 test_watcher_exits_when_its_home_is_removed
 test_reaper_stops_a_tracked_watcher
+test_arm_does_not_relabel_a_plain_nonzero_exit_as_teardown
 test_attached_arm_still_fails_on_a_wake_it_did_not_deliver
 test_rearm_resurfaces_durable_queue_and_remote_open_decision
 test_slow_rearm_recovery_is_still_surfaced
