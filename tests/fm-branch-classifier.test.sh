@@ -80,7 +80,11 @@ PLAN='[
  {"name":"default-when-unconfigured","tasks":["ship-a"],"seqs":[],
   "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 5-6\n","stderr":""}],
   "defaultModel":"haiku",
-  "answer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"}
+  "answer":"{\"verdict\":\"routine\",\"reason\":\"on the host default\"}"},
+ {"name":"truncated-bundle","tasks":["ship-a","ship-b"],"seqs":["11"],
+  "evidence":[{"exitCode":0,"stdout":"## task ship-a status bytes 0-6000\n  working: still going\n## truncated: 400 further bytes of NEW lines are not in this bundle, so this evidence is incomplete\n","stderr":""},
+              {"exitCode":0,"stdout":"## task ship-b status bytes 0-20\n  working: fine\n","stderr":""}],
+  "answer":"{\"verdict\":\"routine\",\"reason\":\"looks fine\"}","config":"haiku"}
 ]'
 
 # ---------- node drivers -----------------------------------------------------
@@ -318,6 +322,19 @@ check_verdict 5 uncertain "model.complete failed: Error: no quota left" "a faile
 check_verdict 6 routine "" "a missing reason stays an empty string"
 check_verdict 7 routine "ok" "an evidence bundle without a byte range records -1 spans"
 
+# A truncated bundle never reaches the model: the verdict is uncertain on the
+# evidence alone, so the wake goes to main.
+TRUNC='.[] | select(.name == "truncated-bundle")'
+if [ "$(jq -r "$TRUNC | .result.verdict" "$TMP_ROOT/lib.json")" = "uncertain" ] \
+  && [ "$(jq -r "$TRUNC | .result.reason" "$TMP_ROOT/lib.json")" = "evidence bundle truncated: it does not carry the whole new status span" ] \
+  && [ "$(jq -r "$TRUNC | .completeReqs | length" "$TMP_ROOT/lib.json")" = "0" ] \
+  && [ "$(jq -r "$TRUNC | .result.model" "$TMP_ROOT/lib.json")" = "" ] \
+  && [ "$(jq -r "$TRUNC | .spawns | length" "$TMP_ROOT/lib.json")" = "2" ]; then
+  pass "a truncated evidence bundle is uncertain without any model call"
+else
+  fail "a truncated bundle was classified: $(jq -c "$TRUNC | {verdict: .result.verdict, reason: .result.reason, calls: (.completeReqs | length)}" "$TMP_ROOT/lib.json")"
+fi
+
 # The failed gatherer's text is part of the prompt, byte-pinned.
 if [ "$(jq -r '.[1].completeReqs[0].prompt' "$TMP_ROOT/lib.json" | grep -cFx '(evidence gatherer failed: spawn exploded)')" = "1" ] \
   && [ "$(jq -r '.[1].result.evidence[1].from' "$TMP_ROOT/lib.json")" = "-1" ] \
@@ -426,17 +443,20 @@ else
 fi
 
 # The system-prompt memo: one read for the whole plan, re-read after reset.
-if [ "$(jq -r '.[15].count' "$TMP_ROOT/lib.json")" = "1" ] \
-  && [ "$(jq -r '.[16].count' "$TMP_ROOT/lib.json")" = "2" ] \
-  && [ "$(jq -r '.[15].count' "$TMP_ROOT/mod.json")" = "1" ]; then
+MEMO_PLAN='.[] | select(.name == "system-reads-after-plan") | .count'
+MEMO_RESET='.[] | select(.name == "system-reads-after-reset") | .count'
+if [ "$(jq -r "$MEMO_PLAN" "$TMP_ROOT/lib.json")" = "1" ] \
+  && [ "$(jq -r "$MEMO_RESET" "$TMP_ROOT/lib.json")" = "2" ] \
+  && [ "$(jq -r "$MEMO_PLAN" "$TMP_ROOT/mod.json")" = "1" ]; then
   pass "the classifier system prompt is read once per module lifetime; the test reset clears it"
 else
-  fail "the system-prompt memo drifted (lib plan=$(jq -r '.[15].count' "$TMP_ROOT/lib.json") lib after reset=$(jq -r '.[16].count' "$TMP_ROOT/lib.json") mod=$(jq -r '.[15].count' "$TMP_ROOT/mod.json"))"
+  fail "the system-prompt memo drifted (lib plan=$(jq -r "$MEMO_PLAN" "$TMP_ROOT/lib.json") lib after reset=$(jq -r "$MEMO_RESET" "$TMP_ROOT/lib.json") mod=$(jq -r "$MEMO_PLAN" "$TMP_ROOT/mod.json"))"
 fi
 
 # The classifier-pass covering rule, byte-pinned.
-if [ "$(jq -r '.[17].summary' "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
-  && [ "$(jq -c '.[17].argv' "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
+COVER='.[] | select(.name == "pass-cover")'
+if [ "$(jq -r "$COVER | .summary" "$TMP_ROOT/lib.json")" = "Passed to main directly (classifier): needs human" ] \
+  && [ "$(jq -c "$COVER | .argv" "$TMP_ROOT/lib.json")" = '["append","--task","ship-a","--verdict","captain","--summary","Passed to main directly (classifier): needs human","--silent","false","--wake","9:12"]' ]; then
   pass "the classifier-pass covering summary and outcome-store argv are byte-stable"
 else
   fail "the classifier-pass covering rule drifted"

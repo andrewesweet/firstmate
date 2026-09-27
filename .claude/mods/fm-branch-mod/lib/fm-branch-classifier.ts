@@ -4,7 +4,8 @@
 // (.claude/mods/fm-branch-mod/hooks/branch.ts).
 //
 // This module owns, once: the evidence-bundle byte-range parse of
-// bin/fm-wake-evidence.sh output and its failure text, the classifier prompt
+// bin/fm-wake-evidence.sh output, its failure text and its truncation marker
+// (a truncated bundle is uncertain without a model call), the classifier prompt
 // construction, the model-answer interpretation rule (verdict whitelist,
 // unparsed and failed-call fallbacks), the durable classification-log record
 // shape and its serialization, and the classifier-pass covering-outcome rule
@@ -125,6 +126,15 @@ async function classifierSystemPrompt(deps: ClassifierDeps): Promise<string> {
   return cachedSystemPrompt;
 }
 
+/** The marker bin/fm-wake-evidence.sh prints when a task's new span did not
+ * fit the bundle's cap. */
+export const EVIDENCE_TRUNCATED_MARK = "## truncated:";
+
+/** True when a bundle says it does not carry the whole new span. */
+export function evidenceTruncated(text: string): boolean {
+  return text.includes(EVIDENCE_TRUNCATED_MARK);
+}
+
 /** The "## task <task> status bytes <from>-<to>" first-line parse. Returns
  * null when the bundle names no range. */
 export function evidenceStatusRange(stdout: string): { from: number; to: number } | null {
@@ -230,6 +240,19 @@ export async function classifyWake(deps: ClassifierDeps, input: { wake: string; 
   const evidence: ClassifierEvidence[] = [];
   for (const task of input.tasks) evidence.push(await gatherClassifierEvidence(deps, task));
   const prompt = buildClassifierPrompt(input.wake, evidence);
+  if (evidence.some((b) => evidenceTruncated(b.text))) {
+    const result: ClassifierResult = {
+      verdict: "uncertain",
+      reason: "evidence bundle truncated: it does not carry the whole new status span",
+      ms: 0,
+      promptChars: prompt.length + system.length,
+      answer: "",
+      model: "",
+      evidence,
+    };
+    const record = buildClassifierRecord({ clock: deps.clock, wake: input.wake, tasks: input.tasks, seqs: input.seqs, evidence, result });
+    return { result, record, recordLine: serializeClassifierRecord(record) };
+  }
   // Which model to call is resolved here, once, before any completion call:
   // the explicit configured name wins, otherwise the host's own default. A
   // host that can resolve neither records the failed call without a

@@ -11,8 +11,10 @@
 #       lines marked HISTORY. The first line names the status byte range the
 #       bundle judges: "## task <task> status bytes <from>-<to>". The bundle
 #       is bounded (1500 bytes of state, 6000 bytes of new lines); a longer
-#       new span is cut at the cap, named by the range it prints, and marked
-#       truncated so the classifier judges incomplete evidence as such.
+#       new span is cut back to the last whole line inside the cap (at the cap
+#       when one line is longer than it), named by the range it prints, and
+#       marked with a "## truncated:" line, which the shared classifier core
+#       reads as incomplete evidence and passes the wake to main.
 #   fm-wake-evidence.sh --routine-covered <task>
 #       Print every captain-facing status line of <task> that a ROUTINE branch
 #       outcome covered and main has not been shown, as "<end-offset>\t<line>"
@@ -20,12 +22,13 @@
 #       output means nothing to re-present.
 #
 # OFFSET FILE (this header is the one owner). $STATE/.<task>.classifier-offset
-# holds the status-log byte end of the last bundle, so each wake judges only
-# what was appended since. The bundle form advances it to the end of the bytes
-# it actually printed - a NEW span over the cap leaves the remainder for the
-# next wake and says so in the bundle; a size smaller than the offset (log
-# replaced) resets it to zero. It is the only file this script writes, and bin/fm-teardown.sh removes it with the task's other
-# per-task state. Exit 0 always for a readable task; exit 2 on usage errors.
+# holds the status-log byte size after the last bundle, so each wake judges
+# only what was appended since. The bundle form advances it to the full size -
+# a truncated bundle never lets the branch take the wake, so main handles the
+# whole span and no partial offset is ever kept; a size smaller than the
+# offset (log replaced) resets it to zero. It is the only file this script
+# writes, and bin/fm-teardown.sh removes it with the task's other per-task
+# state. Exit 0 always for a readable task; exit 2 on usage errors.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-wake-lib.sh
@@ -63,7 +66,12 @@ size=0
 [ "$off" -le "$size" ] || off=0
 new_cap=6000
 shown=$((size - off))
-[ "$shown" -le "$new_cap" ] || shown=$new_cap
+if [ "$shown" -gt "$new_cap" ]; then
+  shown=$(tail -c +$((off + 1)) "$f" | head -c "$new_cap" \
+    | perl -0777 -ne 'print(/\A(.*\n)/s ? length($1) : length($_))')
+  case "$shown" in '' | *[!0-9]*) shown=$new_cap ;; esac
+  [ "$shown" -gt 0 ] || shown=$new_cap
+fi
 end=$((off + shown))
 echo "## task $task status bytes $off-$end"
 echo "## current state (bin/fm-crew-state.sh $task)"
@@ -71,14 +79,14 @@ fm_run_timed 20 "$SCRIPT_DIR/fm-crew-state.sh" "$task" 2>&1 | head -c 1500
 echo
 if [ -f "$f" ]; then
   echo "## status lines appended since the last classified wake (NEW - judge these)"
-  tail -c +$((off + 1)) "$f" | head -c "$new_cap" | sed 's/^/  /'
+  tail -c +$((off + 1)) "$f" | head -c "$shown" | sed 's/^/  /'
   [ "$off" -lt "$size" ] || echo "  (none - this wake carries only a turn-end or pane signal)"
   if [ "$end" -lt "$size" ]; then
     [ -z "$(tail -c +"$end" "$f" | head -c 1)" ] || echo
-    echo "  (truncated - $((size - end)) further bytes of NEW lines are not in this bundle: the evidence is incomplete)"
+    echo "## truncated: $((size - end)) further bytes of NEW lines are not in this bundle, so this evidence is incomplete"
   fi
   echo "## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)"
   head -c "$off" "$f" | tail -n 4 | sed 's/^/  /'
   [ "$off" -gt 0 ] || echo "  (none)"
 fi
-printf '%s' "$end" >"$off_file"
+printf '%s' "$size" >"$off_file"
