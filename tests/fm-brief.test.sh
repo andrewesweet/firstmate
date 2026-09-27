@@ -1426,16 +1426,19 @@ test_ship_dod_implement_discipline() {
       || fail "fm-brief.sh $id --mode $mode exited non-zero"
     brief="$home/data/$id/brief.md"
     assert_present "$brief" "$id: brief was not scaffolded"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticks and path must stay literal
     assert_grep 'Implement by following the discipline at `~/.agents/skills/implement/SKILL.md`' "$brief" \
       "$mode DOD must point at the implement skill file"
     assert_grep 'read them instead of invoking them through a Skill tool' "$brief" \
       "$mode DOD must tell crews to read the user-invoked skills as files"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticks and path must stay literal
     assert_grep '`~/.agents/skills/tdd/SKILL.md`' "$brief" \
       "$mode DOD must point at the tdd skill file"
     assert_grep 'at the seams this brief agrees' "$brief" \
       "$mode DOD must test first at the agreed seams"
     assert_grep 'the full test suite once at the end' "$brief" \
       "$mode DOD must run the full suite once at the end"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticks and path must stay literal
     assert_grep '`~/.agents/skills/code-review/SKILL.md`' "$brief" \
       "$mode DOD must point at the code-review skill file"
     assert_grep "Standards (this repository's documented standards) and Spec (faithful implementation of this brief)" "$brief" \
@@ -1447,6 +1450,7 @@ test_ship_dod_implement_discipline() {
         "no-mistakes DOD must order the discipline before validation"
       assert_grep 'never run a second review beside it' "$brief" \
         "no-mistakes DOD must forbid a second reviewer during the run"
+      # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
       assert_grep 'enters as an added finding, as `no-mistakes axi respond --help` describes' "$brief" \
         "$mode DOD must fold self-spotted gaps in as added findings without restating the flag"
     else
