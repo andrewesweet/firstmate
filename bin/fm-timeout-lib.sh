@@ -13,9 +13,12 @@
 #   fm_run_timed <seconds> <command> [args...]
 #       Runs the command with a hard bound. Exit status is the command's own,
 #       except 124, which means the bound was hit (GNU timeout's convention,
-#       reproduced by the perl and bash fallbacks). A signal-death status the
-#       wrapper records while the runner already reports the bound is the
-#       bound's own TERM, not the command's exit, and is reported as 124 too.
+#       reproduced by the perl and bash fallbacks), and a command killed by a
+#       signal, which reports 128+signal on every mechanism - so a SIGKILLed
+#       child is 137 and a SIGTERMed one 143, never the 0 a caller would read
+#       as success. A signal-death status the wrapper records while the runner
+#       already reports the bound is the bound's own TERM, not the command's
+#       exit, and is reported as 124 too.
 #
 #   fm_exec_timed <seconds> <grace-seconds> <command> [args...]
 #       Replaces the calling shell with the bounded command, so it must be the

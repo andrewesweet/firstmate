@@ -526,7 +526,7 @@ if [ "\${1:-}" = pane ] && [ "\${2:-}" = get ]; then
   if [ "\${3:-}" = "$killpane" ]; then
     read_shell=\$(sed 's/^[^)]*) //' /proc/\$PPID/stat 2>/dev/null | awk '{print \$2}')
     kill -KILL "\$read_shell" 2>/dev/null
-    exit 137
+    exit 0
   fi
   [ "\${3:-}" = "$live" ] && exit 0
   exit 1
@@ -1426,6 +1426,7 @@ EOF
 
 test_endpoint_read_death_is_isolated_and_reported() {
   local rec root home fakebin out status=0
+  [ -r /proc/self/stat ] || { echo "skip: /proc not readable (the read-death shape needs process ancestry)"; return 0; }
   rec=$(new_world endpoint-death)
   IFS='|' read -r root home fakebin <<EOF
 $rec
@@ -1522,6 +1523,7 @@ EOF
 
 test_perl_timeout_fallback_reports_signal_death_nonzero() {
   local toolbin cmd rc=0
+  command -v perl >/dev/null 2>&1 || { echo "skip: perl not found (this case pins the perl mechanism only)"; return 0; }
   toolbin=$(mktemp -d "${TMPDIR:-/tmp}/fm-perl-timeout.XXXXXX")
   for cmd in bash perl sleep kill cat rm mktemp; do
     command -v "$cmd" >/dev/null 2>&1 && ln -s "$(command -v "$cmd")" "$toolbin/$cmd"
@@ -1539,6 +1541,7 @@ test_perl_timeout_fallback_reports_signal_death_nonzero() {
 
 test_abnormal_digest_death_banners_and_exits_zero() {
   local rec root home fakebin out status=0
+  [ -r /proc/self/stat ] || { echo "skip: /proc not readable (the digest-death shape needs process ancestry)"; return 0; }
   rec=$(new_world digest-death-banner)
   IFS='|' read -r root home fakebin <<EOF
 $rec
