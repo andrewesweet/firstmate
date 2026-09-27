@@ -400,8 +400,8 @@ EOF
 # mode's own path. On a no-mistakes ship this whole discipline completes
 # before validation starts: once the run starts the pipeline owns every fix
 # (fm_nm_implement_ordering_block states that ordering where it applies).
-fm_implement_discipline_block() {  # [branch]
-  local branch=${1:-fm/<task-id>}
+fm_implement_discipline_block() {  # <branch>
+  local branch=$1
   cat <<EOF
 Implement by following the discipline at \`~/.agents/skills/implement/SKILL.md\`, read as a file: those skills are user-invoked, so read them instead of invoking them through a Skill tool.
 Test first with the discipline at \`~/.agents/skills/tdd/SKILL.md\` at the seams this brief agrees; where the brief names no seam, test at the public boundary your change introduces, one vertical slice at a time.
