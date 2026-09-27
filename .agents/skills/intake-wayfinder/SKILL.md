@@ -58,4 +58,4 @@ Maps plan and do not build: a cleared map merges into `/to-spec` and then `/to-t
 
 Read `~/.agents/skills/to-spec/SKILL.md` for the spec shape (problem, solution, user stories, implementation and testing decisions, out of scope) and `~/.agents/skills/to-tickets/SKILL.md` for the slicing rules (tracer-bullet vertical slices, blocking edges, prefactor first, the expand-contract exception for wide refactors) as files.
 Present the proposed breakdown to the captain as a numbered list with title, blockers, and end-to-end delivery per ticket, and iterate on granularity, edges, and merges until approved before publishing.
-Work blockers first; any ticket whose blockers are done is takeable.
+Work blockers first; a ticket is takeable when it appears in `bin/fm-tasks-axi.sh ready`, which excludes blocked and held rows.
