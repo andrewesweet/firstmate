@@ -69,6 +69,111 @@ sq_json() {  # <home> <task> <jq filter>
 
 # --- Claude measurement: dedupe, window bounding, api-equiv pricing ----------
 
+# --- Pipeline columns ----------------------------------------------------------
+
+# Seed a minimal no-mistakes inventory through python's own sqlite3, so the
+# fixture needs no sqlite3 CLI: only the columns the collector reads.
+sp_nm_seed() {  # <nm-home>; prints the path
+  local nm=$1
+  mkdir -p "$nm"
+  NM_SEED="$nm/state.sqlite" python3 - <<'PY'
+import os
+import sqlite3
+path = os.environ["NM_SEED"]
+db = sqlite3.connect(path)
+db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
+db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+db.execute("INSERT INTO repos VALUES('r1','/pipe-proj')")
+db.execute("INSERT INTO runs VALUES('runA','r1','fm/pipe1',1),('runB','r1','fm/pipe1',2),('runC','r1','fm/other',3)")
+db.execute("INSERT INTO agent_invocations VALUES" +
+           "('a1','runA','claude-opus-4-1',1000,500,9000,100,60000)," +
+           "('a2','runA','gpt-mystery',2000,1000,0,0,30000)," +
+           "('a3','runA',NULL,NULL,NULL,NULL,NULL,7000)," +
+           "('b1','runB','claude-opus-4-1',500,100,100,10,10000)," +
+           "('c1','runC','claude-opus-4-1',999999,999999,999999,999999,999999)")
+db.commit()
+db.close()
+PY
+  printf '%s\n' "$nm"
+}
+
+test_pipeline_counts_measured_and_null_token_invocations() {
+  local nm out
+  nm=$(sp_nm_seed "$TMP_ROOT/nm-pipeline-mixed")
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --pipeline-only \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
+  assert_equals '2' "$(jq -r .pipeline_runs <<<"$out")" "both same-branch runs are counted"
+  assert_equals '4' "$(jq -r .pipeline_invocations <<<"$out")" "every same-branch invocation is counted"
+  assert_equals '3500' "$(jq -r .pipeline_input_tokens <<<"$out")" "input tokens sum the reported invocations"
+  assert_equals '1600' "$(jq -r .pipeline_output_tokens <<<"$out")" "output tokens sum the reported invocations"
+  assert_equals '9100' "$(jq -r .pipeline_cache_read_tokens <<<"$out")" "cache-read tokens sum the reported invocations"
+  assert_equals '110' "$(jq -r .pipeline_cache_creation_tokens <<<"$out")" "cache-creation tokens sum the reported invocations"
+  assert_equals '100000' "$(jq -r .pipeline_agent_ms <<<"$out")" "agent duration sums the reported invocations"
+  assert_equals '1' "$(jq -r .pipeline_unmeasured_invocations <<<"$out")" "the tokenless invocation is counted, not priced"
+  assert_equals '7000' "$(jq -r .pipeline_unmeasured_ms <<<"$out")" "the tokenless invocation keeps its duration"
+  assert_equals 'partial' "$(jq -r .pipeline_cost_lane <<<"$out")" "an unpriced model marks the cost partial"
+  jq -e '.pipeline_usd > 0.027 and .pipeline_usd < 0.028' <<<"$out" >/dev/null \
+    || fail "the priced invocations did not carry their opus cost: $out"
+  assert_contains "$(jq -r .pipeline_note <<<"$out")" "gpt-mystery" "the partial lane names the unpriced model"
+  pass "pipeline columns count tokenless invocations with duration instead of pricing them zero"
+}
+
+test_pipeline_without_a_branch_is_definitively_empty() {
+  local out
+  out=$(NM_HOME="$TMP_ROOT/nm-absent" python3 "$PARSER" --task t --pipeline-only \
+    --pipeline-branch "" --pipeline-project /pipe-proj)
+  assert_equals 'none' "$(jq -r .pipeline_cost_lane <<<"$out")" "no branch means no pipeline, not unknown"
+  jq -e '.pipeline_runs == 0 and .pipeline_invocations == 0 and .pipeline_usd == null' <<<"$out" >/dev/null \
+    || fail "an empty pipeline zeroes every column: $out"
+  pass "a task with no branch records an empty pipeline"
+}
+
+test_pipeline_with_an_unresolvable_repo_is_unmeasured() {
+  local nm out
+  nm="$TMP_ROOT/nm-norepo"
+  mkdir -p "$nm"
+  NM_SEED="$nm/state.sqlite" python3 - <<'PY'
+import os
+import sqlite3
+path = os.environ["NM_SEED"]
+db = sqlite3.connect(path)
+db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
+db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+db.commit()
+db.close()
+PY
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task t --pipeline-only \
+    --pipeline-branch fm/pipe1 --pipeline-project /no-such-project)
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$out")" "an unresolvable repo stays unmeasured"
+  [ -n "$(jq -r .pipeline_note <<<"$out")" ] \
+    || fail "an unmeasured pipeline must state its reason"
+  NM_HOME="$TMP_ROOT/nm-missing" python3 "$PARSER" --task t --pipeline-only \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj > "$TMP_ROOT/po" 2>/dev/null \
+    || fail "a missing inventory must still answer"
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <"$TMP_ROOT/po")" "a missing inventory stays unmeasured"
+  pass "an unresolvable pipeline scope records unmeasured with a reason"
+}
+
+test_normalize_line_reads_old_schema_lines() {
+  local v1 v2 out
+  v1='{"schema":1,"task":"old-1","kind":"ship","harness":"pi","model":"m","effort":"e","window":null,"calls":null,"mean_context_tokens":null,"cache_read_share":null,"usd_lane":"unmeasured","usd":null,"models":[],"unmeasured_reason":"r","ts":"2023-11-14T22:13:30Z","outcome":"pr","outcome_ref":"https://example.test/pr/1"}'
+  out=$(printf '%s' "$v1" | python3 "$PARSER" --task ignored --normalize-line)
+  assert_equals '2' "$(jq -r .schema <<<"$out")" "a schema 1 line normalizes to schema 2"
+  assert_equals 'old-1' "$(jq -r .task <<<"$out")" "normalization keeps the task fields"
+  assert_equals 'pr' "$(jq -r .outcome <<<"$out")" "normalization keeps the producer fields"
+  assert_equals '0' "$(jq -r .pipeline_runs <<<"$out")" "a schema 1 line gains default pipeline columns"
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$out")" "the default pipeline columns are unmeasured"
+  v2=$(printf '%s' "$v1" | python3 "$PARSER" --task ignored --normalize-line)
+  out=$(printf '%s' "$v2" | python3 "$PARSER" --task ignored --normalize-line)
+  assert_equals "$v2" "$out" "a schema 2 line normalizes to itself"
+  if printf '%s' '{"schema":9,"task":"x"}' | python3 "$PARSER" --task ignored --normalize-line >/dev/null 2>&1; then
+    fail "an unknown ledger schema must be refused"
+  fi
+  pass "old-schema ledger lines still parse into the current schema"
+}
+
 test_claude_measures_deduped_window_bounded_api_equiv() {
   local home dir out
   home=$(sq_home claude-measured)
@@ -460,5 +565,9 @@ test_brief_composition_splits_scaffold_from_task
 test_brief_composition_maps_probe_paths_onto_the_real_home
 test_brief_composition_refuses_unreadable_inputs
 test_parser_direct_invocation_bounds_with_explicit_window
+test_pipeline_counts_measured_and_null_token_invocations
+test_pipeline_without_a_branch_is_definitively_empty
+test_pipeline_with_an_unresolvable_repo_is_unmeasured
+test_normalize_line_reads_old_schema_lines
 
 echo "OK: fm-spend-query"

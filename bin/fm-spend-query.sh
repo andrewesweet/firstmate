@@ -17,11 +17,11 @@
 # bound cannot be window-bounded honestly, so the answer is an explicit
 # unmeasured line, never a partial or inflated figure.
 # --unmeasured <reason> skips measurement and emits the schema's unmeasured
-# shape for the task directly; bin/fm-teardown.sh's failed-query fallback calls
-# it so the shell shape has exactly one definition (this file) beside the
-# schema owner in bin/fm-spend-query.py.
-# bin/fm-spend-query.py owns the schema, the runtime coverage list, and the
-# assumed-rate table. Every supported runtime is either measured there or
+# shape for the task directly; the shared producer's failed-query fallback
+# calls it so the shell shape has exactly one definition (this file) beside
+# the schema owner in bin/fm-spend-query.py.
+# bin/fm-spend-query.py owns the schema, the runtime coverage list, the
+# assumed-rate table, and the pipeline columns. Every supported runtime is either measured there or
 # returns an explicit unmeasured line; a runtime whose logs cannot be parsed
 # never produces a guessed figure.
 # Exits 0 with the JSON on stdout when the record is readable, even on an
@@ -89,10 +89,16 @@ emit_unmeasured() {  # <reason>
   jq -cn \
     --arg task "$ID" --arg kind "${KIND:-}" --arg harness "${HARNESS:-unknown}" \
     --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg reason "$1" \
-    '{schema: 1, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
+    '{schema: 2, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
       window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
       usd_lane: "unmeasured", usd: null, models: [],
-      unmeasured_reason: $reason}'
+      unmeasured_reason: $reason,
+      pipeline_runs: 0, pipeline_invocations: 0,
+      pipeline_input_tokens: 0, pipeline_output_tokens: 0,
+      pipeline_cache_read_tokens: 0, pipeline_cache_creation_tokens: 0,
+      pipeline_agent_ms: 0, pipeline_unmeasured_invocations: 0, pipeline_unmeasured_ms: 0,
+      pipeline_usd: null, pipeline_cost_lane: "unmeasured",
+      pipeline_note: "pipeline not queried in the shell unmeasured fallback"}'
 }
 
 HARNESS=$(meta_get harness)
@@ -100,6 +106,8 @@ MODEL=$(meta_get model)
 EFFORT=$(meta_get effort)
 KIND=$(meta_get kind)
 WORKTREE=$(meta_get worktree)
+BRANCH=$(meta_get branch)
+PROJECT=$(meta_get project)
 SPAWN_GEN=$(meta_get spawn_gen)
 SPAWN_EPOCH_FIRST=$(meta_get spawn_epoch_first)
 
@@ -156,6 +164,10 @@ fi
 
 PY_ARGS=(--task "$ID" --kind "$KIND" --harness "${HARNESS:-unknown}"
   --model "${MODEL:-default}" --effort "${EFFORT:-default}" --worktree "$WORKTREE"
-  --spawn-epoch "$SPAWN_EPOCH" --end-epoch "$END_EPOCH")
+  --spawn-epoch "$SPAWN_EPOCH" --end-epoch "$END_EPOCH"
+  --pipeline-branch "$BRANCH" --pipeline-project "$PROJECT")
+# The task's ship branch and project scope the pipeline columns to this task's
+# own no-mistakes runs; a record without them still measures the worker figure
+# while the pipeline stays explicitly unmeasured.
 
 exec python3 "$SCRIPT_DIR/fm-spend-query.py" "${PY_ARGS[@]}"

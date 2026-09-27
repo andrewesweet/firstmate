@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Per-task model-spend figures from a worker's own session logs.
 
-This file owns the spend-ledger line schema (schema 1) and the runtime
+This file owns the spend-ledger line schema (schema 2) and the runtime
 coverage list. bin/fm-spend-query.sh is the operator entrypoint that resolves
 the task record and calls this file; read that header first for the
-command-line contract.
+command-line contract. bin/fm-spend-ledger-append.sh is the shared producer
+that appends one line per closed task; it queries the pipeline columns here
+and merges them over the worker line.
 
-Schema 1, one JSON object per run:
-    schema                 always 1
+Schema 2, one JSON object per run:
+    schema                 always 2 (a schema 1 line is the same object
+                           without the pipeline_* keys; normalize_line
+                           below reads both)
     task, kind             task id and kind copied from the task record
     harness, model, effort copied from the task record ("unknown"/"default"
                            when the record omits them)
@@ -32,9 +36,33 @@ Schema 1, one JSON object per run:
                            rates below, never a bill.
     models                 sorted model names seen in the window
     unmeasured_reason      present exactly when usd_lane is "unmeasured"
+    pipeline_runs          no-mistakes runs recorded for the task's branch
+    pipeline_invocations   agent_invocations rows across those runs
+    pipeline_input_tokens, pipeline_output_tokens, pipeline_cache_read_tokens,
+    pipeline_cache_creation_tokens
+                           token sums over invocations that reported usage
+    pipeline_agent_ms      summed agent duration over those invocations
+    pipeline_unmeasured_invocations
+                           invocations that reported no tokens (killed or
+                           never started); counted with their duration,
+                           never priced as zero cost
+    pipeline_unmeasured_ms summed agent duration over those invocations
+    pipeline_usd           priced cost over reported usage whose model
+                           matches a known rate prefix; null when no reported
+                           usage had a known rate
+    pipeline_cost_lane     "api-equiv" every reported token priced here at
+                                       assumed list rates
+                           "partial"   some reported tokens had no known
+                                       rate; pipeline_usd covers the priced
+                                       part only
+                           "none"      the branch ran no pipeline runs, so
+                                       every pipeline count is a definitive 0
+                           "unmeasured" no honest pipeline figure exists
+    pipeline_note          present exactly when pipeline_cost_lane is not
+                           "api-equiv"
 
-A teardown ledger line (bin/fm-teardown.sh) is this object plus the teardown's
-own "ts", "outcome", and "outcome_ref" fields.
+A teardown ledger line (bin/fm-spend-ledger-append.sh) is this object plus the
+producer's own "ts", "outcome", and "outcome_ref" fields.
 
 Runtime coverage - a runtime is measured only when its local session log
 exposes per-call usage in a stable, discoverable form verified on an installed
@@ -63,6 +91,13 @@ for without them is refused rather than answered over an unbounded window.
 The rate table below is the one place USD-per-million-token assumptions live.
 These are assumed list rates, not quotes, and they can go stale; an
 "api-equiv" label always accompanies them. Update them here and nowhere else.
+
+The pipeline columns are priced at the same table, but unlike the worker
+figure they never fall back to a default rate: an invocation whose model
+matches no prefix keeps its tokens in the token sums while its cost stays
+unmeasured (lane "partial"), because guessing a price is worse than naming
+the gap. The no-mistakes state is read through a read-only connection and is
+never written; NM_HOME selects the inventory (default ~/.no-mistakes).
 """
 
 from __future__ import annotations
@@ -75,7 +110,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Assumed list rates, USD per million tokens. Keyed by model-name prefix;
 # the longest matching prefix wins and the first entry is the documented
@@ -95,6 +130,21 @@ def rates_for(model: str) -> dict:
         if model.startswith(prefix):
             return rates
     return DEFAULT_RATES
+
+
+def rates_for_known(model) -> dict | None:
+    """The rate row for a pipeline model, or None when no prefix matches.
+    Unlike rates_for this never falls back: an unknown pipeline model keeps
+    its tokens while its cost stays unmeasured."""
+    if not isinstance(model, str) or not model:
+        return None
+    best = None
+    best_len = -1
+    for prefix, rates in RATE_TABLE:
+        if model.startswith(prefix) and len(prefix) > best_len:
+            best = rates
+            best_len = len(prefix)
+    return best
 
 
 def parse_timestamp(value) -> datetime | None:
@@ -252,6 +302,156 @@ RUNTIMES = {
 }
 
 
+def pipeline_defaults() -> dict:
+    """The pipeline columns with nothing measured yet; collect_pipeline
+    fills them or explains why it could not."""
+    return {
+        "pipeline_runs": 0,
+        "pipeline_invocations": 0,
+        "pipeline_input_tokens": 0,
+        "pipeline_output_tokens": 0,
+        "pipeline_cache_read_tokens": 0,
+        "pipeline_cache_creation_tokens": 0,
+        "pipeline_agent_ms": 0,
+        "pipeline_unmeasured_invocations": 0,
+        "pipeline_unmeasured_ms": 0,
+        "pipeline_usd": None,
+        "pipeline_cost_lane": "unmeasured",
+        "pipeline_note": "pipeline not queried",
+    }
+
+
+def nm_state_root() -> Path:
+    root = Path(os.environ.get("NM_HOME") or Path.home() / ".no-mistakes")
+    return root
+
+
+def collect_pipeline(branch: str | None, project: str | None) -> dict:
+    """Aggregate the no-mistakes agent_invocations for one task branch.
+    The inventory is opened read-only and never written. Invocations that
+    reported no tokens (killed or never started) are counted with their
+    duration and never priced."""
+    pipeline = pipeline_defaults()
+    if not branch:
+        pipeline["pipeline_note"] = "task record carries no branch; no pipeline runs to attribute"
+        pipeline["pipeline_cost_lane"] = "none"
+        return pipeline
+    db_path = nm_state_root() / "state.sqlite"
+    if not db_path.is_file():
+        pipeline["pipeline_note"] = f"no-mistakes state not found at {db_path}"
+        return pipeline
+    try:
+        import sqlite3
+        db = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True, timeout=5)
+        try:
+            db.execute("SELECT 1 FROM runs LIMIT 1")
+            repo_rows = db.execute(
+                "SELECT id FROM repos WHERE working_path = ?", ((project or ""),)
+            ).fetchall() if project else []
+            if repo_rows:
+                run_rows = db.execute(
+                    "SELECT id FROM runs WHERE repo_id = ? AND branch = ? ORDER BY created_at",
+                    (repo_rows[0][0], branch),
+                ).fetchall()
+            else:
+                run_rows = []
+            run_ids = [row[0] for row in run_rows]
+            if run_ids:
+                placeholders = ",".join("?" for _ in run_ids)
+                invocations = db.execute(
+                    "SELECT model, input_tokens, output_tokens, cache_read_tokens, "
+                    "cache_creation_tokens, duration_ms FROM agent_invocations "
+                    f"WHERE run_id IN ({placeholders})",
+                    run_ids,
+                ).fetchall()
+            else:
+                invocations = []
+        finally:
+            db.close()
+    except Exception as exc:
+        pipeline["pipeline_note"] = f"no-mistakes state unreadable: {exc}"
+        return pipeline
+    if project and not repo_rows:
+        pipeline["pipeline_note"] = f"no-mistakes repo not resolved for project {project}"
+        return pipeline
+    if not project:
+        pipeline["pipeline_note"] = "task record carries no project; pipeline repo cannot be resolved"
+        return pipeline
+    if not run_ids:
+        pipeline["pipeline_cost_lane"] = "none"
+        pipeline["pipeline_note"] = f"no no-mistakes runs recorded for branch {branch}"
+        return pipeline
+    priced_usd = 0.0
+    priced_tokens = 0
+    unpriced_models: set[str] = set()
+    for model, input_tokens, output_tokens, cache_read, cache_creation, duration_ms in invocations:
+        duration = duration_ms if isinstance(duration_ms, int) else 0
+        if input_tokens is None:
+            pipeline["pipeline_unmeasured_invocations"] += 1
+            pipeline["pipeline_unmeasured_ms"] += duration
+            continue
+        output = output_tokens if isinstance(output_tokens, int) else 0
+        read = cache_read if isinstance(cache_read, int) else 0
+        created = cache_creation if isinstance(cache_creation, int) else 0
+        pipeline["pipeline_input_tokens"] += input_tokens
+        pipeline["pipeline_output_tokens"] += output
+        pipeline["pipeline_cache_read_tokens"] += read
+        pipeline["pipeline_cache_creation_tokens"] += created
+        pipeline["pipeline_agent_ms"] += duration
+        rates = rates_for_known(model)
+        if rates is None:
+            unpriced_models.add(model if isinstance(model, str) else "unknown")
+            continue
+        priced_tokens += input_tokens + output + read + created
+        priced_usd += (
+            input_tokens * rates["input"]
+            + output * rates["output"]
+            + read * rates["cache_read"]
+            + created * rates["cache_write_5m"]
+        ) / 1e6
+    pipeline["pipeline_runs"] = len(run_ids)
+    pipeline["pipeline_invocations"] = len(invocations)
+    measured = pipeline["pipeline_invocations"] - pipeline["pipeline_unmeasured_invocations"]
+    if measured == 0:
+        pipeline["pipeline_note"] = "no invocation reported tokens; every pipeline cost stays unmeasured"
+        return pipeline
+    if unpriced_models:
+        pipeline["pipeline_cost_lane"] = "partial"
+        pipeline["pipeline_usd"] = round(priced_usd, 4) if priced_tokens else None
+        pipeline["pipeline_note"] = (
+            "no known rate for model(s) " + ", ".join(sorted(unpriced_models)) + "; "
+            "pipeline_usd covers the priced invocations only"
+        )
+        return pipeline
+    pipeline["pipeline_cost_lane"] = "api-equiv"
+    pipeline["pipeline_usd"] = round(priced_usd, 4)
+    pipeline.pop("pipeline_note", None)
+    return pipeline
+
+
+def normalize_line(line: dict) -> dict:
+    """Read a ledger line of any known schema and return its schema 2 form.
+    A schema 1 line gains the default pipeline columns; unknown fields pass
+    through untouched and unknown schemas are refused."""
+    if not isinstance(line, dict):
+        raise ValueError("ledger line must be a JSON object")
+    schema = line.get("schema")
+    if schema == SCHEMA_VERSION:
+        normalized = dict(line)
+        for key, value in pipeline_defaults().items():
+            normalized.setdefault(key, value)
+        if normalized.get("pipeline_cost_lane") == "api-equiv":
+            normalized.pop("pipeline_note", None)
+        return normalized
+    if schema == 1:
+        normalized = dict(line)
+        normalized["schema"] = SCHEMA_VERSION
+        normalized.update(pipeline_defaults())
+        normalized["pipeline_note"] = "recorded before pipeline columns existed"
+        return normalized
+    raise ValueError(f"unsupported ledger schema: {schema!r}")
+
+
 def unmeasured(base: dict, reason: str) -> dict:
     line = dict(base)
     line.update({
@@ -277,10 +477,16 @@ def build_line(args) -> dict:
         "model": args.model or "default",
         "effort": args.effort or "default",
     }
+    # The pipeline figure is independent of the worker figure: a task whose
+    # worker session cannot be measured may still have pipeline runs, and a
+    # task with no branch has definitively no pipeline runs to attribute.
+    pipeline = collect_pipeline(
+        getattr(args, "pipeline_branch", None), getattr(args, "pipeline_project", None)
+    )
     if harness not in RUNTIMES:
-        return unmeasured(base, UNMEASURED_DEFAULT_REASON)
+        return {**unmeasured(base, UNMEASURED_DEFAULT_REASON), **pipeline}
     if not args.worktree:
-        return unmeasured(base, "task record carries no worktree path")
+        return {**unmeasured(base, "task record carries no worktree path"), **pipeline}
 
     if args.spawn_epoch is None or args.end_epoch is None:
         raise SystemExit(
@@ -295,13 +501,13 @@ def build_line(args) -> dict:
     parse, resolve_log_dir, usd_lane = RUNTIMES[harness]
     log_dir = resolve_log_dir(args.worktree)
     if not log_dir.is_dir():
-        return unmeasured({**base, "window": window}, f"no session log directory found for the task worktree: {log_dir}")
+        return {**unmeasured({**base, "window": window}, f"no session log directory found for the task worktree: {log_dir}"), **pipeline}
 
     calls, cache_read, usd, models, cost_complete = parse(log_dir, start, end)
     if not calls:
-        return unmeasured({**base, "window": window}, "no model-call usage records found inside the task window")
+        return {**unmeasured({**base, "window": window}, "no model-call usage records found inside the task window"), **pipeline}
     if not cost_complete:
-        return unmeasured({**base, "window": window}, "runtime log lacks per-call cost for some or all calls")
+        return {**unmeasured({**base, "window": window}, "runtime log lacks per-call cost for some or all calls"), **pipeline}
 
     context_total = sum(calls)
     line = dict(base)
@@ -314,6 +520,7 @@ def build_line(args) -> dict:
         "usd_lane": usd_lane,
         "usd": usd,
     })
+    line.update(pipeline)
     return line
 
 
@@ -327,7 +534,21 @@ def main() -> int:
     parser.add_argument("--worktree", default="")
     parser.add_argument("--spawn-epoch", type=int, default=None)
     parser.add_argument("--end-epoch", type=int, default=None)
+    parser.add_argument("--pipeline-branch", default=None,
+                        help="task ship branch; its no-mistakes runs supply the pipeline columns")
+    parser.add_argument("--pipeline-project", default=None,
+                        help="absolute project clone path scoping the pipeline branch lookup")
+    parser.add_argument("--pipeline-only", action="store_true",
+                        help="print only the pipeline columns object for --pipeline-branch")
+    parser.add_argument("--normalize-line", action="store_true",
+                        help="read one ledger line on stdin and print its schema 2 form")
     args = parser.parse_args()
+    if args.normalize_line:
+        print(json.dumps(normalize_line(json.load(sys.stdin))))
+        return 0
+    if args.pipeline_only:
+        print(json.dumps(collect_pipeline(args.pipeline_branch, args.pipeline_project)))
+        return 0
     print(json.dumps(build_line(args)))
     return 0
 

@@ -4468,12 +4468,16 @@ test_teardown_appends_one_unmeasured_spend_ledger_line() {
     || fail "teardown wrote no spend ledger line"
   assert_equals '1' "$(wc -l < "$case_dir/data/spend-ledger.jsonl")" "one closed task appends exactly one ledger line"
   line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
-  assert_equals '1' "$(jq -r .schema <<<"$line")" "the ledger line is schema version 1"
+  assert_equals '2' "$(jq -r .schema <<<"$line")" "the ledger line is schema version 2"
   assert_equals 'task-x1' "$(jq -r .task <<<"$line")" "the ledger line names the closed task"
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "a record without harness session logs is unmeasured"
   assert_equals 'null' "$(jq -r .usd <<<"$line")" "an unmeasured line carries no USD figure"
   [ -n "$(jq -r .unmeasured_reason <<<"$line")" ] \
     || fail "an unmeasured ledger line must state its reason"
+  jq -e '.pipeline_runs == 0 and .pipeline_invocations == 0 and .pipeline_usd == null' <<<"$line" >/dev/null \
+    || fail "a line without pipeline runs carries zeroed pipeline columns: $line"
+  [ -n "$(jq -r .pipeline_note <<<"$line")" ] \
+    || fail "an unmeasured pipeline column set must state its reason"
   assert_equals 'pr' "$(jq -r .outcome <<<"$line")" "the ledger line records the closed ship's PR outcome"
   assert_equals 'https://github.com/example/repo/pull/7' "$(jq -r .outcome_ref <<<"$line")" "the ledger line records the PR URL"
   assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the ledger line carries a UTC timestamp"
@@ -4517,6 +4521,8 @@ test_teardown_measures_claude_spend_from_fixture_logs() {
   assert_equals '1' "$(jq -r .calls <<<"$line")" "the measured line counts the window's deduplicated calls"
   jq -e '.usd > 0.07 and .usd < 0.08' <<<"$line" >/dev/null \
     || fail "the measured ledger line did not carry the priced USD figure: $line"
+  assert_equals '2' "$(jq -r .schema <<<"$line")" "the measured line is schema version 2"
+  assert_equals 'none' "$(jq -r .pipeline_cost_lane <<<"$line")" "a task with no ship branch records no pipeline runs"
   pass "a closed ship with session logs records measured api-equiv spend"
 }
 
@@ -4545,6 +4551,7 @@ test_teardown_survives_a_broken_spend_query() {
   line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "the fallback line is unmeasured"
   assert_contains "$(jq -r .unmeasured_reason <<<"$line")" "spend query failed" "the fallback names the failed capture"
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$line")" "a broken pipeline query stays explicitly unmeasured"
   [ "$(backlog_row_state "$case_dir")" = "done" ] \
     || fail "a broken spend capture disturbed the backlog close"
   pass "a broken spend query never fails the cleanup and still records unmeasured"
