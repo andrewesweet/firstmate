@@ -1833,6 +1833,52 @@ cleanup_stale_lock_for_safety_check() {
   return "$TEARDOWN_TREEHOUSE_LOCK_REFUSED"
 }
 
+# Is this teardown holding the shared Treehouse project lock for <lock-path>?
+# Either as the record's own lock or as one taken for a descendant. Every pool
+# mutation below is gated on it, so the answer is computed in one place.
+teardown_treehouse_project_lock_held() {  # <lock-path>
+  local lock_path=$1 target
+  [ -n "$lock_path" ] || return 1
+  [ "$TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] || [ "$TREEHOUSE_PROJECT_LOCK" != "$lock_path" ] || return 0
+  for target in "${DESCENDANT_TREEHOUSE_LOCK_PATHS[@]+"${DESCENDANT_TREEHOUSE_LOCK_PATHS[@]}"}"; do
+    [ "$target" != "$lock_path" ] || return 0
+  done
+  return 1
+}
+
+# Release a task's durable slot lease when its pooled copy is gone from disk.
+# Every other return path needs the checkout, so without this the lease would
+# outlive the record that named it and the pool would never reissue the slot.
+# The copy's absence is no evidence of who holds the lease, so the slot goes
+# back only against treehouse's own pool status: leased, and leased to this
+# task, under the project lock that serialises every allocation and return. A
+# slot treehouse has since leased to another task is left alone, and a lease
+# this teardown cannot prove is named on stderr with the command that frees it
+# rather than dropped silently or taken from its real owner.
+teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
+  local id=$1 worktree=$2 project=$3 label=$4 pool_status holder lock_path
+  [ -n "$worktree" ] || return 0
+  [ -f "$(dirname "$(dirname "$worktree")")/treehouse-state.json" ] || return 0
+  if [ -n "$project" ] && [ -d "$project" ] && command -v treehouse >/dev/null 2>&1 &&
+    pool_status=$( cd "$project" && treehouse status --json 2>/dev/null ) &&
+    holder=$(printf '%s' "$pool_status" | jq -r --arg path "$worktree" \
+      '[.[] | select(.path == $path and .status == "leased")][0].lease_holder // ""' 2>/dev/null); then
+    if [ -z "$holder" ]; then
+      return 0
+    fi
+    if [ "$holder" != "$id" ]; then
+      echo "warning: task $id's $label $worktree is gone from disk, and that pool slot's Treehouse lease is held for $holder, so it was left alone" >&2
+      return 0
+    fi
+    lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
+    if teardown_treehouse_project_lock_held "$lock_path" &&
+      teardown_treehouse_return "$worktree" "$project" "$label"; then
+      return 0
+    fi
+  fi
+  echo "warning: task $id's $label $worktree is gone from disk and its Treehouse slot lease was not returned; release it by hand with: (cd ${project:-<project>} && treehouse return --force $worktree)" >&2
+}
+
 # Return a worktree/home via `treehouse return --force`, tolerating a transient or
 # stale git index.lock left by a killed crew process. See the script header.
 teardown_treehouse_return() {
@@ -2973,7 +3019,7 @@ preflight_descendant_task_locks() {
 }
 
 preflight_descendant_treehouse_slots() {
-  local i state task_id meta kind backend target worktree project lock_path held owner_rc
+  local i state task_id meta kind backend worktree project lock_path held owner_rc
   for ((i=0; i < ${#DESCENDANT_TASK_IDS[@]}; i++)); do
     state=${DESCENDANT_TASK_STATES[$i]}
     task_id=${DESCENDANT_TASK_IDS[$i]}
@@ -2986,7 +3032,7 @@ preflight_descendant_treehouse_slots() {
     if [ "$kind" = secondmate ] || [ "$backend" = orca ]; then
       continue
     fi
-    if ! fm_treehouse_pool_slot "$project" "$worktree"; then
+    if ! fm_treehouse_pool_slot_recorded "$project" "$worktree"; then
       continue
     fi
     lock_path=$(fm_treehouse_project_lock_path "$project") || {
@@ -2994,10 +3040,7 @@ preflight_descendant_treehouse_slots() {
       return 1
     }
     held=0
-    [ "$TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] || [ "$TREEHOUSE_PROJECT_LOCK" != "$lock_path" ] || held=1
-    for target in "${DESCENDANT_TREEHOUSE_LOCK_PATHS[@]+"${DESCENDANT_TREEHOUSE_LOCK_PATHS[@]}"}"; do
-      [ "$target" != "$lock_path" ] || held=1
-    done
+    ! teardown_treehouse_project_lock_held "$lock_path" || held=1
     if [ "$held" = 0 ]; then
       fm_lock_try_acquire "$lock_path" || {
         echo "REFUSED: another Treehouse slot allocation or return is in progress for child $task_id; forced teardown changed nothing" >&2
@@ -3331,8 +3374,11 @@ cleanup_firstmate_home_children() {
           fi
         else
           safe_rm_rf_child_worktree "$child_wt" "$child_proj"
+          teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
         fi
       fi
+    elif [ -n "$child_wt" ]; then
+      teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
     fi
     remove_grok_turnend_auth "$sub_state" "$child_id" || return 1
     remove_kimi_turnend_auth "$sub_state" "$child_id" || return 1
@@ -3716,15 +3762,11 @@ elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
   # unclaimed until its next holder claims it, and leaves the claim in place
   # whenever the return did not actually happen.
   fm_treehouse_slot_owner_release "$WT" "$ID"
-elif [ "$KIND" != secondmate ] && [ "$TREEHOUSE_SLOT_LOCK_REQUIRED" = 1 ]; then
-  # The recorded pool copy is gone from disk - removed or pruned outside
-  # Firstmate - so none of the steps above run and nothing else would ever
-  # release this task's durable lease. Return it anyway, under the project lock
-  # this teardown already holds for the slot, so the pool reissues the slot
-  # instead of reserving it for a task no record describes.
-  if ! teardown_treehouse_return "$WT" "$PROJ" "worktree"; then
-    echo "warning: task $ID's recorded pool slot $WT is gone from disk and its Treehouse lease could not be returned; that slot may stay reserved until it is returned by hand" >&2
-  fi
+elif [ "$KIND" != secondmate ] && [ -n "$WT" ]; then
+  # The recorded copy is gone from disk - removed or pruned outside Firstmate -
+  # so none of the steps above run and nothing else would ever release this
+  # task's durable lease.
+  teardown_return_absent_copy_lease "$ID" "$WT" "$PROJ" "recorded pool slot"
 fi
 
 HERDR_PRESENTATION_JOURNAL="$STATE/$ID.herdr-presentation"

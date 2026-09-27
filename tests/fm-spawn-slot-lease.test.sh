@@ -26,7 +26,10 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # pool root at call time; <pool>/.fake-leases records "<slot> <holder>" lines
 # and <pool>/.fake-calls logs every invocation. `get --lease` prints the first
 # unleased slot's checkout and records the holder; a pool with no free slot
-# fails. `return --force <path>` drops that slot's lease. Anything else exits 0.
+# fails. `return --force <path>` drops that slot's lease. `status --json` prints
+# treehouse's pool status for every slot, carrying its lease holder, which is
+# the only evidence of ownership once a slot's checkout is gone. Anything else
+# exits 0.
 make_pool_fakebin() {
   local dir=$1 fakebin
   fakebin=$(make_spawn_fakebin "$dir")
@@ -70,6 +73,27 @@ if [ "${1:-}" = get ]; then
     echo "error: no free worktree in fake pool $pool" >&2
     exit 1
   fi
+  exit 0
+fi
+if [ "${1:-}" = status ]; then
+  first=1
+  printf '['
+  for slotdir in "$pool"/*/; do
+    [ -d "$slotdir" ] || continue
+    slot=$(basename "$slotdir")
+    case "$slot" in .* ) continue ;; esac
+    holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
+    [ "$first" = 1 ] || printf ','
+    first=0
+    if [ -n "$holder" ]; then
+      printf '{"name":"%s","path":"%s","status":"leased","lease_holder":"%s"}' \
+        "$slot" "${slotdir%/}/project" "$holder"
+    else
+      printf '{"name":"%s","path":"%s","status":"available","lease_holder":""}' \
+        "$slot" "${slotdir%/}/project"
+    fi
+  done
+  printf ']\n'
   exit 0
 fi
 if [ "${1:-}" = return ]; then
@@ -135,14 +159,15 @@ run_pool_spawn() {  # <id> <pane> [fm-spawn args...]
     "$id" "$PROJECT_DIR" "$@"
 }
 
-run_pool_teardown() {  # <id>
+run_pool_teardown() {  # <id> [fm-teardown args...]
   local id=$1
+  shift
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$HOME_DIR" \
     FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
     FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
     FM_FAKE_TREEHOUSE_POOL="$POOL_DIR" \
     PATH="$FAKEBIN_DIR:$PATH" \
-    "$ROOT/bin/fm-teardown.sh" "$id" 2>&1
+    "$ROOT/bin/fm-teardown.sh" "$id" "$@" 2>&1
 }
 
 leases_held() {
@@ -266,6 +291,105 @@ test_teardown_frees_the_lease_when_the_slot_directory_is_gone() {
   pass "teardown frees the lease even when the slot's copy was removed before it ran"
 }
 
+# A slot whose copy is gone but whose lease treehouse reports for another task
+# belongs to that task: teardown must leave it leased and name the holder,
+# rather than hand a live task's slot back to the pool.
+test_teardown_leaves_an_absent_copy_leased_to_another_task() {
+  local rec out status
+  rec=$(make_pool_case reassignedslot 1 2)
+  read_pool_record "$rec"
+
+  out=$(run_pool_spawn lease-notmine-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "the spawn before the slot was pruned should launch"$'\n'"$out"
+  printf '# Scout findings\n\nNo changes needed.\n' > "$HOME_DIR/data/lease-notmine-r1/report.md"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
+    FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete lease-notmine-r1 --none >/dev/null
+
+  rm -rf "$POOL_DIR/1/project"
+  # treehouse has since leased that slot to another task.
+  printf '1 lease-otherowner-r1\n' > "$POOL_DIR/.fake-leases"
+
+  out=$(run_pool_teardown lease-notmine-r1)
+  status=$?
+  expect_code 0 "$status" "teardown of a scout whose pool copy is gone should succeed"$'\n'"$out"
+  grep -Fxq "1 lease-otherowner-r1" "$POOL_DIR/.fake-leases" \
+    || fail "teardown dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
+  assert_contains "$out" "lease is held for lease-otherowner-r1" \
+    "teardown did not name the task the slot's lease is held for"
+  pass "teardown leaves an absent copy whose lease belongs to another task alone"
+}
+
+# make_child_pool_case <name> wraps make_pool_case in a secondmate home holding
+# one child scout record on pool slot 1, whose checkout has been removed. Echoes
+# the same record as make_pool_case; the secondmate is torn down as `domain`.
+make_child_pool_case() {  # <name> <child-id>
+  local name=$1 child_id=$2 rec subhome
+  rec=$(make_pool_case "$name" 1 2)
+  read_pool_record "$rec"
+  subhome="$CASE_DIR/subhome"
+  mkdir -p "$subhome/state" "$HOME_DIR/data"
+  printf 'domain\n' > "$subhome/.fm-secondmate-home"
+  cat > "$HOME_DIR/state/domain.meta" <<EOF
+window=firstmate:fm-domain
+worktree=$subhome
+project=$subhome
+harness=echo
+kind=secondmate
+mode=secondmate
+yolo=off
+home=$subhome
+projects=project
+EOF
+  printf '%s\n' "- domain - design domain (home: $subhome; scope: design domain; projects: project; added 2026-06-22)" \
+    > "$HOME_DIR/data/secondmates.md"
+  cat > "$subhome/state/$child_id.meta" <<EOF
+window=firstmate:fm-$child_id
+worktree=$POOL_DIR/1/project
+project=$PROJECT_DIR
+harness=echo
+kind=scout
+mode=no-mistakes
+yolo=off
+EOF
+  printf '1 %s\n' "$child_id" > "$POOL_DIR/.fake-leases"
+  rm -rf "$POOL_DIR/1/project"
+  printf '%s\n' "$rec"
+}
+
+# The same invariant one level down: a child record's lease is freed by the
+# forced cleanup of its secondmate home even when the child's copy is gone.
+test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone() {
+  local out status
+  make_child_pool_case childpruned lease-child-r1 >/dev/null
+
+  out=$(run_pool_teardown domain --force)
+  status=$?
+  expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
+  grep -q "^1 " "$POOL_DIR/.fake-leases" \
+    && fail "child cleanup left the lease on a slot whose copy is gone: $(cat "$POOL_DIR/.fake-leases")"
+  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
+    || fail "child cleanup did not return the child's leased copy: $(cat "$POOL_DIR/.fake-calls")"
+  pass "child cleanup frees a lease whose slot copy was removed"
+}
+
+# And a child slot whose lease treehouse reports for another task is left alone.
+test_child_cleanup_leaves_an_absent_copy_leased_to_another_task() {
+  local out status
+  make_child_pool_case childnotmine lease-child-r2 >/dev/null
+  printf '1 lease-otherowner-r2\n' > "$POOL_DIR/.fake-leases"
+
+  out=$(run_pool_teardown domain --force)
+  status=$?
+  expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
+  grep -Fxq "1 lease-otherowner-r2" "$POOL_DIR/.fake-leases" \
+    || fail "child cleanup dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
+  assert_contains "$out" "lease is held for lease-otherowner-r2" \
+    "child cleanup did not name the task the slot's lease is held for"
+  pass "child cleanup leaves an absent copy whose lease belongs to another task alone"
+}
+
 # A spawn that fails after leasing - here on a dirty pooled copy - returns its
 # lease and drops its claim, so no lease outlives a task that was never
 # recorded.
@@ -328,6 +452,9 @@ test_settle_timeout_returns_its_lease() {
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
 test_teardown_frees_the_lease_when_the_slot_directory_is_gone
+test_teardown_leaves_an_absent_copy_leased_to_another_task
+test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone
+test_child_cleanup_leaves_an_absent_copy_leased_to_another_task
 test_aborted_spawn_returns_its_lease
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease
