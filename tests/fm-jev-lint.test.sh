@@ -59,6 +59,26 @@ EOF
 
 printf '{"r1":0.91,"r2":0.11,"r4":0.75}' > "$STUB"
 
+R3DIFF="$TMP_ROOT/r3.diff"
+cat > "$R3DIFF" <<'EOF'
+diff --git a/docs/tools.md b/docs/tools.md
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ b/docs/tools.md
+@@ -0,0 +1,10 @@
++# Supported tools
++
++The fleet supports exactly three harnesses: `claude`, `codex`, and `pi`.
++
++## Registry
++
++- `claude` - conversational work
++- `codex` - patch generation
++- `opencode` - editing
++- `pi` - supervision
+EOF
+
 check_env() {
   env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$STUB" TYPESAFE_API_KEY="sk-test-SECRETKEY123" "$@"
 }
@@ -144,8 +164,27 @@ test_disabled_rule_is_skipped() {
   pass "flipping enabled to false removes a rule in one data line"
 }
 
+test_r3_enumeration_subjects() {
+  local rec="$TMP_ROOT/r3.jsonl" stub="$TMP_ROOT/r3-stub.json" out
+  printf '{"r3":0.5}' > "$stub"
+  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    "$TOOL" check --diff-file "$R3DIFF" --record "$rec" 2>/dev/null)
+  [ "$(jq -s 'length' "$rec")" -eq 2 ] || fail "r3 yields the inline enumeration and the bullet run"
+  jq -e -s 'all(.[]; .rule == "r3" and .cutoff == 0.2 and .flagged == true)' "$rec" >/dev/null \
+    || fail "r3 0.50 >= 0.20 flags with the frozen cutoff"
+  echo "$out" | grep -q '\[r3 docs/tools.md' || fail "r3 findings print with rule and file: $out"
+  grep -q 'SECRETKEY123' "$rec" && fail "API key must never reach the record"
+  local low="$TMP_ROOT/r3-low.jsonl" lowstub="$TMP_ROOT/r3-low-stub.json"
+  printf '{"r3":0.18}' > "$lowstub"
+  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$lowstub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    "$TOOL" check --diff-file "$R3DIFF" --record "$low" 2>/dev/null)
+  echo "$out" | grep -q 'finding' && fail "r3 0.18 < 0.20 must stay silent (version-string drift band)"
+  pass "r3 extracts enumerations and applies the frozen 0.20 cutoff"
+}
+
 test_extraction_and_cutoffs
 test_cutoff_boundary_flags
+test_r3_enumeration_subjects
 test_absent_key_skips_silently
 test_record_never_carries_key
 test_resolve_and_score

@@ -21,8 +21,8 @@
 #
 # Frozen set: bin/fm-jev-lint-rules.json carries each rule's exact question,
 #   cutoff, and enabled flag, copied verbatim from the Tier-1 pilot's frozen
-#   artifacts. R3 skill-registry-drift is not in the set: it never separated
-#   and stays out until a reworded question revalidates. A rule whose live
+#   artifacts. R3 carries the reworded v2 question only (revalidated at 0.875
+#   precision and recall); the v1 wording is never used. A rule whose live
 #   fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed
 #   by flipping its enabled flag to false, a one-line data change; score flags
 #   the candidate but never edits the set.
@@ -140,6 +140,22 @@ extract_subjects() {
   function is_budget(l) {
     bl = tolower(l); return (bl ~ /(timeout|budget|deadline|ttl|expir)/ && l ~ /[0-9]/)
   }
+  function is_list_item(l) {
+    return (l ~ /^[[:space:]]*([-*+][[:space:]]|[0-9]+\.[[:space:]])/)
+  }
+  function is_enum_line(l,   c, q) {
+    if (is_list_item(l)) return 0
+    c = gsub(/,/, ",", l); q = gsub(/`/, "`", l) + gsub(/"/, "\"", l)
+    return (c >= 2 && q >= 4)
+  }
+  function r3_context(from, to, skip_from, skip_to,   k, ev) {
+    ev = ""
+    for (k = (from > 1 ? from : 1); k <= to && k <= n; k++) {
+      if (k >= skip_from && k < skip_to) continue
+      ev = ev (ev == "" ? "" : " ") lines[k]
+    }
+    return ev
+  }
   function is_test_file(f) { return (f ~ /[Tt]est|[Ss]pec/) }
   function emit(rule, file, claim, ev) {
     claim = cap(flat(claim), claim_cap); ev = cap(flat(ev), ev_cap)
@@ -196,6 +212,20 @@ extract_subjects() {
         claim = lines[i]; ev = ""
         for (k = (i - 5 > 1 ? i - 5 : 1); k <= n && k <= i + 5; k++) ev = ev (ev == "" ? "" : " ") lines[k]
         emit("r4", file, claim, ev)
+      }
+      for (i = 1; i <= n; i++) {
+        if (kinds[i] != "+") continue
+        if (is_list_item(lines[i])) {
+          if (i > 1 && kinds[i-1] == "+" && is_list_item(lines[i-1])) continue
+          enum = lines[i]; cnt = 1
+          for (k = i + 1; k <= n && kinds[k] == "+" && is_list_item(lines[k]) && cnt < 10; k++) {
+            enum = enum " " lines[k]; cnt++
+          }
+          if (cnt < 2) continue
+          emit("r3", file, enum, r3_context(i - 5, i + cnt + 4, i, i + cnt))
+        } else if (is_enum_line(lines[i])) {
+          emit("r3", file, lines[i], r3_context(i - 5, i + 5, i, i + 1))
+        }
       }
     }
     file = ""; n = 0
