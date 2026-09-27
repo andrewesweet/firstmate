@@ -3648,6 +3648,42 @@ test_required_checks_reported_and_green_merge() {
   pass "fm-pr-merge merges when every required check reported and is green"
 }
 
+test_optional_classic_required_checks() {
+  local case_dir head variant
+  head=a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9
+  for variant in absent null malformed; do
+    case_dir=$(make_case "github-optional-classic-$variant")
+    add_gh_mocks "$case_dir" "$head"
+    case "$variant" in
+      absent)
+        jq '.protected = true | del(.protection.required_status_checks)' \
+          "$case_dir/github-branch.json" > "$case_dir/updated.json"
+        ;;
+      null)
+        jq '.protected = true | .protection.required_status_checks = null' \
+          "$case_dir/github-branch.json" > "$case_dir/updated.json"
+        ;;
+      malformed)
+        jq '.protected = true | .protection.required_status_checks = []' \
+          "$case_dir/github-branch.json" > "$case_dir/updated.json"
+        ;;
+    esac
+    mv "$case_dir/updated.json" "$case_dir/github-branch.json"
+    run_required_case "$case_dir" 114
+    if [ "$variant" = malformed ]; then
+      expect_code 1 "$RC" "optional-classic-malformed: malformed non-null settings must refuse"
+      assert_grep 'the branch protection summary for base branch main could not be read' \
+        "$case_dir/stderr" "optional-classic-malformed: malformed settings were not rejected"
+      assert_no_grep 'pr merge' "$case_dir/gh.log" \
+        "optional-classic-malformed: malformed settings reached merge"
+    else
+      expect_code 0 "$RC" "optional-classic-$variant: disabled status checks must merge: $(cat "$case_dir/stderr")"
+      assert_logged_gh_merge "$case_dir" 114 example/repo --squash
+    fi
+  done
+  pass "fm-pr-merge accepts disabled classic checks and rejects malformed settings"
+}
+
 test_red_and_unreported_checks_are_reported_together() {
   local case_dir head
   head=a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3
@@ -3903,6 +3939,7 @@ test_merge_outcome_spans_follow_publication
 test_merge_outcome_report_emits_once_per_merge
 test_required_check_that_never_reported_refuses
 test_required_checks_reported_and_green_merge
+test_optional_classic_required_checks
 test_red_and_unreported_checks_are_reported_together
 test_unreadable_required_set_refuses
 test_allow_missing_waives_only_the_named_unreported_check
