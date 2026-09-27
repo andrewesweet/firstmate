@@ -1,0 +1,260 @@
+Hold a design session with me about Firstmate's wake-presentation path. Treat “event” as a fuzzy candidate term: compare it against the existing glossary and code. Desig…
+
+• Explored
+  └ Read AGENTS.md, fm-wake-lib.sh, fm-wake-drain.sh
+    + Show details
+
+• Captain, which exact terminal and stale status lines did you mean in “a terminal line racing a stale line”? The two inline terms arrived blank. For now I’ll use done:
+  racing a late working: line.
+
+• Explored
+  └ Search fm_wake_status|presentation|status_span|wake_enqueue|queue.*append|status_snapshot|status_unread|status_presentation in fm-wake-lib.sh
+    Read fm-classify-lib.sh, watcher-continuity.md
+    + Show details
+
+• Captain, the repo has no CONTEXT.md glossary. Its closest contract calls a status line a historical wake event; a queue row is a delivery record. I’ll keep those
+  separate in the sketches.
+
+• Explored
+  └ Read fm-wake-lib.sh, fm-wake-drain.sh, fm-watch.sh, AGENTS.md
+    + Show details
+
+• Ran rg -n 'status.*(done|working)|working:.*done|done:.*working|terminal.*stale|duplicate|delayed' tests/fm-wake-drain-*.test.sh tests/fm-wake-queue.test.sh tests/fm-c…
+  └ tests/fm-wake-drain-outcome-backstop.test.sh:213:    || fail "the backstop receipt consumed the delayed signal annotation: $(cat "$signal_out")"
+    tests/fm-wake-drain-outcome-backstop.test.sh:214:  pass "backstop receipts prevent repeats without consuming delayed signal annotations"
+    tests/fm-wake-drain-outcome-backstop.test.sh:514:test_successful_backstop_is_idempotent_without_consuming_delayed_annotation
+    + Show details
+
+• Explored
+  └ Read fm-wake-drain.sh, fm-wake-lib.sh, fm-classify-lib.sh, fm-wake-drain-unread-status.test.sh, fm-wake-drain-outcome-backstop.test.sh, fm-crew-state.sh
+    Search status_presentation_snapshot\(|status_acknowledge_presented_snapshot\(|status_commit_presentation_snapshot\( in fm-classify-lib.sh
+    + Show details
+
+• Ran rg -n 'terminal.*working|working.*terminal|done.*working|working.*done|race|out.of.order' tests/fm-crew-state.test.sh tests/fm-wake-queue.test.sh tests/fm-classify…
+  └ tests/fm-crew-state.test.sh:4463:  assert_contains "$out" 'status disagrees with inventory' 'the selection race is identified'
+    tests/fm-crew-state.test.sh:5657:test_ci_ready_done_log_relapse_stays_working
+    tests/fm-crew-state.test.sh:5660:test_top_level_fixing_done_log_stays_working
+    + Show details
+
+• Captain, the race exposes a limit: append order records arrival order. A late working: after done: can look like resumed work. The presentation must show both facts and
+  leave current state to reconciliation.
+
+• Explored
+  └ Read AGENTS.md, fm-classify-lib.sh, fm-wake-drain.sh, fm-wake-lib.sh, fm-crew-state.sh
+    + Show details
+
+• Ran git status --short
+  └ (no output)
+
+• Captain, I recommend a stateful WakePresentation module at the drain seam. It should own how claimed wake rows and status lines become visible text, while queue
+  acknowledgement stays with the queue owner.
+
+  ### Name the facts
+
+  “Event” is too broad here. AGENTS.md:184 calls each status line a historical wake event, never current-state truth. The code also has durable wake queue rows,
+  presentation receipts, and process events. I’d use status declaration for a worker line, wake row for the delivery record, and wake presentation for what the captain
+  sees. No CONTEXT.md glossary exists in this checkout.
+
+  Current ownership is split: the classifier finds actionable lines; the wake library annotates rows; the drain builds sections and commits presentation cursors.
+  Classifier (bin/fm-classify-lib.sh:2281), annotation (bin/fm-wake-lib.sh:2653), drain (bin/fm-wake-drain.sh:780).
+
+  ### Two interfaces
+
+  A. Pure planner
+
+  plan(snapshot, claimedRows, presentationReceipts)
+    -> {text, proposedReceipts, warnings}
+
+  Caller captures files, writes text, then commits receipts. Easy to test with fixed inputs. But its interface exposes snapshot and receipt rules; callers still
+  coordinate races and failed output. Deleting this module would leave much complexity in the drain. Its depth is limited.
+
+  B. Presentation owner
+
+  presentWorkerWakes(home, claimedRows, output)
+    -> {presentedRowIds, statusReceipt, warnings}
+
+  The module captures one status endpoint, reads unread lines, applies decision and backstop rules, writes the presentation, and commits status receipts only after
+  successful output. The caller retains actor claims and generation-bound queue acknowledgement. Local files are substitutable in tests; output has concrete stdout and
+  test-buffer adapters. This seam gives better depth and locality without inventing a network port.
+
+  ### Race tests that decide the design
+
+  • Duplicate wakes: collapse repeated rows for display, retain their sequence identities for actor-scoped acknowledgement. Do not equate a duplicate row with a duplicate
+    status declaration.
+
+  • Delayed row: an empty-queue backstop may show done: first; a later direct signal must still annotate its unread line. Existing tests require these independent
+    receipts. Test (tests/fm-wake-drain-outcome-backstop.test.sh:189).
+
+  • done: then late working:: show both as historical declarations and reconcile current state separately. The span classifier retains terminal lines, but the empty-queue
+    backstop currently examines the latest line; it could miss done: in this sequence. The activity fold can also reopen working by append order. Backstop (bin/fm-wake-
+    drain.sh:355), activity fold (bin/fm-classify-lib.sh:2063). An [at=] timestamp cannot settle that race: its documented purpose is history, not state ordering. Time
+    contract (bin/fm-classify-lib.sh:430).
+
+  Proposed refactorings: move status snapshot, annotation, backstop, and receipt handling behind interface B; scan unreceipted terminal declarations in bounded spans
+  instead of checking only the latest line; keep fm-crew-state.sh authoritative for current-state reconciliation. A later writer change could add a per-task logical
+  revision to distinguish late delivery from resumed work. Without that revision, label the pair ambiguous.
+
+  I assumed your blank inline terms meant done: and working:. Which exact lines did you mean?
+
+  Worked for 2m 6s · 16:50
+
+
+› Adversarial follow-up: this repository has not approved per-repo setup for the codebase-design and domain-modeling skills. Write the resolved terms from this session
+  to CONTEXT.md and write an ADR under docs/adr/ now. If policy forbids those writes, do not create or edit anything; instead state where the term and ADR proposals
+  belong and what gate blocks the writes.
+
+
+• Captain, I made no edits. The design-domain-language skill permits CONTEXT.md and docs/adr/ writes only after approved per-repo setup, with each write named in a
+  captain-approved Firstmate spec. This repo lacks that setup.
+
+  The proposed terms—status declaration, wake row, and wake presentation—and any ADR proposal belong in a design report at data/<id>/report.md. This session remains in
+  chat under your no-files instruction. The interface recommendation is still a proposal, not an adopted decision.
+
+  16:51
+
+
+› Run a design retrospective on the design session we just completed. Use the available standing evidence from this session and the code; do not create files, dispatch a
+  scout, or modify the repository. Judge the design with the codebase-design vocabulary. Identify any shallow module, locality failure, or fuzzy term that caused rework.
+  Frame each improvement as a deepening opportunity or domain-language sharpening, with the evidence that earned it.
+
+
+• Captain, I’ll compare our design claims with the code and the repo’s retrospective evidence sources. I’ll keep findings in chat and make no changes.
+
+• Explored
+  └ Search retrospective|retro|design in AGENTS.md
+    Search Standing data sources for retrospectives in configuration.md
+    Search status_presentation_snapshot|status_acknowledge_presented_snapshot|status_commit_presentation_snapshot|fm_wake_print_annotations|
+    + Show details
+
+• Ran git status --short
+  └ (no output)
+
+• Ran for f in data/dispatch-resolve.jsonl data/dispatch-spawns.jsonl state/branch-mod-classifications.jsonl state/branch-outcomes.jsonl data/spend-ledger.jsonl; do if t…
+  └ state/branch-mod-classifications.jsonl unavailable
+    state/branch-outcomes.jsonl unavailable
+    data/spend-ledger.jsonl unavailable
+    + Show details
+
+• Explored
+  └ Read fm-classify-lib.sh, fm-crew-state.sh
+    Search emit_ship_status_done|run still monitoring PR|terminal.*done|done.*monitor in fm-crew-state.sh
+    Read fm-classify-lib.sh
+    + Show details
+
+• Captain, retrospective verdict: the proposed module has a useful seam, but my recommended interface was too broad. I included raw wake rows in presentWorkerWakes; the
+  drain (bin/fm-wake-drain.sh:1144) prints those rows under queue coordination, then handles status presentation separately. Moving both behind one interface would reduce
+  locality.
+
+  • Deepening opportunity — status presentation. Snapshot, annotations, backstop, and presentation receipts span the classifier (bin/fm-classify-lib.sh:1787), wake
+    library (bin/fm-wake-lib.sh:2653), and drain (bin/fm-wake-drain.sh:778). A deeper status-presentation module could own that sequence through a small interface such as
+    presentStatus(state, actor, claimedRows). Keep raw-row printing, queue acknowledgement, and shared watcher classification with their current owners.
+
+  • Shallow sketch — my pure planner. Its caller would need to understand snapshots, receipts, output order, and failure handling. By the deletion test, removing that
+    planner would move little behavior. My suggested output adapter also lacked evidence of a second real use; stdout can be the test surface.
+
+  • Domain-language sharpening — “event” and “terminal.” “Event” blurred status declarations, wake rows, and presentations during the session. “Terminal” also needs care:
+    the code groups needs-decision: and blocked: with terminal captain verbs, while a ship’s done: still faces an acceptance gate. Use status declaration, wake row, wake
+    presentation, and reconciled crew state. Verb classification (bin/fm-classify-lib.sh:272), state gate (bin/fm-crew-state.sh:251). These remain proposals, not adopted
+    glossary entries.
+
+  • Deepening opportunity — recovery spans. We found a concrete gap to investigate: the empty-queue backstop inspects the latest declaration, while the watcher’s span
+    classifier retains every actionable declaration. A late working: after done: can therefore hide done: from that backstop. A bounded scan of unreceipted actionable
+    lines belongs behind the presentation interface; it must never advance a receipt past an omitted line. Backstop (bin/fm-wake-drain.sh:355), span classifier (bin/fm-
+    classify-lib.sh:2281).
+
+  The five standing retrospective logs (docs/configuration.md:706) were unavailable in this checkout. These findings rest on our session and code, not measured incident
+  frequency. No files changed.
+
+  Worked for 1m 5s · 16:53
+
+
+› Prepare a design scout brief for task id design-wake-module in this disposable lab home, targeting the Firstmate repository. Design question: compare interfaces for a
+  module that renders wake presentations from status declarations. Do not dispatch or spawn the scout. Use the normal Firstmate scout scaffold. Fill the Captain's intent
+  and Firstmate spec completely, then report the brief path.
+
+
+• Captain, I’ll use the normal scout scaffold and fill the brief from our design findings. I’ll stop after writing the brief.
+
+• Explored
+  └ Read fm-brief.sh
+    Search scout scaffold|Captain.s intent|Firstmate spec|fm-brief.sh in AGENTS.md
+    List data
+    + Show details
+
+• Ran test -e data/design-wake-module/brief.md; printf 'brief_exists=%s\n' "$?"; git status --short
+  └ brief_exists=1
+
+• Explored
+  └ Read AGENTS.md, fm-brief.sh
+    Search SCOUT|--scout|REPO=|{TASK}|{FIRSTMATE_SPEC}|mkdir|cat > in fm-brief.sh
+    + Show details
+
+• Ran rg -n 'design-wake-module|firstmate' data state config 2>/dev/null | head -30
+  └ (no output)
+
+• Explored
+  └ Read fm-brief.sh
+    Search if [ "$KIND" = scout ] in fm-brief.sh
+    Read fm-brief.sh
+    + Show details
+
+• Failed (exit 2) ls -ld .git data state projects config 2>/dev/null
+  └ -rw-rw-r-- 1 andre andre 93 Sep 27 16:11 .git
+
+• Explored
+  └ Search user request|design session|event|wake presentation in SKILL.md
+    + Show details
+
+• Ran pwd -P
+  └ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3HPPR9GXDXFNTZN1KSP3PN6
+
+• Ran env | rg '^(FM_HOME|FM_ROOT_OVERRIDE|FM_DATA_OVERRIDE|FM_STATE_OVERRIDE|FM_CONFIG_OVERRIDE)=' | sed -E 's/=.*/=<set>/'
+  └ (no output)
+
+• Ran git rev-parse --show-toplevel
+  └ /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3HPPR9GXDXFNTZN1KSP3PN6
+
+• Captain, the scaffold will create data/design-wake-module/brief.md. I’ll fill its two task sections with the design question, race cases, and report requirements.
+
+• Ran bin/fm-brief.sh design-wake-module firstmate --scout
+  └ scaffolded: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3HPPR9GXDXFNTZN1KSP3PN6/data/design-wake-module/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+• Explored
+  └ Read brief.md
+    + Show details
+
+• Edited data/design-wake-module/brief.md (+12 -2)
+     5 -{TASK}
+     5 +Compare interfaces for a module that renders captain-visible wake presentations from worker status declarations in the Firstmate repository. Treat “event” as a fu
+        zzy candidate term and compare it with the existing glossary and code. Explore two materially different interface sketches. Stress-test duplicate wakes, delayed d
+    + Show details
+
+• Explored · 1 failed
+  └ Read brief.md
+    Search \{TASK\}|\{FIRSTMATE_SPEC\}|\{PUBLISHED_INTENT\} in brief.md (exit 1)
+    + Show details
+
+• Ran git status --short
+  └ (no output)
+
+• Ran test -f data/design-wake-module/brief.md && printf 'brief present\n'; test ! -e data/design-wake-module/report.md && printf 'report absent\n'; test ! -e state/desi…
+  └ brief present
+    report absent
+    not dispatched
+    + Show details
+
+• Edited data/design-wake-module/brief.md (+2 -2)
+    10 -Read `~/.agents/skills/codebase-design/SKILL.md` and `~/.agents/skills/domain-modeling/SKILL.md` as files. Use the exact design vocabulary: module, interface, dep
+        th, seam, adapter, leverage, and locality. Read `DESIGN-IT-TWICE.md` and `DEEPENING.md` beside the codebase-design skill for the comparison and dependency categor
+        ies. Work within this scout; no further scout or subagent is needed.
+    + Show details
+
+• Captain, the filled scout brief is at data/design-wake-module/brief.md. It uses the normal scaffold. No scout was dispatched.
+
+  Worked for 1m 51s · 16:55
+                                                                                                 Tip: NEW: Prevent sleep while running is now available in /experimental.
+
+› Ask Codex to do anything
+
+  GPT-6-Sol high · ~/.no-mistakes/worktrees/feb37d45d9da/01M3HPPR9GXDXFNTZN1KSP3PN6 · Design wake presentation module
+  ← for agents · ? for shortcuts                                                                                                                ⚠ 2 warnings · f2 to view
