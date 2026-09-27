@@ -1,0 +1,31 @@
+viewer attached to fm-lab-vport5-105060-30662 (pid 105564)
+herdr=herdr 0.9.0
+session=fm-lab-vport5-105060-30662 pane=w1:p1 viewport_rows=28 old_tail_has_composer=no composer_state=pending state_rc=0 composer_content=/exit content_rc=0
+     1	 ╭── Claude Code v2.1.283 ──╮
+     2	  ────────────────────────────────────────────────────────────
+     3	  ❯ /exit
+     4	  ────────────────────────────────────────────────────────────
+     5	  /exit    Exit the CLI
+     6	  /skill-00    A skill description long enough to read as a popup row
+     7	  /skill-01    A skill description long enough to read as a popup row
+     8	  /skill-02    A skill description long enough to read as a popup row
+     9	  /skill-03    A skill description long enough to read as a popup row
+    10	  /skill-04    A skill description long enough to read as a popup row
+    11	  /skill-05    A skill description long enough to read as a popup row
+    12	  /skill-06    A skill description long enough to read as a popup row
+    13	  /skill-07    A skill description long enough to read as a popup row
+    14	  /skill-08    A skill description long enough to read as a popup row
+    15	  /skill-09    A skill description long enough to read as a popup row
+    16	  /skill-10    A skill description long enough to read as a popup row
+    17	  /skill-11    A skill description long enough to read as a popup row
+    18	  /skill-12    A skill description long enough to read as a popup row
+    19	  /skill-13    A skill description long enough to read as a popup row
+    20	  /skill-14    A skill description long enough to read as a popup row
+    21	  /skill-15    A skill description long enough to read as a popup row
+    22	  /skill-16    A skill description long enough to read as a popup row
+    23	  /skill-17    A skill description long enough to read as a popup row
+    24	  /skill-18    A skill description long enough to read as a popup row
+    25	  /skill-19    A skill description long enough to read as a popup row
+    26	  /skill-20    A skill description long enough to read as a popup row
+    27	  /skill-21    A skill description long enough to read as a popup row
+    28	  ⏵⏵ bypass permissions on

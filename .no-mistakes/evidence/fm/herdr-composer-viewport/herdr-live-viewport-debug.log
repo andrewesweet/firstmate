@@ -1,0 +1,38 @@
+step=provision ok
+step=workspace ok pane=w1:p1
+viewer attached to fm-lab-vport4-81600-12897 (pid 82167)
+step=viewer ok
+step=render ok
+step=read ok
+herdr=herdr 0.9.0
+session=fm-lab-vport4-81600-12897 pane=w1:p1 viewport_rows=30 old_tail_has_exit=no composer_state=unknown state_rc=0 composer_content= content_rc=1
+     1	history-01
+     2	history-02
+     3	history-03
+     4	history-04
+     5	history-05
+     6	history-06
+     7	history-07
+     8	history-08
+     9	❯ /exit
+    10	────────────────────────
+    11	command-menu-01
+    12	command-menu-02
+    13	command-menu-03
+    14	command-menu-04
+    15	command-menu-05
+    16	command-menu-06
+    17	command-menu-07
+    18	command-menu-08
+    19	command-menu-09
+    20	command-menu-10
+    21	command-menu-11
+    22	command-menu-12
+    23	command-menu-13
+    24	command-menu-14
+    25	command-menu-15
+    26	command-menu-16
+    27	command-menu-17
+    28	command-menu-18
+    29	command-menu-19
+    30	footer
