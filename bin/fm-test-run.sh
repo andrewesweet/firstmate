@@ -702,6 +702,7 @@ tests/fm-bootstrap.test.sh 46634
 tests/fm-branch-claude-mod-live-e2e.test.sh 60
 tests/fm-branch-claude-mod-plugin.test.sh 60
 tests/fm-branch-claude-mod.test.sh 250
+tests/fm-branch-classifier.test.sh 3200
 tests/fm-branch-delivery.test.sh 656
 tests/fm-branch-eligibility.test.sh 950
 tests/fm-branch-monitor.test.sh 928
@@ -1577,6 +1578,7 @@ families_for_changed_path() {
       printf '%s\n' __script__:fm-branch-delivery.test.sh
       printf '%s\n' __script__:fm-branch-monitor.test.sh
       printf '%s\n' __script__:fm-branch-settlement.test.sh
+      printf '%s\n' __script__:fm-branch-mod-bin.test.sh
       printf '%s\n' live-harness-optin
       ;;
     bin/fm-sessionstart-run.sh|.claude/settings.json|.codex/hooks.json|\

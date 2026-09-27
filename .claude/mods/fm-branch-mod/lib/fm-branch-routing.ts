@@ -225,14 +225,19 @@ export function createWakeRouter() {
       return pass('classifier skipped: rows already passed to main, unacknowledged', { classifierReason: `row ${unacknowledged.join(', ')} of this wake was already passed to main and is not yet acknowledged`, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
     }
     // Classifier ahead of the branch: only a confident routine verdict is
-    // granted; captain or uncertain goes to main untouched.
-    const c = await deps.classify(reason, scope.eligibleTasks, scope.eligibleSeqs)
-    // The event log keeps the record shape but never the evidence texts;
-    deps.log('classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, verdict: c.verdict, reason: c.reason, ms: c.ms, promptChars: c.promptChars, answer: c.answer, model: c.model, estTokens: Math.ceil(c.promptChars / 4) })
-    if (c.verdict !== 'routine') {
-      for (const s of scope.eligibleSeqs) passedSeqs.add(s)
-      await deps.writePassedSeqs([...passedSeqs])
-      return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
+    // granted; captain or uncertain goes to main untouched. A wake whose
+    // eligible rows carry no task evidence (a heartbeat fleet review) has
+    // nothing for the classifier to judge, so it is never classified: the
+    // branch takes it on a safe scan, as it did before this gate existed.
+    if (scope.eligibleTasks.length > 0) {
+      const c = await deps.classify(reason, scope.eligibleTasks, scope.eligibleSeqs)
+      // The event log keeps the record shape but never the evidence texts;
+      deps.log('classifier', { seqs: scope.eligibleSeqs, tasks: scope.eligibleTasks, verdict: c.verdict, reason: c.reason, ms: c.ms, promptChars: c.promptChars, answer: c.answer, model: c.model, estTokens: Math.ceil(c.promptChars / 4) })
+      if (c.verdict !== 'routine') {
+        for (const s of scope.eligibleSeqs) passedSeqs.add(s)
+        await deps.writePassedSeqs([...passedSeqs])
+        return pass(`classifier ${c.verdict}`, { classifierReason: c.reason, seqs: scope.eligibleSeqs, seqsTasks: scope.eligibleTasks })
+      }
     }
     if (!(await deps.ensureActivated())) return pass('no lock pid / activation failed')
     const rc = await deps.grantPublish(scope.eligibleSeqs)

@@ -67,6 +67,8 @@ PLAN='[
   "scope":["safe",["4"],"103:4",["ship-d"],[]],"classifier":"routine","publish":0,"deliver":"ok"},
  {"name":"stale-inflight","wake":"signal: ship-i.status","mode":true,"inFlight":{"seqs":["98"],"wakeNo":1,"ageMs":200000},
   "scope":["safe",["9"],"108:9",["ship-i"],[]],"classifier":"routine","publish":0,"deliver":"ok","libOnly":true},
+ {"name":"heartbeat-skips-the-classifier","wake":"heartbeat: fleet review","mode":true,
+  "scope":["safe",["7"],"112:7",[],[]],"classifier":"captain","publish":0,"deliver":"ok"},
  {"name":"stale-inflight-forgets-its-own-rows","wake":"signal: ship-j.status","mode":true,
   "scopes":[["safe",["98"],"109:98",["ship-j"],[]],["safe",["9"],"110:9",["ship-k"],[]],["safe",["98"],"111:98",["ship-j"],[]]],
   "scope":["safe",["98"],"109:98",["ship-j"],[]],"dateJumps":[0,200000,0],
@@ -93,6 +95,7 @@ for (const step of plan) {
   const evidence = [];
   const passedWrites = [];
   const releases = [];
+  const classifyCalls = [];
   let wakeCounter = 0;
   let now = 1_000_000;
   let dateNow = 500_000_000;
@@ -115,15 +118,18 @@ for (const step of plan) {
       passedSet = new Set(seqs);
       passedWrites.push([...seqs]);
     },
-    classify: async () => ({
-      verdict: step.classifier,
-      reason: step.classifier === "routine" ? "nothing new" : "needs the captain",
-      ms: 12,
-      promptChars: 100,
-      answer: "",
-      model: "haiku",
-      evidence: step.classifier === "routine" ? [{ task: "x", from: 0, to: 9, text: "## task x status bytes 0-9" }] : [],
-    }),
+    classify: async () => {
+      classifyCalls.push(1);
+      return {
+        verdict: step.classifier,
+        reason: step.classifier === "routine" ? "nothing new" : "needs the captain",
+        ms: 12,
+        promptChars: 100,
+        answer: "",
+        model: "haiku",
+        evidence: step.classifier === "routine" ? [{ task: "x", from: 0, to: 9, text: "## task x status bytes 0-9" }] : [],
+      };
+    },
     ensureActivated: async () => step.activate ?? true,
     grantPublish: async () => step.publish ?? 0,
     grantRelease: async () => {
@@ -186,6 +192,7 @@ for (const step of plan) {
     evidence,
     passedWrites,
     releases: releases.length,
+    classifyCalls: classifyCalls.length,
     inFlight: p ? { wakeNo: p.wakeNo, seqs: p.seqs, granted: p.granted } : null,
   });
 }
@@ -226,6 +233,9 @@ if (step.activate !== false) files.set(`${STATE}/.lock`, "4242\n");
   if (status === "empty") {
     files.set(`${STATE}/.wake-queue`, "\n");
     files.set(`${STATE}/ship-x.meta`, "kind=ship\nproject=demo\n");
+  } else if (eligibleTasks.length === 0) {
+    // A heartbeat row: fleet-wide, so it resolves to no task at all.
+    files.set(`${STATE}/.wake-queue`, `11${eligibleSeqs[0]}\t${eligibleSeqs[0]}\theartbeat\tfleet\theartbeat: fleet review\n`);
   } else {
     const seqs = eligibleSeqs.length ? eligibleSeqs : ["1"];
     const torn = status === "unsafe";
@@ -405,6 +415,17 @@ check_verdict classifier-captain passed "a captain classifier verdict passes the
 check_verdict dedupe-window passed,dropped "the same passed wake inside the dedupe window is dropped"
 check_verdict unacknowledged-after-window passed,passed "a passed row still queued after the window goes back to main unclassified"
 check_verdict routine-grant dropped "a routine verdict grants the wake and the branch takes it"
+check_verdict heartbeat-skips-the-classifier dropped "a heartbeat wake with no task evidence is taken by the branch"
+
+# The heartbeat gate: a wake whose eligible rows carry no task evidence is
+# never handed to the classifier, so no classifier event and no pass.
+if [ "$(step heartbeat-skips-the-classifier | jq -r '.classifyCalls')" = "0" ] \
+  && [ "$(step heartbeat-skips-the-classifier | jq -r '[.events[].kind] | index("classifier") // "none"')" = "none" ] \
+  && [ "$(step heartbeat-skips-the-classifier | jq -c '.passedWrites')" = "[]" ]; then
+  pass "a heartbeat wake never reaches the classifier and never lands in the passed guard"
+else
+  fail "a heartbeat wake was classified"
+fi
 check_verdict deliver-fails passed,dropped "a failed delivery releases the grant and passes the wake to main; the repeat is deduped"
 check_verdict publish-rc3 passed "a main-owned publish verdict passes the wake to main"
 check_verdict no-lock passed "a missing session lock passes the wake to main"

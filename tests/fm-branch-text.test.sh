@@ -150,6 +150,14 @@ out.push({
   cases: [
     { label: "holder", got: m.bashActorCommand("echo hi", "4242", { home: "/fm/home", state: "/fm/home/state", config: "/fm/home/config" }) },
     { label: "no-holder", got: m.bashActorCommand("echo hi", "", { home: "/fm/home", state: "/fm/home/state", config: "/fm/home/config" }) },
+    {
+      label: "hostile",
+      got: m.bashActorCommand('printf %s "$FM_HOME" > "$OUT"', "7", {
+        home: process.argv[4],
+        state: process.argv[4] + "/state",
+        config: process.argv[4] + "/config",
+      }),
+    },
   ],
 });
 
@@ -231,7 +239,10 @@ DRIVER
 export FM_RS_ROOT="$ROOT"
 echo "$PLAN" > "$TMP_ROOT/plan.json"
 PLAN_ARG="$(cat "$TMP_ROOT/plan.json")"
-node --experimental-strip-types "$TMP_ROOT/text-run.mjs" "$ROOT/lib/fm-branch-text.ts" "$PLAN_ARG" > "$TMP_ROOT/lib.json"
+# A home path carrying a command substitution, a backtick, and a quote: the
+# generated shell text must treat all three as literal bytes.
+HOSTILE_HOME="$TMP_ROOT/h\$(touch '$TMP_ROOT/leaked')\`touch '$TMP_ROOT/backticked'\`it's"
+node --experimental-strip-types "$TMP_ROOT/text-run.mjs" "$ROOT/lib/fm-branch-text.ts" "$PLAN_ARG" "$HOSTILE_HOME" > "$TMP_ROOT/lib.json"
 node --experimental-strip-types "$TMP_ROOT/mod-text-run.mjs" "$PLAN_ARG" > "$TMP_ROOT/mod.json"
 for leg in lib mod; do
   if [ ! -s "$TMP_ROOT/$leg.json" ] || ! jq -e 'type == "array" and length > 0' "$TMP_ROOT/$leg.json" > /dev/null; then
@@ -363,18 +374,31 @@ else
 fi
 
 # The Bash actor command, byte-pinned.
-EXPECTED_BASH_HOLDER='export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=4242 FM_HOME="/fm/home" FM_STATE_OVERRIDE="/fm/home/state" FM_CONFIG_OVERRIDE="/fm/home/config"
+EXPECTED_BASH_HOLDER="export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=4242 FM_HOME='/fm/home' FM_STATE_OVERRIDE='/fm/home/state' FM_CONFIG_OVERRIDE='/fm/home/config'
 (
 echo hi
-)'
-EXPECTED_BASH_NOHOLDER='export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=$$ FM_HOME="/fm/home" FM_STATE_OVERRIDE="/fm/home/state" FM_CONFIG_OVERRIDE="/fm/home/config"
+)"
+EXPECTED_BASH_NOHOLDER="export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=\$\$ FM_HOME='/fm/home' FM_STATE_OVERRIDE='/fm/home/state' FM_CONFIG_OVERRIDE='/fm/home/config'
 (
 echo hi
-)'
+)"
 if [ "$(by_name bash-actor | jq -r '.cases[0].got')" = "$EXPECTED_BASH_HOLDER" ] && [ "$(by_name bash-actor | jq -r '.cases[1].got')" = "$EXPECTED_BASH_NOHOLDER" ]; then
   pass "the Bash actor command wraps the original command with the identity exports"
 else
   fail "the Bash actor command drifted"
+fi
+
+# The Bash actor command with a hostile home path: a real bash run of the
+# generated text must export the path literally and execute neither the
+# command substitution nor the backticks inside it.
+OUT="$TMP_ROOT/hostile-home.out"
+rm -f "$TMP_ROOT/leaked" "$TMP_ROOT/backticked" "$OUT"
+HOSTILE_CMD=$(by_name bash-actor | jq -r '.cases[2].got')
+OUT="$OUT" bash -c "$HOSTILE_CMD" >/dev/null 2>&1
+if [ "$(cat "$OUT" 2>/dev/null)" = "$HOSTILE_HOME" ] && [ ! -e "$TMP_ROOT/leaked" ] && [ ! -e "$TMP_ROOT/backticked" ]; then
+  pass "the Bash actor command quotes a home path holding a command substitution literally"
+else
+  fail "the Bash actor command let a hostile home path execute"
 fi
 
 # The version-probe parsing.

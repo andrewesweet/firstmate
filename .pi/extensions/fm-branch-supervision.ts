@@ -1654,14 +1654,16 @@ ${context.command}
           throw new Error("the unread wake queue could not be read safely");
         }
         // The shared pre-branch classifier joins the capability here: every
-        // attended wake with eligible rows is classified before any row is
-        // claimed. The away posture skips it entirely - the branch takes
+        // attended wake with eligible rows that carry task evidence is
+        // classified before any row is claimed. A wake with no task evidence
+        // (a heartbeat fleet review) has nothing to judge and is never
+        // classified. The away posture skips it entirely - the branch takes
         // every row while the record exists. A non-routine verdict passes
         // the rows to main: durable covering captain rows in the outcome
         // store (the mod's exact argv), the durable passed-seqs guard, and
         // a rejected settlement, which hands the wake back to the watcher's
         // consumption-acknowledged main path. A routine verdict proceeds to
-        if (!afk) {
+        if (!afk && scope.eligibleTasks.length > 0) {
           const passedSeqs = readPassedSeqs();
           const gone = [...passedSeqs].filter((s) => !scope.allSeqs.includes(s));
           if (gone.length > 0) {

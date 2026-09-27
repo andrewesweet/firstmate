@@ -133,7 +133,14 @@ export function toolText(r: any): string {
  * supervision actor, the lease holder pid ('' means the shell's own $$),
  * and the home overrides, wrapped around the original command. */
 export function bashActorCommand(command: string, holder: string, paths: { home: string; state: string; config: string }): string {
-  return `export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=${holder || '$$'} FM_HOME=${JSON.stringify(paths.home)} FM_STATE_OVERRIDE=${JSON.stringify(paths.state)} FM_CONFIG_OVERRIDE=${JSON.stringify(paths.config)}\n(\n${command}\n)`
+  return `export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=${holder || '$$'} FM_HOME=${shellQuote(paths.home)} FM_STATE_OVERRIDE=${shellQuote(paths.state)} FM_CONFIG_OVERRIDE=${shellQuote(paths.config)}\n(\n${command}\n)`
+}
+
+/** Single-quote shell quoting for a path written into generated shell text:
+ * the shell expands nothing inside single quotes, and an embedded quote
+ * closes, escapes itself, and reopens. */
+export function shellQuote(value: string): string {
+  return `'${value.split("'").join("'\\''")}'`
 }
 
 /** The first whitespace-delimited token of a version probe's output. */

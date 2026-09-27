@@ -239,15 +239,33 @@ else
 fi
 
 # The loop command bytes, pinned: the rotate deadline is one monitor
-# timeout minus three minutes (1620s) and every path is JSON-quoted.
+# timeout minus three minutes (1620s) and every path is single-quoted.
 # shellcheck disable=SC2016 # the loop command bytes are literal; $(...) belongs to the generated shell
-EXPECTED_COMMAND_PREFIX='cd "/work" && export FM_HOME="/fm/home" FM_STATE_OVERRIDE="/fm/home/state" FM_CONFIG_OVERRIDE="/fm/home/config"; A="/fm/code/bin/fm-watch-arm.sh"; Q="/fm/home/state/.wake-queue"; D="/fm/home/state/.watcher-down"; T0=$(date +%s); while :; do out=$("$A" 2>&1); '
+EXPECTED_COMMAND_PREFIX='cd '"'"'/work'"'"' && export FM_HOME='"'"'/fm/home'"'"' FM_STATE_OVERRIDE='"'"'/fm/home/state'"'"' FM_CONFIG_OVERRIDE='"'"'/fm/home/config'"'"'; A='"'"'/fm/code/bin/fm-watch-arm.sh'"'"'; Q='"'"'/fm/home/state/.wake-queue'"'"'; D='"'"'/fm/home/state/.watcher-down'"'"'; T0=$(date +%s); while :; do out=$("$A" 2>&1); '
 CMD="$(step arm | jq -r '.command')"
 # shellcheck disable=SC2016 # the loop command bytes are literal; $(...) belongs to the generated shell
 if case "$CMD" in "$EXPECTED_COMMAND_PREFIX"*) true;; *) false;; esac && [ "$(printf '%s' "$CMD" | grep -c '\[ $(( $(date +%s) - T0 )) -lt 1620 \] || { printf '"'"'rotate: loop exiting ahead of the monitor timeout')" = "1" ] && [ "$(printf '%s' "$CMD" | grep -c 'forced-rearm: queue or recovery marker still pending after %ss')" = "1" ]; then
   pass "the loop command keeps its exact prefix, rotate deadline, and re-arm gates"
 else
   fail "the loop command drifted"
+fi
+
+# A state path holding a command substitution, a backtick, and a quote: the
+# generated loop command's own prefix, run by a real bash, must export the
+# path literally and execute neither.
+HOSTILE_STATE="$TMP_ROOT/s\$(touch '$TMP_ROOT/leaked')\`touch '$TMP_ROOT/backticked'\`it's"
+rm -f "$TMP_ROOT/leaked" "$TMP_ROOT/backticked"
+HOSTILE_LOOP=$(node --experimental-strip-types -e '
+import { pathToFileURL } from "node:url";
+const m = await import(pathToFileURL(process.argv[1]).href);
+process.stdout.write(m.monitorLoopCommand({ cwd: process.argv[3], home: process.argv[2], state: process.argv[2], config: process.argv[2], bin: process.argv[2] }, 1620));
+' "$ROOT/lib/fm-branch-monitor.ts" "$HOSTILE_STATE" "$TMP_ROOT")
+HOSTILE_PREFIX=${HOSTILE_LOOP%%while :;*}
+if [ "$(bash -c "$HOSTILE_PREFIX printf '%s\n%s\n' \"\$FM_STATE_OVERRIDE\" \"\$Q\"" 2>/dev/null)" = "$HOSTILE_STATE
+$HOSTILE_STATE/.wake-queue" ] && [ ! -e "$TMP_ROOT/leaked" ] && [ ! -e "$TMP_ROOT/backticked" ]; then
+  pass "the loop command quotes a state path holding a command substitution literally"
+else
+  fail "the loop command let a hostile state path execute"
 fi
 
 # The expiry verdicts.

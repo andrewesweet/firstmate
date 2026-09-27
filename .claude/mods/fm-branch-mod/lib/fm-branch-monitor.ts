@@ -67,13 +67,21 @@ export interface MonitorGuardDeps {
   paths(): MonitorPaths
 }
 
+/** Single-quote shell quoting for a path written into the loop command:
+ * the shell expands nothing inside single quotes, and an embedded quote
+ * closes, escapes itself, and reopens. This module may not import the
+ * identical helper in fm-branch-text.ts (no imports of any kind). */
+export function shellQuote(value: string): string {
+  return `'${value.split("'").join("'\\''")}'`
+}
+
 /** The Monitor task's loop command: the watcher arm/re-arm cycle described
  * in the header, with the rotate deadline leaving one monitor timeout
  * minus a three-minute margin. */
 export function monitorLoopCommand(paths: MonitorPaths, rotateSecs: number): string {
   return (
-    `cd ${JSON.stringify(paths.cwd)} && export FM_HOME=${JSON.stringify(paths.home)} FM_STATE_OVERRIDE=${JSON.stringify(paths.state)} FM_CONFIG_OVERRIDE=${JSON.stringify(paths.config)}; ` +
-    `A=${JSON.stringify(paths.bin + '/fm-watch-arm.sh')}; Q=${JSON.stringify(paths.state + '/.wake-queue')}; D=${JSON.stringify(paths.state + '/.watcher-down')}; T0=$(date +%s); ` +
+    `cd ${shellQuote(paths.cwd)} && export FM_HOME=${shellQuote(paths.home)} FM_STATE_OVERRIDE=${shellQuote(paths.state)} FM_CONFIG_OVERRIDE=${shellQuote(paths.config)}; ` +
+    `A=${shellQuote(paths.bin + '/fm-watch-arm.sh')}; Q=${shellQuote(paths.state + '/.wake-queue')}; D=${shellQuote(paths.state + '/.watcher-down')}; T0=$(date +%s); ` +
     `while :; do out=$("$A" 2>&1); printf '%s\\n' "$out" | grep -E '^(signal:|stale:|check:|heartbeat)' || printf 'quiet: %s\\n' "$(printf '%s' "$out" | tail -n 1 | cut -c1-160)"; ` +
     `w=0; while { [ -s "$Q" ] || { [ -e "$D" ] && ! grep -q '^acked:' "$D"; }; } && [ $w -lt 300 ]; do sleep 2; w=$((w+2)); done; [ $w -lt 300 ] || printf 'forced-rearm: queue or recovery marker still pending after %ss\\n' "$w"; ` +
     `[ $(( $(date +%s) - T0 )) -lt ${rotateSecs} ] || { printf 'rotate: loop exiting ahead of the monitor timeout\\n'; exit 0; }; sleep 2; done`

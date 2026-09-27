@@ -27,9 +27,10 @@
 //   - Terminal close (bash v8): a `done:`/`failed:` declaration closes the
 //     WHOLE open set when the task's kind is ship or scout; a secondmate's
 //     terminal event may describe other work and closes nothing.
-//   - Symlinked or unreadable status log: bash's outcome - that task's fold
-//     is empty, never a scan refusal. (The mod's stat seam refuses a
-//     symlinked log with lstat semantics, so all four legs agree.)
+//   - Symlinked or unreadable status log: the mod's rule - a log that is
+//     present but unreadable, or a symlink standing in for one (lstat
+//     semantics), vetoes the scan; the row stays with main. A missing log
+//     still folds empty, as in bash.
 //   - Symlinked, missing, or unreadable task meta: bash's rule - the kind is
 //     `unknown`, so the terminal close never applies; a readable meta
 //     silent about `kind=` means `ship`.
