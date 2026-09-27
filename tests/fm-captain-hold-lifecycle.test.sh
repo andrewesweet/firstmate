@@ -10,6 +10,8 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$ROOT/bin/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-pr-lib.sh
+. "$ROOT/bin/fm-pr-lib.sh"
 
 TEARDOWN="$ROOT/bin/fm-teardown.sh"
 BEARINGS="$ROOT/bin/fm-bearings-snapshot.sh"
@@ -205,6 +207,67 @@ write_origin_meta() {  # <home> <id> [kind]
     "kind=$kind" \
     "mode=$kind" \
     "spawn_gen=fixture-$id"
+}
+
+# The completion attestation is one more writer that lands keys after the pr=
+# block bin/fm-pr-check.sh armed, so it must leave the merge poll valid.
+test_completion_attestation_keeps_a_registered_merge_poll_valid() {
+  local home id pr head
+  home=$(make_home attest-pr-poll)
+  id=sample-attest-merge-poll
+  pr="https://github.com/sample/sample/pull/88"
+  head=0123456789abcdef0123456789abcdef01234567
+  tasks_in "$home" add "$id" "Ship the attested change $pr" --kind ship \
+    --repo sample --start >/dev/null || fail "could not create the attestation fixture"
+  fm_write_meta "$home/state/$id.meta" \
+    "window=firstmate:fm-$id" "worktree=$home/projects/$id" \
+    "project=$home/projects/sample" "harness=codex" "kind=ship" "mode=no-mistakes" \
+    "spawn_gen=fixture-$id" "pr=$pr" "pr_head=$head"
+  printf 'working: awaiting merge\n' > "$home/state/$id.status"
+  fm_pr_poll_prepare "$home/state" "$id" github "$pr" github.com sample/sample 88 \
+    "$ROOT/bin/fm-pr-poll.sh" || fail "could not prepare the merge poll"
+  fm_pr_poll_publish_prepared || fail "could not publish the merge poll"
+  fm_pr_poll_artifacts_content_valid "$home/state" "$id" "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "the merge poll must validate before the attestation"
+
+  run_captain "$home" complete "$id" --none >/dev/null \
+    || fail "could not attest the captain-call inventory"
+  assert_grep "decisions_reviewed=1" "$home/state/$id.meta" "completion attestation missing"
+  assert_grep "pr=$pr" "$home/state/$id.meta" "the attestation dropped the task PR"
+  fm_pr_poll_artifacts_content_valid "$home/state" "$id" "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "the merge poll must still validate after the attestation appended metadata past pr="
+
+  # The same attestation with its record publication failing: the live record
+  # must keep its valid poll rather than keep keys appended past pr=.
+  local failing=sample-attest-failed-publish failing_pr="https://github.com/sample/sample/pull/89"
+  tasks_in "$home" add "$failing" "Ship the unpublishable change $failing_pr" --kind ship \
+    --repo sample --start >/dev/null || fail "could not create the failed-publish fixture"
+  fm_write_meta "$home/state/$failing.meta" \
+    "window=firstmate:fm-$failing" "worktree=$home/projects/$failing" \
+    "project=$home/projects/sample" "harness=codex" "kind=ship" "mode=no-mistakes" \
+    "spawn_gen=fixture-$failing" "pr=$failing_pr" "pr_head=$head"
+  printf 'working: awaiting merge\n' > "$home/state/$failing.status"
+  fm_pr_poll_prepare "$home/state" "$failing" github "$failing_pr" github.com sample/sample 89 \
+    "$ROOT/bin/fm-pr-poll.sh" || fail "could not prepare the failed-publish merge poll"
+  fm_pr_poll_publish_prepared || fail "could not publish the failed-publish merge poll"
+  cat > "$home/fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+for path in "$@"; do
+  [ "$path" != "${FM_FAKE_META_MV_FAIL:-}" ] || exit 1
+done
+exec /bin/mv "$@"
+SH
+  chmod +x "$home/fakebin/mv"
+  if FM_FAKE_META_MV_FAIL="$home/state/$failing.meta" \
+    run_captain "$home" complete "$failing" --none > "$home/publish.out" 2> "$home/publish.err"; then
+    fail "the attestation reported success while its record publication failed"
+  fi
+  assert_no_grep "decisions_reviewed=1" "$home/state/$failing.meta" \
+    "a failed attestation publication left the record half-appended"
+  fm_pr_poll_artifacts_content_valid "$home/state" "$failing" "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "a failed attestation publication invalidated the record's merge poll"
+  rm -f "$home/fakebin/mv"
+  pass "captain-hold complete: a registered PR keeps its merge poll valid across the attestation"
 }
 
 # The firstmate.hold spans: every successful close path (answer, --release,
@@ -4299,3 +4362,4 @@ test_verify_resolves_a_pre_collapse_key_through_its_derived_marker
 test_captain_hold_mutations_address_the_beads_backend
 test_close_paths_emit_hold_spans_over_the_recorded_hold_time
 test_hold_creates_a_captain_row_when_beads_requires_due_without_custom_type
+test_completion_attestation_keeps_a_registered_merge_poll_valid

@@ -57,6 +57,8 @@ set -u
 
 # shellcheck source=tests/lib.sh disable=SC1091
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/../bin/fm-pr-lib.sh"
 fm_git_identity fmtest fmtest@example.invalid
 
 TEARDOWN="$ROOT/bin/fm-teardown.sh"
@@ -1443,6 +1445,12 @@ legacy_meta_gen_count() {
     "$case_dir/state/task-x1.meta" 2>/dev/null || printf '0\n'
 }
 
+# Read one field from the task's meta. Args: case_dir key
+legacy_meta_field() {
+  local case_dir=$1 key=$2
+  sed -n "s/^$key=//p" "$case_dir/state/task-x1.meta" | head -1
+}
+
 # Override fakebin/tmux so the recovery-grade classifier reads the endpoint as
 # unreadable (a session inventory failure it cannot attribute), never dead.
 add_unreadable_tmux() {
@@ -1626,7 +1634,7 @@ test_windowless_leftover_retries_its_retained_legacy_stamp_without_the_flag() {
   write_windowless_legacy_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
   printf '%s\n' 'pr=not-a-valid-url' >> "$case_dir/state/task-x1.meta"
   seed_backlog_in_flight "$case_dir"
-  add_failing_truncate_perl "$case_dir"
+  add_failing_rollback_cp "$case_dir"
 
   set +e
   run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
@@ -1636,7 +1644,7 @@ test_windowless_leftover_retries_its_retained_legacy_stamp_without_the_flag() {
   [ "$(legacy_meta_gen_count "$case_dir")" = 1 ] \
     || fail "windowless-retry: the failed attempt did not leave its legacy stamp on the record"
 
-  rm -f "$case_dir/fakebin/perl"
+  rm -f "$case_dir/fakebin/cp"
   sed -i.bak '/^pr=/d' "$case_dir/state/task-x1.meta" && rm -f "$case_dir/state/task-x1.meta.bak"
   out=$(run_teardown "$case_dir") \
     || fail "windowless-retry: the flag-less retry refused the retained legacy stamp"
@@ -1760,20 +1768,66 @@ test_legacy_record_rolls_the_stamp_back_when_the_marker_write_fails() {
   pass "--legacy-record teardown rolls its stamp back when the close marker write fails"
 }
 
-# Override fakebin/perl so ONLY the stamp rollback's truncate fails; every other
-# perl call in the lifecycle still runs the real interpreter, so the abandoned
-# attempt leaves its stamp behind for exactly the reason under test.
-add_failing_truncate_perl() {
+# Override fakebin/cp so ONLY the stamp rollback's restore fails - the rollback
+# names the pre-stamp copy as its source, while taking the copy names it as the
+# destination - so every other cp in the lifecycle, including the copy itself,
+# still runs the real one and the abandoned attempt leaves its stamp behind for
+# exactly the reason under test.
+add_failing_rollback_cp() {
   local case_dir=$1 real
-  real=$(command -v perl)
-  cat > "$case_dir/fakebin/perl" <<SH
+  real=$(command -v cp)
+  cat > "$case_dir/fakebin/cp" <<SH
 #!/usr/bin/env bash
-case "\$*" in
-  *truncate*) exit 1 ;;
-esac
+for arg in "\$@"; do
+  case "\$arg" in
+    *fm-teardown-rollback.*) exit 1 ;;
+  esac
+done
 exec "$real" "\$@"
 SH
-  chmod +x "$case_dir/fakebin/perl"
+  chmod +x "$case_dir/fakebin/cp"
+}
+
+# A PR-registered task torn down with --legacy-record gets its legacy stamp, the
+# close marker binds to it, and then a later fallible step (here the treehouse
+# return) refuses non-destructively, retaining every durable record. The stamp
+# must not have stranded the pr= block mid-record: the merge poll the watcher
+# authenticates still has to validate, or a later merge is never noticed.
+test_legacy_stamp_keeps_a_registered_prs_merge_poll_valid() {
+  local case_dir rc head url
+  case_dir=$(make_case legacy-pr-poll)
+  write_legacy_meta "$case_dir" no-mistakes ship
+  head=0123456789abcdef0123456789abcdef01234567
+  url=https://github.com/o/r/pull/91
+  printf 'pr=%s\npr_head=%s\n' "$url" "$head" >> "$case_dir/state/task-x1.meta"
+  seed_backlog_in_flight "$case_dir"
+  wt_commit "$case_dir" "landed legacy work"
+  add_fork_with_pushed_branch "$case_dir"
+  fm_pr_poll_prepare "$case_dir/state" task-x1 github "$url" github.com o/r 91 \
+    "$ROOT/bin/fm-pr-poll.sh" || fail "legacy-pr-poll: could not prepare the merge poll"
+  fm_pr_poll_publish_prepared || fail "legacy-pr-poll: could not publish the merge poll"
+  fm_pr_poll_artifacts_content_valid "$case_dir/state" task-x1 "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "legacy-pr-poll: the merge poll must validate before teardown"
+  # The return refuses after the stamp and the close marker, so the record and
+  # its poll artifacts are all still on disk when teardown gives up.
+  add_persistent_lock_treehouse "$case_dir"
+
+  set +e
+  run_teardown "$case_dir" --legacy-record > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "legacy-pr-poll: a failed worktree return must fail the teardown"
+  assert_present "$case_dir/state/task-x1.meta" \
+    "legacy-pr-poll: the failed return removed the task record"
+  [ "$(legacy_meta_gen_count "$case_dir")" = 1 ] \
+    || fail "legacy-pr-poll: the attempt did not leave its legacy stamp on the retained record"
+  [ "$(legacy_meta_field "$case_dir" pr)" = "$url" ] \
+    || fail "legacy-pr-poll: the stamped record lost its PR"
+  [ "$(legacy_meta_field "$case_dir" pr_head)" = "$head" ] \
+    || fail "legacy-pr-poll: the stamped record lost its PR head"
+  fm_pr_poll_artifacts_content_valid "$case_dir/state" task-x1 "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "legacy-pr-poll: the legacy stamp left the retained record's merge poll invalid"
+  pass "a --legacy-record stamp keeps a registered PR's merge poll valid on a retained record"
 }
 
 test_retained_legacy_stamp_still_faces_the_endpoint_gate() {
@@ -1784,7 +1838,7 @@ test_retained_legacy_stamp_still_faces_the_endpoint_gate() {
   seed_backlog_in_flight "$case_dir"
   wt_commit "$case_dir" "landed legacy work"
   add_fork_with_pushed_branch "$case_dir"
-  add_failing_truncate_perl "$case_dir"
+  add_failing_rollback_cp "$case_dir"
 
   set +e
   run_teardown "$case_dir" --legacy-record > "$case_dir/stdout" 2> "$case_dir/stderr"
@@ -4355,6 +4409,7 @@ test_legacy_record_teardown_refuses_unlanded_work
 test_legacy_record_teardown_refuses_an_ambiguous_endpoint
 test_legacy_record_rolls_the_stamp_back_when_the_marker_write_fails
 test_retained_legacy_stamp_still_faces_the_endpoint_gate
+test_legacy_stamp_keeps_a_registered_prs_merge_poll_valid
 test_legacy_record_never_accepts_a_corrupt_spawn_gen
 test_stale_index_lock_cleared_and_teardown_succeeds
 test_live_index_lock_is_never_removed_and_teardown_refuses

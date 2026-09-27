@@ -400,6 +400,42 @@ fm_pr_metadata_identity_parse() {
   [ -n "$FM_PR_META_URL" ]
 }
 
+# fm_pr_metadata_reseal <meta-file>: move the PR identity block (pr=,
+# pr_head=) last, preserving every other line byte-for-byte in order. Every
+# writer that appends task metadata after bin/fm-pr-check.sh armed a merge
+# poll must route through this: fm_pr_metadata_identity_parse refuses any
+# other key after pr=, so a bare append silently stops merge monitoring. A
+# record with no pr= line is left untouched; an already sealed one is
+# republished with the same bytes.
+fm_pr_metadata_reseal() {
+  # Locals carry the reseal_ prefix: this library is sourced inside caller
+  # subshells, so a generic name here reads to ShellCheck as the caller's own
+  # variable being modified in a subshell (SC2031).
+  local reseal_meta=$1 reseal_dir reseal_tmp reseal_mode reseal_probe=0
+  [ -f "$reseal_meta" ] && [ ! -L "$reseal_meta" ] || return 1
+  grep -q '^pr=' "$reseal_meta" 2>/dev/null || reseal_probe=$?
+  case "$reseal_probe" in
+    0) ;;
+    1) return 0 ;;
+    *) return 1 ;;
+  esac
+  reseal_dir=${reseal_meta%/*}
+  [ "$reseal_dir" != "$reseal_meta" ] || reseal_dir=.
+  reseal_tmp=$(mktemp "$reseal_dir/.fm-meta-reseal.XXXXXX") || return 1
+  if ! awk '
+    /^pr=/ { pr = pr $0 "\n"; next }
+    /^pr_head=/ { head = head $0 "\n"; next }
+    { rest = rest $0 "\n" }
+    END { printf "%s%s%s", rest, pr, head }
+  ' "$reseal_meta" > "$reseal_tmp"; then
+    rm -f -- "$reseal_tmp" || true
+    return 1
+  fi
+  reseal_mode=$(fm_pr_file_mode "$reseal_meta") || { rm -f -- "$reseal_tmp"; return 1; }
+  chmod "$reseal_mode" "$reseal_tmp" || { rm -f -- "$reseal_tmp"; return 1; }
+  mv -f -- "$reseal_tmp" "$reseal_meta" || { rm -f -- "$reseal_tmp"; return 1; }
+}
+
 # Sidecar layout: provider, url, host, path, number, one per line. A sidecar
 # written before the provider tag existed has a URL on its first line and one
 # line fewer, so it fails both the field count and the provider comparison and

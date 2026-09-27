@@ -29,6 +29,8 @@ set -u
 . "$ROOT/bin/fm-trace-context-lib.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-tasks-axi-lib.sh"
+# shellcheck source=/dev/null
+. "$ROOT/bin/fm-pr-lib.sh"
 
 CONTROL="$ROOT/bin/fm-control.sh"
 SPAWN="$ROOT/bin/fm-spawn.sh"
@@ -498,6 +500,39 @@ test_relaunch_preserves_durable_task_metadata() {
   [ "$(meta_field "$dir" rl19 spawn_gen)" != 's1699999999.1.x' ] \
     || fail "a relaunch must mint a new spawn_gen beside the carried first epoch"
   pass "fm-control relaunch: durable task metadata survives replacement launch publication"
+}
+
+test_relaunch_with_registered_pr_keeps_merge_poll_valid() {
+  local dir out rc head
+  dir=$(new_case pr-poll rl77)
+  add_ship_task "$dir" rl77 claude
+  head=0123456789abcdef0123456789abcdef01234567
+  {
+    printf '%s\n' 'pr=https://github.com/o/r/pull/77'
+    printf '%s\n' "pr_head=$head"
+  } >> "$dir/home/state/rl77.meta"
+  fm_pr_poll_prepare "$dir/home/state" rl77 github https://github.com/o/r/pull/77 github.com o/r 77 "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "could not prepare merge poll"
+  fm_pr_poll_publish_prepared || fail "could not publish merge poll"
+  fm_pr_poll_artifacts_content_valid "$dir/home/state" rl77 "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "the merge poll must validate before relaunch"
+  # Trace context on exercises the second post-PR writer
+  # (spawn_record_traceparent) beside the relaunch transaction line.
+  printf '%s\n' "$$" > "$dir/home/state/.lock"
+  printf '%s\n' "$$ on" > "$dir/home/state/.trace-context-effective"
+  out=$(run_control "$dir" rl77 relaunch --note "continuing after review feedback"); rc=$?
+  expect_code 0 "$rc" "relaunch should succeed on a PR-ready task"$'\n'"$out"
+  [ -n "$(meta_field "$dir" rl77 control_relaunch_tx)" ] \
+    || fail "relaunch must record its transaction after a registered PR"
+  [ -n "$(meta_field "$dir" rl77 traceparent)" ] \
+    || fail "trace context must record its carrier after a registered PR"
+  [ "$(meta_field "$dir" rl77 pr)" = "https://github.com/o/r/pull/77" ] \
+    || fail "the task PR must survive relaunch"
+  [ "$(meta_field "$dir" rl77 pr_head)" = "$head" ] \
+    || fail "the task PR head must survive relaunch"
+  fm_pr_poll_artifacts_content_valid "$dir/home/state" rl77 "$ROOT/bin/fm-pr-poll.sh" \
+    || fail "the merge poll must still validate after relaunch appended metadata past pr="
+  pass "fm-control relaunch: a registered PR keeps its merge poll valid across relaunch"
 }
 
 test_relaunch_backfills_a_missing_first_spawn_epoch() {
@@ -2456,6 +2491,7 @@ test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_backfills_a_missing_first_spawn_epoch
 test_relaunch_preserves_durable_task_metadata
+test_relaunch_with_registered_pr_keeps_merge_poll_valid
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
 test_relaunch_posts_the_spawn_span_and_no_control_span

@@ -5042,6 +5042,13 @@ preserve_relaunch_meta() {
   echo "error: task record for $ID could not be prepared at $SPAWN_META_PATH" >&2
   exit 1
 }
+# A relaunch preserves a pr= block armed by bin/fm-pr-check.sh in place and
+# appends control_relaunch_tx= after it; re-seal so the identity block stays
+# last, or the merge poll fails closed (bin/fm-pr-lib.sh).
+if [ "$RELAUNCH" -eq 1 ] && ! fm_pr_metadata_reseal "$SPAWN_META_PATH"; then
+  echo "error: task record for $ID could not be re-sealed at $SPAWN_META_PATH" >&2
+  exit 1
+fi
 if [ "$RELAUNCH" -eq 0 ]; then
   if ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$STATE/$ID.meta" "task record" "$STATE"; then
     echo "error: task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
@@ -5301,6 +5308,7 @@ spawn_record_traceparent() {
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] \
      || ! awk -F= '$1 != "traceparent" && $1 != "trace_started" && $1 != "trace_link"' "$meta" > "$SPAWN_META_TMP" \
      || ! printf '%s\n' "$record" >> "$SPAWN_META_TMP" \
+     || ! fm_pr_metadata_reseal "$SPAWN_META_TMP" \
      || ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$meta" "task record" "$STATE"; then
     status=1
     rm -f "$SPAWN_META_TMP" 2>/dev/null || true
