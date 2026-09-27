@@ -1,0 +1,2 @@
+bin/fm-dod-lib.sh: line 404: $1: unbound variable
+exit=1

@@ -1,0 +1,12 @@
+# Definition of done
+Delivery contract: mode=no-mistakes
+Ship branch: fm/scout-task
+The task is complete only when committed on your branch.
+
+Implement by following the discipline at `~/.agents/skills/implement/SKILL.md`, read as a file: those skills are user-invoked, so read them instead of invoking them through a Skill tool.
+Test first with the discipline at `~/.agents/skills/tdd/SKILL.md` at the seams this brief agrees.
+Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+Then self-review by following both axes at `~/.agents/skills/code-review/SKILL.md` - Standards (this repository's documented standards) and Spec (faithful implementation of this brief) - and fix what you find before committing to your `fm/scout-task` branch.
+Commit to `fm/scout-task` only: never main, and never push outside this mode's delivery path.
+On this no-mistakes ship, complete everything above before starting validation; once the run starts the pipeline owns every fix, so never hand-edit during a run and never run a second review beside it. A gap you spot that a parked gate does not list enters as an added finding, as `no-mistakes axi respond --help` describes.
+
