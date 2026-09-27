@@ -359,10 +359,11 @@ GitHub issues hold only what needs a repo-scoped, outward-facing home: user-file
 Internal decomposition stays in `tasks-axi`.
 Open a GitHub issue only when someone outside the fleet must read or answer it.
 Link a row to its GitHub issue by writing `gh:<owner>/<repo>#<n>` in the row body or note through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh) (`add --body`, `update --body`, `done --note`).
+An upstream-ticket row the contribution observer must watch instead carries the issue's canonical `https://` URL, which is the link form `bin/fm-contributions.sh` extracts; the `bearings` skill owns that rule.
 `--pr` is for pull-request URLs only and refuses issue URLs, and the body pointer survives the done archive.
 A GitHub issue body may carry `fleet-task: <task-id>` as a human hint only.
 Task ids are home-local and never join keys across homes.
-Sync direction is GitHub into `tasks-axi`: firstmate reads the issue and mirrors what matters into a row; no script polls GitHub issues for the fleet.
+Sync direction is GitHub into `tasks-axi`: firstmate reads the issue and mirrors what matters into a row; no script creates or mutates rows from GitHub, and the only automated read is `bin/fm-contributions.sh` observing issues a row already links by canonical URL.
 `tasks-axi` into GitHub happens only by explicit brief authorization (worker-authored publication the captain approved).
 There is no background two-way sync, and nobody bulk-moves rows into GitHub.
 Workers write to GitHub only when their brief authorizes it.
