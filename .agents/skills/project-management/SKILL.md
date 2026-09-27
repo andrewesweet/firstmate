@@ -91,6 +91,19 @@ Initialization configures the local gate and does not vendor a no-mistakes skill
 Do not create a commit merely because initialization ran.
 If doctor reports an environment, authentication, or daemon problem, resolve that blocker before dispatching work and never restart the shared daemon from a project operation.
 
+## Per-repo skill setup (standing captain approval)
+
+The captain has standing-approved running Matt Pocock's `setup-matt-pocock-skills` procedure in new repositories, existing own repositories, and local forks.
+When a new repository is created or a local fork is added, file a setup ship task through the project's delivery path.
+An existing own repository without the setup gets the same task on request.
+No new registry field records this; the setup is an ordinary ship task, not posture.
+The setup task follows the discipline by reading `~/.agents/skills/setup-matt-pocock-skills/SKILL.md` (plus its templates) as files.
+That skill is user-invoked, so crews never invoke it through a Skill tool; they read it and follow it as instruction text.
+The skill does not know tasks-axi, so the task's `docs/agents/issue-tracker.md` must record tasks-axi as this repo's tracker.
+That file must state the agreed boundary: every fleet work item lives in tasks-axi, GitHub issues exist only for outward-facing deliberation, and each GitHub-touched task notes its `gh:<owner>/<repo>#<n>` link.
+The permitted additions are exactly the setup's `docs/agents/`, `CONTEXT.md`, ADR, and agent-skills pointer-block changes, per the `AGENTS.md` section 6 exception.
+In a local fork the setup files live on the fork's default branch only, never on branches used for upstream PRs, so fork-only setup never leaks into upstream contributions.
+
 ## Remove
 
 Project removal is destructive.
