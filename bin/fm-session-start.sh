@@ -383,7 +383,8 @@ case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=20 ;; esac
 # One per-task endpoint read may never outlive this bound: a hung backend CLI
 # becomes that task's endpoint: error line instead of the digest's whole
 # runtime budget.
-ENDPOINT_TIMEOUT=10
+ENDPOINT_TIMEOUT=${FM_SESSION_START_ENDPOINT_TIMEOUT:-10}
+case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*|0) ENDPOINT_TIMEOUT=10 ;; esac
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
 RULE='================================================================================'

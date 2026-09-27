@@ -1429,7 +1429,7 @@ EOF
   printf 'working: doomed task marker\n' > "$home/state/task-a-doom.status"
   printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
 
-  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=bogus run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
 
   expect_code 0 "$status" "one killed endpoint read must not fail the digest"
   assert_contains "$out" \
@@ -1464,12 +1464,12 @@ EOF
   printf 'window=sess:p-slow\nkind=ship\nbackend=herdr\n' > "$home/state/task-a-slow.meta"
   printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
 
-  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=2 run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
 
   expect_code 0 "$status" "a hung endpoint read must not fail the digest"
   assert_contains "$out" \
-    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 10s bound; the digest continued past it)" \
-    "a hung endpoint read was not bounded into that task's own error line"
+    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 2s bound; the digest continued past it)" \
+    "a hung endpoint read was not bounded into that task's own configured bound"
   assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" \
     "the digest did not continue past the hung read to the next task"
   assert_contains "$out" "$(printf '\nCONTEXT\n')" \
@@ -1480,7 +1480,7 @@ EOF
   stray=$(pgrep -f "$fakebin/herdr" 2>/dev/null | wc -l | tr -d ' ')
   [ "$stray" -eq 0 ] || fail "the per-task read bound left $stray hung herdr process(es) behind"
 
-  pass "a hung per-task endpoint read hits its own bound, reports the task, and leaves nothing stuck"
+  pass "a hung per-task endpoint read hits its configured bound, reports the task, and leaves nothing stuck"
 }
 
 test_perl_timeout_fallback_reports_signal_death_nonzero() {
