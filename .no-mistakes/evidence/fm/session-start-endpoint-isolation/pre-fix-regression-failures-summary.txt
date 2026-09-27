@@ -1,0 +1,13 @@
+### PRE-FIX behaviour: base fba81cb bin/fm-session-start.sh + bin/fm-timeout-lib.sh, new HEAD tests
+
+--- /tmp/pre-test_abnormal_digest_death_banners_and_exits_zero.log
+not ok - a digest child killed mid-stage did not name its abnormal death (missing: 'STARTUP TRUNCATED - SESSION START DIED UNEXPECTEDLY (exit 143, not its runtime bound)')
+
+--- /tmp/pre-test_endpoint_read_hang_is_bounded_and_reported.log
+not ok - a hung endpoint read was not bounded into that task's own configured bound (missing: 'endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 2s bound; the digest continued past it)')
+
+--- /tmp/pre-test_perl_timeout_fallback_reports_signal_death_nonzero.log
+not ok - the perl timeout fallback did not report a SIGKILLed child as 128+9: expected exit 137, got 0
+
+--- /tmp/prefix.log
+not ok - a killed endpoint read was not reported as that task's own error line (missing: 'endpoint: error (backend=herdr window=sess:p-doom - the endpoint read died or hit its 10s bound; the digest continued past it)')
