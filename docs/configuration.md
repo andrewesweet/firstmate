@@ -362,7 +362,7 @@ Cross-reference by recording the issue's full `https://...` URL in the row body 
 `--pr` carries PR URLs only and refuses issue URLs, and the body link survives the done archive.
 A GitHub issue body may carry `fleet-task: <task-id>` as a human hint only.
 Task ids are home-local and never join keys across homes.
-Sync direction is GitHub into `tasks-axi`: firstmate mirrors what matters, following the watcher-poll pattern.
+Sync direction is GitHub into `tasks-axi`: firstmate reads the issue and mirrors what matters into a row; no script polls GitHub issues for the fleet.
 `tasks-axi` into GitHub happens only by explicit brief authorization (worker-authored publication the captain approved).
 There is no background two-way sync, and nobody bulk-moves rows into GitHub.
 Workers write to GitHub only when their brief authorizes it.
