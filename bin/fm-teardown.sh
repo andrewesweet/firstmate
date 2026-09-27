@@ -1849,34 +1849,27 @@ teardown_treehouse_project_lock_held() {  # <lock-path>
 # Release a task's durable slot lease when its pooled copy is gone from disk.
 # Every other return path needs the checkout, so without this the lease would
 # outlive the record that named it and the pool would never reissue the slot.
-# The copy's absence is no evidence of who holds the lease, so the slot goes
-# back only against treehouse's own pool status: leased, and leased to this
-# task, under the project lock that serialises every allocation and return. A
-# slot treehouse has since leased to another task is left alone, and a lease
-# this teardown cannot prove is named on stderr with the command that frees it
-# rather than dropped silently or taken from its real owner.
+# The copy's absence is no evidence of who holds the lease, and treehouse stops
+# reporting a slot whose checkout is gone, so ownership is proved the only way
+# that still works there: `return --if-lease-holder <task>` releases the slot
+# only when the lease is that task's and refuses otherwise, in one step under
+# the project lock that serialises every allocation and return. A refusal - a
+# lease that is some other task's, or a treehouse without that flag - carries
+# treehouse's own reason and the command that frees it, so nothing is dropped
+# silently or taken from its real owner.
 teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
-  local id=$1 worktree=$2 project=$3 label=$4 pool_status holder lock_path
+  local id=$1 worktree=$2 project=$3 label=$4 lock_path out=''
   [ -n "$worktree" ] || return 0
   [ -f "$(dirname "$(dirname "$worktree")")/treehouse-state.json" ] || return 0
+  lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
   if [ -n "$project" ] && [ -d "$project" ] && command -v treehouse >/dev/null 2>&1 &&
-    pool_status=$( cd "$project" && treehouse status --json 2>/dev/null ) &&
-    holder=$(printf '%s' "$pool_status" | jq -r --arg path "$worktree" \
-      '[.[] | select(.path == $path and .status == "leased")][0].lease_holder // ""' 2>/dev/null); then
-    if [ -z "$holder" ]; then
-      return 0
-    fi
-    if [ "$holder" != "$id" ]; then
-      echo "warning: task $id's $label $worktree is gone from disk, and that pool slot's Treehouse lease is held for $holder, so it was left alone" >&2
-      return 0
-    fi
-    lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
-    if teardown_treehouse_project_lock_held "$lock_path" &&
-      teardown_treehouse_return "$worktree" "$project" "$label"; then
-      return 0
-    fi
+    teardown_treehouse_project_lock_held "$lock_path" &&
+    out=$( cd "$project" && treehouse return --force --if-lease-holder "$id" "$worktree" 2>&1 ); then
+    [ -z "$out" ] || printf '%s\n' "$out"
+    return 0
   fi
-  echo "warning: task $id's $label $worktree is gone from disk and its Treehouse slot lease was not returned; release it by hand with: (cd ${project:-<project>} && treehouse return --force $worktree)" >&2
+  [ -z "$out" ] || printf '%s\n' "$out" >&2
+  echo "warning: task $id's $label $worktree is gone from disk and its Treehouse slot lease was not returned; if that slot is still this task's, release it with: (cd ${project:-<project>} && treehouse return --force --if-lease-holder $id $worktree)" >&2
 }
 
 # Return a worktree/home via `treehouse return --force`, tolerating a transient or

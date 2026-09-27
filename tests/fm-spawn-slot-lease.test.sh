@@ -26,13 +26,12 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # pool root at call time; <pool>/.fake-leases records "<slot> <holder>" lines
 # and <pool>/.fake-calls logs every invocation. `get --lease` prints the first
 # unleased slot's checkout and records the holder; a pool with no free slot
-# fails. `return --force <path>` drops that slot's lease. `status --json` prints
-# treehouse's pool status for every slot, carrying its lease holder, which is
-# the only evidence of ownership once a slot's checkout is gone; it mirrors
-# treehouse v2.3.0 `status --json` (array of {name, path, status, flavor,
-# lease_id, lease_holder, leased_at, processes}), and
-# tests/fm-spawn-slot-lease-live-e2e.test.sh proves that shape against the real
-# binary. Anything else exits 0.
+# fails. `return --force <path>` drops that slot's lease, and
+# `--if-lease-holder <holder>` makes that release conditional on the recorded
+# holder, refusing otherwise - the precondition teardown proves an absent copy's
+# lease with, mirroring treehouse v2.3.0's own flag, which
+# tests/fm-spawn-slot-lease-live-e2e.test.sh exercises against the real binary.
+# Anything else exits 0.
 make_pool_fakebin() {
   local dir=$1 fakebin
   fakebin=$(make_spawn_fakebin "$dir")
@@ -78,33 +77,25 @@ if [ "${1:-}" = get ]; then
   fi
   exit 0
 fi
-if [ "${1:-}" = status ]; then
-  first=1
-  printf '['
-  for slotdir in "$pool"/*/; do
-    [ -d "$slotdir" ] || continue
-    slot=$(basename "$slotdir")
-    case "$slot" in .* ) continue ;; esac
-    holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
-    [ "$first" = 1 ] || printf ','
-    first=0
-    if [ -n "$holder" ]; then
-      printf '{"name":"%s","path":"%s","status":"leased","lease_holder":"%s"}' \
-        "$slot" "${slotdir%/}/project" "$holder"
-    else
-      printf '{"name":"%s","path":"%s","status":"available","lease_holder":""}' \
-        "$slot" "${slotdir%/}/project"
-    fi
-  done
-  printf ']\n'
-  exit 0
-fi
 if [ "${1:-}" = return ]; then
   target=""
+  want_holder=""
+  prev=""
+  shift
   for a in "$@"; do
-    case "$a" in -*) ;; *) target=$a ;; esac
+    if [ "$prev" = --if-lease-holder ]; then
+      want_holder=$a
+    else
+      case "$a" in -*) ;; *) target=$a ;; esac
+    fi
+    prev=$a
   done
   slot=$(basename "$(dirname "$target")")
+  holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
+  if [ -n "$want_holder" ] && [ "$want_holder" != "$holder" ]; then
+    echo "failed to return worktree: lease precondition failed: lease holder does not match worktree $target" >&2
+    exit 1
+  fi
   grep -v "^$slot " "$leases" > "$leases.tmp" 2>/dev/null || true
   mv "$leases.tmp" "$leases"
   exit 0
@@ -287,8 +278,9 @@ test_teardown_frees_the_lease_when_the_slot_directory_is_gone() {
   expect_code 0 "$status" "teardown of a scout whose pool copy is gone should succeed"$'\n'"$out"
   grep -q "^1 " "$POOL_DIR/.fake-leases" \
     && fail "teardown left the lease on a slot whose copy is gone: $(cat "$POOL_DIR/.fake-leases")"
-  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
-    || fail "teardown did not return the leased copy: $(cat "$POOL_DIR/.fake-calls")"
+  grep -Fq "return --force --if-lease-holder lease-pruned-r1 $POOL_DIR/1/project" \
+    "$POOL_DIR/.fake-calls" \
+    || fail "teardown did not return the leased copy under its own lease holder: $(cat "$POOL_DIR/.fake-calls")"
   [ ! -e "$HOME_DIR/state/lease-pruned-r1.meta" ] \
     || fail "teardown left the task record behind"
   pass "teardown frees the lease even when the slot's copy was removed before it ran"
@@ -319,8 +311,10 @@ test_teardown_leaves_an_absent_copy_leased_to_another_task() {
   expect_code 0 "$status" "teardown of a scout whose pool copy is gone should succeed"$'\n'"$out"
   grep -Fxq "1 lease-otherowner-r1" "$POOL_DIR/.fake-leases" \
     || fail "teardown dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
-  assert_contains "$out" "lease is held for lease-otherowner-r1" \
-    "teardown did not name the task the slot's lease is held for"
+  assert_contains "$out" "lease precondition failed" \
+    "teardown did not report treehouse refusing to release another task's lease"
+  assert_contains "$out" "$POOL_DIR/1/project" \
+    "teardown did not name the slot whose lease it left alone"
   pass "teardown leaves an absent copy whose lease belongs to another task alone"
 }
 
@@ -372,8 +366,9 @@ test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone() {
   expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
   grep -q "^1 " "$POOL_DIR/.fake-leases" \
     && fail "child cleanup left the lease on a slot whose copy is gone: $(cat "$POOL_DIR/.fake-leases")"
-  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
-    || fail "child cleanup did not return the child's leased copy: $(cat "$POOL_DIR/.fake-calls")"
+  grep -Fq "return --force --if-lease-holder lease-child-r1 $POOL_DIR/1/project" \
+    "$POOL_DIR/.fake-calls" \
+    || fail "child cleanup did not return the child's leased copy under its own lease holder: $(cat "$POOL_DIR/.fake-calls")"
   pass "child cleanup frees a lease whose slot copy was removed"
 }
 
@@ -388,8 +383,10 @@ test_child_cleanup_leaves_an_absent_copy_leased_to_another_task() {
   expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
   grep -Fxq "1 lease-otherowner-r2" "$POOL_DIR/.fake-leases" \
     || fail "child cleanup dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
-  assert_contains "$out" "lease is held for lease-otherowner-r2" \
-    "child cleanup did not name the task the slot's lease is held for"
+  assert_contains "$out" "lease precondition failed" \
+    "child cleanup did not report treehouse refusing to release another task's lease"
+  assert_contains "$out" "$POOL_DIR/1/project" \
+    "child cleanup did not name the slot whose lease it left alone"
   pass "child cleanup leaves an absent copy whose lease belongs to another task alone"
 }
 

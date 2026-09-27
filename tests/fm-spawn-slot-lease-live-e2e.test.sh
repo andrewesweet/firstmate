@@ -11,22 +11,23 @@
 #      named: treehouse's own pool state records the slot as leased to that task
 #      until a return releases it, which is what makes a task's copy un-reissuable
 #      while its record exists;
-#   2. what teardown does about the reservation once that copy is removed
-#      outside Firstmate - it must release it or name it for manual release,
-#      never leave it silently, and the two pinned treehouse behaviours differ
-#      underneath that property (v2.0.1 keeps a removed slot reserved, v2.3.0
-#      stops reporting it and recycles the path).
+#   2. the reservation survives the removal of its own checkout - both pinned
+#      builds keep the slot leased in that state after the copy is pruned, which
+#      is why teardown has to release it explicitly - and
+#      `treehouse return --force --if-lease-holder <task>` is what releases it
+#      there: bin/fm-teardown.sh proves absent-copy ownership with that flag,
+#      relying on it to refuse a slot leased to some other task.
 #
 # Both are read from treehouse's persisted pool state (<pool>/treehouse-state.json,
 # the vendor's own serialized state file, which bin/fm-wake-lib.sh already treats
 # as the marker of a managed pool), so the guard holds on every treehouse that
-# leases at all - including the CI pin v2.0.1, whose `status` has no --json.
+# leases at all - including the CI pin v2.0.1.
 #
-# Where the installed treehouse DOES offer `status --json`, the guard
-# additionally pins the shape bin/fm-teardown.sh parses to prove an absent copy's
-# lease belongs to the task being torn down (top-level array; per slot `path`,
-# `status == "leased"`, `lease_holder`). On a treehouse without that flag the
-# guard says so by name instead of asserting a contract that version has not got.
+# The CI pin has no `--if-lease-holder` (it landed later), so on that build the
+# guard asserts the other half of the intent instead: teardown names the lease it
+# cannot prove, with the command that frees it, rather than leaving it silent.
+# It probes the flag through `return --help`, the same way bin/fm-bootstrap.sh
+# probes `get --help` for --lease.
 #
 # Every slot this guard touches must lie inside its own throwaway pool: the pool
 # root is pinned by a `treehouse.toml` committed in the throwaway repo (the only
@@ -102,15 +103,21 @@ state_lease_holder() {  # <path>
     "$state"
 }
 
-status_json_supported() {
-  real_treehouse status --json >/dev/null 2>&1
+# Does this treehouse carry the ownership-proving return flag teardown uses?
+if_lease_holder_supported() {
+  treehouse return --help 2>&1 | grep -q -- '--if-lease-holder'
 }
 
-# The holder `status --json` reports for <path>, read with the same filter
-# bin/fm-teardown.sh proves absent-copy lease ownership with.
-status_lease_holder() {  # <path>
-  real_treehouse status --json 2>/dev/null | jq -r --arg path "$1" \
-    '[.[] | select(.path == $path and .status == "leased")][0].lease_holder // ""'
+# Is <path> still one of the pool's slots at all? A return leaves the slot in the
+# state file unleased; a `treehouse status` on a pool whose checkout is missing
+# drops the slot from that file entirely, which is a different outcome and not
+# one teardown may claim credit for.
+state_slot_present() {  # <path>
+  local slot=$1 state
+  state="$(dirname "$(dirname "$slot")")/treehouse-state.json"
+  [ -f "$state" ] || return 1
+  jq -e --arg path "$slot" '[(.worktrees // [])[] | select(.path == $path)] | length > 0' \
+    "$state" >/dev/null
 }
 
 # A real spawn's lease is recorded for its own task id, and the real teardown
@@ -135,14 +142,6 @@ test_real_lease_is_recorded_for_its_task_and_freed_by_teardown() {
     fail "treehouse $TREEHOUSE_VERSION wrote no pool state beside $slot"
   [ "$holder" = "$id" ] || \
     fail "treehouse $TREEHOUSE_VERSION does not record $slot leased to $id (read '$holder')"
-
-  if status_json_supported; then
-    holder=$(status_lease_holder "$slot")
-    [ "$holder" = "$id" ] || \
-      fail "treehouse $TREEHOUSE_VERSION status --json does not report $slot leased to $id (read '$holder'): $(real_treehouse status --json 2>&1)"
-  else
-    note "treehouse $TREEHOUSE_VERSION has no 'status --json', so teardown's absent-copy ownership proof cannot be exercised against this build"
-  fi
 
   # The record naming that slot, published by the real spawn. Only the spawn's
   # own allocation is faked, so it adopts the slot already leased above;
@@ -177,11 +176,9 @@ test_real_lease_is_recorded_for_its_task_and_freed_by_teardown() {
   pass "a real treehouse lease is recorded for its own task and released by teardown (treehouse $TREEHOUSE_VERSION)"
 }
 
-# A pruned copy, on the real binary: teardown either releases the reservation
-# treehouse still holds for the task or names it - never leaves it silently. The
-# two pinned treehouse behaviours differ here (v2.0.1 keeps a removed slot
-# reserved and has no `status --json` to prove ownership with, v2.3.0 stops
-# reporting it), and both satisfy that one property, which is the intent's.
+# A pruned copy, on the real binary: the reservation treehouse still holds for
+# the task is released where the ownership-proving return flag exists, and named
+# with the command that frees it where it does not - never left silent.
 test_pruned_copy_lease_is_released_or_named_by_teardown() {
   local case_dir home fakebin slot out status holder id=lease-live-pruned-r1
   case_dir="$TMP_ROOT/pruned"
@@ -226,18 +223,22 @@ test_pruned_copy_lease_is_released_or_named_by_teardown() {
 
   holder=$(state_lease_holder "$slot") || \
     fail "the pool state beside $slot disappeared during teardown"
-  if [ -z "$holder" ]; then
-    pass "teardown released the real treehouse reservation on a pruned copy (treehouse $TREEHOUSE_VERSION)"
+  if if_lease_holder_supported; then
+    [ -z "$holder" ] || \
+      fail "teardown left treehouse $TREEHOUSE_VERSION reserving the pruned slot $slot for '$holder'"$'\n'"$out"
+    state_slot_present "$slot" || \
+      fail "$slot left the pool state entirely, so teardown's own return is not what freed it"$'\n'"$out"
+    pass "teardown releases a real treehouse reservation whose copy was pruned (treehouse $TREEHOUSE_VERSION)"
     return 0
   fi
   [ "$holder" = "$id" ] || \
-    fail "treehouse $TREEHOUSE_VERSION now reserves $slot for '$holder', which is not the torn-down task"
+    fail "treehouse $TREEHOUSE_VERSION reserves $slot for '$holder', which is neither the torn-down task nor free"
   assert_contains "$out" "$slot" \
     "teardown left treehouse $TREEHOUSE_VERSION reserving the pruned slot without naming it"
-  assert_contains "$out" "treehouse return --force" \
+  assert_contains "$out" "--if-lease-holder $id" \
     "teardown named the stranded reservation without the command that releases it"
-  note "treehouse $TREEHOUSE_VERSION keeps a pruned slot reserved and offers no 'status --json' to prove ownership with, so teardown names the lease for manual release instead of freeing it"
-  pass "a reservation teardown cannot free on a pruned copy is named, not left silent (treehouse $TREEHOUSE_VERSION)"
+  note "treehouse $TREEHOUSE_VERSION has no 'return --if-lease-holder', so teardown names the lease for manual release instead of freeing it"
+  pass "a reservation teardown cannot prove on a pruned copy is named, not left silent (treehouse $TREEHOUSE_VERSION)"
 }
 
 test_real_lease_is_recorded_for_its_task_and_freed_by_teardown
