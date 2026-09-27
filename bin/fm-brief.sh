@@ -26,6 +26,16 @@
 #   data/<task-id>/report.md (no branch, no push, no PR) and the worktree is scratch.
 #   It offers the Lavish review loop only when `fm-bootstrap.sh lavish-compatible`
 #   confirms the supported lavish-axi floor; otherwise it asks for a text report.
+#   A scout scaffold also carries a `# Disciplines` section routing reading
+#   legwork to the research discipline and a design question to the prototype
+#   discipline, each read as a file from the crewmate home's installed
+#   `~/.agents/skills/<name>/SKILL.md` rather than invoked as a skill, with the
+#   fleet adaptations the scout contract needs: findings and the prototype's
+#   verdict go in the report rather than into the project, and a prototype stays
+#   throwaway and never enters a ship branch. These two are the only skills a
+#   scaffold cites from the crewmate's home instead of this repo, so a home
+#   without them leaves the scout without that guidance; the disciplines are
+#   deliberately installed rather than vendored here.
 #   --secondmate writes a persistent secondmate charter. The project list
 #   is cloned into the secondmate home, while the natural-language scope
 #   tells the main firstmate when to route work there; routine churn stays in its own home;
