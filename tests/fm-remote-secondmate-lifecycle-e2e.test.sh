@@ -1288,23 +1288,50 @@ FM_FAKE_SSH_MODE=unreachable FM_STATE_OVERRIDE="$WATCH_STATE_UNREACHABLE" \
   remote_env exec "$ROOT/bin/fm-watch.sh" \
   > "$TMP_ROOT/watch-unreachable.out" 2> "$TMP_ROOT/watch-unreachable.err" &
 watch_pid=$!
-sleep 4
+ssh_after=$ssh_before
+probe_wait=0
+while kill -0 "$watch_pid" 2>/dev/null && [ "$probe_wait" -lt 100 ]; do
+  sleep 0.1
+  probe_wait=$((probe_wait + 1))
+  ssh_now=$(cat "$SSH_COUNT" 2>/dev/null || true)
+  case "$ssh_now" in
+    ''|*[!0-9]*) ;;
+    *) ssh_after=$ssh_now ;;
+  esac
+  [ "$ssh_after" -gt "$ssh_before" ] && break
+done
 kill -0 "$watch_pid" 2>/dev/null \
   || fail "the watcher exited against an unreachable remote secondmate: $(cat "$TMP_ROOT/watch-unreachable.out" "$TMP_ROOT/watch-unreachable.err")"
+[ "$ssh_after" -gt "$ssh_before" ] || fail "the unreachable remote endpoint was never probed"
 kill "$watch_pid" 2>/dev/null || true
 wait "$watch_pid" 2>/dev/null || true
 watch_pid=''
-sleep 1
-ssh_after=$(cat "$SSH_COUNT" 2>/dev/null || printf '0')
-[ "$ssh_after" -gt "$ssh_before" ] || fail "the unreachable remote endpoint was never probed"
+settle_wait=0
+stable_wait=0
+while [ "$settle_wait" -lt 100 ] && [ "$stable_wait" -lt 20 ]; do
+  sleep 0.1
+  settle_wait=$((settle_wait + 1))
+  ssh_now=$(cat "$SSH_COUNT" 2>/dev/null || true)
+  case "$ssh_now" in
+    ''|*[!0-9]*) stable_wait=0 ;;
+    "$ssh_after") stable_wait=$((stable_wait + 1)) ;;
+    *) ssh_after=$ssh_now; stable_wait=0 ;;
+  esac
+done
+[ "$stable_wait" -eq 20 ] \
+  || fail "the stopped unreachable watcher kept probing the remote endpoint"
 # A watcher that survives this stop keeps probing into the fixture root until
 # the EXIT trap races its removal, so prove nothing polls past a few cycles.
 touch "$TMP_ROOT/watch-unreachable.stopped"
-sleep 3
-[ "$(cat "$SSH_COUNT" 2>/dev/null || printf '0')" = "$ssh_after" ] \
-  || fail "the stopped unreachable watcher kept probing the remote endpoint"
-[ -z "$(find "$WATCH_STATE_UNREACHABLE" -newer "$TMP_ROOT/watch-unreachable.stopped" -print)" ] \
-  || fail "the stopped unreachable watcher kept writing its state"
+stability_wait=0
+while [ "$stability_wait" -lt 30 ]; do
+  sleep 0.1
+  stability_wait=$((stability_wait + 1))
+  [ "$(cat "$SSH_COUNT" 2>/dev/null || printf '0')" = "$ssh_after" ] \
+    || fail "the stopped unreachable watcher kept probing the remote endpoint"
+  [ -z "$(find "$WATCH_STATE_UNREACHABLE" -newer "$TMP_ROOT/watch-unreachable.stopped" -print)" ] \
+    || fail "the stopped unreachable watcher kept writing its state"
+done
 [ ! -s "$WATCH_STATE_UNREACHABLE/.wake-queue" ] \
   || fail "an unreachable remote probe queued a wake: $(cat "$WATCH_STATE_UNREACHABLE/.wake-queue")"
 assert_absent "$WATCH_STATE_UNREACHABLE/.secondmate-relaunch-ios" \
