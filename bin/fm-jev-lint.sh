@@ -92,7 +92,7 @@ usage() {
 # prints one stderr line and never changes the outcome.
 record_append() {  # <record-path> <json-line>
   case $1 in */*) mkdir -p "${1%/*}" 2>/dev/null || true ;; esac
-  printf '%s\n' "$2" >> "$1" 2>/dev/null || \
+  { printf '%s\n' "$2" >> "$1"; } 2>/dev/null || \
     printf 'jev-lint: record unwritable: %s\n' "$1" >&2
   return 0
 }
@@ -124,6 +124,7 @@ extract_subjects() {
   function flat(s) { gsub(/\t/, " ", s); gsub(/\r/, "", s); return s }
   function is_comment(l) { return (l ~ /^[[:space:]]*(#|\/\/|\*|;|")/) }
   function is_func(l) {
+    if (l ~ /^[[:space:]]*(\}[[:space:]]*)?(else[[:space:]]+)?(if|elif|for|foreach|while|until|do|switch|case|catch|except|with)[[:space:]]*\(/) return 0
     return (l ~ /^[[:space:]]*(function[[:space:]]+[A-Za-z_][A-Za-z0-9_:.-]*|def[[:space:]]+[A-Za-z_][A-Za-z0-9_]*|func[[:space:]]+[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_:.-]*[[:space:]]*\(\)[[:space:]]*\{|[A-Za-z_][A-Za-z0-9_:.-]*[[:space:]]*\([^)]*\)[[:space:]]*\{)/)
   }
   function is_test_name(l) {
@@ -140,9 +141,11 @@ extract_subjects() {
     c = gsub(/,/, ",", l); q = gsub(/`/, "`", l) + gsub(/"/, "\"", l)
     return (c >= 2 && q >= 4)
   }
-  function r3_context(from, to, skip_from, skip_to,   k, ev) {
+  function r3_context(from, to, skip_from, skip_to,   k, ev, lo, hi) {
+    lo = skip_from; while (lo > 1 && lo > from && !bound[lo]) lo--
+    hi = skip_to - 1; while (hi < n && hi < to && !bound[hi + 1]) hi++
     ev = ""
-    for (k = (from > 1 ? from : 1); k <= to && k <= n; k++) {
+    for (k = lo; k <= hi; k++) {
       if (k >= skip_from && k < skip_to) continue
       ev = ev (ev == "" ? "" : " ") lines[k]
     }
@@ -155,10 +158,10 @@ extract_subjects() {
     gsub(/\\/, "\\\\", claim); gsub(/\\/, "\\\\", ev)
     printf "%s\t%s\t%s\t%s\n", rule, file, claim, ev
   }
-  /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; next }
+  /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; delete bound; next }
   /^\+\+\+ / { next }
   /^--- / { next }
-  /^@@ / { in_hunk = 1; next }
+  /^@@ / { in_hunk = 1; bound[n + 1] = 1; next }
   in_hunk && /^ / { lines[++n] = substr($0, 2); kinds[n] = " "; next }
   in_hunk && /^\+/ && !/^\+\+\+/ { lines[++n] = substr($0, 2); kinds[n] = "+"; next }
   in_hunk && /^-/ && !/^--- / { next }
@@ -171,13 +174,14 @@ extract_subjects() {
       for (i = 1; i <= n; i++) {
         if (!is_func(lines[i])) continue
         added = (kinds[i] == "+")
-        for (k = i + 1; k <= n && !is_func(lines[k]); k++) if (kinds[k] == "+") added = 1
+        for (k = i + 1; k <= n && !bound[k] && !is_func(lines[k]); k++) if (kinds[k] == "+") added = 1
         if (!added) continue
         claim = ""; j = i - 1
-        while (j >= 1 && is_comment(lines[j])) { claim = lines[j] (claim == "" ? "" : " " claim); j-- }
+        while (j >= 1 && !bound[j + 1] && is_comment(lines[j])) { claim = lines[j] (claim == "" ? "" : " " claim); j-- }
         if (claim == "") continue
         ev = lines[i]; body = 0
         for (k = i + 1; k <= n && body < 8; k++) {
+          if (bound[k]) break
           if (kinds[k] != "+") continue
           if (is_func(lines[k])) break
           ev = ev " " lines[k]; body++
@@ -190,6 +194,7 @@ extract_subjects() {
           if (!is_test_name(lines[i])) continue
           claim = lines[i]; ev = ""; body = 0
           for (k = i + 1; k <= n && body < 12; k++) {
+            if (bound[k]) break
             if (kinds[k] == "+" && is_test_name(lines[k])) break
             ev = ev (ev == "" ? "" : " ") lines[k]; body++
           }
@@ -200,15 +205,17 @@ extract_subjects() {
         if (kinds[i] != "+") continue
         if (!is_budget(lines[i])) continue
         claim = lines[i]; ev = ""
-        for (k = (i - 5 > 1 ? i - 5 : 1); k <= n && k <= i + 5; k++) ev = ev (ev == "" ? "" : " ") lines[k]
+        lo = i; while (lo > 1 && lo > i - 5 && !bound[lo]) lo--
+        hi = i; while (hi < n && hi < i + 5 && !bound[hi + 1]) hi++
+        for (k = lo; k <= hi; k++) ev = ev (ev == "" ? "" : " ") lines[k]
         emit("r4", file, claim, ev)
       }
       for (i = 1; i <= n; i++) {
         if (kinds[i] != "+") continue
         if (is_list_item(lines[i])) {
-          if (i > 1 && kinds[i-1] == "+" && is_list_item(lines[i-1])) continue
+          if (i > 1 && !bound[i] && kinds[i-1] == "+" && is_list_item(lines[i-1])) continue
           enum = lines[i]; cnt = 1
-          for (k = i + 1; k <= n && kinds[k] == "+" && is_list_item(lines[k]) && cnt < 10; k++) {
+          for (k = i + 1; k <= n && !bound[k] && kinds[k] == "+" && is_list_item(lines[k]) && cnt < 10; k++) {
             enum = enum " " lines[k]; cnt++
           }
           if (cnt < 2) continue
@@ -218,7 +225,7 @@ extract_subjects() {
         }
       }
     }
-    file = ""; n = 0
+    file = ""; n = 0; delete bound
   }
   END { flush_file() }
   '
