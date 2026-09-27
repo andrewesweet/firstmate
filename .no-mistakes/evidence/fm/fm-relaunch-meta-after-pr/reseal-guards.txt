@@ -1,0 +1,13 @@
+no-pr record rc=0
+no-pr record byte-identical: yes
+already-sealed rc=0
+already-sealed byte-identical: yes
+symlink meta rc=1 (non-zero refuses)
+missing meta rc=1 (non-zero refuses)
+reordered rc=0
+--- c.meta ---
+spawn_gen=s1
+x_thing=1
+pr=https://x/1
+pr_head=abc
+mode preserved: 600

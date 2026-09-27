@@ -1,0 +1,27 @@
+before promote: poll VALID
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warn: no registry at /tmp/fm-promote-pr.mWaN0i/home/data/projects.md; defaulting proj to no-mistakes off
+promoted sc1 to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /tmp/fm-promote-pr.mWaN0i/home/data/sc1/ship-instructions.md
+next: FM_HOME=/tmp/fm-promote-pr.mWaN0i/home bin/fm-send.sh fm-sc1 "$(cat /tmp/fm-promote-pr.mWaN0i/home/data/sc1/ship-instructions.md)"
+--- record after promote ---
+window=fmses:fm-sc1
+endpoint_task_id=sc1
+project=/tmp/fm-promote-pr.mWaN0i/proj
+worktree=/tmp/fm-promote-pr.mWaN0i/wt
+harness=claude
+model=default
+effort=default
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/sc1
+pr=https://github.com/o/r/pull/5
+pr_head=0123456789abcdef0123456789abcdef01234567
+after promote: poll VALID

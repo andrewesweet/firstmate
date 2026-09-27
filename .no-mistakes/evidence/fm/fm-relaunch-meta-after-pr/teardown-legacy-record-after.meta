@@ -1,0 +1,10 @@
+window=firstmate:fm-task-x1
+endpoint_task_id=task-x1
+worktree=/tmp/fm-teardown-tests.3DCiZm/legacy-pr-poll/wt
+project=/tmp/fm-teardown-tests.3DCiZm/legacy-pr-poll/project
+kind=ship
+mode=no-mistakes
+harness=codex
+spawn_gen=legacy-20260927T141455Z-2649415
+pr=https://github.com/o/r/pull/91
+pr_head=0123456789abcdef0123456789abcdef01234567

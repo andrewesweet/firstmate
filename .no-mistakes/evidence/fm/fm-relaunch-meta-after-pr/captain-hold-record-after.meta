@@ -1,0 +1,11 @@
+window=firstmate:fm-sample-systems-review
+worktree=/tmp/fm-captain-hold.2e9mtB/completion-gate/projects/missing-sample-systems-review
+project=/tmp/fm-captain-hold.2e9mtB/completion-gate/projects/sample
+harness=codex
+kind=scout
+mode=scout
+spawn_gen=fixture-sample-systems-review
+decisions_reviewed=1
+decision_keys=sample-route-call
+pr=https://github.com/o/r/pull/33
+pr_head=0123456789abcdef0123456789abcdef01234567
