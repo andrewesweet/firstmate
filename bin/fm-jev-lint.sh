@@ -124,11 +124,8 @@ subject_has_secret() {  # <text>
   printf '%s\n' "$1" | grep -qE \
     '(-----BEGIN[A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]|github_pat_[A-Za-z0-9]|xox[baprs]-[A-Za-z0-9]|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9]|Bearer[[:space:]]+[A-Za-z0-9._~+/-]{20,}|eyJ[A-Za-z0-9_-]{10,})' \
     && return 0
-  printf '%s\n' "$1" | grep -qE \
-    '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9._/+-]' \
-    && return 0
   printf '%s\n' "$1" | grep -qiE \
-    '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(key|token|secret|password|passwd)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9._/+-]' \
+    '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(key|token|secret|password|passwd)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[^[:space:]]' \
     && return 0
   return 1
 }
