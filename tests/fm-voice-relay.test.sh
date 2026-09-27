@@ -3554,7 +3554,7 @@ cat > "$CORR_HOME/data/backlog.md" <<'EOF'
 - [ ] correlated - Correlated status (repo: a) (kind: ship)
 EOF
 fm_write_meta "$CORR_HOME/state/correlated.meta" kind=ship
-for correlated_verb in working needs-decision blocked paused done failed resolved captain-held; do
+for correlated_verb in working needs-decision blocked paused 'done' failed resolved captain-held; do
   printf 'working: older event\n%s corr=0123456789abcdef: newest event\n' "$correlated_verb" \
     > "$CORR_HOME/state/correlated.status"
   correlated=$(python3 "$ROOT/bin/fm_voice_records.py" status --home "$CORR_HOME" --scope counts) \

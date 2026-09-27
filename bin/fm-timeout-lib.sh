@@ -67,6 +67,7 @@ set -u
 
 fm_timeout_current_pid() {  # <output-variable>
   local output=$1 pid
+  # shellcheck disable=SC2016  # $PPID must expand in the child shell, not here.
   pid=${BASHPID:-$(exec "${BASH:-/bin/bash}" -c 'printf "%s\n" "$PPID"')} || return 1
   case "$pid" in ''|*[!0-9]*|0) return 1 ;; esac
   printf -v "$output" '%s' "$pid"
