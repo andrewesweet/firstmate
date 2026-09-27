@@ -3288,7 +3288,7 @@ test_mismatched_state_override_is_ignored() {
   fm_write_meta "$d/state/feat-ovr.meta" "window=fm:fm-feat-ovr" "worktree=$d/wt" "kind=ship" "harness=claude"
   printf 'working: real task log line\n' > "$d/state/feat-ovr.status"
   # Another task's snapshot capture, under snapshot-style names.
-  fm_write_meta "$d/state/feat-other.meta" "window=fm:fm-feat-other" "worktree=$d/wt" "kind=ship" "harness=claude"
+  fm_write_meta "$d/state/feat-other.meta" "window=fm:fm-feat-other" "worktree=$d/foreign-missing-wt" "kind=ship" "harness=claude"
   printf 'blocked: other task log line\n' > "$d/state/feat-other.status"
   FM_FAKE_AXI_STATUS=""
   FM_FAKE_BUSY=0
@@ -3298,6 +3298,7 @@ test_mismatched_state_override_is_ignored() {
     run_crew_state "$d" feat-ovr)
   assert_contains "$out" "state: working" "a mismatched override must be ignored: the task's own working log line wins"
   assert_contains "$out" "source: status-log" "a mismatched override must fall through to the task's own status log"
+  assert_not_contains "$out" "worktree gone" "a mismatched metadata override must fall through to the task's live worktree"
   assert_not_contains "$out" "other task log line" "a mismatched override must never surface the other task's status"
   pass "override guard: a foreign-named override is ignored and the task's own state files are read"
 }
@@ -3308,11 +3309,11 @@ test_matched_state_override_is_honoured() {
   d=$(new_case override-match)
   make_repo_on_branch "$d/wt" fm/feat-ovr2
   make_fakebin "$d" >/dev/null
-  fm_write_meta "$d/state/feat-ovr2.meta" "window=fm:fm-feat-ovr2" "worktree=$d/wt" "kind=ship" "harness=claude"
+  fm_write_meta "$d/state/feat-ovr2.meta" "window=fm:fm-feat-ovr2" "worktree=$d/live-missing-wt" "kind=ship" "harness=claude"
   printf 'working: live log line\n' > "$d/state/feat-ovr2.status"
   # The fleet snapshot's captured generation for THIS task: matching names.
   mkdir -p "$d/snapshot"
-  cp "$d/state/feat-ovr2.meta" "$d/snapshot/feat-ovr2.meta"
+  fm_write_meta "$d/snapshot/feat-ovr2.meta" "window=fm:fm-feat-ovr2" "worktree=$d/wt" "kind=ship" "harness=claude"
   printf 'paused: snapshot captured status\n' > "$d/snapshot/feat-ovr2.status"
   FM_FAKE_AXI_STATUS=""
   FM_FAKE_BUSY=0
@@ -3322,6 +3323,7 @@ test_matched_state_override_is_honoured() {
     run_crew_state "$d" feat-ovr2)
   assert_contains "$out" "state: paused" "a matched-name override must be honoured over the live status log"
   assert_contains "$out" "source: status-log" "a matched-name override reads the captured log through the normal source"
+  assert_not_contains "$out" "worktree gone" "a matched-name metadata override must use the captured worktree"
   pass "override guard: a matching-name override still steers the read at the captured generation"
 }
 
