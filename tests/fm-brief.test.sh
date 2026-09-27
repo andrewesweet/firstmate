@@ -1411,9 +1411,56 @@ test_crewmate_scaffolds_forbid_pool_administration() {
   pass "fm-brief.sh: every crewmate scaffold forbids administering the shared worktree pool"
 }
 
+# P3 ship half: every ship mode's Definition of done carries the implement
+# discipline (test-first at agreed seams, regular typechecking and test runs,
+# one full suite, two-axis self-review before the ship-branch commit) as
+# file reads - crews must not Skill-tool-invoke the user-invoked skills - and
+# only the no-mistakes contract carries the before-validation ordering.
+test_ship_dod_implement_discipline() {
+  local home id mode brief
+  home="$TMP_ROOT/implement-discipline-home"
+  mkdir -p "$home/data"
+  for mode in no-mistakes direct-PR local-only; do
+    id="brief-implement-$mode"
+    FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode "$mode" >/dev/null 2>&1 \
+      || fail "fm-brief.sh $id --mode $mode exited non-zero"
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$id: brief was not scaffolded"
+    assert_grep 'Implement by following the discipline at `~/.agents/skills/implement/SKILL.md`' "$brief" \
+      "$mode DOD must point at the implement skill file"
+    assert_grep 'read them instead of invoking them through a Skill tool' "$brief" \
+      "$mode DOD must tell crews to read the user-invoked skills as files"
+    assert_grep '`~/.agents/skills/tdd/SKILL.md`' "$brief" \
+      "$mode DOD must point at the tdd skill file"
+    assert_grep 'at the seams this brief agrees' "$brief" \
+      "$mode DOD must test first at the agreed seams"
+    assert_grep 'the full test suite once at the end' "$brief" \
+      "$mode DOD must run the full suite once at the end"
+    assert_grep '`~/.agents/skills/code-review/SKILL.md`' "$brief" \
+      "$mode DOD must point at the code-review skill file"
+    assert_grep "Standards (this repository's documented standards) and Spec (faithful implementation of this brief)" "$brief" \
+      "$mode DOD must self-review on both the Standards and Spec axes"
+    assert_grep "Commit to \`fm/$id\` only" "$brief" \
+      "$mode DOD must confine commits to the task ship branch"
+    if [ "$mode" = no-mistakes ]; then
+      assert_grep 'complete everything above before starting validation' "$brief" \
+        "no-mistakes DOD must order the discipline before validation"
+      assert_grep 'never run a second review beside it' "$brief" \
+        "no-mistakes DOD must forbid a second reviewer during the run"
+      assert_grep 'enters as an added finding, as `no-mistakes axi respond --help` describes' "$brief" \
+        "$mode DOD must fold self-spotted gaps in as added findings without restating the flag"
+    else
+      assert_no_grep 'On this no-mistakes ship' "$brief" \
+        "$mode DOD must not carry the no-mistakes validation ordering"
+    fi
+  done
+  pass "fm-brief.sh: every ship DOD carries the implement discipline, ordering only on no-mistakes"
+}
+
 test_script_parses
 test_no_heredoc_in_command_substitution
 test_help_includes_entire_header
+test_ship_dod_implement_discipline
 test_ship_modes_generate_clean_briefs
 test_ship_mode_is_required_and_closed_set
 test_ship_mode_is_explicit_not_registry

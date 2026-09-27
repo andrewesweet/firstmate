@@ -390,6 +390,38 @@ There is no pull request, no \`gh-axi\` call, and no forge CI result to report: 
 EOF
 }
 
+# The implement discipline every ship worker follows before its mode's own
+# delivery path takes over: test-first at the brief's agreed seams with
+# regular typechecking and test runs, one full suite at the end, then a
+# two-axis self-review with findings fixed before the ship-branch commit.
+# The named skills are user-invoked, so a crew follows them by reading the
+# installed files, never through a Skill-tool invocation; the fleet
+# adaptations are the ship branch, never main, and never pushing outside the
+# mode's own path. On a no-mistakes ship this whole discipline completes
+# before validation starts: once the run starts the pipeline owns every fix
+# (fm_nm_implement_ordering_block states that ordering where it applies).
+fm_implement_discipline_block() {  # [branch]
+  local branch=${1:-fm/<task-id>}
+  cat <<EOF
+Implement by following the discipline at \`~/.agents/skills/implement/SKILL.md\`, read as a file: those skills are user-invoked, so read them instead of invoking them through a Skill tool.
+Test first with the discipline at \`~/.agents/skills/tdd/SKILL.md\` at the seams this brief agrees; where the brief names no seam, test at the public boundary your change introduces, one vertical slice at a time.
+Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+Then self-review by following both axes at \`~/.agents/skills/code-review/SKILL.md\` - Standards (this repository's documented standards) and Spec (faithful implementation of this brief) - and fix what you find before committing to your \`$branch\` branch.
+Commit to \`$branch\` only: never main, and never push outside this mode's delivery path.
+EOF
+}
+
+# The no-mistakes ordering for the implement discipline: self-review before
+# starting validation, pipeline-owned fixes after. The added-finding path is
+# not restated here: the CI-gate contract below already covers feeding a
+# gate an issue it does not list yet, and points at
+# `no-mistakes axi respond --help` for the flag.
+fm_nm_implement_ordering_block() {
+  cat <<EOF
+On this no-mistakes ship, complete everything above before starting validation; once the run starts the pipeline owns every fix, so never hand-edit during a run and never run a second review beside it. A gap you spot that a parked gate does not list enters as an added finding, as \`no-mistakes axi respond --help\` describes.
+EOF
+}
+
 fm_dod_block() {  # <mode> <task-id> [branch] <data-dir> [<forge>]
   local mode=$1 id=$2 data=$4 forge=${5:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id}
@@ -403,6 +435,11 @@ Ship branch: $branch
 This task ships **direct-PR** to a Gerrit review server: you publish the change yourself, without the no-mistakes pipeline.
 Gerrit has no pull requests, so there is nothing to open; publishing creates the change.
 The task is complete only when committed on your branch.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      cat <<EOF
+
 When it is implemented and committed, publish it.
 EOF
       fm_gerrit_publish_block
@@ -419,6 +456,12 @@ This project's review server is Gerrit: it has no pull requests and no forge CI 
 Pass \`--skip push,pr,ci\` on every \`no-mistakes axi run\` for this task, and skip nothing else: \`review\`, \`test\`, \`document\`, and \`lint\` are the whole point of the run.
 Those three are the only steps that reach a forge, and skipping them is a supported outcome, not a degraded one.
 The task is complete only when committed on your branch.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      fm_nm_implement_ordering_block
+      cat <<EOF
+
 When your implementation is committed, start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
@@ -447,6 +490,11 @@ Delivery contract: mode=direct-PR
 Ship branch: $branch
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      cat <<EOF
+
 When it is implemented and committed, push your branch and open a PR with \`gh-axi\` that is ready for review, not a draft.
 Before you report done, read the PR back from the forge and confirm it is not a draft (\`gh-axi pr view <number>\` must print \`draft: no\`, where <number> is the PR number from your PR URL); if it is a draft, mark it ready with \`gh-axi pr ready <number>\`.
 A draft cannot be merged, so a done report on one leaves the merge unasked.
@@ -463,6 +511,11 @@ Delivery contract: mode=local-only
 Ship branch: $branch
 This task ships **local-only**: no remote, no PR, no pipeline.
 The task is complete only when committed on your branch \`$branch\`. Do NOT push, do NOT open a PR, do NOT merge.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      cat <<EOF
+
 A \`done:\` is accepted when the named head is on this project's shared local branch, not only on a detached copy; the check tests that head, not merely that a branch moved.
 Keep your branch a clean fast-forward onto the current default branch - if \`main\` has advanced, rebase onto it so the eventual merge stays a fast-forward.
 When it is implemented and committed, append \`done [at=<epoch>]: ready in branch $branch\` to the status file and stop.
@@ -475,6 +528,12 @@ EOF
 Delivery contract: mode=no-mistakes
 Ship branch: $branch
 The task is complete only when committed on your branch.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      fm_nm_implement_ordering_block
+      cat <<EOF
+
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
