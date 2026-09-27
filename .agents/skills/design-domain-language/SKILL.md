@@ -38,7 +38,6 @@ Intake grilling already sharpens language before dispatch; this skill owns the s
 ## 3. Design scouts
 
 A design scout is briefed, never grilled: its Firstmate spec names the design question, points at the two files above as read-as-file, and asks for the vocabulary-judged options plus the domain terms each option serves.
-Parallel interface exploration maps to parallel design scouts only when each scout owns a genuinely different interface direction; otherwise one scout compares.
 The scout's verdict, proposed terms, and proposed refactorings land in `data/<id>/report.md`, never in the project.
 
 ## 4. Retrospectives
