@@ -15,8 +15,9 @@
 # the schema, currently version 2), falling back to that wrapper's unmeasured
 # shape when the query fails, and to a minimal unmeasured object built here
 # when even the wrapper cannot run - so a failed query leaves an explicit
-# unmeasured line, never a missing one. The pipeline columns are queried from
-# the same schema owner and merged over the worker line on every append.
+# unmeasured line, never a missing one. The pipeline columns ride that line
+# from the schema owner; this producer never recomputes them, so a line's
+# pipeline figure has exactly one origin.
 # The spend context (state/<id>.spend-context) carries the facts the later
 # close needs after teardown removes the record: kind, harness, model, effort,
 # worktree, project, branch, the window bounds, and the already-derived
@@ -209,12 +210,15 @@ if [ -r "$META" ]; then
   fi
 fi
 if [ -z "$WORKER_LINE" ] && [ -r "$CONTEXT" ] && command -v python3 >/dev/null 2>&1; then
+  PY_ARGS=(--task "$ID" --kind "$KIND" --harness "${HARNESS:-unknown}"
+    --model "${MODEL:-default}" --effort "${EFFORT:-default}" --worktree "$WORKTREE"
+    --pipeline-branch "$BRANCH" --pipeline-project "$PROJECT")
   if [ -n "$SPAWN_EPOCH" ] && [ -n "$END_EPOCH" ]; then
-    WORKER_LINE=$(python3 "$SCRIPT_DIR/fm-spend-query.py" --task "$ID" --kind "$KIND" \
-      --harness "${HARNESS:-unknown}" --model "${MODEL:-default}" --effort "${EFFORT:-default}" \
-      --worktree "$WORKTREE" --spawn-epoch "$SPAWN_EPOCH" --end-epoch "$END_EPOCH" \
-      --pipeline-branch "$BRANCH" --pipeline-project "$PROJECT" 2>/dev/null) || WORKER_LINE=''
+    PY_ARGS+=(--spawn-epoch "$SPAWN_EPOCH" --end-epoch "$END_EPOCH")
+  else
+    PY_ARGS+=(--unmeasured "stashed spend context cannot bound the session window")
   fi
+  WORKER_LINE=$(python3 "$SCRIPT_DIR/fm-spend-query.py" "${PY_ARGS[@]}" 2>/dev/null) || WORKER_LINE=''
 fi
 if [ -z "$WORKER_LINE" ]; then
   WORKER_LINE=$(jq -cn \
@@ -223,42 +227,30 @@ if [ -z "$WORKER_LINE" ]; then
     '{schema: 2, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
       window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
       usd_lane: "unmeasured", usd: null, models: [],
-      unmeasured_reason: "task record unreadable; session window cannot be bounded"}' 2>/dev/null) || WORKER_LINE=''
-fi
-[ -n "$WORKER_LINE" ] || { echo "error: could not build $ID's spend ledger entry" >&2; exit 0; }
-
-# The pipeline columns, queried once per append and merged over the worker
-# line, so every close path carries the same pipeline figure whether the
-# worker line above measured, unmeasured, or fell back.
-PIPELINE_LINE=''
-if command -v python3 >/dev/null 2>&1; then
-  PIPELINE_LINE=$(python3 "$SCRIPT_DIR/fm-spend-query.py" --task "$ID" \
-    --pipeline-only --pipeline-branch "$BRANCH" --pipeline-project "$PROJECT" 2>/dev/null) || PIPELINE_LINE=''
-fi
-if [ -z "$PIPELINE_LINE" ]; then
-  PIPELINE_LINE=$(jq -cn \
-    '{pipeline_runs: 0, pipeline_invocations: 0,
+      unmeasured_reason: "task record unreadable; session window cannot be bounded",
+      pipeline_runs: 0, pipeline_invocations: 0,
       pipeline_input_tokens: 0, pipeline_output_tokens: 0,
       pipeline_cache_read_tokens: 0, pipeline_cache_creation_tokens: 0,
       pipeline_agent_ms: 0, pipeline_unmeasured_invocations: 0, pipeline_unmeasured_ms: 0,
       pipeline_usd: null, pipeline_cost_lane: "unmeasured",
-      pipeline_note: "pipeline query unavailable"}' 2>/dev/null) || PIPELINE_LINE=''
+      pipeline_note: "pipeline not queried: no task record and no python3"}' 2>/dev/null) || WORKER_LINE=''
 fi
+[ -n "$WORKER_LINE" ] || { echo "error: could not build $ID's spend ledger entry" >&2; exit 0; }
 
-MERGED=''
-if [ -n "$PIPELINE_LINE" ]; then
-  MERGED=$(jq -c -s \
-    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    --arg outcome "$OUTCOME" \
-    --arg ref "$OUTCOME_REF" \
-    '.[0] * .[1] | .schema = 2 | . + {ts: $ts}
-      + (if $outcome == "" then {} else {outcome: $outcome} end)
-      + (if $ref == "" then {} else {outcome_ref: $ref} end)' \
-    <(printf '%s\n' "$WORKER_LINE") <(printf '%s\n' "$PIPELINE_LINE") 2>/dev/null) || MERGED=''
-fi
-[ -n "$MERGED" ] || { echo "error: could not merge $ID's spend ledger entry" >&2; exit 0; }
+# The close's own fields on top of the line the schema owner built. The
+# pipeline columns already ride that line, so nothing here recomputes or
+# overwrites them: they enter a line in exactly one place.
+MERGED=$(jq -c \
+  --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg outcome "$OUTCOME" \
+  --arg ref "$OUTCOME_REF" \
+  '. + {ts: $ts}
+    + (if $outcome == "" then {} else {outcome: $outcome} end)
+    + (if $ref == "" then {} else {outcome_ref: $ref} end)' \
+  <<<"$WORKER_LINE" 2>/dev/null) || MERGED=''
+[ -n "$MERGED" ] || { echo "error: could not build $ID's spend ledger line" >&2; exit 0; }
 echo "$MERGED" | jq -e '.task == $task' --arg task "$ID" >/dev/null 2>&1 \
-  || { echo "error: merged spend ledger entry names the wrong task" >&2; exit 0; }
+  || { echo "error: $ID's spend ledger line names the wrong task" >&2; exit 0; }
 
 # The ledger write holds an exclusive lock only for the dedupe check and the
 # append itself; the queries above already ran. Without flock the check and

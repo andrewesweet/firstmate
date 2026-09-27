@@ -5,8 +5,8 @@ This file owns the spend-ledger line schema (schema 2) and the runtime
 coverage list. bin/fm-spend-query.sh is the operator entrypoint that resolves
 the task record and calls this file; read that header first for the
 command-line contract. bin/fm-spend-ledger-append.sh is the shared producer
-that appends one line per closed task; it queries the pipeline columns here
-and merges them over the worker line.
+that appends one line per closed task; every line it appends is built here, so
+the pipeline columns enter a line in exactly one place.
 
 Schema 2, one JSON object per run:
     schema                 always 2 (a schema 1 line is the same object
@@ -36,7 +36,9 @@ Schema 2, one JSON object per run:
                            rates below, never a bill.
     models                 sorted model names seen in the window
     unmeasured_reason      present exactly when usd_lane is "unmeasured"
-    pipeline_runs          no-mistakes runs recorded for the task's branch
+    pipeline_runs          no-mistakes runs recorded for the task's branch,
+                           scoped to the repos the pipeline could have run
+                           from: the task's project clone and its own worktree
     pipeline_invocations   agent_invocations rows across those runs
     pipeline_input_tokens, pipeline_output_tokens, pipeline_cache_read_tokens,
     pipeline_cache_creation_tokens
@@ -55,8 +57,9 @@ Schema 2, one JSON object per run:
                            "partial"   some reported tokens had no known
                                        rate; pipeline_usd covers the priced
                                        part only
-                           "none"      the branch ran no pipeline runs, so
-                                       every pipeline count is a definitive 0
+                           "none"      the branch ran no pipeline runs on any
+                                       repo in scope, so every pipeline count
+                                       is a definitive 0
                            "unmeasured" no honest pipeline figure exists
     pipeline_note          present exactly when pipeline_cost_lane is not
                            "api-equiv"
@@ -97,7 +100,10 @@ figure they never fall back to a default rate: an invocation whose model
 matches no prefix keeps its tokens in the token sums while its cost stays
 unmeasured (lane "partial"), because guessing a price is worse than naming
 the gap. The no-mistakes state is read through a read-only connection and is
-never written; NM_HOME selects the inventory (default ~/.no-mistakes).
+never written; NM_HOME selects the inventory (default ~/.no-mistakes). A repo
+there is keyed by the path the pipeline was invoked from, which for a worker
+task is its own pooled worktree as often as the project clone, so both scope
+the lookup.
 """
 
 from __future__ import annotations
@@ -326,32 +332,47 @@ def nm_state_root() -> Path:
     return root
 
 
-def collect_pipeline(branch: str | None, project: str | None) -> dict:
+def collect_pipeline(branch: str | None, project: str | None, worktree: str | None = None) -> dict:
     """Aggregate the no-mistakes agent_invocations for one task branch.
-    The inventory is opened read-only and never written. Invocations that
-    reported no tokens (killed or never started) are counted with their
-    duration and never priced."""
+    The inventory keys a repo by the path the pipeline ran from, which for a
+    worker task is its own pooled worktree as often as the project clone, so
+    both scope the lookup: a repo whose working_path is the project, is the
+    worktree, or sits inside the worktree. The inventory is opened read-only
+    and never written. Invocations that reported no tokens (killed or never
+    started) are counted with their duration and never priced."""
     pipeline = pipeline_defaults()
     if not branch:
         pipeline["pipeline_note"] = "task record carries no branch; no pipeline runs to attribute"
         pipeline["pipeline_cost_lane"] = "none"
         return pipeline
+    scopes = [path for path in (project, worktree) if path]
+    if not scopes:
+        pipeline["pipeline_note"] = (
+            "task record carries neither project nor worktree; pipeline repo cannot be resolved"
+        )
+        return pipeline
     db_path = nm_state_root() / "state.sqlite"
     if not db_path.is_file():
         pipeline["pipeline_note"] = f"no-mistakes state not found at {db_path}"
         return pipeline
+    prefix = worktree.rstrip("/") + "/" if worktree else None
     try:
         import sqlite3
         db = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True, timeout=5)
         try:
             db.execute("SELECT 1 FROM runs LIMIT 1")
-            repo_rows = db.execute(
-                "SELECT id FROM repos WHERE working_path = ?", ((project or ""),)
-            ).fetchall() if project else []
-            if repo_rows:
+            repo_ids = [
+                repo_id
+                for repo_id, path in db.execute("SELECT id, working_path FROM repos")
+                if isinstance(path, str)
+                and (path in scopes or (prefix is not None and path.startswith(prefix)))
+            ]
+            if repo_ids:
+                placeholders = ",".join("?" for _ in repo_ids)
                 run_rows = db.execute(
-                    "SELECT id FROM runs WHERE repo_id = ? AND branch = ? ORDER BY created_at",
-                    (repo_rows[0][0], branch),
+                    f"SELECT id FROM runs WHERE repo_id IN ({placeholders}) AND branch = ? "
+                    "ORDER BY created_at",
+                    (*repo_ids, branch),
                 ).fetchall()
             else:
                 run_rows = []
@@ -371,11 +392,10 @@ def collect_pipeline(branch: str | None, project: str | None) -> dict:
     except Exception as exc:
         pipeline["pipeline_note"] = f"no-mistakes state unreadable: {exc}"
         return pipeline
-    if project and not repo_rows:
-        pipeline["pipeline_note"] = f"no-mistakes repo not resolved for project {project}"
-        return pipeline
-    if not project:
-        pipeline["pipeline_note"] = "task record carries no project; pipeline repo cannot be resolved"
+    if not repo_ids:
+        pipeline["pipeline_note"] = (
+            "no-mistakes repo not resolved for " + " or ".join(scopes)
+        )
         return pipeline
     if not run_ids:
         pipeline["pipeline_cost_lane"] = "none"
@@ -481,8 +501,12 @@ def build_line(args) -> dict:
     # worker session cannot be measured may still have pipeline runs, and a
     # task with no branch has definitively no pipeline runs to attribute.
     pipeline = collect_pipeline(
-        getattr(args, "pipeline_branch", None), getattr(args, "pipeline_project", None)
+        getattr(args, "pipeline_branch", None),
+        getattr(args, "pipeline_project", None),
+        args.worktree or None,
     )
+    if args.unmeasured:
+        return {**unmeasured(base, args.unmeasured), **pipeline}
     if harness not in RUNTIMES:
         return {**unmeasured(base, UNMEASURED_DEFAULT_REASON), **pipeline}
     if not args.worktree:
@@ -537,17 +561,17 @@ def main() -> int:
     parser.add_argument("--pipeline-branch", default=None,
                         help="task ship branch; its no-mistakes runs supply the pipeline columns")
     parser.add_argument("--pipeline-project", default=None,
-                        help="absolute project clone path scoping the pipeline branch lookup")
-    parser.add_argument("--pipeline-only", action="store_true",
-                        help="print only the pipeline columns object for --pipeline-branch")
+                        help="absolute project clone path scoping the pipeline branch lookup; "
+                             "--worktree scopes it too, because a pipeline run is keyed by the "
+                             "path it ran from")
+    parser.add_argument("--unmeasured", default="",
+                        help="skip measurement and emit the unmeasured shape with this reason, "
+                             "still carrying the pipeline columns for --pipeline-branch")
     parser.add_argument("--normalize-line", action="store_true",
                         help="read one ledger line on stdin and print its schema 2 form")
     args = parser.parse_args()
     if args.normalize_line:
         print(json.dumps(normalize_line(json.load(sys.stdin))))
-        return 0
-    if args.pipeline_only:
-        print(json.dumps(collect_pipeline(args.pipeline_branch, args.pipeline_project)))
         return 0
     print(json.dumps(build_line(args)))
     return 0

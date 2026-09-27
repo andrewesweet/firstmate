@@ -73,6 +73,7 @@ run_teardown() {  # <home> <id>
   local home=$1 id=$2
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id"
 }
 
@@ -87,6 +88,7 @@ run_captain() {  # <home> <command args...>
   shift
   PATH="$home/fakebin:$PATH" REAL_TASKS_AXI="$TASKS_AXI_BIN" \
     FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$ROOT/bin/fm-captain-hold.sh" "$@"
 }
 
@@ -3244,6 +3246,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -3303,6 +3306,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -3357,6 +3361,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -4023,6 +4028,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/race-pr-teardown.out" 2> "$home/race-pr-teardown.err"
   teardown_rc=$?
@@ -4162,6 +4168,7 @@ test_released_merge_passes_the_entrypoint_and_lands() {
     || fail "the released merge was refused: $(cat "$home/merge.err")"
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err" \
     || fail "the released merge cleanup failed: $(cat "$home/teardown.err")"

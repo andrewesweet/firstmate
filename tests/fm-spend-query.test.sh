@@ -101,7 +101,7 @@ PY
 test_pipeline_counts_measured_and_null_token_invocations() {
   local nm out
   nm=$(sp_nm_seed "$TMP_ROOT/nm-pipeline-mixed")
-  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --pipeline-only \
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
     --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
   assert_equals '2' "$(jq -r .pipeline_runs <<<"$out")" "both same-branch runs are counted"
   assert_equals '4' "$(jq -r .pipeline_invocations <<<"$out")" "every same-branch invocation is counted"
@@ -119,9 +119,42 @@ test_pipeline_counts_measured_and_null_token_invocations() {
   pass "pipeline columns count tokenless invocations with duration instead of pricing them zero"
 }
 
+test_pipeline_resolves_the_repo_by_the_task_worktree() {
+  local nm out
+  nm="$TMP_ROOT/nm-worktree-key"
+  mkdir -p "$nm"
+  NM_SEED="$nm/state.sqlite" python3 - <<'PY'
+import os
+import sqlite3
+db = sqlite3.connect(os.environ["NM_SEED"])
+db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
+db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+# The pipeline ran from inside the task's pooled worktree, so that is the path
+# the inventory keys the repo by; the project clone is a known repo with no
+# runs on this branch.
+db.execute("INSERT INTO repos VALUES('rw','/treehouse/slot/firstmate/projects/sample')")
+db.execute("INSERT INTO repos VALUES('rp','/pipe-proj')")
+db.execute("INSERT INTO runs VALUES('runW','rw','fm/pipe1',1)")
+db.execute("INSERT INTO agent_invocations VALUES('w1','runW','claude-opus-4-1',1000,500,9000,100,60000)")
+db.commit()
+db.close()
+PY
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
+    --worktree /treehouse/slot/firstmate \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
+  assert_equals '1' "$(jq -r .pipeline_runs <<<"$out")" "a run keyed by the task worktree is found"
+  assert_equals 'api-equiv' "$(jq -r .pipeline_cost_lane <<<"$out")" "the worktree-keyed run is priced, not zeroed"
+  jq -e '.pipeline_usd > 0' <<<"$out" >/dev/null \
+    || fail "the worktree-keyed run carried no cost: $out"
+  jq -e 'has("pipeline_note") | not' <<<"$out" >/dev/null \
+    || fail "a fully priced pipeline must carry no note: $out"
+  pass "pipeline runs recorded against the task worktree are attributed to the task"
+}
+
 test_pipeline_without_a_branch_is_definitively_empty() {
   local out
-  out=$(NM_HOME="$TMP_ROOT/nm-absent" python3 "$PARSER" --task t --pipeline-only \
+  out=$(NM_HOME="$TMP_ROOT/nm-absent" python3 "$PARSER" --task t --kind ship --harness codex \
     --pipeline-branch "" --pipeline-project /pipe-proj)
   assert_equals 'none' "$(jq -r .pipeline_cost_lane <<<"$out")" "no branch means no pipeline, not unknown"
   jq -e '.pipeline_runs == 0 and .pipeline_invocations == 0 and .pipeline_usd == null' <<<"$out" >/dev/null \
@@ -144,12 +177,12 @@ db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT 
 db.commit()
 db.close()
 PY
-  out=$(NM_HOME="$nm" python3 "$PARSER" --task t --pipeline-only \
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task t --kind ship --harness codex \
     --pipeline-branch fm/pipe1 --pipeline-project /no-such-project)
   assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$out")" "an unresolvable repo stays unmeasured"
   [ -n "$(jq -r .pipeline_note <<<"$out")" ] \
     || fail "an unmeasured pipeline must state its reason"
-  NM_HOME="$TMP_ROOT/nm-missing" python3 "$PARSER" --task t --pipeline-only \
+  NM_HOME="$TMP_ROOT/nm-missing" python3 "$PARSER" --task t --kind ship --harness codex \
     --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj > "$TMP_ROOT/po" 2>/dev/null \
     || fail "a missing inventory must still answer"
   assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <"$TMP_ROOT/po")" "a missing inventory stays unmeasured"
@@ -566,6 +599,7 @@ test_brief_composition_maps_probe_paths_onto_the_real_home
 test_brief_composition_refuses_unreadable_inputs
 test_parser_direct_invocation_bounds_with_explicit_window
 test_pipeline_counts_measured_and_null_token_invocations
+test_pipeline_resolves_the_repo_by_the_task_worktree
 test_pipeline_without_a_branch_is_definitively_empty
 test_pipeline_with_an_unresolvable_repo_is_unmeasured
 test_normalize_line_reads_old_schema_lines

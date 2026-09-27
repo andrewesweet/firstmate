@@ -16,7 +16,6 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 APPEND="$ROOT/bin/fm-spend-ledger-append.sh"
-PARSER="$ROOT/bin/fm-spend-query.py"
 TMP_ROOT=$(fm_test_tmproot fm-spend-ledger-append)
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
@@ -49,11 +48,14 @@ la_meta() {
   : > "$home/state/$task.turn-ended"
 }
 
-# run_append <home> [args...]: the helper against the fixture home.
+# run_append <home> [args...]: the helper against the fixture home. NM_HOME
+# points at the fixture unless the case seeds its own inventory, so no case
+# reads the developer's real no-mistakes state for its pipeline columns.
 run_append() {
   local home=$1
   shift
   FM_ROOT_OVERRIDE="$ROOT" \
+    NM_HOME="${NM_HOME:-$home/nm-empty}" \
     FM_STATE_OVERRIDE="$home/state" \
     FM_DATA_OVERRIDE="$home/data" \
     FM_CONFIG_OVERRIDE="$home/config" \
@@ -172,13 +174,12 @@ test_tasks_without_a_worker_record_nothing() {
   pass "tasks that never ran a worker record no spend line"
 }
 
-test_append_records_pipeline_runs_for_the_task_branch() {
-  local home nm line
-  home=$(la_home pipeline-branch)
-  la_meta "$home" task-p1
-  nm="$home/nm"
+# la_nm_seed <home> [repo-path]: a no-mistakes inventory with one priced run on
+# fm/task-p1, keyed by <repo-path> (default the fixture's project clone).
+la_nm_seed() {
+  local home=$1 nm="$1/nm"
   mkdir -p "$nm"
-  NM_SEED="$nm/state.sqlite" NM_PROJECT="$home/project" python3 - <<'PY'
+  NM_SEED="$nm/state.sqlite" NM_REPO_PATH="${2:-$home/project}" python3 - <<'PY'
 import os
 import sqlite3
 path = os.environ["NM_SEED"]
@@ -186,12 +187,20 @@ db = sqlite3.connect(path)
 db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
 db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
 db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
-db.execute("INSERT INTO repos VALUES('r1',?)", (os.environ["NM_PROJECT"],))
+db.execute("INSERT INTO repos VALUES('r1',?)", (os.environ["NM_REPO_PATH"],))
 db.execute("INSERT INTO runs VALUES('run1','r1','fm/task-p1',1)")
 db.execute("INSERT INTO agent_invocations VALUES('i1','run1','claude-sonnet-4-1',2000,400,4000,50,45000)")
 db.commit()
 db.close()
 PY
+  printf '%s\n' "$nm"
+}
+
+test_append_records_pipeline_runs_for_the_task_branch() {
+  local home nm line
+  home=$(la_home pipeline-branch)
+  la_meta "$home" task-p1
+  nm=$(la_nm_seed "$home")
   line=$(NM_HOME="$nm" run_append "$home" task-p1) \
     || fail "the producer failed with pipeline runs present"
   assert_equals '1' "$(jq -r .pipeline_runs <<<"$line")" "the task branch's run is counted"
@@ -201,7 +210,26 @@ PY
   assert_equals 'api-equiv' "$(jq -r .pipeline_cost_lane <<<"$line")" "a fully priced pipeline reads api-equiv"
   jq -e '.pipeline_usd > 0' <<<"$line" >/dev/null \
     || fail "the priced pipeline carries no cost: $line"
+  assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "the uncovered harness leaves the worker figure unmeasured"
+  jq -e 'has("pipeline_note") | not' <<<"$line" >/dev/null \
+    || fail "a priced pipeline line must carry no pipeline note: $line"
   pass "the ledger line carries the task branch's pipeline cost"
+}
+
+test_append_records_pipeline_runs_keyed_by_the_task_worktree() {
+  local home nm line
+  home=$(la_home pipeline-worktree)
+  la_meta "$home" task-p1
+  # The pipeline ran from inside the task's own pooled worktree, so the
+  # inventory keys its repo by that path and not by the project clone.
+  nm=$(la_nm_seed "$home" "$home/wt/projects/sample")
+  line=$(NM_HOME="$nm" run_append "$home" task-p1) \
+    || fail "the producer failed with worktree-keyed pipeline runs present"
+  assert_equals '1' "$(jq -r .pipeline_runs <<<"$line")" "a run keyed by the task worktree is counted"
+  assert_equals 'api-equiv' "$(jq -r .pipeline_cost_lane <<<"$line")" "the worktree-keyed run is priced, not zeroed"
+  jq -e '.pipeline_usd > 0' <<<"$line" >/dev/null \
+    || fail "the worktree-keyed pipeline carries no cost: $line"
+  pass "a pipeline run recorded against the task worktree lands on the task's line"
 }
 
 test_append_records_a_schema_two_line_with_pipeline_columns
@@ -210,5 +238,6 @@ test_failed_query_still_appends_an_unmeasured_line
 test_capture_failure_never_fails_the_close
 test_tasks_without_a_worker_record_nothing
 test_append_records_pipeline_runs_for_the_task_branch
+test_append_records_pipeline_runs_keyed_by_the_task_worktree
 
 echo "OK: fm-spend-ledger-append"

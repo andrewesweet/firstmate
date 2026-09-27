@@ -17,7 +17,8 @@
 # bound cannot be window-bounded honestly, so the answer is an explicit
 # unmeasured line, never a partial or inflated figure.
 # --unmeasured <reason> skips measurement and emits the schema's unmeasured
-# shape for the task directly; the shared producer's failed-query fallback
+# shape for the task directly - still carrying the pipeline columns, which do
+# not depend on the worker session; the shared producer's failed-query fallback
 # calls it so the shell shape has exactly one definition (this file) beside
 # the schema owner in bin/fm-spend-query.py.
 # bin/fm-spend-query.py owns the schema, the runtime coverage list, the
@@ -85,7 +86,18 @@ meta_get() {
   sed -n "s/^$1=//p" "$META" | tail -1
 }
 
+# The unmeasured shape for this task. The schema owner builds it whenever
+# python3 can run, so an unmeasured worker figure still carries the real
+# pipeline columns; the jq copy below is the last resort for a host where
+# python3 is absent or broken, and is the only shell definition of the shape.
 emit_unmeasured() {  # <reason>
+  if command -v python3 >/dev/null 2>&1 \
+    && python3 "$SCRIPT_DIR/fm-spend-query.py" --task "$ID" --kind "${KIND:-}" \
+      --harness "${HARNESS:-unknown}" --model "${MODEL:-default}" \
+      --effort "${EFFORT:-default}" --worktree "${WORKTREE:-}" --unmeasured "$1" \
+      --pipeline-branch "${BRANCH:-}" --pipeline-project "${PROJECT:-}" 2>/dev/null; then
+    return 0
+  fi
   jq -cn \
     --arg task "$ID" --arg kind "${KIND:-}" --arg harness "${HARNESS:-unknown}" \
     --arg model "${MODEL:-default}" --arg effort "${EFFORT:-default}" --arg reason "$1" \
@@ -98,7 +110,7 @@ emit_unmeasured() {  # <reason>
       pipeline_cache_read_tokens: 0, pipeline_cache_creation_tokens: 0,
       pipeline_agent_ms: 0, pipeline_unmeasured_invocations: 0, pipeline_unmeasured_ms: 0,
       pipeline_usd: null, pipeline_cost_lane: "unmeasured",
-      pipeline_note: "pipeline not queried in the shell unmeasured fallback"}'
+      pipeline_note: "pipeline not queried: python3 unavailable in the shell fallback"}'
 }
 
 HARNESS=$(meta_get harness)

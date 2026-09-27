@@ -634,10 +634,13 @@ run_teardown() {
   # FM_DATA_OVERRIDE is pinned to the case dir because teardown closes this
   # home's backlog item itself; without it $DATA would resolve to the real
   # repo's own home and a test could mutate live records.
+  # NM_HOME is pinned to the case dir so the spend line's pipeline columns are
+  # read from an empty fixture inventory, never the developer's real one.
   FM_ROOT_OVERRIDE="$ROOT" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
+  NM_HOME="$case_dir/nm-empty" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 "$@"
 }
@@ -4513,6 +4516,7 @@ test_teardown_measures_claude_spend_from_fixture_logs() {
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
   HOME="$case_dir/home" \
+  NM_HOME="$case_dir/nm-empty" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 > "$case_dir/stdout" 2> "$case_dir/stderr" \
     || fail "teardown failed while measuring spend: $(cat "$case_dir/stderr")"
