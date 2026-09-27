@@ -1,0 +1,7 @@
+### scenario 2 (adversarial): branch WITH runs keeps the inventory path
+worktree /home/andre/.treehouse/firstmate-db7062/11/firstmate/upstream-carry, branch fm/branch-supervision-mod-v2
+real 'axi status' returns a run block and NO runs_on_current_branch field
+--- base fba81cb ---
+state: parked · source: run-step · parked at ci: 1 finding(s) · ask-user: authority decision · run: 01M3GB1B1AM72C0EKGWSTY3SEV
+--- target db8d805 ---
+state: parked · source: run-step · parked at ci: 1 finding(s) · ask-user: authority decision · run: 01M3GB1B1AM72C0EKGWSTY3SEV
