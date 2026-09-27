@@ -706,12 +706,13 @@ The teardown's ledger line adds `ts` and the closed task's `outcome` (`pr` with 
 ## Jev self-check record (data/jev-lint.jsonl)
 
 Ship workers run an advisory self-check after implementation and before no-mistakes validation.
-`bin/fm-jev-lint.sh check` extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body at 0.50, R2 test-name-verifies-claim at 0.60, R4 hook-budget-feasibility at 0.60), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
+`bin/fm-jev-lint.sh check` extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, prose enumerations with their claimed source, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body at 0.50, R2 test-name-verifies-claim at 0.60, R3 skill-registry-drift v2 at 0.20, R4 hook-budget-feasibility at 0.60), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
 Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
 `bin/fm-jev-lint.sh score` reports per-rule cost, latency, and fixed-versus-dismissed rates from the record.
 The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
 When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check skips silently.
 A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
+Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
 
 ## Standing data sources for retrospectives
 
