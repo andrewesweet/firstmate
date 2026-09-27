@@ -233,6 +233,39 @@ test_teardown_frees_the_lease_for_reuse() {
   pass "teardown frees the lease, and the next spawn reuses the freed copy"
 }
 
+# The recorded pool copy is gone before teardown runs (an operator or external
+# git maintenance removed or pruned it). Nothing else ever frees a durable
+# lease, so teardown must still return the slot rather than reserve it for a
+# task no record describes.
+test_teardown_frees_the_lease_when_the_slot_directory_is_gone() {
+  local rec out status
+  rec=$(make_pool_case prunedslot 1 2)
+  read_pool_record "$rec"
+
+  out=$(run_pool_spawn lease-pruned-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "the spawn before the slot was pruned should launch"$'\n'"$out"
+  grep -Fxq "1 lease-pruned-r1" "$POOL_DIR/.fake-leases" \
+    || fail "the spawn did not lease its slot"
+  printf '# Scout findings\n\nNo changes needed.\n' > "$HOME_DIR/data/lease-pruned-r1/report.md"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
+    FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete lease-pruned-r1 --none >/dev/null
+
+  rm -rf "$POOL_DIR/1/project"
+
+  out=$(run_pool_teardown lease-pruned-r1)
+  status=$?
+  expect_code 0 "$status" "teardown of a scout whose pool copy is gone should succeed"$'\n'"$out"
+  grep -q "^1 " "$POOL_DIR/.fake-leases" \
+    && fail "teardown left the lease on a slot whose copy is gone: $(cat "$POOL_DIR/.fake-leases")"
+  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
+    || fail "teardown did not return the leased copy: $(cat "$POOL_DIR/.fake-calls")"
+  [ ! -e "$HOME_DIR/state/lease-pruned-r1.meta" ] \
+    || fail "teardown left the task record behind"
+  pass "teardown frees the lease even when the slot's copy was removed before it ran"
+}
+
 # A spawn that fails after leasing - here on a dirty pooled copy - returns its
 # lease and drops its claim, so no lease outlives a task that was never
 # recorded.
@@ -294,6 +327,7 @@ test_settle_timeout_returns_its_lease() {
 
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
+test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_aborted_spawn_returns_its_lease
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease

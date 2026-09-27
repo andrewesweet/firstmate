@@ -1285,7 +1285,7 @@ parse_orca_worktree_result() {
 }
 
 spawn_abort_cleanup() {
-  local status=$?
+  local status=$? spawn_leased_slot
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -1400,15 +1400,24 @@ spawn_abort_cleanup() {
   fi
   # A spawn that aborts after leasing its slot but before its record survives
   # must not strand a durable lease naming a task no record describes: return
-  # the slot so the pool can hand it out again. The return mutates the pool's
-  # state file, so it runs while the project lock that serialises every
-  # allocation and return is still held; a published record owns the lease
-  # from then on and skips this branch entirely.
-  if [ "$SPAWN_LEASE_HELD" = 1 ] && [ -n "${WT:-}" ] &&
+  # the slot so the pool can hand it out again. A published record owns the
+  # lease from then on and skips this branch entirely. The slot path is the
+  # canonical one once it is known, and the path treehouse printed before that -
+  # an abort between the lease and the canonicalization holds a lease too.
+  # The return mutates the pool's state file, which the Treehouse project lock
+  # serialises against every other allocation and return, so it runs only while
+  # that lock is still held; an abort after its release says so instead of
+  # racing a concurrent spawn's own allocation.
+  if [ "$SPAWN_LEASE_HELD" = 1 ] &&
     [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
     SPAWN_LEASE_HELD=0
-    if ! ( cd "$PROJ_ABS" && treehouse return --force "$WT" ) >/dev/null 2>&1; then
-      echo "warning: task $ID's leased slot $WT could not be returned after an aborted spawn; the lease may still be held" >&2
+    spawn_leased_slot=${WT:-${WT_LEASED:-}}
+    if [ -z "$spawn_leased_slot" ]; then
+      echo "warning: task $ID leased a Treehouse pool slot for $PROJ_ABS but no path for it survived the aborted spawn, so it could not be returned; the lease may still be held" >&2
+    elif [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ]; then
+      echo "warning: task $ID's leased slot $spawn_leased_slot was not returned after an aborted spawn; the Treehouse project lock is no longer held, so returning it here could corrupt a concurrent allocation - return it by hand once the slot is known to be idle" >&2
+    elif ! ( cd "$PROJ_ABS" && treehouse return --force "$spawn_leased_slot" ) >/dev/null 2>&1; then
+      echo "warning: task $ID's leased slot $spawn_leased_slot could not be returned after an aborted spawn; the lease may still be held" >&2
     fi
   fi
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
@@ -4302,6 +4311,9 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     echo "error: task $ID could not lease a Treehouse pool slot for $PROJ_ABS; refusing to launch a worker without a reserved copy" >&2
     exit 1
   fi
+  # A lease treehouse has recorded is held from this point on, whatever the
+  # command printed, so every refusal below returns it through the abort trap.
+  SPAWN_LEASE_HELD=1
   [ -n "$WT_LEASED" ] || {
     echo "error: task $ID leased a Treehouse pool slot for $PROJ_ABS but treehouse reported no worktree path; refusing to launch" >&2
     exit 1
@@ -4310,7 +4322,6 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     echo "error: task $ID leased '$WT_LEASED', which is not a readable directory; refusing to launch" >&2
     exit 1
   fi
-  SPAWN_LEASE_HELD=1
   wt_cd_path=${WT//\'/\'\\\'\'}
   spawn_send_text_line "$WT_TARGET" "cd -- '$wt_cd_path'" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2

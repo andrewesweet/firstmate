@@ -1373,6 +1373,21 @@ fm_treehouse_pool_slot() {  # <project-dir> <worktree>
   [ "$project_common" = "$slot_common" ]
 }
 
+# The same judgement from the record alone, for a slot whose checkout is gone.
+# A pooled copy removed or pruned by an operator or by external git maintenance
+# still holds its task's durable lease, so teardown must be able to take the
+# project lock and return it. The git-identity check above needs a checkout that
+# is no longer there, so an absent slot is matched on the pool state file it is
+# recorded under instead.
+fm_treehouse_pool_slot_recorded() {  # <project-dir> <worktree>
+  local project=$1 worktree=$2 state
+  fm_treehouse_pool_slot "$project" "$worktree" && return 0
+  [ -d "$project" ] || return 1
+  [ -n "$worktree" ] && [ ! -d "$worktree" ] || return 1
+  state="$(dirname "$(dirname "$worktree")")/treehouse-state.json"
+  [ -f "$state" ] && [ ! -L "$state" ]
+}
+
 # Slot-owner claim: which task a Treehouse pool slot currently belongs to.
 #
 # Treehouse records the reservation durably: `treehouse get --lease

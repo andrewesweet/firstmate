@@ -100,13 +100,39 @@ case "${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
 exit 0
 SH
   chmod +x "$fakebin/tmux"
-  fm_fake_exit0 "$fakebin" treehouse gh gh-axi no-mistakes
+  # Lease-aware treehouse that also logs its own calls: `get --lease` is the
+  # only evidence that a spawn took a pool slot, so the refusal cases below
+  # assert against this log rather than against anything sent to the pane.
+  cat > "$fakebin/treehouse" <<SH
+#!/usr/bin/env bash
+set -u
+printf 'treehouse %s\n' "\$*" >> "$case_dir/treehouse-calls"
+if [ "\${1:-}" = get ]; then
+  for a in "\$@"; do
+    if [ "\$a" = --lease ]; then
+      printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fakebin/treehouse"
+  fm_fake_exit0 "$fakebin" gh gh-axi no-mistakes
 
   fm_git_init_commit "$case_dir/project"
   fm_git_add_origin "$case_dir/project" "$case_dir/project.origin.git"
   git -C "$case_dir/project" worktree add --quiet -b pooled "$case_dir/wt"
 
   printf '%s\n' "$case_dir"
+}
+
+# No pool slot was leased: `treehouse get --lease` is what reserves a copy, so
+# an empty lease log is the evidence that a refusal took nothing from the pool.
+assert_no_lease_call() {  # <case-dir> <message>
+  grep -q -- ' --lease' "$1/treehouse-calls" 2>/dev/null \
+    && fail "$2: $(cat "$1/treehouse-calls")"
+  return 0
 }
 
 home_of() { printf '%s/home\n' "$1"; }
@@ -913,7 +939,6 @@ test_dispatch_refuses_a_pending_authoritative_close() {
 #!/usr/bin/env bash
 case "\$*" in
   *new-window*) : > "$case_dir/task-endpoint-created" ;;
-  *treehouse\\ get*) : > "$case_dir/local-copy-requested" ;;
   *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
 esac
 case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
@@ -930,7 +955,7 @@ SH
     "spawn published a new worker over a pending close"
   assert_absent "$case_dir/task-endpoint-created" \
     "spawn created an unowned endpoint before refusing the pending close"
-  assert_absent "$case_dir/local-copy-requested" \
+  assert_no_lease_call "$case_dir" \
     "spawn requested an unowned local copy before refusing the pending close"
   [ "$(row_state "$case_dir" "$id")" = in_flight ] \
     || fail "refused dispatch changed the pending close's backlog row"
@@ -948,7 +973,6 @@ test_dispatch_refuses_a_held_row_before_creating_resources() {
 #!/usr/bin/env bash
 case "\$*" in
   *new-window*) : > "$case_dir/task-endpoint-created" ;;
-  *treehouse\\ get*) : > "$case_dir/local-copy-requested" ;;
   *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
 esac
 case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
@@ -964,7 +988,7 @@ SH
     "held-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
     "held-row refusal created an unowned endpoint"
-  assert_absent "$case_dir/local-copy-requested" \
+  assert_no_lease_call "$case_dir" \
     "held-row refusal requested an unowned local copy"
   [ "$(row_state "$case_dir" "$id")" = queued ] \
     || fail "held-row refusal changed the backlog state"
@@ -983,7 +1007,6 @@ test_dispatch_refuses_a_blocked_row_before_creating_resources() {
 #!/usr/bin/env bash
 case "\$*" in
   *new-window*) : > "$case_dir/task-endpoint-created" ;;
-  *treehouse\\ get*) : > "$case_dir/local-copy-requested" ;;
   *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
 esac
 case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
@@ -999,7 +1022,7 @@ SH
     "blocked-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
     "blocked-row refusal created an unowned endpoint"
-  assert_absent "$case_dir/local-copy-requested" \
+  assert_no_lease_call "$case_dir" \
     "blocked-row refusal requested an unowned local copy"
   [ "$(row_state "$case_dir" "$id")" = queued ] \
     || fail "blocked-row refusal changed the backlog state"
@@ -1018,7 +1041,6 @@ test_dispatch_refuses_a_held_in_flight_row_before_relaunch() {
 #!/usr/bin/env bash
 case "\$*" in
   *new-window*) : > "$case_dir/task-endpoint-created" ;;
-  *treehouse\\ get*) : > "$case_dir/local-copy-requested" ;;
   *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
 esac
 case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
@@ -1034,7 +1056,7 @@ SH
     "held In-flight refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
     "held In-flight refusal created a replacement endpoint"
-  assert_absent "$case_dir/local-copy-requested" \
+  assert_no_lease_call "$case_dir" \
     "held In-flight refusal requested a replacement local copy"
   [ "$(row_state "$case_dir" "$id")" = in_flight ] \
     || fail "held In-flight refusal changed the backlog state"

@@ -318,7 +318,7 @@ touch "$REMOTE_HOME/state/.last-watcher-beat"
   fm_trace_context_session_start "$REMOTE_HOME/config" "$REMOTE_HOME/state/.trace-context-effective"
 )
 WFAKE=$(fm_fakebin "$TMP_ROOT/r-worker-fake")
-fm_fake_exit0 "$WFAKE" treehouse
+fm_test_fake_treehouse_lease "$WFAKE"
 cat > "$WFAKE/tmux" <<'SH'
 #!/usr/bin/env bash
 set -u
