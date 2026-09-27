@@ -10,7 +10,8 @@
 # What check does: diffs the worktree against --base (default: the merge-base
 #   of HEAD with origin/main, else main) with -U8, extracts diff-scoped
 #   subjects deterministically (changed functions with their leading comments
-#   as R1, touched test blocks as R2, timeout or budget declarations in the
+#   as R1, touched test blocks as R2, added prose enumerations with their
+#   surrounding diff context as R3, timeout or budget declarations in the
 #   diff as R4), sends one Jev noul request per subject in parallel, prints one
 #   line per flagged finding with its id, and appends one JSON line per subject
 #   to the record. What resolve does: appends one outcome line recording how a
