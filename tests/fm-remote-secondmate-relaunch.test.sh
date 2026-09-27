@@ -21,6 +21,7 @@ set -u
 . "$ROOT/bin/fm-pr-lib.sh"
 
 command -v perl >/dev/null 2>&1 || { echo "skip: perl not found"; exit 0; }
+REAL_SLEEP=$(command -v sleep) || { echo "skip: sleep not found"; exit 0; }
 
 TMP=$(fm_test_tmproot fm-remote-secondmate-relaunch)
 HOME_DIR="$TMP/home"
@@ -86,10 +87,9 @@ case "$FM_FAKE_RELAUNCH_MODE" in
     printf '%s\n' "$harness" > "$FM_FAKE_RACE_DIR/endpoint"
     : > "$FM_FAKE_RACE_DIR/$harness-mutated"
     if [ "$harness" = claude ]; then
-      i=0
-      while [ ! -e "$FM_FAKE_RACE_DIR/release-claude" ] && [ "$i" -lt 500 ]; do
+      deadline=$((SECONDS + ${FM_TEST_STUB_MAX_BLOCK_SECONDS:-120}))
+      while [ ! -e "$FM_FAKE_RACE_DIR/release-claude" ] && [ "$SECONDS" -lt "$deadline" ]; do
         sleep 0.01
-        i=$((i + 1))
       done
       [ -e "$FM_FAKE_RACE_DIR/release-claude" ] || exit 95
     fi
@@ -105,14 +105,48 @@ printf 'harness=%s\n' "$harness"
 printf 'model=%s\n' "$model"
 printf 'effort=%s\n' "$effort"
 SH
-chmod +x "$FAKEBIN/fake-ssh"
+cat > "$FAKEBIN/sleep" <<'SH'
+#!/usr/bin/env bash
+if [ -n "${FM_FAKE_SLEEP_LOG:-}" ]; then
+  printf '%s\n' "$1" >> "$FM_FAKE_SLEEP_LOG"
+fi
+exec "$FM_FAKE_REAL_SLEEP" "$@"
+SH
+chmod +x "$FAKEBIN/fake-ssh" "$FAKEBIN/sleep"
 
 run_relaunch() {  # <args...>
-  env FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+  env PATH="$FAKEBIN:$PATH" FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+    FM_FAKE_REAL_SLEEP="$REAL_SLEEP" FM_FAKE_SLEEP_LOG="${FM_FAKE_SLEEP_LOG:-}" \
     FM_FAKE_RELAUNCH_MODE="${FM_FAKE_RELAUNCH_MODE:-}" \
     FM_FAKE_RACE_DIR="${FM_FAKE_RACE_DIR:-}" \
     "$ROOT/bin/fm-remote-secondmate-relaunch.sh" "$@" 2>&1
 }
+
+wait_for_process_path() {  # <path> <pid>
+  local path=$1 pid=$2 deadline
+  deadline=$((SECONDS + FM_TEST_STUB_MAX_BLOCK_SECONDS))
+  while [ ! -e "$path" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do
+    "$REAL_SLEEP" 0.01
+  done
+  [ -e "$path" ]
+}
+
+wait_for_process_line() {  # <line> <file> <pid>
+  local line=$1 file=$2 pid=$3 deadline
+  deadline=$((SECONDS + FM_TEST_STUB_MAX_BLOCK_SECONDS))
+  while ! grep -Fx -- "$line" "$file" >/dev/null 2>&1 \
+    && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do
+    "$REAL_SLEEP" 0.01
+  done
+  grep -Fx -- "$line" "$file" >/dev/null 2>&1
+}
+
+OUT=$(run_relaunch ios claude default); RC=$?
+expect_code 2 "$RC" "wrong arity should report usage"
+assert_contains "$OUT" \
+  "Usage: fm-remote-secondmate-relaunch.sh <id> <harness> <model|default|-> <effort|default|->" \
+  "wrong arity should print callable syntax"
+pass "wrong arity prints remote relaunch syntax"
 
 # --- a successful relaunch republishes the parent's own route record --------
 reset_meta
@@ -155,33 +189,27 @@ FM_FAKE_RELAUNCH_MODE=race
 FM_FAKE_RACE_DIR="$TMP/relaunch-race"
 mkdir -p "$FM_FAKE_RACE_DIR"
 (
-  run_relaunch ios claude claude-opus-5-5 medium > "$TMP/relaunch-a.out"
+  FM_FAKE_SLEEP_LOG="$FM_FAKE_RACE_DIR/a-sleeps" \
+    run_relaunch ios claude claude-opus-5-5 medium > "$TMP/relaunch-a.out"
   printf '%s\n' "$?" > "$TMP/relaunch-a.rc"
 ) &
 RELAUNCH_A_PID=$!
-i=0
-while [ ! -e "$FM_FAKE_RACE_DIR/claude-mutated" ] && [ "$i" -lt 100 ]; do
-  sleep 0.01
-  i=$((i + 1))
-done
-if [ ! -e "$FM_FAKE_RACE_DIR/claude-mutated" ]; then
+if ! wait_for_process_path "$FM_FAKE_RACE_DIR/claude-mutated" "$RELAUNCH_A_PID"; then
   : > "$FM_FAKE_RACE_DIR/release-claude"
   wait "$RELAUNCH_A_PID"
   fail "the first concurrent relaunch did not reach the remote endpoint"
 fi
 (
-  run_relaunch ios pi openai-codex/gpt-5.6-sol high > "$TMP/relaunch-b.out"
+  FM_FAKE_SLEEP_LOG="$FM_FAKE_RACE_DIR/b-sleeps" \
+    run_relaunch ios pi openai-codex/gpt-5.6-sol high > "$TMP/relaunch-b.out"
   printf '%s\n' "$?" > "$TMP/relaunch-b.rc"
 ) &
 RELAUNCH_B_PID=$!
-i=0
-while [ ! -e "$FM_FAKE_RACE_DIR/pi-mutated" ] && kill -0 "$RELAUNCH_B_PID" 2>/dev/null && [ "$i" -lt 50 ]; do
-  sleep 0.01
-  i=$((i + 1))
-done
+RELAUNCH_B_WAITING=0
+wait_for_process_line 0.1 "$FM_FAKE_RACE_DIR/b-sleeps" "$RELAUNCH_B_PID" \
+  && RELAUNCH_B_WAITING=1
 RELAUNCH_OVERLAPPED=0
 [ ! -e "$FM_FAKE_RACE_DIR/pi-mutated" ] || RELAUNCH_OVERLAPPED=1
-kill -0 "$RELAUNCH_B_PID" 2>/dev/null || RELAUNCH_OVERLAPPED=1
 : > "$FM_FAKE_RACE_DIR/release-claude"
 wait "$RELAUNCH_A_PID"
 wait "$RELAUNCH_B_PID"
@@ -189,6 +217,8 @@ RELAUNCH_A_RC=$(cat "$TMP/relaunch-a.rc")
 RELAUNCH_B_RC=$(cat "$TMP/relaunch-b.rc")
 expect_code 0 "$RELAUNCH_A_RC" "the first concurrent relaunch should succeed"
 expect_code 0 "$RELAUNCH_B_RC" "the second concurrent relaunch should succeed"
+[ "$RELAUNCH_B_WAITING" -eq 1 ] \
+  || fail "the second relaunch did not reach the contended metadata lock"
 [ "$RELAUNCH_OVERLAPPED" -eq 0 ] \
   || fail "a second relaunch mutated the endpoint before the first published its route"
 [ "$(cat "$FM_FAKE_RACE_DIR/endpoint")" = pi ] \
