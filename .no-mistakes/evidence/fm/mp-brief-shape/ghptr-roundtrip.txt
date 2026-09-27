@@ -1,0 +1,13 @@
+$ fm-tasks-axi.sh update fm-gh-ptr --body "mirrors gh:andrewesweet/firstmate#13"
+  body: "mirrors gh:andrewesweet/firstmate#13"
+help[1]:
+  - Run `tasks-axi show fm-gh-ptr --full` to see the result
+
+$ fm-tasks-axi.sh start fm-gh-ptr; done --note "closed gh:andrewesweet/firstmate#13"
+ok: done fm-gh-ptr -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+$ grep -n "gh:" data/backlog.md data/done-archive.md (lab home)
+/tmp/fm-lab.ToYnGQ/data/backlog.md:7:  mirrors gh:andrewesweet/firstmate#13
+/tmp/fm-lab.ToYnGQ/data/backlog.md:8:  closed gh:andrewesweet/firstmate#13

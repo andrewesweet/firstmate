@@ -1,0 +1,14 @@
+$ add fm-gh-ptr2 + done --keep 0 (force archive)
+ok: done fm-gh-ptr2 -> Done; pruned 2
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+$ cat data/done-archive.md
+
+## Archived 2026-09-27
+- [x] fm-gh-ptr2 - second gh pointer row (kind: ship) (done 2026-09-27)
+  mirrors gh:andrewesweet/firstmate#14
+  closed gh:andrewesweet/firstmate#14
+- [x] fm-gh-ptr - gh pointer row (kind: ship) (done 2026-09-27)
+  mirrors gh:andrewesweet/firstmate#13
+  closed gh:andrewesweet/firstmate#13

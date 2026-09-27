@@ -1,0 +1,7 @@
+$ fm-fleet-snapshot.sh --contribution-input | jq id/links/body_lines
+{"id":"fm-title-url","links":["https://github.com/andrewesweet/firstmate/issues/12"],"body_lines":[]}
+{"id":"fm-body-url","links":[],"body_lines":["https://github.com/andrewesweet/firstmate/issues/13"]}
+{"id":"fm-gh-form","links":[],"body_lines":["gh:andrewesweet/firstmate#14"]}
+
+$ fm-contributions.sh snapshot --all
+jq: Bad JSON in --slurpfile input --all: Could not open --all: No such file or directory

@@ -1,0 +1,16 @@
+ok: done fm-mirror-10 -> Done; pruned 2
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+--- data/done-archive.md ---
+
+## Archived 2026-09-27
+- [x] fm-mirror-10 - second mirror (kind: ship) (done 2026-09-27)
+  gh:andrewesweet/firstmate#10
+  mirrored gh:andrewesweet/firstmate#10
+- [x] fm-mirror-9 - mirror upstream bug (kind: ship) (done 2026-09-27)
+  gh:andrewesweet/firstmate#9
+  mirrored gh:andrewesweet/firstmate#9
+
+--- backlog Done section ---
+## Done

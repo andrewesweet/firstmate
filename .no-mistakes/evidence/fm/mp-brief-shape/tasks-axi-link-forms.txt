@@ -1,0 +1,54 @@
+$ add fm-mirror-9 "mirror upstream bug" --kind ship --body "gh:andrewesweet/firstmate#9"
+ok: added fm-mirror-9 (ship) -> Queued
+task:
+  id: fm-mirror-9
+  title: mirror upstream bug
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-09-27
+  closed: "-"
+  deps: none
+  links: none
+  body: "gh:andrewesweet/firstmate#9"
+help[2]:
+  - Run `tasks-axi start fm-mirror-9` to move it to in flight
+  - Run `tasks-axi block fm-mirror-9 --by <other>` to record a dependency
+exit=0
+
+$ add fm-up-9 "upstream ticket" --pr https://github.com/andrewesweet/firstmate/issues/9
+error: "--pr must be a canonical pull request URL: https://github.com/<owner>/<repo>/pull/<n> (GitHub) or https://<host>/<owner>/<repo>/pulls/<n> (Forgejo)"
+code: VALIDATION_ERROR
+exit=2
+
+$ add fm-up-9 "upstream ticket" --body "https://github.com/andrewesweet/firstmate/issues/9"
+ok: added fm-up-9 (ship) -> Queued
+task:
+  id: fm-up-9
+  title: upstream ticket
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-09-27
+  closed: "-"
+  deps: none
+  links: none
+  body: "https://github.com/andrewesweet/firstmate/issues/9"
+help[2]:
+  - Run `tasks-axi start fm-up-9` to move it to in flight
+  - Run `tasks-axi block fm-up-9 --by <other>` to record a dependency
+exit=0

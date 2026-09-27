@@ -1,0 +1,43 @@
+$ fm-tasks-axi.sh add fm-gh-ptr "gh pointer row" --kind ship --body "mirrors gh:andrewesweet/firstmate#12"
+ok: added fm-gh-ptr (ship) -> Queued
+task:
+  id: fm-gh-ptr
+  title: gh pointer row
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-09-27
+  closed: "-"
+  deps: none
+  links: none
+  body: "mirrors gh:andrewesweet/firstmate#12"
+help[2]:
+  - Run `tasks-axi start fm-gh-ptr` to move it to in flight
+  - Run `tasks-axi block fm-gh-ptr --by <other>` to record a dependency
+
+$ fm-tasks-axi.sh show fm-gh-ptr
+task:
+  id: fm-gh-ptr
+  title: gh pointer row
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-09-27
+  closed: "-"
+  deps: none
+  links: none
+  body: "mirrors gh:andrewesweet/firstmate#12"

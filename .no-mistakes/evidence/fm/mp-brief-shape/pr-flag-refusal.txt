@@ -1,0 +1,4 @@
+$ fm-tasks-axi.sh add fm-pr-flag "pr flag row" --kind ship --pr https://github.com/andrewesweet/firstmate/issues/5
+error: "--pr must be a canonical pull request URL: https://github.com/<owner>/<repo>/pull/<n> (GitHub) or https://<host>/<owner>/<repo>/pulls/<n> (Forgejo)"
+code: VALIDATION_ERROR
+rc=2
