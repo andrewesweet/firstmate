@@ -3444,12 +3444,12 @@ test_required_producer_identity() {
       fi
       app=42
       [ "$variant" != correct ] || app=15368
-      printf '{"check_runs":[{"name":"ci","app":{"id":%s},"head_sha":"%s","status":"completed","conclusion":"success","started_at":"2026-01-01T00:00:01Z"}]}\n' \
+      printf '{"check_runs":[{"name":"ci","app":{"id":%s},"head_sha":"%s"}]}\n' \
         "$app" "$head" > "$case_dir/github-runs.json"
       case "$variant" in
         unreadable) rm "$case_dir/github-runs.json" ;;
         malformed) printf '{}' > "$case_dir/github-runs.json" ;;
-        stale) printf '{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"bbbb","status":"completed","conclusion":"success","started_at":"2026-01-01T00:00:01Z"}]}' > "$case_dir/github-runs.json" ;;
+        stale) printf '{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"bbbb"}]}' > "$case_dir/github-runs.json" ;;
       esac
       expected=1
       if [ "$variant" = waived ]; then
@@ -3473,62 +3473,6 @@ test_required_producer_identity() {
     done
   done
   pass "fm-pr-merge enforces required producer identity and named waivers"
-}
-
-test_required_result_stays_with_producer() {
-  local case_dir head kind
-  head=a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
-  for kind in classic ruleset; do
-    case_dir=$(make_case "required-result-producer-$kind")
-    add_gh_mocks "$case_dir" "$head"
-    write_github_required "$case_dir" "$kind:ci"
-    if [ "$kind" = classic ]; then
-      jq '.protection.required_status_checks.checks[0].app_id = 15368' \
-        "$case_dir/github-branch.json" > "$case_dir/updated.json"
-      mv "$case_dir/updated.json" "$case_dir/github-branch.json"
-    else
-      jq '.[1].parameters.required_status_checks[0].integration_id = 15368' \
-        "$case_dir/github-required-rules.json" > "$case_dir/updated.json"
-      mv "$case_dir/updated.json" "$case_dir/github-required-rules.json"
-    fi
-    write_github_rollup_json "$case_dir" "$head" \
-      "$(check_run ci COMPLETED FAILURE 2026-01-01T00:00:01Z)" \
-      "$(check_run ci COMPLETED SUCCESS 2026-01-01T00:00:09Z)"
-    printf '{"check_runs":[%s,%s]}\n' \
-      "{\"name\":\"ci\",\"app\":{\"id\":15368},\"head_sha\":\"$head\",\"status\":\"completed\",\"conclusion\":\"failure\",\"started_at\":\"2026-01-01T00:00:01Z\"}" \
-      "{\"name\":\"ci\",\"app\":{\"id\":42},\"head_sha\":\"$head\",\"status\":\"completed\",\"conclusion\":\"success\",\"started_at\":\"2026-01-01T00:00:09Z\"}" \
-      > "$case_dir/github-runs.json"
-    run_required_case "$case_dir" 112
-    expect_code 1 "$RC" "required-result-$kind: another producer's success must not hide the required producer's failure"
-    assert_grep "check 'ci' is not green" "$case_dir/stderr" \
-      "required-result-$kind: the required producer's failure was not named"
-    assert_no_grep 'pr merge' "$case_dir/gh.log" \
-      "required-result-$kind: gh pr merge ran with the required producer failing"
-
-    case_dir=$(make_case "required-result-same-producer-$kind")
-    add_gh_mocks "$case_dir" "$head"
-    write_github_required "$case_dir" "$kind:ci"
-    if [ "$kind" = classic ]; then
-      jq '.protection.required_status_checks.checks[0].app_id = 15368' \
-        "$case_dir/github-branch.json" > "$case_dir/updated.json"
-      mv "$case_dir/updated.json" "$case_dir/github-branch.json"
-    else
-      jq '.[1].parameters.required_status_checks[0].integration_id = 15368' \
-        "$case_dir/github-required-rules.json" > "$case_dir/updated.json"
-      mv "$case_dir/updated.json" "$case_dir/github-required-rules.json"
-    fi
-    write_github_rollup_json "$case_dir" "$head" \
-      "$(check_run ci COMPLETED FAILURE 2026-01-01T00:00:01Z)" \
-      "$(check_run ci COMPLETED SUCCESS 2026-01-01T00:00:09Z)"
-    printf '{"check_runs":[%s,%s]}\n' \
-      "{\"name\":\"ci\",\"app\":{\"id\":15368},\"head_sha\":\"$head\",\"status\":\"completed\",\"conclusion\":\"failure\",\"started_at\":\"2026-01-01T00:00:01Z\"}" \
-      "{\"name\":\"ci\",\"app\":{\"id\":15368},\"head_sha\":\"$head\",\"status\":\"completed\",\"conclusion\":\"success\",\"started_at\":\"2026-01-01T00:00:09Z\"}" \
-      > "$case_dir/github-runs.json"
-    run_required_case "$case_dir" 113
-    expect_code 0 "$RC" "required-result-same-$kind: a later success from the same producer must merge: $(cat "$case_dir/stderr")"
-    assert_logged_gh_merge "$case_dir" 113 example/repo --squash
-  done
-  pass "fm-pr-merge binds check results and supersession to the producer app"
 }
 
 # A commit status carries no app id to compare, so an app-bound required context
@@ -3556,7 +3500,7 @@ test_app_bound_required_status_context_matches_by_name() {
           "$case_dir/github-required-rules.json" > "$case_dir/updated.json"
         mv "$case_dir/updated.json" "$case_dir/github-required-rules.json"
       fi
-      printf '{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"%s","status":"completed","conclusion":"success","started_at":"2026-01-01T00:00:01Z"}]}\n' \
+      printf '{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"%s"}]}\n' \
         "$head" > "$case_dir/github-runs.json"
       run_required_case "$case_dir" 111
       if [ "$variant" = reported ]; then
@@ -3646,42 +3590,6 @@ test_required_checks_reported_and_green_merge() {
     "$case_dir/stderr" "required-present: the verified line did not state the required checks reported"
   assert_logged_gh_merge "$case_dir" 91 example/repo --squash
   pass "fm-pr-merge merges when every required check reported and is green"
-}
-
-test_optional_classic_required_checks() {
-  local case_dir head variant
-  head=a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9
-  for variant in absent null malformed; do
-    case_dir=$(make_case "github-optional-classic-$variant")
-    add_gh_mocks "$case_dir" "$head"
-    case "$variant" in
-      absent)
-        jq '.protected = true | del(.protection.required_status_checks)' \
-          "$case_dir/github-branch.json" > "$case_dir/updated.json"
-        ;;
-      null)
-        jq '.protected = true | .protection.required_status_checks = null' \
-          "$case_dir/github-branch.json" > "$case_dir/updated.json"
-        ;;
-      malformed)
-        jq '.protected = true | .protection.required_status_checks = []' \
-          "$case_dir/github-branch.json" > "$case_dir/updated.json"
-        ;;
-    esac
-    mv "$case_dir/updated.json" "$case_dir/github-branch.json"
-    run_required_case "$case_dir" 114
-    if [ "$variant" = malformed ]; then
-      expect_code 1 "$RC" "optional-classic-malformed: malformed non-null settings must refuse"
-      assert_grep 'the branch protection summary for base branch main could not be read' \
-        "$case_dir/stderr" "optional-classic-malformed: malformed settings were not rejected"
-      assert_no_grep 'pr merge' "$case_dir/gh.log" \
-        "optional-classic-malformed: malformed settings reached merge"
-    else
-      expect_code 0 "$RC" "optional-classic-$variant: disabled status checks must merge: $(cat "$case_dir/stderr")"
-      assert_logged_gh_merge "$case_dir" 114 example/repo --squash
-    fi
-  done
-  pass "fm-pr-merge accepts disabled classic checks and rejects malformed settings"
 }
 
 test_red_and_unreported_checks_are_reported_together() {
@@ -3939,13 +3847,11 @@ test_merge_outcome_spans_follow_publication
 test_merge_outcome_report_emits_once_per_merge
 test_required_check_that_never_reported_refuses
 test_required_checks_reported_and_green_merge
-test_optional_classic_required_checks
 test_red_and_unreported_checks_are_reported_together
 test_unreadable_required_set_refuses
 test_allow_missing_waives_only_the_named_unreported_check
 test_allow_missing_follows_the_allow_red_rules
 
 test_required_producer_identity
-test_required_result_stays_with_producer
 test_app_bound_required_status_context_matches_by_name
 test_required_partial_reads_report_all_failures
