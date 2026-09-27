@@ -256,8 +256,46 @@ test_aborted_spawn_returns_its_lease() {
   pass "an aborted spawn returns its lease and drops its claim"
 }
 
+# The endpoint cannot be told to enter the leased copy: the spawn refuses
+# before any worker launches, and the lease does not outlive it.
+test_failed_send_returns_its_lease() {
+  local rec out status
+  rec=$(make_pool_case sendfail 1)
+  read_pool_record "$rec"
+
+  out=$(FM_FAKE_TMUX_SEND_FAIL=1 run_pool_spawn lease-sendfail-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its endpoint could not be told to cd"$'\n'"$out"
+  assert_contains "$out" "could not be told to enter it" \
+    "the spawn did not refuse when the cd could not be sent"
+  [ ! -s "$POOL_DIR/.fake-leases" ] \
+    || fail "a failed send stranded a lease: $(cat "$POOL_DIR/.fake-leases")"
+  pass "a spawn whose endpoint cannot be told to cd returns its lease"
+}
+
+# The endpoint never reaches the leased copy: the settle wait times out, and
+# the lease is returned rather than left naming a task with no record.
+test_settle_timeout_returns_its_lease() {
+  local rec out status
+  rec=$(make_pool_case settletimeout 1 2)
+  read_pool_record "$rec"
+
+  # Slot 1 is leased, but the pane reports slot 2 - an isolated worktree that
+  # is not the leased copy, so no read ever confirms the settle.
+  out=$(run_pool_spawn lease-settle-r1 "$POOL_DIR/2/project" --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its endpoint never entered the leased copy"$'\n'"$out"
+  assert_contains "$out" "did not enter an isolated worktree within 60s" \
+    "the spawn did not refuse when its endpoint never reached the leased copy"
+  [ ! -s "$POOL_DIR/.fake-leases" ] \
+    || fail "a settle timeout stranded a lease: $(cat "$POOL_DIR/.fake-leases")"
+  pass "a spawn whose endpoint never reaches the leased copy returns its lease"
+}
+
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
 test_aborted_spawn_returns_its_lease
+test_failed_send_returns_its_lease
+test_settle_timeout_returns_its_lease
 
 echo "# all fm-spawn-slot-lease tests passed"

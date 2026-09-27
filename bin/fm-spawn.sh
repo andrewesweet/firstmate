@@ -4300,10 +4300,6 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # teardown's `treehouse return` releases the lease after its landed-work
   # checks pass. A slot that cannot be leased refuses the spawn here, at the
   # cheapest point, rather than launching a worker with no reserved copy.
-  if ! command -v treehouse >/dev/null 2>&1; then
-    echo "error: task $ID needs a Treehouse pool slot for $PROJ_ABS but treehouse is not installed; refusing to launch without a reserved copy" >&2
-    exit 1
-  fi
   if ! WT_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "$ID"); then
     echo "error: task $ID could not lease a Treehouse pool slot for $PROJ_ABS; refusing to launch a worker without a reserved copy" >&2
     exit 1
@@ -4320,10 +4316,6 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   wt_cd_path=${WT//\'/\'\\\'\'}
   spawn_send_text_line "$WT_TARGET" "cd -- '$wt_cd_path'" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
-    if ! ( cd "$PROJ_ABS" && treehouse return --force "$WT" ) >/dev/null 2>&1; then
-      echo "warning: task $ID's leased slot $WT could not be returned; the lease may still be held" >&2
-    fi
-    SPAWN_LEASE_HELD=0
     exit 1
   }
 
@@ -4337,16 +4329,12 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # would otherwise make the pane's OS-level cwd read differ from PROJ_ABS on
   # the very first poll, before the pane has actually moved.
   #
-  # A single read of the leased copy is not proof the pane settled there: on
-  # some tmux/WSL setups a brand-new window's pane_current_path transiently
+  # On some tmux/WSL setups a brand-new window's pane_current_path transiently
   # reports an unrelated stale path (seen live as another real git checkout
   # entirely) before the shell catches up with the cd into the leased copy.
   # That stale path passes spawn_worktree_isolated too (it resolves to a real,
-  # distinct worktree top-level), so only the leased copy counts, and only two
-  # consecutive reads agreeing on it end the wait; anything else just clears
-  # the candidate, so a pane that is already settled by the first real read
-  # only costs the one existing inter-poll sleep as confirmation, not a whole
-  # extra cycle on top.
+  # distinct worktree top-level), so only a read of the leased copy itself ends
+  # the wait; anything else is waited out.
   #
   # Every candidate is screened with the isolation guard's own predicate, so a
   # read of the project itself or of the repository primary checkout is treated
@@ -4358,39 +4346,25 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # misconfiguration would need machinery this path does not want - so the
   # refusal has to be self-explaining instead: carry the last path seen and the
   # reason it was rejected, and report both at the deadline.
-  candidate=""
+  settled=0
   last_seen=""
   last_reason="the pane reported no path"
   for _ in $(seq 1 60); do
     p=$(spawn_current_path "$WT_TARGET" || true)
     [ -z "$p" ] || last_seen="$p"
     if [ -n "$p" ] && spawn_worktree_isolated "$p"; then
-      p_real=$(real_path_or_raw "$p")
-      # Only the leased copy counts: a transient stale read can itself be a
-      # real, isolated checkout (never adopted), so anything else is waited
-      # out rather than recorded.
-      if [ "$p_real" = "$WT" ]; then
-        last_reason="it reached the leased copy, but no second read agreed with it"
-        if [ -n "$candidate" ]; then
-          break
-        fi
-        candidate="$p_real"
-      else
-        candidate=""
-        last_reason="it is in '$p', not the leased copy '$WT'"
+      if [ "$(real_path_or_raw "$p")" = "$WT" ]; then
+        settled=1
+        break
       fi
+      last_reason="it is in '$p', not the leased copy '$WT'"
     else
-      candidate=""
       [ -z "$p" ] || last_reason=$SPAWN_WT_REASON
     fi
     sleep 1
   done
-  if [ -z "$candidate" ]; then
+  if [ "$settled" = 0 ]; then
     echo "error: task $ID's endpoint did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); returning its leased copy $WT - inspect window $T" >&2
-    if ! ( cd "$PROJ_ABS" && treehouse return --force "$WT" ) >/dev/null 2>&1; then
-      echo "warning: task $ID's leased slot $WT could not be returned; the lease may still be held" >&2
-    fi
-    SPAWN_LEASE_HELD=0
     exit 1
   fi
 

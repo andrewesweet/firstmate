@@ -118,6 +118,7 @@ case "${1:-}" in
     ;;
   has-session|new-session|new-window|kill-window|set-window-option) exit 0 ;;
   send-keys)
+    [ "${FM_FAKE_TMUX_SEND_FAIL:-0}" = 1 ] && exit 1
     if [ -n "${FM_FAKE_LAUNCH_LOG:-}" ]; then
       prev=
       for a in "$@"; do
