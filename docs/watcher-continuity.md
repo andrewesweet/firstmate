@@ -84,6 +84,8 @@ It re-arms by parking that awaited hook on `bin/fm-watch-arm.sh` and returning a
 Claude's `.claude/settings.json` Stop `asyncRewake` hook (`bin/fm-claude-stop-autoarm.sh`) owns routine tokenless re-arm.
 The hook fires on every Stop.
 On each Stop, an eligible primary with supervision need admits one home-scoped owner, which foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree.
+A session restart mid-cycle is a non-event: the dying session's hook lives on as an orphan that can no longer deliver, so its claim is no longer open, and the replacement session's first Stop takes the next generation, attaches to the running watcher through `bin/fm-watch-arm.sh`, and is the hook that delivers the cycle's close.
+[`turnend-guard.md`](turnend-guard.md#harness-integrations) owns the open-claim definition.
 While supervision is still needed and away mode remains inactive, an actionable close wakes the idle session through exit 2.
 
 ### Claude session-lock ownership
@@ -466,6 +468,7 @@ It checks that a newly appended keyed decision is classified without rereading e
 - Stale and live session owners.
 - Unchanged AFK and need boundaries.
 - Single-flight.
+- Supersession of a dead session's orphaned claim by the replacement session's first Stop.
 - Bounded failure retries.
 - Benign live-watcher cycle ends.
 - One-notice failure episodes.
