@@ -217,6 +217,7 @@ tests/fm-session-start.test.sh
 ```
 
 The kill test's fake `ps` walks real `/proc` ancestry to TERM the digest bash itself mid-lock-stage, so the parent-wrapper banner path is exercised end to end rather than asserted from output shape alone.
+Both process-tree cases therefore need a readable `/proc` and print a skip line without it, and the companion case that pins a signal death to a nonzero status on the perl timeout mechanism skips when `perl` is absent.
 These guarantees are process semantics, not vendor-emitted signals, so no live-harness guard is owed; the same suite is the refresh command.
 
 ## Semantic busy state
