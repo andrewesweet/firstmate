@@ -1,14 +1,44 @@
 #!/usr/bin/env bash
-# tests/secondmate-helpers.sh - shared fixtures and mocks for the secondmate
-# suites (fm-secondmate-lifecycle-e2e and fm-secondmate-safety).
+# tests/secondmate-helpers.sh - shared fixtures and mocks for secondmate suites.
 #
 # These mocks encode secondmate-lifecycle behavior (fake tmux that logs window
 # ops, fake treehouse that leases/returns homes, fake no-mistakes that records
-# init/doctor), so they live here rather than in the generic tests/lib.sh. The
+# init/doctor, generic remote SSH framing), so they live here rather than in
+# the generic tests/lib.sh. The
 # generic git/identity/meta primitives come from lib.sh, which this file pulls in.
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+make_remote_secondmate_ssh_fake() {  # <path>
+  local target=$1
+  cat > "$target" <<'SH'
+#!/usr/bin/env bash
+set -u
+while [ "$#" -gt 0 ]; do
+  case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
+done
+host=${1:-}
+entry=${2:-}
+[ "$#" -ge 2 ] || exit 90
+shift 2
+[ "$host" = remote-mac ] || exit 91
+[ "$entry" = fm-remote-entrypoint.sh ] || exit 92
+cd "$FM_FAKE_REMOTE_CWD" || exit 93
+[ "$#" -ge 4 ] || exit 93
+argv_b64=$4
+command_fields=$(perl -MMIME::Base64=decode_base64 -e '
+  my $data=decode_base64($ARGV[0]);
+  my @args=split(/\0/, $data);
+  print join("\t", map { defined $_ ? $_ : "" } @args[0..5]);
+' "$argv_b64") || exit 93
+IFS=$'\t' read -r command_name _command_action command_rel command_arg3 command_arg4 command_arg5 <<EOF
+$command_fields
+EOF
+. "$FM_FAKE_SSH_SCENARIO"
+SH
+  chmod +x "$target"
+}
 
 # A fake tmux (window ops are logged to FM_FAKE_TMUX_LOG, list-windows returns
 # FM_FAKE_TMUX_WINDOW, capture-pane echoes FM_FAKE_TMUX_CAPTURE) plus a fake

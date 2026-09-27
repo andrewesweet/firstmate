@@ -3545,6 +3545,30 @@ assert_contains "$after_prose_full" '"state": "paused"' \
   "full scope must report the newest event's state, not the last line's"
 pass "the reader scans back through the tail for the newest status event"
 
+CORR_HOME="$TMP_ROOT/status-correlation"
+mkdir -p "$CORR_HOME/data" "$CORR_HOME/state"
+cat > "$CORR_HOME/data/backlog.md" <<'EOF'
+# Backlog
+
+## In flight
+- [ ] correlated - Correlated status (repo: a) (kind: ship)
+EOF
+fm_write_meta "$CORR_HOME/state/correlated.meta" kind=ship
+for correlated_verb in working needs-decision blocked paused done failed resolved captain-held; do
+  printf 'working: older event\n%s corr=0123456789abcdef: newest event\n' "$correlated_verb" \
+    > "$CORR_HOME/state/correlated.status"
+  correlated=$(python3 "$ROOT/bin/fm_voice_records.py" status --home "$CORR_HOME" --scope counts) \
+    || fail "counts scope rejected $correlated_verb with a correlation token"
+  assert_contains "$correlated" "\"$correlated_verb\": 1" \
+    "a valid correlation token hid the $correlated_verb event"
+done
+printf 'working: older event\ndone corr=short: malformed token\n' > "$CORR_HOME/state/correlated.status"
+correlated=$(python3 "$ROOT/bin/fm_voice_records.py" status --home "$CORR_HOME" --scope counts) \
+  || fail "counts scope failed on a malformed correlation token"
+assert_contains "$correlated" '"working": 1' \
+  "a malformed correlation token was accepted as status metadata"
+pass "the reader recognizes every status verb through valid unbracketed correlation metadata only"
+
 # Control: an UNRECOGNISED verb-shaped prefix must not let trailing prose
 # resurrect it either. A prose line after a bad declaration is still skipped,
 # and the bad declaration itself is still a note rather than a state.

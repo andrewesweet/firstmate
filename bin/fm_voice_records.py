@@ -144,6 +144,7 @@ NOTE_VERB = "note"
 # scan in _last_event below can tell an event line from trailing prose without
 # caring whether the verb is one this module recognises.
 _VERB_SHAPE = re.compile(r"^[a-z]+(?:-[a-z]+)*$")
+_CORR_TOKEN_SHAPE = re.compile(r"^corr=[0-9A-Fa-f]{16}$")
 
 # Enough tail to hold the last line of a status log. These logs are append-only
 # and grow for the life of a task, while every spoken question reads one per
@@ -342,7 +343,13 @@ def _last_event(state_dir, task_id):
         return None, None
 
     def prefix(text):
-        return text.split(":", 1)[0].split("[", 1)[0].strip()
+        head = text.split(":", 1)[0].split("[", 1)[0].strip()
+        if "corr=" not in head:
+            return head
+        words = head.split()
+        return " ".join(words[:1] + [
+            word for word in words[1:] if not _CORR_TOKEN_SHAPE.match(word)
+        ])
 
     line = lines[-1]
     for candidate in reversed(lines):

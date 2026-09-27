@@ -15,8 +15,8 @@
 # remote-secondmate suites fake it, rather than exercising a real host.
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/secondmate-helpers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/secondmate-helpers.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$ROOT/bin/fm-pr-lib.sh"
 
@@ -26,6 +26,7 @@ REAL_SLEEP=$(command -v sleep) || { echo "skip: sleep not found"; exit 0; }
 TMP=$(fm_test_tmproot fm-remote-secondmate-relaunch)
 HOME_DIR="$TMP/home"
 FAKEBIN=$(fm_fakebin "$TMP/fake")
+SSH_SCENARIO="$TMP/fake-ssh-scenario.sh"
 mkdir -p "$HOME_DIR/data" "$HOME_DIR/state" "$HOME_DIR/config"
 
 printf -- '- ios - iOS delivery (host: remote-mac; root: /srv/fm; home: /srv/fm-home; scope: iOS; projects: alpha; added 2026-08-01)\n' \
@@ -52,27 +53,13 @@ reset_meta() {
     "remote_target=fm-remote:w1:p1"
 }
 
-cat > "$FAKEBIN/fake-ssh" <<'SH'
-#!/usr/bin/env bash
-while [ "$#" -gt 0 ]; do
-  case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
-done
-host=$1
-entry=$2
-shift 2
-[ "$host" = remote-mac ] || exit 91
-[ "$entry" = fm-remote-entrypoint.sh ] || exit 92
-argv_b64=$4
-command_fields=$(perl -MMIME::Base64=decode_base64 -e '
-  my $data=decode_base64($ARGV[0]);
-  my @args=split(/\0/, $data);
-  print join("\t", map { defined $_ ? $_ : "" } @args[0..5]);
-' "$argv_b64")
-IFS=$'\t' read -r cmd action id harness model effort <<EOF
-$command_fields
-EOF
-[ "$cmd" = fm-remote-secondmate-control.sh ] || exit 93
-[ "$action" = relaunch ] || exit 94
+cat > "$SSH_SCENARIO" <<'SH'
+id=$command_rel
+harness=$command_arg3
+model=$command_arg4
+effort=$command_arg5
+[ "$command_name" = fm-remote-secondmate-control.sh ] || exit 93
+[ "$_command_action" = relaunch ] || exit 94
 case "$FM_FAKE_RELAUNCH_MODE" in
   refuse)
     printf 'error: unverified remote secondmate harness: %s\n' "$harness" >&2
@@ -107,6 +94,7 @@ printf 'harness=%s\n' "$harness"
 printf 'model=%s\n' "$model"
 printf 'effort=%s\n' "$effort"
 SH
+make_remote_secondmate_ssh_fake "$FAKEBIN/fake-ssh"
 cat > "$FAKEBIN/sleep" <<'SH'
 #!/usr/bin/env bash
 if [ -n "${FM_FAKE_SLEEP_LOG:-}" ]; then
@@ -118,6 +106,7 @@ chmod +x "$FAKEBIN/fake-ssh" "$FAKEBIN/sleep"
 
 run_relaunch() {  # <args...>
   env PATH="$FAKEBIN:$PATH" FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+    FM_FAKE_SSH_SCENARIO="$SSH_SCENARIO" FM_FAKE_REMOTE_CWD="$TMP" \
     FM_FAKE_REAL_SLEEP="$REAL_SLEEP" FM_FAKE_SLEEP_LOG="${FM_FAKE_SLEEP_LOG:-}" \
     FM_FAKE_RELAUNCH_MODE="${FM_FAKE_RELAUNCH_MODE:-}" \
     FM_FAKE_RACE_DIR="${FM_FAKE_RACE_DIR:-}" \

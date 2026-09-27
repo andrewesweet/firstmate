@@ -32,6 +32,7 @@ install_runner() {  # <case-dir>
   # store owner, and the backlog reader with its tasks-axi probe.
   cp "$ROOT/bin/fm-afk-contract.sh" "$dir/bin/"
   cp "$ROOT/bin/fm-branch-outcome.sh" "$dir/bin/"
+  cp "$ROOT/bin/fm-lease-lib.sh" "$dir/bin/"
   cp "$ROOT/bin/fm-tasks-axi-lib.sh" "$dir/bin/"
   cp "$ROOT/bin/fm-backlog-transition-lib.sh" "$dir/bin/"
   # The merge-notification marker reader behind the brief's landed section.
@@ -470,17 +471,19 @@ test_return_brief_composes_from_record_store_and_held_set() {
 # On a supervision-host home off Pi the drain's BRANCH OUTCOMES section is the
 # one presenter of branch outcomes and the one owner of their read cursor, so
 # the return brief counts the window's outcomes and points there instead of
-# listing them, and leaves the cursor alone. On Pi the brief lists them as
-# before.
+# listing them, and leaves the cursor alone. On Pi or a Claude branch-mod home,
+# that branch owns presentation and the brief lists them as before.
 test_return_brief_points_at_the_drain_on_a_host_home_only() {
-  local dir harness fakebin out n
-  for harness in claude pi; do
-    dir="$TMP_ROOT/window-pointer-$harness"
+  local dir scenario harness fakebin out n
+  for scenario in claude claude-mod pi; do
+    harness=${scenario%-mod}
+    dir="$TMP_ROOT/window-pointer-$scenario"
     install_runner "$dir"
     for f in fm-supervision-engine-lib.sh fm-harness.sh fm-cursor-lib.sh fm-gemini-lib.sh; do
       cp "$ROOT/bin/$f" "$dir/bin/"
     done
     : > "$dir/home/config/supervision-host"
+    [ "$scenario" != claude-mod ] || : > "$dir/home/state/.branch-mod-mode"
     fakebin="$dir/fakebin"
     mkdir -p "$fakebin"
     ln -s /bin/bash "$fakebin/$harness"
@@ -493,21 +496,22 @@ test_return_brief_points_at_the_drain_on_a_host_home_only() {
     : > "$dir/home/state/.fake-drain"
     # shellcheck disable=SC2016 # the single-quoted script expands in the harness shell
     out=$(FM_HOME="$dir/home" FM_STATE_OVERRIDE="$dir/home/state" FM_CONFIG_OVERRIDE="$dir/home/config" \
-      "$fakebin/$harness" -c '"$0" begin 2>&1' "$dir/bin/fm-afk-return.sh") || fail "$harness: the return did not clear: $out"
-    assert_contains "$out" '7 outcome(s) handled by the away session (6 routine, 1 escalated above)' "$harness: the brief must count the window's outcomes"
-    if [ "$harness" = claude ]; then
+      "$fakebin/$harness" -c '"$0" begin 2>&1' "$dir/bin/fm-afk-return.sh") || fail "$scenario: the return did not clear: $out"
+    assert_contains "$out" '7 outcome(s) handled by the away session (6 routine, 1 escalated above)' "$scenario: the brief must count the window's outcomes"
+    if [ "$scenario" = claude ]; then
       assert_contains "$out" "  1 captain outcome(s) escalated by the away session, presented in the drain's BRANCH OUTCOMES section" \
         "a host home's brief must point at the drain for its captain outcomes"
       assert_contains "$out" "the drain's BRANCH OUTCOMES section presents them" "a host home's brief must point at the drain"
       assert_not_contains "$out" 'PR ready for review' "a host home's brief must leave the captain outcome to the drain"
       assert_not_contains "$out" 'routine 6' "a host home's brief must leave the routine outcomes to the drain"
     else
-      assert_contains "$out" '    - demo: PR ready for review' "a Pi home's brief must still list the captain outcome"
-      assert_contains "$out" '    - demo: routine 6' "a Pi home's brief must still list the latest routine outcomes"
+      assert_contains "$out" '    - demo: PR ready for review' "$scenario: the brief must list the captain outcome outside host ownership"
+      assert_contains "$out" '    - demo: routine 6' "$scenario: the brief must list the latest routine outcomes outside host ownership"
+      assert_not_contains "$out" "presented in the drain's BRANCH OUTCOMES section" "$scenario: the brief must not report host-drained outcomes"
     fi
-    [ ! -e "$dir/home/state/.branch-outcomes-cursor" ] || fail "$harness: the return moved the outcome store's read cursor"
+    [ ! -e "$dir/home/state/.branch-outcomes-cursor" ] || fail "$scenario: the return moved the outcome store's read cursor"
   done
-  pass "the return brief points at the drain for branch outcomes on a host home and leaves the read cursor to it, and a Pi home's brief is unchanged"
+  pass "the return brief reports host-drained outcomes only while the host owns presentation"
 }
 
 # The drain is the only presenter of branch outcomes and owner of their read

@@ -132,11 +132,12 @@ fm_supervision_host_attended_ready() {
 
 # fm_supervision_host_outcomes_drained <config-dir>: 0 when main processes the
 # supervision session's outcomes through the drain's BRANCH OUTCOMES section
-# (bin/fm-wake-drain.sh): the home opted in and its primary is not Pi, whose
-# branch extension owns that path. The drain and the return
-# (bin/fm-afk-return.sh) share this check.
+# (bin/fm-wake-drain.sh): the home opted in, the Claude branch mod is inactive,
+# and its primary is not Pi, whose branch extension owns that path. The drain
+# and the return (bin/fm-afk-return.sh) share this check.
 fm_supervision_host_outcomes_drained() {
   fm_supervision_host_enabled "$1" || return 1
+  [ ! -e "$STATE/.branch-mod-mode" ] || return 1
   case "$("$(dirname "${BASH_SOURCE[0]}")/fm-harness.sh" 2>/dev/null)" in pi|pi-signed) return 1 ;; esac
 }
 

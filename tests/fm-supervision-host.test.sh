@@ -376,9 +376,15 @@ test_branch_outcomes_only_on_an_opted_in_home_off_pi() {
   assert_not_contains "$drained" "BRANCH OUTCOMES" "a Pi primary's drain must leave captain outcomes to the branch extension"
   assert_absent "$home/state/.branch-outcomes-cursor" "a Pi primary's drain must not advance the store's read cursor"
 
+  : > "$home/state/.branch-mod-mode"
+  drained=$(FM_HOME="$home" "$FAKE_CLAUDE" -c '"$0" 2>&1' "$ROOT/bin/fm-wake-drain.sh")
+  assert_not_contains "$drained" "BRANCH OUTCOMES" "a Claude branch-mod home must not present host-owned outcomes"
+  assert_absent "$home/state/.branch-outcomes-cursor" "a Claude branch-mod home must leave the store's read cursor untouched"
+  rm -f "$home/state/.branch-mod-mode"
+
   drained=$(FM_HOME="$home" "$FAKE_CLAUDE" -c '"$0" 2>&1' "$ROOT/bin/fm-wake-drain.sh")
   assert_contains "$drained" "[seq 1] demo: PR ready for review" "an opted-in home off Pi must present the captain outcome"
-  pass "drain: BRANCH OUTCOMES runs only on an opted-in home whose primary is not Pi"
+  pass "drain: BRANCH OUTCOMES runs only for an active host outside Pi"
 }
 
 # A fresh captain outcome is never hidden behind older routine outcomes: the
