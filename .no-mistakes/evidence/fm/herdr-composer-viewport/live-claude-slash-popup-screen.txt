@@ -1,0 +1,37 @@
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings
+ '{"feedbackDrafts":"off"}'
+
+01M3HFB0MVQAVF86ZGS8ZKE7WK on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/andrew.sweet@dbaihackathon20
+26outlook.onmicrosoft.com
+(ins)I  CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --
+settings '{"feedbackDrafts":"off"}'
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Opus 5.5 (1M context) with high effort · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/b11fc0c68e6e/01M3HFB0MVQAVF86ZGS8ZKE7WK
+
+⚠ Your login expires in 1 day · run /login to renew
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /exit
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_P…
+  /exit                                          Exit the CLI
+  /code-craftsmanship:domain-driven-design       (code-craftsmanship) Model software around the business domain using
+                                                 bounded contexts, aggregates, and ubiquitous language. Use when the…
+  …ode-craftsmanship:software-design-philosophy  (code-craftsmanship) Manage software complexity through deep
+                                                 modules, information hiding, and strategic programming. Use when th…
+  /domain-driven-design                          Model software around the business domain using bounded contexts,
+                                                 aggregates, and ubiquitous language. Use when the user mentions "do…
+  /quiet                                         Enter quiet supervision mode when the captain invokes /quiet or asks
+                                                 for quiet mode, quiet-while-present, or fewer routine wake turns wh…
+  /copy-editing                                  When the user wants to edit, review, or improve existing marketing
+                                                 copy, or refresh outdated content. Also use when the user mentions …
+  /context                                       Visualize current context usage as a colored grid
+  /product-marketing-context                     When the user wants to create or update their product marketing
+                                                 context document. Also use when the user mentions 'product context,…
+  /software-design-philosophy                    Manage software complexity through deep modules, information hiding,
+                                                 and strategic programming. Use when the user mentions "module desig…
+  /pptx                                          Use this skill any time a .pptx or .potx file is involved in any way
+                                                 — as input, output, or both. This includes: creating slide decks, p…
+  /usage-credits                                 Configure usage credits or request them from your admin when you hit
+                                                 a limit

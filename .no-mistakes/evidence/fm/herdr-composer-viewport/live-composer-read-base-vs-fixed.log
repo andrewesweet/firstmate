@@ -1,0 +1,12 @@
+Live Herdr lab (session fm-lab-popup-proof2-*), Claude Code 2.1.283, herdr 0.9.0.
+Typed /exit into the real composer; Claude rendered its slash-command popup below it.
+
+viewport_rows=37   composer row = 15   old bounded tail window = rows 18..37 (composer excluded)
+
+FIXED  (target commit, --source visible)   composer_content=[/exit]   composer_state=pending
+BASE   (fba81cb, bounded --lines tail)     composer_content=[]        composer_state=unknown
+
+After clearing and resubmitting through the fixed submit path:
+  state_after_clear=empty
+  submit_verdict=unknown   (Enter landed; the post-Enter agent read fails because Claude exited)
+  agent_exited=1           (pane fell back to the shell)
