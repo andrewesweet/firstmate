@@ -3,7 +3,7 @@
 # worker's own diff, run after implementation and before no-mistakes validation.
 #
 # Usage:
-#   fm-jev-lint.sh check [--base <ref>] [--diff-file <file>] [--record <path>] [--jobs <n>]
+#   fm-jev-lint.sh check [--base <ref>] [--diff-file <file>] [--record <path>]
 #   fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed [--reason <text>] [--record <path>]
 #   fm-jev-lint.sh score [--record <path>]
 #
@@ -43,7 +43,11 @@
 #   whose basename looks secrets-like are never read or sent: .env files,
 #   *secret*, *credential*, *passwd*, *.pem, *.p12, id_rsa*, id_ed25519*, and
 #   *.key. The `excluded` expression in extract_subjects' flush_file is the
-#   single owner of that list.
+#   single owner of that list. Path exclusion is not enough on its own, so
+#   every extracted subject also passes subject_has_secret before check
+#   dispatches it: a subject whose claim or evidence carries a private-key
+#   block, a token-shaped value, or an assignment to a KEY, TOKEN, SECRET or
+#   PASSWORD name is dropped, never sent and never recorded as a subject.
 #
 # Record: one JSON object per line in $FM_HOME/data/jev-lint.jsonl, or the
 #   --record path when given. A check line carries ts
@@ -52,6 +56,8 @@
 #   null on transport failure), flagged, input_tokens, cost_usd, latency_ms,
 #   and model. An outcome line carries ts, run_id, kind "outcome", id (the
 #   finding it answers), rule, verdict "fixed" or "dismissed", and reason.
+#   A run that dropped secret-like subjects appends one line carrying ts,
+#   run_id, kind "dropped", and count - the count alone, never the subject.
 #   Only data/ itself is created when absent; a failed append prints one
 #   stderr line and never changes the exit code.
 #
@@ -108,6 +114,19 @@ require_key() {
     return 1
   fi
   return 0
+}
+
+# Content boundary for the subjects the path filter cannot catch: credential
+# material in an ordinary-named file. True when the text carries a private-key
+# block, a token-shaped value, or an assignment to a secrets-like name.
+subject_has_secret() {  # <text>
+  printf '%s\n' "$1" | grep -qE \
+    '(-----BEGIN[A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]|github_pat_[A-Za-z0-9]|xox[baprs]-[A-Za-z0-9]|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9]|Bearer[[:space:]]+[A-Za-z0-9._~+/-]{20,}|eyJ[A-Za-z0-9_-]{10,})' \
+    && return 0
+  printf '%s\n' "$1" | grep -qiE \
+    '(key|token|secret|password)["'"'"']?[[:space:]]*[:=][[:space:]]*[^[:space:]]' \
+    && return 0
+  return 1
 }
 
 enabled_rules() {
@@ -239,7 +258,6 @@ cmd_check() {
       --base) [ $# -ge 2 ] || die "--base needs a value"; base=$2; shift 2 ;;
       --diff-file) [ $# -ge 2 ] || die "--diff-file needs a value"; diff_file=$2; shift 2 ;;
       --record) [ $# -ge 2 ] || die "--record needs a value"; record=$2; shift 2 ;;
-      --jobs) [ $# -ge 2 ] || die "--jobs needs a value"; jobs=$2; shift 2 ;;
       -h|--help) usage; exit 0 ;;
       *) die "unknown flag $1" ;;
     esac
@@ -276,8 +294,9 @@ cmd_check() {
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   workdir=$(mktemp -d) || die "mktemp failed"
   trap 'rm -rf "$workdir"' EXIT
-  local seq=0 live=0 checked=0
+  local seq=0 live=0 checked=0 dropped=0
   while IFS=$'\t' read -r rule file claim ev; do
+    if subject_has_secret "$claim $ev"; then dropped=$((dropped + 1)); continue; fi
     seq=$((seq + 1))
     [ "$seq" -gt "$MAX_SUBJECTS" ] && break
     enabled_rules | grep -qx "$rule" || continue
@@ -291,7 +310,11 @@ cmd_check() {
   flags=$(grep -c . "$workdir/count" 2>/dev/null || echo 0)
   trap - EXIT
   rm -rf "$workdir"
-  echo "jev-lint: run $run_id: $checked subject(s) checked, $flags finding(s) above (if any) are advisory" >&2
+  if [ "$dropped" -gt 0 ]; then
+    record_append "$record" "$(jq -cn --arg ts "$ts" --arg run "$run_id" --argjson n "$dropped" \
+      '{ts: $ts, run_id: $run, kind: "dropped", count: $n}')"
+  fi
+  echo "jev-lint: run $run_id: $checked subject(s) checked, $dropped dropped as secret-like, $flags finding(s) above (if any) are advisory" >&2
   return 0
 }
 

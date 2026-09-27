@@ -79,6 +79,20 @@ index 0000000..1111111 100644
 +- `pi` - supervision
 EOF
 
+SECRETDIFF="$TMP_ROOT/secret.diff"
+cat > "$SECRETDIFF" <<'EOF'
+diff --git a/tests/x.test.sh b/tests/x.test.sh
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tests/x.test.sh
+@@ -0,0 +1,4 @@
++# runs the tool against a live key
++run_it() {
++  out=$(env TYPESAFE_API_KEY="sk-live-REALKEY123" "$TOOL" check)
++}
+EOF
+
 check_env() {
   env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$STUB" TYPESAFE_API_KEY="sk-test-SECRETKEY123" "$@"
 }
@@ -182,7 +196,24 @@ test_r3_enumeration_subjects() {
   pass "r3 extracts enumerations and applies the frozen 0.20 cutoff"
 }
 
+test_secret_content_is_dropped() {
+  local rec="$TMP_ROOT/secret.jsonl" out rc
+  out=$(env -u TYPESAFE_API_KEY -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    "$TOOL" check --diff-file "$SECRETDIFF" --record "$rec" 2> "$TMP_ROOT/secret.err"); rc=$?
+  [ "$rc" -eq 0 ] || fail "check still exits 0 (rc=$rc): $(cat "$TMP_ROOT/secret.err")"
+  grep -q 'fake curl must never run' "$TMP_ROOT/secret.err" \
+    && fail "a subject carrying a key must never reach the network"
+  echo "$out" | grep -q 'finding' && fail "a dropped subject yields no finding: $out"
+  grep -q 'REALKEY123' "$rec" && fail "a dropped subject must never reach the record"
+  [ "$(jq -s 'map(select(.kind == "check")) | length' "$rec")" -eq 0 ] \
+    || fail "a dropped subject is not recorded as a checked subject"
+  jq -e -s 'map(select(.kind == "dropped")) | .[0].count == 1' "$rec" >/dev/null \
+    || fail "the run records the dropped count alone: $(cat "$rec")"
+  pass "a diff line carrying a key in an ordinary-named file is dropped, not sent"
+}
+
 test_extraction_and_cutoffs
+test_secret_content_is_dropped
 test_cutoff_boundary_flags
 test_r3_enumeration_subjects
 test_absent_key_skips_silently
