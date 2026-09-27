@@ -718,6 +718,28 @@ test_attended_main_only_close_passes_straight_to_main() {
   pass "host: an attended decision close stays main's exactly as the plain arm delivers it"
 }
 
+# The startup step-aside covers a marker present at launch; the mod may also
+# be enabled mid-run, so every attended acceptance re-checks. A routine wake
+# the engine would otherwise take must pass straight to main once the marker
+# appears after startup.
+test_attended_close_with_mod_enabled_mid_run_passes_to_main() {
+  local home
+  home=$(make_home attended-mod-mid-run attended)
+  start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "mod-mid-run: the host never started a watcher cycle"
+  : > "$home/state/.branch-mod-mode"
+  append_status "$home" 'step one'
+  wait_until 250 host_exited "$home" || fail "mod-mid-run: the close did not reach main: $(cat "$home/state/.supervision-host.log")"
+  expect_code 0 "$(cat "$home/host.rc")" "a mod step-aside close must exit 0"
+  assert_re '^signal: .*demo.status' "$home/host.out" "the close must carry the watcher's reason line"
+  assert_no_re '^supervision-host' "$home/host.out" "a mod step-aside close must reach main exactly as the arm printed it"
+  [ "$(engine_calls "$home")" -eq 0 ] || fail "mod-mid-run: the engine ran after the mod was enabled"
+  assert_grep 'demo.status' "$home/state/.wake-queue" "the diverted wake must stay queued for main"
+  ledger_re=$(printf '\tpass-through\tattended\t.*branch-mod-mode.*\tsignal:')
+  assert_re "$ledger_re" "$home/state/.supervision-host.log" "the ledger must record the mod step-aside"
+  pass "host: an attended close after the mod is enabled mid-run passes straight to main"
+}
+
 # The session-lock holder's process identity cannot be read (its proc entry
 # is truncated), so no main-session key exists: the close reaches main exactly
 # as the arm printed it, before any mirror feed or engine turn.
@@ -2072,6 +2094,7 @@ test_attended_routine_wake_is_handled_on_the_engine_and_stays_off_main
 test_attended_captain_outcome_reaches_main_through_branch_outcomes
 test_captain_leaving_mid_turn_keeps_its_captain_outcome_for_the_return
 test_attended_main_only_close_passes_straight_to_main
+test_attended_close_with_mod_enabled_mid_run_passes_to_main
 test_attended_close_with_unidentified_main_session_passes_to_main
 test_close_accepted_away_that_turns_attended_passes_to_main
 test_attended_close_that_turns_main_only_before_its_turn_passes_to_main

@@ -940,7 +940,12 @@ attended_acceptor() {  # <first-reason-line>
   local offer=
   ATTENDED_WHY=
   ATTENDED_OFFER=
-  if ! fm_supervision_host_attended_ready "$CONFIG" "$PRIMARY"; then
+  # Live mutual exclusion with the supervision-branch mod: the startup check
+  # covers a marker present at launch, but the mod may be enabled mid-run, so
+  # every attended acceptance re-checks and passes the close straight to main.
+  if [ -e "$STATE/.branch-mod-mode" ]; then
+    ATTENDED_WHY="the Claude Code supervision-branch mod is enabled (state/.branch-mod-mode), so the host stands down and the close stays with main"
+  elif ! fm_supervision_host_attended_ready "$CONFIG" "$PRIMARY"; then
     ATTENDED_WHY=$FM_SUPERVISION_HOST_UNREADY
   elif ! fm_supervision_host_main_key "$STATE" >/dev/null; then
     ATTENDED_WHY="the main session could not be identified"
