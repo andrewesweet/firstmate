@@ -17,7 +17,7 @@ It composes the installed Matt Pocock planning disciplines (`~/.agents/skills/`)
 Nothing here authorizes implementation; maps plan and do not build.
 
 Read the named Pocock skill files below as files.
-They carry `disable-model-invocation: true`, so no crew reaches them through a Skill tool; crews follow any discipline only by reading the named file, and firstmate sessions read them natively.
+Never brief a worker to run one as a skill: crews follow any discipline only by reading the named file, and firstmate sessions read them natively.
 
 ## 1. What counts as non-trivial
 
