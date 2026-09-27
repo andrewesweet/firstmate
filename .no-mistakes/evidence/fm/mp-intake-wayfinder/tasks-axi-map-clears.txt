@@ -1,0 +1,25 @@
+=== held t3 state
+  state: queued
+  held: yes
+  hold_reason: captain decision
+=== record captain answer (out of scope) via captain-hold-lifecycle owner
+answered: t3
+=== t3 after answer
+  state: done
+  held: no
+=== close remaining t2
+ok: done t2 -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+=== map row now
+  state: queued
+  blocked: no
+  blocked_by: none
+  deps: "blocked-by:t1,blocked-by:t2,blocked-by:t3"
+=== map takeable in ready?
+count: 1
+ready[1]{id,state,kind,repo,title}:
+  map1,queued,task,"-","map: intake destination"
+ready_public_followups: 0 delivery-ready obligations
+help[1]:
+  - Run `tasks-axi start <id>` to dispatch one of these

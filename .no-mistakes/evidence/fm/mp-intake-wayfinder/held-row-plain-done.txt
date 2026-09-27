@@ -1,0 +1,16 @@
+=== attempt plain done on captain-held row
+ok: done t4 -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+rc=0
+  title: held slice
+  state: done
+  held: no
+present /home/andre/.agents/skills/grilling/SKILL.md
+present /home/andre/.agents/skills/domain-modeling/SKILL.md
+present /home/andre/.agents/skills/grill-with-docs/SKILL.md
+present /home/andre/.agents/skills/ask-matt/SKILL.md
+present /home/andre/.agents/skills/wayfinder/SKILL.md
+present /home/andre/.agents/skills/to-spec/SKILL.md
+present /home/andre/.agents/skills/to-tickets/SKILL.md
+present /home/andre/.agents/skills/prototype/SKILL.md
