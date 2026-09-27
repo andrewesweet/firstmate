@@ -1080,6 +1080,33 @@ ROWS
   pass "fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor"
 }
 
+# P2 scout disciplines: a scout brief points reading legwork at the research
+# discipline and design questions at the prototype discipline, both read as
+# files, with the fleet adaptations (report path, throwaway prototype,
+# verdict in the report, Lavish loop for logic prototypes).
+test_scout_disciplines_point_at_research_and_prototype() {
+  local home brief
+  home="$TMP_ROOT/disciplines-home"
+  mkdir -p "$home/data"
+  FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    "$ROOT/bin/fm-brief.sh" sample-disciplines sample --scout >/dev/null 2>&1 \
+    || fail "fm-brief.sh scout scaffold exited non-zero"
+  brief="$home/data/sample-disciplines/brief.md"
+  assert_grep "~/.agents/skills/research/SKILL.md" "$brief" \
+    "scout brief did not point reading legwork at the research discipline"
+  assert_grep "~/.agents/skills/prototype/SKILL.md" "$brief" \
+    "scout brief did not point design questions at the prototype discipline"
+  assert_grep "as a file (do not invoke" "$brief" \
+    "scout brief did not tell the crew to read the disciplines as files"
+  assert_grep "never into the project" "$brief" \
+    "scout brief did not keep findings out of the project checkout"
+  assert_grep "never let prototype code enter a ship branch" "$brief" \
+    "scout brief did not keep prototype code out of the ship branch"
+  assert_grep "record the verdict in the report" "$brief" \
+    "scout brief did not keep the prototype verdict in the report"
+  pass "fm-brief.sh: scout brief routes reading legwork and design questions to their disciplines"
+}
+
 # Scout and secondmate paths still scaffold well-formed briefs.
 test_scout_and_secondmate_scaffold() {
   local brief
@@ -1437,6 +1464,7 @@ test_ship_and_scout_teach_validation_round_pause
 test_scout_and_secondmate_load_decision_hold_policy
 test_scout_and_secondmate_scaffold
 test_scout_lavish_line_follows_presentation_floor
+test_scout_disciplines_point_at_research_and_prototype
 test_home_brief_include_is_appended_last
 test_ship_branch_prefix_defaults_to_legacy_fm
 test_ship_branch_prefix_override_is_consistent_across_modes
