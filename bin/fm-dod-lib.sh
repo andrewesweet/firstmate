@@ -475,6 +475,9 @@ EOF
 Delivery contract: mode=no-mistakes
 Ship branch: $branch
 The task is complete only when committed on your branch.
+After implementation and before starting validation, run the advisory self-check \`bin/fm-jev-lint.sh check\` from the repo root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with \`bin/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF

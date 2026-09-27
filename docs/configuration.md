@@ -703,15 +703,26 @@ The query itself never blocks a task and makes no model calls; capture is a loca
 `bin/fm-spend-query.sh --unmeasured <reason> <task-id>` emits the unmeasured shape for a task without measuring, so the teardown's own rare fallback - the query failing outright rather than answering unmeasured - reuses this one shell definition of that shape instead of building a second.
 The teardown's ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_ref` naming the PR URL, `local-main`, `report` with the report path, or none).
 
+## Jev self-check record (data/jev-lint.jsonl)
+
+Ship workers run an advisory self-check after implementation and before no-mistakes validation.
+`bin/fm-jev-lint.sh check` extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body at 0.50, R2 test-name-verifies-claim at 0.60, R4 hook-budget-feasibility at 0.60), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
+Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
+`bin/fm-jev-lint.sh score` reports per-rule cost, latency, and fixed-versus-dismissed rates from the record.
+The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
+When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check skips silently.
+A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
+
 ## Standing data sources for retrospectives
 
-Five durable, home-local logs record what actually happened, and a retrospective reads them instead of asking anyone to reconstruct events:
+Six durable, home-local logs record what actually happened, and a retrospective reads them instead of asking anyone to reconstruct events:
 
 - `data/dispatch-resolve.jsonl` - one line per typed-dispatch resolution, with outcome, confidence, per-rule probabilities, and the exact rules and brief digests (see "Typed dispatch resolution").
 - `data/dispatch-spawns.jsonl` - one line per successful fresh ship or scout spawn, with the actually dispatched harness, model, and effort, the exact brief digest, and the brief's scaffold-versus-task token split.
 - `state/branch-mod-classifications.jsonl` - one record per supervision-branch classifier call (see [claude-supervision-branch.md](claude-supervision-branch.md)).
 - `state/branch-outcomes.jsonl` - the supervision branch's durable outcome store, owned by `bin/fm-branch-outcome.sh`.
 - `data/spend-ledger.jsonl` - one line per closed ship or scout task with its measured or explicitly unmeasured model spend (see ["Task spend ledger"](#task-spend-ledger-dataspend-ledgerjsonl)).
+- `data/jev-lint.jsonl` - one line per advisory self-check subject and per finding outcome, with the subjects sent, probabilities, token spend, and fixed-versus-dismissed outcomes (see "Jev self-check record").
 
 ## Secondmate routes (data/secondmates.md)
 
