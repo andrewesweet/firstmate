@@ -1,0 +1,8 @@
+Real product: bin/fm-crew-state.sh with a live isolated tmux endpoint
+Scenario 1a — foreign metadata basename ignored
+output: state: working · source: status-log · own live status
+Scenario 1b — foreign status basename ignored
+output: state: working · source: status-log · own live status
+Scenario 2 — matching snapshot basenames honoured
+output: state: paused · source: status-log · captured snapshot status
+Result: all live assertions passed; isolated tmux server torn down by trap.
