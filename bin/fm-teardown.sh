@@ -3553,7 +3553,7 @@ teardown_legacy_stamp_rollback() {
     TEARDOWN_LEGACY_PRESTAMP_COPY=$(mktemp "$STATE/.fm-teardown-prestamp.XXXXXX") \
       || TEARDOWN_LEGACY_STAMP_FAILED=prestamp
     if [ -z "$TEARDOWN_LEGACY_STAMP_FAILED" ] \
-       && ! cp -- "$META" "$TEARDOWN_LEGACY_PRESTAMP_COPY"; then
+       && ! cp -p -- "$META" "$TEARDOWN_LEGACY_PRESTAMP_COPY"; then
       TEARDOWN_LEGACY_STAMP_FAILED=prestamp
     fi
     if [ -z "$TEARDOWN_LEGACY_STAMP_FAILED" ] \

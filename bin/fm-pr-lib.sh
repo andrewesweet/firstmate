@@ -405,7 +405,8 @@ fm_pr_metadata_identity_parse() {
 # writer that appends task metadata after bin/fm-pr-check.sh armed a merge
 # poll must route through this: fm_pr_metadata_identity_parse refuses any
 # other key after pr=, so a bare append silently stops merge monitoring. A
-# record with no pr= line, or one already sealed, is left byte-identical.
+# record with no pr= line is left untouched; an already sealed one is
+# republished with the same bytes.
 fm_pr_metadata_reseal() {
   local meta=$1 dir tmp reseal_mode
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
@@ -421,10 +422,6 @@ fm_pr_metadata_reseal() {
   ' "$meta" > "$tmp"; then
     rm -f -- "$tmp"
     return 1
-  fi
-  if cmp -s "$meta" "$tmp"; then
-    rm -f -- "$tmp"
-    return 0
   fi
   reseal_mode=$(fm_pr_file_mode "$meta") || { rm -f -- "$tmp"; return 1; }
   chmod "$reseal_mode" "$tmp" || { rm -f -- "$tmp"; return 1; }
