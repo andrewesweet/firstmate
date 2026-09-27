@@ -1654,16 +1654,17 @@ ${context.command}
           throw new Error("the unread wake queue could not be read safely");
         }
         // The shared pre-branch classifier joins the capability here: every
-        // attended wake with eligible rows that carry task evidence is
-        // classified before any row is claimed. A wake with no task evidence
-        // (a heartbeat fleet review) has nothing to judge and is never
+        // attended wake sweeps and checks the durable passed-seqs guard, and
+        // one with eligible rows that carry task evidence is classified
+        // before any row is claimed. A wake with no task evidence (a
+        // heartbeat fleet review) has nothing to judge and is never
         // classified. The away posture skips it entirely - the branch takes
         // every row while the record exists. A non-routine verdict passes
         // the rows to main: durable covering captain rows in the outcome
         // store (the mod's exact argv), the durable passed-seqs guard, and
         // a rejected settlement, which hands the wake back to the watcher's
         // consumption-acknowledged main path. A routine verdict proceeds to
-        if (!afk && scope.eligibleTasks.length > 0) {
+        if (!afk) {
           const passedSeqs = readPassedSeqs();
           const gone = [...passedSeqs].filter((s) => !scope.allSeqs.includes(s));
           if (gone.length > 0) {
@@ -1674,37 +1675,39 @@ ${context.command}
           if (unacknowledged.length > 0) {
             throw new Error("wake rows were already passed to main and are not yet acknowledged");
           }
-          const { result, recordLine } = await classifyWake(piClassifierDeps(), {
-            wake: message,
-            tasks: scope.eligibleTasks,
-            seqs: scope.eligibleSeqs,
-          });
-          try {
-            await appendRecordLine(classificationsFile, recordLine);
-          } catch {
-            // The durable log is the scorer's input, not the routing path;
-            // a failed append is absorbed exactly like the mod absorbs one.
-          }
-          if (result.verdict !== "routine") {
-            for (const s of scope.eligibleSeqs) passedSeqs.add(s);
-            writePassedSeqs(passedSeqs);
-            const why = `classifier ${result.verdict}`;
-            const coverSummary = passedToMainSummary(why, result.reason);
-            for (const t of scope.eligibleTasks) {
-              try {
-                await enqueueDelivery(async () => {
-                  const appended = await runOutcomeScript(classifierPassCoverArgv(t, coverSummary, message));
-                  if (appended.ok) {
-                    await runOutcomeScript(markReadArgv(appended.stdout));
-                    await runOutcomeScript(markProcessedArgv(appended.stdout));
-                  }
-                });
-              } catch {
-                // One task's covering row failing must not block the pass;
-                // the guard file still keeps main authoritative for the rows.
-              }
+          if (scope.eligibleTasks.length > 0) {
+            const { result, recordLine } = await classifyWake(piClassifierDeps(), {
+              wake: message,
+              tasks: scope.eligibleTasks,
+              seqs: scope.eligibleSeqs,
+            });
+            try {
+              await appendRecordLine(classificationsFile, recordLine);
+            } catch {
+              // The durable log is the scorer's input, not the routing path;
+              // a failed append is absorbed exactly like the mod absorbs one.
             }
-            throw new Error(`classifier routed the wake to main: ${result.verdict} (${result.reason})`);
+            if (result.verdict !== "routine") {
+              for (const s of scope.eligibleSeqs) passedSeqs.add(s);
+              writePassedSeqs(passedSeqs);
+              const why = `classifier ${result.verdict}`;
+              const coverSummary = passedToMainSummary(why, result.reason);
+              for (const t of scope.eligibleTasks) {
+                try {
+                  await enqueueDelivery(async () => {
+                    const appended = await runOutcomeScript(classifierPassCoverArgv(t, coverSummary, message));
+                    if (appended.ok) {
+                      await runOutcomeScript(markReadArgv(appended.stdout));
+                      await runOutcomeScript(markProcessedArgv(appended.stdout));
+                    }
+                  });
+                } catch {
+                  // One task's covering row failing must not block the pass;
+                  // the guard file still keeps main authoritative for the rows.
+                }
+              }
+              throw new Error(`classifier routed the wake to main: ${result.verdict} (${result.reason})`);
+            }
           }
         }
         const grant = await writeEligibleRowsSnapshot(

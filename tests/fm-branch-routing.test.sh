@@ -69,6 +69,8 @@ PLAN='[
   "scope":["safe",["9"],"108:9",["ship-i"],[]],"classifier":"routine","publish":0,"deliver":"ok","libOnly":true},
  {"name":"heartbeat-skips-the-classifier","wake":"heartbeat: fleet review","mode":true,
   "scope":["safe",["7"],"112:7",[],[]],"classifier":"captain","publish":0,"deliver":"ok"},
+ {"name":"heartbeat-honours-the-passed-guard","wake":"heartbeat: fleet review","mode":true,"passed":["7"],
+  "scope":["safe",["7"],"112:7",[],[]],"classifier":"routine","publish":0,"deliver":"ok"},
  {"name":"stale-inflight-forgets-its-own-rows","wake":"signal: ship-j.status","mode":true,
   "scopes":[["safe",["98"],"109:98",["ship-j"],[]],["safe",["9"],"110:9",["ship-k"],[]],["safe",["98"],"111:98",["ship-j"],[]]],
   "scope":["safe",["98"],"109:98",["ship-j"],[]],"dateJumps":[0,200000,0],
@@ -228,6 +230,7 @@ let clock = 1_000_000;
 if (step.mode !== false) files.set(`${STATE}/.branch-mod-mode`, "");
 if (step.afk) files.set(`${STATE}/.afk`, "away\n");
 if (step.activate !== false) files.set(`${STATE}/.lock`, "4242\n");
+if (step.passed) files.set(`${STATE}/.branch-mod-passed`, JSON.stringify(step.passed));
 {
   const [status, eligibleSeqs, , eligibleTasks] = step.scope;
   if (status === "empty") {
@@ -416,6 +419,7 @@ check_verdict dedupe-window passed,dropped "the same passed wake inside the dedu
 check_verdict unacknowledged-after-window passed,passed "a passed row still queued after the window goes back to main unclassified"
 check_verdict routine-grant dropped "a routine verdict grants the wake and the branch takes it"
 check_verdict heartbeat-skips-the-classifier dropped "a heartbeat wake with no task evidence is taken by the branch"
+check_verdict heartbeat-honours-the-passed-guard passed "a taskless wake whose row is already with main is not claimed by the branch"
 
 # The heartbeat gate: a wake whose eligible rows carry no task evidence is
 # never handed to the classifier, so no classifier event and no pass.

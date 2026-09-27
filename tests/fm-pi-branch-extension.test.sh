@@ -806,6 +806,54 @@ EOF
   pass "a captain-classified wake passes to main with cover rows, the guard file, and its sweep"
 }
 
+# A wake with no task evidence (a heartbeat fleet review) skips only the
+# classifier: the durable passed-seqs guard still owns its rows, so a row main
+# was handed and has not acknowledged is never claimed by the branch.
+test_taskless_wake_still_honours_the_passed_guard() {
+  local repo home out status
+  repo="$TMP_ROOT/taskless-guard-root"
+  home="$TMP_ROOT/taskless-guard-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { pi, fire, dispatch, settle, defaultSessionCtx, home }; })()`);
+const { pi, fire, dispatch, settle, defaultSessionCtx, home } = globalThis.__t;
+import { readFileSync, writeFileSync } from "node:fs";
+
+writeFileSync(`${home}/state/.lock`, `${process.ppid}\n`);
+await fire("session_start", {}, defaultSessionCtx);
+const classFile = `${home}/state/branch-mod-classifications.jsonl`;
+const classRecords = () => {
+  try { return readFileSync(classFile, "utf8").trim().split("\n").filter(Boolean); }
+  catch { return []; }
+};
+
+// Row 1 is already with main, unacknowledged. The heartbeat wake resolves to
+// that row and no task, so the classifier is skipped - the guard must still
+// keep the branch off it.
+writeFileSync(`${home}/state/.branch-mod-passed`, JSON.stringify(["1"]));
+globalThis.__fmClassifierAnswer = async () => JSON.stringify({ verdict: "routine", reason: "healthy" });
+const offer = dispatch("heartbeat: fleet review", undefined, true);
+if (!offer.accepted) throw new Error("branch did not accept the heartbeat offer");
+let rejected = "";
+try { await offer.settlement; } catch (error) { rejected = String(error.message); }
+if (!rejected.includes("already passed to main")) {
+  throw new Error(`a guarded taskless wake was claimed by the branch: ${rejected}`);
+}
+if (classRecords().length !== 0) throw new Error("a taskless wake was classified");
+if (JSON.stringify(JSON.parse(readFileSync(`${home}/state/.branch-mod-passed`, "utf8"))) !== JSON.stringify(["1"])) {
+  throw new Error(`the guard lost its row: ${readFileSync(`${home}/state/.branch-mod-passed`, "utf8")}`);
+}
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "a taskless wake must honour the passed guard: $out"
+  pass "a taskless wake skips only the classifier and still honours the passed-seqs guard"
+}
+
 # The Pi host default, in three single-purpose drivers: an unconfigured
 # classifier runs on the supervision branch's own model (the pin, else
 # main's session model) with no failing haiku call first; an explicit
@@ -5985,6 +6033,7 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers
 test_real_pi_picker_primitives_stay_bounded_and_searchable
 test_branch_dispatch_two_stage_filter_and_prefix_contract
 test_classifier_pass_covers_rows_and_guards_passed_seqs
+test_taskless_wake_still_honours_the_passed_guard
 test_classifier_default_resolves_per_host_on_pi
 test_classifier_explicit_config_wins_on_pi
 test_classifier_unresolvable_falls_back_once_on_pi

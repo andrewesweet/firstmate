@@ -66,6 +66,39 @@ test_evidence_bundle_marks_new_lines_and_advances_the_offset() {
   pass "the evidence bundle presents NEW and HISTORY lines by byte offset and owns the per-task offset file"
 }
 
+# The bundle is capped at 6000 bytes of NEW lines: it must name and consume
+# only the bytes it printed, mark itself truncated so the classifier's
+# incomplete-evidence rule applies, and leave the remainder for the next wake.
+test_evidence_bundle_over_the_cap_names_and_consumes_only_what_it_shows() {
+  local dir state out size shown
+  dir=$(make_case evidence-cap)
+  state="$dir/state"
+  out="$dir/evidence.out"
+  awk 'BEGIN { for (i = 0; i < 150; i += 1) printf "working: padding line %03d 0123456789012345\n", i }' > "$state/t3.status"
+  printf 'needs-decision: which branch should ship\n' >> "$state/t3.status"
+  size=$(wc -c <"$state/t3.status" | tr -d ' ')
+  [ "$size" -gt 6000 ] || fail "the fixture log is not over the cap: $size"
+
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" t3 > "$out" || fail "over-cap bundle failed: $(cat "$out")"
+  head -n 1 "$out" | grep -qx '## task t3 status bytes 0-6000' \
+    || fail "the bundle named a span wider than it printed: $(head -n 1 "$out")"
+  grep -q '^  (truncated - ' "$out" || fail "the bundle did not mark itself truncated: $(cat "$out")"
+  grep -q 'needs-decision: which branch should ship' "$out" \
+    && fail "the capped bundle printed bytes past the cap"
+  [ "$(cat "$state/.t3.classifier-offset")" = 6000 ] \
+    || fail "the offset consumed bytes the bundle never showed: $(cat "$state/.t3.classifier-offset")"
+
+  FM_STATE_OVERRIDE="$state" "$EVIDENCE" t3 > "$out" || fail "the follow-up bundle failed"
+  head -n 1 "$out" | grep -qx "## task t3 status bytes 6000-$size" \
+    || fail "the remainder was not judged on the next wake: $(head -n 1 "$out")"
+  grep -q '^  needs-decision: which branch should ship$' "$out" \
+    || fail "the withheld decision line never reached a later bundle: $(cat "$out")"
+  grep -q '^  (truncated - ' "$out" && fail "an under-cap bundle marked itself truncated"
+  [ "$(cat "$state/.t3.classifier-offset")" = "$size" ] \
+    || fail "the follow-up bundle did not consume the rest: $(cat "$state/.t3.classifier-offset")"
+  pass "an over-cap bundle names, marks and consumes only the bytes it shows"
+}
+
 test_routine_covered_lines_surface_only_under_the_mod() {
   local dir state out body old
   dir=$(make_case routine-covered)
@@ -229,6 +262,7 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset
+test_evidence_bundle_over_the_cap_names_and_consumes_only_what_it_shows
 test_routine_covered_lines_surface_only_under_the_mod
 test_routine_covered_lines_are_byte_exact_across_outcomes
 test_routine_covered_lines_omitted_by_the_byte_cap_are_presented_on_the_next_drain
