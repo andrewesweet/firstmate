@@ -1,0 +1,6 @@
+$ fm-jev-lint.sh check --diff-file live.diff   (real api.typesafe.ai, no stub)
+jev-lint finding 1790528564-3793729-1 [r1 src/retry.sh p=0.95 cutoff=0.5]: # Retries the command up to three times with exponential backoff.
+--- stderr ---
+jev-lint: run 1790528564-3793729: 1 subject(s) checked, 0 dropped as secret-like, 1 finding(s) above (if any) are advisory
+--- record line ---
+{"ts":"2026-09-27T17:02:44Z","run_id":"1790528564-3793729","kind":"check","id":"1790528564-3793729-1","rule":"r1","cutoff":0.5,"file":"src/retry.sh","claim":"# Retries the command up to three times with exponential backoff.","evidence":"retry_cmd() {   \"$@\"   return $? }","probability":0.95,"flagged":true,"input_tokens":375,"cost_usd":0.00001575,"latency_ms":2438,"model":"jev-1.13.0"}

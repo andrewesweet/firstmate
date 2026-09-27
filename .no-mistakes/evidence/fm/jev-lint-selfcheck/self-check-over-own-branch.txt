@@ -1,0 +1,26 @@
+$ fm-jev-lint.sh check   (no flags, from the worktree root - the form the ship brief mandates; real api.typesafe.ai over this branch own diff)
+jev-lint finding 1790529088-3824398-3 [r1 bin/fm-jev-lint.sh p=0.53 cutoff=0.5]: # Opt-in gate shared by check (resolve and score are local-only and never need # the key). Prints the skip line and returns 1 when absent, else 0.
+jev-lint finding 1790529088-3824398-10 [r3 bin/fm-jev-lint.sh p=0.22 cutoff=0.2]: #   (UTC ISO 8601), run_id, kind "check", id "<run_id>-<seq>", rule, cutoff,
+jev-lint finding 1790529088-3824398-14 [r3 bin/fm-jev-lint.sh p=0.21 cutoff=0.2]:     gsub(/\\\\/, "\\\\\\\\", claim); gsub(/\\\\/, "\\\\\\\\", ev)
+jev-lint finding 1790529088-3824398-16 [r3 docs/configuration.md p=0.22 cutoff=0.2]: Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
+--- stderr ---
+jev-lint: run 1790529088-3824398: 16 subject(s) checked, 0 dropped as secret-like, 4 finding(s) above (if any) are advisory
+--- record: rule / p / cutoff / flagged / cost ---
+r1 p=0.2 cutoff=0.5 flagged=false tok=502 $0.00002108 bin/fm-jev-lint.sh
+r4 p=0.28 cutoff=0.6 flagged=false tok=812 $0.00003410 bin/fm-jev-lint-rules.json
+r1 p=0.39 cutoff=0.5 flagged=false tok=430 $0.00001806 bin/fm-jev-lint.sh
+r1 p=0.17 cutoff=0.5 flagged=false tok=622 $0.00002612 bin/fm-jev-lint.sh
+r1 p=0.53 cutoff=0.5 flagged=true tok=482 $0.00002024 bin/fm-jev-lint.sh
+r4 p=0.23 cutoff=0.6 flagged=false tok=567 $0.00002381 bin/fm-jev-lint.sh
+r1 p=0.49 cutoff=0.5 flagged=false tok=626 $0.00002629 bin/fm-jev-lint.sh
+r4 p=0.32 cutoff=0.6 flagged=false tok=456 $0.00001915 bin/fm-jev-lint.sh
+r3 p=0.18 cutoff=0.2 flagged=false tok=834 $0.00003503 bin/fm-jev-lint.sh
+r4 p=0.35 cutoff=0.6 flagged=false tok=589 $0.00002474 bin/fm-jev-lint.sh
+r3 p=0.19 cutoff=0.2 flagged=false tok=610 $0.00002562 bin/fm-jev-lint.sh
+r3 p=0.22 cutoff=0.2 flagged=true tok=605 $0.00002541 bin/fm-jev-lint.sh
+r3 p=0.21 cutoff=0.2 flagged=true tok=596 $0.00002503 bin/fm-jev-lint.sh
+r3 p=0.19 cutoff=0.2 flagged=false tok=615 $0.00002583 bin/fm-jev-lint.sh
+r3 p=0.22 cutoff=0.2 flagged=true tok=869 $0.00003650 docs/configuration.md
+r4 p=0.28 cutoff=0.6 flagged=false tok=877 $0.00003683 docs/configuration.md
+--- key/secret grep over record (expect no hits) ---
+0

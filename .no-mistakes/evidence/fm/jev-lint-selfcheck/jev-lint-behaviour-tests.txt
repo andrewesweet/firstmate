@@ -1,0 +1,8 @@
+ok - extraction finds R1/R2/R4, excludes .env, and applies frozen cutoffs
+ok - diff lines carrying a key or a quoted or unquoted secret are dropped, not sent
+ok - probability equal to the cutoff flags, just below does not
+ok - r3 extracts enumerations and applies the frozen 0.20 cutoff
+ok - absent TYPESAFE_API_KEY skips with exit 0 and no record
+ok - record is replayable and never carries the key
+ok - resolve records outcomes and score reports fixed-versus-dismissed rates
+ok - flipping enabled to false removes a rule in one data line

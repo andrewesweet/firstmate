@@ -1,0 +1,5 @@
+$ check with the classifier returning HTTP 500   rc=0
+stdout: []
+stderr: jev-lint: run 1790529262-3851845: 1 subject(s) checked, 0 dropped as secret-like, 0 finding(s) above (if any) are advisory
+--- record ---
+{"rule":"r1","probability":null,"flagged":false,"cost_usd":0E-8}

@@ -1,0 +1,15 @@
+--- key never on curl argv (grep for the live key prefix, expect 0) ---
+0
+(no Authorization on argv)
+
+$ resolve --id 1790528564-3793729-1 --verdict fixed
+jev-lint: 1790528564-3793729-1 recorded as fixed
+
+$ score
+jev-lint score: runs=1 checks=1 flagged=1 fixed=1 dismissed=0 open=0 cost_usd=0.00001575 cost_per_run=1.575e-05 mean_latency_ms=2438 input_tokens=375
+  rule r1: runs=1 checks=1 flagged=1 cost_usd=0.00001575
+
+$ check with TYPESAFE_API_KEY unset  rc=0
+stdout: []
+stderr: jev-lint: skipped (TYPESAFE_API_KEY absent from the environment and /tmp/jevlab.ecxGF9/home/.env)
+record created: no
