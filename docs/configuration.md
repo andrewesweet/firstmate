@@ -323,7 +323,7 @@ A Claude, Cursor, OpenCode, omp, Grok, or Codex primary can run the host.
 With the file present, the primary's arm owner runs the host in place of the watcher arm.
 The one exception is a home that also enables the Claude Code supervision-branch mod (`state/.branch-mod-mode`): the two opt-ins are mutually exclusive, the host steps aside to the plain watcher arm, and [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns what happens.
 The host handles wakes on the engine while `state/.afk-contract` exists, and also while attended on a Claude or Cursor primary, whose dialog mirror is verified ([supervision-host.md](supervision-host.md#postures)).
-On that home, `/afk` launches no away daemon; `/quiet` still does.
+On that home, `/afk` launches no away daemon; see [Quiet mode](supervision-host.md#quiet-mode) for `/quiet`'s attended statement and fallback.
 The file also gates the primary's dialog-mirror hooks (`bin/fm-host-mirror.sh`), which record on a Claude or Cursor primary ([supervision-host.md](supervision-host.md#the-dialog-mirror)).
 
 Absence leaves the home exactly as it is without the host, on every harness; a Pi primary keeps its in-process supervision branch whether or not the file exists.
