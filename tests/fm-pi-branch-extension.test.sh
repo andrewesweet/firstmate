@@ -5005,15 +5005,13 @@ delete process.env.FM_CLASSIFY_RESERVED_KEY_PREFIXES;
 writeFileSync(`${state}/symlink-target.status`, "needs-decision: external choice\n");
 unlinkSync(`${state}/task-a.status`);
 symlinkSync(`${state}/symlink-target.status`, `${state}/task-a.status`);
-// The v8-aligned fold reads bash truth: a symlinked status log is refused,
-// which names an empty fold, so the stale row stops being decision-owned and
-// the scan stays clean instead of refusing whole (the deliberate A2 alignment
-// with bin/fm-classify-lib.sh; the mod's read-through remains the documented
-// drift pinned by tests/fm-branch-eligibility.test.sh).
+// A symlinked status log is refused, which vetoes the scan: the stale row
+// stays with main instead of routing to the branch (the decided
+// never-fold-empty rule for a present-but-unreadable log).
 const symlinkedStatus = scopeForUnreadWake(state, false);
-if (!symlinkedStatus.eligible || symlinkedStatus.corrupted || symlinkedStatus.needsDecisionKeys.length !== 0 ||
-  symlinkedStatus.eligibleSeqs.slice().sort().join(",") !== "1,2") {
-  throw new Error(`a symlinked status file influenced stale routing: ${JSON.stringify(symlinkedStatus)}`);
+if (symlinkedStatus.status !== "unsafe" || symlinkedStatus.eligible || symlinkedStatus.corrupted !== true ||
+  symlinkedStatus.eligibleSeqs.length !== 0 || symlinkedStatus.eligibleTasks.length !== 0) {
+  throw new Error(`a symlinked status file must veto the scan: ${JSON.stringify(symlinkedStatus)}`);
 }
 unlinkSync(`${state}/task-a.status`);
 writeFileSync(`${state}/task-a.status`, "working: routine work\n");

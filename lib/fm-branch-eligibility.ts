@@ -24,34 +24,41 @@ import { lstatSync, readdirSync, readFileSync } from "node:fs";
 
 const defaultVerdictCache: DecisionVerdictCache = new Map();
 
-/** The lstat version of a plain file, or null for a missing, unreadable, or
- * symlinked path - bash's `[ -f ] && [ -r ] && [ ! -L ]` guard. */
-function statVersion(path: string): string | null {
+/** The lstat answer for one path: the version string for a plain file,
+ * "absent" for a missing path (ENOENT - bash folds whatever its read
+ * captured, which is nothing), or "refused" for a symlinked or otherwise
+ * unstattable path. A present-but-unreadable file stats fine here; its
+ * refusal surfaces at read time. */
+function statVersion(path: string): string | "absent" | "refused" {
   try {
     const stat = lstatSync(path);
-    if (stat.isSymbolicLink()) return null;
+    if (stat.isSymbolicLink()) return "refused";
     return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
-  } catch {
-    return null;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException)?.code === "ENOENT" ? "absent" : "refused";
   }
 }
 
 function statStatusOnDisk(state: string, task: string): StatusStat {
   const version = statVersion(`${state}/${task}.status`);
-  return version === null ? { state: "refused" } : { state: "ok", version };
+  return version === "absent" ? { state: "absent" } : version === "refused" ? { state: "refused" } : { state: "ok", version };
 }
 
 function readStatusTextOnDisk(state: string, task: string): StatusText {
   const path = `${state}/${task}.status`;
-  if (statVersion(path) === null) return { state: "refused" };
+  const presence = statVersion(path);
+  if (presence === "absent") return { state: "absent" };
+  if (presence === "refused") return { state: "refused" };
   let text: string;
   try {
     text = readFileSync(path, "utf8");
-  } catch {
-    return { state: "refused" };
+  } catch (error) {
+    // Vanished between stat and read reads as absent (bash's empty fold);
+    // a present log that will not read vetoes the scan instead.
+    return (error as NodeJS.ErrnoException)?.code === "ENOENT" ? { state: "absent" } : { state: "refused" };
   }
   const version = statVersion(path);
-  return version === null ? { state: "torn" } : { state: "ok", text, version };
+  return version !== presence ? { state: "torn" } : { state: "ok", text, version };
 }
 
 function readMetaKindOnDisk(state: string, task: string): string {
@@ -123,7 +130,9 @@ export function scanStateDirectory(state: string, options: StateDirectoryScanOpt
  * the FM_CLASSIFY_* environment. Emits serializeOpenDecisions bytes - the
  * exact bytes `status_open_decisions` prints. One read pass, bash's own
  * shape - no torn check, since bash folds whatever bytes its single read
- * captured. */
+ * captured. (The scan vetoes a refused log before the fold ever runs, so
+ * fold-level parity with bash holds while rows for unreadable logs stay
+ * with main.) */
 export function foldStatusLog(dir: string, task: string): string {
   const read = readStatusTextOnDisk(dir, task);
   if (read.state !== "ok") return "";

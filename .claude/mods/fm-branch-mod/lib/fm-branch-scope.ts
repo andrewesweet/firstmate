@@ -53,8 +53,8 @@ export interface ScanQueueMeta {
   window: string
 }
 
-export type ScanStatusStat = { state: 'refused' } | { state: 'ok'; version: string }
-export type ScanStatusText = { state: 'refused' } | { state: 'torn' } | { state: 'ok'; text: string; version: string }
+export type ScanStatusStat = { state: 'absent' } | { state: 'refused' } | { state: 'ok'; version: string }
+export type ScanStatusText = { state: 'absent' } | { state: 'refused' } | { state: 'torn' } | { state: 'ok'; text: string; version: string }
 
 /** The fold vocabulary the shared core folds with (the FM_CLASSIFY_* names
  * and defaults of bin/fm-classify-lib.sh). */
@@ -110,16 +110,23 @@ export interface ScopeScanDeps {
 // across scans on an unchanged stat version.
 const verdictCache: Map<string, unknown> = new Map()
 
-/** The stat version of one state-directory file, or null for a missing,
- * unreadable, or symlinked path - bash's `[ -f ] && [ -r ] && [ ! -L ]`
- * guard, via the shared core's stat rule. */
-async function statVersionOf(deps: ScopeScanDeps, path: string): Promise<string | null> {
+/** The presence of one state-directory file: the stat version for a plain
+ * file; absent when the path is missing (both seam reads reject, which is
+ * the seam's missing contract); or refused for a symlink or a present path
+ * that will not stat but still reads. Only a missing path folds empty -
+ * a refused log vetoes the scan so its row stays with main. */
+async function statLogOf(deps: ScopeScanDeps, path: string): Promise<{ state: 'absent' } | { state: 'refused' } | { state: 'ok'; version: string }> {
   try {
     const stat = await deps.stat(path)
-    if (stat.isLink) return null
-    return `${stat.size}:${stat.mtimeMs}`
+    if (stat.isLink) return { state: 'refused' }
+    return { state: 'ok', version: `${stat.size}:${stat.mtimeMs}` }
   } catch {
-    return null
+    try {
+      await deps.readFile(path)
+      return { state: 'refused' }
+    } catch {
+      return { state: 'absent' }
+    }
   }
 }
 
@@ -187,22 +194,32 @@ export async function scanScope(deps: ScopeScanDeps, state: string, heartbeat: b
   for (const { task, project } of metas) {
     if (!project) continue
     const path = `${state}/${task}.status`
-    const version = await statVersionOf(deps, path)
-    if (version === null) {
+    const presence = await statLogOf(deps, path)
+    if (presence.state === 'absent') {
+      stats.set(task, { state: 'absent' })
+      texts.set(task, { state: 'absent' })
+      continue
+    }
+    if (presence.state === 'refused') {
       stats.set(task, { state: 'refused' })
       texts.set(task, { state: 'refused' })
       continue
     }
-    stats.set(task, { state: 'ok', version })
+    stats.set(task, { state: 'ok', version: presence.version })
     let text: string
     try {
       text = await deps.readFile(path)
     } catch {
+      // A clean stat whose read fails is a present log no host can read:
+      // veto, never an empty fold.
       texts.set(task, { state: 'refused' })
       continue
     }
-    const after = await statVersionOf(deps, path)
-    texts.set(task, after === null || after !== version ? { state: 'torn' } : { state: 'ok', text, version: after })
+    const after = await statLogOf(deps, path)
+    // A vanished or changed log after a successful read is torn (Pi's
+    // rule refuses the scan); only a log missing from the start folds
+    // empty, exactly as the lib's node:fs binding reads it.
+    texts.set(task, after.state === 'ok' && after.version === presence.version ? { state: 'ok', text, version: after.version } : after.state === 'refused' ? { state: 'refused' } : { state: 'torn' })
   }
   const libScope = deps.core.scopeForUnreadWake({
     queueText,

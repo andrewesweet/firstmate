@@ -43,6 +43,8 @@ type WorldOptions = {
   classifierAnswer?: string | string[];
   /** One evidence bundle per fm-wake-evidence.sh run in order; the last one repeats. */
   evidence?: string | string[];
+  /** What every fm-branch-outcome.sh run prints on stdout (exit 0); defaults to "7\\n". */
+  outcomeStdout?: string;
   /** One SendMessage result per tool.call in order; the last one repeats. */
   sendAnswer?: string | string[];
   /** When set, every SendMessage tool.call is denied with this string instead of answered. */
@@ -199,7 +201,7 @@ function world(on: On, options: WorldOptions = {}): World {
       return answer(nth(options.evidence, index, fallback));
     }
     if (script === "fm-wake-grant.sh") return answer();
-    if (script === "fm-branch-outcome.sh") return answer("7\n");
+    if (script === "fm-branch-outcome.sh") return answer(options.outcomeStdout ?? "7\n");
     return answer("", 1);
   });
 
@@ -310,6 +312,52 @@ describe("version pin", () => {
     await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
     expect(w.submitted).toEqual([WAKE]);
     expect(w.completions.length).toBe(0);
+  });
+});
+
+// The peer hand-back drop runs only with the opt-in file present: without
+// state/.branch-mod-mode the mod is inert and every peer message passes
+// through untouched, whatever its text. The matching itself is unchanged.
+describe("peer hand-back gate", () => {
+  const PEER_MENTIONS_BRANCH = '<agent-message from="crewmate">report on bin/fm-branch-outcome.sh done</agent-message>';
+  const PEER_FROM_BRANCH = '<agent-message from="fm-branch">outcome stored</agent-message>';
+
+  test("without the opt-in file a peer message mentioning fm-branch passes through untouched", async ($: Engine, on: On) => {
+    const files = armedHome();
+    delete files[`${STATE}/.branch-mod-mode`];
+    const w = world(on, { files });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: PEER_MENTIONS_BRANCH, origin: { kind: "peer" } });
+    expect(w.submitted).toEqual([PEER_MENTIONS_BRANCH]);
+  });
+
+  test("with the opt-in file the branch's own hand-back is still dropped", async ($: Engine, on: On) => {
+    const w = world(on, { files: armedHome() });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: PEER_FROM_BRANCH, origin: { kind: "peer" } });
+    expect(w.submitted).toEqual([]);
+    const dropped = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line)).filter((e) => e.kind === "handback.dropped");
+    expect(dropped.length).toBe(1);
+  });
+});
+
+// serveReport parses the store's append answer with the shared
+// parseOutcomeSeq: a non-numeric answer refuses the report instead of
+// pushing NaN into reportedSeqs and counting the wake reported.
+describe("report sequence guard", () => {
+  const adoptionCounters = JSON.stringify({ lockPid: "4242", wakeCounter: 1, spawnCount: 1, sendCount: 1, branchGeneration: 1, branchAgentId: "" });
+  const SEND_ADOPTS = '{"success":true,"resumedAgentId":"branch-agent-1"}';
+  const REPORT_CALL = { tool: "mcp__fm-branch-mod__fm_branch_report", agentId: "branch-agent-1", task: "t1", verdict: "routine", summary: "handled" } as const;
+
+  test("a non-numeric append answer refuses the report without recording or advancing", async ($: Engine, on: On) => {
+    const w = world(on, { files: { ...armedHome(), [`${STATE}/.branch-mod-counters`]: adoptionCounters }, sendAnswer: SEND_ADOPTS, evidence: [""], outcomeStdout: "not-a-seq\n" });
+    await $.session.start(sessionStart);
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    await drained();
+    const result = await $.tool.call(REPORT_CALL);
+    expect(result).toEqual({ deny: "recorded seq not-a-seq, but cursor advancement failed: the outcome store returned no usable sequence number" });
+    const argvs = w.runs.filter((r) => r.argv[1]?.endsWith("fm-branch-outcome.sh")).map((r) => r.argv[2]);
+    expect(argvs).toEqual(["append"]);
   });
 });
 

@@ -203,10 +203,13 @@ export function createWakeRouter() {
     if (inFlight && deps.dateNow() - inFlight.startedAt > INFLIGHT_STALE_MS) {
       // A delivery that never settled (send refused, agent gone): free the
       // grant and route afresh rather than queueing every later wake behind
-      // it.
-      deps.log('inflight.stale', { seqs: inFlight.seqs, wakeNo: inFlight.wakeNo, ageMs: deps.dateNow() - inFlight.startedAt })
+      // it. The release forgets the stale wake's own rows, never the new
+      // wake's: the dead delivery marked exactly inFlight.seqs handled, so
+      // only those are eligible again.
+      const staleSeqs = inFlight.seqs
+      deps.log('inflight.stale', { seqs: staleSeqs, wakeNo: inFlight.wakeNo, ageMs: deps.dateNow() - inFlight.startedAt })
       inFlight = null
-      for (const s of scope.eligibleSeqs) handledSeqs.delete(s)
+      for (const s of staleSeqs) handledSeqs.delete(s)
       await deps.grantRelease()
     }
     if (inFlight) {

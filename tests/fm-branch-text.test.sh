@@ -43,6 +43,8 @@ PLAN='[
            "ship-b.index":"absent","ship-b.status":"done: b finished\n"}},
  {"name":"bad-index-header","tasks":["ship-a"],
   "files":{"ship-a.index":"something-else\t9\t40","ship-a.status":"done: x\n"}},
+ {"name":"byte-endpoint","tasks":["ship-a"],
+  "files":{"ship-a.index":"fm-branch-outcome-index-v1\t8\t13\tident","ship-a.status":"caf\u00e9: first\nsecond: new\n"}},
  {"name":"no-tasks","tasks":[],"files":{}}
 ]'
 
@@ -329,6 +331,11 @@ if [ "$(note_of bad-index-header)" = "$(printf '\n\nNo earlier outcome exists fo
 else
   fail "the bad-index note drifted"
 fi
+if [ "$(note_of byte-endpoint)" = "$(printf '\n\nStatus lines of ship-a appended since your last outcome (seq 8):\n  second: new')" ]; then
+  pass "the note cuts the status log at the byte endpoint, so a multibyte line before it shifts nothing"
+else
+  fail "the byte-endpoint note drifted: $(note_of byte-endpoint)"
+fi
 if [ "$(note_of no-tasks)" = "" ]; then
   pass "no tasks answer an empty note"
 else
@@ -339,14 +346,17 @@ fi
 EXPECTED_REQUEST='This is a supervision processing request delivered automatically by the supervision branch (branch verdict captain). It was not typed by the captain. The outcome below is already stored durably; the fleet event is already handled, so do not re-drain, re-run, or acknowledge the wake. Process it now as firstmate: tell the captain the outcome in one sentence. Then call fm_branch_processed with through=12 exactly once.
 
 [seq 12] ship-a: the fix landed'
-if [ "$(jq -r '.[12].text' "$TMP_ROOT/lib.json")" = "$EXPECTED_REQUEST" ]; then
+# Fixture-relative lookup: the note plan grows, so everything after the
+# notes selects by name instead of a hardcoded index.
+by_name() { jq -r --arg n "$1" '.[] | select(.name == $n)' "$TMP_ROOT/lib.json"; }
+if [ "$(by_name processing-request | jq -r '.text')" = "$EXPECTED_REQUEST" ]; then
   pass "the processing request keeps its exact bytes"
 else
   fail "the processing request drifted"
 fi
 
 # The tool-text coercion.
-if [ "$(jq -r '.[13].cases[0].got' "$TMP_ROOT/lib.json")" = "a" ] && [ "$(jq -r '.[13].cases[1].got' "$TMP_ROOT/lib.json")" = "b" ] && [ "$(jq -r '.[13].cases[2].got' "$TMP_ROOT/lib.json")" = "" ]; then
+if [ "$(by_name tool-text | jq -r '.cases[0].got')" = "a" ] && [ "$(by_name tool-text | jq -r '.cases[1].got')" = "b" ] && [ "$(by_name tool-text | jq -r '.cases[2].got')" = "" ]; then
   pass "the tool-text coercion prefers text, then result, then empty"
 else
   fail "the tool-text coercion drifted"
@@ -361,17 +371,17 @@ EXPECTED_BASH_NOHOLDER='export FM_SUPERVISION_ACTOR=branch FM_LEASE_HOLDER_PID=$
 (
 echo hi
 )'
-if [ "$(jq -r '.[14].cases[0].got' "$TMP_ROOT/lib.json")" = "$EXPECTED_BASH_HOLDER" ] && [ "$(jq -r '.[14].cases[1].got' "$TMP_ROOT/lib.json")" = "$EXPECTED_BASH_NOHOLDER" ]; then
+if [ "$(by_name bash-actor | jq -r '.cases[0].got')" = "$EXPECTED_BASH_HOLDER" ] && [ "$(by_name bash-actor | jq -r '.cases[1].got')" = "$EXPECTED_BASH_NOHOLDER" ]; then
   pass "the Bash actor command wraps the original command with the identity exports"
 else
   fail "the Bash actor command drifted"
 fi
 
 # The version-probe parsing.
-if [ "$(jq -r '.[15].cases[0].token' "$TMP_ROOT/lib.json")" = "2.1.278" ] && [ "$(jq -r '.[15].cases[0].shaped' "$TMP_ROOT/lib.json")" = "true" ] \
-  && [ "$(jq -r '.[15].cases[1].shaped' "$TMP_ROOT/lib.json")" = "true" ] \
-  && [ "$(jq -r '.[15].cases[2].shaped' "$TMP_ROOT/lib.json")" = "false" ] \
-  && [ "$(jq -r '.[15].cases[3].shaped' "$TMP_ROOT/lib.json")" = "false" ]; then
+if [ "$(by_name version-parse | jq -r '.cases[0].token')" = "2.1.278" ] && [ "$(by_name version-parse | jq -r '.cases[0].shaped')" = "true" ] \
+  && [ "$(by_name version-parse | jq -r '.cases[1].shaped')" = "true" ] \
+  && [ "$(by_name version-parse | jq -r '.cases[2].shaped')" = "false" ] \
+  && [ "$(by_name version-parse | jq -r '.cases[3].shaped')" = "false" ]; then
   pass "the version-probe parse takes the first token and accepts three dot-separated numbers"
 else
   fail "the version-probe parse drifted"

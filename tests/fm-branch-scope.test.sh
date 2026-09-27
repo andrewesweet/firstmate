@@ -256,8 +256,8 @@ if [ "$(scope_of held-decision | jq -r '.eligibleSeqs | length')" = "0" ] && [ "
 else
   fail "the held-decision scan drifted: $(scope_of held-decision)"
 fi
-if [ "$(scope_of symlink-log | jq -r '.status')" = "safe" ] && [ "$(scope_of symlink-log | jq -r '.eligibleSeqs | join(",")')" = "3" ]; then
-  pass "a symlinked status log reads as refused, so the stale row stays eligible (bash truth)"
+if [ "$(scope_of symlink-log | jq -r '.status')" = "unsafe" ] && [ "$(scope_of symlink-log | jq -r '.eligibleSeqs | length')" = "0" ]; then
+  pass "a symlinked status log vetoes the scan, so the stale row stays with main instead of staying eligible"
 else
   fail "the symlink-log scan drifted: $(scope_of symlink-log)"
 fi

@@ -64,6 +64,7 @@ import {
   appendFailureMessage,
   markProcessedArgv,
   markReadArgv,
+  parseOutcomeSeq,
   reportAppendArgv,
   reportSuccessMessage,
   reportTaskScopeVerdict,
@@ -463,7 +464,11 @@ export async function serveReport($: any, e: any, agentId: string | undefined) {
   const args = reportAppendArgv(validated, wake || null, p?.wakeKey && /^[0-9:,]+$/.test(p.wakeKey) ? ['--wake-key', p.wakeKey] : undefined)
   const appended = await runSettlementStep((argv) => outcome($, argv), args)
   if (!appended.ok) return textResult(appendFailureMessage(appended.detail), true)
-  const seq = Number(appended.stdout)
+  // The store's append stdout is the new row's sequence only when it parses
+  // as one: a non-numeric answer refuses the report exactly as the Pi
+  // extension refuses it, so a NaN seq can never mark the wake reported.
+  const seq = parseOutcomeSeq(appended.stdout)
+  if (seq === null) return textResult(`recorded seq ${appended.stdout}, but cursor advancement failed: the outcome store returned no usable sequence number`, true)
   if (p) p.reportedSeqs.push(seq)
   const marked = await runSettlementStep((argv) => outcome($, argv), markReadArgv(seq))
   if (!marked.ok) return textResult(`recorded seq ${seq}, but cursor advancement failed: ${marked.detail}`, true)
@@ -697,7 +702,11 @@ export function register(on: On) {
     if (kind === 'peer') {
       const m = e.text.match(/<agent-message from="([^"]+)"/)
       const from = m?.[1] ?? ''
-      if (delivery.isOwnHandback(from, e.text)) {
+      // The hand-back drop runs only with the opt-in file present: without
+      // state/.branch-mod-mode the mod is inert and every peer message
+      // passes through untouched, whatever its text. The matching itself
+      // stays as is.
+      if ((await modeOn($)) && delivery.isOwnHandback(from, e.text)) {
         log($, 'handback.dropped', { from, text: e.text.slice(0, 300) })
         return { drop: `${PLUGIN}: branch hand-back suppressed` }
       }

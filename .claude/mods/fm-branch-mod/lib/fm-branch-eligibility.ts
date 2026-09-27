@@ -283,16 +283,21 @@ export interface QueueMeta {
 }
 
 /** A status-log stat bound by the consumer: the stat version string for the
- * verdict cache, or refused - bash's empty-fold outcome for an absent,
- * unreadable, or symlinked log (never a scan refusal). */
-export type StatusStat = { state: "ok"; version: string } | { state: "refused" };
+ * verdict cache; absent when the log is missing (bash's empty-fold outcome,
+ * never a scan refusal); or refused when the log is present but unreadable
+ * or symlinked (a scan veto - the row stays with main, never an empty
+ * fold). */
+export type StatusStat = { state: "ok"; version: string } | { state: "absent" } | { state: "refused" };
 
 /** A status-log read bound by the consumer: the bytes plus the post-read
- * stat version, or refused (bash's empty fold), or torn (the stat version
+ * stat version; absent when the log vanished before the read (bash's
+ * empty fold); refused when the log is present but unreadable or
+ * symlinked (a scan veto, as at stat time); or torn (the stat version
  * changed or vanished during the read - Pi's rule refuses the scan, header
  * choice). */
 export type StatusText =
   | { state: "ok"; text: string; version: string }
+  | { state: "absent" }
   | { state: "refused" }
   | { state: "torn" };
 
@@ -431,7 +436,7 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
         // task gained a main-owned decision. Pi retains its existing
         // per-row scan.
         const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
-        if (verdict === "torn") return UNSAFE_SCOPE;
+        if (verdict === "torn" || verdict === "refused") return UNSAFE_SCOPE;
         if (verdict) {
           needsDecisionKeys.push(key);
           needsDecisionTasks.push(task);
@@ -444,7 +449,7 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
       project = metadata.get(key) ?? metadata.get(key.replace(/^fm-/, "")) ?? "";
       if (task) {
         const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
-        if (verdict === "torn") return UNSAFE_SCOPE;
+        if (verdict === "torn" || verdict === "refused") return UNSAFE_SCOPE;
         if (verdict) {
           needsDecisionKeys.push(key);
           needsDecisionTasks.push(task);
@@ -483,23 +488,31 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
  * folded at most once per scan either way; the cache carries the verdict
  * across scans keyed on the stat version and the fold configuration (header
  * choice), evicting past 512 entries exactly as Pi does. Returns "torn" for
- * Pi's mid-read version change, which refuses the scan. */
+ * Pi's mid-read version change, which refuses the scan, and "refused" for a
+ * present-but-unreadable-or-symlinked log, which vetoes the scan the same
+ * way so the row stays with main instead of folding empty. */
 function staleDecisionVerdict(
   task: string,
   inputs: UnreadWakeInputs,
   memo: Map<string, boolean>,
   verdictConfig: string,
-): boolean | "torn" {
+): boolean | "torn" | "refused" {
   const memoized = memo.get(task);
   if (memoized !== undefined) return memoized;
   const cache = inputs.cache;
   const stat = inputs.statStatus(task);
-  if (stat.state !== "ok") {
-    // refused: bash's empty fold, uncached - an absent log may appear
-    // between scans.
+  if (stat.state === "absent") {
+    // Absent: bash's empty fold, uncached - a log may appear between scans.
     cache?.delete(task);
     memo.set(task, false);
     return false;
+  }
+  if (stat.state !== "ok") {
+    // Refused: a present log no host can read (or a symlink standing in
+    // for one) vetoes the scan - uncached, so a repaired log is eligible
+    // on the next scan.
+    cache?.delete(task);
+    return "refused";
   }
   let owned: boolean;
   const hit = cache?.get(task);
@@ -508,7 +521,9 @@ function staleDecisionVerdict(
   } else {
     const read = inputs.readStatusText(task);
     if (read.state === "torn") return "torn";
-    // refused after a clean stat: bash's empty fold (header choice).
+    if (read.state === "refused") return "refused";
+    // Absent after a clean stat: the log vanished mid-scan, so bash's
+    // empty fold (header choice).
     const lines = read.state === "ok" ? read.text.split("\n").filter((line) => /\S/.test(line)) : [];
     if (read.state === "ok" && read.version !== stat.version) return "torn";
     owned = statusDecisionOwned(lines, inputs.readKind(task), inputs.env);

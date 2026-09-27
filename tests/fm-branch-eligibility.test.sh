@@ -33,7 +33,9 @@
 # `status_open_decisions` output and the join between fold truth and scope.
 # The Pi extension and the mod both consume the shared canonical module
 # (A2/A3), so both are pinned byte-equal to bash on every fixture, drift
-# cases included:
+# cases included - except a refused status log (symlinked or unreadable),
+# where bash still folds empty but the shared scan vetoes, so the row stays
+# with main instead of folding empty:
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -67,13 +69,22 @@ build_fixtures() {
   printf 'kind=scout\nproject=demo\n' >"$fx/scout-terminal/scout-c.meta"
   printf '3\t3\tstale\tscout-c\tstale: waiting too long\n' >"$fx/scout-terminal/.wake-queue"
   # Symlinked status log over a log holding an open decision (bash truth:
-  # refusal means an empty fold, so the stale row stays branch-eligible; a
-  # read-through fold would mark it decision-owned instead).
+  # refusal still names an empty fold, but the shared scan vetoes a refused
+  # log, so the stale row stays with main instead of staying branch-eligible).
   mkdir -p "$fx/symlink-log"
   printf 'needs-decision [key=dep]: pick\n' >"$fx/symlink-log/ship-d-real.status"
   ln -s ship-d-real.status "$fx/symlink-log/ship-d.status"
   printf 'kind=ship\nproject=demo\n' >"$fx/symlink-log/ship-d.meta"
   printf '4\t4\tstale\tship-d\tstale: waiting too long\n' >"$fx/symlink-log/.wake-queue"
+  # Unreadable status log holding an open decision (same veto as the
+  # symlink: bash folds empty, the shared scan refuses, the row stays
+  # with main). The unreadable-log test skips itself as root, where
+  # permission bits stop refusing reads.
+  mkdir -p "$fx/unreadable-log"
+  printf 'needs-decision [key=dep]: pick\n' >"$fx/unreadable-log/ship-j.status"
+  chmod 000 "$fx/unreadable-log/ship-j.status"
+  printf 'kind=ship\nproject=demo\n' >"$fx/unreadable-log/ship-j.meta"
+  printf '11\t11\tstale\tship-j\tstale: waiting too long\n' >"$fx/unreadable-log/.wake-queue"
   # Torn epoch field in the queue row (non-numeric epoch, valid seq).
   mkdir -p "$fx/torn-epoch"
   printf 'working: on it\n' >"$fx/torn-epoch/ship-e.status"
@@ -352,12 +363,12 @@ test_scout_blocked_then_failed_agrees_across_all_folds() {
   pass "a scout task with open blocked then failed: classifies identically in bash, the Pi extension, the mod, and the shared lib"
 }
 
-test_symlinked_status_log_is_bash_truth_in_all_four_legs() {
+test_symlinked_status_log_vetoes_the_scan_in_all_three_ts_legs() {
   # Bash truth: status_open_decisions refuses a symlinked status log outright,
-  # which names an empty fold - nothing holds ship-d and its stale row stays
-  # branch-eligible. The lib takes bash's outcome, the Pi extension consumes
-  # the lib, and the mod consumes the canonical module whose host stat seam
-  # refuses a symlinked log the same way, so all four agree.
+  # which names an empty fold. The shared scan no longer folds that empty:
+  # a refused log vetoes the scan on the Pi extension, the mod, and the lib
+  # alike, so ship-d's stale row stays with main instead of staying
+  # branch-eligible. Fold-level parity with bash still holds.
   local dir="$FIXTURES/symlink-log" pi mod fold lib libfold
   pi=$(pi_scope "$dir") || fail "symlink: pi leg failed: $pi"
   mod=$(mod_scope "$dir") || fail "symlink: mod leg failed: $mod"
@@ -366,10 +377,32 @@ test_symlinked_status_log_is_bash_truth_in_all_four_legs() {
   libfold=$(lib_fold "$dir" "ship-d")
   assert_equals "" "$fold" "symlink: bash truth - the refusal must name an empty fold"
   assert_equals "$fold" "$libfold" "symlink: lib fold is byte-equal to the bash fold"
-  assert_equals '{"status":"safe","eligible":true,"corrupted":false,"eligibleSeqs":["4"],"eligibleTasks":["ship-d"],"needsDecision":[]}' "$lib" "symlink: lib takes bash's outcome (empty fold, row branch-eligible)"
-  assert_equals "$lib" "$pi" "symlink: pi takes bash's outcome through the shared module"
-  assert_equals "$lib" "$mod" "symlink: the mod takes bash's outcome through the canonical module and the host stat seam"
-  pass "the symlink refusal names bash truth (branch-eligible); the Pi extension and the mod agree through the shared fold"
+  assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$lib" "symlink: lib vetoes the scan on a refused log (row stays with main)"
+  assert_equals "$lib" "$pi" "symlink: pi vetoes through the shared module"
+  assert_equals "$lib" "$mod" "symlink: the mod vetoes through the canonical module and the host stat seam"
+  pass "a symlinked status log vetoes the scan in the Pi extension, the mod, and the lib alike while the fold stays bash-empty"
+}
+
+test_unreadable_status_log_vetoes_the_scan_in_all_three_ts_legs() {
+  # The symlinked case with permission bits instead of a link: ship-j's log
+  # holds an open decision no host can read, so the shared scan vetoes and
+  # the stale row stays with main. Bash still folds empty; fold parity holds.
+  if [ "$(id -u)" = 0 ]; then
+    pass "an unreadable status log vetoes the scan (skipped as root, where permission bits stop refusing reads)"
+    return 0
+  fi
+  local dir="$FIXTURES/unreadable-log" pi mod fold lib libfold
+  pi=$(pi_scope "$dir") || fail "unreadable: pi leg failed: $pi"
+  mod=$(mod_scope "$dir") || fail "unreadable: mod leg failed: $mod"
+  fold=$(bash_fold "$dir" "ship-j")
+  lib=$(lib_scope "$dir") || fail "unreadable: lib leg failed: $lib"
+  libfold=$(lib_fold "$dir" "ship-j")
+  assert_equals "" "$fold" "unreadable: bash truth - the refusal must name an empty fold"
+  assert_equals "$fold" "$libfold" "unreadable: lib fold is byte-equal to the bash fold"
+  assert_equals '{"status":"unsafe","eligible":false,"corrupted":true,"eligibleSeqs":[],"eligibleTasks":[],"needsDecision":[]}' "$lib" "unreadable: lib vetoes the scan on a refused log (row stays with main)"
+  assert_equals "$lib" "$pi" "unreadable: pi vetoes through the shared module"
+  assert_equals "$lib" "$mod" "unreadable: the mod vetoes through the canonical module and the host read seam"
+  pass "an unreadable status log vetoes the scan in the Pi extension, the mod, and the lib alike while the fold stays bash-empty"
 }
 
 test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner() {
@@ -465,7 +498,8 @@ test_host_command_entry_matches_the_shared_fold_on_every_fixture() {
 test_routine_signal_row_agrees_across_all_folds
 test_ship_terminal_declaration_agrees_across_all_folds
 test_scout_blocked_then_failed_agrees_across_all_folds
-test_symlinked_status_log_is_bash_truth_in_all_four_legs
+test_symlinked_status_log_vetoes_the_scan_in_all_three_ts_legs
+test_unreadable_status_log_vetoes_the_scan_in_all_three_ts_legs
 test_torn_epoch_row_refuses_the_scan_in_every_queue_scanner
 test_secondmate_terminal_declaration_does_not_close_the_decision_anywhere
 test_reserved_key_namespace_guard_agrees_across_all_folds

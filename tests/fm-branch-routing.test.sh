@@ -66,7 +66,11 @@ PLAN='[
  {"name":"handled-dedupes","wake":"signal: ship-d.status","mode":true,"calls":2,
   "scope":["safe",["4"],"103:4",["ship-d"],[]],"classifier":"routine","publish":0,"deliver":"ok"},
  {"name":"stale-inflight","wake":"signal: ship-i.status","mode":true,"inFlight":{"seqs":["98"],"wakeNo":1,"ageMs":200000},
-  "scope":["safe",["9"],"108:9",["ship-i"],[]],"classifier":"routine","publish":0,"deliver":"ok","libOnly":true}
+  "scope":["safe",["9"],"108:9",["ship-i"],[]],"classifier":"routine","publish":0,"deliver":"ok","libOnly":true},
+ {"name":"stale-inflight-forgets-its-own-rows","wake":"signal: ship-j.status","mode":true,
+  "scopes":[["safe",["98"],"109:98",["ship-j"],[]],["safe",["9"],"110:9",["ship-k"],[]],["safe",["98"],"111:98",["ship-j"],[]]],
+  "scope":["safe",["98"],"109:98",["ship-j"],[]],"dateJumps":[0,200000,0],
+  "classifier":"routine","publish":0,"deliver":"ok","libOnly":true}
 ]'
 
 export ROUTINE='{"verdict":"routine","reason":"nothing new"}'
@@ -94,7 +98,7 @@ for (const step of plan) {
   let dateNow = 500_000_000;
   let passedSet = new Set(step.passed ?? []);
   const scopeOf = () => {
-    const [status, eligibleSeqs, eligibleWakeKey, eligibleTasks, needsDecisionTasks] = step.scope;
+    const [status, eligibleSeqs, eligibleWakeKey, eligibleTasks, needsDecisionTasks] = (step.scopes ?? [])[callIdx] ?? step.scope;
     return { status, eligibleSeqs, eligibleWakeKey, eligibleTasks, corrupted: status === "unsafe", needsDecisionTasks };
   };
   const makeDeps = () => ({
@@ -161,8 +165,13 @@ for (const step of plan) {
     });
   }
   const verdicts = [];
-  const calls = step.calls ?? 1;
-  for (let i = 0; i < calls; i += 1) verdicts.push(await router.routeWake(makeDeps(), step.wake, "stop-hook"));
+  const callCount = step.calls ?? (step.scopes ? step.scopes.length : 1);
+  let callIdx = 0;
+  for (let i = 0; i < callCount; i += 1) {
+    callIdx = i;
+    if (step.dateJumps?.[i]) dateNow += step.dateJumps[i];
+    verdicts.push(await router.routeWake(makeDeps(), step.wake, "stop-hook"));
+  }
   // Let the pass effects' detached cover rows settle before reading.
   await new Promise((r) => setImmediate(r));
   await new Promise((r) => setImmediate(r));
@@ -414,6 +423,18 @@ if [ "$(step stale-inflight | jq -r '.releases')" = "1" ] && [ "$(step stale-inf
   pass "a stale in-flight record frees the grant and the fresh wake is delivered"
 else
   fail "the stale in-flight release drifted: $(step stale-inflight)"
+fi
+# The stale release forgets the stale wake's own rows, never the new wake's:
+# call 1 grants row 98, call 2 arrives with row 9 after the grant went
+# stale, and call 3 re-offers row 98. Forgetting the new wake's rows would
+# leave 98 handled, so call 3 would dedupe; forgetting the stale wake's
+# rows leaves 98 forgettable, so call 3 queues behind the live grant.
+stale_rows_events=$(step stale-inflight-forgets-its-own-rows | jq -r '[.events[].kind] | join(",")')
+if [ "$(step stale-inflight-forgets-its-own-rows | verdict_of)" = "dropped,dropped,dropped" ] \
+  && [[ "$stale_rows_events" == *wake.queued* ]] && [[ "$stale_rows_events" != *wake.deduped* ]]; then
+  pass "a stale in-flight release forgets the stale wake's rows, so the old row routes again instead of deduping"
+else
+  fail "the stale release forgot the wrong rows: $(step stale-inflight-forgets-its-own-rows | jq -c '{verdicts, events: [.events[].kind]}')"
 fi
 
 # The pass effects: the captain verdict writes the covering row.

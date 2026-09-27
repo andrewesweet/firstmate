@@ -76,7 +76,8 @@ export interface StatusNoteDeps {
 
 /** Deterministic note of the status lines appended since each task's last
  * outcome: per task, the outcome index names the byte endpoint and the seq
- * of that outcome, the status log is sliced from the endpoint, and at most
+ * of that outcome, the status log is sliced from the byte endpoint (bytes,
+ * not characters), and at most
  * the last 12 non-empty lines ride the note. A missing index reads as "no
  * earlier outcome"; a missing status log reads as no new lines. */
 export async function newStatusLinesNote(deps: StatusNoteDeps, state: string, tasks: string[]): Promise<string> {
@@ -99,8 +100,10 @@ export async function newStatusLinesNote(deps: StatusNoteDeps, state: string, ta
     } catch {
       text = ''
     }
-    const fresh = text
-      .slice(endpoint)
+    // The endpoint is a byte offset (bin/fm-branch-outcome.sh writes
+    // stat %z), so the cut slices bytes, not UTF-16 code units: every
+    // non-ASCII byte before the endpoint would otherwise shift the note.
+    const fresh = new TextDecoder().decode(new TextEncoder().encode(text).slice(endpoint))
       .split('\n')
       .filter((l: string) => l.trim())
       .slice(-12)

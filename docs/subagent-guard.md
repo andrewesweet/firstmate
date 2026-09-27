@@ -60,7 +60,7 @@ Four exclusions keep the shape test from producing false positives.
   That list has no executor: it spawns no agent, allocates no worktree, registers no schedule, and starts nothing that could outlive the session or escape a firstmate guard.
   So it is not the "work, agent, schedule, or isolated workspace that firstmate would not know about" the guard exists to stop, and the stem match on `task` is a false positive rather than a policy.
   The cost of the false positive was concrete: the primary could not track its own plan, and the deny text told it to run `bin/fm-brief.sh` and `bin/fm-spawn.sh` to create a todo entry.
-- The Claude Code supervision-branch mod's own three calls, and only while that home has opted in with `state/.branch-mod-mode`: an `Agent` or `Task` of type `fm-branch-mod:fm-branch`, a `SendMessage` addressed to that branch agent, and a `Monitor` described `fm-branch-mod watcher continuity`.
+- The Claude Code supervision-branch mod's own three calls, and only while that home has opted in with `state/.branch-mod-mode`: an `Agent` or `Task` of type `fm-branch-mod:fm-branch`, a `SendMessage` addressed to that branch agent, and a `Monitor` described `fm-branch-mod watcher continuity` whose command runs this home's `bin/fm-watch-arm.sh` (the description alone is not enough).
   These create the fleet's own supervision branch rather than untracked work, and the mod cannot run behind the recommended deny list below, so the hook is the layer that has to distinguish them; [`claude-supervision-branch.md`](claude-supervision-branch.md) owns that mod's contract.
   Every other delegation-shaped call stays denied, opted in or not.
 
