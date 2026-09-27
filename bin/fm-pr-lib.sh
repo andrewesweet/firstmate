@@ -400,6 +400,37 @@ fm_pr_metadata_identity_parse() {
   [ -n "$FM_PR_META_URL" ]
 }
 
+# fm_pr_metadata_reseal <meta-file>: move the PR identity block (pr=,
+# pr_head=) last, preserving every other line byte-for-byte in order. Every
+# writer that appends task metadata after bin/fm-pr-check.sh armed a merge
+# poll must route through this: fm_pr_metadata_identity_parse refuses any
+# other key after pr=, so a bare append silently stops merge monitoring. A
+# record with no pr= line, or one already sealed, is left byte-identical.
+fm_pr_metadata_reseal() {
+  local meta=$1 dir tmp reseal_mode
+  [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
+  grep -q '^pr=' "$meta" 2>/dev/null || return 0
+  dir=${meta%/*}
+  [ "$dir" != "$meta" ] || dir=.
+  tmp=$(mktemp "$dir/.fm-meta-reseal.XXXXXX") || return 1
+  if ! awk '
+    /^pr=/ { pr = pr $0 "\n"; next }
+    /^pr_head=/ { head = head $0 "\n"; next }
+    { rest = rest $0 "\n" }
+    END { printf "%s%s%s", rest, pr, head }
+  ' "$meta" > "$tmp"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+  if cmp -s "$meta" "$tmp"; then
+    rm -f -- "$tmp"
+    return 0
+  fi
+  reseal_mode=$(fm_pr_file_mode "$meta") || { rm -f -- "$tmp"; return 1; }
+  chmod "$reseal_mode" "$tmp" || { rm -f -- "$tmp"; return 1; }
+  mv -f -- "$tmp" "$meta"
+}
+
 # Sidecar layout: provider, url, host, path, number, one per line. A sidecar
 # written before the provider tag existed has a URL on its first line and one
 # line fewer, so it fails both the field count and the provider comparison and

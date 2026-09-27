@@ -351,6 +351,14 @@ grep -v -e '^kind=' -e '^mode=' -e '^yolo=' -e '^branch=' "$META" > "$TMP"
   echo "yolo=$YOLO"
   echo "branch=$BRANCH"
 } >> "$TMP"
+# The appended kind/mode/yolo/branch lines must not strand a pr= block armed
+# by bin/fm-pr-check.sh mid-record; re-seal it last (bin/fm-pr-lib.sh).
+if ! fm_pr_metadata_reseal "$TMP"; then
+  rm -f -- "$TMP"
+  TMP=
+  echo "error: task record for $ID could not be re-sealed" >&2
+  exit 1
+fi
 if ! fm_backlog_atomic_transition publish "$TMP" "$META" "task record" "$STATE"; then
   rm -f -- "$TMP"
   TMP=

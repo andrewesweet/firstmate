@@ -3548,6 +3548,9 @@ teardown_legacy_stamp_rollback() {
       printf 'spawn_gen=%s\n' "$TEARDOWN_META_SPAWN_GEN" >> "$META" \
         || TEARDOWN_LEGACY_STAMP_FAILED=append
     fi
+    # The stamp stays a bare append even past a pr= block: the rollback above
+    # restores exact pre-stamp bytes by size, and a poll validation after it
+    # refuses loudly rather than silently (bin/fm-pr-lib.sh).
     if [ -z "$TEARDOWN_LEGACY_STAMP_FAILED" ] \
        && ! fm_backlog_meta_spawn_gen "$META" "$STATE"; then
       TEARDOWN_LEGACY_STAMP_FAILED=validate

@@ -229,6 +229,9 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 # shellcheck source=bin/fm-trace-span-lib.sh
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/fm-trace-span-lib.sh"
+# shellcheck source=bin/fm-pr-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/fm-pr-lib.sh"
 
 PARENT_HOLD_PUBLISHED=0
 publish_parent_hold() {  # <task-id> <occurrence> <verb> <note>
@@ -1716,6 +1719,10 @@ EOF
   if [ "$has_meta" = 1 ]; then
     if [ "$(meta_value "$meta" decisions_reviewed)" != 1 ] || [ "$previous" != "$keys" ]; then
       printf 'decisions_reviewed=1\ndecision_keys=%s\n' "$keys" >> "$meta"
+      # The attestation above must not strand a pr= block armed by
+      # bin/fm-pr-check.sh mid-record; re-seal it last (bin/fm-pr-lib.sh).
+      fm_pr_metadata_reseal "$meta" \
+        || fail "could not re-seal the task record at $meta"
     fi
     fm_lock_release "$CAPTAIN_META_LOCK"
     CAPTAIN_META_LOCK_HELD=0
