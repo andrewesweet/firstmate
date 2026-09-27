@@ -1,0 +1,10 @@
+== relaunch with the '^pr=' probe on state/rl98.meta reporting a read error (grep exit 2)
+warning: /tmp/fm-control-relaunch.4N2YSw/adv-pr-7738/home/data/rl98/brief.md records no ship branch; defaulting to legacy branch fm/rl98
+warning: /tmp/fm-control-relaunch.4N2YSw/adv-pr-7738/home/data/rl98/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task record for rl98 could not be re-sealed at /tmp/fm-control-relaunch.4N2YSw/adv-pr-7738/home/state/.rl98.meta.relaunch.3384133
+error: the replacement agent for rl98 could not be launched on claude
+error: rl98's agent was stopped but the replacement did not launch; no agent is running, and its work plus the recorded progress note are preserved at /tmp/fm-control-relaunch.4N2YSw/adv-pr-7738/wt
+exit=1
+== grep probe calls
+27:11 -q ^pr= /tmp/fm-control-relaunch.4N2YSw/adv-pr-7738/home/state/.rl98.meta.relaunch.3384133
+27

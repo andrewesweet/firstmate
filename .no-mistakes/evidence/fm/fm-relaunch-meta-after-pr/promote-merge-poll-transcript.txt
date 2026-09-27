@@ -1,0 +1,33 @@
+# all fm-promote tests passed
+== merge poll BEFORE promote
+VALID
+== bin/fm-promote.sh sc1 --mode no-mistakes --yolo off
+promoted sc1 to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /tmp/fm-promote.Jal5Hk/promote-pr/home/data/sc1/ship-instructions.md
+next: FM_HOME=/tmp/fm-promote.Jal5Hk/promote-pr/home bin/fm-send.sh fm-sc1 "$(cat /tmp/fm-promote.Jal5Hk/promote-pr/home/data/sc1/ship-instructions.md)"
+exit=0
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warn: no registry at /tmp/fm-promote.Jal5Hk/promote-pr/home/data/projects.md; defaulting proj to no-mistakes off
+== state/sc1.meta AFTER promote
+window=fmses:fm-sc1
+endpoint_task_id=sc1
+project=/tmp/fm-promote.Jal5Hk/promote-pr/proj
+worktree=/tmp/fm-promote.Jal5Hk/promote-pr/wt
+harness=claude
+model=default
+effort=default
+traceparent=00-11111111111111111111111111111113-4444444444444445-01
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/sc1
+pr=https://github.com/o/r/pull/55
+pr_head=0123456789abcdef0123456789abcdef01234567
+== merge poll AFTER promote
+VALID

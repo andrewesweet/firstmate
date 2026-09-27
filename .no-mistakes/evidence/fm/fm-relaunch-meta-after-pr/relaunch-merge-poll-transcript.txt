@@ -1,0 +1,44 @@
+== state/rl99.meta BEFORE relaunch (pr= block last, as bin/fm-pr-check.sh left it)
+window=fmses:fm-rl99
+endpoint_task_id=rl99
+worktree=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/wt
+project=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/proj
+harness=claude
+kind=ship
+mode=no-mistakes
+yolo=off
+tasktmp=/tmp/fm-rl99
+model=default
+effort=default
+pr=https://github.com/o/r/pull/99
+pr_head=0123456789abcdef0123456789abcdef01234567
+== merge poll content validation BEFORE relaunch
+VALID
+== bin/fm-control.sh rl99 relaunch --note 'continuing after review feedback'
+warning: /tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/home/data/rl99/brief.md records no ship branch; defaulting to legacy branch fm/rl99
+warning: /tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/home/data/rl99/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched rl99 harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-rl99 worktree=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/wt
+exit=0
+== state/rl99.meta AFTER relaunch (relaunch/trace keys appended, identity block re-sealed last)
+window=fmses:fm-rl99
+endpoint_task_id=rl99
+worktree=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/wt
+project=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/proj
+harness=claude
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/rl99
+tasktmp=/tmp/fm-rl99
+model=default
+effort=default
+busy_gen=g1790538018.3080633.10585
+spawn_gen=s1790538018.3079280.23354
+home=/tmp/fm-control-relaunch.JAVmSL/manual-pr-31626/home
+control_relaunch_tx=3078364.20260927T194017Z.31476
+traceparent=00-a12f0d72cf517734ba2a9bef232d756d-3a78d6aa0e2d2026-01
+trace_started=1790538018523
+pr=https://github.com/o/r/pull/99
+pr_head=0123456789abcdef0123456789abcdef01234567
+== merge poll content validation AFTER relaunch
+VALID

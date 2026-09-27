@@ -1,0 +1,4 @@
+ok - --legacy-record teardown rolls its stamp back when the close marker write fails
+ok - a legacy stamp a failed rollback left behind still faces the endpoint gate
+ok - a windowless leftover retries its retained legacy stamp without --legacy-record
+ok - a corrupt spawn_gen is never accepted as a legacy record

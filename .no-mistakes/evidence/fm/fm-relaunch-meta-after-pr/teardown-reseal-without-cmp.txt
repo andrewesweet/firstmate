@@ -1,0 +1,4 @@
+== --legacy-record stamp + reseal with cmp refused on every task-record path (exit 127)
+ok - a --legacy-record stamp keeps a registered PR's merge poll valid on a retained record
+== cmp invocations on a task record
+(empty above = the re-seal and rollback need no cmp)
