@@ -97,9 +97,9 @@
 #   then tmux.
 #   Spawn-capable backends are the reference tmux adapter, verified herdr
 #   adapter, and experimental zellij, orca, and cmux adapters. Orca owns both
-#   the task worktree and terminal, so ship/scout Orca spawns do not run
-#   treehouse get; cmux is a session provider only, exactly like herdr/zellij,
-#   so it does. Auto-detected herdr stays silent like tmux; auto-detected cmux
+#   the task worktree and terminal, so ship/scout Orca spawns take no pooled
+#   slot; cmux is a session provider only, exactly like herdr/zellij, so its
+#   spawns lease one. Auto-detected herdr stays silent like tmux; auto-detected cmux
 #   prints a loud stderr notice; zellij and orca are never auto-detected.
 #   codex-app is not a known backend yet; docs/codex-app-backend.md owns that
 #   blocked backend contract. Default tmux spawns do not write backend= to meta;
@@ -1398,24 +1398,22 @@ spawn_abort_cleanup() {
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
     fi
   fi
-  if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
-    SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
-    fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
-  fi
   # A spawn that aborts after leasing its slot but before its record survives
   # must not strand a durable lease naming a task no record describes: return
-  # the slot so the pool can hand it out again. Unlike the claim above this
-  # needs no project lock - a held durable lease cannot be reissued to another
-  # spawn, so no concurrent allocation can have taken this slot, and a
-  # published record (which would own the lease from here on) skips this
-  # branch entirely.
+  # the slot so the pool can hand it out again. The return mutates the pool's
+  # state file, so it runs while the project lock that serialises every
+  # allocation and return is still held; a published record owns the lease
+  # from then on and skips this branch entirely.
   if [ "$SPAWN_LEASE_HELD" = 1 ] && [ -n "${WT:-}" ] &&
-    [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ] &&
-    fm_treehouse_pool_slot "$PROJ_ABS" "$WT"; then
+    [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
     SPAWN_LEASE_HELD=0
     if ! ( cd "$PROJ_ABS" && treehouse return --force "$WT" ) >/dev/null 2>&1; then
       echo "warning: task $ID's leased slot $WT could not be returned after an aborted spawn; the lease may still be held" >&2
     fi
+  fi
+  if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
+    SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
+    fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
   fi
   if [ "$SPAWN_TASK_SET_LOCK_HELD" = 1 ]; then
     SPAWN_TASK_SET_LOCK_HELD=0
@@ -3295,14 +3293,14 @@ real_path_or_raw() { # <path>
 # left holding the worktree root the check read, and SPAWN_WT_REASON a short
 # phrase naming why a rejected path failed, both for the refusal messages.
 #
-# The worktree-discovery poll below reads this same predicate, so it can never
-# adopt a path the guard would then refuse. That matters because a pane's cwd
-# read is a snapshot of whatever process is in the foreground: while `treehouse
-# get` is still fetching and checking a slot out, it reports the REPOSITORY's
-# primary checkout as its own cwd. That path differs from a linked spawning
-# project, so a poll comparing only against the project accepted it, and the
-# guard then refused a launch whose slot treehouse went on to create normally.
-# A read like that is a transient, not a destination: the poll keeps waiting.
+# The settle poll below reads this same predicate, so it can never adopt a path
+# the guard would then refuse. That matters because a pane's cwd read is a
+# snapshot of whatever process is in the foreground, and a pane that has not yet
+# entered its leased copy has been seen reporting the REPOSITORY's primary
+# checkout. That path differs from a linked spawning project, so a poll
+# comparing only against the project accepted it, and the guard then refused an
+# otherwise healthy launch. A read like that is a transient, not a destination:
+# the poll keeps waiting.
 SPAWN_WT_TOP=
 SPAWN_WT_REASON=
 spawn_worktree_isolated() { # <path>

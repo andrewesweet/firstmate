@@ -216,7 +216,7 @@ test_teardown_frees_the_lease_for_reuse() {
   out=$(run_pool_teardown lease-teardown-r1)
   status=$?
   expect_code 0 "$status" "teardown of a clean scout should succeed"$'\n'"$out"
-  grep -Fq "^1 " "$POOL_DIR/.fake-leases" \
+  grep -q "^1 " "$POOL_DIR/.fake-leases" \
     && fail "teardown left the task's slot leased: $(cat "$POOL_DIR/.fake-leases")"
   [ ! -e "$POOL_DIR/1/.fm-slot-owner" ] \
     || fail "teardown left the task's slot claim behind"

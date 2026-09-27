@@ -8,7 +8,7 @@
 # default (tmux, `backend=` absent) path stays byte-identical. Sourced only
 # through bin/fm-backend.sh's fm_backend_source, never directly.
 #
-# Worktree acquisition (running `treehouse get` inside the pane, and polling
+# Worktree acquisition (telling the pane to enter the leased copy, and polling
 # its cwd) is unchanged by this extraction: P1 scopes only the session
 # provider, not the worktree provider, so fm-spawn.sh still drives that part
 # inline with these same send/current-path primitives.
@@ -91,7 +91,7 @@ fm_backend_tmux_container_ensure() {
 #     ("$ses:"), so a non-default base-index (e.g. base-index 1) cannot collide.
 #   - PIN the window name by disabling automatic-rename and allow-rename on the
 #     new window: the captain's tmux may rename the window away from fm-<id> once
-#     treehouse cd's into the worktree, which would break name-based targeting.
+#     the pane cd's into the leased copy, which would break name-based targeting.
 # The returned window id lets callers target the window even if its name is ever
 # lost, so worktree discovery cannot fall back to the active client's window.
 fm_backend_tmux_create_task() {  # <session> <window-name> <proj-abs> -> prints window id
@@ -107,7 +107,7 @@ fm_backend_tmux_create_task() {  # <session> <window-name> <proj-abs> -> prints 
 }
 
 # fm_backend_tmux_current_path: the live pane's current working directory, or
-# empty on any tmux error. Mirrors fm-spawn.sh's worktree-discovery poll:
+# empty on any tmux error. Mirrors fm-spawn.sh's leased-copy settle poll:
 # `tmux display-message -p -t "$T" '#{pane_current_path}'`.
 fm_backend_tmux_current_path() {  # <target>
   tmux display-message -p -t "$1" '#{pane_current_path}' 2>/dev/null
