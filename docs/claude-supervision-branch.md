@@ -10,7 +10,7 @@ The mod is deliberately inert everywhere it is not asked for:
 - It loads only through `--plugin-dir`; unlike the Calm mod it is never linked into `.claude/skills`, so no trusted project, worktree, or crewmate session auto-loads it.
 - It refuses to load on any Claude Code version other than its pin (see [Version pin](#version-pin)), and a refused module passes every hook through untouched.
 - Every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`; a home without that file runs the unchanged wake path, and `bin/fm-lease-lib.sh`, `bin/fm-branch-outcome.sh`, and `bin/fm-wake-grant.sh` are shared with the Pi branch unchanged.
-- It never sets `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` or any other Claude Code setting; enabling the function-hooks surface is the captain's own explicit opt-in per session, and `config/claude-function-hooks` is the per-home opt-in that puts the variable on a launched worker's environment (docs/configuration.md "Claude function hooks").
+- It never sets `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` or any other Claude Code setting; enabling the function-hooks surface is the captain's own explicit launch choice, as [Launch settings](#launch-settings) describes.
 - It depends on nothing outside the tracked `bin/` scripts it calls; in particular it never imports or calls the fork-only tracing series.
 
 ## What the mod does
@@ -18,7 +18,7 @@ The mod is deliberately inert everywhere it is not asked for:
 The Claude Code protocol's Stop-hook rewake delivers every actionable watcher close into main's prompt as a `Stop hook feedback` message.
 The mod intercepts that message in `prompt.submit` before it opens a main turn, scopes the wake to the queue rows the branch may own (the same eligibility as the Pi branch: task-local `signal` and `stale` rows with no open captain decision, decided by folding the task's status log with the shell fold's v8 rules in `bin/fm-classify-lib.sh`, never a `check` row or a watcher-failure alarm), claims a wake grant, and delivers the wake to the branch agent.
 Delivery spawns the agent once per branch generation (`$.agent.spawn`, a background agent named `fm-branch`) and reaches the same agent through `SendMessage` for every later wake, so the branch keeps its context across wakes.
-Every task wake hands the branch the deterministic new-status-lines note (the status lines appended since the task's last outcome), so what keeps the branch from re-escalating is the outcome index rather than its memory.
+Every task wake delivered to the branch includes the deterministic new-status-lines note (the status lines appended since the task's last outcome), so what keeps the branch from re-escalating is the outcome index rather than its memory.
 A delivered wake is dropped from main, which stays silent; a wake the branch may not own, or one the mod cannot deliver, passes through to main exactly as it would without the mod.
 
 The branch agent runs on the same system prompt as the Pi branch (`bin/fm-branch-prompt.sh`) plus a hooks-module addendum, generated into `agents/fm-branch.md` by `bin/fm-branch-agent-md.sh`; `bin/fm-branch-agent-md.sh --check` fails when the tracked file is stale.
@@ -38,7 +38,7 @@ The same rotation fires when `SendMessage` reports the agent cannot be resumed (
 A branch turn that ends in a provider error, or without a report, hands the wake back to main; two such turns in a row latch the branch off for five minutes, during which every wake goes to main.
 A branch hand-back message, and the completed background agent's own notification, are dropped while the mod is opted in, so they never open a main turn; without `state/.branch-mod-mode` every peer message passes through untouched.
 
-Continuity across the branch's own turns uses one `Monitor` task per session, described `fm-branch-mod watcher continuity`, with a 30-minute timeout re-armed on expiry.
+Continuity across the branch's own turns uses one live `Monitor` task at a time, described `fm-branch-mod watcher continuity`, with a 30-minute timeout re-armed on expiry.
 Arming never depends on a captain prompt: the monitor is armed at session start when the mode file is present and the session lock is held (the same evidence the restored counters read), every captain prompt and every Stop-hook-sourced wake reaching `prompt.submit` re-arms when no live monitor is claimed (an armed claim older than the monitor timeout plus five minutes with no expiry notice in hand counts as dead; peer messages and non-wake task notifications do not re-check), and a branch turn that settles a wake with the claim still false arms from the branch's own settlement - a module reload followed by silence, a failed arm, or a lost expiry notice each still leave one live cycle behind.
 It streams each watcher close that arrives while no main turn is open into `prompt.submit` as a task notification, where the same routing applies.
 
@@ -53,13 +53,14 @@ A `needs-decision:` or `blocked:` line with a parseable key is never re-presente
 
 The classifier's decision core is the shared `lib/fm-branch-classifier.ts` (the canonical copy under this mod's `lib/`, which the repo's `lib/` symlinks to and the Pi extension imports directly; its integration is documented in [Pi supervision branch](pi-supervision-branch.md)); the behavior below is one capability on both hosts.
 
-A text-only classifier runs ahead of the branch on every eligible wake.
-It is one `$.model.complete` call on the model named by `config/classifier-model` (default `haiku` on this host; [configuration.md](configuration.md) "Claude Code supervision branch" owns the resolution and fallback rule), with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
+A text-only classifier gates each attended branch-eligible task wake that the durable passed-rows guard has not already returned to main; taskless and away wakes follow the exceptions below.
+The ordinary path makes one `$.model.complete` call on the model named by `config/classifier-model`, with no thinking and `maxTokens` bounded at 200, over the wake's reason line and a bash-gathered evidence bundle (`bin/fm-wake-evidence.sh <task>`: the task's current state, the status lines appended since the last classified wake marked NEW, and a few earlier lines marked HISTORY).
+The default is `haiku` on this host, and an unresolved configured model can add one fallback attempt on that default; [configuration.md](configuration.md) "Claude Code supervision branch" owns the resolution rule.
 Only a confident `routine` verdict lets the wake go to the branch; `captain`, `uncertain`, a malformed answer, and a failed call all pass the wake to main, and main's direct handling is covered in the outcome store so the branch and the backstop never re-escalate it.
 The queue rows of a passed wake are recorded in `state/.branch-mod-passed` until main acknowledges them; while one is still queued, every later wake carrying it goes back to main without a classifier call, across a module reload or a session restart, because its lines are already history to the classifier.
 Rows that have left the queue are swept from the guard at the next wake whose scan is safe; an unsafe scan (a torn or unresolvable row) passes the wake to main and leaves the guard untouched.
 That re-pass treats every eligible row of the wake as passed, covered in the outcome store like a classifier pass, so a newer row queued beside the unacknowledged one is not re-escalated either.
-The offset of the last classified bundle lives in `state/.<task>.classifier-offset`, owned by `bin/fm-wake-evidence.sh` and removed by teardown, and always advances to the log's size.
+The classifier evidence cursor lives in `state/.<task>.classifier-offset`, owned by `bin/fm-wake-evidence.sh` and removed by teardown, and always advances to the log's size.
 A NEW span over the 6000-byte cap is cut back to the last whole line inside the cap, named by the range it shows, and marked with a `## truncated:` line; the shared classifier core answers `uncertain` on such a bundle without calling the model, so a truncated span always goes to main, which handles the whole of it.
 A wake whose eligible rows carry no task evidence at all - a heartbeat fleet review - has nothing to judge and is never classified: the branch takes it when the scan is safe, and the passed-rows guard above still applies.
 
@@ -80,7 +81,7 @@ Records whose status log was torn down count as unscorable.
 ### Mutual exclusion with the supervision host
 
 A home must not enable both `state/.branch-mod-mode` and `config/supervision-host`: the mod consumes the primary's wakes inside the captain's own Claude process, while the host runs them through a headless engine beside it, so a home with both opt-ins would have two consumers of the same wakes.
-The opt-ins are mutually exclusive by construction, with the host stepping aside: when `state/.branch-mod-mode` is present, `bin/fm-supervision-host.sh` execs the plain watcher arm even though `config/supervision-host` opts in, so the watcher cycle is the ordinary watcher arm's - an owner that launched the host still applies its own host-mode close handling, which is what makes the notice actionable - and it prints one `supervision-host:` notice naming the conflict - once per episode, suppressed by a marker until a later host run finds no mod, so a renewed conflict is surfaced again (`bin/fm-supervision-host.sh`'s header owns the mechanics).
+The opt-ins are mutually exclusive by construction, with the host stepping aside: when `state/.branch-mod-mode` is present, `bin/fm-supervision-host.sh` execs the plain watcher arm even though `config/supervision-host` opts in, so the watcher cycle is the ordinary watcher arm's - an owner that launched the host still applies its own host-mode close handling, which is what makes the notice actionable - and it prints one `supervision-host:` notice when it creates the conflict marker (`bin/fm-supervision-host.sh`'s header owns the mechanics).
 Only a host run can clear that marker, so a conflict ended by removing `config/supervision-host` rather than `state/.branch-mod-mode` leaves `state/.supervision-host-mod-conflict` in place - no host runs to clear it - and a conflict re-created later by re-adding the host opt-in is not noticed again, even though the host still steps aside on every run it makes with the mod present.
 The mod's own path is unchanged: an owner only launches the host when `config/supervision-host` exists, so with only the mod enabled every wake is consumed as this doc describes.
 Wake eligibility itself is one implementation for both (`tests/fm-branch-eligibility.test.sh` pins the host's command entry, the Pi extension, the mod, and the shared lib to one verdict); the exclusivity is about who consumes a wake, not about which rows each would claim.
@@ -126,7 +127,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 - `state/.branch-mod-mode`: the opt-in switch; its presence switches the mod, the drain backstop extension, and the pretool escape.
 - `state/.branch-mod-passed`: the queue sequences passed to main and not yet acknowledged; module-owned.
 - `state/.branch-mod-counters`: the session's counters (wake, spawn, send, generation, branch agent id, monitor task id) keyed by the lock pid, so a module reload re-adopts the live agent; module-owned.
-- `state/.<task>.classifier-offset`: the status byte offset of the last classified bundle; owned by `bin/fm-wake-evidence.sh`, removed by teardown.
+- `state/.<task>.classifier-offset`: the classifier evidence cursor; `bin/fm-wake-evidence.sh` owns its format and advancement, and teardown removes it.
 - `state/branch-mod-events.jsonl`: append-only event log, rotated to `.1` past 4 MB; the evidence source for every count the live test asserts.
   The `session.start` event carries `persistenceOn` and `persistenceCause` (`default`, `inherited CLAUDE_CODE_CHILD_SESSION marker`, or `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE`), and every `agent.send` event names the resume target as `agentId` and `sessionId` (the primary session's transcript id, or `unavailable (<error>)` where the engine does not expose it), so a transcript regression is one log line.
 - `state/branch-mod-classifications.jsonl`: the classification log, same rotation; read by `bin/fm-branch-classifier-score.sh`.
@@ -136,10 +137,10 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 
 ## Bounds
 
-- Classifier: text-only, one call, no thinking, `maxTokens` 200.
+- Classifier: text-only, no thinking, `maxTokens` 200 per call, normally one call with at most one model-not-found fallback attempt.
 - Branch rotation: 60,000 tokens of per-step request context.
 - Branch failure latch: two consecutive failed branch turns (a provider error or a turn that ends without a report counts alike), five-minute cooldown, no recovery probe.
-- Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry, on any captain prompt or Stop-hook-sourced wake that finds no live monitor, and from the branch's settlement.
+- Continuity monitor: one live task at a time, 30-minute timeout, re-armed on its own expiry, on any captain prompt or Stop-hook-sourced wake that finds no live monitor, and from the branch's settlement.
 - Event and classification logs: 4 MB each before rotation.
 - Passed-wake dedupe: 90 seconds per row set; in-flight wake considered stale after 180 seconds.
 

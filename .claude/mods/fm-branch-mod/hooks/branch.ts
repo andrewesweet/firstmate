@@ -1,5 +1,5 @@
 // fm-branch-mod: the firstmate supervision branch as a Claude Code hooks module,
-// with one persistent branch agent per session and a text-only classifier ahead
+// with one persistent branch agent per generation and a text-only classifier ahead
 // of it. docs/claude-supervision-branch.md owns the operator contract; this
 // header owns the binding's own shape.
 //
@@ -28,7 +28,7 @@
 //       deterministic backstop (bin/fm-wake-evidence.sh --routine-covered) as a
 //       main prompt, then route any wake still queued.
 //   (f) turn.step effort rewrite for the branch's own agent ids.
-// continuity: one Monitor task per session streams each watcher close as a
+// continuity: one live Monitor task at a time streams each watcher close as a
 //       task-notification into prompt.submit; armed at session start when the
 //       mode file is present and the session lock is held, on any captain
 //       prompt or stop-hook-sourced wake that finds no live monitor (a claim

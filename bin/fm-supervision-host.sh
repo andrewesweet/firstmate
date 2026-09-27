@@ -41,10 +41,10 @@
 # FM_WATCH_PREDECESSOR_ARM_PID), so the watcher cycle is the ordinary watcher
 # arm's, while an owner that launched the host still applies its own host-mode
 # close handling (which is what makes the notice below actionable), and prints
-# one "supervision-host:" notice naming the conflict - once per episode,
-# guarded by the state/.supervision-host-mod-conflict marker; a later host run
-# that finds no mod clears the marker, so a renewed conflict is surfaced
-# again. Only a host run clears it, so a conflict ended by removing
+# one "supervision-host:" notice naming the conflict when it creates the
+# state/.supervision-host-mod-conflict marker; a later host run that finds no
+# mod clears the marker, so a renewed conflict is surfaced again. Only a host
+# run clears it, so a conflict ended by removing
 # config/supervision-host instead leaves the marker behind and a conflict
 # re-created later is not surfaced again. From the exec on, the arm's own
 # close contract judges the cycle.
@@ -198,13 +198,14 @@ esac
 # Mutual exclusion with the Claude Code supervision-branch mod: its opt-in
 # (state/.branch-mod-mode) runs the branch in the captain's own process, so a
 # home with both opt-ins would have two consumers of the same wakes. Step
-# aside into the plain watcher arm; the conflict is surfaced once per episode
-# (noclobber create-then-print so two racing hosts surface it once), and a
-# later host run without the mod clears the marker so a renewed conflict is
-# surfaced again - only a host run clears it, so a conflict ended by removing
-# config/supervision-host leaves the marker behind and a re-created conflict is
-# not surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive into the exec
-# (the arm forwards it to its first cycle); the actor marks must not.
+# aside into the plain watcher arm; the conflict is surfaced when the marker
+# is absent (noclobber create-then-print so two racing hosts surface it once),
+# and a later host run without the mod clears the marker so a renewed conflict
+# is surfaced again - only a host run clears it, so a conflict ended by
+# removing config/supervision-host leaves the marker behind and a re-created
+# conflict is not surfaced again. FM_WATCH_PREDECESSOR_ARM_PID must survive
+# into the exec (the arm forwards it to its first cycle); the actor marks must
+# not.
 unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN
 HOST_MOD_NOTICE="$STATE/.supervision-host-mod-conflict"
 if [ -e "$STATE/.branch-mod-mode" ]; then

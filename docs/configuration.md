@@ -303,9 +303,9 @@ Both choices are local to each Firstmate home and are not part of secondmate inh
 On a Claude Code primary, the `fm-branch-mod` plugin runs the same supervision branch as a persistent background agent inside the captain's `claude` process; [docs/claude-supervision-branch.md](claude-supervision-branch.md) owns its behaviour, launch settings, version pin, and bounds.
 The mod is opt-in per home and inert everywhere else: it loads only through `--plugin-dir`, refuses to load on any Claude Code version other than its pin, and every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`.
 That file's presence is the whole switch and its content is ignored: create it to route eligible wakes to the branch, and remove it to switch the mod and its `bin/` pieces off together.
-A text-only classifier runs ahead of the branch on every eligible wake, and every task wake hands the branch the deterministic new-status-lines note; neither has a switch.
+A text-only classifier gates applicable attended task wakes before the branch, and each task wake routed to the branch carries the deterministic new-status-lines note; [docs/claude-supervision-branch.md](claude-supervision-branch.md) owns the routing exceptions and evidence rules.
 `config/classifier-model` below is read by both hosts: the Claude Code mod and the Pi extension run the same shared classifier core ([docs/pi-supervision-branch.md](pi-supervision-branch.md) "Pre-branch classifier" owns the Pi integration).
-`config/classifier-model` names the model the classifier's single completion call uses; absent means the host default - `haiku` on Claude Code, the supervision branch's own model on Pi (`config/supervision-branch-model` when pinned, else main's session model) - and a configured name that does not resolve on the host falls back once to that default.
+`config/classifier-model` names the model the classifier tries first; absent means the host default - `haiku` on Claude Code, the supervision branch's own model on Pi (`config/supervision-branch-model` when pinned, else main's session model) - and a configured name that does not resolve on the host adds one fallback attempt on that default.
 The model actually used, after any fallback, is written into every record of `state/branch-mod-classifications.jsonl`, the durable classification log `bin/fm-branch-classifier-score.sh` scores.
 The branch agent's own model comes from `config/supervision-branch-model`, shared with the Pi branch above, defaulting to `sonnet`; `config/supervision-branch-effort` is Pi-only, because the mod runs the branch's model steps at low effort.
 `state/.branch-mod-counters`, `state/.branch-mod-passed`, `state/branch-mod-events.jsonl`, and `state/.<task>.classifier-offset` are the mod's own runtime records, listed with their owners in `AGENTS.md`'s `state/` inventory.
@@ -344,7 +344,6 @@ The file is read at every wake, so a change applies at the next one without a re
 
 It is local to each home and not part of secondmate inherited configuration.
 While the file exists, main's lease-checked commands also take the per-task lease lock, so a claim by the host's engine cannot race a mutation main already started (`bin/fm-lease-lib.sh`).
-
 
 ## Backlog backend (.tasks.toml / config/backlog-backend)
 
