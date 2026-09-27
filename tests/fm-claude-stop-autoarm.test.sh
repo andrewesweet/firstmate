@@ -1328,6 +1328,62 @@ test_orphaned_claim_from_dead_session_is_superseded_by_replacement() {
   pass "auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake"
 }
 
+# A background session whose bridge is recycled mid-cycle loses the contiguous
+# ancestry from its hook to the still-live pid on state/.lock, but keeps the
+# trusted session id recorded beside it (bin/fm-session-lock-lib.sh owns that
+# second ownership signal, and the claiming hook's own admission accepts it). Its
+# live claim must stay open on that signal alone, or a concurrent Stop supersedes
+# a healthy arming owner and the guard reads live recovery as absent. A claim
+# whose recorded id does not match, one with no sidecar at all, and a
+# pre-change entry that records no id all stay closed on broken ancestry.
+test_recycled_bridge_claim_stays_open_on_session_id_match() {
+  local dir rc
+  dir=$(make_primary_dir "$TMP_ROOT/v2-recycled-bridge-claim")
+  : > "$dir/state/.last-watcher-beat"
+  # $2 is the ledger's owner_session_id field ("" writes a pre-change entry),
+  # $3 the sidecar's recorded id ("absent" writes no sidecar). The lock pid is a
+  # live sibling of the claim owner, so the descent signal always fails.
+  probe() {
+    FM_STATE_OVERRIDE="$dir/state" bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n" \
+            "$owner" "$2" "$identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" 2>/dev/null
+        exit "$rc"
+      ' _ "$dir" "$1" "$2"
+  }
+  probe sess-bridge sess-bridge; rc=$?
+  [ "$rc" -ne 97 ] || fail "could not record a claim for the probe owner"
+  [ "$rc" -ne 96 ] || fail "the probe lock pid was an ancestor of the claim owner, so ancestry was not broken"
+  expect_code 0 "$rc" "a live claim whose recorded session id matches the lock sidecar must stay open across a recycled bridge"
+  probe sess-bridge sess-other; rc=$?
+  expect_code 1 "$rc" "a claim whose recorded session id does not match the sidecar must not be open"
+  probe sess-bridge absent; rc=$?
+  expect_code 1 "$rc" "a claim with no recorded sidecar id must not be open on broken ancestry"
+  probe "" sess-bridge; rc=$?
+  expect_code 1 "$rc" "a pre-change entry with no recorded session id must fall back to ancestry alone"
+  pass "auto-arm: a recycled-bridge claim stays open on its recorded session id, and nothing else does"
+}
+
 # A claim with no numeric session-lock pid is never open: nothing can receive
 # its rewake (the hook itself goes silent on a missing or malformed lock), so
 # deferring to it would leave the home deaf. Same live, identity-matched,
@@ -1720,6 +1776,7 @@ test_open_generation_claim_defers_without_any_lock
 test_stuck_generation_claim_is_superseded_and_rearms
 test_orphaned_claim_from_dead_session_is_superseded_by_replacement
 test_claim_without_numeric_session_lock_is_not_open
+test_recycled_bridge_claim_stays_open_on_session_id_match
 test_identityless_ledger_never_defers
 test_superseded_owner_never_reinvokes_the_arm
 test_superseded_owner_goes_silent_and_never_double_translates

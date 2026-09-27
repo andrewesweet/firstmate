@@ -1513,18 +1513,27 @@ fm_failure_episode_reset() {
 #     reused pid can never authenticate someone else's stale entry.
 #   - A claim is OPEN (fm_autoarm_claim_open) while its outcome is "arming",
 #     its owner pid is alive, its recorded identity successfully recomputes
-#     and matches that pid, its owner still DESCENDS from the session-lock pid
-#     (state/.lock line 1, which must be numeric: a missing or malformed lock
-#     means no session can receive a rewake), and it is not STUCK - stuck meaning both the
+#     and matches that pid, its owner is still REACHABLE by its session -
+#     either it DESCENDS from the session-lock pid (state/.lock line 1, which
+#     must be numeric: a missing or malformed lock means no session can receive
+#     a rewake) or its recorded owner_session_id matches the trusted session id
+#     beside that lock (state/.lock-session), the same two signals the claiming
+#     hook's own admission accepts (fm_session_lock_owned_by_self), so a
+#     background session whose bridge is recycled mid-cycle keeps its live
+#     claim - and it is not STUCK - stuck meaning both the
 #     ledger entry and the watcher beacon (state/.last-watcher-beat) are older
 #     than the guard grace, which proves the owner hung mid-arm with nothing
 #     supervising (every legitimate arming phase with no watcher is bounded in
 #     seconds, while a healthy hours-long cycle keeps the beacon beating).
-#     The descent test is what makes a claim deliverable: a hook whose session
-#     exited mid-cycle stays alive, reparented to init, with no parent to
-#     receive its exit 2, so deferring to it leaves the home deaf until a
+#     The reachability test is what makes a claim deliverable: a hook whose
+#     session exited mid-cycle stays alive, reparented to init, with no parent
+#     to receive its exit 2, so deferring to it leaves the home deaf until a
 #     captain turn (tests/fm-claude-stop-autoarm.test.sh,
-#     test_orphaned_claim_from_dead_session_is_superseded_by_replacement).
+#     test_orphaned_claim_from_dead_session_is_superseded_by_replacement). Such
+#     an orphan fails both signals, because the replacement session runs lock
+#     recovery before this predicate, rewriting the sidecar to its own id. An
+#     entry written by a build before owner_session_id existed records no id and
+#     falls back to the descent signal alone.
 #   - Every firing DEFERS (exits 0) to an open claim; anything else - a
 #     terminal outcome, a dead or identity-mismatched owner, a stuck owner, an
 #     identityless entry, or no claim at all - lets the next firing take
@@ -1593,7 +1602,8 @@ _fm_autoarm_epoch_field() {  # <epoch-file> <field>
 }
 
 # Parse the current ledger claim. Sets FM_AUTOARM_GEN, FM_AUTOARM_OWNER,
-# FM_AUTOARM_OUTCOME, FM_AUTOARM_SESSION, FM_AUTOARM_RECOVERY, and
+# FM_AUTOARM_OUTCOME, FM_AUTOARM_SESSION, FM_AUTOARM_RECOVERY,
+# FM_AUTOARM_OWNER_SESSION_ID, and
 # FM_AUTOARM_IDENTITY (line 2 of the entry, and ONLY
 # line 2 - identity is never substituted from a lock, so a transient
 # micro-mutex hold or a reused pid can never authenticate a stale entry).
@@ -1605,12 +1615,14 @@ fm_autoarm_ledger_read() {  # <state-dir>
   FM_AUTOARM_OUTCOME=
   FM_AUTOARM_SESSION=
   FM_AUTOARM_RECOVERY=
+  FM_AUTOARM_OWNER_SESSION_ID=
   FM_AUTOARM_IDENTITY=
   FM_AUTOARM_GEN=$(_fm_autoarm_epoch_field "$epoch" epoch) || return 1
   FM_AUTOARM_OWNER=$(_fm_autoarm_epoch_field "$epoch" owner_pid) || return 1
   FM_AUTOARM_OUTCOME=$(_fm_autoarm_epoch_field "$epoch" outcome) || return 1
   FM_AUTOARM_SESSION=$(_fm_autoarm_epoch_field "$epoch" session_pid 2>/dev/null || true)
   FM_AUTOARM_RECOVERY=$(_fm_autoarm_epoch_field "$epoch" recovery_generation 2>/dev/null || true)
+  FM_AUTOARM_OWNER_SESSION_ID=$(_fm_autoarm_epoch_field "$epoch" owner_session_id 2>/dev/null || true)
   case "$FM_AUTOARM_GEN" in
     ''|*[!0-9]*) return 1 ;;
   esac
@@ -1625,7 +1637,8 @@ fm_pid_descends_from() {  # <pid> <ancestor>
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
     [ "$pid" = "$ancestor" ] && return 0
     pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
-    [ -n "$pid" ] && [ "$pid" -gt 1 ] || return 1
+    case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$pid" -ge 1 ] || return 1
   done
   return 1
 }
@@ -1633,17 +1646,18 @@ fm_pid_descends_from() {  # <pid> <ancestor>
 # True while the CURRENT ledger claim is open and healthy - the defer predicate
 # both Stop participants use. Open means: outcome "arming", a live owner whose
 # mandatory recorded identity recomputes and matches its pid, an owner that
-# still descends from the numeric session-lock pid in state/.lock, and not
-# stuck (the contract comment above owns the descent and stuck proofs). A home
-# with no numeric lock pid has no session to deliver to, so its claim is never
-# open. fm_path_age reports an
+# descends from the numeric session-lock pid in state/.lock or whose recorded
+# owner_session_id matches the trusted session id in state/.lock-session, and
+# not stuck (the contract comment above owns the reachability and stuck
+# proofs). A home with no numeric lock pid has no session to deliver to, so its
+# claim is never open. fm_path_age reports an
 # absent beacon as ancient, which is exactly right: arming for a full grace
 # window without producing a first beat is the same hang. An identityless
 # entry is never open: real generation claims always record identity, a legacy
 # build's entry gets its deference from its held role-carrying lock through
 # the legacy shim, and anything else must not defer.
 fm_autoarm_claim_open() {  # <state-dir> [grace]
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} epoch current lock_pid
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} epoch current lock_pid recorded
   epoch="$state/.claude-autoarm-epoch"
   case "$grace" in
     ''|*[!0-9]*|0) grace=300 ;;
@@ -1659,7 +1673,11 @@ fm_autoarm_claim_open() {  # <state-dir> [grace]
   case "$lock_pid" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  fm_pid_descends_from "$FM_AUTOARM_OWNER" "$lock_pid" || return 1
+  if ! fm_pid_descends_from "$FM_AUTOARM_OWNER" "$lock_pid"; then
+    [ -n "$FM_AUTOARM_OWNER_SESSION_ID" ] || return 1
+    recorded=$(fm_session_lock_recorded_session_id "$state" 2>/dev/null || true)
+    [ -n "$recorded" ] && [ "$recorded" = "$FM_AUTOARM_OWNER_SESSION_ID" ] || return 1
+  fi
   if [ "$(fm_path_age "$epoch")" -ge "$grace" ] \
     && [ "$(fm_path_age "$state/.last-watcher-beat")" -ge "$grace" ]; then
     return 1
@@ -1707,7 +1725,7 @@ fm_autoarm_midturn_healthy() {  # <state-dir> [grace]
 # 1 when the micro-mutex is contended, the mandatory identity cannot be
 # computed, or the write failed.
 fm_autoarm_claim_next() {  # <state-dir> [grace]
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock epoch pid gen identity tmp
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock epoch pid gen identity session_id tmp
   lock="$state/.claude-autoarm.lock"
   epoch="$state/.claude-autoarm-epoch"
   FM_AUTOARM_MY_GEN=
@@ -1717,6 +1735,10 @@ fm_autoarm_claim_next() {  # <state-dir> [grace]
   pid=${BASHPID:-$$}
   identity=$(fm_pid_identity "$pid" 2>/dev/null) || return 1
   [ -n "$identity" ] || return 1
+  session_id=$(fm_session_lock_trusted_session_id 2>/dev/null || true)
+  case "$session_id" in
+    *[![:alnum:]_.-]*) session_id= ;;
+  esac
   fm_lock_try_acquire "$lock" || return 1
   if fm_autoarm_claim_open "$state" "$grace"; then
     fm_lock_release "$lock"
@@ -1728,9 +1750,12 @@ fm_autoarm_claim_next() {  # <state-dir> [grace]
   esac
   gen=$((gen + 1))
   tmp="$epoch.tmp.$pid"
-  if ! printf 'epoch=%s owner_pid=%s outcome=arming updated_at=%s\n%s\n' \
-      "$gen" "$pid" "$(date +%s)" "$identity" > "$tmp" 2>/dev/null \
-    || ! mv -f "$tmp" "$epoch" 2>/dev/null; then
+  if ! {
+      printf 'epoch=%s owner_pid=%s outcome=arming updated_at=%s' \
+        "$gen" "$pid" "$(date +%s)"
+      [ -z "$session_id" ] || printf ' owner_session_id=%s' "$session_id"
+      printf '\n%s\n' "$identity"
+    } > "$tmp" 2>/dev/null || ! mv -f "$tmp" "$epoch" 2>/dev/null; then
     rm -f "$tmp" 2>/dev/null || true
     fm_lock_release "$lock"
     return 1
