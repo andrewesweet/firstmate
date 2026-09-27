@@ -332,15 +332,17 @@ A claim is open while all of these hold:
 - Its outcome is `arming`.
 - Its owner pid is alive.
 - Its recorded identity successfully recomputes and matches that pid.
-- Its owner is still reachable by its session: it descends from the numeric pid in `state/.lock`, or its recorded `owner_session_id` matches the trusted session id in `state/.lock-session`.
+- Its owner is still reachable by its session: it descends from the numeric pid in `state/.lock`, or its recorded `owner_session_id` matches the trusted session id in `state/.lock-session` while its recorded `owner_lock_pid` is still that lock's holder pid.
 - It is not stuck.
 
 Stuck means the entry and the watcher beacon are both older than the guard grace, which proves the owner hung mid-arm.
 A healthy hours-long foregrounded cycle keeps the beacon beating, and every arming phase with no watcher is bounded in seconds.
 A missing or malformed lock means no session can receive a rewake, so such a claim is never open.
 The reachability test is what makes an open claim deliverable: a hook whose session exited mid-cycle stays alive with no parent to receive its exit 2, so deferring to it would leave the replacement session deaf until a captain turn.
-Its two signals are the ones the claiming hook's own admission accepts, so a background session whose bridge is recycled mid-cycle - breaking the ancestry to its still-live lock owner - keeps its live claim instead of being double-armed.
-An orphan fails both, because the replacement session runs lock recovery before this predicate and rewrites the sidecar to its own id, and an entry from a build before `owner_session_id` existed falls back to descent alone.
+The session-id signal is the second one the claiming hook's own admission accepts, so a background session whose bridge is recycled mid-cycle - breaking the ancestry to its still-live lock owner - keeps its live claim instead of being double-armed.
+Pinning that signal to the lock holder pid recorded at claim time is what keeps a resumed session, which carries the same conversation id in a new process, from reading its own dead predecessor's orphan as open.
+An orphan fails both signals: it no longer descends from the replacement's lock pid, and its recorded `owner_lock_pid` names the dead session's holder.
+An entry from a build before these fields existed records neither and falls back to descent alone.
 
 Anything else lets the next Stop-owned firing take the next generation and arm.
 That covers a finished outcome, a dead or identity-mismatched owner, an owner orphaned by its session's exit, a stuck owner, an identityless entry, or no entry.
