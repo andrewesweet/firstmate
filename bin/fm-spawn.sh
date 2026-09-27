@@ -318,8 +318,9 @@
 #   and relaunch) from this home into Claude Code's function-hooks surface:
 #   when the file is present, the launch environment carries
 #   CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1, which that surface requires before it
-#   loads function-hooks modules; when absent, the launch is byte-for-byte
-#   what it would otherwise be. Presence alone enables the flag: the file's
+#   loads function-hooks modules, and the launch clears COMPACT_ADVISER_DISABLE
+#   instead of setting it so the compact adviser runs in auto on this path;
+#   when absent, the launch is byte-for-byte what it would otherwise be. Presence alone enables the flag: the file's
 #   content is ignored and never read, so the supported shape is an empty
 #   regular file (touch config/claude-function-hooks), which is also the only
 #   shape secondmate inheritance copies. Firstmate never sets that variable
@@ -5266,8 +5267,12 @@ if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
 fi
 # Upstream compact-adviser kill switch: the adviser stays disabled on every
 # launch except a Claude worker on the function-hooks path, where it runs auto.
+# The exception clears the variable rather than merely skipping the assignment,
+# so a relaunch in a pane that a previous launch disabled still runs the adviser.
 if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
   LAUNCH="export COMPACT_ADVISER_DISABLE=1; $LAUNCH"
+else
+  LAUNCH="unset COMPACT_ADVISER_DISABLE; $LAUNCH"
 fi
 if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
   LAUNCH="unset TRACEPARENT; $LAUNCH"
@@ -5316,10 +5321,13 @@ spawn_record_traceparent() {
 SPAWN_SPAN_START=$(fm_timing_now_ms)
 spawn_send_text_line "$T" "export GOTMPDIR=$TASK_TMP/gotmp"
 # Export the compact-adviser kill switch into the pane shell through the same
-# pre-launch channel, so later commands in that shell inherit it too. Omitted
-# only for a Claude worker on the function-hooks path, where the adviser runs.
+# pre-launch channel, so later commands in that shell inherit it too. For a
+# Claude worker on the function-hooks path the same channel clears any value an
+# earlier launch left in that shell, so the adviser runs on a relaunch too.
 if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
   spawn_send_text_line "$T" "export COMPACT_ADVISER_DISABLE=1"
+else
+  spawn_send_text_line "$T" "unset COMPACT_ADVISER_DISABLE"
 fi
 if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
   spawn_send_text_line "$T" "export LAVISH_AXI_HOST=$(shell_quote "$LAVISH_AXI_HOST")"

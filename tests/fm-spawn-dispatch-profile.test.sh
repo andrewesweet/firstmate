@@ -1829,13 +1829,15 @@ SH
 # must both produce today's launch byte-for-byte, `auto` swaps only the
 # permission flag, and any other token refuses before endpoint or metadata.
 # config/claude-function-hooks (header): presence alone prepends exactly
-# `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 ` to the environment prefix, and the
-# absent-file byte-for-byte cases above pin that absence changes nothing.
+# `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 ` to the environment prefix and swaps the
+# compact-adviser kill switch for a clearing `unset`, and the absent-file
+# byte-for-byte cases above pin that absence changes nothing.
 claude_launch_brief_arg() {  # <launch>
   local command=${1#*; }
   # The compact-adviser kill switch rides between the trace scrub and the
   # hooks prefix on every launch except a function-hooks claude launch.
   command=${command#export COMPACT_ADVISER_DISABLE=1; }
+  command=${command#unset COMPACT_ADVISER_DISABLE; }
   (
     eval "set -- ${command#*; }"
     eval "printf '%s' \"\${$#}\""
@@ -1846,7 +1848,11 @@ claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [hooks-env-
   local doorbell quoted hooks_prefix=${5:-} adviser_prefix=
   # The compact-adviser kill switch rides every claude launch except one on
   # the function-hooks path, where the adviser stays in auto.
-  [ -n "$hooks_prefix" ] || adviser_prefix="export COMPACT_ADVISER_DISABLE=1; "
+  if [ -n "$hooks_prefix" ]; then
+    adviser_prefix="unset COMPACT_ADVISER_DISABLE; "
+  else
+    adviser_prefix="export COMPACT_ADVISER_DISABLE=1; "
+  fi
   doorbell=$(claude_launch_brief_arg "$1")
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
@@ -2064,13 +2070,47 @@ test_compact_adviser_enabled_for_claude_with_function_hooks() {
   status=$?
   expect_code 0 "$status" "claude spawn with function hooks should succeed"
   launch=$(cat "$LAUNCH_LOG")
-  assert_not_contains "$launch" "COMPACT_ADVISER_DISABLE" \
+  assert_not_contains "$launch" "COMPACT_ADVISER_DISABLE=1" \
     "claude launch on the function-hooks path must leave the adviser in auto"
+  assert_contains "$launch" "unset COMPACT_ADVISER_DISABLE" \
+    "claude launch on the function-hooks path did not clear an inherited kill switch"
   pass "claude launches with function hooks keep the compact adviser in auto"
+}
+
+# A relaunch reuses the pane a previous launch disabled the adviser in, so the
+# function-hooks exception must clear the inherited value, not merely skip its
+# own assignment. Run the emitted launch command in a shell that already carries
+# COMPACT_ADVISER_DISABLE=1 and read what the harness process actually receives.
+test_compact_adviser_cleared_when_pane_already_disabled_it() {
+  local rec id out status launch panebin envlog
+  id=profile-compact-adviser-relaunch-z99
+  rec=$(make_spawn_case profile-compact-adviser-relaunch claude "$id")
+  read_case_record "$rec"
+  printf 'content is ignored\n' > "$HOME_DIR/config/claude-function-hooks"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn with function hooks should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+
+  panebin="$CASE_DIR/panebin"
+  envlog="$CASE_DIR/pane-adviser.env"
+  mkdir -p "$panebin"
+  cat > "$panebin/claude" <<'SH'
+#!/usr/bin/env bash
+printf 'adviser=%s\n' "${COMPACT_ADVISER_DISABLE-<unset>}" > "$FM_TEST_PANE_ADVISER_LOG"
+exit 0
+SH
+  chmod +x "$panebin/claude"
+  COMPACT_ADVISER_DISABLE=1 FM_TEST_PANE_ADVISER_LOG="$envlog" PATH="$panebin:$PATH" \
+    bash -c "$launch" > /dev/null 2>&1 || fail "the staged launch command did not run"
+  assert_contains "$(cat "$envlog")" "adviser=<unset>" \
+    "a function-hooks claude relaunch inherited the pane's compact-adviser kill switch"
+  pass "a function-hooks claude launch clears a kill switch the pane already carried"
 }
 
 test_compact_adviser_disabled_for_pi_launch
 test_compact_adviser_disabled_for_claude_without_hooks
 test_compact_adviser_enabled_for_claude_with_function_hooks
+test_compact_adviser_cleared_when_pane_already_disabled_it
 
 echo "# all fm-spawn-dispatch-profile tests passed"
