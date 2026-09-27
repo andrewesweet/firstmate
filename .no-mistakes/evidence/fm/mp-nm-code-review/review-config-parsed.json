@@ -1,0 +1,8 @@
+{
+  "path_instructions": [
+    {
+      "path": "**",
+      "instructions": "Review the changed paths on two separate axes.\nRead the discipline as a file (do not invoke it as a Skill tool):\n/home/andre/.agents/skills/code-review/SKILL.md\nStandards axis: the repository's documented standards (CONTRIBUTING.md and the files it points to).\nWhere the repository is silent, fall back to the skill's code-smell baseline as a judgement call only, never a hard violation; a documented repo standard always overrides the baseline.\nSpec axis: faithful implementation of this run's intent - missing or partial requirements, scope creep, and requirements that look implemented but wrong.\nKeep the two axes separate: prefix each finding description with its axis, Standards: or Spec:, and never merge or rerank findings across axes.\nReview behaviour, severity handling, and finding format are otherwise unchanged.\n"
+    }
+  ]
+}

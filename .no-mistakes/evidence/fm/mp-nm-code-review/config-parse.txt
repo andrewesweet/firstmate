@@ -1,0 +1,33 @@
+top-level keys:
+- disable_project_settings
+# Trusted documentation placement policy for the Document step.
+# The audience inventory and coding guideline own the detail; keep this as a
+# pointer so gate instructions cannot become a second prose policy.
+- document
+# Two-axis review discipline for the Review step, adapted from Matt Pocock's
+# code-review skill (report section 3.8, proposal P3).
+# Trusted-only like the rest of this file: honored only from the default-branch copy.
+# The review agent runs with disable_project_settings, so the skill file is
+# referenced by its machine-wide absolute path, not a repo-relative one.
+# A short pointer plus the two-axis rule only; the skill file owns the discipline.
+- review
+# Pin lint to the same owner CI invokes instead of leaving it to no-mistakes'
+# default handling, which does not invoke the repository's canonical lint gate.
+# `bin/fm-lint.sh` owns the context-sensitive ShellCheck modes and GitHub
+# workflow lint via pinned actionlint in `bin/fm-lint-workflows.sh`.
+# Invocation wiring is asserted by `tests/fm-lint.test.sh` and
+# `tests/fm-lint-workflows.test.sh`.
+#
+# Keep commands.test absent; the firstmate-coding-guidelines skill owns this policy.
+- commands
+# Publish each run's test evidence to the orphan no-mistakes/evidence branch linked from the PR.
+# The evidence is not committed to the feature or default branch.
+- test
+path_instructions entries: 1
+entry keys: [
+  "path",
+  "instructions"
+]
+path glob: **
+instruction bytes: 826
+-rw-r--r-- 1 andre andre 6589 Sep 12 11:10 /home/andre/.agents/skills/code-review/SKILL.md
