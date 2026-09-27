@@ -2,8 +2,8 @@
 # Full remote secondmate lifecycle over the deterministic generic SSH boundary.
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/secondmate-helpers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/secondmate-helpers.sh"
 # shellcheck source=tests/remote-herdr-fixture.sh
 . "$(dirname "${BASH_SOURCE[0]}")/remote-herdr-fixture.sh"
 # shellcheck source=tests/herdr-client-pair-fixture.sh
@@ -20,6 +20,7 @@ REMOTE_HOME="$TMP_ROOT/remote-home"
 LOCAL_HOME="$TMP_ROOT/local-home"
 FAKEBIN=$(fm_fakebin "$TMP_ROOT/fake")
 SSH_COUNT="$TMP_ROOT/ssh.count"
+SSH_SCENARIO="$TMP_ROOT/fake-ssh-scenario.sh"
 DOCTOR_LOG="$TMP_ROOT/doctor.log"
 HERDR_STATE="$TMP_ROOT/remote-herdr.state"
 HERDR_LOG="$TMP_ROOT/remote-herdr.log"
@@ -33,7 +34,12 @@ mkdir -p "$PARENT/data" "$PARENT/state" "$PARENT/config" "$PARENT/projects" "$RE
 cleanup() {
   local worker_pid=''
   touch "$TMP_ROOT/provision.release" "$TMP_ROOT/seed.release" "$TMP_ROOT/handoff.release" \
-    "$TMP_ROOT/inherit.release" "$TMP_ROOT/launch.release" 2>/dev/null || true
+    "$TMP_ROOT/inherit.release" "$TMP_ROOT/launch.release" "$TMP_ROOT/race-clone.release" 2>/dev/null || true
+  # A watcher leg cut short by a failed assertion is still polling the root.
+  if [ -n "${watch_pid:-}" ]; then
+    kill "$watch_pid" 2>/dev/null || true
+    wait "$watch_pid" 2>/dev/null || true
+  fi
   FM_HOME="$PARENT" FM_PROCEVENT_CLAIM_ROOT="$CLAIMS" \
     "$ROOT/bin/fm-procevent.sh" sweep-home >/dev/null 2>&1 || true
   if [ -f "$TMP_ROOT/remote-jobs/worker.pid" ]; then
@@ -128,28 +134,9 @@ printf 'codex\n' > "$PARENT/config/secondmate-harness"
 printf 'tmux\n' > "$PARENT/config/backend"
 printf 'primary harness defaults\n' > "$PARENT/config/crew-harness"
 
-cat > "$FAKEBIN/fake-ssh" <<'SH'
-#!/usr/bin/env bash
+cat > "$SSH_SCENARIO" <<'SH'
 count=$(cat "$FM_FAKE_SSH_COUNT" 2>/dev/null || echo 0)
 printf '%s\n' "$((count + 1))" > "$FM_FAKE_SSH_COUNT"
-while [ "$#" -gt 0 ]; do
-  case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
-done
-host=$1
-entry=$2
-shift 2
-[ "$host" = remote-mac ] || exit 91
-[ "$entry" = fm-remote-entrypoint.sh ] || exit 92
-cd "$FM_FAKE_REMOTE_CWD" || exit 93
-argv_b64=$4
-command_fields=$(perl -MMIME::Base64=decode_base64 -e '
-  my $data=decode_base64($ARGV[0]);
-  my @args=split(/\0/, $data);
-  print join("\t", map { defined $_ ? $_ : "" } @args[0..2]);
-' "$argv_b64")
-IFS=$'\t' read -r command_name _command_action command_rel <<EOF
-$command_fields
-EOF
 case "${FM_FAKE_SSH_MODE:-normal}:$command_name:$command_rel" in
   inherit-partial:fm-remote-inherit.sh:config/crew-harness) exit 255 ;;
   inherit-block:fm-remote-inherit.sh:data/captain-shared.md)
@@ -244,7 +231,7 @@ case "${FM_FAKE_SSH_MODE:-normal}" in
   *) exec "$FM_FAKE_REMOTE_ENTRYPOINT" "$@" ;;
 esac
 SH
-chmod +x "$FAKEBIN/fake-ssh"
+make_remote_secondmate_ssh_fake "$FAKEBIN/fake-ssh"
 
 publish_healthy_watcher_identity() { # <state> <home> <watch-script>
   local state=$1 home=$2 watch=$3 identity
@@ -264,6 +251,7 @@ remote_env() {
   FM_ROOT_OVERRIDE="$REMOTE_ROOT" \
   FM_PROCEVENT_CLAIM_ROOT="$CLAIMS" \
   FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+  FM_FAKE_SSH_SCENARIO="$SSH_SCENARIO" \
   FM_FAKE_SSH_COUNT="$SSH_COUNT" \
   FM_FAKE_REMOTE_ENTRYPOINT="$REMOTE_ROOT/bin/fm-remote-entrypoint.sh" \
   FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux \
@@ -301,6 +289,7 @@ seed_env() {
   FM_ROOT_OVERRIDE="$REMOTE_ROOT" \
   FM_PROCEVENT_CLAIM_ROOT="$CLAIMS" \
   FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+  FM_FAKE_SSH_SCENARIO="$SSH_SCENARIO" \
   FM_FAKE_SSH_COUNT="$SSH_COUNT" \
   FM_FAKE_REMOTE_ENTRYPOINT="$REMOTE_ROOT/bin/fm-remote-entrypoint.sh" \
   FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux \
@@ -317,12 +306,40 @@ seed_env() {
 REAL_GIT=$(command -v git)
 cat > "$FAKEBIN/git" <<SH
 #!/usr/bin/env bash
-if [ "\${1:-}" = clone ] && [ "\${!#}" = "$TMP_ROOT/concurrent-home" ]; then
-  printf 'clone\n' >> "$TMP_ROOT/provision-clones"
-  if mkdir "$TMP_ROOT/provision-first" 2>/dev/null; then
-    touch "$TMP_ROOT/provision.entered"
-    while [ ! -f "$TMP_ROOT/provision.release" ]; do sleep 0.02; done
-  fi
+if [ "\${1:-}" = clone ]; then
+  case "\${!#}" in
+    "$TMP_ROOT/concurrent-home"|"$TMP_ROOT"/.fm-home-provisioning.*)
+      printf 'clone\n' >> "$TMP_ROOT/provision-clones"
+      if mkdir "$TMP_ROOT/provision-first" 2>/dev/null; then
+        touch "$TMP_ROOT/provision.entered"
+        while [ ! -f "$TMP_ROOT/provision.release" ]; do sleep 0.02; done
+      fi
+      ;;
+  esac
+fi
+if [ "\${1:-}" = clone ] && [ -n "\${FM_FAKE_CLONE_HOLD_DIR:-}" ] \
+  && [ "\$(dirname "\${!#}")" = "\$FM_FAKE_CLONE_HOLD_DIR" ]; then
+  hold_dest="\${!#}"
+  "$REAL_GIT" "\$@" &
+  hold_git=\$!
+  hold_state() { ps -o stat= -p "\$hold_git" 2>/dev/null | tr -d '[:space:]'; }
+  while [ ! -d "\$hold_dest/.git/objects" ]; do
+    case "\$(hold_state)" in ''|Z*) wait "\$hold_git"; exit \$? ;; esac
+    sleep 0.005
+  done
+  kill -STOP "\$hold_git" 2>/dev/null || true
+  while :; do
+    case "\$(hold_state)" in
+      T*) break ;;
+      ''|Z*) wait "\$hold_git"; exit \$? ;;
+    esac
+    sleep 0.005
+  done
+  touch "$TMP_ROOT/race-clone.held"
+  while [ ! -f "$TMP_ROOT/race-clone.release" ] && [ -d "$TMP_ROOT" ]; do sleep 0.02; done
+  kill -CONT "\$hold_git" 2>/dev/null || true
+  wait "\$hold_git"
+  exit \$?
 fi
 exec "$REAL_GIT" "\$@"
 SH
@@ -357,6 +374,76 @@ wait "$provision_two" || fail "reconciled provisioning attempt failed"
 [ "$(grep -cF clone "$TMP_ROOT/provision-clones")" -eq 1 ] \
   || fail "reconciled provisioning cloned the already-published home"
 pass "overlapping remote home provisioning serializes through publication and rollback"
+
+# A competing cleanup aimed at the public home path must never reach a clone
+# that is still being written: the home clone is staged privately and published
+# by rename, so the racing rm -rf finds only an absent path.
+printf 'schema=fm-remote-home-provision.v1\nid_b64=%s\ncharter_b64=%s\nproject_count=0\n' \
+  "$(printf race | base64 | tr -d '\n')" \
+  "$(printf 'Cleanup-race provisioning charter.\n' | base64 | tr -d '\n')" \
+  > "$TMP_ROOT/race.manifest"
+PATH="$FAKEBIN:$PATH" FM_HOME="$TMP_ROOT/raced-home" FM_ROOT_OVERRIDE="$REMOTE_ROOT" \
+  FM_FAKE_CLONE_HOLD_DIR="$TMP_ROOT" \
+  "$REMOTE_ROOT/bin/fm-remote-home-provision.sh" < "$TMP_ROOT/race.manifest" \
+  > "$TMP_ROOT/race-provision.out" 2>&1 &
+race_provision=$!
+race_wait=0
+while [ ! -f "$TMP_ROOT/race-clone.held" ]; do
+  kill -0 "$race_provision" 2>/dev/null || fail "provision exited before its clone could be held"
+  race_wait=$((race_wait + 1))
+  [ "$race_wait" -le 250 ] || fail "provision clone never reached the held point"
+  sleep 0.02
+done
+rm -rf -- "$TMP_ROOT/raced-home"
+touch "$TMP_ROOT/race-clone.release"
+wait "$race_provision" \
+  || { sed 's/^/race-provision: /' "$TMP_ROOT/race-provision.out"; fail "competing home cleanup reached a live provisioning clone"; }
+[ "$(cat "$TMP_ROOT/raced-home/.fm-secondmate-home")" = race ] \
+  || fail "raced provisioning lost its published home marker"
+if [ "$(git -C "$TMP_ROOT/raced-home" rev-parse --show-toplevel 2>/dev/null)" = "$TMP_ROOT/raced-home" ] \
+  && [ "$(git -C "$TMP_ROOT/raced-home" rev-parse HEAD)" = "$(git -C "$REMOTE_ROOT" rev-parse HEAD)" ] \
+  && git -C "$TMP_ROOT/raced-home" fsck --full --no-progress >/dev/null 2>&1 \
+  && [ -z "$(git -C "$TMP_ROOT/raced-home" status --porcelain)" ] \
+  && cmp -s "$REMOTE_ROOT/AGENTS.md" "$TMP_ROOT/raced-home/AGENTS.md"; then
+  :
+else
+  fail "raced provisioning published an incomplete clone"
+fi
+if find "$TMP_ROOT" -maxdepth 1 -name '.fm-home-provisioning.*' -print -quit | grep -q .; then
+  fail "raced provisioning left staging litter beside the home"
+fi
+pass "competing cleanup of the public home cannot reach a live provisioning clone"
+
+# A home that appears at the public path while the clone is staged must make
+# the provision die without adopting, altering, or nesting into that home.
+rm -f -- "$TMP_ROOT/race-clone.held" "$TMP_ROOT/race-clone.release"
+PATH="$FAKEBIN:$PATH" FM_HOME="$TMP_ROOT/appeared-home" FM_ROOT_OVERRIDE="$REMOTE_ROOT" \
+  FM_FAKE_CLONE_HOLD_DIR="$TMP_ROOT" \
+  "$REMOTE_ROOT/bin/fm-remote-home-provision.sh" < "$TMP_ROOT/race.manifest" \
+  > "$TMP_ROOT/appeared-provision.out" 2>&1 &
+appeared_provision=$!
+race_wait=0
+while [ ! -f "$TMP_ROOT/race-clone.held" ]; do
+  kill -0 "$appeared_provision" 2>/dev/null || fail "appeared-home provision exited before its clone could be held"
+  race_wait=$((race_wait + 1))
+  [ "$race_wait" -le 250 ] || fail "appeared-home provision clone never reached the held point"
+  sleep 0.02
+done
+mkdir "$TMP_ROOT/appeared-home"
+printf 'foreign\n' > "$TMP_ROOT/appeared-home/foreign"
+touch "$TMP_ROOT/race-clone.release"
+if wait "$appeared_provision"; then
+  fail "provision adopted a home that appeared while it was being provisioned"
+fi
+grep -qF "remote home appeared while it was being provisioned" "$TMP_ROOT/appeared-provision.out" \
+  || { sed 's/^/appeared-provision: /' "$TMP_ROOT/appeared-provision.out"; fail "appeared-home provision died for the wrong reason"; }
+[ "$(find "$TMP_ROOT/appeared-home" -mindepth 1 | wc -l | tr -d ' ')" -eq 1 ] \
+  && [ "$(cat "$TMP_ROOT/appeared-home/foreign")" = foreign ] \
+  || fail "provision altered a home that appeared while it was being provisioned"
+if find "$TMP_ROOT" -maxdepth 1 -name '.fm-home-provisioning.*' -print -quit | grep -q .; then
+  fail "appeared-home provisioning left staging litter beside the home"
+fi
+pass "a home that appears mid-provision makes the provision die without touching it"
 if [ "${FM_TEST_PROVISION_ONLY:-0}" = 1 ]; then
   echo "ALL TESTS PASSED"
   exit 0
@@ -1142,9 +1229,11 @@ jq --arg p "$ios_pane" \
   || fail "the agent-free remote pane did not classify dead"
 
 tabs_before=$(grep -c '^tab create' "$HERDR_LOG" || true)
+# exec keeps $! the watcher itself rather than the function's subshell, so a
+# kill reaches the process that probes and writes into the fixture root.
 FM_STATE_OVERRIDE="$WATCH_STATE" FM_SECONDMATE_LIVENESS_SECS=1 FM_POLL=1 \
   FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
-  remote_env "$ROOT/bin/fm-watch.sh" \
+  remote_env exec "$ROOT/bin/fm-watch.sh" \
   > "$TMP_ROOT/watch-liveness.out" 2> "$TMP_ROOT/watch-liveness.err" &
 watch_pid=$!
 watch_wait=0
@@ -1158,6 +1247,7 @@ if kill -0 "$watch_pid" 2>/dev/null; then
 fi
 wait "$watch_pid" \
   || fail "the liveness watcher leg exited non-zero: $(cat "$TMP_ROOT/watch-liveness.err")"
+watch_pid=''
 grep -F 'check: secondmate ios auto-relaunched after remote endpoint dead on its configured host (host=remote-mac)' \
   "$TMP_ROOT/watch-liveness.out" >/dev/null \
   || fail "the dead remote secondmate was not auto-relaunched: $(cat "$TMP_ROOT/watch-liveness.out")"
@@ -1195,16 +1285,53 @@ ssh_before=$(cat "$SSH_COUNT" 2>/dev/null || printf '0')
 FM_FAKE_SSH_MODE=unreachable FM_STATE_OVERRIDE="$WATCH_STATE_UNREACHABLE" \
   FM_SECONDMATE_LIVENESS_SECS=1 FM_POLL=1 FM_SIGNAL_GRACE=0 \
   FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
-  remote_env "$ROOT/bin/fm-watch.sh" \
+  remote_env exec "$ROOT/bin/fm-watch.sh" \
   > "$TMP_ROOT/watch-unreachable.out" 2> "$TMP_ROOT/watch-unreachable.err" &
 watch_pid=$!
-sleep 4
+ssh_after=$ssh_before
+probe_wait=0
+while kill -0 "$watch_pid" 2>/dev/null && [ "$probe_wait" -lt 100 ]; do
+  sleep 0.1
+  probe_wait=$((probe_wait + 1))
+  ssh_now=$(cat "$SSH_COUNT" 2>/dev/null || true)
+  case "$ssh_now" in
+    ''|*[!0-9]*) ;;
+    *) ssh_after=$ssh_now ;;
+  esac
+  [ "$ssh_after" -gt "$ssh_before" ] && break
+done
 kill -0 "$watch_pid" 2>/dev/null \
   || fail "the watcher exited against an unreachable remote secondmate: $(cat "$TMP_ROOT/watch-unreachable.out" "$TMP_ROOT/watch-unreachable.err")"
+[ "$ssh_after" -gt "$ssh_before" ] || fail "the unreachable remote endpoint was never probed"
 kill "$watch_pid" 2>/dev/null || true
 wait "$watch_pid" 2>/dev/null || true
-ssh_after=$(cat "$SSH_COUNT" 2>/dev/null || printf '0')
-[ "$ssh_after" -gt "$ssh_before" ] || fail "the unreachable remote endpoint was never probed"
+watch_pid=''
+settle_wait=0
+stable_wait=0
+while [ "$settle_wait" -lt 100 ] && [ "$stable_wait" -lt 20 ]; do
+  sleep 0.1
+  settle_wait=$((settle_wait + 1))
+  ssh_now=$(cat "$SSH_COUNT" 2>/dev/null || true)
+  case "$ssh_now" in
+    ''|*[!0-9]*) stable_wait=0 ;;
+    "$ssh_after") stable_wait=$((stable_wait + 1)) ;;
+    *) ssh_after=$ssh_now; stable_wait=0 ;;
+  esac
+done
+[ "$stable_wait" -eq 20 ] \
+  || fail "the stopped unreachable watcher kept probing the remote endpoint"
+# A watcher that survives this stop keeps probing into the fixture root until
+# the EXIT trap races its removal, so prove nothing polls past a few cycles.
+touch "$TMP_ROOT/watch-unreachable.stopped"
+stability_wait=0
+while [ "$stability_wait" -lt 30 ]; do
+  sleep 0.1
+  stability_wait=$((stability_wait + 1))
+  [ "$(cat "$SSH_COUNT" 2>/dev/null || printf '0')" = "$ssh_after" ] \
+    || fail "the stopped unreachable watcher kept probing the remote endpoint"
+  [ -z "$(find "$WATCH_STATE_UNREACHABLE" -newer "$TMP_ROOT/watch-unreachable.stopped" -print)" ] \
+    || fail "the stopped unreachable watcher kept writing its state"
+done
 [ ! -s "$WATCH_STATE_UNREACHABLE/.wake-queue" ] \
   || fail "an unreachable remote probe queued a wake: $(cat "$WATCH_STATE_UNREACHABLE/.wake-queue")"
 assert_absent "$WATCH_STATE_UNREACHABLE/.secondmate-relaunch-ios" \

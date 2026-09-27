@@ -90,6 +90,8 @@ function listQueueMetas(state: string): QueueMeta[] | null {
 export interface StateDirectoryScanOptions {
   heartbeat?: boolean;
   afk?: boolean;
+  /** The attended-host rescan, passed into the shared fold (default false). */
+  attendedHost?: boolean;
   cache?: DecisionVerdictCache;
 }
 
@@ -111,6 +113,7 @@ export function scanStateDirectory(state: string, options: StateDirectoryScanOpt
     env: foldVocabularyFromEnv((name) => process.env[name]),
     heartbeat: options.heartbeat ?? false,
     afk: options.afk ?? false,
+    attendedHost: options.attendedHost ?? false,
     cache: options.cache ?? defaultVerdictCache,
   });
 }

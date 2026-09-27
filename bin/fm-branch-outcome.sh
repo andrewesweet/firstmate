@@ -76,6 +76,15 @@
 #     Advance the processed marker after main acknowledged the captain rows
 #     through <seq>; the target itself must be a currently unprocessed captain
 #     row at or below the read cursor.
+#   fm-branch-outcome.sh present
+#     A supervision-host drain's presentation off Pi (bin/fm-wake-drain.sh
+#     "BRANCH OUTCOMES", docs/supervision-host.md "Captain outcomes"): under
+#     the lock, print every unread record and every unprocessed captain record
+#     (raw JSONL, ascending seq, each with an added "unread" boolean). It
+#     moves nothing: off Pi that drain presentation is what the visible entry
+#     is, so the drain runs mark-read once it has presented the rows; it is
+#     the only reader that advances the cursor there. Prints nothing when
+#     nothing is unread or unprocessed.
 #   fm-branch-outcome.sh processed-init [--held-lock]
 #     Rebuild the bounded per-task outcome indexes, then create the processed
 #     marker at the current read cursor when it does not exist yet; validate a
@@ -100,6 +109,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
 . "$SCRIPT_DIR/fm-classify-lib.sh"
+# shellcheck source=bin/fm-lease-lib.sh
+. "$SCRIPT_DIR/fm-lease-lib.sh"
 
 STORE="$STATE/branch-outcomes.jsonl"
 CURSOR="$STATE/.branch-outcomes-cursor"
@@ -111,7 +122,7 @@ OUTCOME_INDEX_MAX_BYTES=512
 OUTCOME_INDEX_READY="$STATE/.branch-outcome-index-ready"
 
 usage() {
-  echo "usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--wake-key <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | processed-init [--held-lock] | list [--recent <n>] | startup-replay" >&2
+  echo "usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--wake-key <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | present | processed-init [--held-lock] | list [--recent <n>] | startup-replay" >&2
   exit 2
 }
 
@@ -537,6 +548,31 @@ case "$CMD" in
     fi
     fm_lock_release "$LOCK"
     ;;
+  present)
+    [ "$#" -eq 0 ] || usage
+    fm_lock_acquire_wait "$LOCK"
+    if ! LAST_SEQ=$(last_seq); then
+      fm_lock_release "$LOCK"
+      echo "error: refusing presentation because the outcome store is malformed or non-sequential" >&2
+      exit 1
+    fi
+    if ! CURSOR_SEQ=$(read_cursor) || ! PROCESSED_SEQ=$(read_processed); then
+      fm_lock_release "$LOCK"
+      exit 1
+    fi
+    if [ "$CURSOR_SEQ" -gt "$LAST_SEQ" ] || [ "$PROCESSED_SEQ" -gt "$CURSOR_SEQ" ]; then
+      fm_lock_release "$LOCK"
+      echo "error: refusing presentation because the outcome cursor or processed marker is out of order" >&2
+      exit 1
+    fi
+    if [ -s "$STORE" ] && ! jq -c --argjson cursor "$CURSOR_SEQ" --argjson processed "$PROCESSED_SEQ" '
+        select(.seq > $cursor or (.verdict == "captain" and .seq > $processed))
+        | . + {unread: (.seq > $cursor)}' "$STORE"; then
+      fm_lock_release "$LOCK"
+      exit 1
+    fi
+    fm_lock_release "$LOCK"
+    ;;
   unprocessed)
     [ "$#" -eq 0 ] || usage
     fm_lock_acquire_wait "$LOCK"
@@ -546,6 +582,7 @@ case "$CMD" in
     exit "$STATUS"
     ;;
   mark-processed)
+    fm_lease_forbid_branch "outcome acknowledgement (fm-branch-outcome mark-processed)"
     [ "${1:-}" = --through ] || usage
     THROUGH=${2:-}
     bounded_uint "$THROUGH" || usage
@@ -590,6 +627,7 @@ case "$CMD" in
     fm_lock_release "$LOCK"
     ;;
   processed-init)
+    fm_lease_forbid_branch "outcome marker initialization (fm-branch-outcome processed-init)"
     HELD_LOCK=0
     if [ "${1:-}" = --held-lock ]; then
       HELD_LOCK=1

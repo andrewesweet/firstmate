@@ -315,6 +315,12 @@ export interface UnreadWakeInputs {
   /** The away collapse (Pi's dispatcher reads the away-posture record): the
    * branch claims check, decision-owned, and heartbeat rows unscoped. */
   afk: boolean;
+  /** The attended-host rescan: an attended host can have accepted a routine
+   * signal before its task gained a main-owned decision, so a signal row is
+   * folded exactly as a stale row is. Absent or false keeps the historical
+   * per-row scan, where a needs-decision payload prefix alone holds a signal
+   * row. */
+  attendedHost?: boolean;
   /** Optional; omit for a pure one-shot scan. */
   cache?: DecisionVerdictCache;
 }
@@ -426,6 +432,17 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
         needsDecisionKeys.push(key);
         needsDecisionTasks.push(task);
         if (!inputs.afk) continue;
+      } else if (inputs.attendedHost && task) {
+        // An attended host can have accepted a routine signal before its
+        // task gained a main-owned decision: fold the status log exactly as
+        // a stale row does, so the offer rule keeps that close on main.
+        const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
+        if (verdict === "torn") return UNSAFE_SCOPE;
+        if (verdict) {
+          needsDecisionKeys.push(key);
+          needsDecisionTasks.push(task);
+          if (!inputs.afk) continue;
+        }
       }
       project = metadata.get(task) ?? "";
     } else if (kind === "stale") {
