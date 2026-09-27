@@ -48,6 +48,9 @@
 # config/supervision-host instead leaves the marker behind and a conflict
 # re-created later is not surfaced again. From the exec on, the arm's own
 # close contract judges the cycle.
+# A mod enabled after the host started is caught by the same rule live:
+# every attended acceptance re-reads the marker and, while it exists, hands
+# the close to main exactly as the plain arm delivers it.
 #
 # THE LOOP. It owns watcher cycles through bin/fm-watch-arm.sh. The posture is
 # the away-posture record state/.afk-contract, read at every close and again

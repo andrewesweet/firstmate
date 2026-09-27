@@ -23,7 +23,7 @@ An arm owner is the component in each primary harness that starts watcher cycles
 The host is opt-in per home through `config/supervision-host`; [configuration.md](configuration.md#supervision-host-configsupervision-host) owns the file.
 Without the file every home behaves exactly as it does without the host.
 Today it runs beside a Claude, Cursor, OpenCode, omp, Grok, or Codex primary: away on all six, and attended on Claude and Cursor, the primaries with a verified [dialog mirror](#the-dialog-mirror).
-The opt-in is mutually exclusive with the Claude Code supervision-branch mod's `state/.branch-mod-mode`: when that file exists the host steps aside to the plain watcher arm and surfaces the conflict once per episode; [claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns the details.
+The opt-in is mutually exclusive with the Claude Code supervision-branch mod's `state/.branch-mod-mode`: when that file exists at startup the host steps aside to the plain watcher arm and surfaces the conflict once per episode, and a mod enabled later stands the host down at every attended acceptance; [claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns the details.
 
 ### Behavior by posture and harness
 
@@ -108,6 +108,7 @@ The host asks the Pi branch's offer rule (`branchOfferForWake`, through `bin/fm-
 So a close reaches main off Pi exactly when it would on Pi: a check trigger, a decision-owned signal or stale trigger, and a scan that is unsafe or holds nothing for the branch stay main's.
 It also passes the close through unchanged, with no added line, when any of these holds (`fm_supervision_host_attended_ready` in `bin/fm-supervision-engine-lib.sh` owns the list):
 
+- The Claude Code supervision-branch mod is enabled (`state/.branch-mod-mode`), including when it is enabled after the host started; see [Mutual exclusion](claude-supervision-branch.md#mutual-exclusion-with-the-supervision-host).
 - The home names no usable engine.
 - A tool its turns need is missing: the engine executable, node, jq, or one of perl, timeout, or gtimeout to bound the turn.
 - The primary has no verified dialog mirror.
