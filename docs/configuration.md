@@ -358,8 +358,8 @@ A home may instead select another tasks-axi adapter such as Beads through its ow
 GitHub issues hold only what needs a repo-scoped, outward-facing home: user-filed bug reports, spec review with maintainers, public planning artifacts, and external-PR deliberation.
 Internal decomposition stays in `tasks-axi`.
 Open a GitHub issue only when someone outside the fleet must read or answer it.
-Cross-reference by recording the issue's full `https://...` URL in the row body or note through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh) (`add --body`, `update --body`, `done --note`).
-`--pr` carries PR URLs only and refuses issue URLs, and the body link survives the done archive.
+Link a row to its GitHub issue by writing `gh:<owner>/<repo>#<n>` in the row body or note through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh) (`add --body`, `update --body`, `done --note`).
+`--pr` is for pull-request URLs only and refuses issue URLs, and the body pointer survives the done archive.
 A GitHub issue body may carry `fleet-task: <task-id>` as a human hint only.
 Task ids are home-local and never join keys across homes.
 Sync direction is GitHub into `tasks-axi`: firstmate reads the issue and mirrors what matters into a row; no script polls GitHub issues for the fleet.

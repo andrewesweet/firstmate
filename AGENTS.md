@@ -578,7 +578,7 @@ When the automatic transition gate applies, dispatch and completion move the ite
 Re-evaluate queued work after every teardown and heartbeat, dispatching items only when dependencies and time gates have cleared.
 `tasks-axi` is the system of record: every fleet work item, decision, dependency, and follow-up lives there.
 GitHub issues hold only what someone outside the fleet must read or answer (user-filed bugs, maintainer deliberation, public planning).
-Link a row to its issue with the issue's full `https://...` URL in the row body or note (`--pr` carries PR URLs only and refuses issue URLs).
+Link a row to its GitHub issue by writing `gh:<owner>/<repo>#<n>` in the row body or note (`--pr` is for pull-request URLs only and refuses issue URLs).
 Information flows from GitHub into `tasks-axi`, never by background two-way sync.
 Workers write to GitHub only when their brief authorizes it.
 `docs/configuration.md` owns the full boundary.
