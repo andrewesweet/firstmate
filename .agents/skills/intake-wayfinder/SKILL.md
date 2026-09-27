@@ -15,6 +15,7 @@ This skill is the single owner of firstmate intake for non-trivial work.
 `AGENTS.md` section 7 carries only the load trigger and the one rule that grilling never goes into a crew or secondmate brief; the rest of this procedure lives here.
 It composes the installed Matt Pocock planning disciplines (`~/.agents/skills/`) with the fleet lifecycle: grill first, then route, then dispatch.
 Nothing here authorizes implementation; maps plan and do not build.
+Every map ticket, spec and ticket slice the fleet works is a tasks-axi row with its blocking edges, because tasks-axi is the fleet's system of record; a GitHub issue is only an additional mirror, used only when someone outside the fleet must read or answer it, and linked from its row.
 
 Read the named Pocock skill files below as files.
 Never brief a worker to run one as a skill: crews follow any discipline only by reading the named file, and firstmate sessions read them natively.
@@ -40,24 +41,21 @@ Grilling is a conversation with the captain and never goes into a crew or second
 ## 3. Route with ask-matt
 
 Read `~/.agents/skills/ask-matt/SKILL.md` and its `PHASE-BOUNDARIES.md` as files and apply their routing, not their publication targets.
-When the effort is foggy and more than one agent session can hold, start with `/wayfinder` (section 4).
-When the grilled idea fits in one session, go straight to `/to-spec` and then `/to-tickets` (section 5).
+That routing picks `/wayfinder` (section 4), `/to-spec`, or `/to-tickets` (section 5), including straight to `/to-tickets` when a usable spec or plan already exists.
 When a runnable question blocks the plan - how a state model feels, which UI direction reads right - take the prototype detour first and fold its verdict back into the thread before speccing.
 Keep grilling, spec, and tickets in one unbroken context where the window allows, so the spec builds on the verbatim reasoning rather than a flattened summary.
 
 ## 4. Wayfinder maps, fleet-adapted
 
-Use a map only when the way from here to the destination is not yet visible and the effort exceeds one session; a well-scoped feature never needs one.
 Name the destination first - the spec, decision, or change this effort is finding its way to - because the destination fixes the scope.
 Read `~/.agents/skills/wayfinder/SKILL.md` as a file for the map shape (destination, notes, decisions-so-far index, not-yet-specified fog, out-of-scope) and the fog rules: ticket what is already sharp even if blocked, park the rest as fog, graduate fog as the frontier advances, and close mis-scoped tickets with a one-line out-of-scope record instead of resolving them.
-Map ticket types to fleet work: `research` becomes a scout (agent-alone, parallel dispatches allowed, resolved by a cited report); `prototype` becomes a prototype scout reviewed with the captain over the existing crew-hosted board loop; `grilling` becomes a captain session with firstmate (never a briefed worker, per section 2); `task` becomes a ship or unblocking chore, the one type that does rather than decides, earning its place only by unblocking a decision.
-Every ticket the fleet works is a tasks-axi row with its blocking edges recorded via tasks-axi block/unblock, so the frontier is simply the open unblocked rows; resolve at most one decision ticket per session, except parallel research scouts at charting time.
-The map lives as tasks-axi rows plus the epic task's note as the index by default, and on GitHub issues only when someone outside the fleet must read or answer it.
+Map ticket types to fleet work: `research` becomes a scout (agent-alone, parallel dispatches allowed, resolved by a cited report); `prototype` becomes a prototype scout reviewed with the captain over the existing crew-hosted board loop; `grilling` becomes a captain session with firstmate (never a briefed worker, per section 2); `task` becomes prerequisite work that unblocks a decision, dispatched as a scout or run as a precise captain checklist when it needs a human, never as a ship.
+Record each ticket's blocking edges so the frontier is simply the open unblocked rows; resolve at most one decision ticket per session, except parallel research scouts at charting time.
+The epic task's note is the map index.
 Maps plan and do not build: a cleared map merges into `/to-spec` and then `/to-tickets` before any implementation is dispatched, and never loops straight into implementation.
 
 ## 5. to-spec and to-tickets publication
 
 Read `~/.agents/skills/to-spec/SKILL.md` for the spec shape (problem, solution, user stories, implementation and testing decisions, out of scope) and `~/.agents/skills/to-tickets/SKILL.md` for the slicing rules (tracer-bullet vertical slices, blocking edges, prefactor first, the expand-contract exception for wide refactors) as files.
-Publish into tasks-axi rows and brief content, not GitHub, unless the slice is outward-facing under the GitHub boundary the brief-shape work owns.
 Present the proposed breakdown to the captain as a numbered list with title, blockers, and end-to-end delivery per ticket, and iterate on granularity, edges, and merges until approved before publishing.
 Work blockers first; any ticket whose blockers are done is takeable.
