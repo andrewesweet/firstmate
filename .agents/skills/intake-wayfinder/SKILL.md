@@ -47,9 +47,10 @@ Their direct-`/implement` branches do not apply at the fleet: after the intervie
 ## 4. Wayfinder maps, fleet-adapted
 
 Name the destination first - the spec, decision, or change this effort is finding its way to - because the destination fixes the scope.
-Read `~/.agents/skills/wayfinder/SKILL.md` as a file for the map shape (destination, notes, decisions-so-far index, not-yet-specified fog, out-of-scope) and the fog rules: ticket what is already sharp even if blocked, park the rest as fog, graduate fog as the frontier advances, and close mis-scoped tickets with a one-line out-of-scope record instead of resolving them.
+Read `~/.agents/skills/wayfinder/SKILL.md` as a file for the map shape (destination, notes, decisions-so-far index, not-yet-specified fog, out-of-scope) and the fog rules: ticket what is already sharp even if blocked, park the rest as fog, and graduate fog as the frontier advances.
+Close a mis-scoped ticket instead of working it: `bin/fm-tasks-axi.sh done <ticket-id> --note 'out of scope: <one line>'`, where that note is the one-line out-of-scope record and closing the row lifts its edge on the map row, so the map still clears; never `rm` a ticket row.
 Map ticket types to fleet work: `research` becomes a scout (agent-alone, parallel dispatches allowed, resolved by a cited report); `prototype` becomes a prototype scout reviewed with the captain over the existing crew-hosted board loop; `grilling` becomes a captain session with firstmate (never a briefed worker, per section 2); `task` becomes prerequisite work that unblocks a decision, dispatched as a scout or run as a precise captain checklist when it needs a human, never as a ship.
-Record each ticket's blocking edges so the frontier is simply the open unblocked rows; never resolve more than one ticket per session, research tickets excepted.
+Record each ticket's blocking edges: the frontier is the map row's own open blocker rows that are themselves unblocked, read from `bin/fm-tasks-axi.sh show <map-id>`, never the backlog-wide `ready` or `queued` list, which also holds unrelated fleet rows; never resolve more than one ticket per session, research tickets excepted.
 The map itself is an ordinary tasks-axi row whose body is the map index and which is blocked by each of its ticket rows, so it clears when its tickets do.
 Maps plan and do not build: a cleared map merges into `/to-spec` and then `/to-tickets` before any implementation is dispatched, and never loops straight into implementation.
 
