@@ -42,10 +42,11 @@
 # Data boundary: subjects are drawn from the worker's own diff only, and paths
 #   whose basename looks secrets-like are never read or sent: .env files,
 #   *secret*, *credential*, *passwd*, *.pem, *.p12, id_rsa*, id_ed25519*, and
-#   *.key. jev_lint_excluded_path is the single owner of that list.
+#   *.key. The `excluded` expression in extract_subjects' flush_file is the
+#   single owner of that list.
 #
-# Record: one JSON object per line in $FM_HOME/data/jev-lint.jsonl
-#   (FM_JEV_LINT_LOG overrides the path for tests). A check line carries ts
+# Record: one JSON object per line in $FM_HOME/data/jev-lint.jsonl, or the
+#   --record path when given. A check line carries ts
 #   (UTC ISO 8601), run_id, kind "check", id "<run_id>-<seq>", rule, cutoff,
 #   file, claim and evidence (the exact subject text sent), probability (or
 #   null on transport failure), flagged, input_tokens, cost_usd, latency_ms,
@@ -87,20 +88,11 @@ usage() {
   ' "$0"
 }
 
-# 0 when the diff path must never be read or sent (credentials, .env files,
-# key material, secrets-like paths), matched on the basename only.
-jev_lint_excluded_path() {  # <path>
-  local base=${1##*/}
-  case "$base" in
-    .env*|*secret*|*credential*|*passwd*|*.pem|*.p12|id_rsa*|id_ed25519*|*.key) return 0 ;;
-  esac
-  return 1
-}
-
 # The record's parent directory alone is created when absent; a failed append
 # prints one stderr line and never changes the outcome.
 record_append() {  # <record-path> <json-line>
-  { mkdir -p "${1%/*}" && printf '%s\n' "$2" >> "$1"; } 2>/dev/null || \
+  case $1 in */*) mkdir -p "${1%/*}" 2>/dev/null || true ;; esac
+  printf '%s\n' "$2" >> "$1" 2>/dev/null || \
     printf 'jev-lint: record unwritable: %s\n' "$1" >&2
   return 0
 }
@@ -177,11 +169,9 @@ extract_subjects() {
     excluded = (base ~ /^\.env/ || base ~ /secret/ || base ~ /credential/ || base ~ /passwd/ || base ~ /\.pem$/ || base ~ /\.p12$/ || base ~ /^id_rsa/ || base ~ /^id_ed25519/ || base ~ /\.key$/)
     if (!excluded) {
       for (i = 1; i <= n; i++) {
-        if (kinds[i] == " " && !is_func(lines[i])) continue
-        if (kinds[i] == "+" && !is_func(lines[i])) continue
         if (!is_func(lines[i])) continue
-        added = 0
-        for (k = i; k <= n && k < i + 12; k++) if (kinds[k] == "+") added = 1
+        added = (kinds[i] == "+")
+        for (k = i + 1; k <= n && !is_func(lines[k]); k++) if (kinds[k] == "+") added = 1
         if (!added) continue
         claim = ""; j = i - 1
         while (j >= 1 && is_comment(lines[j])) { claim = lines[j] (claim == "" ? "" : " " claim); j-- }
@@ -279,12 +269,13 @@ cmd_check() {
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   workdir=$(mktemp -d) || die "mktemp failed"
   trap 'rm -rf "$workdir"' EXIT
-  local seq=0 live=0
+  local seq=0 live=0 checked=0
   while IFS=$'\t' read -r rule file claim ev; do
     seq=$((seq + 1))
     [ "$seq" -gt "$MAX_SUBJECTS" ] && break
     enabled_rules | grep -qx "$rule" || continue
     jev_lint_one "$workdir" "$seq" "$run_id" "$ts" "$record" "$rule" "$file" "$claim" "$ev" "$model" "$rate" &
+    checked=$((checked + 1))
     live=$((live + 1))
     if [ "$live" -ge "$jobs" ]; then wait -n; live=$((live - 1)); fi
   done <<< "$subjects"
@@ -293,7 +284,7 @@ cmd_check() {
   flags=$(grep -c . "$workdir/count" 2>/dev/null || echo 0)
   trap - EXIT
   rm -rf "$workdir"
-  echo "jev-lint: run $run_id: $seq subject(s) checked, $flags finding(s) above (if any) are advisory" >&2
+  echo "jev-lint: run $run_id: $checked subject(s) checked, $flags finding(s) above (if any) are advisory" >&2
   return 0
 }
 
@@ -362,7 +353,6 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim>
 # --- resolve ------------------------------------------------------------------
 cmd_resolve() {
   local id='' verdict='' reason='' record="$RECORD_DEFAULT"
-  [ -n "${FM_JEV_LINT_LOG:-}" ] && record="$FM_JEV_LINT_LOG"
   while [ $# -gt 0 ]; do
     case "$1" in
       --id) [ $# -ge 2 ] || die "--id needs a value"; id=$2; shift 2 ;;
@@ -394,7 +384,6 @@ cmd_resolve() {
 # --- score --------------------------------------------------------------------
 cmd_score() {
   local record="$RECORD_DEFAULT"
-  [ -n "${FM_JEV_LINT_LOG:-}" ] && record="$FM_JEV_LINT_LOG"
   while [ $# -gt 0 ]; do
     case "$1" in
       --record) [ $# -ge 2 ] || die "--record needs a value"; record=$2; shift 2 ;;
