@@ -1,0 +1,2 @@
+{"kind":"monitor.skipped","data":{"why":"session start","mode":false,"lockPid":""}}
+{"kind":"session.start","data":{"cwd":"/home/andre/.no-mistakes/worktrees/c069d3282eb9/01M3GB1B1AM72C0EKGWSTY3SEV","home":"/tmp/fm-lab.JGUoGw","state":"/tmp/fm-lab.JGUoGw/state","enabled":false,"generation":"cc1790484490600","version":"2.1.278","pinSource":"running binary","probe":"2.1.278 (Claude Code)","persistenceOn":true,"persistenceCause":"default"}}

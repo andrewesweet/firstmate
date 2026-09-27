@@ -1,0 +1,41 @@
+# live: real installed Claude Code loading the supervision-branch mod
+2.1.283 (Claude Code)
+
+$ CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin validate --strict .claude/mods/fm-branch-mod
+Validating plugin manifest: /home/andre/.no-mistakes/worktrees/c069d3282eb9/01M3GB1B1AM72C0EKGWSTY3SEV/.claude/mods/fm-branch-mod/.claude-plugin/plugin.json
+
+Validating hooks: /home/andre/.no-mistakes/worktrees/c069d3282eb9/01M3GB1B1AM72C0EKGWSTY3SEV/.claude/mods/fm-branch-mod/hooks/hooks.json
+
+  ❯ ./branch.ts hooks: session.start, turn.start, prompt.submit, tool.call, turn.step, session.compact, turn.complete
+  ❯ ./branch.ts calls: $.agent.list (via deliveryDeps), $.agent.spawn (via deliveryDeps), $.clock.now, $.env.get (via bind, foldVocabulary, transcriptPersistence), $.fs.exists (via modeOn, routerDeps), $.fs.list (via scopeScanDeps), $.fs.read (via classifierDeps, newStatusLinesNote, readConfig, readLockPid, readPassedSeqs, restoreCounters, scopeScanDeps), $.fs.stat (via scopeScanDeps), $.fs.write (via saveCounters, writePassedSeqs), $.model.complete (via classifierDeps), $.process.run (via appendLine, backstopCheck, checkPin, classifierDeps, grant, outcome, routerDeps), $.prompt.submit, $.session.cwd (via ensureBound), $.session.id (via sessionTranscriptId), $.tool.call (via deliveryDeps, monitorDeps), $.tool.register, $.ui.log
+  ❯ ./branch.ts env writes: nothing
+  ❯ ./branch.ts env reads: CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_FORCE_SESSION_PERSISTENCE, FM_CLASSIFY_CAPTAIN_HELD_VERB, FM_CLASSIFY_PAUSED_VERB, FM_CLASSIFY_RESERVED_KEY_PREFIXES, FM_CLASSIFY_RESOLVE_VERB, FM_CONFIG_OVERRIDE, FM_HOME, FM_ROOT_OVERRIDE, FM_STATE_OVERRIDE
+
+✔ Validation passed
+
+$ CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin test .claude/mods/fm-branch-mod
+(pass) classification log > a captain verdict passes the wake to main and writes a covering captain outcome row [62.88ms]
+(pass) classification log > a passed wake main never acknowledged is passed again once the dedupe window has elapsed [69.81ms]
+(pass) classification log > a passed row still queued after a restart goes back to main unclassified, even though its line is HISTORY to the classifier now [76.56ms]
+(pass) classification log > an unsafe scan keeps the durable passed guard, so main still owns the passed rows once the queue reads cleanly again [65.13ms]
+(pass) classification log > a stale row keyed by the task's window resolves to the task id for the offset advance and the cover row [57.41ms]
+(pass) open-decision fold v8 > a done: line closes an open decision for a ship task, so the stale wake is classified instead of passed [55.63ms]
+(pass) open-decision fold v8 > a failed: line closes an open decision for a scout task [72.71ms]
+(pass) open-decision fold v8 > a secondmate's done: line cannot close an open decision [55.78ms]
+(pass) open-decision fold v8 > continuation prose after a captain-held: line does not un-hold the task (latest event, not last line) [48.40ms]
+(pass) open-decision fold v8 > a working: line after a captain-held: line un-holds the task [58.47ms]
+(pass) routine wake > a routine verdict grants the wake and spawns the one persistent branch agent [57.62ms]
+(pass) routine wake > an unresumable branch agent rotates to a fresh named agent instead of re-sending to the dead one [71.24ms]
+(pass) routine wake > a SendMessage denied with the unresumable text also rotates [51.61ms]
+(pass) watcher continuity > a stop-hook wake routed to the branch leaves one armed monitor behind, with no captain prompt ever submitted [72.20ms]
+(pass) watcher continuity > a session start that cannot arm records why in the event log [57.32ms]
+(pass) watcher continuity > a lost expiry notice recovers at the next prompt.submit once the armed claim is older than the monitor timeout [74.68ms]
+(pass) watcher continuity > a restored claim with no recorded arm time is honoured for one monitor lifetime, never expired at once [70.94ms]
+(pass) watcher continuity > a monitor arm that failed recovers at the next prompt.submit, with no expiry notice ever arriving [81.03ms]
+(pass) watcher continuity > a branch-absorbed wake settled with the claim still false arms from the settlement path [85.44ms]
+(pass) provider-error latch > two provider-error turns latch the branch off, latched wakes pass to main, and the cooldown and a clean settlement both recover it [153.99ms]
+(pass) provider-error latch > a failed turn that still reported is a provider error; a report-less stop is also a failure; a healthy report resets [124.91ms]
+
+ 35 pass
+ 0 fail
+Ran 35 tests across 1 file. [7.66s]

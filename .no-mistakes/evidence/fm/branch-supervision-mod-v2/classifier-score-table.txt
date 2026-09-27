@@ -1,0 +1,14 @@
+# live CLI: bin/fm-branch-classifier-score.sh over a classification log
+# t1.status: line 1 routine (working:), line 2 captain-class (done: ... PR)
+# record 2 = a model verdict of routine over the captain line -> a captain miss
+# record 3 = the deterministic truncated-bundle escalation: model field empty, verdict uncertain
+
+$ FM_STATE_OVERRIDE=<lab>/state bin/fm-branch-classifier-score.sh -v
+| model | records | verdict routine / captain / uncertain | captain misses (label captain, verdict routine) | captain caught (captain or uncertain) | spurious escalations (label routine, verdict not routine) | routine granted correctly | unscorable |
+|---|---|---|---|---|---|---|---|
+| claude-haiku-4-5-20251001 | 2 | 2 / 0 / 0 | 1 | 0 | 0 | 1 | 0 |
+| unknown | 1 | 0 / 0 / 1 | 0 | 1 | 0 | 0 | 0 |
+
+### label != verdict
+- record 2 (claude-haiku-4-5-20251001): label captain, verdict routine CAPTAIN MISS: t1,14,56
+- record 3 (unknown): label captain, verdict uncertain: t1,14,56

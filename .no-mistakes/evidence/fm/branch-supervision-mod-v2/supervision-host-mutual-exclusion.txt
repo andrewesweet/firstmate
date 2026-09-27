@@ -1,0 +1,22 @@
+# live CLI: bin/fm-supervision-host.sh mutual exclusion with the mod
+# lab home has BOTH opt-ins: config/supervision-host and state/.branch-mod-mode
+
+$ FM_HOME=<lab> bin/fm-supervision-host.sh park   # run 1
+supervision-host: the Claude Code supervision-branch mod is also enabled (state/.branch-mod-mode), so the host and the mod would consume the same wakes; the host steps aside and this cycle is the ordinary watcher arm
+watcher: FAILED - refusing to arm from a disposable validation checkout: <worktree>/bin
+  (the second line is bin/fm-watch-arm.sh's own output: the exec reached the ordinary watcher arm,
+   which then refuses to arm from this gate worktree - the gate guard, unrelated to the step-aside)
+
+$ FM_HOME=<lab> bin/fm-supervision-host.sh park   # run 2, same episode
+watcher: FAILED - refusing to arm from a disposable validation checkout: <worktree>/bin
+  (no notice: once per episode, guarded by state/.supervision-host-mod-conflict)
+
+$ ls -a <lab>/state | grep conflict
+.supervision-host-mod-conflict
+
+$ rm <lab>/state/.branch-mod-mode   # mod opt-in withdrawn
+$ FM_HOME=<lab> bin/fm-supervision-host.sh park   # run 3: no mod, host does not step aside
+supervision-host stood down: this session does not own supervision
+
+$ ls -a <lab>/state | grep conflict   # marker cleared, so a renewed conflict is surfaced again
+(none)

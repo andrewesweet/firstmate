@@ -1,0 +1,23 @@
+# live e2e run 3 (same command as run 2): the failure point MOVED
+ok - Claude Code 2.1.278 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage
+not ok - no send reached the branch after the gap
+
+## run 3 lab 1: after two wakes the lab watcher stops producing any
+2026-09-27T03:18:30.097Z signal: /tmp/fm-branch-claude-live.PjH0QW/home/state/dummy.status
+2026-09-27T03:18:31.326Z agent.spawn {"model": "sonnet", "name": "fm-branch", "branchGeneration": 1, "result": {"model": "claude-sonnet-5", "agentI
+2026-09-27T03:18:31.337Z wake.delivered {"wakeNo": 1, "seqs": ["1", "2"], "ok": true, "via": "spawn", "detail": "a3b9bf076d9348b2f", "spawnCount": 1, 
+2026-09-27T03:19:13.715Z signal: /tmp/fm-branch-claude-live.PjH0QW/home/state/dummy.status
+2026-09-27T03:19:15.055Z wake.passed {"why": "classifier captain", "reason": "signal: /tmp/fm-branch-claude-live.PjH0QW/home/state/dummy.status", "
+2026-09-27T03:19:36.351Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:19:49.434Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:19:58.724Z agent.send {"to": "fm-branch", "agentId": "a3b9bf076d9348b2f", "sessionId": "002fd355-46ab-4374-9d8e-3eed44aafa77", "send
+2026-09-27T03:19:58.724Z wake.delivered {"wakeNo": 2, "seqs": ["5", "6"], "ok": true, "via": "send", "detail": "a3b9bf076d9348b2f", "spawnCount": 1, "
+2026-09-27T03:20:02.531Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:20:31.389Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:20:44.441Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:20:57.482Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:21:10.349Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:21:23.413Z quiet: watcher: FAILED - cycle ended without an actionable reason
+2026-09-27T03:21:36.377Z quiet: watcher: FAILED - cycle ended without an actionable reason

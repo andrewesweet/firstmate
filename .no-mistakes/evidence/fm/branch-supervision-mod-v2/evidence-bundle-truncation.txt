@@ -1,0 +1,17 @@
+# live CLI: bin/fm-wake-evidence.sh over-cap bundle (log size 6491 bytes, 6000-byte NEW cap)
+$ FM_STATE_OVERRIDE=<lab>/state bin/fm-wake-evidence.sh t9
+## task t9 status bytes 0-5977
+## current state (bin/fm-crew-state.sh t9)
+state: unknown · source: none · no metadata for t9
+
+  working: padding line 134 0123456789012345
+  working: padding line 135 0123456789012345
+  working: padding line 136 0123456789012345
+  working: padding line 137 0123456789012345
+  working: padding line 138 0123456789012345
+## truncated: 514 further bytes of NEW lines are not in this bundle, so this evidence is incomplete
+## earlier lines, already handled by earlier wakes (HISTORY - never escalate these)
+  (none)
+...
+# offset file after the bundle:
+$ cat <lab>/state/.t9.classifier-offset -> 6491  (log size 6491)

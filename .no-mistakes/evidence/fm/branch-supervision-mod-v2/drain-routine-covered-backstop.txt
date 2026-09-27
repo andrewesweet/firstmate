@@ -1,0 +1,13 @@
+# live CLI: the main drain's STATUS OUTCOME BACKSTOP, opt-in gated
+# t2 has a captain-class done: line covered only by a ROUTINE branch outcome
+
+$ FM_STATE_OVERRIDE=<lab>/state bin/fm-wake-drain.sh      # no state/.branch-mod-mode
+BACKSTOP sections: 0
+
+$ touch <lab>/state/.branch-mod-mode
+$ FM_STATE_OVERRIDE=<lab>/state bin/fm-wake-drain.sh      # mod enabled
+STATUS OUTCOME BACKSTOP (captain-facing task event with no covering branch outcome, or covered only by a ROUTINE one):
+t2 done: PR https://example.test/2 checks green (covered by a ROUTINE branch outcome)
+
+$ FM_STATE_OVERRIDE=<lab>/state bin/fm-wake-drain.sh      # again: not re-presented
+re-presented lines: 0
