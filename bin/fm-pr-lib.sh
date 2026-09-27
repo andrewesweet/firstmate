@@ -428,7 +428,7 @@ fm_pr_metadata_reseal() {
   fi
   reseal_mode=$(fm_pr_file_mode "$meta") || { rm -f -- "$tmp"; return 1; }
   chmod "$reseal_mode" "$tmp" || { rm -f -- "$tmp"; return 1; }
-  mv -f -- "$tmp" "$meta"
+  mv -f -- "$tmp" "$meta" || { rm -f -- "$tmp"; return 1; }
 }
 
 # Sidecar layout: provider, url, host, path, number, one per line. A sidecar

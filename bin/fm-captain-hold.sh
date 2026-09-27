@@ -1668,6 +1668,7 @@ reconcile_note() {
 
 command_complete() {
   local origin=${1:-} meta previous='' supplied='' keys='' entry key status_file open has_meta=0 transfer_rc transfers=() resolved
+  local attest_tmp=''
   local resolved_how attested_by_prefix=''
   [ "$#" -ge 2 ] || { usage >&2; exit 2; }
   validate_slug origin-id "$origin"
@@ -1718,11 +1719,19 @@ EOF
 
   if [ "$has_meta" = 1 ]; then
     if [ "$(meta_value "$meta" decisions_reviewed)" != 1 ] || [ "$previous" != "$keys" ]; then
-      printf 'decisions_reviewed=1\ndecision_keys=%s\n' "$keys" >> "$meta"
-      # The attestation above must not strand a pr= block armed by
-      # bin/fm-pr-check.sh mid-record; re-seal it last (bin/fm-pr-lib.sh).
-      fm_pr_metadata_reseal "$meta" \
-        || fail "could not re-seal the task record at $meta"
+      # The attestation must not strand a pr= block armed by
+      # bin/fm-pr-check.sh mid-record; it is staged in a copy, re-sealed there
+      # and published atomically, so a failure anywhere leaves the live record
+      # byte-identical rather than half-appended (bin/fm-pr-lib.sh).
+      attest_tmp=$(mktemp "$STATE/.fm-captain-attest.XXXXXX") \
+        || fail "could not stage the captain-call attestation for $meta"
+      if ! cp -p -- "$meta" "$attest_tmp" \
+         || ! printf 'decisions_reviewed=1\ndecision_keys=%s\n' "$keys" >> "$attest_tmp" \
+         || ! fm_pr_metadata_reseal "$attest_tmp" \
+         || ! mv -f -- "$attest_tmp" "$meta"; then
+        rm -f -- "$attest_tmp"
+        fail "could not record the captain-call attestation at $meta"
+      fi
     fi
     fm_lock_release "$CAPTAIN_META_LOCK"
     CAPTAIN_META_LOCK_HELD=0
