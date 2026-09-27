@@ -303,6 +303,7 @@ Route durable knowledge to its most specific owner:
 
 Firstmate never writes a project's `AGENTS.md` directly.
 A crewmate edits a project's `AGENTS.md` or `CLAUDE.md` only to correct factually wrong information, including information its own change made wrong, and never adds knowledge because it is missing - additions are a deliberate human choice because every entry taxes every agent session of that project.
+The one standing exception is the captain-approved per-repo skill setup owned by `project-management`: on a setup ship task a crewmate may add the setup's `docs/agents/`, `CONTEXT.md`, ADR, and agent-skills pointer-block additions in a new or existing own repository, or on a local fork's default branch only.
 A correction edits only the wrong text and never runs `bin/fm-ensure-agents-md.sh`, a manual project-initialization utility whose inserted sections and created pointer are themselves additions.
 Keep fleet delivery posture and captain-private strategy out of project memory.
 When the captain invokes `/stow`, load the `stow` skill for its memory curation, knowledge routing, and persistence of the open work records this session is holding; it files and corrects only the open work that session is holding, and never reconciles the backlog against repository or PR reality.
