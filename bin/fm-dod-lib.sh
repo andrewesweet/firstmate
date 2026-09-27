@@ -404,7 +404,7 @@ fm_implement_discipline_block() {  # <branch>
   local branch=$1
   cat <<EOF
 Implement by following the discipline at \`~/.agents/skills/implement/SKILL.md\`, read as a file: those skills are user-invoked, so read them instead of invoking them through a Skill tool.
-Test first with the discipline at \`~/.agents/skills/tdd/SKILL.md\` at the seams this brief agrees; where the brief names no seam, test at the public boundary your change introduces, one vertical slice at a time.
+Test first with the discipline at \`~/.agents/skills/tdd/SKILL.md\` at the seams this brief agrees.
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 Then self-review by following both axes at \`~/.agents/skills/code-review/SKILL.md\` - Standards (this repository's documented standards) and Spec (faithful implementation of this brief) - and fix what you find before committing to your \`$branch\` branch.
 Commit to \`$branch\` only: never main, and never push outside this mode's delivery path.
