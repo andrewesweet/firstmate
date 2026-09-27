@@ -1,0 +1,47 @@
+Targeted product-interface evidence
+===================================
+
+Target commit: d295ec33053292a5d86d294e397e2a05d856da2f
+Base commit: 49a218bb1d354929911675c0d1fbdd441715e164
+
+The executable under test was bin/fm-crew-state.sh. Its no-mistakes and tmux
+dependencies used deterministic test doubles, so this evidence is not a fully
+live no-mistakes integration.
+
+SCENARIO: matching explicit no-run verdict
+state: working · source: status-log · implementation continues
+DEPENDENCY CALLS:
+  axi status
+
+The conflicting fixture inventory contained a live same-branch row. The only
+dependency call was `axi status`, proving the authoritative verdict bypassed
+both the overview and runs inventory reads.
+
+SCENARIO: branch mismatch preserves inventory path
+state: working · source: run-step · validating (background run)
+DEPENDENCY CALLS:
+  axi status
+  axi
+  runs --limit 200
+
+The status response named another branch and reported zero runs there. The
+same-branch inventory row was found through the existing inventory path.
+
+FOCUSED REGRESSION TESTS
+ok - runs_on_current_branch: 0 makes a capped overview fall through to crew-state sources
+ok - cross-branch run is attributed via the real runs list
+
+BASE-COMMIT COUNTERFACTUAL
+BASELINE EXIT: 1
+not ok - explicit no-run answer falls through to the current status (missing: 'state: working')
+--- output ---
+state: unknown · source: run-step · complete same-branch run inventory unreadable; run ids:
+
+LIVE INTEGRATION BLOCKER
+The installed no-mistakes CLI is available, but a disposable repository reports:
+
+error: repo not initialized (run 'no-mistakes init' first)
+help[1]: Run `no-mistakes init` to set up the gate in this repository
+
+This assigned phase explicitly forbids `no-mistakes init`, so the two scenarios
+could not be repeated against a real initialized no-mistakes repository.
