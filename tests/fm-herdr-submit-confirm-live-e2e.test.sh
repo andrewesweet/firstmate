@@ -87,23 +87,29 @@ lab pane run "$PANE" "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEN
   || fail "could not launch Claude Code ($VERSION) in the isolated Herdr pane"
 
 idle=0
+trusted=0
 i=0
 while [ "$i" -lt 60 ]; do
   screen=$(lab pane read "$PANE" --source visible 2>/dev/null || true)
   case "$screen" in
-    *'Yes, I trust this folder'*)
-      # A fresh checkout path stops on Claude's folder-trust prompt, which the
-      # pre-send proof would read as a non-empty composer. Accept it and keep
-      # waiting for a real idle composer. The prompt preselects "No, exit", so
-      # move to "Yes" before confirming; a bare Enter quits Claude. Herdr can
-      # report the agent idle while this prompt is still up, so the wait keys
-      # off the rendered screen rather than the native status alone.
-      lab pane send-keys "$PANE" down enter >/dev/null \
-        || fail "could not accept Claude's folder-trust prompt"
-      ;;
     *'bypass permissions on'*)
+      # The composer footer means Claude is past any folder-trust prompt. Herdr
+      # can report the agent idle while that prompt is still up, so the wait
+      # keys off the rendered composer rather than the native status alone.
       st=$(lab agent get "$PANE" 2>/dev/null | jq -r '.result.agent.agent_status // empty')
       case "$st" in idle|done) idle=1; break ;; esac
+      ;;
+    *'Yes, I trust this folder'*)
+      # A fresh checkout path stops on Claude's folder-trust prompt, which the
+      # pre-send proof would read as a non-empty composer. Accept it once and
+      # keep waiting for a real idle composer; the accepted dialog stays in the
+      # viewport. The prompt preselects "No, exit", so move to "Yes" before
+      # confirming; a bare Enter quits Claude.
+      if [ "$trusted" = 0 ]; then
+        trusted=1
+        lab pane send-keys "$PANE" down enter >/dev/null \
+          || fail "could not accept Claude's folder-trust prompt"
+      fi
       ;;
     *)
       # Under a shell that treats herdr's pane run as a bracketed paste the
