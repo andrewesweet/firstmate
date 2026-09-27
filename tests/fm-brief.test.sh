@@ -1083,7 +1083,7 @@ ROWS
 # P2 scout disciplines: a scout brief points reading legwork at the research
 # discipline and design questions at the prototype discipline, both read as
 # files, with the fleet adaptations (report path, throwaway prototype,
-# verdict in the report, Lavish loop for logic prototypes).
+# verdict in the report, Lavish loop when offered).
 test_scout_disciplines_point_at_research_and_prototype() {
   local home brief
   home="$TMP_ROOT/disciplines-home"
