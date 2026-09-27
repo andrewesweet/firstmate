@@ -710,6 +710,7 @@ Ship workers run an advisory self-check after implementation and before no-mista
 Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
 `bin/fm-jev-lint.sh score` reports per-rule cost, latency, and fixed-versus-dismissed rates from the record.
 The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
+Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `KEY`, `TOKEN`, `SECRET` or `PASSWORD` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
 When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check skips silently.
 A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
 Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
