@@ -242,7 +242,11 @@ test_spawn_tmux_and_fakebin() {
   [ -x "$fakebin/gh-axi" ] || fail "extra exit-0 tools should land in the spawn fakebin"
   "$fakebin/treehouse" get
   expect_code 0 $? "fake treehouse should exit 0"
-  pass "spawn fakebin answers pane path, logs -l payloads, and installs extra tools"
+  out=$(FM_FAKE_PANE_PATH=/tmp/wt "$fakebin/treehouse" get --lease --lease-holder probe-id)
+  [ "$out" = /tmp/wt ] || fail "fake treehouse get --lease should print the pane path, got '$out'"
+  out=$(unset FM_FAKE_PANE_PATH; "$fakebin/treehouse" return --force /tmp/wt)
+  expect_code 0 $? "fake treehouse return should exit 0"
+  pass "spawn fakebin answers pane path, leases the pane path, logs -l payloads, and installs extra tools"
 }
 
 test_send_stubs_and_ssh() {

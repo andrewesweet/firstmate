@@ -851,7 +851,22 @@ esac
 exit 0
 SH
   chmod +x "$fb/tmux"
-  fm_fake_exit0 "$fb" treehouse
+  # Lease-aware treehouse answering the baked worktree path: spawn leases its
+  # copy with `get --lease` and the pane stub above reports that same path.
+  cat > "$fb/treehouse" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = get ]; then
+  for a in "\$@"; do
+    if [ "\$a" = --lease ]; then
+      printf '%s\n' "$wt"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fb/treehouse"
   printf '%s\n' "$fb"
 }
 
@@ -923,7 +938,22 @@ esac
 exit 0
 SH
   chmod +x "$fb/tmux"
-  fm_fake_exit0 "$fb" treehouse
+  # Lease-aware treehouse answering the baked worktree path: spawn leases its
+  # copy with `get --lease` before the pane stub above settles there.
+  cat > "$fb/treehouse" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = get ]; then
+  for a in "\$@"; do
+    if [ "\$a" = --lease ]; then
+      printf '%s\n' "$wt"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fb/treehouse"
   printf '%s\n' "$fb"
 }
 

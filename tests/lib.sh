@@ -414,6 +414,30 @@ SH
   done
 }
 
+# fm_test_fake_treehouse_lease <fakebin>
+# Spawn-world treehouse: `get --lease` durably leases a copy by printing the
+# path the pane is about to land in (FM_FAKE_PANE_PATH, mirroring the pane
+# settling there), while every other invocation succeeds silently. Suites that
+# need real pool semantics (refusing a leased slot, freeing it on return)
+# layer their own fake on top of this contract.
+fm_test_fake_treehouse_lease() {
+  local fakebin=$1
+  cat > "$fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = get ]; then
+  for a in "$@"; do
+    if [ "$a" = --lease ]; then
+      printf '%s\n' "${FM_FAKE_PANE_PATH:-}"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fakebin/treehouse"
+}
+
 # fm_fake_crash_injector <fakebin>
 # Drops an `fm-crash-inject <pid>` shim that a PATH fake calls to simulate a
 # hard crash of the process under test. It SIGKILLs <pid> and then returns only
