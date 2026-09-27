@@ -555,6 +555,11 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
+      cat <<EOF
+After implementation and before starting validation, run the advisory self-check \`bin/fm-jev-lint.sh check\` from the repo root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with \`bin/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+EOF
       fm_nm_implement_ordering_block
       cat <<EOF
 
