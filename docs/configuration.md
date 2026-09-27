@@ -625,6 +625,12 @@ The [`firstmate-coding-guidelines` skill](../.agents/skills/firstmate-coding-gui
 `commands.test` executes code, so no-mistakes honors it only from the default-branch copy of `.no-mistakes.yaml`; a pushed branch cannot change what the gate runs.
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for the firstmate-specific local test policy and entry points.
 
+`review.path_instructions` applies one rule to every changed path (`**`): the Review step reviews on two separate axes, a standards axis against the repository's documented standards and a specification axis against the run's intent, prefixing each finding description with `Standards:` or `Spec:` and never merging or reranking findings across the two.
+Severity handling and the finding format no-mistakes requires are unchanged.
+The rule is a pointer, not a second copy of the discipline: the review agent reads `~/.agents/skills/code-review/SKILL.md` as a file, which is why the instruction names the machine-wide absolute path rather than a repo-relative one - gate agents run under `disable_project_settings`, so no project skill resolves for them, and on a host without that skill installed the axes fall back to the instruction text alone.
+Where the repository documents no standard, the skill's code-smell baseline is a judgement call only; a documented repository standard always overrides it.
+Being trusted configuration, this too is honored only from the default-branch copy.
+
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.
 
 ## Captain Preferences (data/captain.md / data/captain-shared.md)
