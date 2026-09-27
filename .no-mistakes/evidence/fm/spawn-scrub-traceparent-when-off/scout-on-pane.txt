@@ -1,0 +1,124 @@
+treehouse get
+
+fm-proj.ZAybnd on  master ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443
+/andrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.treehouse/fm-proj.ZAybnd-9d0015/3/fm-proj.ZAybnd. Type
+ 'exit' to return.
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export GOTMPDIR=/tmp/fm-sc-probe-3/gotmp
+export COMPACT_ADVISER_DISABLE=1
+export FM_TASK_ID=sc-probe-3
+export TRACEPARENT=00-2c8811365cb96ae16d533a3bd2077ecf-5d95a2c1a39f2094-01
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export COMPACT_ADVISER_DISABLE=1
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export FM_TASK_ID=sc-probe-3
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export TRACEPARENT=00-2c8811365cb96ae16d533a3bd2077ecf-5d95a2c1a39f2094-
+01
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  . '/tmp/fm-sc-probe-3+143ece9fe38955195a72ac3c03c58cdb5359e65c4bd7f7f9bc
+31b1c455624379/launch.s1790509792.180329.29464.sh'
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Opus 5.5 (1M context) with high effort · Claude Max
+ ▝▝   ▝▝   ~/.treehouse/fm-proj.ZAybnd-9d0015/3/fm-proj.ZAybnd
+▝▜██████▀  Opus 5.5 (1M context) with high effort · Claude Max
+ ▝▝   ▝▝   ~/.treehouse/fm-proj.ZAybnd-9d0015/3/fm-proj.ZAybnd
+
+⚠ Your login expires in 1 day · run /login to renew
+
+❯ : Firstmate operational input waiting: read
+  '/tmp/fm-lab.IJt5Yo/state/operational-inbox/1790509792-4319554c0276ec3b.msg'
+  and handle its contents as Firstmate operational input.
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(echo "TRACEPARENT=${TRACEPARENT-<unset>}"; env | grep -i -E
+      '^(traceparent|tracestate|otel_)' || echo "(no trace-related env vars)";
+      echo ---; cat /tmp/fm-lab.I…)
+  ⎿  Error: Exit code 1
+     TRACEPARENT=00-801fe772cba3d4fb05eef85bb9da6ce7-840a6aec40fc0cb9-01
+     TRACEPARENT=00-801fe772cba3d4fb05eef85bb9da6ce7-840a6aec40fc0cb9-01
+     ---
+     cat: /tmp/fm-lab.IJt5Yo/state/sc-probe-3.inbox: No such file or directory
+
+● Bash(p=$$; while [ "$p" -gt 1 ]; do c=$(tr -d '\0' </proc/$p/comm
+      2>/dev/null); t=$(tr '\0' '\n' </proc/$p/environ 2>/dev/null | grep
+      '^TRACEPARENT=' || echo 'TRACEP…)
+  ⎿  191013 bash: TRACEPARENT=00-801fe772cba3d4fb05eef85bb9da6ce7-086f43079
+     efd40e8-01
+     183430 claude: TRACEPARENT=00-2c8811365cb96ae16d533a3bd2077ecf-5d95a2c
+     … +10 lines (ctrl+o to expand)
+
+● The worker process received
+  TRACEPARENT=00-801fe772cba3d4fb05eef85bb9da6ce7-840a6aec40fc0cb9-01.
+
+  A second probe got the same trace ID (801fe772…) with a different span ID
+  (086f4307…). So Claude Code sets a new span as the parent of each tool call.
+
+  TRACEPARENT seen by each process, from the tool shell up to the tmux server
+  (read from /proc/<pid>/environ):
+
+  ┌───────┬──────────┬─────────────────────────────────────────────────────┐
+  │  pid  │ process  │                     TRACEPARENT                     │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 19101 │ bash     │ 00-801fe772cba3d4fb05eef85bb9da6ce7-086f43079efd40e │
+  │ 3     │ (tool    │ 8-01                                                │
+  │       │ shell)   │                                                     │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 18343 │ claude   │ 00-2c8811365cb96ae16d533a3bd2077ecf-5d95a2c1a39f209 │
+  │ 0     │          │ 4-01                                                │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 18143 │ bash     │ 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b │
+  │ 9     │          │ 7-01                                                │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 18141 │ treehous │ same as 181439                                      │
+  │ 4     │ e        │                                                     │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 18098 │ bash     │ same as 181439                                      │
+  │ 0     │          │                                                     │
+  ├───────┼──────────┼─────────────────────────────────────────────────────┤
+  │ 18088 │ tmux     │ same as 181439                                      │
+  │ 1     │ server   │                                                     │
+  └───────┴──────────┴─────────────────────────────────────────────────────┘
+
+  - Inherited carrier: the tmux server, treehouse and launch shell all carry
+    4bf92f35…-00f067aa…. That is the example value from the W3C Trace Context
+    spec, so it looks like a planted sentinel. Each process passed it on
+    unchanged.
+  - Claude process: it started with its own trace ID (2c881136…), not the
+    inherited one. So the sentinel's trace ID never reached the worker's tools.
+  - Tool shells: each call got trace 801fe772…, a third trace ID, set by Claude
+    Code.
+  - Other trace variables: none. The shell has no TRACESTATE or OTEL_*
+    variables.
+  - Steering inbox: /tmp/fm-lab.IJt5Yo/state/sc-probe-3.inbox does not exist, so
+    there were no steering messages to read or acknowledge.
+
+  No files were changed.
+
+✻ Cooked for 24s · done 12:50 PM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                          /rc
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+
+

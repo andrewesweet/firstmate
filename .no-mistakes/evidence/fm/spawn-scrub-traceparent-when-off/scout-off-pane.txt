@@ -1,0 +1,89 @@
+treehouse get
+
+fm-proj.ZAybnd on  master ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443
+/andrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.treehouse/fm-proj.ZAybnd-9d0015/1/fm-proj.ZAybnd. Type
+ 'exit' to return.
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export GOTMPDIR=/tmp/fm-sc-probe-1/gotmp
+export COMPACT_ADVISER_DISABLE=1
+export FM_TASK_ID=sc-probe-1
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export COMPACT_ADVISER_DISABLE=1
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  export FM_TASK_ID=sc-probe-1
+
+fm-proj.ZAybnd on  HEAD ⎈ default/api-dbhackathon-swedencentral-aroapp-io:6443/a
+ndrew.sweet@dbaihackathon2026outlook.onmicrosoft.com
+(ins)I  . '/tmp/fm-sc-probe-1+52e79b94e4cbd330fb6e401a7943d70dd8495148ee6cc8631f
+a7554916b514aa/launch.s1790509609.22063.8667.sh'
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Opus 5.5 (1M context) with high effort · Claude Max
+ ▝▝   ▝▝   ~/.treehouse/fm-proj.ZAybnd-9d0015/1/fm-proj.ZAybnd
+▝▜██████▀  Opus 5.5 (1M context) with high effort · Claude Max
+ ▝▝   ▝▝   ~/.treehouse/fm-proj.ZAybnd-9d0015/1/fm-proj.ZAybnd
+
+⚠ Your login expires in 1 day · run /login to renew
+
+❯ : Firstmate operational input waiting: read
+  '/tmp/fm-lab.zxiXlV/state/operational-inbox/1790509610-d597d65f12c5da7f.msg'
+  and handle its contents as Firstmate operational input.
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(printf 'TRACEPARENT=%s\n' "${TRACEPARENT-<unset>}"; env | grep -i -E
+      '^(TRACEPARENT|TRACESTATE|OTEL_)' ; echo ---; cat
+      /tmp/fm-lab.zxiXlV/state/sc-probe-1.inbox…)
+  ⎿  Error: Exit code 1
+     TRACEPARENT=00-80bc342ab1d4a04bc3184a4366d5a46d-9649f87e5de0f25c-01
+     TRACEPARENT=00-80bc342ab1d4a04bc3184a4366d5a46d-9649f87e5de0f25c-01
+     ---
+     cat: /tmp/fm-lab.zxiXlV/state/sc-probe-1.inbox: No such file or directory
+
+● Bash(p=$$; while [ "$p" -gt 1 ]; do c=$(tr '\0' ' ' </proc/$p/cmdline
+      2>/dev/null | cut -c1-80); t=$(tr '\0' '\n' </proc/$p/environ 2>/dev/null
+      | grep '^TRACEPARENT=…)
+  ⎿  36985 | /bin/bash -c source /home/andre/.claude/shell-snapshots/snapsh
+     ot-bash-1790509617 | TRACEPARENT=00-80bc342ab1d4a04bc3184a4366d5a46d-0
+     642c1699cdebadc-01
+     … +12 lines (ctrl+o to expand)
+
+● Probe done. Result:
+
+  - Worker process (claude, PID 29260): TRACEPARENT unset. Checked in
+    /proc/29260/environ, which holds the environment the process got at exec.
+  - Launch chain carried an inherited carrier:
+    00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01. It was present in
+    tmux firstmate (23244), -bash (23424), treehouse get (24085) and /bin/bash
+    (24300). This value is the W3C spec example trace ID. The launch step from
+    bash 24300 to claude dropped it, so the worker did not inherit it.
+  - Bash tool subprocesses do get a TRACEPARENT, but Claude Code generates it
+    itself: trace 80bc342ab1d4a04bc3184a4366d5a46d, with a new span ID for each
+    command (9649f87e5de0f25c, then 0642c1699cdebadc), flags 01. It is not
+    connected to the inherited trace.
+  - Steering inbox missing: /tmp/fm-lab.zxiXlV/state/sc-probe-1.inbox does not
+    exist, so there were no messages to acknowledge.
+
+  No files were changed.
+
+✻ Baked for 22s · done 12:47 PM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                          /rc
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+
+
