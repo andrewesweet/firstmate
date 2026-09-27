@@ -33,11 +33,10 @@ Name modules with the project's domain words, not implementation handles.
 Read `~/.agents/skills/domain-modeling/SKILL.md` as a file and work it as the active discipline, with the focus on establishing the domain model and refactoring toward it in its own language.
 Challenge terms against the project's glossary the moment they conflict, sharpen fuzzy words into canonical terms, stress-test relationships with invented edge scenarios, and cross-reference claims against the code, surfacing contradictions as questions.
 Propose refactorings that move the code toward the model: each proposal names the domain term it serves and the seam it deepens, in the vocabulary of section 1.
-Intake grilling already sharpens language before dispatch; this skill owns the same discipline once design is under way (`intake-wayfinder` owns intake).
 
 ## 3. Design scouts
 
-A design scout is briefed, never grilled: its Firstmate spec names the design question, points at the two files above as read-as-file, and asks for the vocabulary-judged options plus the domain terms each option serves.
+A design scout is briefed: its Firstmate spec names the design question, points at the two files above as read-as-file, and asks for the vocabulary-judged options plus the domain terms each option serves.
 The scout's verdict, proposed terms, and proposed refactorings land in `data/<id>/report.md`, never in the project.
 
 ## 4. Retrospectives
