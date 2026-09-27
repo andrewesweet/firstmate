@@ -425,7 +425,7 @@ fm_pr_metadata_reseal() {
     { rest = rest $0 "\n" }
     END { printf "%s%s%s", rest, pr, head }
   ' "$meta" > "$tmp"; then
-    rm -f -- "$tmp"
+    rm -f -- "$tmp" || true
     return 1
   fi
   reseal_mode=$(fm_pr_file_mode "$meta") || { rm -f -- "$tmp"; return 1; }

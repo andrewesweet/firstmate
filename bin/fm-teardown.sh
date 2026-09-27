@@ -480,7 +480,7 @@ teardown_release_locks() {
     TREEHOUSE_PROJECT_LOCK_HELD=0
   fi
   if [ -n "${TEARDOWN_LEGACY_PRESTAMP_COPY:-}" ]; then
-    rm -f -- "$TEARDOWN_LEGACY_PRESTAMP_COPY"
+    rm -f -- "$TEARDOWN_LEGACY_PRESTAMP_COPY" || true
     TEARDOWN_LEGACY_PRESTAMP_COPY=
   fi
   fm_lease_guard_release || true
@@ -3536,7 +3536,7 @@ teardown_legacy_stamp_rollback() {
   restore=$(mktemp "$STATE/.fm-teardown-rollback.XXXXXX") || return 1
   if ! cp -p -- "$TEARDOWN_LEGACY_PRESTAMP_COPY" "$restore" \
      || ! fm_backlog_atomic_transition publish "$restore" "$META" "task record" "$STATE"; then
-    rm -f -- "$restore"
+    rm -f -- "$restore" || true
     return 1
   fi
 }
