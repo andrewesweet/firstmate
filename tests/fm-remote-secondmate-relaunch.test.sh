@@ -87,9 +87,11 @@ case "$FM_FAKE_RELAUNCH_MODE" in
     printf '%s\n' "$harness" > "$FM_FAKE_RACE_DIR/endpoint"
     : > "$FM_FAKE_RACE_DIR/$harness-mutated"
     if [ "$harness" = claude ]; then
-      deadline=$((SECONDS + ${FM_TEST_STUB_MAX_BLOCK_SECONDS:-120}))
-      while [ ! -e "$FM_FAKE_RACE_DIR/release-claude" ] && [ "$SECONDS" -lt "$deadline" ]; do
+      i=0
+      max_polls=$((${FM_TEST_STUB_MAX_BLOCK_SECONDS:-120} * 100))
+      while [ ! -e "$FM_FAKE_RACE_DIR/release-claude" ] && [ "$i" -lt "$max_polls" ]; do
         sleep 0.01
+        i=$((i + 1))
       done
       [ -e "$FM_FAKE_RACE_DIR/release-claude" ] || exit 95
     fi
@@ -123,20 +125,22 @@ run_relaunch() {  # <args...>
 }
 
 wait_for_process_path() {  # <path> <pid>
-  local path=$1 pid=$2 deadline
-  deadline=$((SECONDS + FM_TEST_STUB_MAX_BLOCK_SECONDS))
-  while [ ! -e "$path" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do
+  local path=$1 pid=$2 polls=0 max_polls
+  max_polls=$((FM_TEST_STUB_MAX_BLOCK_SECONDS * 100))
+  while [ ! -e "$path" ] && kill -0 "$pid" 2>/dev/null && [ "$polls" -lt "$max_polls" ]; do
     "$REAL_SLEEP" 0.01
+    polls=$((polls + 1))
   done
   [ -e "$path" ]
 }
 
 wait_for_process_line() {  # <line> <file> <pid>
-  local line=$1 file=$2 pid=$3 deadline
-  deadline=$((SECONDS + FM_TEST_STUB_MAX_BLOCK_SECONDS))
+  local line=$1 file=$2 pid=$3 polls=0 max_polls
+  max_polls=$((FM_TEST_STUB_MAX_BLOCK_SECONDS * 100))
   while ! grep -Fx -- "$line" "$file" >/dev/null 2>&1 \
-    && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do
+    && kill -0 "$pid" 2>/dev/null && [ "$polls" -lt "$max_polls" ]; do
     "$REAL_SLEEP" 0.01
+    polls=$((polls + 1))
   done
   grep -Fx -- "$line" "$file" >/dev/null 2>&1
 }
