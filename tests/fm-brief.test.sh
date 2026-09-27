@@ -1102,8 +1102,6 @@ test_scout_disciplines_point_at_research_and_prototype() {
     "scout brief did not tell the crew to read the disciplines as files"
   assert_grep "never into the project" "$brief" \
     "scout brief did not keep findings out of the project checkout"
-  assert_grep "never let prototype code enter a ship branch" "$brief" \
-    "scout brief did not keep prototype code out of the ship branch"
   assert_grep "record the verdict in the report" "$brief" \
     "scout brief did not keep the prototype verdict in the report"
   pass "fm-brief.sh: scout brief routes reading legwork and design questions to their disciplines"

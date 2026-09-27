@@ -32,10 +32,10 @@
 #   `~/.agents/skills/<name>/SKILL.md` rather than invoked as a skill, with the
 #   fleet adaptations the scout contract needs: findings and the prototype's
 #   verdict go in the report rather than into the project, and a prototype stays
-#   throwaway and never enters a ship branch. These two are the only skills a
-#   scaffold cites from the crewmate's home instead of this repo, so a home
-#   without them leaves the scout without that guidance; the disciplines are
-#   deliberately installed rather than vendored here.
+#   throwaway. These two are the only skills a scaffold cites from the
+#   crewmate's home instead of this repo, so a home without them leaves the
+#   scout without that guidance; the disciplines are deliberately installed
+#   rather than vendored here.
 #   --secondmate writes a persistent secondmate charter. The project list
 #   is cloned into the secondmate home, while the natural-language scope
 #   tells the main firstmate when to route work there; routine churn stays in its own home;
@@ -608,7 +608,7 @@ $INBOX_SECTION
 
 # Disciplines
 For reading legwork, follow the research discipline: read \`~/.agents/skills/research/SKILL.md\` as a file (do not invoke it), investigate against primary sources, cite each claim's source, and write findings to the report path below, never into the project.
-For a design question, follow the prototype discipline: read \`~/.agents/skills/prototype/SKILL.md\` as a file (do not invoke it), pick its LOGIC vs UI branch for the question, keep the prototype throwaway and trivial to run with no persistence or polish, never let prototype code enter a ship branch, record the verdict in the report with the prototype as a primary source, and use the Lavish review loop below for a logic prototype when it is offered.
+For a design question, follow the prototype discipline: read \`~/.agents/skills/prototype/SKILL.md\` as a file (do not invoke it), pick its LOGIC vs UI branch for the question, keep the prototype throwaway and trivial to run with no persistence or polish, record the verdict in the report with the prototype as a primary source, and use the Lavish review loop below for a logic prototype when it is offered.
 
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
