@@ -623,9 +623,9 @@ test_active_dispatch_profile_allows_raw_launch_command() {
   assert_meta_profile "$HOME_DIR/state/$id.meta" custom-agent default default
   launch=$(cat "$LAUNCH_LOG")
   # The unverified-adapter escape hatch is still an agent this fleet launched,
-  # so it carries the trace scrub and the AI-trailer strip; nothing
-  # else may rewrite the captain's own command.
-  [ "$launch" = "unset TRACEPARENT; $(ai_trailer_hooks_prefix "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
+  # so it carries the trace scrub, the AI-trailer strip, and the
+  # compact-adviser kill switch; nothing else may rewrite the captain's command.
+  [ "$launch" = "unset TRACEPARENT; export COMPACT_ADVISER_DISABLE=1; $(ai_trailer_hooks_prefix "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
   pass "active crew-dispatch profile allows the raw launch-command escape hatch"
 }
 
@@ -1833,6 +1833,9 @@ SH
 # absent-file byte-for-byte cases above pin that absence changes nothing.
 claude_launch_brief_arg() {  # <launch>
   local command=${1#*; }
+  # The compact-adviser kill switch rides between the trace scrub and the
+  # hooks prefix on every launch except a function-hooks claude launch.
+  command=${command#export COMPACT_ADVISER_DISABLE=1; }
   (
     eval "set -- ${command#*; }"
     eval "printf '%s' \"\${$#}\""
@@ -1840,12 +1843,15 @@ claude_launch_brief_arg() {  # <launch>
 }
 
 claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [hooks-env-prefix]
-  local doorbell quoted hooks_prefix=${5:-}
+  local doorbell quoted hooks_prefix=${5:-} adviser_prefix=
+  # The compact-adviser kill switch rides every claude launch except one on
+  # the function-hooks path, where the adviser stays in auto.
+  [ -n "$hooks_prefix" ] || adviser_prefix="export COMPACT_ADVISER_DISABLE=1; "
   doorbell=$(claude_launch_brief_arg "$1")
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "unset TRACEPARENT; $(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY ${hooks_prefix}CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "unset TRACEPARENT; ${adviser_prefix}$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY ${hooks_prefix}CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
@@ -2019,5 +2025,52 @@ test_claude_long_launch_is_delivered_intact
 test_claude_crewmate_launch_carries_the_attribution_policy
 test_claude_secondmate_launch_carries_the_attribution_policy
 test_active_dispatch_profile_does_not_block_secondmate_launch
+
+test_compact_adviser_disabled_for_pi_launch() {
+  local rec id out status launch
+  id=profile-compact-adviser-pi-z99
+  rec=$(make_spawn_case profile-compact-adviser-pi pi "$id")
+  read_case_record "$rec"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "pi spawn should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "COMPACT_ADVISER_DISABLE=1" \
+    "pi launch did not carry the upstream compact-adviser kill switch"
+  pass "non-claude launches disable the compact adviser"
+}
+
+test_compact_adviser_disabled_for_claude_without_hooks() {
+  local rec id out status launch
+  id=profile-compact-adviser-claude-z99
+  rec=$(make_spawn_case profile-compact-adviser-claude claude "$id")
+  read_case_record "$rec"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn without function hooks should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "COMPACT_ADVISER_DISABLE=1" \
+    "claude launch without function hooks did not carry the kill switch"
+  pass "claude launches without function hooks disable the compact adviser"
+}
+
+test_compact_adviser_enabled_for_claude_with_function_hooks() {
+  local rec id out status launch
+  id=profile-compact-adviser-hooks-z99
+  rec=$(make_spawn_case profile-compact-adviser-hooks claude "$id")
+  read_case_record "$rec"
+  printf 'content is ignored\n' > "$HOME_DIR/config/claude-function-hooks"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn with function hooks should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_not_contains "$launch" "COMPACT_ADVISER_DISABLE" \
+    "claude launch on the function-hooks path must leave the adviser in auto"
+  pass "claude launches with function hooks keep the compact adviser in auto"
+}
+
+test_compact_adviser_disabled_for_pi_launch
+test_compact_adviser_disabled_for_claude_without_hooks
+test_compact_adviser_enabled_for_claude_with_function_hooks
 
 echo "# all fm-spawn-dispatch-profile tests passed"

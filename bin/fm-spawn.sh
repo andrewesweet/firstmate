@@ -5264,6 +5264,11 @@ LAUNCH="export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VAL
 if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
   LAUNCH="export LAVISH_AXI_HOST=$(shell_quote "$LAVISH_AXI_HOST"); $LAUNCH"
 fi
+# Upstream compact-adviser kill switch: the adviser stays disabled on every
+# launch except a Claude worker on the function-hooks path, where it runs auto.
+if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
+  LAUNCH="export COMPACT_ADVISER_DISABLE=1; $LAUNCH"
+fi
 if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
   LAUNCH="unset TRACEPARENT; $LAUNCH"
 fi
@@ -5310,6 +5315,12 @@ spawn_record_traceparent() {
 # delivery, so it spans the whole delivery including the readiness waits.
 SPAWN_SPAN_START=$(fm_timing_now_ms)
 spawn_send_text_line "$T" "export GOTMPDIR=$TASK_TMP/gotmp"
+# Export the compact-adviser kill switch into the pane shell through the same
+# pre-launch channel, so later commands in that shell inherit it too. Omitted
+# only for a Claude worker on the function-hooks path, where the adviser runs.
+if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
+  spawn_send_text_line "$T" "export COMPACT_ADVISER_DISABLE=1"
+fi
 if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
   spawn_send_text_line "$T" "export LAVISH_AXI_HOST=$(shell_quote "$LAVISH_AXI_HOST")"
 fi
@@ -5373,7 +5384,7 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     TMPDIR TMP TEMP GOTMPDIR TMUX TMUX_PANE HERDR_ENV HERDR_SESSION HERDR_SOCKET_PATH \
     HERDR_PANE_ID CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID \
     CMUX_SOCKET_PATH ZELLIJ ZELLIJ_SESSION_NAME ZELLIJ_PANE_ID FM_ZELLIJ_SESSION \
-    FM_TASK_ID LAVISH_AXI_HOST \
+    FM_TASK_ID COMPACT_ADVISER_DISABLE LAVISH_AXI_HOST \
     $LAUNCH_ENV_NAMES; do
     # Only validated names enter shell syntax. Values expand once, quoted, in
     # the pane shell and never become source text or spawn-process snapshots.
@@ -5381,6 +5392,11 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     printf -v env_arg '${%s+"%s=$%s"}' "$env_name" "$env_name" "$env_name"
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX $env_arg"
   done
+  # Pin the kill switch at the cleared-environment boundary too, except for a
+  # Claude worker on the function-hooks path where the adviser stays enabled.
+  if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
+    LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX COMPACT_ADVISER_DISABLE=1"
+  fi
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
