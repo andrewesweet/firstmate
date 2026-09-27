@@ -51,8 +51,9 @@
 #                       isolated so one task's read can never abort the
 #                       digest: read-only, always runs. The per-task reads
 #                       run serially, so with a wedged backend the stage's
-#                       ceiling is tasks x the fixed 10s per-read bound
-#                       and can itself reach the digest's runtime bound.
+#                       ceiling is tasks x the per-read bound
+#                       (FM_SESSION_START_ENDPOINT_TIMEOUT, default 10s) and
+#                       can itself reach the digest's runtime bound.
 #   7. network checks - the result of the deferred network stage started back at
 #                       step 1, harvested WITHOUT waiting for it.
 #   8. context digest - data/projects.md, data/secondmates.md, data/captain.md,
@@ -177,9 +178,9 @@
 # first turn behind one hung subprocess. Every remaining step is local, but
 # local is not the same as bounded: tool version probes and the backlog
 # listing are unbounded subprocesses, while each per-task endpoint read runs
-# in its own crash-isolated child under a fixed 10s bound. So the whole
-# digest still runs as ONE bounded child of this script
-# (FM_SESSION_START_TIMEOUT, default 120s). The deferred network stage
+# in its own crash-isolated child under FM_SESSION_START_ENDPOINT_TIMEOUT
+# (default 10s). So the whole digest still runs as ONE bounded child of this
+# script (FM_SESSION_START_TIMEOUT, default 120s). The deferred network stage
 # deliberately sits OUTSIDE that bound,
 # in its own process group under its own aggregate deadline, so a truncated
 # digest neither waits for it nor orphans it unbounded. The
@@ -288,7 +289,8 @@ if [ -z "${FM_SESSION_START_STAGE_FILE:-}" ]; then
   # A non-positive or non-numeric budget is not a budget (`timeout 0` disables
   # the deadline outright), so an unusable value falls back to the default
   # rather than silently removing the bound.
-  case "$SESSION_START_BUDGET" in ''|*[!0-9]*|0) SESSION_START_BUDGET=120 ;; esac
+  case "$SESSION_START_BUDGET" in ''|*[!0-9]*) SESSION_START_BUDGET=120 ;; esac
+  [ "$SESSION_START_BUDGET" -gt 0 ] 2>/dev/null || SESSION_START_BUDGET=120
   SESSION_START_STAGE_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-session-start-stage.XXXXXX" 2>/dev/null) || SESSION_START_STAGE_FILE=
   if [ -z "$SESSION_START_STAGE_FILE" ]; then
     # Without a breadcrumb the bound still holds; only the banner's precision
@@ -384,7 +386,8 @@ case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=20 ;; esac
 # becomes that task's endpoint: error line instead of the digest's whole
 # runtime budget.
 ENDPOINT_TIMEOUT=${FM_SESSION_START_ENDPOINT_TIMEOUT:-10}
-case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*|0) ENDPOINT_TIMEOUT=10 ;; esac
+case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*) ENDPOINT_TIMEOUT=10 ;; esac
+[ "$ENDPOINT_TIMEOUT" -gt 0 ] 2>/dev/null || ENDPOINT_TIMEOUT=10
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
 RULE='================================================================================'
@@ -891,12 +894,17 @@ for meta in "$STATE"/*.meta; do
     backend=$(fm_backend_of_meta "$meta")
     endpoint_rc=0
     fm_session_start_endpoint_read "$backend" "${target:-$window}" "fm-$id" || endpoint_rc=$?
-    case "$endpoint_rc" in
-      0) printf 'endpoint: alive (backend=%s window=%s)\n' "$backend" "$window" ;;
-      1) printf 'endpoint: dead (backend=%s window=%s)\n' "$backend" "$window" ;;
-      *) printf 'endpoint: error (backend=%s window=%s - the endpoint read died or hit its %ss bound; the digest continued past it)\n' \
-        "$backend" "$window" "$ENDPOINT_TIMEOUT" ;;
-    esac
+    # Only the timeout owner's own statuses mean the read itself failed: 124 is
+    # the bound firing and >=128 is a signal death. Every other nonzero status
+    # is the probe's own verdict that the endpoint is gone.
+    if [ "$endpoint_rc" -eq 0 ]; then
+      printf 'endpoint: alive (backend=%s window=%s)\n' "$backend" "$window"
+    elif [ "$endpoint_rc" -eq 124 ] || [ "$endpoint_rc" -ge 128 ]; then
+      printf 'endpoint: error (backend=%s window=%s - the endpoint read died or hit its %ss bound; the digest continued past it)\n' \
+        "$backend" "$window" "$ENDPOINT_TIMEOUT"
+    else
+      printf 'endpoint: dead (backend=%s window=%s)\n' "$backend" "$window"
+    fi
   else
     printf 'endpoint: unknown (no window recorded)\n'
   fi

@@ -488,16 +488,20 @@ SH
   chmod +x "$fakebin/herdr"
 }
 
-# make_fake_herdr <fakebin> <live-pane>: `herdr pane get <pane>` succeeds only
-# for the given pane id - the exact primitive fm_backend_target_exists uses
-# for a herdr endpoint liveness read. No version/server-start calls: a
+# make_fake_herdr <fakebin> <live-pane> [odd-status-pane]: `herdr pane get
+# <pane>` succeeds only for the given pane id - the exact primitive
+# fm_backend_target_exists uses for a herdr endpoint liveness read. An
+# optional second pane id answers with exit 4, the shape backend probes
+# produce for a gone surface without normalising to 1 (jq -e on empty input,
+# orca's ok:false, a missing tmux binary). No version/server-start calls: a
 # liveness check must never auto-start a server (fm-backend.sh's contract).
 make_fake_herdr() {
-  local fakebin=$1 live=$2
+  local fakebin=$1 live=$2 odd=${3:-}
   cat > "$fakebin/herdr" <<SH
 #!/usr/bin/env bash
 set -u
 if [ "\${1:-}" = pane ] && [ "\${2:-}" = get ]; then
+  [ -n "$odd" ] && [ "\${3:-}" = "$odd" ] && exit 4
   [ "\${3:-}" = "$live" ] && exit 0
   exit 1
 fi
@@ -1403,16 +1407,21 @@ $rec
 EOF
   make_fake_toolchain "$fakebin"
   make_fake_ps_claude "$fakebin"
-  make_fake_herdr "$fakebin" "p-live"
+  make_fake_herdr "$fakebin" "p-live" "p-odd"
 
   printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-live.meta"
   printf 'window=sess:p-dead\nkind=ship\nbackend=herdr\n' > "$home/state/task-dead.meta"
+  printf 'window=sess:p-odd\nkind=ship\nbackend=herdr\n' > "$home/state/task-odd.meta"
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
   assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" "live herdr endpoint not reported alive"
   assert_contains "$out" "endpoint: dead (backend=herdr window=sess:p-dead)" "dead herdr endpoint not reported dead"
+  assert_contains "$out" "endpoint: dead (backend=herdr window=sess:p-odd)" \
+    "a probe exiting 4 for a gone surface was not reported dead"
+  assert_not_contains "$out" "endpoint: error (backend=herdr window=sess:p-odd" \
+    "a probe exiting 4 was mislabelled as a failed read"
 
-  pass "herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one"
+  pass "herdr endpoint liveness is reported per task: alive, dead for exit 1, dead for any other probe status"
 }
 
 test_endpoint_read_death_is_isolated_and_reported() {
@@ -1481,6 +1490,34 @@ EOF
   [ "$stray" -eq 0 ] || fail "the per-task read bound left $stray hung herdr process(es) behind"
 
   pass "a hung per-task endpoint read hits its configured bound, reports the task, and leaves nothing stuck"
+}
+
+test_endpoint_bound_rejects_padded_zero() {
+  local rec root home fakebin out status=0 stray
+  rec=$(new_world endpoint-padded-zero)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  make_fake_herdr_hanging_read "$fakebin" "p-live" "p-slow"
+
+  printf 'window=sess:p-slow\nkind=ship\nbackend=herdr\n' > "$home/state/task-a-slow.meta"
+  printf 'window=sess:p-live\nkind=ship\nbackend=herdr\n' > "$home/state/task-z-live.meta"
+
+  out=$(FM_SESSION_START_ENDPOINT_TIMEOUT=00 run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
+
+  expect_code 0 "$status" "a padded-zero per-read bound must not fail the digest"
+  assert_contains "$out" \
+    "endpoint: error (backend=herdr window=sess:p-slow - the endpoint read died or hit its 10s bound; the digest continued past it)" \
+    "a padded-zero bound did not fall back to the 10s default, so the hung read went unbounded"
+  assert_contains "$out" "$(printf '\nCONTEXT\n')" \
+    "a padded-zero bound cost the digest its context section"
+
+  stray=$(pgrep -f "$fakebin/herdr" 2>/dev/null | wc -l | tr -d ' ')
+  [ "$stray" -eq 0 ] || fail "the fallback bound left $stray hung herdr process(es) behind"
+
+  pass "a padded-zero per-read bound falls back to the 10s default instead of removing the bound"
 }
 
 test_perl_timeout_fallback_reports_signal_death_nonzero() {
@@ -2934,6 +2971,7 @@ test_endpoint_liveness_tmux
 test_endpoint_liveness_herdr
 test_endpoint_read_death_is_isolated_and_reported
 test_endpoint_read_hang_is_bounded_and_reported
+test_endpoint_bound_rejects_padded_zero
 test_perl_timeout_fallback_reports_signal_death_nonzero
 test_abnormal_digest_death_banners_and_exits_zero
 test_composition_invokes_real_scripts
