@@ -105,13 +105,6 @@ while [ "$i" -lt 60 ]; do
       st=$(lab agent get "$PANE" 2>/dev/null | jq -r '.result.agent.agent_status // empty')
       case "$st" in idle|done) idle=1; break ;; esac
       ;;
-    *)
-      # Under a shell that treats herdr's pane run as a bracketed paste the
-      # launch command is typed but never executed, so submit it once.
-      case "$screen" in
-        *'claude --dangerously-skip-permissions'*) lab pane send-keys "$PANE" enter >/dev/null || true ;;
-      esac
-      ;;
   esac
   i=$((i + 1))
   sleep 1
