@@ -626,9 +626,13 @@ test_refused_spawn_leaves_no_task_state() {
 }
 
 # Resolve the final prompt argument using the same shell argument splitting the
-# pane sees after the two leading export statements.
+# pane sees after the leading trace, adviser, and hooks statements.
 claude_launch_doorbell() {  # <launch command>
   local command=${1#*; }
+  # The compact-adviser kill switch rides between the trace scrub and the
+  # hooks prefix on every launch except a function-hooks claude launch.
+  command=${command#export COMPACT_ADVISER_DISABLE=1; }
+  command=${command#unset COMPACT_ADVISER_DISABLE; }
   (
     eval "set -- ${command#*; }"
     printf '%s' "${!#}"

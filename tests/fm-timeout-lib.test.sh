@@ -152,6 +152,7 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
       while :; do sleep 0.1; done
     ' _ "$dir/pid" "$dir/term"
   ) 2>/dev/null &
+  # shellcheck disable=SC2031  # $! is the pid of the job this shell just started
   watchdog=$!
   wait_for_file "$dir/pid"
   kill -TERM "$watchdog" || fail "could not signal the bounding process"
@@ -170,6 +171,7 @@ test_a_named_owner_that_is_gone_ends_the_command() {
   dir="$TMP_ROOT/owner"
   mkdir -p "$dir"
   sleep 0 &
+  # shellcheck disable=SC2031  # $! is the pid of the job this shell just started
   gone=$!
   wait "$gone" 2>/dev/null || true
   started=$SECONDS
