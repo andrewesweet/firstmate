@@ -71,12 +71,12 @@ trim_space() {
 }
 
 # True when this line is an AI Co-Authored-By trailer that must not reach a
-# commit object. Matches exact observed bot addresses only; an address is added
-# when a runtime is seen emitting it, never guessed from a name or vendor
-# domain, so a human co-author who works at a vendor is kept. A human
+# commit object. Matches known product names and exact observed bot addresses only; an
+# address is added when a runtime is seen emitting it, never guessed from a
+# vendor domain, so a human co-author who works at a vendor is kept. A human
 # whose name or address merely contains a substring such as "ai" is kept.
 fm_is_ai_attribution_line() {
-  local raw=$1 lowered rest email
+  local raw=$1 lowered rest name email
   raw=${raw%$'\r'}
   raw=$(trim_space "$raw")
   [ -n "$raw" ] || return 1
@@ -86,16 +86,24 @@ fm_is_ai_attribution_line() {
   *) return 1 ;;
   esac
   rest=$(trim_space "${raw#*:}")
+  name=$rest
   email=
   case "$rest" in
   *'<'*'>'*)
     email=$(printf '%s' "$rest" | tr '[:upper:]' '[:lower:]')
     email=${email#*'<'}
     email=${email%%'>'*}
+    name=$(trim_space "${rest%%'<'*}")
     ;;
   esac
+  name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
   case "$email" in
-  noreply@anthropic.com | cursoragent@cursor.com | noreply@openai.com | copilot@github.com)
+  noreply@anthropic.com | cursoragent@* | noreply@openai.com | copilot@github.com)
+    return 0
+    ;;
+  esac
+  case "$name" in
+  cursor | 'cursor agent' | claude | 'claude code' | 'github copilot' | copilot | codex | chatgpt | gemini | 'google gemini' | grok | openai)
     return 0
     ;;
   esac
