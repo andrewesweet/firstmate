@@ -1092,8 +1092,10 @@ test_scout_disciplines_point_at_research_and_prototype() {
     "$ROOT/bin/fm-brief.sh" sample-disciplines sample --scout >/dev/null 2>&1 \
     || fail "fm-brief.sh scout scaffold exited non-zero"
   brief="$home/data/sample-disciplines/brief.md"
+  # shellcheck disable=SC2088 # literal tilde in the brief text, not a path to expand
   assert_grep "~/.agents/skills/research/SKILL.md" "$brief" \
     "scout brief did not point reading legwork at the research discipline"
+  # shellcheck disable=SC2088 # literal tilde in the brief text, not a path to expand
   assert_grep "~/.agents/skills/prototype/SKILL.md" "$brief" \
     "scout brief did not point design questions at the prototype discipline"
   assert_grep "as a file (do not invoke" "$brief" \
