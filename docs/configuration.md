@@ -354,7 +354,7 @@ A home may instead select another tasks-axi adapter such as Beads through its ow
 
 ### GitHub issues versus tasks-axi
 
-`tasks-axi` is the system of record: every fleet work item (ships, scouts, captain-held decisions, follow-ups, retro rows, wayfinder-mirror rows), with its dependencies, holds, notes, and completion artifacts, lives there.
+`tasks-axi` is the system of record: every fleet work item (ships, scouts, captain-held decisions, follow-ups, retro rows, wayfinder-mirror rows — a wayfinder map being the shared decision-ticket map an epic too large for one session keeps on the issue tracker, per the installed skill file `~/.agents/skills/wayfinder/SKILL.md`), with its dependencies, holds, notes, and completion artifacts, lives there.
 GitHub issues hold only what needs a repo-scoped, outward-facing home: user-filed bug reports, spec review with maintainers, public planning artifacts, and external-PR deliberation.
 Internal decomposition stays in `tasks-axi`.
 Open a GitHub issue only when someone outside the fleet must read or answer it.
