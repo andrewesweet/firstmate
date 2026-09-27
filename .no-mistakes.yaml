@@ -35,11 +35,10 @@ review:
         Review the changed paths on two separate axes.
         Read the discipline as a file (do not invoke it as a Skill tool):
         /home/andre/.agents/skills/code-review/SKILL.md
-        (the same machine-wide install lives at ~/.agents/skills/code-review/SKILL.md on any fleet host).
         Standards axis: the repository's documented standards (CONTRIBUTING.md and the files it points to).
         Where the repository is silent, fall back to the skill's code-smell baseline as a judgement call only, never a hard violation; a documented repo standard always overrides the baseline.
         Spec axis: faithful implementation of this run's intent - missing or partial requirements, scope creep, and requirements that look implemented but wrong.
-        Keep the two axes separate: report each under its own heading without merging or reranking findings across axes.
+        Keep the two axes separate: prefix each finding description with its axis, Standards: or Spec:, and never merge or rerank findings across axes.
         Review behaviour, severity handling, and finding format are otherwise unchanged.
 
 # Pin lint to the same owner CI invokes instead of leaving it to no-mistakes'
