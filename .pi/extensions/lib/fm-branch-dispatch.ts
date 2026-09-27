@@ -152,26 +152,33 @@ export interface UnreadWakeScope {
 // handshake, bound to one state directory. The classification itself - the
 // status-decision fold, the eligible-rows scan and its guards, the verdict
 // cache, and the wake-key derivation - has one owner, the shared module
-// lib/fm-branch-eligibility.ts (the bash v8 fold that
+// lib/fm-branch-eligibility.ts (the bash fold that
 // tests/fm-branch-eligibility.test.sh pins against bin/fm-classify-lib.sh);
 // this file only binds it to the extension's state directory and exposes the
 // extension's scope shape. Under an attended host (attendedHost, the
 // supervision host offer rule below) a routine signal row is folded exactly
 // as a stale row is, so a close for a task that gained a main-owned decision
-// after its signal stays on main. docs/pi-supervision-branch.md "Autonomy" and
-// docs/watcher-continuity.md "Per-actor acknowledgement" own the routing
-// contracts the classification feeds, restated here only as far as the
-// dispatcher reads them off this scope: a check-kind row never vetoes a scan
-// and stays queued for main; a needs-decision signal row and a decision-owned
-// stale row are excluded from eligibleSeqs without a veto and forced to main
-// on their own triggering close (fm-primary-pi-watch.ts's offerWakeToBranch);
-// a heartbeat review takes every branch-ownable row or none of them, so a
-// row this repo's fm_wake_append could never have produced still vetoes the
-// whole scan; and in the away posture (`afk`, the dispatcher's read of the
-// away-posture record) the partition collapses - main is parked, so check
-// rows, decision-owned rows, and heartbeat rows are all claimed by the branch
-// on whatever wake finds them unread, while the vetoes that describe a broken
-// queue rather than a routing choice stay vetoes in both postures.
+// after its signal stays on main. A second mate's status log is a shared
+// channel carrying many independently keyed decisions, so a second mate's
+// signal row is judged by its presented span instead - the lines since the
+// last presentation, bounded by state/.status-presentation-cursor - where a
+// decision, blocked, resolution, or captain-held line, or a line declaring
+// the key of a still-open decision, keeps the row on main, and any cursor
+// problem falls back to the whole log. docs/pi-supervision-branch.md
+// "Autonomy" and docs/watcher-continuity.md "Per-actor acknowledgement" own
+// the routing contracts the classification feeds, restated here only as far
+// as the dispatcher reads them off this scope: a check-kind row never vetoes
+// a scan and stays queued for main; a needs-decision signal row and a
+// decision-owned stale row are excluded from eligibleSeqs without a veto and
+// forced to main on their own triggering close (fm-primary-pi-watch.ts's
+// offerWakeToBranch); a heartbeat review takes every branch-ownable row or
+// none of them, so a row this repo's fm_wake_append could never have
+// produced still vetoes the whole scan; and in the away posture (`afk`, the
+// dispatcher's read of the away-posture record) the partition collapses -
+// main is parked, so check rows, decision-owned rows, and heartbeat rows are
+// all claimed by the branch on whatever wake finds them unread, while the
+// vetoes that describe a broken queue rather than a routing choice stay
+// vetoes in both postures.
 export function scopeForUnreadWake(state: string, heartbeat: boolean, afk = false, attendedHost = false): UnreadWakeScope {
   return scanStateDirectory(state, { heartbeat, afk, attendedHost });
 }

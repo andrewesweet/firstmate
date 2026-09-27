@@ -1137,7 +1137,8 @@ wait_for_pid_gone() {  # <pid> <polls>
 # A running watcher whose state directory is deleted (a torn-down temporary
 # home) must exit after noticing the deletion with a logged reason, not run on
 # as an orphan (upstream #4760). Allow for a slow CI runner finishing the cycle
-# already in progress before its next FM_POLL=1 tick.
+# already in progress before its next FM_POLL=1 tick. A busy poll may spend
+# longer than ten seconds in subprocesses on a contended CI runner.
 test_watcher_exits_when_its_state_directory_is_removed() {
   local dir home state fakebin armout
   dir=$(make_case state-dir-removed)
