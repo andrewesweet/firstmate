@@ -42,16 +42,15 @@ Grilling is a conversation with the captain and never goes into a crew or second
 
 Read `~/.agents/skills/ask-matt/SKILL.md` and its `PHASE-BOUNDARIES.md` as files and apply their routing, not their publication targets.
 That routing picks `/wayfinder` (section 4), `/to-spec`, or `/to-tickets` (section 5), including straight to `/to-tickets` when a usable spec or plan already exists.
-When a runnable question blocks the plan - how a state model feels, which UI direction reads right - take the prototype detour first and fold its verdict back into the thread before speccing.
-Keep grilling, spec, and tickets in one unbroken context where the window allows, so the spec builds on the verbatim reasoning rather than a flattened summary.
+Their direct-`/implement` branches do not apply at the fleet: after the interview the pick is only `/wayfinder`, `/to-spec` or `/to-tickets`, because every slice the fleet works is published as tasks-axi rows.
 
 ## 4. Wayfinder maps, fleet-adapted
 
 Name the destination first - the spec, decision, or change this effort is finding its way to - because the destination fixes the scope.
 Read `~/.agents/skills/wayfinder/SKILL.md` as a file for the map shape (destination, notes, decisions-so-far index, not-yet-specified fog, out-of-scope) and the fog rules: ticket what is already sharp even if blocked, park the rest as fog, graduate fog as the frontier advances, and close mis-scoped tickets with a one-line out-of-scope record instead of resolving them.
 Map ticket types to fleet work: `research` becomes a scout (agent-alone, parallel dispatches allowed, resolved by a cited report); `prototype` becomes a prototype scout reviewed with the captain over the existing crew-hosted board loop; `grilling` becomes a captain session with firstmate (never a briefed worker, per section 2); `task` becomes prerequisite work that unblocks a decision, dispatched as a scout or run as a precise captain checklist when it needs a human, never as a ship.
-Record each ticket's blocking edges so the frontier is simply the open unblocked rows; resolve at most one decision ticket per session, except parallel research scouts at charting time.
-The epic task's note is the map index.
+Record each ticket's blocking edges so the frontier is simply the open unblocked rows; never resolve more than one ticket per session, research tickets excepted.
+The map itself is an ordinary tasks-axi row whose body is the map index and which is blocked by each of its ticket rows, so it clears when its tickets do.
 Maps plan and do not build: a cleared map merges into `/to-spec` and then `/to-tickets` before any implementation is dispatched, and never loops straight into implementation.
 
 ## 5. to-spec and to-tickets publication
