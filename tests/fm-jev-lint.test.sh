@@ -86,7 +86,7 @@ new file mode 100644
 index 0000000..1111111 100644
 --- /dev/null
 +++ b/tests/x.test.sh
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,14 @@
 +# runs the tool against a live key
 +run_it() {
 +  out=$(env TYPESAFE_API_KEY="sk-live-REALKEY123" "$TOOL" check)
@@ -95,6 +95,11 @@ index 0000000..1111111 100644
 +# builds the request payload for the classifier
 +payload() {
 +  client_secret: "zzz111"
++}
++
++# renders the values file the chart consumes
++values() {
++  db_password: unquotedhunter2
 +}
 EOF
 
@@ -211,11 +216,12 @@ test_secret_content_is_dropped() {
   echo "$out" | grep -q 'finding' && fail "a dropped subject yields no finding: $out"
   grep -q 'REALKEY123' "$rec" && fail "a dropped subject must never reach the record"
   grep -q 'zzz111' "$rec" && fail "a lowercase secret assignment must never reach the record"
+  grep -q 'unquotedhunter2' "$rec" && fail "an unquoted lowercase secret assignment must never reach the record"
   [ "$(jq -s 'map(select(.kind == "check")) | length' "$rec")" -eq 0 ] \
     || fail "a dropped subject is not recorded as a checked subject"
-  jq -e -s 'map(select(.kind == "dropped")) | .[0].count == 2' "$rec" >/dev/null \
+  jq -e -s 'map(select(.kind == "dropped")) | .[0].count == 3' "$rec" >/dev/null \
     || fail "the run records the dropped count alone: $(cat "$rec")"
-  pass "diff lines carrying a key or a lowercase secret are dropped, not sent"
+  pass "diff lines carrying a key or a quoted or unquoted secret are dropped, not sent"
 }
 
 test_extraction_and_cutoffs
