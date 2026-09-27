@@ -168,7 +168,9 @@ EOF
 chmod +x "$SHIM/tmux" "$LAB/dummy.sh"
 
 # The launch settings the docs page prescribes: the Stop-owned watcher auto-arm,
-# prompt suggestion off, and no autoCompactWindow.
+# prompt suggestion off, and no autoCompactWindow. The plugin resolves its
+# watcher from the tracked root, so the hook must use that same path instead of
+# the lab's symlink overlay; watcher identity deliberately distinguishes them.
 cat > "$LAB/settings.json" <<EOF
 {
   "promptSuggestionEnabled": false,
@@ -178,7 +180,7 @@ cat > "$LAB/settings.json" <<EOF
         "hooks": [
           {
             "type": "command",
-            "command": "FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' exec '$HOME_DIR/bin/fm-claude-stop-autoarm.sh'",
+            "command": "FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' exec '$ROOT/bin/fm-claude-stop-autoarm.sh'",
             "asyncRewake": true,
             "timeout": 28800
           }
@@ -203,12 +205,17 @@ pause_dummy() { : > "$STATE/dummy.pause"; }
 resume_dummy() { rm -f "$STATE/dummy.pause"; }
 
 # Claude Code refuses to nest inside another Claude session, and the home's
-# scripts must not inherit this shell's firstmate environment.
+# scripts must not inherit this shell's firstmate environment. The one
+# exception is FM_GATE_REFUSE_BYPASS, the escape hatch tests/lib.sh exports:
+# bin/fm-watch-arm.sh refuses to arm at all from a disposable validation
+# checkout (a path under /.no-mistakes/worktrees/), so scrubbing it leaves the
+# lab primary with a watcher that can never arm when this suite runs from a
+# validation worktree, and no wake ever reaches the module.
 unset_inherited() {
   local name
   while IFS= read -r name; do
     printf -- '-u %s ' "$name"
-  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | sort -u)
+  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | grep -vx FM_GATE_REFUSE_BYPASS | sort -u)
 }
 
 # Launch Claude Code exactly as the docs page prescribes, in a fresh tmux
