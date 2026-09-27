@@ -3527,8 +3527,9 @@ if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
 # pre-stamp bytes, restored from the copy taken before the stamp: the stamp is
 # re-sealed (bin/fm-pr-lib.sh), so it can reorder the record rather than only
 # extend it, and a size-based rollback could not restore it. The restored bytes
-# are compared before reporting success, so a rollback that cannot be proven
-# complete is reported as not rolled back.
+# are staged and published like every other task-record write
+# (bin/fm-backlog-transition-lib.sh), so a reader never observes a partial
+# record and a rollback that cannot land is reported as not rolled back.
 teardown_legacy_stamp_rollback() {
   local restore
   [ -n "$TEARDOWN_LEGACY_PRESTAMP_COPY" ] && [ -f "$TEARDOWN_LEGACY_PRESTAMP_COPY" ] || return 1
@@ -3538,7 +3539,6 @@ teardown_legacy_stamp_rollback() {
     rm -f -- "$restore"
     return 1
   fi
-  cmp -s "$TEARDOWN_LEGACY_PRESTAMP_COPY" "$META"
 }
 
   # The accepted legacy incarnation is stamped under the meta lock already
@@ -3576,12 +3576,13 @@ teardown_legacy_stamp_rollback() {
       TEARDOWN_LEGACY_STAMP_FAILED=validate
     fi
     if [ -n "$TEARDOWN_LEGACY_STAMP_FAILED" ]; then
+      TEARDOWN_LEGACY_STAMP_REASON=$FM_BACKLOG_TRANSITION_ERROR
       if [ "$TEARDOWN_LEGACY_STAMP_FAILED" != prestamp ]; then
         teardown_legacy_stamp_rollback \
           || echo "error: the legacy incarnation stamp on $ID's record could not be rolled back; re-run teardown with --legacy-record after reconciling its endpoint" >&2
       fi
       if [ "$TEARDOWN_LEGACY_STAMP_FAILED" = validate ]; then
-        echo "error: the stamped legacy incarnation does not validate for $ID ($FM_BACKLOG_TRANSITION_ERROR); refusing destructive teardown" >&2
+        echo "error: the stamped legacy incarnation does not validate for $ID ($TEARDOWN_LEGACY_STAMP_REASON); refusing destructive teardown" >&2
       else
         echo "error: could not stamp the accepted legacy incarnation into task $ID's record; refusing destructive teardown" >&2
       fi
@@ -3593,11 +3594,12 @@ teardown_legacy_stamp_rollback() {
   if ! fm_backlog_close_marker_write "$STATE" "$ID" "$DATA" "$META_SPAWN_GEN" \
       "${BACKLOG_TRANSITION_FLAGS[@]+"${BACKLOG_TRANSITION_FLAGS[@]}"}" \
       "${BACKLOG_DONE_ARGS[@]+"${BACKLOG_DONE_ARGS[@]}"}"; then
+    TEARDOWN_CLOSE_MARKER_REASON=$FM_BACKLOG_TRANSITION_ERROR
     if [ "$TEARDOWN_LEGACY_ACCEPTED" = 1 ] && [ -z "$TEARDOWN_LEGACY_RETAINED_STAMP" ] \
        && teardown_legacy_stamp_rollback; then
-      echo "error: the pending backlog $BACKLOG_TRANSITION for $ID could not be recorded ($FM_BACKLOG_TRANSITION_ERROR); the accepted legacy incarnation was rolled back, retaining every durable task record" >&2
+      echo "error: the pending backlog $BACKLOG_TRANSITION for $ID could not be recorded ($TEARDOWN_CLOSE_MARKER_REASON); the accepted legacy incarnation was rolled back, retaining every durable task record" >&2
     else
-      echo "error: the pending backlog $BACKLOG_TRANSITION for $ID could not be recorded ($FM_BACKLOG_TRANSITION_ERROR); retaining every durable task record" >&2
+      echo "error: the pending backlog $BACKLOG_TRANSITION for $ID could not be recorded ($TEARDOWN_CLOSE_MARKER_REASON); retaining every durable task record" >&2
       if [ "$TEARDOWN_LEGACY_ACCEPTED" = 1 ] && [ -z "$TEARDOWN_LEGACY_RETAINED_STAMP" ]; then
         echo "error: the legacy incarnation stamp on $ID's record could not be rolled back; re-run teardown with --legacy-record after reconciling its endpoint" >&2
       fi
