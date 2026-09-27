@@ -1,0 +1,18 @@
+New orphan-supersession cases, run with bin/fm-wake-lib.sh reverted to the base commit f93f0d3 (rest of branch intact):
+
+  test_orphaned_claim_from_dead_session_is_superseded_by_replacement
+    not ok - the replacement session's first Stop must supersede the dead session's orphaned claim and rewake, not defer to it: expected exit 2, got 0
+  test_resumed_same_id_session_supersedes_the_orphan
+    not ok - the dying session's claim did not record its session id: epoch=1 owner_pid=730469 outcome=arming updated_at=1790543150
+  test_claim_without_numeric_session_lock_is_not_open
+    not ok - a claim with no state/.lock at all must not be open: expected exit 1, got 0
+  test_recycled_bridge_claim_stays_open_on_session_id_match
+    _: line 29: fm_pid_descends_from: command not found
+    not ok - a claim whose recorded session id does not match the sidecar must not be open: expected exit 1, got 0
+
+Same four cases at the target commit 981fdf4:
+
+  ok - auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake
+  ok - auto-arm: a resumed session with the dead session's id still supersedes its orphaned claim
+  ok - auto-arm: a claim is open only under a numeric session lock its owner descends from
+  ok - auto-arm: a recycled-bridge claim stays open on its recorded session id and lock-holder identity, and nothing else does

@@ -1,0 +1,10 @@
+state=done
+pid=994963
+started=1790543399
+finished=1790543400
+rc=0
+locked=1
+phases=probe,sweeps
+generation=1790543399.994366.991151
+lock_pid=990176
+report_published=1
