@@ -1,0 +1,33 @@
+Lab Claude Code v2.1.283 session transcript: 7d2ebbc6-f4b7-42dc-90bd-693b26a88d51.jsonl
+[user] Invoke the design-domain-language skill via the Skill tool, then in one line each: (a) list the vocabulary terms it tells you to use exactly, (b) state its rule about CONTEXT.md and docs/adr writes. No other work.
+
+[tool_use Skill] {"skill": "design-domain-language"}
+
+[tool_result] Launching skill: design-domain-language
+
+[user] Base directory for this skill: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3HTNZG9WKEWSX7R8SNZ5BPP/.claude/skills/design-domain-language
+
+# design-domain-language
+
+This skill is the single owner of how design sessions and retrospectives use Matt Pocock's design disciplines.
+`AGENTS.md` section 7 points here and does not restate this procedure.
+It composes the installed disciplines (`~/.agents/skills/`) with the fleet lifecycle: talk and briefs use the language everywhere, while glossary and decision writes stay gated.
+Nothing here authorizes implementation; design proposes, ships dispose.
+
+Read the named Pocock skill files below as files.
+Crews reach every discipline the same way, by reading the named file; no crew invokes a user-invoked skill through a Skill tool, so wording briefed to crews always says read-as-file.
+
+## 1. Design vocabulary, used exactly
+
+Read `~/.agents/skills/codebase-design/SKILL.md` as a file and use its terms exactly: module, interface, depth, seam, adapter, leverage, locality.
+Do not substitute component, service, API, or boundary; consistent language is the whole point.
+Judge every design by its principles: depth lives at the interface, the deletion test decides whether a module earns its keep, the interface is the test surface, and one adapter means a hypothetical seam while two mean a real one.
+When a deepening needs dependency handling, follow `DEEPENING.md` beside that file: classify each dependency, keep the seam discipline, and replace s
+
+[assistant] Captain, skill loaded. Answer from its sections 1 and 5; no other work done.
+
+(a) Use these terms exactly: module, interface, depth, seam, adapter, leverage, locality. Never substitute component, service, API or boundary.
+(b) Write `CONTEXT.md` and `docs/adr/` only in repositories where per-repo setup of these skills is approved (new repositories and local forks), and only as enumerated captain-approved Firstmate-spec items. Everywhere else, terms and ADRs that pass the triple gate go into the report as proposals, formatted per `CONTEXT-FORMAT.md` and `ADR-FORMAT.md`.
+
+result: design-domain-language requires exact terms module, interface, depth, seam, adapter, leverage, locality; `CONTEXT.md` and `docs/adr/` writes need an approved repository plus captain-approved spec items, otherwise they stay report proposals.
+

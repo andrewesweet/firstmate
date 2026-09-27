@@ -1,0 +1,6 @@
+$ bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=113 local_links=708
+exit=0
+
+$ bin/fm-doc-audience-check.sh --inventory <inventory with the new skill entry removed>
+exit=1
