@@ -82,6 +82,18 @@ case "$FM_FAKE_RELAUNCH_MODE" in
     model=claude-opus-5-5
     effort=medium
     ;;
+  race)
+    printf '%s\n' "$harness" > "$FM_FAKE_RACE_DIR/endpoint"
+    : > "$FM_FAKE_RACE_DIR/$harness-mutated"
+    if [ "$harness" = claude ]; then
+      i=0
+      while [ ! -e "$FM_FAKE_RACE_DIR/release-claude" ] && [ "$i" -lt 500 ]; do
+        sleep 0.01
+        i=$((i + 1))
+      done
+      [ -e "$FM_FAKE_RACE_DIR/release-claude" ] || exit 95
+    fi
+    ;;
 esac
 printf 'relaunched %s harness=%s from=pi model=%s effort=%s backend=herdr endpoint=fm-remote:w1:p1 worktree=/srv/fm-home\n' \
   "$id" "$harness" "$model" "$effort"
@@ -98,6 +110,7 @@ chmod +x "$FAKEBIN/fake-ssh"
 run_relaunch() {  # <args...>
   env FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
     FM_FAKE_RELAUNCH_MODE="${FM_FAKE_RELAUNCH_MODE:-}" \
+    FM_FAKE_RACE_DIR="${FM_FAKE_RACE_DIR:-}" \
     "$ROOT/bin/fm-remote-secondmate-relaunch.sh" "$@" 2>&1
 }
 
@@ -136,6 +149,56 @@ assert_grep 'model=claude-opus-5-5' "$HOME_DIR/state/ios.meta" \
 assert_no_grep 'harness=default' "$HOME_DIR/state/ios.meta" \
   "the parent record must not keep the unresolved request"
 pass "a remote relaunch records the identity the host confirmed"
+
+reset_meta
+FM_FAKE_RELAUNCH_MODE=race
+FM_FAKE_RACE_DIR="$TMP/relaunch-race"
+mkdir -p "$FM_FAKE_RACE_DIR"
+(
+  run_relaunch ios claude claude-opus-5-5 medium > "$TMP/relaunch-a.out"
+  printf '%s\n' "$?" > "$TMP/relaunch-a.rc"
+) &
+RELAUNCH_A_PID=$!
+i=0
+while [ ! -e "$FM_FAKE_RACE_DIR/claude-mutated" ] && [ "$i" -lt 100 ]; do
+  sleep 0.01
+  i=$((i + 1))
+done
+if [ ! -e "$FM_FAKE_RACE_DIR/claude-mutated" ]; then
+  : > "$FM_FAKE_RACE_DIR/release-claude"
+  wait "$RELAUNCH_A_PID"
+  fail "the first concurrent relaunch did not reach the remote endpoint"
+fi
+(
+  run_relaunch ios pi openai-codex/gpt-5.6-sol high > "$TMP/relaunch-b.out"
+  printf '%s\n' "$?" > "$TMP/relaunch-b.rc"
+) &
+RELAUNCH_B_PID=$!
+i=0
+while [ ! -e "$FM_FAKE_RACE_DIR/pi-mutated" ] && kill -0 "$RELAUNCH_B_PID" 2>/dev/null && [ "$i" -lt 50 ]; do
+  sleep 0.01
+  i=$((i + 1))
+done
+RELAUNCH_OVERLAPPED=0
+[ ! -e "$FM_FAKE_RACE_DIR/pi-mutated" ] || RELAUNCH_OVERLAPPED=1
+kill -0 "$RELAUNCH_B_PID" 2>/dev/null || RELAUNCH_OVERLAPPED=1
+: > "$FM_FAKE_RACE_DIR/release-claude"
+wait "$RELAUNCH_A_PID"
+wait "$RELAUNCH_B_PID"
+RELAUNCH_A_RC=$(cat "$TMP/relaunch-a.rc")
+RELAUNCH_B_RC=$(cat "$TMP/relaunch-b.rc")
+expect_code 0 "$RELAUNCH_A_RC" "the first concurrent relaunch should succeed"
+expect_code 0 "$RELAUNCH_B_RC" "the second concurrent relaunch should succeed"
+[ "$RELAUNCH_OVERLAPPED" -eq 0 ] \
+  || fail "a second relaunch mutated the endpoint before the first published its route"
+[ "$(cat "$FM_FAKE_RACE_DIR/endpoint")" = pi ] \
+  || fail "the endpoint should run the last serialized relaunch"
+assert_grep 'harness=pi' "$HOME_DIR/state/ios.meta" \
+  "the parent route should match the last serialized relaunch"
+[ ! -e "$HOME_DIR/state/.meta-ios.lock" ] \
+  || fail "the relaunch metadata lock should be released"
+unset FM_FAKE_RELAUNCH_MODE FM_FAKE_RACE_DIR
+pass "concurrent remote relaunches keep the endpoint and parent route aligned"
 
 # --- a refused relaunch leaves the parent's record untouched -----------------
 reset_meta

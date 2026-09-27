@@ -41,6 +41,16 @@ EFFORT=$4
 case "$ID" in ''|*[!A-Za-z0-9._-]*) die "invalid secondmate id: $ID" ;; esac
 
 META="$STATE/$ID.meta"
+META_LOCK=
+META_TMP=
+cleanup() {
+  [ -z "$META_TMP" ] || rm -f -- "$META_TMP"
+  [ -z "$META_LOCK" ] || fm_lock_release "$META_LOCK" || true
+}
+trap cleanup EXIT
+
+META_LOCK=$(fm_meta_lock_path "$META") || die "metadata lock path is invalid for $ID"
+fm_lock_acquire_wait "$META_LOCK"
 [ -f "$META" ] && [ ! -L "$META" ] || die "no metadata for $ID at $META"
 REMOTE_HOST=$(fm_meta_get "$META" remote_host)
 [ -n "$REMOTE_HOST" ] \
@@ -67,10 +77,7 @@ NEW_MODEL=$(printf '%s\n' "$RELAUNCH_OUT" | sed -n 's/^model=//p' | tail -1)
 NEW_EFFORT=$(printf '%s\n' "$RELAUNCH_OUT" | sed -n 's/^effort=//p' | tail -1)
 [ -n "$NEW_HARNESS" ] || die "the host's route confirmation carried no harness to record"
 
-META_LOCK=$(fm_meta_lock_path "$META") || die "metadata lock path is invalid for $ID"
-fm_lock_acquire_wait "$META_LOCK"
 META_TMP=$(mktemp "$STATE/.fm-remote-relaunch-meta.XXXXXX") || {
-  fm_lock_release "$META_LOCK"
   die "cannot stage the updated record"
 }
 {
@@ -92,4 +99,4 @@ while IFS= read -r line || [ -n "$line" ]; do
 done < "$META"
 chmod 0600 "$META_TMP"
 mv -f -- "$META_TMP" "$META"
-fm_lock_release "$META_LOCK"
+META_TMP=
