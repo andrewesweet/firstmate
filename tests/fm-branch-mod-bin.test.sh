@@ -268,6 +268,7 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
     printf '{"t":"x","verdict":"routine","model":"haiku","evidence":[{"task":"t7","from":0,"to":11}]}\n'
     printf '{"t":"x","verdict":"uncertain","model":"haiku","evidence":[{"task":"t7","from":0,"to":11}]}\n'
     printf '{"t":"x","verdict":"routine","model":"sonnet","evidence":[{"task":"gone","from":0,"to":11}]}\n'
+    printf '{"t":"x","verdict":"uncertain","model":"","evidence":[{"task":"t6","from":0,"to":56}]}\n'
   } > "$state/branch-mod-classifications.jsonl"
 
   FM_STATE_OVERRIDE="$state" "$SCORE" -v > "$out" || fail "scorer failed: $(cat "$out")"
@@ -277,10 +278,12 @@ test_scorer_labels_records_from_the_status_bytes_they_judged() {
     || fail "sonnet row did not count the torn-down task as unscorable: $(cat "$out")"
   grep -q '^- record 1 (haiku): label captain, verdict routine CAPTAIN MISS: t6,0,56$' "$out" \
     || fail "the false-routine record was not listed as a captain miss: $(cat "$out")"
+  grep -q '^| unknown | 1 | 0 / 0 / 1 | 0 | 1 | 0 | 0 | 0 |$' "$out" \
+    || fail "a record whose model is empty was not scored under unknown: $(cat "$out")"
 
   FM_STATE_OVERRIDE="$state" "$SCORE" "$state/absent.jsonl" > "$out" || fail "scorer failed on an absent log"
   [ "$(wc -l < "$out" | tr -d ' ')" = 2 ] || fail "an absent log must print only the table header: $(cat "$out")"
-  pass "the scorer labels each record from the status bytes it judged, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it"
+  pass "the scorer labels each record from the status bytes it judged, scores a record whose model is empty under unknown, reports false-routine verdicts as captain misses, and skips a torn line without losing the records after it"
 }
 
 test_evidence_bundle_marks_new_lines_and_advances_the_offset

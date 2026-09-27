@@ -61,7 +61,6 @@ printf '|---|---|---|---|---|---|---|---|\n'
 MISMATCHES=""
 declare -A n vr vc vu miss caught spurious granted unsc
 while IFS=$'\t' read -r idx model verdict ev; do
-  [ -n "$model" ] || model=unknown
   n[$model]=$(( ${n[$model]:-0} + 1 ))
   case "$verdict" in
     routine) vr[$model]=$(( ${vr[$model]:-0} + 1 )) ;;
@@ -96,7 +95,7 @@ while IFS=$'\t' read -r idx model verdict ev; do
     [ "$is_miss" -eq 0 ] || tag=" CAPTAIN MISS"
     MISMATCHES+="- record $idx ($model): label $label, verdict $verdict$tag: ${ev// /;}"$'\n'
   fi
-done < <(jq -R -r 'fromjson? | select(type == "object") | [input_line_number, (.model // "unknown"), (.verdict // "uncertain"), ((.evidence // []) | map("\(.task),\(.from // -1),\(.to // -1)") | join(" "))] | @tsv' "$LOG" 2>/dev/null)
+done < <(jq -R -r 'fromjson? | select(type == "object") | [input_line_number, (.model // "" | if . == "" then "unknown" else . end), (.verdict // "" | if . == "" then "uncertain" else . end), ((.evidence // []) | map("\(.task),\(.from // -1),\(.to // -1)") | join(" "))] | @tsv' "$LOG" 2>/dev/null)
 
 for model in "${!n[@]}"; do
   printf '| %s | %d | %d / %d / %d | %d | %d | %d | %d | %d |\n' "$model" "${n[$model]}" \
