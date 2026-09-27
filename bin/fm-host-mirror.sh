@@ -121,6 +121,8 @@ fi
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-supervision-engine-lib.sh
 . "$SCRIPT_DIR/fm-supervision-engine-lib.sh"
+# shellcheck source=bin/fm-operational-input.sh
+. "$SCRIPT_DIR/fm-operational-input.sh"
 
 umask 077
 MIRROR="$STATE/.host-mirror.jsonl"
@@ -149,7 +151,12 @@ writer_in_scope() {
 }
 
 operational() {  # <text>
-  printf '%s' "$1" | "$SCRIPT_DIR/fm-operational-input.sh" classify >/dev/null 2>&1
+  local kind
+  if fm_operational_input_classify "$1" kind; then
+    [ -n "$kind" ]
+  else
+    fm_operational_doorbell_kind "$1" "$STATE" kind && [ -n "$kind" ]
+  fi
 }
 
 # Append one entry. The caller holds nothing; this takes the mirror lock.

@@ -41,7 +41,8 @@ make_home() {  # <name> [opted-in: 1|0]
 # Run a shell script as the lock-owning primary session of <home>: the script
 # runs under the fake harness whose pid it records as the session lock.
 as_session() {  # <home> <script>
-  FM_HOME="$1" PRIMARY_ROOT="$PRIMARY_ROOT" MIRROR="$MIRROR" "$FAKE_CLAUDE" -c \
+  FM_HOME="$1" PRIMARY_ROOT="$PRIMARY_ROOT" MIRROR="$MIRROR" \
+  OWN_DOORBELL="${OWN_DOORBELL:-}" OTHER_DOORBELL="${OTHER_DOORBELL:-}" "$FAKE_CLAUDE" -c \
     'printf "%s\n" "$$" > "$FM_HOME/state/.lock"; '"$2"
 }
 
@@ -129,11 +130,18 @@ test_writers_are_inert_without_the_opt_in() {
 }
 
 test_operational_foreign_and_unowned_input_is_dropped() {
-  local home other
+  local home other own_doorbell other_doorbell
   home=$(make_home dropped)
-  as_session "$home" '
+  other=$(make_home other-doorbell)
+  own_doorbell=$(printf 'signal: demo.status' | FM_STATE_OVERRIDE="$home/state" \
+    "$ROOT/bin/fm-operational-input.sh" record watcher) || fail "could not publish this home's doorbell"
+  other_doorbell=$(printf 'signal: other.status' | FM_STATE_OVERRIDE="$other/state" \
+    "$ROOT/bin/fm-operational-input.sh" record watcher) || fail "could not publish another home's doorbell"
+  OWN_DOORBELL="$own_doorbell" OTHER_DOORBELL="$other_doorbell" as_session "$home" "$SAY"'
     printf "%s" "{\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"\342\201\243FIRSTMATE_OP: v1 watcher: signal: demo.status\"}" \
       | FM_ROOT_OVERRIDE="$PRIMARY_ROOT" "$MIRROR" hook claude
+    say captain "$OWN_DOORBELL"
+    say captain "$OTHER_DOORBELL"
     printf "%s" "{\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"from cursor\",\"cursor_version\":\"x\"}" \
       | FM_ROOT_OVERRIDE="$PRIMARY_ROOT" "$MIRROR" hook claude
     printf "%s" "{\"hook_event_name\":\"PreToolUse\",\"prompt\":\"not dialog\"}" \
@@ -143,8 +151,9 @@ test_operational_foreign_and_unowned_input_is_dropped() {
     printf "%s" "{\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"kept\"}" \
       | FM_ROOT_OVERRIDE="$PRIMARY_ROOT" "$MIRROR" hook claude
   ' || fail "a writer failed"
-  assert_equals "captain|kept" "$(entries "$home")" \
-    "operational input, a harness-started turn, a Cursor payload on the Claude registration, and a non-dialog event must not be mirrored"
+  assert_equals "captain|$other_doorbell
+captain|kept" "$(entries "$home")" \
+    "operational input from this home, a harness-started turn, a Cursor payload on the Claude registration, and a non-dialog event must not be mirrored"
 
   other=$(make_home unowned)
   sleep 30 &
