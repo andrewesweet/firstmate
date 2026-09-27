@@ -138,7 +138,7 @@ A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin 
 
 - Classifier: text-only, one call, no thinking, `maxTokens` 200.
 - Branch rotation: 60,000 tokens of per-step request context.
-- Provider-error latch: two consecutive failed branch turns, five-minute cooldown.
+- Branch failure latch: two consecutive failed branch turns (a provider error or a turn that ends without a report counts alike), five-minute cooldown, no recovery probe.
 - Continuity monitor: one per session, 30-minute timeout, re-armed on its own expiry, on any captain prompt or Stop-hook-sourced wake that finds no live monitor, and from the branch's settlement.
 - Event and classification logs: 4 MB each before rotation.
 - Passed-wake dedupe: 90 seconds per row set; in-flight wake considered stale after 180 seconds.
