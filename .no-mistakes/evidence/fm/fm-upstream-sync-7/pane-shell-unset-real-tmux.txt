@@ -1,0 +1,9 @@
+(ins)bash-5.2$ export COMPACT_ADVISER_DISABLE=1
+(ins)bash-5.2$ printf "before-relaunch pane value=%s\n" "${COMPACT_ADVISER_DISAB
+LE-<unset>}"
+before-relaunch pane value=1
+(ins)bash-5.2$ unset COMPACT_ADVISER_DISABLE
+(ins)bash-5.2$ printf "after function-hooks relaunch pane line value=%s\n" "${CO
+MPACT_ADVISER_DISABLE-<unset>}"
+after function-hooks relaunch pane line value=<unset>
+(ins)bash-5.2$

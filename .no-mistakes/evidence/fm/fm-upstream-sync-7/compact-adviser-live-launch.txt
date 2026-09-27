@@ -1,0 +1,20 @@
+spawned hooks-relaunch-pane-disabled-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-hooks-relaunch-pane-disabled-z1 worktree=/tmp/fm-adviser-live.CfXai3/hooks-relaunch-pane-disabled/wt
+hooks-relaunch-pane-disabled                   pane-preset=1 hooks=1 launch-env=0 -> harness-saw COMPACT_ADVISER_DISABLE=<unset>
+  pane-shell lines: 1
+          1 unset COMPACT_ADVISER_DISABLE
+spawned hooks-fresh-pane-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-hooks-fresh-pane-z1 worktree=/tmp/fm-adviser-live.CfXai3/hooks-fresh-pane/wt
+hooks-fresh-pane                               pane-preset=0 hooks=1 launch-env=0 -> harness-saw COMPACT_ADVISER_DISABLE=<unset>
+  pane-shell lines: 1
+          1 unset COMPACT_ADVISER_DISABLE
+spawned hooks-launchenv-relaunch-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-hooks-launchenv-relaunch-z1 worktree=/tmp/fm-adviser-live.CfXai3/hooks-launchenv-relaunch/wt
+hooks-launchenv-relaunch                       pane-preset=1 hooks=1 launch-env=1 -> NO-LOG
+  pane-shell lines: 1
+          1 unset COMPACT_ADVISER_DISABLE
+spawned nohooks-relaunch-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-nohooks-relaunch-z1 worktree=/tmp/fm-adviser-live.CfXai3/nohooks-relaunch/wt
+nohooks-relaunch                               pane-preset=1 hooks=0 launch-env=0 -> harness-saw COMPACT_ADVISER_DISABLE=1
+  pane-shell lines: 1
+          1 export COMPACT_ADVISER_DISABLE=1
+spawned hooks-launchenv-relaunch-z1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-hooks-launchenv-relaunch-z1 worktree=/tmp/fm-adviser-live.v8Tf0u/hooks-launchenv-relaunch/wt
+hooks-launchenv-relaunch                       pane-preset=1 hooks=1 launch-env=1 -> harness-saw COMPACT_ADVISER_DISABLE=<unset>
+  pane-shell lines: 1
+          1 unset COMPACT_ADVISER_DISABLE
