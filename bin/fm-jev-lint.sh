@@ -123,8 +123,8 @@ subject_has_secret() {  # <text>
   printf '%s\n' "$1" | grep -qE \
     '(-----BEGIN[A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]|github_pat_[A-Za-z0-9]|xox[baprs]-[A-Za-z0-9]|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9]|Bearer[[:space:]]+[A-Za-z0-9._~+/-]{20,}|eyJ[A-Za-z0-9_-]{10,})' \
     && return 0
-  printf '%s\n' "$1" | grep -qiE \
-    '(key|token|secret|password)["'"'"']?[[:space:]]*[:=][[:space:]]*[^[:space:]]' \
+  printf '%s\n' "$1" | grep -qE \
+    '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9._/+-]' \
     && return 0
   return 1
 }
@@ -142,6 +142,7 @@ extract_subjects() {
   function cap(s, n) { if (length(s) > n) s = substr(s, 1, n); return s }
   function flat(s) { gsub(/\t/, " ", s); gsub(/\r/, "", s); return s }
   function is_comment(l) { return (l ~ /^[[:space:]]*(#|\/\/|\*|;|")/) }
+  function is_banner(l) { return (l ~ /^[[:space:]]*(#|\/\/|;|\*)+[[:space:]]*[-=]{2,}/) }
   function is_func(l) {
     if (l ~ /^[[:space:]]*(\}[[:space:]]*)?(else[[:space:]]+)?(if|elif|for|foreach|while|until|do|switch|case|catch|except|with)[[:space:]]*\(/) return 0
     return (l ~ /^[[:space:]]*(function[[:space:]]+[A-Za-z_][A-Za-z0-9_:.-]*|def[[:space:]]+[A-Za-z_][A-Za-z0-9_]*|func[[:space:]]+[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_:.-]*[[:space:]]*\(\)[[:space:]]*\{|[A-Za-z_][A-Za-z0-9_:.-]*[[:space:]]*\([^)]*\)[[:space:]]*\{)/)
@@ -196,7 +197,7 @@ extract_subjects() {
         for (k = i + 1; k <= n && !bound[k] && !is_func(lines[k]); k++) if (kinds[k] == "+") added = 1
         if (!added) continue
         claim = ""; j = i - 1
-        while (j >= 1 && !bound[j + 1] && is_comment(lines[j])) { claim = lines[j] (claim == "" ? "" : " " claim); j-- }
+        while (j >= 1 && !bound[j + 1] && is_comment(lines[j]) && !is_banner(lines[j])) { claim = lines[j] (claim == "" ? "" : " " claim); j-- }
         if (claim == "") continue
         ev = lines[i]; body = 0
         for (k = i + 1; k <= n && body < 8; k++) {
