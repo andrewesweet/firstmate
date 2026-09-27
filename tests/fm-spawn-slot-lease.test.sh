@@ -28,8 +28,11 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # unleased slot's checkout and records the holder; a pool with no free slot
 # fails. `return --force <path>` drops that slot's lease. `status --json` prints
 # treehouse's pool status for every slot, carrying its lease holder, which is
-# the only evidence of ownership once a slot's checkout is gone. Anything else
-# exits 0.
+# the only evidence of ownership once a slot's checkout is gone; it mirrors
+# treehouse v2.3.0 `status --json` (array of {name, path, status, flavor,
+# lease_id, lease_holder, leased_at, processes}), and
+# tests/fm-spawn-slot-lease-live-e2e.test.sh proves that shape against the real
+# binary. Anything else exits 0.
 make_pool_fakebin() {
   local dir=$1 fakebin
   fakebin=$(make_spawn_fakebin "$dir")
