@@ -12,7 +12,7 @@ metadata:
 # intake-wayfinder
 
 This skill is the single owner of firstmate intake for non-trivial work.
-`AGENTS.md` section 7 points here and does not restate this procedure.
+`AGENTS.md` section 7 carries only the load trigger and the one rule that grilling never goes into a crew or secondmate brief; the rest of this procedure lives here.
 It composes the installed Matt Pocock planning disciplines (`~/.agents/skills/`) with the fleet lifecycle: grill first, then route, then dispatch.
 Nothing here authorizes implementation; maps plan and do not build.
 
@@ -41,7 +41,7 @@ Grilling is a conversation with the captain and never goes into a crew or second
 
 Read `~/.agents/skills/ask-matt/SKILL.md` and its `PHASE-BOUNDARIES.md` as files and apply their routing, not their publication targets.
 When the effort is foggy and more than one agent session can hold, start with `/wayfinder` (section 4).
-When the grilled idea fits in one session, go straight to `/to-spec` and then `/to-tickets` (section 5), or to a single briefed ship or scout when the work turned out genuinely small.
+When the grilled idea fits in one session, go straight to `/to-spec` and then `/to-tickets` (section 5).
 When a runnable question blocks the plan - how a state model feels, which UI direction reads right - take the prototype detour first and fold its verdict back into the thread before speccing.
 Keep grilling, spec, and tickets in one unbroken context where the window allows, so the spec builds on the verbatim reasoning rather than a flattened summary.
 

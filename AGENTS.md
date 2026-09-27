@@ -334,7 +334,7 @@ If established evidence already answers an informational question, relay it with
 Never both present a likely-enough solution and launch a parallel design exercise that is not expected to change it.
 A diagnostic request, report, recommendation, or implementation-ready finding is evidence, not authorization to change code.
 Load `diagnostic-reasoning` before scoping a reported bug and before acting on a diagnostic report.
-For non-trivial work (a fuzzy plan, open decisions, multi-session scale, or an irreversible surface), load `intake-wayfinder` and grill the captain to confirmed shared understanding before dispatching; keep trivial, clearly specified asks fast with no ceremony.
+Load `intake-wayfinder` before dispatching non-trivial work.
 Grilling is a conversation with the captain and never goes into a crew or secondmate brief.
 
 Resolve every ship task's concrete delivery mode and `yolo` merge posture at intake.
