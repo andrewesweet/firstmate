@@ -433,6 +433,13 @@ test_outcome_processed_marker_is_sequence_bound() {
     '{"seq":3,'*) ;;
     *) fail "the newly read captain row was not the only unprocessed row: $out" ;;
   esac
+  out=$(FM_HOME="$home" FM_SUPERVISION_ACTOR=branch \
+    "$ROOT/bin/fm-branch-outcome.sh" mark-processed --through 3 2>&1)
+  status=$?
+  [ "$status" -eq 6 ] || fail "branch mark-processed exited $status, not 6: $out"
+  assert_contains "$out" "the supervision branch never performs this action" \
+    "branch mark-processed refusal lost the role partition"
+  [ "$(cat "$marker")" = 2 ] || fail "branch mark-processed advanced the processed marker"
 
   # processed-init leaves a present marker alone and fails closed on a
   # malformed one instead of skipping an outcome.
@@ -471,6 +478,14 @@ test_outcome_processed_marker_is_sequence_bound() {
   FM_HOME="$home" "$ROOT/bin/fm-branch-outcome.sh" mark-read --through 1 || fail "migration mark-read failed"
   assert_contains "$(FM_HOME="$home" "$ROOT/bin/fm-branch-outcome.sh" unprocessed)" '"seq":1' \
     "an absent marker hid a delivered captain row instead of reading as zero"
+  out=$(FM_HOME="$home" FM_SUPERVISION_ACTOR=branch \
+    "$ROOT/bin/fm-branch-outcome.sh" processed-init 2>&1)
+  status=$?
+  [ "$status" -eq 6 ] || fail "branch processed-init exited $status, not 6: $out"
+  assert_contains "$out" "the supervision branch never performs this action" \
+    "branch processed-init refusal lost the role partition"
+  assert_absent "$home/state/.branch-outcomes-processed" \
+    "branch processed-init created the main-owned processed marker"
   FM_HOME="$home" "$ROOT/bin/fm-branch-outcome.sh" processed-init || fail "migration processed-init failed"
   [ "$(cat "$home/state/.branch-outcomes-processed")" = 1 ] || fail "processed-init did not start at the read cursor"
   [ -z "$(FM_HOME="$home" "$ROOT/bin/fm-branch-outcome.sh" unprocessed)" ] \

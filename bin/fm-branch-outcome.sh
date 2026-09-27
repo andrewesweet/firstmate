@@ -109,6 +109,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
 . "$SCRIPT_DIR/fm-classify-lib.sh"
+# shellcheck source=bin/fm-lease-lib.sh
+. "$SCRIPT_DIR/fm-lease-lib.sh"
 
 STORE="$STATE/branch-outcomes.jsonl"
 CURSOR="$STATE/.branch-outcomes-cursor"
@@ -580,6 +582,7 @@ case "$CMD" in
     exit "$STATUS"
     ;;
   mark-processed)
+    fm_lease_forbid_branch "outcome acknowledgement (fm-branch-outcome mark-processed)"
     [ "${1:-}" = --through ] || usage
     THROUGH=${2:-}
     bounded_uint "$THROUGH" || usage
@@ -624,6 +627,7 @@ case "$CMD" in
     fm_lock_release "$LOCK"
     ;;
   processed-init)
+    fm_lease_forbid_branch "outcome marker initialization (fm-branch-outcome processed-init)"
     HELD_LOCK=0
     if [ "${1:-}" = --held-lock ]; then
       HELD_LOCK=1

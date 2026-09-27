@@ -438,10 +438,16 @@ test_scenario_d() {
   start_daemon claude
 
   echo "done: PR https://example.test/pr/400" > "$STATE_DIR/fake-c1.status"
-  sleep 6
 
-  local submitted_count doorbell record
-  submitted_count=$(grep -c '' "$LOG_FILE" || true)
+  local submitted_count=0 doorbell record i=0
+  while [ "$i" -lt 120 ]; do
+    submitted_count=$(grep -c '' "$LOG_FILE" || true)
+    [ "$submitted_count" -le 1 ] \
+      || fail "Scenario D: expected exactly one submitted line, got $submitted_count: $(cat "$LOG_FILE")"
+    [ "$submitted_count" -eq 0 ] || break
+    sleep 0.1
+    i=$((i + 1))
+  done
   [ "$submitted_count" -eq 1 ] \
     || fail "Scenario D: expected exactly one submitted line, got $submitted_count: $(cat "$LOG_FILE")"
   awk -F '\t' '$1 ~ /e281a3/ { found = 1 } END { exit !found }' "$LOG_FILE" \

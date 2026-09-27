@@ -65,6 +65,13 @@
 # bounded child its own process group before signaling its negative pid.
 set -u
 
+fm_timeout_current_pid() {  # <output-variable>
+  local output=$1 pid
+  pid=${BASHPID:-$(exec "${BASH:-/bin/bash}" -c 'printf "%s\n" "$PPID"')} || return 1
+  case "$pid" in ''|*[!0-9]*|0) return 1 ;; esac
+  printf -v "$output" '%s' "$pid"
+}
+
 fm_timeout_mechanism() {
   if [ "${FM_TIMEOUT_MECHANISM_OVERRIDE:-}" = bash ]; then
     printf 'bash\n'
@@ -191,7 +198,7 @@ fm_timed_out() {  # <status>
 # which keeps the bound off perl's platform-dependent syscall-restart signal
 # semantics and off the drift of counting sleep intervals.
 fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
-  local seconds=${1:-} grace=${2:-} value owner
+  local seconds=${1:-} grace=${2:-} value owner current
   for value in "$seconds" "$grace"; do
     case "$value" in
       '' | 0* | *[!0-9]*)
@@ -206,7 +213,8 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
     exit 125
   fi
   owner=${FM_EXEC_TIMED_OWNER_PID:-$$}
-  [ "$owner" != "$BASHPID" ] || owner=$PPID
+  fm_timeout_current_pid current || exit 125
+  [ "$owner" != "$current" ] || owner=$PPID
   unset FM_EXEC_TIMED_OWNER_PID
   if command -v perl >/dev/null 2>&1; then
     exec perl -MPOSIX=WNOHANG,setpgid -MTime::HiRes=time -e '
