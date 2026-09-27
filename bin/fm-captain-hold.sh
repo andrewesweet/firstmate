@@ -1728,7 +1728,7 @@ EOF
       if ! cp -p -- "$meta" "$attest_tmp" \
          || ! printf 'decisions_reviewed=1\ndecision_keys=%s\n' "$keys" >> "$attest_tmp" \
          || ! fm_pr_metadata_reseal "$attest_tmp" \
-         || ! mv -f -- "$attest_tmp" "$meta"; then
+         || ! fm_backlog_atomic_transition publish "$attest_tmp" "$meta" "task record" "$STATE"; then
         rm -f -- "$attest_tmp"
         fail "could not record the captain-call attestation at $meta"
       fi

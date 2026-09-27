@@ -3530,8 +3530,14 @@ if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
 # are compared before reporting success, so a rollback that cannot be proven
 # complete is reported as not rolled back.
 teardown_legacy_stamp_rollback() {
+  local restore
   [ -n "$TEARDOWN_LEGACY_PRESTAMP_COPY" ] && [ -f "$TEARDOWN_LEGACY_PRESTAMP_COPY" ] || return 1
-  cp -- "$TEARDOWN_LEGACY_PRESTAMP_COPY" "$META" || return 1
+  restore=$(mktemp "$STATE/.fm-teardown-rollback.XXXXXX") || return 1
+  if ! cp -p -- "$TEARDOWN_LEGACY_PRESTAMP_COPY" "$restore" \
+     || ! fm_backlog_atomic_transition publish "$restore" "$META" "task record" "$STATE"; then
+    rm -f -- "$restore"
+    return 1
+  fi
   cmp -s "$TEARDOWN_LEGACY_PRESTAMP_COPY" "$META"
 }
 

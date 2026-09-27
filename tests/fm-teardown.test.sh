@@ -1634,7 +1634,7 @@ test_windowless_leftover_retries_its_retained_legacy_stamp_without_the_flag() {
   write_windowless_legacy_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
   printf '%s\n' 'pr=not-a-valid-url' >> "$case_dir/state/task-x1.meta"
   seed_backlog_in_flight "$case_dir"
-  add_failing_prestamp_cp "$case_dir"
+  add_failing_rollback_cp "$case_dir"
 
   set +e
   run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
@@ -1773,14 +1773,16 @@ test_legacy_record_rolls_the_stamp_back_when_the_marker_write_fails() {
 # destination - so every other cp in the lifecycle, including the copy itself,
 # still runs the real one and the abandoned attempt leaves its stamp behind for
 # exactly the reason under test.
-add_failing_prestamp_cp() {
+add_failing_rollback_cp() {
   local case_dir=$1 real
   real=$(command -v cp)
   cat > "$case_dir/fakebin/cp" <<SH
 #!/usr/bin/env bash
-case "\$2" in
-  *fm-teardown-prestamp.*) exit 1 ;;
-esac
+for arg in "\$@"; do
+  case "\$arg" in
+    *fm-teardown-rollback.*) exit 1 ;;
+  esac
+done
 exec "$real" "\$@"
 SH
   chmod +x "$case_dir/fakebin/cp"
@@ -1836,7 +1838,7 @@ test_retained_legacy_stamp_still_faces_the_endpoint_gate() {
   seed_backlog_in_flight "$case_dir"
   wt_commit "$case_dir" "landed legacy work"
   add_fork_with_pushed_branch "$case_dir"
-  add_failing_prestamp_cp "$case_dir"
+  add_failing_rollback_cp "$case_dir"
 
   set +e
   run_teardown "$case_dir" --legacy-record > "$case_dir/stdout" 2> "$case_dir/stderr"
