@@ -1342,7 +1342,7 @@ test_orphaned_claim_from_dead_session_is_superseded_by_replacement() {
 # state/.lock-session sidecar naming that id untouched and the orphan's recorded
 # owner_session_id still matches it. It must still be superseded, because the
 # resumed session holds the lock in a new process and the orphan's recorded
-# recorded lock-holder identity is the dead holder's. Deferring here would leave the resumed
+# lock-holder identity is the dead holder's. Deferring here would leave the resumed
 # home deaf for exactly the case this change exists to fix.
 test_resumed_same_id_session_supersedes_the_orphan() {
   local dir out status orphan_pid orphan_out lock_pid dead_lock_pid i
