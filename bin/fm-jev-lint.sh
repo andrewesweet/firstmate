@@ -46,8 +46,9 @@
 #   single owner of that list. Path exclusion is not enough on its own, so
 #   every extracted subject also passes subject_has_secret before check
 #   dispatches it: a subject whose claim or evidence carries a private-key
-#   block, a token-shaped value, or an assignment to a KEY, TOKEN, SECRET or
-#   PASSWORD name is dropped, never sent and never recorded as a subject.
+#   block, a token-shaped value, or an assignment to a key, token, secret,
+#   password or passwd name is dropped, never sent and never recorded as a
+#   subject.
 #
 # Record: one JSON object per line in $FM_HOME/data/jev-lint.jsonl, or the
 #   --record path when given. A check line carries ts
@@ -125,6 +126,9 @@ subject_has_secret() {  # <text>
     && return 0
   printf '%s\n' "$1" | grep -qE \
     '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9._/+-]' \
+    && return 0
+  printf '%s\n' "$1" | grep -qiE \
+    '(^|[^A-Za-z0-9_])[A-Za-z0-9_]*(key|token|secret|password|passwd)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9._/+-]' \
     && return 0
   return 1
 }
