@@ -149,10 +149,9 @@ Some digest work remains local but unbounded:
 
 So the whole digest still runs as one bounded child, default 120s via `FM_SESSION_START_TIMEOUT`.
 
-### Per-task endpoint reads
-
-Each per-task endpoint liveness read runs serially in its own crash-isolated child under a fixed 10s bound, so a read that hangs or dies becomes that task's own `endpoint: error` line and the digest continues.
-With a wedged backend the stage's ceiling is tasks times 10s and can itself reach the digest bound.
+Each per-task endpoint liveness read runs serially in its own crash-isolated child, bounded by `FM_SESSION_START_ENDPOINT_TIMEOUT` (default 10s; a non-numeric or zero value falls back to the default).
+So a read that hangs or dies becomes that task's own `endpoint: error` line and the digest continues.
+With a wedged backend the stage's ceiling is tasks times that per-read bound and can itself reach the digest bound.
 
 The per-item backlog row reads inside bootstrap's reconcile and close-replay sweeps are the exception.
 Each of those reads is bounded by `FM_BACKLOG_ROW_TIMEOUT_SECS` (default 10s) through `bin/fm-backlog-transition-lib.sh`.
@@ -162,16 +161,15 @@ Later reads in that sweep then return immediately while still naming their own i
 When timeout, gtimeout, and perl are unavailable, the shared timeout owner falls back to a pure-Bash process-group watchdog.
 So no supported host runs the digest unbounded.
 
-### When the bound is hit
+### When the child stops early
 
 The child streams into the native transport as it runs.
 So everything emitted before the child stopped is retained for delivery.
-The parent then prints a `STARTUP TRUNCATED` banner on any nonzero child exit, not only the bound.
-The banner names:
+The parent then prints a `STARTUP TRUNCATED` banner on any nonzero child exit, not only the bound, that names:
 
 - The stage that did not finish.
 - The stages that were therefore never emitted.
-- Whether the child hit its bound or died unexpectedly, with its exit status.
+- Whether the child hit its bound or died unexpectedly with its exit status.
 
 The parent still exits 0.
 The regression evidence for both shapes is in [`docs/verification/supervision.md`](verification/supervision.md#per-task-endpoint-reads-cannot-truncate-the-digest).
