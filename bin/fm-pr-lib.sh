@@ -408,9 +408,14 @@ fm_pr_metadata_identity_parse() {
 # record with no pr= line is left untouched; an already sealed one is
 # republished with the same bytes.
 fm_pr_metadata_reseal() {
-  local meta=$1 dir tmp reseal_mode
+  local meta=$1 dir tmp reseal_mode pr_probe=0
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
-  grep -q '^pr=' "$meta" 2>/dev/null || return 0
+  grep -q '^pr=' "$meta" 2>/dev/null || pr_probe=$?
+  case "$pr_probe" in
+    0) ;;
+    1) return 0 ;;
+    *) return 1 ;;
+  esac
   dir=${meta%/*}
   [ "$dir" != "$meta" ] || dir=.
   tmp=$(mktemp "$dir/.fm-meta-reseal.XXXXXX") || return 1
