@@ -1,0 +1,37 @@
+### Scenario A: ship close records one ledger line with pipeline columns
+$ bin/fm-spend-ledger-append.sh demo-1
+{
+  "schema": 2,
+  "task": "demo-1",
+  "kind": "ship",
+  "harness": "codex",
+  "model": "default",
+  "effort": "default",
+  "window": null,
+  "calls": null,
+  "mean_context_tokens": null,
+  "cache_read_share": null,
+  "usd_lane": "unmeasured",
+  "usd": null,
+  "models": [],
+  "unmeasured_reason": "no verified per-call usage parser for this runtime",
+  "pipeline_runs": 1,
+  "pipeline_invocations": 5,
+  "pipeline_input_tokens": 150000,
+  "pipeline_output_tokens": 7000,
+  "pipeline_cache_read_tokens": 1300000,
+  "pipeline_cache_creation_tokens": 30000,
+  "pipeline_agent_ms": 90000,
+  "pipeline_unmeasured_invocations": 3,
+  "pipeline_unmeasured_ms": 1025000,
+  "pipeline_usd": 1.5375,
+  "pipeline_cost_lane": "api-equiv",
+  "ts": "2026-09-28T17:55:23Z",
+  "outcome": "pr",
+  "outcome_ref": "https://github.com/example/demo/pull/42"
+}
+
+### Scenario B: rerun of the same close appends no second line
+$ bin/fm-spend-ledger-append.sh demo-1   # again
+{"task":"demo-1","ts":"2026-09-28T17:55:23Z"}
+ledger line count: 1

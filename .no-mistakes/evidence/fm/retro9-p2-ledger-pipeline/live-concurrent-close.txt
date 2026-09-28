@@ -1,0 +1,9 @@
+### Scenario H: two close paths racing the same task still record exactly one line
+[1]   Done                    FM_ROOT_OVERRIDE="$W" NM_HOME="$H/nm" FM_STATE_OVERRIDE="$H/state" FM_DATA_OVERRIDE="$H/data" FM_CONFIG_OVERRIDE="$H/config" HOME="$H" "$W/bin/fm-spend-ledger-append.sh" race-1 > /dev/null 2>&1
+[2]   Done                    FM_ROOT_OVERRIDE="$W" NM_HOME="$H/nm" FM_STATE_OVERRIDE="$H/state" FM_DATA_OVERRIDE="$H/data" FM_CONFIG_OVERRIDE="$H/config" HOME="$H" "$W/bin/fm-spend-ledger-append.sh" race-1 > /dev/null 2>&1
+[4]-  Done                    FM_ROOT_OVERRIDE="$W" NM_HOME="$H/nm" FM_STATE_OVERRIDE="$H/state" FM_DATA_OVERRIDE="$H/data" FM_CONFIG_OVERRIDE="$H/config" HOME="$H" "$W/bin/fm-spend-ledger-append.sh" race-1 > /dev/null 2>&1
+[3]-  Done                    FM_ROOT_OVERRIDE="$W" NM_HOME="$H/nm" FM_STATE_OVERRIDE="$H/state" FM_DATA_OVERRIDE="$H/data" FM_CONFIG_OVERRIDE="$H/config" HOME="$H" "$W/bin/fm-spend-ledger-append.sh" race-1 > /dev/null 2>&1
+[5]+  Done                    FM_ROOT_OVERRIDE="$W" NM_HOME="$H/nm" FM_STATE_OVERRIDE="$H/state" FM_DATA_OVERRIDE="$H/data" FM_CONFIG_OVERRIDE="$H/config" HOME="$H" "$W/bin/fm-spend-ledger-append.sh" race-1 > /dev/null 2>&1
+race-1 lines in the ledger: 1
+total ledger lines: 6
+every line is valid JSON: yes

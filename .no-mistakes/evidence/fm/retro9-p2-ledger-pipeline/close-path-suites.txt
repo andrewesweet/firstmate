@@ -1,0 +1,7 @@
+# Close paths driven through the real CLIs (targeted suites)
+
+## bash tests/fm-backlog-atomicity.test.sh  (real fm-teardown.sh on an Orca recovery record)
+ok - Orca cleanup recovery is excluded from backlog lifecycle transitions
+
+## bash tests/fm-captain-hold-lifecycle.test.sh  (real fm-captain-hold.sh answer-close)
+ok - a task closed by a captain answer after cleanup still records its spend line

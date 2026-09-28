@@ -1,0 +1,15 @@
+### Scenario F: inventory without exit_status still answers, falling back to the reported-token test
+{
+  "pipeline_invocations": 2,
+  "pipeline_unmeasured_invocations": 1,
+  "pipeline_unmeasured_ms": 7000,
+  "pipeline_agent_ms": 60000,
+  "pipeline_cost_lane": "api-equiv",
+  "pipeline_usd": 0.625
+}
+
+### Scenario G: a kind that never ran a worker records nothing
+$ bin/fm-spend-ledger-append.sh secondmate-1
+stdout: ''  exit=0
+0
+no secondmate line in the ledger

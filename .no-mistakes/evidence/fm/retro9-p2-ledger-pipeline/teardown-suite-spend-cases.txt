@@ -1,0 +1,7 @@
+# bash tests/fm-teardown.test.sh  (real fm-teardown.sh driven end to end; exit 0)
+ok - a teardown refused at treehouse return on a no-backlog home records no ledger line
+ok - a closed ship appends one schema-versioned spend ledger line with its outcome
+ok - a closed ship with session logs records measured api-equiv spend
+ok - a closed scout records its report as the ledger outcome
+ok - a rerun teardown keeps one spend ledger line per closed task
+

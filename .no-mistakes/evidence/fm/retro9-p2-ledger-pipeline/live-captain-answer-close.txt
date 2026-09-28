@@ -1,0 +1,37 @@
+### Scenario C: teardown retains the captain's call, later answer-close still records the line
+$ bin/fm-spend-ledger-append.sh --stash retained-1   # teardown, record still in hand
+stashed context:
+schema=fm-spend-context.v1
+task=retained-1
+kind=scout
+harness=codex
+model=
+effort=
+worktree=/tmp/fm-spend-live.7fO1gn/home/wt
+project=/tmp/fm-spend-live.7fO1gn/home/project
+branch=fm/demo-ship
+mode=no-mistakes
+spawn_epoch=1700000000
+end_epoch=1790618157
+outcome=report
+outcome_ref=data/retained-1/report.md
+
+# cleanup removes the task record and sidecars
+$ bin/fm-spend-ledger-append.sh retained-1   # captain answer closes it
+{
+  "task": "retained-1",
+  "kind": "scout",
+  "outcome": "report",
+  "outcome_ref": "data/retained-1/report.md",
+  "usd_lane": "unmeasured",
+  "pipeline_cost_lane": "api-equiv",
+  "pipeline_usd": 1.5375,
+  "pipeline_unmeasured_invocations": 3
+}
+spend-context removed after a successful append: yes
+
+### Ledger after every close path (data/spend-ledger.jsonl)
+{"task":"demo-1","kind":"ship","outcome":"pr","pipeline_usd":1.5375,"pipeline_cost_lane":"api-equiv"}
+{"task":"unpriced-1","kind":"ship","outcome":"local-main","pipeline_usd":null,"pipeline_cost_lane":"unmeasured"}
+{"task":"mixed-1","kind":"ship","outcome":"local-main","pipeline_usd":0.075,"pipeline_cost_lane":"partial"}
+{"task":"retained-1","kind":"scout","outcome":"report","pipeline_usd":1.5375,"pipeline_cost_lane":"api-equiv"}

@@ -1,0 +1,14 @@
+### Scenario D: no invocation priceable -> lane unmeasured (not partial), unnamed model named 'unknown'
+{
+  "pipeline_cost_lane": "unmeasured",
+  "pipeline_usd": null,
+  "pipeline_note": "no known rate for model(s) gpt-6-astra, unknown; no invocation could be priced",
+  "pipeline_input_tokens": 8000
+}
+
+### Scenario E: some tokens priced, one unnamed model -> lane partial, note names 'unknown'
+{
+  "pipeline_cost_lane": "partial",
+  "pipeline_usd": 0.075,
+  "pipeline_note": "no known rate for model(s) unknown; pipeline_usd covers the priced invocations only"
+}
