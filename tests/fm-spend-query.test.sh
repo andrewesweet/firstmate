@@ -83,15 +83,17 @@ path = os.environ["NM_SEED"]
 db = sqlite3.connect(path)
 db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
 db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
-db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER, exit_status TEXT)")
 db.execute("INSERT INTO repos VALUES('r1','/pipe-proj')")
 db.execute("INSERT INTO runs VALUES('runA','r1','fm/pipe1',1),('runB','r1','fm/pipe1',2),('runC','r1','fm/other',3)")
 db.execute("INSERT INTO agent_invocations VALUES" +
-           "('a1','runA','claude-opus-4-1',1000,500,9000,100,60000)," +
-           "('a2','runA','gpt-mystery',2000,1000,0,0,30000)," +
-           "('a3','runA',NULL,NULL,NULL,NULL,NULL,7000)," +
-           "('b1','runB','claude-opus-4-1',500,100,100,10,10000)," +
-           "('c1','runC','claude-opus-4-1',999999,999999,999999,999999,999999)")
+           "('a1','runA','claude-opus-4-1',1000,500,9000,100,60000,'completed')," +
+           "('a2','runA','gpt-mystery',2000,1000,0,0,30000,'completed')," +
+           "('a3','runA',NULL,NULL,NULL,NULL,NULL,7000,'completed')," +
+           "('a4','runA','claude-opus-4-1',4000,2000,0,0,5000,'cancelled')," +
+           "('a5','runB','gpt-broken',1234,0,0,0,7000,'error')," +
+           "('b1','runB','claude-opus-4-1',500,100,100,10,10000,'completed')," +
+           "('c1','runC','claude-opus-4-1',999999,999999,999999,999999,999999,'completed')")
 db.commit()
 db.close()
 PY
@@ -104,14 +106,14 @@ test_pipeline_counts_measured_and_null_token_invocations() {
   out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
     --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
   assert_equals '2' "$(jq -r .pipeline_runs <<<"$out")" "both same-branch runs are counted"
-  assert_equals '4' "$(jq -r .pipeline_invocations <<<"$out")" "every same-branch invocation is counted"
+  assert_equals '6' "$(jq -r .pipeline_invocations <<<"$out")" "every same-branch invocation is counted"
   assert_equals '3500' "$(jq -r .pipeline_input_tokens <<<"$out")" "input tokens sum the reported invocations"
   assert_equals '1600' "$(jq -r .pipeline_output_tokens <<<"$out")" "output tokens sum the reported invocations"
   assert_equals '9100' "$(jq -r .pipeline_cache_read_tokens <<<"$out")" "cache-read tokens sum the reported invocations"
   assert_equals '110' "$(jq -r .pipeline_cache_creation_tokens <<<"$out")" "cache-creation tokens sum the reported invocations"
   assert_equals '100000' "$(jq -r .pipeline_agent_ms <<<"$out")" "agent duration sums the reported invocations"
-  assert_equals '1' "$(jq -r .pipeline_unmeasured_invocations <<<"$out")" "the tokenless invocation is counted, not priced"
-  assert_equals '7000' "$(jq -r .pipeline_unmeasured_ms <<<"$out")" "the tokenless invocation keeps its duration"
+  assert_equals '3' "$(jq -r .pipeline_unmeasured_invocations <<<"$out")" "the tokenless and killed invocations are counted, not priced"
+  assert_equals '19000' "$(jq -r .pipeline_unmeasured_ms <<<"$out")" "the tokenless and killed invocations keep their duration"
   assert_equals 'partial' "$(jq -r .pipeline_cost_lane <<<"$out")" "an unpriced model marks the cost partial"
   jq -e '.pipeline_usd > 0.027 and .pipeline_usd < 0.028' <<<"$out" >/dev/null \
     || fail "the priced invocations did not carry their opus cost: $out"
@@ -187,6 +189,78 @@ PY
     || fail "a missing inventory must still answer"
   assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <"$TMP_ROOT/po")" "a missing inventory stays unmeasured"
   pass "an unresolvable pipeline scope records unmeasured with a reason"
+}
+
+test_killed_invocations_are_unmeasured_even_with_tokens() {
+  local nm out
+  nm=$(sp_nm_seed "$TMP_ROOT/nm-pipeline-killed")
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
+  assert_equals '3500' "$(jq -r .pipeline_input_tokens <<<"$out")" "a cancelled invocation's tokens are never summed"
+  assert_equals '1600' "$(jq -r .pipeline_output_tokens <<<"$out")" "an errored invocation's tokens are never summed"
+  assert_equals '100000' "$(jq -r .pipeline_agent_ms <<<"$out")" "killed duration stays out of the measured agent time"
+  jq -e '.pipeline_usd > 0.027 and .pipeline_usd < 0.028' <<<"$out" >/dev/null \
+    || fail "a cancelled invocation on a priceable model was priced: $out"
+  jq -e '.pipeline_note | contains("gpt-broken") | not' <<<"$out" >/dev/null \
+    || fail "an errored invocation's model was named as unpriced: $out"
+  pass "invocations killed with a cancelled or error exit status are unmeasured despite their tokens"
+}
+
+test_pipeline_without_an_exit_status_column_falls_back_to_the_token_test() {
+  local nm out
+  nm="$TMP_ROOT/nm-old-schema"
+  mkdir -p "$nm"
+  NM_SEED="$nm/state.sqlite" python3 - <<'PY'
+import os
+import sqlite3
+db = sqlite3.connect(os.environ["NM_SEED"])
+db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
+db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+db.execute("INSERT INTO repos VALUES('r1','/pipe-proj')")
+db.execute("INSERT INTO runs VALUES('runA','r1','fm/pipe1',1)")
+db.execute("INSERT INTO agent_invocations VALUES" +
+           "('a1','runA','claude-opus-4-1',1000,500,9000,100,60000)," +
+           "('a2','runA',NULL,NULL,NULL,NULL,NULL,4000)")
+db.commit()
+db.close()
+PY
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
+  assert_equals 'api-equiv' "$(jq -r .pipeline_cost_lane <<<"$out")" "an older inventory schema is still priced"
+  assert_equals '1' "$(jq -r .pipeline_unmeasured_invocations <<<"$out")" "without exit_status the token test alone marks unmeasured"
+  assert_equals '4000' "$(jq -r .pipeline_unmeasured_ms <<<"$out")" "the tokenless invocation keeps its duration"
+  pass "an inventory without exit_status falls back to the reported-token test"
+}
+
+test_pipeline_with_nothing_priceable_is_unmeasured_not_partial() {
+  local nm out
+  nm="$TMP_ROOT/nm-nothing-priced"
+  mkdir -p "$nm"
+  NM_SEED="$nm/state.sqlite" python3 - <<'PY'
+import os
+import sqlite3
+db = sqlite3.connect(os.environ["NM_SEED"])
+db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
+db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER, exit_status TEXT)")
+db.execute("INSERT INTO repos VALUES('r1','/pipe-proj')")
+db.execute("INSERT INTO runs VALUES('runA','r1','fm/pipe1',1)")
+db.execute("INSERT INTO agent_invocations VALUES" +
+           "('a1','runA','gpt-6-astra',1000,500,0,0,60000,'completed')," +
+           "('a2','runA','',700,100,0,0,20000,'completed')")
+db.commit()
+db.close()
+PY
+  out=$(NM_HOME="$nm" python3 "$PARSER" --task pipe1 --kind ship --harness codex \
+    --pipeline-branch fm/pipe1 --pipeline-project /pipe-proj)
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$out")" "a pipeline with nothing priced is not partial"
+  jq -e '.pipeline_usd == null' <<<"$out" >/dev/null \
+    || fail "an unpriceable pipeline carried a cost: $out"
+  assert_equals '1700' "$(jq -r .pipeline_input_tokens <<<"$out")" "unpriceable invocations keep their tokens"
+  assert_contains "$(jq -r .pipeline_note <<<"$out")" "unknown" "an unrecorded model name is named rather than left blank"
+  assert_contains "$(jq -r .pipeline_note <<<"$out")" "gpt-6-astra" "the note names every unpriced model"
+  pass "a pipeline where no invocation could be priced records unmeasured, not partial"
 }
 
 test_normalize_line_reads_old_schema_lines() {
@@ -602,6 +676,9 @@ test_pipeline_counts_measured_and_null_token_invocations
 test_pipeline_resolves_the_repo_by_the_task_worktree
 test_pipeline_without_a_branch_is_definitively_empty
 test_pipeline_with_an_unresolvable_repo_is_unmeasured
+test_killed_invocations_are_unmeasured_even_with_tokens
+test_pipeline_without_an_exit_status_column_falls_back_to_the_token_test
+test_pipeline_with_nothing_priceable_is_unmeasured_not_partial
 test_normalize_line_reads_old_schema_lines
 
 echo "OK: fm-spend-query"

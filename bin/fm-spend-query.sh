@@ -110,7 +110,7 @@ emit_unmeasured() {  # <reason>
       pipeline_cache_read_tokens: 0, pipeline_cache_creation_tokens: 0,
       pipeline_agent_ms: 0, pipeline_unmeasured_invocations: 0, pipeline_unmeasured_ms: 0,
       pipeline_usd: null, pipeline_cost_lane: "unmeasured",
-      pipeline_note: "pipeline not queried: python3 unavailable in the shell fallback"}'
+      pipeline_note: "pipeline not queried in the shell fallback"}'
 }
 
 HARNESS=$(meta_get harness)

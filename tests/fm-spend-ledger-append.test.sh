@@ -186,10 +186,10 @@ path = os.environ["NM_SEED"]
 db = sqlite3.connect(path)
 db.execute("CREATE TABLE repos(id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE)")
 db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL, created_at INTEGER NOT NULL)")
-db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER)")
+db.execute("CREATE TABLE agent_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, model TEXT, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER, duration_ms INTEGER, exit_status TEXT)")
 db.execute("INSERT INTO repos VALUES('r1',?)", (os.environ["NM_REPO_PATH"],))
 db.execute("INSERT INTO runs VALUES('run1','r1','fm/task-p1',1)")
-db.execute("INSERT INTO agent_invocations VALUES('i1','run1','claude-sonnet-4-1',2000,400,4000,50,45000)")
+db.execute("INSERT INTO agent_invocations VALUES('i1','run1','claude-sonnet-4-1',2000,400,4000,50,45000,'completed')")
 db.commit()
 db.close()
 PY

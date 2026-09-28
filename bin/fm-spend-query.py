@@ -45,9 +45,10 @@ Schema 2, one JSON object per run:
                            token sums over invocations that reported usage
     pipeline_agent_ms      summed agent duration over those invocations
     pipeline_unmeasured_invocations
-                           invocations that reported no tokens (killed or
-                           never started); counted with their duration,
-                           never priced as zero cost
+                           invocations that were killed or never started - a
+                           cancelled or error exit_status, or no reported
+                           input tokens; counted with their duration, never
+                           priced as zero cost
     pipeline_unmeasured_ms summed agent duration over those invocations
     pipeline_usd           priced cost over reported usage whose model
                            matches a known rate prefix; null when no reported
@@ -379,12 +380,25 @@ def collect_pipeline(branch: str | None, project: str | None, worktree: str | No
             run_ids = [row[0] for row in run_rows]
             if run_ids:
                 placeholders = ",".join("?" for _ in run_ids)
-                invocations = db.execute(
-                    "SELECT model, input_tokens, output_tokens, cache_read_tokens, "
-                    "cache_creation_tokens, duration_ms FROM agent_invocations "
-                    f"WHERE run_id IN ({placeholders})",
-                    run_ids,
-                ).fetchall()
+                columns = (
+                    "model, input_tokens, output_tokens, cache_read_tokens, "
+                    "cache_creation_tokens, duration_ms"
+                )
+                try:
+                    invocations = db.execute(
+                        f"SELECT {columns}, exit_status FROM agent_invocations "
+                        f"WHERE run_id IN ({placeholders})",
+                        run_ids,
+                    ).fetchall()
+                except sqlite3.OperationalError:
+                    invocations = [
+                        (*row, None)
+                        for row in db.execute(
+                            f"SELECT {columns} FROM agent_invocations "
+                            f"WHERE run_id IN ({placeholders})",
+                            run_ids,
+                        ).fetchall()
+                    ]
             else:
                 invocations = []
         finally:
@@ -404,9 +418,9 @@ def collect_pipeline(branch: str | None, project: str | None, worktree: str | No
     priced_usd = 0.0
     priced_tokens = 0
     unpriced_models: set[str] = set()
-    for model, input_tokens, output_tokens, cache_read, cache_creation, duration_ms in invocations:
+    for model, input_tokens, output_tokens, cache_read, cache_creation, duration_ms, exit_status in invocations:
         duration = duration_ms if isinstance(duration_ms, int) else 0
-        if input_tokens is None:
+        if input_tokens is None or exit_status in ("cancelled", "error"):
             pipeline["pipeline_unmeasured_invocations"] += 1
             pipeline["pipeline_unmeasured_ms"] += duration
             continue
@@ -420,7 +434,7 @@ def collect_pipeline(branch: str | None, project: str | None, worktree: str | No
         pipeline["pipeline_agent_ms"] += duration
         rates = rates_for_known(model)
         if rates is None:
-            unpriced_models.add(model if isinstance(model, str) else "unknown")
+            unpriced_models.add(model or "unknown")
             continue
         priced_tokens += input_tokens + output + read + created
         priced_usd += (
@@ -433,13 +447,22 @@ def collect_pipeline(branch: str | None, project: str | None, worktree: str | No
     pipeline["pipeline_invocations"] = len(invocations)
     measured = pipeline["pipeline_invocations"] - pipeline["pipeline_unmeasured_invocations"]
     if measured == 0:
-        pipeline["pipeline_note"] = "no invocation reported tokens; every pipeline cost stays unmeasured"
+        pipeline["pipeline_note"] = (
+            "every invocation was killed or reported no tokens; "
+            "every pipeline cost stays unmeasured"
+        )
         return pipeline
     if unpriced_models:
+        named = ", ".join(sorted(unpriced_models))
+        if not priced_tokens:
+            pipeline["pipeline_note"] = (
+                "no known rate for model(s) " + named + "; no invocation could be priced"
+            )
+            return pipeline
         pipeline["pipeline_cost_lane"] = "partial"
-        pipeline["pipeline_usd"] = round(priced_usd, 4) if priced_tokens else None
+        pipeline["pipeline_usd"] = round(priced_usd, 4)
         pipeline["pipeline_note"] = (
-            "no known rate for model(s) " + ", ".join(sorted(unpriced_models)) + "; "
+            "no known rate for model(s) " + named + "; "
             "pipeline_usd covers the priced invocations only"
         )
         return pipeline

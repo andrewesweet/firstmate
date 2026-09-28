@@ -3606,8 +3606,10 @@ else
   fi
   # No backlog transition applies here (manual backend or a markdown home
   # without a backlog file), but the worker's work still closes with this
-  # cleanup, so the shared producer still records its line now.
-  if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
+  # cleanup, so the shared producer still records its line now. An Orca
+  # cleanup recovery closes no worker, so it records nothing.
+  if [ "$CLEANUP_RECOVERY" != orca ] \
+    && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
     TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-ledger-append.sh" "$ID" 2>/dev/null || :)
     [ -n "$TEARDOWN_SPEND_LINE" ] \
       || echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2

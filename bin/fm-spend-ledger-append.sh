@@ -10,7 +10,9 @@
 # names prints its recorded line and appends nothing.
 # Only ship and scout tasks record lines; any other kind, or a task with
 # neither a readable record nor a stashed context to prove it ran a worker,
-# prints nothing and exits 0. A persistent secondmate retirement is out.
+# prints nothing and exits 0. A readable record carrying no kind at all is a
+# ship, the same default bin/fm-teardown.sh applies, so one owner decides a
+# task's kind. A persistent secondmate retirement is out.
 # The worker figure comes from bin/fm-spend-query.sh (bin/fm-spend-query.py owns
 # the schema, currently version 2), falling back to that wrapper's unmeasured
 # shape when the query fails, and to a minimal unmeasured object built here
@@ -35,8 +37,9 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=bin/fm-lock-lib.sh
-# shellcheck source=bin/fm-lock-lib.sh
 . "$SCRIPT_DIR/fm-lock-lib.sh"
+# shellcheck source=bin/fm-backlog-transition-lib.sh
+. "$SCRIPT_DIR/fm-backlog-transition-lib.sh"
 
 usage() {
   sed -n '2,${/^#/!q;p;}' "$0" | sed 's/^# \{0,1\}//'
@@ -82,6 +85,7 @@ KIND='' HARNESS='' MODEL='' EFFORT='' WORKTREE='' PROJECT='' BRANCH=''
 MODE='' PR_URL='' SPAWN_EPOCH='' END_EPOCH='' CTX_OUTCOME='' CTX_OUTCOME_REF=''
 if [ -r "$META" ]; then
   KIND=$(meta_get "$META" kind)
+  [ -n "$KIND" ] || KIND=ship
   HARNESS=$(meta_get "$META" harness)
   MODEL=$(meta_get "$META" model)
   EFFORT=$(meta_get "$META" effort)
@@ -147,11 +151,9 @@ derive_outcome() {
     scout)
       if [ -f "$DATA/$ID/report.md" ]; then
         OUTCOME=report
-        if [ "$DATA" = "$FM_HOME/data" ]; then
-          OUTCOME_REF="data/$ID/report.md"
-        else
-          OUTCOME_REF="$DATA/$ID/report.md"
-        fi
+        local data_rel
+        data_rel=$(fm_backlog_data_relative "$DATA") || data_rel=$DATA
+        OUTCOME_REF="$data_rel/$ID/report.md"
       fi
       ;;
     ship)
@@ -227,13 +229,13 @@ if [ -z "$WORKER_LINE" ]; then
     '{schema: 2, task: $task, kind: $kind, harness: $harness, model: $model, effort: $effort,
       window: null, calls: null, mean_context_tokens: null, cache_read_share: null,
       usd_lane: "unmeasured", usd: null, models: [],
-      unmeasured_reason: "task record unreadable; session window cannot be bounded",
+      unmeasured_reason: "no spend line could be built; session window cannot be bounded",
       pipeline_runs: 0, pipeline_invocations: 0,
       pipeline_input_tokens: 0, pipeline_output_tokens: 0,
       pipeline_cache_read_tokens: 0, pipeline_cache_creation_tokens: 0,
       pipeline_agent_ms: 0, pipeline_unmeasured_invocations: 0, pipeline_unmeasured_ms: 0,
       pipeline_usd: null, pipeline_cost_lane: "unmeasured",
-      pipeline_note: "pipeline not queried: no task record and no python3"}' 2>/dev/null) || WORKER_LINE=''
+      pipeline_note: "pipeline not queried in the shell fallback"}' 2>/dev/null) || WORKER_LINE=''
 fi
 [ -n "$WORKER_LINE" ] || { echo "error: could not build $ID's spend ledger entry" >&2; exit 0; }
 
