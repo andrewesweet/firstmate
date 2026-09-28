@@ -166,8 +166,9 @@
 # leased home releases its durable treehouse lease so the pool slot is freed,
 # never left leased forever. Every return this script makes passes
 # `--if-lease-holder <task>`, so a slot leased to another task is never
-# released; a slot carrying no lease at all is already free and counts as
-# returned. If the treehouse return fails, teardown leaves the
+# released; a slot carrying no lease at all is nobody else's and is returned
+# unconditionally, exactly as it was before slots were leased. If the treehouse
+# return fails, teardown leaves the
 # leased home and state in place instead of hiding a still-held lease.
 # Usage: fm-teardown.sh <task-id> [--force] [--legacy-record]
 #   --force skips ordinary-task dirty and landed-work checks, skips scout report
@@ -1788,9 +1789,11 @@ treehouse_return_is_index_lock_error() {
 # failure. `lease holder does not match` means the slot has become another
 # task's and must be left alone; `is not leased` means nothing holds it at all -
 # a slot returned already, or taken by a record from before task slots were
-# leased - which is the state the return was asking for, so it is a success.
-# Measured against treehouse v2.3.0 (the pin bin/fm-install-treehouse.sh
-# installs), whose two refusals carry exactly these texts.
+# leased. That refusal is raised BEFORE treehouse does any of the work the
+# return asks for, so it means the precondition did not apply, never that the
+# slot was cleaned, reset and returned. Measured against treehouse v2.3.0 (the
+# pin bin/fm-install-treehouse.sh installs), whose two refusals carry exactly
+# these texts.
 treehouse_return_is_unleased_refusal() {
   local text=$1
   printf '%s\n' "$text" | grep -Eq 'lease precondition failed: worktree .* is not leased'
@@ -1890,20 +1893,33 @@ teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
 # See the script header. The holder is what the slot was leased under, so
 # treehouse itself refuses the return once the slot has become another task's -
 # the one rule every return in this script goes through. A slot that carries no
-# lease at all is already in the state the return asks for and counts as
-# returned.
+# lease at all is nobody else's, so its copy is returned unconditionally instead
+# - the pre-lease behaviour - and a copy already gone counts as returned.
 teardown_treehouse_return() {
   local dir=$1 cd_dir=$2 label=$3 lease_holder=$4 post_cleanup_check=${5:-}
   local out lock attempt=0 max_retries lock_desc
+  local -a return_cmd=(treehouse return --force --if-lease-holder "$lease_holder" "$dir")
 
   # Capture stdout+stderr so non-lock failures stay visible and lock failures can
   # be matched by signature even when the lock file is already gone mid-check.
-  if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
+  if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
   fi
   if treehouse_return_is_unleased_refusal "$out"; then
-    return 0
+    # Nothing holds the slot, so no other task can lose it here, and the caller
+    # has already proved this record's claim on it. A copy still on disk has
+    # therefore not been cleaned, reset or returned yet: ask for that
+    # unconditionally, the way every return did before slots were leased. A copy
+    # already gone has nothing left to clean.
+    if [ ! -d "$dir" ]; then
+      return 0
+    fi
+    return_cmd=(treehouse return --force "$dir")
+    if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+      [ -n "$out" ] && printf '%s\n' "$out"
+      return 0
+    fi
   fi
   [ -n "$out" ] && printf '%s\n' "$out" >&2
 
@@ -1926,12 +1942,9 @@ teardown_treehouse_return() {
     echo "teardown: $label return failed with transient git lock ($lock_desc); waiting ${TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS}s and retrying ($attempt/${max_retries})" >&2
     sleep "$TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS"
 
-    if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
+    if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
       [ -n "$out" ] && printf '%s\n' "$out"
       echo "teardown: $label return succeeded on retry; lock cleared on its own" >&2
-      return 0
-    fi
-    if treehouse_return_is_unleased_refusal "$out"; then
       return 0
     fi
     [ -n "$out" ] && printf '%s\n' "$out" >&2
@@ -1956,12 +1969,9 @@ teardown_treehouse_return() {
           return 1
         fi
       fi
-      if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
+      if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
         [ -n "$out" ] && printf '%s\n' "$out"
         echo "teardown: $label return succeeded after stale-lock cleanup" >&2
-        return 0
-      fi
-      if treehouse_return_is_unleased_refusal "$out"; then
         return 0
       fi
       [ -n "$out" ] && printf '%s\n' "$out" >&2

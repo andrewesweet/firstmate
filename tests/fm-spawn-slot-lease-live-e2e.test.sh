@@ -218,6 +218,10 @@ test_record_with_no_lease_still_tears_down() {
     fail "could not clear the lease to build the pre-lease shape"
   [ -z "$(state_lease_holder "$slot")" ] || \
     fail "the fixture still holds a lease on $slot"
+  # Work the dead task left behind. treehouse refuses the lease precondition
+  # BEFORE cleaning anything, so only a return that actually runs removes this.
+  printf 'DIRT\n' > "$slot/dirty-file"
+  git -C "$slot" checkout -q -b leftover-branch
 
   out=$(FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
@@ -229,7 +233,13 @@ test_record_with_no_lease_still_tears_down() {
   [ ! -e "$home/state/$id.meta" ] || fail "teardown left the task record behind"$'\n'"$out"
   state_slot_present "$slot" || \
     fail "$slot left the pool entirely during teardown"$'\n'"$out"
-  pass "a record whose slot carries no lease still tears down (treehouse $TREEHOUSE_VERSION)"
+  [ ! -e "$slot/dirty-file" ] || \
+    fail "teardown reported success without cleaning $slot"$'\n'"$out"
+  [ "$(git -C "$slot" rev-parse --abbrev-ref HEAD)" = HEAD ] || \
+    fail "teardown reported success without resetting $slot off $(git -C "$slot" rev-parse --abbrev-ref HEAD)"$'\n'"$out"
+  [ "$(real_treehouse get --lease --lease-holder lease-live-reuse-r1 2>/dev/null)" = "$slot" ] || \
+    fail "treehouse $TREEHOUSE_VERSION would not reissue $slot after teardown, so it was never returned"
+  pass "a record whose slot carries no lease is cleaned, reset and returned (treehouse $TREEHOUSE_VERSION)"
 }
 
 # A pruned copy, on the real binary: teardown releases the reservation treehouse

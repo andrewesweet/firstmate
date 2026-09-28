@@ -30,7 +30,9 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # `--if-lease-holder <holder>` makes that release conditional on the recorded
 # holder - the precondition every teardown return proves ownership with. It
 # mirrors treehouse v2.3.0's own two refusals: `lease holder does not match`
-# when another holder has it, `is not leased` when nothing does.
+# when another holder has it, `is not leased` when nothing does - and, like the
+# vendor, refuses before doing any work, while a return that goes ahead cleans
+# and resets the checkout the way `--force` documents.
 # tests/fm-spawn-slot-lease-live-e2e.test.sh exercises both against the real
 # binary.
 # Anything else exits 0.
@@ -101,6 +103,11 @@ if [ "${1:-}" = return ]; then
   if [ -n "$want_holder" ] && [ "$want_holder" != "$holder" ]; then
     echo "failed to return worktree: lease precondition failed: lease holder does not match worktree $target" >&2
     exit 1
+  fi
+  if [ -n "$target" ] && [ -d "$target" ]; then
+    git -C "$target" checkout -q --detach 2>/dev/null || true
+    git -C "$target" reset -q --hard 2>/dev/null || true
+    git -C "$target" clean -qfdx 2>/dev/null || true
   fi
   grep -v "^$slot " "$leases" > "$leases.tmp" 2>/dev/null || true
   mv "$leases.tmp" "$leases"
@@ -276,16 +283,25 @@ test_teardown_completes_for_a_record_with_no_lease() {
     FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
     "$ROOT/bin/fm-captain-hold.sh" complete lease-unleased-r1 --none >/dev/null
 
-  # The shape a pre-lease record has: copy and claim intact, no lease recorded.
+  # The shape a pre-lease record has: copy and claim intact, no lease recorded -
+  # and a copy the dead task left work in, which only a real return cleans.
   : > "$POOL_DIR/.fake-leases"
   grep -Fxq -- "task=lease-unleased-r1" "$POOL_DIR/1/.fm-slot-owner" \
     || fail "the fixture lost the task's slot claim"
+  printf 'DIRT\n' > "$POOL_DIR/1/project/dirty-file"
+  git -C "$POOL_DIR/1/project" checkout -q -b leftover-branch
 
   out=$(run_pool_teardown lease-unleased-r1)
   status=$?
   expect_code 0 "$status" "teardown of a record whose slot carries no lease should succeed"$'\n'"$out"
   [ ! -e "$HOME_DIR/state/lease-unleased-r1.meta" ] \
     || fail "teardown left the task record behind"$'\n'"$out"
+  [ ! -e "$POOL_DIR/1/project/dirty-file" ] \
+    || fail "teardown reported success without cleaning the returned copy"$'\n'"$out"
+  [ "$(git -C "$POOL_DIR/1/project" rev-parse --abbrev-ref HEAD)" = HEAD ] \
+    || fail "teardown reported success without resetting the returned copy off $(git -C "$POOL_DIR/1/project" rev-parse --abbrev-ref HEAD)"$'\n'"$out"
+  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
+    || fail "teardown never fell through to the plain return: $(cat "$POOL_DIR/.fake-calls")"
 
   out=$(run_pool_spawn lease-unleased-reuse-r1 "$POOL_DIR/1/project" --scout)
   status=$?
