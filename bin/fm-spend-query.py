@@ -99,8 +99,8 @@ These are assumed list rates, not quotes, and they can go stale; an
 The pipeline columns are priced at the same table, but unlike the worker
 figure they never fall back to a default rate: an invocation whose model
 matches no prefix keeps its tokens in the token sums while its cost stays
-unmeasured (lane "partial"), because guessing a price is worse than naming
-the gap. The no-mistakes state is read through a read-only connection and is
+unmeasured (lane "partial", or "unmeasured" when no invocation carried a
+known rate at all), because guessing a price is worse than naming the gap. The no-mistakes state is read through a read-only connection and is
 never written; NM_HOME selects the inventory (default ~/.no-mistakes). A repo
 there is keyed by the path the pipeline was invoked from, which for a worker
 task is its own pooled worktree as often as the project clone, so both scope

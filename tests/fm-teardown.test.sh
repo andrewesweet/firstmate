@@ -4458,6 +4458,32 @@ test_process_exit_during_identity_lookup_does_not_refuse
 
 # --- spend ledger capture ---------------------------------------------------
 
+test_refused_treehouse_return_on_a_no_backlog_home_records_no_close() {
+  local case_dir
+  case_dir=$(make_case spend-ledger-refused-return)
+  write_meta "$case_dir" no-mistakes ship
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/9' >> "$case_dir/state/task-x1.meta"
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = return ]; then
+  echo "fatal: the lease holder refused the return" >&2
+  exit 1
+fi
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+
+  if run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"; then
+    fail "teardown succeeded despite a refused treehouse return"
+  fi
+  assert_contains "$(cat "$case_dir/stderr")" "treehouse return failed" \
+    "the refusal does not name the treehouse return"
+  [ ! -e "$case_dir/data/spend-ledger.jsonl" ] \
+    || fail "a teardown refused at treehouse return recorded a close: $(cat "$case_dir/data/spend-ledger.jsonl")"
+  assert_present "$case_dir/state/task-x1.meta" "the refused teardown removed the task record"
+  pass "a teardown refused at treehouse return on a no-backlog home records no ledger line"
+}
+
 test_teardown_appends_one_unmeasured_spend_ledger_line() {
   local case_dir line
   case_dir=$(make_case spend-ledger-unmeasured)
@@ -4601,6 +4627,7 @@ test_teardown_records_a_scout_report_outcome() {
   pass "a closed scout records its report as the ledger outcome"
 }
 
+test_refused_treehouse_return_on_a_no_backlog_home_records_no_close
 test_teardown_appends_one_unmeasured_spend_ledger_line
 test_teardown_measures_claude_spend_from_fixture_logs
 test_teardown_survives_a_broken_spend_query

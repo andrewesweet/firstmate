@@ -3469,6 +3469,7 @@ BACKLOG_TRANSITION=$TEARDOWN_BACKLOG_TRANSITION
 BACKLOG_TRANSITION_FLAGS=()
 [ "$BACKLOG_TRANSITION" = close ] || BACKLOG_TRANSITION_FLAGS=(--retain)
 BACKLOG_SKIP_REASON=
+TEARDOWN_SPEND_PENDING=0
 if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
   backlog_done_args || {
     echo "error: the pending backlog $BACKLOG_TRANSITION for $ID is not replayable; refusing destructive teardown" >&2
@@ -3606,13 +3607,14 @@ else
   fi
   # No backlog transition applies here (manual backend or a markdown home
   # without a backlog file), but the worker's work still closes with this
-  # cleanup, so the shared producer still records its line now. An Orca
-  # cleanup recovery closes no worker, so it records nothing.
+  # cleanup, so the shared producer records its line. Nothing stages a
+  # replayable close on this path, so the append waits until every refusal
+  # that can still abort the teardown has passed: a task the teardown
+  # retains must not be named closed. An Orca cleanup recovery closes no
+  # worker, so it records nothing.
   if [ "$CLEANUP_RECOVERY" != orca ] \
     && { [ "$KIND" = ship ] || [ "$KIND" = scout ]; }; then
-    TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-ledger-append.sh" "$ID" 2>/dev/null || :)
-    [ -n "$TEARDOWN_SPEND_LINE" ] \
-      || echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2
+    TEARDOWN_SPEND_PENDING=1
   fi
 fi
 
@@ -3837,6 +3839,15 @@ fi
 # retired so its last lines are captured; off costs one file test.
 [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" cleaned_up "$ID" || true
 status_retire_presentation_task "$STATE" "$ID" || exit 1
+# The no-backlog-transition close (see above) records its line here: every
+# refusal that could still abort this teardown has passed, the task record
+# and its activity sidecars are still in hand for the window bound, and the
+# record removal below is the closure itself.
+if [ "$TEARDOWN_SPEND_PENDING" = 1 ]; then
+  TEARDOWN_SPEND_LINE=$("$SCRIPT_DIR/fm-spend-ledger-append.sh" "$ID" 2>/dev/null || :)
+  [ -n "$TEARDOWN_SPEND_LINE" ] \
+    || echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2
+fi
 fm_wake_queue_prune_task "$STATE" "$ID" "$T" 2>/dev/null || true
 rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
   "$STATE/$ID.pi-ext.ts" "$STATE/$ID.omp-ext.ts" "$STATE/$ID.grok-turnend-token" \
