@@ -166,7 +166,8 @@
 # leased home releases its durable treehouse lease so the pool slot is freed,
 # never left leased forever. Every return this script makes passes
 # `--if-lease-holder <task>`, so a slot leased to another task is never
-# released; a slot carrying no lease at all is nobody else's and is returned
+# released, and its copy is left on disk rather than removed; a slot carrying no
+# lease at all is nobody else's and is returned
 # unconditionally, exactly as it was before slots were leased. If the treehouse
 # return fails, teardown leaves the
 # leased home and state in place instead of hiding a still-held lease.
@@ -1799,6 +1800,13 @@ treehouse_return_is_unleased_refusal() {
   printf '%s\n' "$text" | grep -Eq 'lease precondition failed: worktree .* is not leased'
 }
 
+# The other half of that precondition: the slot carries some other task's lease,
+# so its copy, processes and claim are not this record's to touch at all.
+treehouse_return_is_holder_mismatch() {
+  local text=$1
+  printf '%s\n' "$text" | grep -Eq 'lease precondition failed: lease holder does not match'
+}
+
 # Absolute path to the git index lock for a worktree/repo dir, or empty when it
 # cannot be resolved (dir missing or not a git worktree at all).
 worktree_git_lock_path() {
@@ -1922,6 +1930,10 @@ teardown_treehouse_return() {
     fi
   fi
   [ -n "$out" ] && printf '%s\n' "$out" >&2
+
+  if treehouse_return_is_holder_mismatch "$out"; then
+    return "$TEARDOWN_SLOT_REASSIGNED_RC"
+  fi
 
   if ! treehouse_return_is_index_lock_error "$out"; then
     return 1
@@ -3400,12 +3412,14 @@ cleanup_firstmate_home_children() {
             if [ "$child_return_rc" -eq "$TEARDOWN_TREEHOUSE_LOCK_REFUSED" ]; then
               return "$child_return_rc"
             fi
-            safe_rm_rf_child_worktree "$child_wt" "$child_proj"
-            teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
+            if [ "$child_return_rc" -ne "$TEARDOWN_SLOT_REASSIGNED_RC" ]; then
+              safe_rm_rf_child_worktree "$child_wt" "$child_proj" \
+                && teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
+            fi
           fi
         else
-          safe_rm_rf_child_worktree "$child_wt" "$child_proj"
-          teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
+          safe_rm_rf_child_worktree "$child_wt" "$child_proj" \
+            && teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
         fi
       fi
     elif [ -n "$child_wt" ]; then

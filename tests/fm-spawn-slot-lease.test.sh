@@ -449,10 +449,10 @@ test_child_cleanup_leaves_an_absent_copy_leased_to_another_task() {
   pass "child cleanup leaves an absent copy whose lease belongs to another task alone"
 }
 
-# A spawn that fails after leasing - here on a dirty pooled copy - returns its
-# lease and drops its claim, so no lease outlives a task that was never
-# recorded.
-test_aborted_spawn_returns_its_lease() {
+# A spawn that refuses BECAUSE the pooled copy holds uncommitted work must not
+# then clean, reset and return that copy: the work the refusal promised to leave
+# untouched has to survive, with the lease left for a named manual return.
+test_aborted_spawn_keeps_a_dirty_copys_work() {
   local rec out status
   rec=$(make_pool_case aborted 1)
   read_pool_record "$rec"
@@ -465,11 +465,40 @@ test_aborted_spawn_returns_its_lease() {
     "the aborted spawn did not refuse the dirty leased copy"
   [ ! -e "$HOME_DIR/state/lease-aborted-r1.meta" ] \
     || fail "the aborted spawn published a task record"
-  [ ! -s "$POOL_DIR/.fake-leases" ] \
-    || fail "the aborted spawn stranded a lease: $(cat "$POOL_DIR/.fake-leases")"
+  [ -f "$POOL_DIR/1/project/uncommitted.txt" ] \
+    || fail "the aborted spawn discarded the uncommitted work its refusal left untouched"
+  assert_contains "$out" "treehouse return --force $POOL_DIR/1/project" \
+    "the aborted spawn did not name the manual return for the slot it kept"
+  grep -Fxq "1 lease-aborted-r1" "$POOL_DIR/.fake-leases" \
+    || fail "the aborted spawn returned the lease on a copy it left dirty: $(cat "$POOL_DIR/.fake-leases")"
   [ ! -e "$POOL_DIR/1/.fm-slot-owner" ] && [ ! -L "$POOL_DIR/1/.fm-slot-owner" ] \
     || fail "the aborted spawn left a claim naming a task with no record"
-  pass "an aborted spawn returns its lease and drops its claim"
+  pass "an aborted spawn leaves a dirty copy's work and names its manual return"
+}
+
+# A child slot still on disk whose lease treehouse reports for another task is
+# that task's copy: the holder-mismatch refusal must leave it on disk, not fall
+# through to deleting it.
+test_child_cleanup_leaves_a_present_copy_leased_to_another_task() {
+  local out status
+  make_child_pool_case childpresent lease-child-r3 >/dev/null
+  git -C "$PROJECT_DIR" worktree prune
+  git -C "$PROJECT_DIR" worktree add --quiet --detach "$POOL_DIR/1/project" HEAD
+  printf 'another live task is working here\n' > "$POOL_DIR/1/project/other-task-work.txt"
+  printf '1 lease-otherowner-r3\n' > "$POOL_DIR/.fake-leases"
+
+  out=$(run_pool_teardown domain --force)
+  status=$?
+  expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/other-task-work.txt" ] \
+    || fail "child cleanup deleted or reset a pool copy leased to another task"$'\n'"$out"
+  grep -Fxq "1 lease-otherowner-r3" "$POOL_DIR/.fake-leases" \
+    || fail "child cleanup dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
+  assert_contains "$out" "lease holder does not match" \
+    "child cleanup did not report treehouse refusing another task's lease"
+  [ ! -e "$CASE_DIR/subhome" ] \
+    || fail "child cleanup left the secondmate home behind"$'\n'"$out"
+  pass "child cleanup leaves a present copy whose lease belongs to another task alone"
 }
 
 # The endpoint cannot be told to enter the leased copy: the spawn refuses
@@ -515,7 +544,8 @@ test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_teardown_leaves_an_absent_copy_leased_to_another_task
 test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone
 test_child_cleanup_leaves_an_absent_copy_leased_to_another_task
-test_aborted_spawn_returns_its_lease
+test_child_cleanup_leaves_a_present_copy_leased_to_another_task
+test_aborted_spawn_keeps_a_dirty_copys_work
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease
 

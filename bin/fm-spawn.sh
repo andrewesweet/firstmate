@@ -160,7 +160,10 @@
 #   owns the claim and bin/fm-teardown.sh owns what it protects. A slot that
 #   cannot be leased or claimed refuses the spawn rather than launching a worker
 #   whose slot could later be released out from under its successor. A spawn that
-#   aborts before its task record is published returns its lease; while it still
+#   aborts before its task record is published returns its lease, except on a
+#   copy holding uncommitted work: returning cleans and resets it, so that copy
+#   is left exactly as the refusal found it and the warning names the manual
+#   return instead; while it still
 #   holds the allocation lock it also drops its own claim. An abort after
 #   publication leaves both in place for the record's own teardown.
 #   The local root is whatever bin/fm-wake-lib.sh's
@@ -1416,6 +1419,8 @@ spawn_abort_cleanup() {
       echo "warning: task $ID leased a Treehouse pool slot for $PROJ_ABS but no path for it survived the aborted spawn, so it could not be returned; the lease may still be held" >&2
     elif [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ]; then
       echo "warning: task $ID's leased slot $spawn_leased_slot was not returned after an aborted spawn; the Treehouse project lock is no longer held, so returning it here could corrupt a concurrent allocation - return it by hand once the slot is known to be idle" >&2
+    elif [ -n "$(git -C "$spawn_leased_slot" status --porcelain 2>/dev/null)" ]; then
+      echo "warning: task $ID's leased slot $spawn_leased_slot holds uncommitted work, so it was left exactly as the refusal above found it and its lease was not returned; inspect that work, then release the slot with: (cd $PROJ_ABS && treehouse return --force $spawn_leased_slot)" >&2
     elif ! ( cd "$PROJ_ABS" && treehouse return --force "$spawn_leased_slot" ) >/dev/null 2>&1; then
       echo "warning: task $ID's leased slot $spawn_leased_slot could not be returned after an aborted spawn; the lease may still be held" >&2
     fi
