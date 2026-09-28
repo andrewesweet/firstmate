@@ -1,0 +1,4 @@
+Herdr herdr 0.9.0 | session fm-lab-fgcwd-1938738-12640 | pane w1:p1
+BEFORE: {"cwd":"/tmp/fm-fgcwd.vch15l/project","fg":"/tmp/fm-fgcwd.vch15l/project"}
+after 1s: {"cwd":"/tmp/fm-fgcwd.vch15l/leased","fg":"/tmp/fm-fgcwd.vch15l/leased"}
+after 10s: {"cwd":"/tmp/fm-fgcwd.vch15l/leased","fg":"/tmp/fm-fgcwd.vch15l/leased"}

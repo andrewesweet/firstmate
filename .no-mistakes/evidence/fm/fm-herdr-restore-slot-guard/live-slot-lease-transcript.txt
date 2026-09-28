@@ -1,0 +1,42 @@
+=== S1: task A spawns, real treehouse leases a slot ===
+spawn A rc=0
+A slot: /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project
+A lease holder in treehouse state: 'live-a'
+processes with cwd in A's copy: none-spawned-by-fixture
+
+=== S2 (adversarial, the Herdr restore bug): task B spawns while A exists and no process sits in A's copy ===
+spawn B rc=0
+B slot: /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/2/project
+RESULT: PASS - B got a different copy (/tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/2/project != /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project)
+A still leased to: 'live-a'  B leased to: 'live-b'
+
+=== S3: teardown of A frees its lease and the slot is reissued ===
+teardown A rc=0
+A lease holder after teardown: ''
+next lease got: /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project
+RESULT: PASS - freed slot reissued
+
+=== S4 (adversarial): aborted spawn strands no lease ===
+leases before: [live-b]
+spawn abort rc=1
+error: task live-abort leased /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project but its endpoint could not be told to enter it; returning the lease and refusing to launch
+leases after:  [live-b]
+RESULT: PASS - aborted spawn left no extra lease
+
+=== pool state (real treehouse) ===
+[{"path":"project","leased":null,"lease_holder":null},{"path":"project","leased":true,"lease_holder":"live-b"}]
+
+=== S5 (adversarial): teardown must not free a pruned slot leased to ANOTHER task ===
+spawn C rc=0
+C slot: /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project leased to 'live-c'
+stranger leased: /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project (holder 'stranger-task')
+teardown C rc=0
+failed to return worktree: lease precondition failed: lease holder does not match worktree /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project
+warning: task live-c's recorded pool slot /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project is gone from disk and its Treehouse slot lease was not returned; if that slot is still this task's, release it with: (cd /tmp/fm-live-slot-lease.VLq8Ht/project && treehouse return --force --if-lease-holder live-c /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project)
+teardown live-c complete (window firstmate:fm-live-c, worktree /tmp/fm-live-slot-lease.VLq8Ht/pool/.treehouse/project-e7a3eb/1/project)
+RESULT: PASS - stranger's lease untouched (holder 'stranger-task')
+
+=== S6: bootstrap capability gate on the real treehouse, and on one whose return cannot prove a holder ===
+real treehouse vv2.3.0: treehouse MISSING? 0
+old-style treehouse: MISSING: treehouse (install: curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh)
+RESULT: PASS - gate accepts 2.3.0 and refuses a treehouse whose return cannot prove a holder
