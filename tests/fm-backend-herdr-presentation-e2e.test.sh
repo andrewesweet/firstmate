@@ -874,6 +874,8 @@ grep -F "did not enter an isolated worktree" "$TMP_ROOT/abort-b.err" >/dev/null 
   || fail "post-create abort fixture B did not reach the armed validation failure"
 ABORT_A_PANE=$(cat "$POST_CREATE_ABORT_CONTROL/abort-a/task-pane")
 ABORT_B_PANE=$(cat "$POST_CREATE_ABORT_CONTROL/abort-b/task-pane")
+ABORT_A_WSID=$(cat "$POST_CREATE_ABORT_CONTROL/abort-a/workspace")
+ABORT_B_WSID=$(cat "$POST_CREATE_ABORT_CONTROL/abort-b/workspace")
 ABORT_SEQUENCE=$(sed -n "$((ABORT_FOCUS_START + 1)),\$p" "$FOCUS_AUDIT_LOG" | awk -F '\t' -v a="$ABORT_A_PANE" -v b="$ABORT_B_PANE" '
   $1 == "workspace-create" && $4 ~ /^└ abort-a · p:/ { print "create-a" }
   $1 == "workspace-create" && $4 ~ /^└ abort-b · p:/ { print "create-b" }
@@ -882,7 +884,39 @@ ABORT_SEQUENCE=$(sed -n "$((ABORT_FOCUS_START + 1)),\$p" "$FOCUS_AUDIT_LOG" | aw
 ')
 case "$ABORT_SEQUENCE" in
   $'create-a\nclose-a\ncreate-b\nclose-b'|$'create-b\nclose-b\ncreate-a\nclose-a') ;;
-  *) fail "concurrent post-create abort cleanup interleaved outside the presentation lock: $ABORT_SEQUENCE" ;;
+  *)
+    # Focus-preserving death path: a cleanup may end the pane's verified lone
+    # idle shell instead of issuing pane.close, which audits no mutation. That
+    # proof succeeds here because the pane runs only the spawn-sent builtin
+    # with no lingering child (a treehouse-get subshell would fail it), and
+    # the kill runs under the same presentation lock as an explicit close.
+    # Accept an unaudited close only when the pane is gone with its workspace
+    # removed, so a leaked copy still fails below. When neither pane needed
+    # the death path (both closes audited), the exact nesting rule above
+    # still applies, so an interleaved explicit cleanup keeps failing here.
+    abort_death_accepted=0
+    for abort_tag in a b; do
+      case "$abort_tag" in
+        a) abort_pane=$ABORT_A_PANE; abort_ws=$ABORT_A_WSID ;;
+        b) abort_pane=$ABORT_B_PANE; abort_ws=$ABORT_B_WSID ;;
+      esac
+      case "$ABORT_SEQUENCE" in
+        *"close-$abort_tag"*) ;;
+        *)
+          abort_death_accepted=1
+          lab pane get "$abort_pane" >/dev/null 2>&1 \
+            && fail "concurrent post-create abort cleanup left exact task pane $abort_pane alive without an audited close: $ABORT_SEQUENCE"
+          lab workspace get "$abort_ws" >/dev/null 2>&1 \
+            && fail "concurrent post-create abort cleanup left task workspace $abort_ws behind without an audited close: $ABORT_SEQUENCE" ;;
+      esac
+    done
+    # Both creates must still be present, in either order, with nothing else.
+    [ "$(printf '%s\n' "$ABORT_SEQUENCE" | grep -c '^create-[ab]$')" = 2 ] \
+      || fail "concurrent post-create abort cleanup interleaved outside the presentation lock: $ABORT_SEQUENCE"
+    [ "$(printf '%s\n' "$ABORT_SEQUENCE" | grep -cv '^create-[ab]$\|^close-[ab]$')" = 0 ] \
+      || fail "concurrent post-create abort cleanup interleaved outside the presentation lock: $ABORT_SEQUENCE"
+    [ "$abort_death_accepted" = 1 ] \
+      || fail "concurrent post-create abort cleanup interleaved outside the presentation lock: $ABORT_SEQUENCE" ;;
 esac
 ABORT_UNRESTORED=$(sed -n "$((ABORT_FOCUS_START + 1)),\$p" "$FOCUS_AUDIT_LOG" | awk -F '\t' -v a="$ABORT_A_PANE" -v b="$ABORT_B_PANE" '
   ($1 == "workspace-create" || $1 == "tab-create" || $1 == "workspace-move" || ($1 == "pane-close" && $4 != a && $4 != b)) && $2 != $3 { print }
