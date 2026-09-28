@@ -1626,6 +1626,25 @@ ok - real herdr: a drifted agent-free shell returns to its worktree and reuses t
 `tests/fm-control-relaunch.test.sh` drives a tmux stub and proves that tmux retains its prior refusal without sending `cd` or any other input to the pane.
 The Herdr refusal when a shell accepts the command but does not move is not exercised in this change.
 
+### Pane cwd after a builtin cd into the leased copy
+
+Measured 2026-09-28 on Linux x86_64 (WSL2) against Herdr 0.9.0 in an isolated `fm-lab-` session, because spawn now tells the pane `cd -- '<leased copy>'` in its own top-level shell instead of opening a worktree subshell, and `fm_backend_herdr_current_path` settles the spawn on `.result.pane.foreground_cwd`.
+
+A builtin `cd` leaves no foreground child, so the question was whether that field still tracks the pane after it goes idle. It does: both `cwd` and `foreground_cwd` report the leased copy within one second of the `cd`, and hold it for at least ten.
+
+```sh
+herdr pane get w1:p1 --session "$LAB" | jq -c '{cwd:.result.pane.cwd, fg:.result.pane.foreground_cwd}'
+# cd -- '<leased copy>' sent with `pane run`, then re-read
+```
+
+```text
+BEFORE: {"cwd":"/tmp/fm-fgcwd.gF1oRk/project","fg":"/tmp/fm-fgcwd.gF1oRk/project"}
+after 1s: {"cwd":"/tmp/fm-fgcwd.gF1oRk/leased","fg":"/tmp/fm-fgcwd.gF1oRk/leased"}
+after 10s: {"cwd":"/tmp/fm-fgcwd.gF1oRk/leased","fg":"/tmp/fm-fgcwd.gF1oRk/leased"}
+```
+
+On this version `cwd` is no longer frozen at pane creation either, but the adapter keeps reading `foreground_cwd`: it is the field that tracked a pane entering a directory on every version measured so far, and nothing here shows it losing that.
+
 ### Stale agent registration
 
 Measured 2026-09-10 on macOS aarch64 against Herdr 0.9.0 (protocol 22) and Pi 0.85.1 in an isolated `fm-lab-` session (upstream issue #4115, duplicates #3639, #3487, #2908, #3545).

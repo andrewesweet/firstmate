@@ -4322,6 +4322,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     echo "error: task $ID leased '$WT_LEASED', which is not a readable directory; refusing to launch" >&2
     exit 1
   fi
+  validate_spawn_worktree "treehouse get --lease" "$T"
   wt_cd_path=${WT//\'/\'\\\'\'}
   spawn_send_text_line "$WT_TARGET" "cd -- '$wt_cd_path'" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
@@ -4376,8 +4377,6 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     echo "error: task $ID's endpoint did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); returning its leased copy $WT - inspect window $T" >&2
     exit 1
   fi
-
-  validate_spawn_worktree "treehouse get --lease" "$T"
 
   # Claim the pool slot for this task. The durable lease above keeps the pool
   # from reissuing the slot, but it does not say which task the slot belongs

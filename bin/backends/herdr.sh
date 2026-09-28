@@ -3034,14 +3034,14 @@ fm_backend_herdr_target_ready() {  # <target>
 # any error. Mirrors tmux's pane_current_path poll used to settle the pane in
 # its leased copy.
 #
-# Verified pitfall: `pane get`'s `.result.pane.cwd` is the pane's cwd AT
-# CREATION TIME - the top-level shell's cwd - and does NOT update when that
-# shell `cd`s or enters a subshell. Reading it here would make fm-spawn.sh's
-# settle poll never see the pane "leave" the project directory, since `cwd`
-# stays frozen at the original path forever. `.result.pane.foreground_cwd`
-# tracks the ACTUALLY RUNNING foreground process's cwd instead, which is what
-# changes when the pane enters another directory - confirmed live against a
-# real worktree acquisition.
+# Verified pitfall: `pane get`'s `.result.pane.cwd` was measured frozen at pane
+# CREATION TIME on the version this adapter was written against, so a settle
+# poll reading it would never see the pane "leave" the project directory.
+# `.result.pane.foreground_cwd` tracks the pane's live cwd instead, including
+# after the builtin `cd` into the leased copy that spawn sends - measured on
+# Herdr 0.9.0, where it reports the leased copy within a second of an idle
+# pane's `cd` (docs/verification/runtime-backends.md, "Pane cwd after a builtin
+# cd into the leased copy").
 fm_backend_herdr_current_path() {  # <target>
   fm_backend_herdr_target_ready "$1" || return 0
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null \

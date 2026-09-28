@@ -239,8 +239,9 @@ test_teardown_frees_the_lease_for_reuse() {
     && fail "teardown left the task's slot leased: $(cat "$POOL_DIR/.fake-leases")"
   [ ! -e "$POOL_DIR/1/.fm-slot-owner" ] \
     || fail "teardown left the task's slot claim behind"
-  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
-    || fail "teardown did not return the leased copy: $(cat "$POOL_DIR/.fake-calls")"
+  grep -Fq "return --force --if-lease-holder lease-teardown-r1 $POOL_DIR/1/project" \
+    "$POOL_DIR/.fake-calls" \
+    || fail "teardown did not return the leased copy under its own lease holder: $(cat "$POOL_DIR/.fake-calls")"
 
   out=$(run_pool_spawn lease-reuse-r1 "$POOL_DIR/1/project" --scout)
   status=$?

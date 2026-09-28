@@ -14,9 +14,9 @@
 # asserts the recorded worktree resolves to the real, settled worktree, never
 # the stale first read.
 #
-# The same loop has a second transient to survive: `treehouse get` reports the
-# REPOSITORY's primary checkout as its own cwd while it is still preparing a
-# slot. From a linked spawning home that path is not the project, so a poll
+# The same loop has a second transient to survive: a pane can report the
+# REPOSITORY's primary checkout as its own cwd before it reaches the leased
+# copy. From a linked spawning home that path is not the project, so a poll
 # comparing only against the project adopted it and the isolation guard then
 # refused the launch. The cases below cover both the transient and the pane
 # that never leaves the primary at all.

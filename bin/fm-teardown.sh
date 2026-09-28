@@ -164,7 +164,9 @@
 # while any of those records is still unresolved. Teardown then discards child
 # work, kills child runtime endpoints, and removes the retired home. Removing a
 # leased home releases its durable treehouse lease so the pool slot is freed,
-# never left leased forever. If the treehouse return fails, teardown leaves the
+# never left leased forever. Every return this script makes passes
+# `--if-lease-holder <task>`, so a slot is released only while it is still
+# leased to the task being torn down. If the treehouse return fails, teardown leaves the
 # leased home and state in place instead of hiding a still-held lease.
 # Usage: fm-teardown.sh <task-id> [--force] [--legacy-record]
 #   --force skips ordinary-task dirty and landed-work checks, skips scout report
@@ -199,7 +201,7 @@
 #
 # Transient / stale worktree git lock recovery (teardown-lock-race): a crew process
 # killed mid-git-operation can leave a .git/worktrees/<wt>/index.lock (or, for a
-# non-linked worktree, .git/index.lock) that makes `treehouse return --force` fail
+# non-linked worktree, .git/index.lock) that makes `treehouse return` fail
 # with Unable to create '...index.lock': File exists. That lock is usually transient
 # (the dying process finishes or exits within seconds) and must never be force-deleted
 # while a live git process might still own it - the fix is patience, not rm.
@@ -1858,29 +1860,30 @@ teardown_treehouse_project_lock_held() {  # <lock-path>
 # treehouse's own reason and the command that frees it, so nothing is dropped
 # silently or taken from its real owner.
 teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
-  local id=$1 worktree=$2 project=$3 label=$4 lock_path out=''
+  local id=$1 worktree=$2 project=$3 label=$4 lock_path
   [ -n "$worktree" ] || return 0
   [ -f "$(dirname "$(dirname "$worktree")")/treehouse-state.json" ] || return 0
   lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
   if [ -n "$project" ] && [ -d "$project" ] && command -v treehouse >/dev/null 2>&1 &&
     teardown_treehouse_project_lock_held "$lock_path" &&
-    out=$( cd "$project" && treehouse return --force --if-lease-holder "$id" "$worktree" 2>&1 ); then
-    [ -z "$out" ] || printf '%s\n' "$out"
+    teardown_treehouse_return "$worktree" "$project" "$label" "$id"; then
     return 0
   fi
-  [ -z "$out" ] || printf '%s\n' "$out" >&2
   echo "warning: task $id's $label $worktree is gone from disk and its Treehouse slot lease was not returned; if that slot is still this task's, release it with: (cd ${project:-<project>} && treehouse return --force --if-lease-holder $id $worktree)" >&2
 }
 
-# Return a worktree/home via `treehouse return --force`, tolerating a transient or
-# stale git index.lock left by a killed crew process. See the script header.
+# Return a worktree/home via `treehouse return --force --if-lease-holder <task>`,
+# tolerating a transient or stale git index.lock left by a killed crew process.
+# See the script header. The holder is what the slot was leased under, so
+# treehouse itself refuses the return once the slot has become another task's -
+# the one rule every return in this script goes through.
 teardown_treehouse_return() {
-  local dir=$1 cd_dir=$2 label=$3 post_cleanup_check=${4:-}
+  local dir=$1 cd_dir=$2 label=$3 lease_holder=$4 post_cleanup_check=${5:-}
   local out lock attempt=0 max_retries lock_desc
 
   # Capture stdout+stderr so non-lock failures stay visible and lock failures can
   # be matched by signature even when the lock file is already gone mid-check.
-  if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+  if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
   fi
@@ -1905,7 +1908,7 @@ teardown_treehouse_return() {
     echo "teardown: $label return failed with transient git lock ($lock_desc); waiting ${TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS}s and retrying ($attempt/${max_retries})" >&2
     sleep "$TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS"
 
-    if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+    if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
       [ -n "$out" ] && printf '%s\n' "$out"
       echo "teardown: $label return succeeded on retry; lock cleared on its own" >&2
       return 0
@@ -1932,7 +1935,7 @@ teardown_treehouse_return() {
           return 1
         fi
       fi
-      if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+      if out=$( ( cd "$cd_dir" && treehouse return --force --if-lease-holder "$lease_holder" "$dir" ) 2>&1 ); then
         [ -n "$out" ] && printf '%s\n' "$out"
         echo "teardown: $label return succeeded after stale-lock cleanup" >&2
         return 0
@@ -2750,7 +2753,7 @@ remove_firstmate_home() {
       restore_firstmate_home_process_events "$abs_home_path" "$label" "$process_event_backup" || return $?
       return 1
     }
-    teardown_treehouse_return "$abs_home_path" "$FM_ROOT" "$label" || {
+    teardown_treehouse_return "$abs_home_path" "$FM_ROOT" "$label" "$expected_id" || {
       echo "error: treehouse return failed for $label $abs_home_path; lease may still be held" >&2
       restore_firstmate_home_process_events "$abs_home_path" "$label" "$process_event_backup" || return $?
       return 1
@@ -3356,7 +3359,7 @@ cleanup_firstmate_home_children() {
           "$child_wt/.opencode/plugins/fm-busy-state.js" \
           "$child_wt/.fm-grok-turnend" "$child_wt/.fm-kimi-turnend"
         if [ -n "$child_proj" ] && [ -d "$child_proj" ] && command -v treehouse >/dev/null 2>&1; then
-          if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree"; then
+          if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree" "$child_id"; then
             fm_treehouse_slot_owner_release "$child_wt" "$child_id"
           else
             child_return_rc=$?
@@ -3364,6 +3367,7 @@ cleanup_firstmate_home_children() {
               return "$child_return_rc"
             fi
             safe_rm_rf_child_worktree "$child_wt" "$child_proj"
+            teardown_return_absent_copy_lease "$child_id" "$child_wt" "$child_proj" "child worktree"
           fi
         else
           safe_rm_rf_child_worktree "$child_wt" "$child_proj"
@@ -3746,7 +3750,7 @@ elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
   if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
     post_lock_cleanup_check=validate_worktree_teardown_safety
   fi
-  teardown_treehouse_return "$WT" "$PROJ" "worktree" "$post_lock_cleanup_check" || {
+  teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
     echo "error: treehouse return failed for worktree $WT; teardown aborted" >&2
     exit 1
   }
