@@ -105,7 +105,7 @@ data/                personal fleet records; LOCAL, gitignored as a whole
   secondmates.md      local and remote secondmate routing table; firstmate-private, maintained by the secondmate seed helpers (section 6)
   dispatch-resolve.jsonl  append-only outcome log for typed dispatch resolution, one JSON line per resolved call; never carries the API key or brief text (docs/configuration.md "Typed dispatch resolution")
   dispatch-spawns.jsonl  append-only actually-dispatched profile log for the offline dispatch replay scorer, one JSON line per successful fresh ship or scout spawn, never a relaunch (docs/configuration.md "Typed dispatch resolution")
-  spend-ledger.jsonl  append-only closed-task model-spend ledger, one best-effort schema-versioned line per closed ship or scout task; bin/fm-spend-query.sh answers standalone and bin/fm-spend-query.py owns the schema (docs/configuration.md "Task spend ledger")
+  spend-ledger.jsonl  append-only closed-task model-spend ledger, one best-effort schema-versioned line per closed ship or scout task covering the worker session and the task's no-mistakes pipeline runs; bin/fm-spend-ledger-append.sh is the shared producer every close path funnels through, bin/fm-spend-query.sh answers standalone, and bin/fm-spend-query.py owns the schema (docs/configuration.md "Task spend ledger")
   <id>/brief.md      per-task crewmate brief, or per-secondmate charter brief when kind=secondmate
   <id>/report.md     scout task deliverable, written by the crewmate; survives teardown
 projects/            cloned repos; gitignored; read-only except under hard rule 1's concrete captain-approved project operation exception
@@ -122,6 +122,7 @@ state/               runtime records and signals; gitignored
   <id>.cursor-session  cursor busy-source binding (projects root, task worktree, prior conversations) written by fm-spawn; removed by teardown
   <id>.git-hooks/    per-task git hooksPath that strips AI commit trailers at the commit object; written by fm-spawn, removed by teardown (bin/fm-git-strip-ai-trailers.sh)
   <id>.reconcile-nudged  epoch second of the last inventory-reconcile nudge sent to this secondmate; bin/fm-secondmate-reconcile.sh owns its per-home cooldown window
+  <id>.spend-context  the facts a later close needs to append the task's spend-ledger line after teardown removed the record (kind, harness, window bounds, derived outcome); written and removed only by bin/fm-spend-ledger-append.sh, which owns its format
   <id>.backlog-close  the exact backlog transition a teardown recorded before removing the task's record, so an interrupted cleanup can still be finished at the next session start; bin/fm-backlog-transition-lib.sh owns its format and replay, and a landed transition removes it
   <id>.inbox/          durable steering inbox: sequenced firstmate instruction records the worker acknowledges by moving them into its handled/ subdirectory; written by fm-send, with ordinary records re-rung and escalated by the watcher while explicit fire-and-forget records are excluded from that ladder, and removed by teardown (bin/fm-task-inbox-lib.sh)
   <id>.meta          task metadata; each producer script's header owns its exact fields and mutation contract, with docs/configuration.md routing operator-facing backend and trace-context details
