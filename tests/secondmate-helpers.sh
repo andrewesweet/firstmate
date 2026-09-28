@@ -44,7 +44,8 @@ SH
 # FM_FAKE_TMUX_WINDOW, capture-pane echoes FM_FAKE_TMUX_CAPTURE) plus a fake
 # treehouse (durable lease of FM_FAKE_TREEHOUSE_HOME, recording the lease holder
 # to FM_FAKE_TREEHOUSE_LEASE_FILE; `return` honours --if-lease-holder against
-# that recorded holder and otherwise removes the target and lease unless
+# that recorded holder, refusing with treehouse's own `is not leased` text when
+# no holder is recorded, and otherwise removes the target and lease unless
 # FM_FAKE_TREEHOUSE_RETURN_FAIL is set). Echoes the fakebin dir.
 make_fake_tmux() {
   local dir=$1 fakebin capture
@@ -156,11 +157,15 @@ case "${1:-}" in
       shift
     done
     [ -z "${FM_FAKE_TREEHOUSE_RETURN_FAIL:-}" ] || exit 17
-    if [ -n "$want_holder" ] && [ -n "${FM_FAKE_TREEHOUSE_LEASE_FILE:-}" ] \
-      && [ -f "$FM_FAKE_TREEHOUSE_LEASE_FILE" ] \
-      && [ "$want_holder" != "$(cat "$FM_FAKE_TREEHOUSE_LEASE_FILE")" ]; then
-      echo "failed to return worktree: lease precondition failed: lease holder does not match worktree $target" >&2
-      exit 1
+    if [ -n "$want_holder" ] && [ -n "${FM_FAKE_TREEHOUSE_LEASE_FILE:-}" ]; then
+      if [ ! -f "$FM_FAKE_TREEHOUSE_LEASE_FILE" ]; then
+        echo "failed to return worktree: lease precondition failed: worktree $target is not leased" >&2
+        exit 1
+      fi
+      if [ "$want_holder" != "$(cat "$FM_FAKE_TREEHOUSE_LEASE_FILE")" ]; then
+        echo "failed to return worktree: lease precondition failed: lease holder does not match worktree $target" >&2
+        exit 1
+      fi
     fi
     [ -n "${FM_FAKE_TREEHOUSE_LEASE_FILE:-}" ] && rm -f "$FM_FAKE_TREEHOUSE_LEASE_FILE"
     [ -n "$target" ] && rm -rf -- "$target"

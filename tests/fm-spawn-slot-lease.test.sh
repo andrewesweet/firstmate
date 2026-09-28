@@ -28,9 +28,11 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # unleased slot's checkout and records the holder; a pool with no free slot
 # fails. `return --force <path>` drops that slot's lease, and
 # `--if-lease-holder <holder>` makes that release conditional on the recorded
-# holder, refusing otherwise - the precondition teardown proves an absent copy's
-# lease with, mirroring treehouse v2.3.0's own flag, which
-# tests/fm-spawn-slot-lease-live-e2e.test.sh exercises against the real binary.
+# holder - the precondition every teardown return proves ownership with. It
+# mirrors treehouse v2.3.0's own two refusals: `lease holder does not match`
+# when another holder has it, `is not leased` when nothing does.
+# tests/fm-spawn-slot-lease-live-e2e.test.sh exercises both against the real
+# binary.
 # Anything else exits 0.
 make_pool_fakebin() {
   local dir=$1 fakebin
@@ -92,6 +94,10 @@ if [ "${1:-}" = return ]; then
   done
   slot=$(basename "$(dirname "$target")")
   holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
+  if [ -n "$want_holder" ] && [ -z "$holder" ]; then
+    echo "failed to return worktree: lease precondition failed: worktree $target is not leased" >&2
+    exit 1
+  fi
   if [ -n "$want_holder" ] && [ "$want_holder" != "$holder" ]; then
     echo "failed to return worktree: lease precondition failed: lease holder does not match worktree $target" >&2
     exit 1
@@ -251,6 +257,42 @@ test_teardown_frees_the_lease_for_reuse() {
   grep -Fxq "1 lease-reuse-r1" "$POOL_DIR/.fake-leases" \
     || fail "the next spawn did not lease the freed copy under its own task id"
   pass "teardown frees the lease, and the next spawn reuses the freed copy"
+}
+
+# A record from before task slots were leased: its pooled copy and slot-owner
+# claim are this task's, but treehouse holds no lease on the slot. Teardown must
+# still complete - an unleased slot is nobody else's, and the return is asking
+# for a state the pool is already in.
+test_teardown_completes_for_a_record_with_no_lease() {
+  local rec out status
+  rec=$(make_pool_case unleased 1 2)
+  read_pool_record "$rec"
+
+  out=$(run_pool_spawn lease-unleased-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "the spawn before the lease was dropped should launch"$'\n'"$out"
+  printf '# Scout findings\n\nNo changes needed.\n' > "$HOME_DIR/data/lease-unleased-r1/report.md"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
+    FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete lease-unleased-r1 --none >/dev/null
+
+  # The shape a pre-lease record has: copy and claim intact, no lease recorded.
+  : > "$POOL_DIR/.fake-leases"
+  grep -Fxq -- "task=lease-unleased-r1" "$POOL_DIR/1/.fm-slot-owner" \
+    || fail "the fixture lost the task's slot claim"
+
+  out=$(run_pool_teardown lease-unleased-r1)
+  status=$?
+  expect_code 0 "$status" "teardown of a record whose slot carries no lease should succeed"$'\n'"$out"
+  [ ! -e "$HOME_DIR/state/lease-unleased-r1.meta" ] \
+    || fail "teardown left the task record behind"$'\n'"$out"
+
+  out=$(run_pool_spawn lease-unleased-reuse-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "a spawn after teardown should be handed the freed copy"$'\n'"$out"
+  grep -Fxq "1 lease-unleased-reuse-r1" "$POOL_DIR/.fake-leases" \
+    || fail "the next spawn did not lease the freed copy: $(cat "$POOL_DIR/.fake-leases")"
+  pass "teardown completes for a record whose slot carries no lease"
 }
 
 # The recorded pool copy is gone before teardown runs (an operator or external
@@ -452,6 +494,7 @@ test_settle_timeout_returns_its_lease() {
 
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
+test_teardown_completes_for_a_record_with_no_lease
 test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_teardown_leaves_an_absent_copy_leased_to_another_task
 test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone
