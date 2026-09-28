@@ -5462,6 +5462,16 @@ if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
 else
   LAUNCH="unset COMPACT_ADVISER_DISABLE; $LAUNCH"
 fi
+# When the live-harness gate has exported DISABLE_AUTOUPDATER into this spawn's
+# own environment, carry it into the launch command text so Claude Code's
+# auto-updater cannot rewrite the shared binary during a live run. Embedding the
+# assignment - like the compact-adviser switch above - rather than leaning on
+# ambient inheritance is what survives a pre-existing backend daemon that
+# constructs the pane command without the gate's environment. It is gated on the
+# value being set here so ordinary spawns are unchanged.
+if [ -n "${DISABLE_AUTOUPDATER:-}" ]; then
+  LAUNCH="export DISABLE_AUTOUPDATER=$(shell_quote "$DISABLE_AUTOUPDATER"); $LAUNCH"
+fi
 if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
   LAUNCH="unset TRACEPARENT; $LAUNCH"
 fi
