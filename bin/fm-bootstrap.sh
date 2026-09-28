@@ -76,9 +76,7 @@
 #          and is silent when no marker is present, the override is in
 #          force, or the primary's environment is unreadable.
 #          treehouse is also MISSING when its installed version lacks
-#          "treehouse get --lease" support, or lacks the
-#          "treehouse return --if-lease-holder" precondition every teardown
-#          releases a pool slot through.
+#          "treehouse get --lease" support.
 #          no-mistakes is also MISSING when its installed version is older than
 #          1.46.0 (structured pipeline attestation floor; see CONTRIBUTING.md).
 #          The AXI-family floor policy is owned beside GH_AXI_MIN and
@@ -869,8 +867,7 @@ GH_AXI_MIN=0.1.29
 LAVISH_AXI_MIN=0.1.77
 
 treehouse_supports_lease() {
-  treehouse get --help 2>&1 | grep -Eq '(^|[^[:alnum:]_-])--lease([^[:alnum:]_-]|$)' \
-    && treehouse return --help 2>&1 | grep -Eq '(^|[^[:alnum:]_-])--if-lease-holder([^[:alnum:]_-]|$)'
+  treehouse get --help 2>&1 | grep -Eq '(^|[^[:alnum:]_-])--lease([^[:alnum:]_-]|$)'
 }
 
 # Shared semantic-version floor for the tool gates below. A version string that

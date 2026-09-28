@@ -208,8 +208,17 @@ set -u
   done
   printf '\n'
 } >> "$TREEHOUSE_CALL_LOG"
-if [ -d "$POST_CREATE_ABORT_CONTROL" ] && [ "${1:-}" = get ]; then
-  exit 0
+# The post-create abort fixtures arm their refusal at the pane-settle deadline,
+# so their lease must hand back a plain non-git directory - the same path the
+# pane is forced to report - instead of a real pool slot: the worker's workspace
+# and pane already exist, the poll screens that path out on every read, and the
+# spawn refuses without this fixture taking (or holding) a slot the real
+# allocator would have to serialize against the concurrency contract below.
+if [ -d "$POST_CREATE_ABORT_CONTROL" ]; then
+  case "${1:-}" in
+    get) printf '%s\n' "$POST_CREATE_ABORT_CONTROL/not-a-worktree"; exit 0 ;;
+    return) exit 0 ;;
+  esac
 fi
 # Treehouse's pool allocator is outside the Herdr concurrency contract under
 # test. Serialize its calls so simultaneous recovery spawns cannot race for
@@ -844,7 +853,7 @@ FAIL_CLOSED_PANES=$(sed -n "$((FAIL_START + 1)),\$p" "$HERDR_CALL_LOG" | awk -F 
 assert_no_ordering_lifecycle_calls_since "$FAIL_START" "failed presentation ordering"
 pass "real Herdr lab: forced workspace.move failure leaves a successful worker in default order with a warning and no cleanup"
 
-mkdir -p "$POST_CREATE_ABORT_CONTROL"
+mkdir -p "$POST_CREATE_ABORT_CONTROL/not-a-worktree"
 ABORT_START=$(log_line_count)
 ABORT_FOCUS_START=$(focus_audit_line_count)
 spawn_task abort-a "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/abort-a.out" 2> "$TMP_ROOT/abort-a.err" &
@@ -855,9 +864,10 @@ if wait "$ABORT_A_PID"; then ABORT_A_STATUS=0; else ABORT_A_STATUS=$?; fi
 if wait "$ABORT_B_PID"; then ABORT_B_STATUS=0; else ABORT_B_STATUS=$?; fi
 finish_concurrent_expected_abort abort-a "$ABORT_A_STATUS" "$TMP_ROOT/abort-a.out" "$TMP_ROOT/abort-a.err"
 finish_concurrent_expected_abort abort-b "$ABORT_B_STATUS" "$TMP_ROOT/abort-b.out" "$TMP_ROOT/abort-b.err"
-# The forced foreground_cwd is a plain non-git directory, which the discovery
-# poll now screens out on every read rather than adopting, so the armed failure
-# arrives as the poll's own deadline refusal naming that path.
+# The leased copy and the forced foreground_cwd are the same plain non-git
+# directory, which the settle poll screens out on every read rather than
+# adopting, so the armed failure arrives as the poll's own deadline refusal
+# naming that path - after the worker's workspace and pane already exist.
 grep -F "did not enter an isolated worktree" "$TMP_ROOT/abort-a.err" >/dev/null 2>&1 \
   || fail "post-create abort fixture A did not reach the armed validation failure"
 grep -F "did not enter an isolated worktree" "$TMP_ROOT/abort-b.err" >/dev/null 2>&1 \

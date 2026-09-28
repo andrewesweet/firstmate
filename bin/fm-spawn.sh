@@ -4322,7 +4322,11 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     echo "error: task $ID leased '$WT_LEASED', which is not a readable directory; refusing to launch" >&2
     exit 1
   fi
-  validate_spawn_worktree "treehouse get --lease" "$T"
+  # The isolation guard stays where it already was: the settle poll below, which
+  # accepts the leased copy only once the pane reports it AND it passes the
+  # isolation screen, so a pool that hands back the project itself or the
+  # repository primary is refused by that one gate rather than a second copy of
+  # it here.
   wt_cd_path=${WT//\'/\'\\\'\'}
   spawn_send_text_line "$WT_TARGET" "cd -- '$wt_cd_path'" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2

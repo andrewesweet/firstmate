@@ -683,6 +683,9 @@ exit 0
 SH
   chmod +x "$fakebin/tmux"
   fm_fake_exit0 "$fakebin" pi
+  # A crewmate spawn leases its pooled copy with `treehouse get --lease`, so the
+  # fake hands back the path the pane reports (tests/lib.sh).
+  fm_test_fake_treehouse_lease "$fakebin"
   # BASE_PATH deliberately omits the developer's node, which the trust
   # registration below needs, so link the real one in rather than presenting a
   # node-less spawn host no real fleet member looks like.
