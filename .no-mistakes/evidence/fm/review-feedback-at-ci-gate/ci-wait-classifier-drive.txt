@@ -1,0 +1,13 @@
+1) worker declares the maintainer-only CI wait
+  declared wait -> paused [at=1790554657] [key=nm-run7-ci-wait]: fork-workflow approval pending
+2) review-bot comment arrives with no parked gate: keyed decision
+  declared wait -> 
+3) firstmate answers; worker closes that decision
+  declared wait -> 
+4) per new guidance the worker re-appends the same keyed pause
+  declared wait -> paused [at=1790554657] [key=nm-run7-ci-wait]: fork-workflow approval pending
+5) approval lands; worker resolves the wait itself
+  declared wait -> 
+
+open needs-decision after step 5: no
+is the ci-wait line a pause verb: yes
