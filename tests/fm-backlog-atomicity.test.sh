@@ -1951,6 +1951,10 @@ test_orca_cleanup_recovery_never_transitions_the_backlog() {
   [ "$(row_state "$case_dir" "$id")" = queued ] \
     || fail "cleanup recovery teardown completed work that never launched"
   assert_absent "$meta" "cleanup recovery teardown retained its task record"
+  if [ -f "$(home_of "$case_dir")/data/spend-ledger.jsonl" ]; then
+    grep -q "$id" "$(home_of "$case_dir")/data/spend-ledger.jsonl" \
+      && fail "cleanup recovery teardown recorded a spend ledger close for a worker that never ran"
+  fi
   pass "Orca cleanup recovery is excluded from backlog lifecycle transitions"
 }
 

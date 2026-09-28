@@ -634,10 +634,13 @@ run_teardown() {
   # FM_DATA_OVERRIDE is pinned to the case dir because teardown closes this
   # home's backlog item itself; without it $DATA would resolve to the real
   # repo's own home and a test could mutate live records.
+  # NM_HOME is pinned to the case dir so the spend line's pipeline columns are
+  # read from an empty fixture inventory, never the developer's real one.
   FM_ROOT_OVERRIDE="$ROOT" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
+  NM_HOME="$case_dir/nm-empty" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 "$@"
 }
@@ -4455,6 +4458,32 @@ test_process_exit_during_identity_lookup_does_not_refuse
 
 # --- spend ledger capture ---------------------------------------------------
 
+test_refused_treehouse_return_on_a_no_backlog_home_records_no_close() {
+  local case_dir
+  case_dir=$(make_case spend-ledger-refused-return)
+  write_meta "$case_dir" no-mistakes ship
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/9' >> "$case_dir/state/task-x1.meta"
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = return ]; then
+  echo "fatal: the lease holder refused the return" >&2
+  exit 1
+fi
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+
+  if run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"; then
+    fail "teardown succeeded despite a refused treehouse return"
+  fi
+  assert_contains "$(cat "$case_dir/stderr")" "treehouse return failed" \
+    "the refusal does not name the treehouse return"
+  [ ! -e "$case_dir/data/spend-ledger.jsonl" ] \
+    || fail "a teardown refused at treehouse return recorded a close: $(cat "$case_dir/data/spend-ledger.jsonl")"
+  assert_present "$case_dir/state/task-x1.meta" "the refused teardown removed the task record"
+  pass "a teardown refused at treehouse return on a no-backlog home records no ledger line"
+}
+
 test_teardown_appends_one_unmeasured_spend_ledger_line() {
   local case_dir line
   case_dir=$(make_case spend-ledger-unmeasured)
@@ -4468,12 +4497,16 @@ test_teardown_appends_one_unmeasured_spend_ledger_line() {
     || fail "teardown wrote no spend ledger line"
   assert_equals '1' "$(wc -l < "$case_dir/data/spend-ledger.jsonl")" "one closed task appends exactly one ledger line"
   line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
-  assert_equals '1' "$(jq -r .schema <<<"$line")" "the ledger line is schema version 1"
+  assert_equals '2' "$(jq -r .schema <<<"$line")" "the ledger line is schema version 2"
   assert_equals 'task-x1' "$(jq -r .task <<<"$line")" "the ledger line names the closed task"
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "a record without harness session logs is unmeasured"
   assert_equals 'null' "$(jq -r .usd <<<"$line")" "an unmeasured line carries no USD figure"
   [ -n "$(jq -r .unmeasured_reason <<<"$line")" ] \
     || fail "an unmeasured ledger line must state its reason"
+  jq -e '.pipeline_runs == 0 and .pipeline_invocations == 0 and .pipeline_usd == null' <<<"$line" >/dev/null \
+    || fail "a line without pipeline runs carries zeroed pipeline columns: $line"
+  [ -n "$(jq -r .pipeline_note <<<"$line")" ] \
+    || fail "an unmeasured pipeline column set must state its reason"
   assert_equals 'pr' "$(jq -r .outcome <<<"$line")" "the ledger line records the closed ship's PR outcome"
   assert_equals 'https://github.com/example/repo/pull/7' "$(jq -r .outcome_ref <<<"$line")" "the ledger line records the PR URL"
   assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the ledger line carries a UTC timestamp"
@@ -4509,6 +4542,7 @@ test_teardown_measures_claude_spend_from_fixture_logs() {
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
   HOME="$case_dir/home" \
+  NM_HOME="$case_dir/nm-empty" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 > "$case_dir/stdout" 2> "$case_dir/stderr" \
     || fail "teardown failed while measuring spend: $(cat "$case_dir/stderr")"
@@ -4517,6 +4551,8 @@ test_teardown_measures_claude_spend_from_fixture_logs() {
   assert_equals '1' "$(jq -r .calls <<<"$line")" "the measured line counts the window's deduplicated calls"
   jq -e '.usd > 0.07 and .usd < 0.08' <<<"$line" >/dev/null \
     || fail "the measured ledger line did not carry the priced USD figure: $line"
+  assert_equals '2' "$(jq -r .schema <<<"$line")" "the measured line is schema version 2"
+  assert_equals 'none' "$(jq -r .pipeline_cost_lane <<<"$line")" "a task with no ship branch records no pipeline runs"
   pass "a closed ship with session logs records measured api-equiv spend"
 }
 
@@ -4545,6 +4581,7 @@ test_teardown_survives_a_broken_spend_query() {
   line=$(sed -n '1p' "$case_dir/data/spend-ledger.jsonl")
   assert_equals 'unmeasured' "$(jq -r .usd_lane <<<"$line")" "the fallback line is unmeasured"
   assert_contains "$(jq -r .unmeasured_reason <<<"$line")" "spend query failed" "the fallback names the failed capture"
+  assert_equals 'unmeasured' "$(jq -r .pipeline_cost_lane <<<"$line")" "a broken pipeline query stays explicitly unmeasured"
   [ "$(backlog_row_state "$case_dir")" = "done" ] \
     || fail "a broken spend capture disturbed the backlog close"
   pass "a broken spend query never fails the cleanup and still records unmeasured"
@@ -4590,6 +4627,7 @@ test_teardown_records_a_scout_report_outcome() {
   pass "a closed scout records its report as the ledger outcome"
 }
 
+test_refused_treehouse_return_on_a_no_backlog_home_records_no_close
 test_teardown_appends_one_unmeasured_spend_ledger_line
 test_teardown_measures_claude_spend_from_fixture_logs
 test_teardown_survives_a_broken_spend_query

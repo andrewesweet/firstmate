@@ -974,7 +974,12 @@ close_answered() {  # <task-id> <release-0-or-1>
     tasks_axi unhold "$1" >/dev/null
   else
     apply_pending_retained_artifact "$1" || return 1
-    tasks_axi "done" "$1" >/dev/null
+    tasks_axi "done" "$1" >/dev/null || return 1
+    # A task the captain's answer closes never sees a teardown, so its worker
+    # line would never be recorded. The shared producer appends it now when
+    # the task proves a worker ran (a record or a stashed spend context) and
+    # does nothing otherwise; best effort, never fails the close.
+    "$SCRIPT_DIR/fm-spend-ledger-append.sh" "$1" >/dev/null 2>&1 || true
   fi
 }
 

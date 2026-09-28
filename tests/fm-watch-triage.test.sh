@@ -4650,7 +4650,17 @@ term_watcher_with_held_marker_lock() {  # <dir> [release-ticks]
   FM_STATE_OVERRIDE="$state" bash -c '
     . "$1" || exit 1
     lock=$2 held=$3 release=$4 contended=$5 release_ticks=$6
-    fm_lock_try_acquire "$lock" || exit 1
+    # The plain (non-successor) watcher takes this same lock once per poll in
+    # resurface_after_downtime, so a single try can lose an ordinary race with
+    # a cycle that happens to hold it. Retry within a bound smaller than the
+    # wait this caller spends on the held marker, so real contention still
+    # fails the fixture.
+    i=0
+    until fm_lock_try_acquire "$lock"; do
+      i=$((i + 1))
+      [ "$i" -lt 50 ] || exit 1
+      sleep 0.1
+    done
     if [ -n "$release_ticks" ]; then
       record="$(fm_lock_link_owner "$lock")/pid"
       mkfifo "$record.fifo" "$record.retry" && mv -f "$record.fifo" "$record" || exit 1

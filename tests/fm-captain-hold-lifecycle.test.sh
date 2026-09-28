@@ -73,6 +73,7 @@ run_teardown() {  # <home> <id>
   local home=$1 id=$2
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id"
 }
 
@@ -87,6 +88,7 @@ run_captain() {  # <home> <command args...>
   shift
   PATH="$home/fakebin:$PATH" REAL_TASKS_AXI="$TASKS_AXI_BIN" \
     FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$ROOT/bin/fm-captain-hold.sh" "$@"
 }
 
@@ -2835,6 +2837,45 @@ EOF
 # board, and only a recorded answer closes it. An ordinary finished task in the
 # same home must still close exactly as before, and discard authority covers
 # unlanded work, never the captain's question.
+# A retain-teardown stashes the spend context instead of appending, and the
+# captain's later answer appends the ledger line through the shared producer -
+# the close path that previously left no worker line at all.
+test_answered_retain_appends_its_spend_line() {
+  local home id line
+  home=$(make_home teardown-answered-spend)
+  id=sample-answered-spend
+  mkdir -p "$home/data/$id"
+  tasks_in "$home" add "$id" "Investigate sample spend evidence" --kind scout \
+    --repo sample --start >/dev/null || fail "could not create the spend fixture"
+  write_origin_meta "$home" "$id"
+  printf 'done: report complete\n' > "$home/state/$id.status"
+  printf '# Sample spend evidence\n\nThe captain must choose.\n' > "$home/data/$id/report.md"
+  run_captain "$home" hold "$id" --reason "captain must choose the sample spend outcome" >/dev/null \
+    || fail "could not hold the spend fixture for the captain"
+  run_captain "$home" complete "$id" "$id" >/dev/null \
+    || fail "completion gate failed for the spend fixture"
+  run_teardown "$home" "$id" > "$home/teardown.out" 2> "$home/teardown.err" \
+    || fail "cleanup of the captain-held spend fixture failed: $(cat "$home/teardown.err")"
+  [ ! -e "$home/data/spend-ledger.jsonl" ] \
+    || fail "a retain must stash its context, not append a line for a still-open call"
+  assert_present "$home/state/$id.spend-context" "cleanup left no spend context for the later answer"
+  printf 'Proceed with the reported outcome.\n' > "$home/answer.txt"
+  run_captain "$home" answer "$id" --decision-file "$home/answer.txt" >/dev/null \
+    || fail "the captain's answer failed on the retained spend fixture"
+  [ -f "$home/data/spend-ledger.jsonl" ] \
+    || fail "the answered retain recorded no spend ledger line"
+  assert_equals '1' "$(wc -l < "$home/data/spend-ledger.jsonl")" "the answer closes with exactly one line"
+  line=$(sed -n '1p' "$home/data/spend-ledger.jsonl")
+  assert_equals '2' "$(jq -r .schema <<<"$line")" "the answered line is schema version 2"
+  assert_equals "$id" "$(jq -r .task <<<"$line")" "the answered line names the closed task"
+  assert_equals 'report' "$(jq -r .outcome <<<"$line")" "the answered line keeps the retained report outcome"
+  assert_contains "$(jq -r .outcome_ref <<<"$line")" "data/$id/report.md" "the answered line names the report path"
+  [ -n "$(jq -r .pipeline_cost_lane <<<"$line")" ] \
+    || fail "the answered line carries no pipeline columns"
+  assert_absent "$home/state/$id.spend-context" "the answer left its spent context behind"
+  pass "a task closed by a captain answer after cleanup still records its spend line"
+}
+
 test_teardown_never_closes_a_captain_held_task() {
   local home id plain forced json show
   home=$(make_home teardown-held)
@@ -3205,6 +3246,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -3264,6 +3306,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -3318,6 +3361,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err"
   rc=$?
@@ -3984,6 +4028,7 @@ SH
   set +e
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/race-pr-teardown.out" 2> "$home/race-pr-teardown.err"
   teardown_rc=$?
@@ -4123,6 +4168,7 @@ test_released_merge_passes_the_entrypoint_and_lands() {
     || fail "the released merge was refused: $(cat "$home/merge.err")"
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    NM_HOME="$home/nm-empty" \
     FM_CONFIG_OVERRIDE="$home/config" "$TEARDOWN" "$id" --force \
     > "$home/teardown.out" 2> "$home/teardown.err" \
     || fail "the released merge cleanup failed: $(cat "$home/teardown.err")"
@@ -4337,6 +4383,7 @@ test_origin_slug_validation_precedes_path_construction
 test_status_resolution_over_an_open_hold_is_signalled
 test_legitimate_holds_produce_no_divergence_signal
 test_teardown_never_closes_a_captain_held_task
+test_answered_retain_appends_its_spend_line
 test_retained_row_artifacts_survive_captain_answers
 test_interrupted_cleanup_keeps_the_captain_call_recoverable
 test_answer_before_cleanup_replay_preserves_the_retained_report
