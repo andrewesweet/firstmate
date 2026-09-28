@@ -1118,6 +1118,11 @@ start_owned_watcher() {  # <home> <state> <fakebin> <arm-out>
   [ -n "$WATCH_PID" ] || fail "arm did not start a watcher: $(cat "$armout")"
 }
 
+# A teardown is noticed at the top of the watcher's next cycle, so the wait for
+# the exit must outlast one whole cycle of an already-running poll on a loaded
+# runner, not just the FM_POLL interval. wait_for_pid_gone polls every 0.1s.
+TEARDOWN_EXIT_POLLS=400
+
 # The watcher is the arm's child, not this shell's, so wait on liveness only.
 wait_for_pid_gone() {  # <pid> <polls>
   local pid=$1 limit=$2 i=0
@@ -1144,7 +1149,7 @@ test_watcher_exits_when_its_state_directory_is_removed() {
   start_owned_watcher "$home" "$state" "$fakebin" "$armout"
 
   rm -rf "$state"
-  wait_for_pid_gone "$WATCH_PID" 100 \
+  wait_for_pid_gone "$WATCH_PID" "$TEARDOWN_EXIT_POLLS" \
     || { kill -TERM "$WATCH_PID" 2>/dev/null; fail "watcher pid $WATCH_PID outlived its deleted state directory"; }
   wait_for_exit "$ARM_PID" 100 >/dev/null 2>&1 || true
   grep -qF 'watcher: exiting - state directory' "$armout" \
@@ -1167,7 +1172,7 @@ test_watcher_exits_when_its_home_is_removed() {
   start_owned_watcher "$home" "$state" "$fakebin" "$armout"
 
   rm -rf "$home"
-  wait_for_pid_gone "$WATCH_PID" 100 \
+  wait_for_pid_gone "$WATCH_PID" "$TEARDOWN_EXIT_POLLS" \
     || { kill -TERM "$WATCH_PID" 2>/dev/null; fail "watcher pid $WATCH_PID outlived its deleted home"; }
   wait_for_exit "$ARM_PID" 100 >/dev/null 2>&1 || true
   grep -qF 'watcher: exiting - home no longer exists' "$armout" \
