@@ -2104,8 +2104,8 @@ fm_backend_herdr_explicit_close_pane_confirmed() {  # <session> <pane_id>
 #   shell      - every foreground process is a recognized shell AND no
 #                descendant of the pane shell is a verified harness: positive
 #                proof the pane is shell-only. The descendant walk is what makes
-#                this safe for the crew shape, where a nested `treehouse get`
-#                shell sits under the pane's top shell.
+#                this safe for the crew shape, where a nested shell can sit
+#                under the pane's top shell.
 #   other      - the foreground group holds something that is neither: a tool
 #                the agent is running in its own process group, a pager, a
 #                stranger's process. Not a shell-only pane. An idle shell
@@ -3031,17 +3031,18 @@ fm_backend_herdr_target_ready() {  # <target>
 }
 
 # fm_backend_herdr_current_path: the live FOREGROUND process's cwd, or empty on
-# any error. Mirrors tmux's pane_current_path poll used for worktree-path
-# discovery after `treehouse get`.
+# any error. Mirrors tmux's pane_current_path poll used to settle the pane in
+# its leased copy.
 #
-# Verified pitfall: `pane get`'s `.result.pane.cwd` is the pane's cwd AT
-# CREATION TIME - the top-level shell's cwd - and does NOT update when that
-# shell `cd`s or enters a subshell (as `treehouse get` does). Reading it here
-# would make fm-spawn.sh's worktree-discovery poll never see the pane "leave"
-# the project directory, since `cwd` stays frozen at the original path forever.
-# `.result.pane.foreground_cwd` tracks the ACTUALLY RUNNING foreground
-# process's cwd instead, which is what changes when `treehouse get` enters its
-# worktree subshell - confirmed live against a real treehouse acquisition.
+# Verified pitfall: `pane get`'s `.result.pane.cwd` was measured frozen at pane
+# CREATION TIME on the version this adapter was written against, so a settle
+# poll reading it would never see the pane "leave" the project directory.
+# `.result.pane.foreground_cwd` tracks the pane's live cwd instead, including
+# after the child shell spawn starts in the leased copy - measured on Herdr
+# 0.9.0, where it reports the leased copy within a second of an idle pane's
+# `cd` (docs/verification/runtime-backends.md, "Pane cwd after a builtin cd
+# into the leased copy"); the child shell is the stronger case, since a live
+# foreground child is exactly what that field was designed to report.
 fm_backend_herdr_current_path() {  # <target>
   fm_backend_herdr_target_ready "$1" || return 0
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null \
@@ -3050,7 +3051,7 @@ fm_backend_herdr_current_path() {  # <target>
 
 # fm_backend_herdr_send_text_line: send one line of TEXT then submit,
 # ATOMICALLY - mirrors tmux's `send-keys -t T text Enter`. Used for the fixed
-# spawn-time commands (treehouse get, the GOTMPDIR export). `pane run` types
+# spawn-time commands (entering the leased copy, the GOTMPDIR export). `pane run` types
 # the command and submits it in one call (verified).
 fm_backend_herdr_send_text_line() {  # <target> <text>
   fm_backend_herdr_target_ready "$1" || return 1

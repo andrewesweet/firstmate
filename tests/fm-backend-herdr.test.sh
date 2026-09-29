@@ -536,7 +536,7 @@ test_recovery_grade_read_widens_only_at_its_own_boundary() {
 #
 # Herdr keeps a Pi registration (`agent get` -> agent=pi, agent_status=idle)
 # after the Pi process has exited to a plain shell whenever a nested interactive
-# shell sits under the pane's top shell (the `treehouse get` crew shape;
+# shell sits under the pane's top shell (a nested interactive shell;
 # reproduced on Herdr 0.9.0 - docs/verification/runtime-backends.md "Stale agent
 # registration"). Trusting that registration alone classified the pane `live`,
 # so every relaunch and recovery was refused forever. The classifier must now
@@ -3847,7 +3847,7 @@ test_current_path_reads_cwd() {
   dir="$TMP_ROOT/cwd"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
   # Verified pitfall (herdr-verification-p2.md): .result.pane.cwd is frozen at
   # pane-creation time and never updates; .foreground_cwd tracks the live
-  # running process (e.g. a treehouse get subshell) and is what must be read.
+  # running process (e.g. a nested interactive shell) and is what must be read.
   printf '{"result":{"pane":{"cwd":"/tmp/pane-creation-dir","foreground_cwd":"/tmp/fake-worktree"}}}\n' > "$resp/1.out"
   fb=$(make_herdr_fakebin "$dir")
   out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \

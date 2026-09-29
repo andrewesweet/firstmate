@@ -5,7 +5,7 @@
 # The defect: Herdr keeps a Pi registration (`agent get` -> agent=pi,
 # agent_status=idle) after the Pi process has exited to a plain shell whenever
 # a nested interactive shell sits under the pane's top shell - the crew shape,
-# where `treehouse get` leaves a worktree shell under the pane's login shell.
+# where a nested interactive shell sits under the pane's login shell.
 # The adapter now proves an agent at process level before trusting a
 # registration, and this guard measures the two vendor facts that proof rests
 # on, which no fixture can prove:

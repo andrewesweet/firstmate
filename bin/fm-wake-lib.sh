@@ -1373,23 +1373,38 @@ fm_treehouse_pool_slot() {  # <project-dir> <worktree>
   [ "$project_common" = "$slot_common" ]
 }
 
+# The same judgement from the record alone, for a slot whose checkout is gone.
+# A pooled copy removed or pruned by an operator or by external git maintenance
+# still holds its task's durable lease, so teardown must be able to take the
+# project lock and return it. The git-identity check above needs a checkout that
+# is no longer there, so an absent slot is matched on the pool state file that
+# lists it: treehouse writes one `path` per managed worktree there, and only a
+# path it still lists is a slot of that pool.
+fm_treehouse_pool_slot_recorded() {  # <project-dir> <worktree>
+  local project=$1 worktree=$2 state
+  fm_treehouse_pool_slot "$project" "$worktree" && return 0
+  [ -d "$project" ] || return 1
+  [ -n "$worktree" ] && [ ! -d "$worktree" ] || return 1
+  state="$(dirname "$(dirname "$worktree")")/treehouse-state.json"
+  [ -f "$state" ] && [ ! -L "$state" ] || return 1
+  grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$state" 2>/dev/null \
+    | sed 's/.*"\([^"]*\)"$/\1/' \
+    | grep -Fxq "$worktree"
+}
+
 # Slot-owner claim: which task a Treehouse pool slot currently belongs to.
 #
-# Treehouse can record ownership durably: `treehouse get --lease --lease-holder`
-# reserves a slot under a label until `treehouse return --if-lease-holder`
+# Treehouse records the reservation durably: `treehouse get --lease
+# --lease-holder` reserves a slot under a label until `treehouse return`
 # releases it, and Firstmate uses exactly that for secondmate homes
-# (bin/fm-home-seed.sh). Crewmate spawns do not take that path: they acquire
-# their slot through the interactive pane-driven `treehouse get`, whose state
-# entry is a live process lease (owner_pid plus owner_started_at, and `treehouse
-# status` reports in-use from the processes actually running under the path).
-# That answers "is anything running here", never "which task owns this", and it
-# is released by the very event that makes a task record stale - the worker
-# exiting - so a slot whose lease has lapsed reads identical whether it is still
-# this task's or has since been handed to another one. Firstmate therefore keeps
+# (bin/fm-home-seed.sh) and for crewmate task slots (bin/fm-spawn.sh). The
+# lease answers "is this slot reserved", never "which task owns this" - the
+# holder label is a diagnostic string, not a task record - so Firstmate keeps
 # its own claim on top: one file naming the task that took the slot, written by
 # bin/fm-spawn.sh under the same project lock that allocates the slot and
-# released by bin/fm-teardown.sh when the slot goes back to the pool. Moving
-# crewmate spawns onto the durable lease is separate follow-up work.
+# released by bin/fm-teardown.sh when the slot goes back to the pool. The claim
+# is what lets teardown prove a slot is still its task's before returning it,
+# including for task records from before the durable lease existed.
 #
 # The claim lives at <pool>/<slot>/.fm-slot-owner - a sibling of the repo
 # checkout rather than a file inside it - so claiming a slot can never dirty the

@@ -851,7 +851,22 @@ esac
 exit 0
 SH
   chmod +x "$fb/tmux"
-  fm_fake_exit0 "$fb" treehouse
+  # Lease-aware treehouse answering the baked worktree path: spawn leases its
+  # copy with `get --lease` and the pane stub above reports that same path.
+  cat > "$fb/treehouse" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = get ]; then
+  for a in "\$@"; do
+    if [ "\$a" = --lease ]; then
+      printf '%s\n' "$wt"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fb/treehouse"
   printf '%s\n' "$fb"
 }
 
@@ -923,7 +938,22 @@ esac
 exit 0
 SH
   chmod +x "$fb/tmux"
-  fm_fake_exit0 "$fb" treehouse
+  # Lease-aware treehouse answering the baked worktree path: spawn leases its
+  # copy with `get --lease` before the pane stub above settles there.
+  cat > "$fb/treehouse" <<SH
+#!/usr/bin/env bash
+set -u
+if [ "\${1:-}" = get ]; then
+  for a in "\$@"; do
+    if [ "\$a" = --lease ]; then
+      printf '%s\n' "$wt"
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+  chmod +x "$fb/treehouse"
   printf '%s\n' "$fb"
 }
 
@@ -1061,8 +1091,9 @@ test_teardown_conformance_old_vs_new() {
 
   expect_code 0 "$rc_old" "old fm-teardown.sh (scout, report present) should succeed"$'\n'"$out_old"
   expect_code 0 "$rc_new" "new fm-teardown.sh (scout, report present) should succeed"$'\n'"$out_new"
-  assert_contains "$(cat "$log_new")" "treehouse"$'\x1f''return'$'\x1f''--force'$'\x1f'"$wt" \
-    "teardown did not call treehouse return --force <worktree>"
+  assert_contains "$(cat "$log_new")" \
+    "treehouse"$'\x1f''return'$'\x1f''--force'$'\x1f''--if-lease-holder'$'\x1f'"$id"$'\x1f'"$wt" \
+    "teardown did not call treehouse return --force --if-lease-holder <task> <worktree>"
   # The legacy fixture's adapter comes from BASE_REF, so its selector form is
   # whatever the merge-base carried: permissive while the exact-selector change
   # was still on a branch, exact for every branch cut after it landed on main.

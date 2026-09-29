@@ -1626,11 +1626,30 @@ ok - real herdr: a drifted agent-free shell returns to its worktree and reuses t
 `tests/fm-control-relaunch.test.sh` drives a tmux stub and proves that tmux retains its prior refusal without sending `cd` or any other input to the pane.
 The Herdr refusal when a shell accepts the command but does not move is not exercised in this change.
 
+### Pane cwd after a builtin cd into the leased copy
+
+Measured 2026-09-28 on Linux x86_64 (WSL2) against Herdr 0.9.0 in an isolated `fm-lab-` session, because spawn now tells the pane to enter the leased copy itself rather than running `treehouse get` there, and `fm_backend_herdr_current_path` settles the spawn on `.result.pane.foreground_cwd`.
+
+The bare builtin `cd` measured here is the weaker case: spawn sends `(cd -- '<leased copy>' && exec "${SHELL:-/bin/sh}")`, which leaves a live foreground child that field is designed to report, while a builtin `cd` leaves none. So the question was whether that field still tracks the pane after it goes idle with no child at all. It does: both `cwd` and `foreground_cwd` report the leased copy within one second of the `cd`, and hold it for at least ten.
+
+```sh
+herdr pane get w1:p1 --session "$LAB" | jq -c '{cwd:.result.pane.cwd, fg:.result.pane.foreground_cwd}'
+# cd -- '<leased copy>' sent with `pane run`, then re-read
+```
+
+```text
+BEFORE: {"cwd":"/tmp/fm-fgcwd.gF1oRk/project","fg":"/tmp/fm-fgcwd.gF1oRk/project"}
+after 1s: {"cwd":"/tmp/fm-fgcwd.gF1oRk/leased","fg":"/tmp/fm-fgcwd.gF1oRk/leased"}
+after 10s: {"cwd":"/tmp/fm-fgcwd.gF1oRk/leased","fg":"/tmp/fm-fgcwd.gF1oRk/leased"}
+```
+
+On this version `cwd` is no longer frozen at pane creation either, but the adapter keeps reading `foreground_cwd`: it is the field that tracked a pane entering a directory on every version measured so far, and nothing here shows it losing that.
+
 ### Stale agent registration
 
 Measured 2026-09-10 on macOS aarch64 against Herdr 0.9.0 (protocol 22) and Pi 0.85.1 in an isolated `fm-lab-` session (upstream issue #4115, duplicates #3639, #3487, #2908, #3545).
 
-Herdr keeps a Pi registration after the Pi process has exited to a shell when a nested interactive shell sits under the pane's top shell, which is the crew shape `treehouse get` leaves behind; a plain `/quit` directly under the top shell, and a `kill -9` of Pi, both released it on this version.
+Herdr keeps a Pi registration after the Pi process has exited to a shell when a nested interactive shell sits under the pane's top shell; a plain `/quit` directly under the top shell, and a `kill -9` of Pi, both released it on this version.
 Reproduced in the lab with a nested `zsh` under the pane shell, then `pi` with no prompt, then `/quit`:
 
 ```sh
@@ -1785,7 +1804,7 @@ tests/fm-backend-zellij.test.sh
 tests/fm-backend-zellij-smoke.test.sh
 ```
 
-The real lifecycle smoke proved spawn, metadata, nested-subshell worktree discovery, send, capture, unlanded-work refusal, approved local landing, exact tab cleanup, and session cleanup without retaining task-specific ids or branch names here.
+The real lifecycle smoke proved spawn, metadata, worktree discovery, send, capture, unlanded-work refusal, approved local landing, exact tab cleanup, and session cleanup without retaining task-specific ids or branch names here.
 
 ## Orca
 

@@ -1585,7 +1585,8 @@ EOF
     FM_FAKE_TREEHOUSE_LEASE_FILE="$lease" \
     "$ROOT/bin/fm-teardown.sh" domain >/dev/null 2>/dev/null \
     || fail "teardown failed for empty secondmate home"
-  grep -F "treehouse return --force $subhome_abs" "$log" >/dev/null || fail "teardown did not release the secondmate home lease via treehouse return"
+  grep -F "treehouse return --force --if-lease-holder domain $subhome_abs" "$log" >/dev/null \
+    || fail "teardown did not release the secondmate home lease under its own lease holder"
   [ ! -e "$lease" ] || fail "teardown left the secondmate home lease held after retirement"
   [ ! -d "$subhome" ] || fail "teardown did not remove the retired secondmate home"
   [ ! -e "$home/state/domain.meta" ] || fail "teardown did not clear parent meta"
@@ -1866,7 +1867,8 @@ EOF
   set -e
 
   [ "$rc" -ne 0 ] || fail "teardown succeeded despite failed treehouse return"
-  grep -F "treehouse return --force $subhome_abs" "$log" >/dev/null || fail "teardown did not try to return the leased home"
+  grep -F "treehouse return --force --if-lease-holder domain $subhome_abs" "$log" >/dev/null \
+    || fail "teardown did not try to return the leased home under its own lease holder"
   grep -F 'treehouse return failed for secondmate home' "$err" >/dev/null || fail "teardown did not report failed leased home return"
   [ -d "$subhome" ] || fail "teardown removed a leased home after return failed"
   [ -e "$subhome/state/procevent/source.source" ] || fail "failed leased-home return did not restore the source registration"
