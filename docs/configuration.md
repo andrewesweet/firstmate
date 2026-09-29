@@ -646,7 +646,9 @@ The cap is per host, not fleet-wide, and every firstmate home on the host shares
 The file holds one plain positive integer.
 An absent file means the default, and any other content refuses the start with a clear message instead of falling back.
 The setting is host-level: it is deliberately outside `FM_HOME`, so secondmate inheritance and propagation never see it.
-The active-run count comes from the host's no-mistakes daemon state store, and when it cannot be read the script refuses with the exact error rather than guessing a count.
+The count comes from the host's no-mistakes daemon state store, and when it cannot be read the script refuses with the exact error rather than guessing a count.
+Only a run that is consuming memory counts: a live run that is queued, or working a step other than the forge CI wait, and that is not parked waiting on its agent, so a host of parked runs cannot starve every worker.
+The script signals its own decisions with exit codes the no-mistakes CLI does not use - 75 when the host is at its limit and the worker must wait, 78 when the limit or the count could not be read - so a start command's own failure is never read as a full slot.
 
 ## Captain Preferences (data/captain.md / data/captain-shared.md)
 

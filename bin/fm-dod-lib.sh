@@ -374,14 +374,16 @@ EOF
 # --wait keeps its slot lock held only across the first start's registration,
 # and the driving block owns every later drive and reattach call, which never
 # claims a slot because a reattach creates no new run.
-fm_nm_slot_block() {
-  local slot_bin
+fm_nm_slot_block() {  # <forge>
+  local slot_bin skip=''
   slot_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-nm-slot.sh"
+  [ "${1:-}" = gerrit ] && skip=' --skip push,pr,ci'
   cat <<EOF
-Before starting the run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s\`.
-The script checks the host's active validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that first start so two workers cannot both squeeze in.
-On exit 1 the host is at its limit: append one \`paused [at=<epoch>]: validation slot full; waiting for a running validation to finish\` line, retry on a bounded backoff (60s first, doubling to a 10m cap), and start the run the moment a retry passes.
-On exit 2 the count or the limit could not be read: append \`blocked [at=<epoch>]: {the script's exact error}\` and stop.
+Before starting the run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s$skip\`.
+The script checks the host's executing validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that first start so two workers cannot both squeeze in.
+On exit 75 the host is at its limit: append one \`paused [at=<epoch>]: validation slot full; waiting for a running validation to finish\` line, retry on a bounded backoff (60s first, doubling to a 10m cap), and start the run the moment a retry passes.
+On exit 78 the count or the limit could not be read: append \`blocked [at=<epoch>]: {the script's exact error}\` and stop.
+Any other non-zero exit is the start command's own failure, not the slot gate: handle it exactly as the rules below describe.
 Once that first start returns, make every later drive and reattach call exactly as the rules below describe, without the wrapper: only the first start claims a slot.
 EOF
 }
@@ -483,7 +485,7 @@ EOF
 When your implementation is committed, start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
-      fm_nm_slot_block
+      fm_nm_slot_block "$forge"
       cat <<EOF
 
 EOF
@@ -559,7 +561,7 @@ EOF
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
-      fm_nm_slot_block
+      fm_nm_slot_block "$forge"
       cat <<EOF
 
 EOF
