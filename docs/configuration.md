@@ -14,6 +14,7 @@ Start with the directory layout, then use the setting reference for the behavior
 | Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), and [Calm preference](#calm-preference-configcalm) |
 | Persistent secondmates | [Secondmate routes](#secondmate-routes-datasecondmatesmd) |
 | Per-run overrides and tuning | [Environment variables](#environment-variables) |
+| Concurrent validations on this host | [Validation slot limit](#validation-slot-limit-host-level) |
 
 ## FM_HOME
 
@@ -652,6 +653,25 @@ Where the repository documents no standard, the skill's code-smell baseline is a
 Being trusted configuration, this too is honored only from the default-branch copy.
 
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.
+
+## Validation slot limit (host-level)
+
+Ship workers claim a validation slot before every no-mistakes run start, so concurrent validations on one machine cannot exhaust its memory and get the no-mistakes daemon killed mid-run; `bin/fm-nm-slot.sh` owns the mechanism and its exit codes.
+The cap is per host, not fleet-wide, and every firstmate home on the host shares one slot lock and one active-run count; there is deliberately no cross-host coordination, and each host is sized to its own RAM.
+
+| Setting | Location | Default |
+| --- | --- | --- |
+| Maximum concurrent no-mistakes validations on this host | `${XDG_CONFIG_HOME:-$HOME/.config}/firstmate/nm-max-concurrent-validations` | `3` |
+
+The file holds one plain positive integer.
+The gate needs `python3` on the host: it takes the host-wide start mutex through `fcntl.flock` and reads the daemon's state store, so the one lock is held across the count-then-start window on every host, macOS included.
+An absent file means the default, and any other content refuses the start with a clear message instead of falling back.
+The setting is host-level: it is deliberately outside `FM_HOME`, so secondmate inheritance and propagation never see it.
+The count comes from the host's no-mistakes daemon state store; a store that does not exist yet records no run, so the count is zero and the start is admitted, while any other read failure refuses with the exact error rather than guessing a count.
+Every run counts that the repository's status-word owner does not classify as terminal - an unrecognised word holds a slot rather than vanishing from the count - including one sitting between steps, except a run parked waiting on its agent at a gate and a run whose only executing step is the forge CI monitor; neither of those holds the memory the cap protects, so a host of parked runs cannot starve every worker.
+A CI step that has moved on to a fix round is doing work, not a monitor, so it counts like any other executing step.
+There is deliberately no liveness or staleness bound: a run abandoned mid-step keeps its place in the count until an operator cancels it, and the wait message names the counted run ids so the operator knows which ones to look at.
+The script signals its own decisions with exit codes the no-mistakes CLI does not use - 75 when the host is at its limit and the worker must wait, 78 when the limit or the count could not be read - so a start command's own failure is never read as a full slot.
 
 ## Captain Preferences (data/captain.md / data/captain-shared.md)
 

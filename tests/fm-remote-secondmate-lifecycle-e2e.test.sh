@@ -319,27 +319,13 @@ if [ "\${1:-}" = clone ]; then
 fi
 if [ "\${1:-}" = clone ] && [ -n "\${FM_FAKE_CLONE_HOLD_DIR:-}" ] \
   && [ "\$(dirname "\${!#}")" = "\$FM_FAKE_CLONE_HOLD_DIR" ]; then
-  hold_dest="\${!#}"
-  "$REAL_GIT" "\$@" &
-  hold_git=\$!
-  hold_state() { ps -o stat= -p "\$hold_git" 2>/dev/null | tr -d '[:space:]'; }
-  while [ ! -d "\$hold_dest/.git/objects" ]; do
-    case "\$(hold_state)" in ''|Z*) wait "\$hold_git"; exit \$? ;; esac
-    sleep 0.005
-  done
-  kill -STOP "\$hold_git" 2>/dev/null || true
-  while :; do
-    case "\$(hold_state)" in
-      T*) break ;;
-      ''|Z*) wait "\$hold_git"; exit \$? ;;
-    esac
-    sleep 0.005
-  done
+  # The staged clone runs to completion, then the fake git holds before
+  # returning: the staging path exists and is unpublished for as long as the
+  # test wants, with no dependence on winning a race against the real clone.
+  "$REAL_GIT" "\$@" || exit \$?
   touch "$TMP_ROOT/race-clone.held"
   while [ ! -f "$TMP_ROOT/race-clone.release" ] && [ -d "$TMP_ROOT" ]; do sleep 0.02; done
-  kill -CONT "\$hold_git" 2>/dev/null || true
-  wait "\$hold_git"
-  exit \$?
+  exit 0
 fi
 exec "$REAL_GIT" "\$@"
 SH
