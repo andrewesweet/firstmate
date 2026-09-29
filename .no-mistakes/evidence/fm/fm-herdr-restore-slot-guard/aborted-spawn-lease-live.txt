@@ -1,0 +1,12 @@
+spawn refusal: 🌳 Leased worktree at /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project. Run 'treehouse return /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project' to release it.
+error: task abort-live-a's endpoint did not enter an isolated worktree within 60s (last seen '/tmp/fm-slot-lease-abort-live.gZtlBg/case/project': it is the spawning project itself; spawning project '/tmp/fm-slot-lease-abort-live.gZtlBg/case/project'); returning its leased copy /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project - inspect window firstmate:fm-abort-live-a
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project. Run 'treehouse return /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project' to release it.
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+ok - an aborted spawn returned its real lease; the pool reissued /tmp/fm-slot-lease-abort-live.gZtlBg/case/pool/.treehouse/project-93a552/1/project to the next taker

@@ -1,0 +1,40 @@
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project. Run 'treehouse return /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project' to release it.
+ok - task reissue-live-a holds a real treehouse lease on /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project
+ok - no process on this host has its cwd inside /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project (treehouse's free-slot heuristic would call it free)
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/2/project. Run 'treehouse return /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/2/project' to release it.
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+ok - a second real spawn got /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/2/project, not task reissue-live-a's slot; reissue-live-a keeps its lease with no process inside it
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project. Run 'treehouse return /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project' to release it.
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+ok - teardown of reissue-live-a released its lease and the pool reissued /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project to the next taker
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project. Run 'treehouse return /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project' to release it.
+refusal: failed to return worktree: lease precondition failed: lease holder does not match worktree /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project
+error: treehouse return failed for task reissue-live-b's worktree /tmp/fm-slot-lease-reissue-live.Sqrlem/case/pool/.treehouse/project-229736/1/project; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task reissue-live-b's record is kept for a rerun
+ok - teardown refused a slot leased to another task, leaving that lease and the record intact
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+# all live reissue scenarios passed (treehouse v2.3.0)

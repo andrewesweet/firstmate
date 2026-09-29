@@ -1,0 +1,246 @@
+ok - real Herdr lab: an opted-out spawn retains the Stage 1 Herdr command sequence with zero ordering calls
+ok - real Herdr lab: a home that configured nothing is projected by default on herdr 0.9.0
+ok - real Herdr lab: every projected create, task-tab create, seeded prune, and move preserves active workspace and tab
+ok - real Herdr lab: persisted-focused seeded prune proceeds when no live client is attached
+ok - real Herdr lab: bounded lock contention warns and falls back flat without projection or focus drift
+ok - real Herdr lab: concurrent primary workers form one stable contiguous block without active workspace/tab drift
+ok - real Herdr lab: forced workspace.move failure leaves a successful worker in default order with a warning and no cleanup
+ok - real Herdr lab: concurrent post-create abort cleanup stays serialized with exact focus restoration
+DEBUG-PRE journal:
+version=2
+task_id=shape
+projection_id=cq-2U6IpSn12Hl-dzP0HBQ
+home=/tmp/fm-herdr-presentation.93POA8/home
+session=fm-lab-fm-herdr-present-3737626-17784
+workspace_id=w5
+tab_id=w5:t2
+pane_id=w5:p2
+parent_workspace_id=w1
+parent_label=firstmate
+workspace_label=└ shape · p:cq-2U6IpSn12Hl-dzP0HBQ
+task_label=fm-shape
+DEBUG-PRE meta:
+window=fm-lab-fm-herdr-present-3737626-17784:w5:p2
+endpoint_task_id=shape
+worktree=/home/andre/.treehouse/project-2f0c48/2/project
+project=/tmp/fm-herdr-presentation.93POA8/project
+harness=sh
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/shape
+tasktmp=/tmp/fm-shape
+model=default
+effort=default
+spawn_gen=s1790676555.3761611.9072
+spawn_epoch_first=1790676555
+backend=herdr
+herdr_session=fm-lab-fm-herdr-present-3737626-17784
+herdr_workspace_id=w5
+herdr_tab_id=w5:t2
+herdr_pane_id=w5:p2
+DEBUG-PRE workspaces:
+{"id":"cli:workspace:list","result":{"type":"workspace_list","workspaces":[{"active_tab_id":"w1:t2","agent_status":"unknown","focused":false,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"},{"active_tab_id":"w5:t2","agent_status":"unknown","focused":false,"label":"└ shape · p:cq-2U6IpSn12Hl-dzP0HBQ","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w5"},{"active_tab_id":"w7:t2","agent_status":"unknown","focused":false,"label":"└ order-b · p:6jSh1_JRlRag-9gqWVNULg","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w7"},{"active_tab_id":"w8:t2","agent_status":"unknown","focused":false,"label":"└ order-a · p:NvT2RkukS_eExoBA0Nh6yQ","number":4,"pane_count":1,"tab_count":1,"workspace_id":"w8"},{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"2ndmate-alpha","number":5,"pane_count":1,"tab_count":1,"workspace_id":"w3"},{"active_tab_id":"w4:t1","agent_status":"unknown","focused":true,"label":"2ndmate-bravo","number":6,"pane_count":1,"tab_count":1,"workspace_id":"w4"},{"active_tab_id":"w9:t2","agent_status":"unknown","focused":false,"label":"└ order-fail · p:DpnMRwBE8JIgtfBouOh9xg","number":7,"pane_count":1,"tab_count":1,"workspace_id":"w9"}]}}
+ok - real Herdr lab: Treehouse commands and metadata shape are byte-identical except for endpoint IDs and spawn incarnation
+DEBUG workspaces after teardown:
+usage: herdr workspace list
+DEBUG meta:
+cat: /tmp/fm-herdr-presentation.93POA8/home/state/shape.meta: No such file or directory
+DEBUG herdr calls (tail 60):
+pane	get	wB:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	wB:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+tab	list	--workspace	w4	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	wB:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+tab	list	--workspace	wB	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	list	--workspace	wB	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+api	schema	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+session	list	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+terminal	title	clear	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	process-info	--pane	wB:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+terminal	title	clear	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	wB:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+tab	list	--workspace	w4	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+tab	list	--workspace	w4	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	wB:p1	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w5:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+session	list	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+session	list	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+workspace	list	--session	fm-lab-fm-herdr-present-3737626-17784
+tab	list	--workspace	w4	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w5:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	close	w5:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w5:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w1:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w8:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w7:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	get	w9:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w8:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w1:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w7:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w9:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w8:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w9:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w7:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+pane	read	w1:p2	--source	recent	--lines	200	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+status	--json	--session	fm-lab-fm-herdr-present-3737626-17784
+agent	get	w8:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+agent	get	w9:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+agent	get	w1:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+agent	get	w7:p2	--session	fm-lab-fm-herdr-present-3737626-17784
+not ok - confirmed projected teardown did not retire its presentation journal; teardown stderr: <<teardown: reaping leaked worktree process(es) for shape: 3762543 3765160 3903851
+teardown: force-killing leaked worktree process(es) for shape: 3762543
+DEBUG-RETIRE T='fm-lab-fm-herdr-present-3737626-17784:w5:p2' sess='fm-lab-fm-herdr-present-3737626-17784' ws='w5' pane='w5:p2' cand=0
+cq-2U6IpSn12Hl-dzP0HBQ <- token ok
+{"id":"cli:workspace:list","result":{"type":"workspace_list","workspaces":[{"active_tab_id":"w1:t2","agent_status":"unknown","focused":false,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"},{"active_tab_id":"w7:t2","agent_status":"unknown","focused":false,"label":"└ order-b · p:6jSh1_JRlRag-9gqWVNULg","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w7"},{"active_tab_id":"w8:t2","agent_status":"unknown","focused":false,"label":"└ order-a · p:NvT2RkukS_eExoBA0Nh6yQ","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w8"},{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"2ndmate-alpha","number":4,"pane_count":1,"tab_count":1,"workspace_id":"w3"},{"active_tab_id":"w4:t1","agent_status":"unknown","focused":true,"label":"2ndmate-bravo","number":5,"pane_count":1,"tab_count":1,"workspace_id":"w4"},{"active_tab_id":"w9:t2","agent_status":"unknown","focused":false,"label":"└ order-fail · p:DpnMRwBE8JIgtfBouOh9xg","number":6,"pane_count":1,"tab_count":1,"workspace_id":"w9"}]}}
+warning: herdr presentation journal for shape remains quarantined; no workspace cleanup was attempted>>; journal: <<version=2
+task_id=shape
+projection_id=cq-2U6IpSn12Hl-dzP0HBQ
+home=/tmp/fm-herdr-presentation.93POA8/home
+session=fm-lab-fm-herdr-present-3737626-17784
+workspace_id=w5
+tab_id=w5:t2
+pane_id=w5:p2
+parent_workspace_id=w1
+parent_label=firstmate
+workspace_label=└ shape · p:cq-2U6IpSn12Hl-dzP0HBQ
+task_label=fm-shape>>
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-fail.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-b.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/anchor.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/commit-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/fm-herdr-presentation.93POA8/home/state/order-a.git-hooks/post-merge': Permission denied
