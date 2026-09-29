@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Behavior tests for bin/fm-jev-lint.sh (advisory worker self-check).
 #
-# Drives the public argv interface with a fixture diff, a stubbed Jev answer
-# source, and a scratch record. No network, no key on the wire: a fakebin curl
-# fails loudly unless a test hands it a canned response body, so a production
-# network path attempt fails the test instead of calling out, and the transport
-# tests drive the real call shim against that canned body. The stub probabilities pin cutoff
-# application exactly, and the scorer test hand-computes every number from its
-# fixture record.
+# Drives the public argv interface with a fixture diff, a fakebin curl that
+# answers the real call shim, and a scratch record. No network, no key on the
+# wire: the fake curl fails loudly unless a test hands it per-rule
+# probabilities, so a production network path attempt fails the test instead of
+# calling out. Those probabilities pin cutoff application exactly, and the
+# scorer test hand-computes every number from a record fixture written to the
+# documented record contract (docs/configuration.md "Jev self-check record").
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -18,7 +18,9 @@ TMP_ROOT=$(fm_test_tmproot fm-jev-lint)
 FAKEBIN=$(fm_fakebin "$TMP_ROOT")
 cat > "$FAKEBIN/curl" <<'CURL'
 #!/usr/bin/env bash
-if [ -z "${FM_FAKE_CURL_BODY:-}" ]; then
+# Answers a TypeSafe System One request the way the live endpoint would, picking
+# the probability by the rule whose frozen question the request body carries.
+if [ -z "${FM_FAKE_JEV_PROBS:-}" ]; then
   echo "fake curl must never run" >&2
   exit 42
 fi
@@ -26,8 +28,14 @@ out=''
 while [ $# -gt 0 ]; do
   case $1 in -o) out=$2; shift 2 ;; *) shift ;; esac
 done
-[ -n "${FM_FAKE_CURL_FAIL:-}" ] && exit 7
-cat "$FM_FAKE_CURL_BODY" > "$out"
+req=$(cat)
+[ -n "${FM_FAKE_JEV_FAIL:-}" ] && exit 7
+question=$(printf '%s' "$req" | jq -r '.questions.violated.instructions')
+rule=$(jq -r --arg q "$question" '.rules | to_entries[] | select(.value.question == $q) | .key' "${FM_FAKE_JEV_RULES:?}")
+prob=$(printf '%s' "${FM_FAKE_JEV_PROBS}" | jq -r --arg r "$rule" '.[$r] // empty')
+[ -n "$prob" ] || { printf '404'; exit 0; }
+jq -cn --argjson p "$prob" --argjson tok "${FM_FAKE_JEV_TOKENS:-100}" \
+  '{model: "jev-1.13.0", answers: {violated: {noul: $p}}, usage: {input_tokens: $tok}}' > "$out"
 printf '200'
 CURL
 chmod +x "$FAKEBIN/curl"
@@ -36,7 +44,7 @@ export PATH="$FAKEBIN:$PATH"
 HOME_DIR="$TMP_ROOT/home"
 mkdir -p "$HOME_DIR/data"
 RECORD="$TMP_ROOT/record.jsonl"
-STUB="$TMP_ROOT/stub.json"
+RULES="$ROOT/bin/fm-jev-lint-rules.json"
 DIFF="$TMP_ROOT/subjects.diff"
 
 cat > "$DIFF" <<'EOF'
@@ -95,8 +103,6 @@ index 0000000..1111111 100644
 +fm_upper() { echo uppertenant43 }
 EOF
 
-printf '{"r1":0.91,"r2":0.11,"r4":0.75}' > "$STUB"
-
 UNIDIFF="$TMP_ROOT/unicode.diff"
 cat > "$UNIDIFF" <<'EOF'
 diff --git "a/docs/r\303\251sum\303\251.sh" "b/docs/r\303\251sum\303\251.sh"
@@ -153,13 +159,15 @@ index 0000000..1111111 100644
 +}
 EOF
 
-check_env() {
-  env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$STUB" TYPESAFE_API_KEY="sk-test-SECRETKEY123" "$@"
+check_env() {  # <probs-json> <command...>
+  local probs=$1; shift
+  env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    FM_FAKE_JEV_RULES="$RULES" FM_FAKE_JEV_PROBS="$probs" "$@"
 }
 
 test_extraction_and_cutoffs() {
   local out rc
-  out=$(check_env "$TOOL" check --diff-file "$DIFF" --record "$RECORD" 2> "$TMP_ROOT/check.err"); rc=$?
+  out=$(check_env '{"r1":0.91,"r2":0.11,"r4":0.75}' "$TOOL" check --diff-file "$DIFF" --record "$RECORD" 2> "$TMP_ROOT/check.err"); rc=$?
   [ "$rc" -eq 0 ] || fail "check exits 0 (rc=$rc): $(cat "$TMP_ROOT/check.err")"
   echo "$out" | grep -q 'finding .* \[r1 src/thing.sh p=0.91 cutoff=0.5\]' \
     || fail "r1 violation above cutoff prints a finding: $out"
@@ -182,10 +190,8 @@ test_extraction_and_cutoffs() {
 }
 
 test_cutoff_boundary_flags() {
-  local rec="$TMP_ROOT/boundary.jsonl" stub="$TMP_ROOT/boundary-stub.json" out
-  printf '{"r1":0.5,"r2":0.6,"r4":0.59}' > "$stub"
-  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
+  local rec="$TMP_ROOT/boundary.jsonl" out
+  out=$(check_env '{"r1":0.5,"r2":0.6,"r4":0.59}' "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
   echo "$out" | grep -q '\[r1 ' || fail "p == cutoff flags (r1 0.50 >= 0.50)"
   echo "$out" | grep -q '\[r2 ' || fail "p == cutoff flags (r2 0.60 >= 0.60)"
   echo "$out" | grep -q '\[r4 ' && fail "p just below cutoff must not flag (r4 0.59 < 0.60)"
@@ -214,26 +220,28 @@ test_record_never_carries_key() {
 }
 
 test_resolve_and_score() {
-  local id out
-  id=$(jq -r -s 'map(select(.kind == "check" and .flagged)) | .[0].id' "$RECORD")
-  [ -n "$id" ] && [ "$id" != "null" ] || fail "fixture needs a flagged finding to resolve"
-  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$id" --verdict fixed --reason "rewrote comment" --record "$RECORD" >/dev/null \
+  # The record is the documented jsonl contract (docs/configuration.md "Jev
+  # self-check record"); writing one here pins every scorer number by hand.
+  local rec="$TMP_ROOT/score.jsonl" out
+  cat > "$rec" <<'REC'
+{"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-1","rule":"r1","cutoff":0.5,"file":"a.sh","claim":"# returns zero","evidence":"fm_a() { return 1 }","probability":0.91,"flagged":true,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
+{"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-2","rule":"r2","cutoff":0.6,"file":"a.test.sh","claim":"it \"works\", {","evidence":"run_thing","probability":0.11,"flagged":false,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
+{"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-3","rule":"r4","cutoff":0.6,"file":"a.test.sh","claim":"FM_TIMEOUT=5","evidence":"sleep 60","probability":0.75,"flagged":true,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
+REC
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 100-1 --verdict fixed --reason "rewrote comment" --record "$rec" >/dev/null \
     || fail "resolve accepts a fixed verdict"
-  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$id" --verdict maybe --record "$RECORD" 2>/dev/null \
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 100-1 --verdict maybe --record "$rec" 2>/dev/null \
     && fail "resolve refuses an unknown verdict"
   [ $? -eq 2 ] || fail "resolve misuse exits 2"
-  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 9999-1-7 --verdict fixed --reason x --record "$RECORD" 2>/dev/null \
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 9999-1-7 --verdict fixed --reason x --record "$rec" 2>/dev/null \
     && fail "resolve refuses an id no finding has"
-  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$id" --verdict dismissed --reason again --record "$RECORD" 2>/dev/null \
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 100-1 --verdict dismissed --reason again --record "$rec" 2>/dev/null \
     && fail "resolve refuses a second outcome for an already resolved finding"
-  local unflagged
-  unflagged=$(jq -r -s 'map(select(.kind == "check" and (.flagged | not))) | .[0].id' "$RECORD")
-  [ -n "$unflagged" ] && [ "$unflagged" != "null" ] || fail "fixture needs an unflagged subject"
-  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$unflagged" --verdict fixed --record "$RECORD" 2>/dev/null \
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 100-2 --verdict fixed --record "$rec" 2>/dev/null \
     && fail "resolve refuses a subject that was never flagged"
-  jq -e -s 'all(.[] | select(.kind == "outcome"); .rule != "")' "$RECORD" >/dev/null \
+  jq -e -s 'all(.[] | select(.kind == "outcome"); .rule != "")' "$rec" >/dev/null \
     || fail "no outcome is recorded without the rule it belongs to"
-  out=$(FM_HOME="$HOME_DIR" "$TOOL" score --record "$RECORD")
+  out=$(FM_HOME="$HOME_DIR" "$TOOL" score --record "$rec")
   echo "$out" | grep -q 'runs=1 checks=3 flagged=2 fixed=1 dismissed=0 open=1' \
     || fail "score counts checks, flags, and outcomes: $out"
   echo "$out" | grep -qF 'rule r1: runs=1 checks=1 flagged=1 cost_usd=0.00000420 cost_per_run=4.2e-06 mean_latency_ms=1 fixed=1 dismissed=0 fixed_rate=1' \
@@ -244,10 +252,8 @@ test_resolve_and_score() {
 }
 
 test_quoted_non_ascii_path_is_decoded() {
-  local rec="$TMP_ROOT/unicode.jsonl" stub="$TMP_ROOT/uni-stub.json"
-  printf '{"r1":0.91}' > "$stub"
-  env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    "$TOOL" check --diff-file "$UNIDIFF" --record "$rec" >/dev/null 2>&1 \
+  local rec="$TMP_ROOT/unicode.jsonl"
+  check_env '{"r1":0.91}' "$TOOL" check --diff-file "$UNIDIFF" --record "$rec" >/dev/null 2>&1 \
     || fail "check exits 0 for a quoted non-ASCII path"
   jq -e -s '.[0].file == "docs/résumé.sh"' "$rec" >/dev/null \
     || fail "a git-quoted non-ASCII path is recorded decoded: $(jq -r -s '.[0].file' "$rec")"
@@ -255,22 +261,23 @@ test_quoted_non_ascii_path_is_decoded() {
 }
 
 test_shim_carries_the_request() {
-  local rec="$TMP_ROOT/shim.jsonl" body="$TMP_ROOT/shim-body.json" out
-  printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":0.91}},"usage":{"input_tokens":123}}' > "$body"
-  out=$(env -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    FM_FAKE_CURL_BODY="$body" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
+  local rec="$TMP_ROOT/shim.jsonl" out
+  out=$(env FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" FM_FAKE_JEV_RULES="$RULES" \
+    FM_FAKE_JEV_PROBS='{"r1":0.91,"r2":0.11,"r4":0.75}' FM_FAKE_JEV_TOKENS=123 \
+    "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
   echo "$out" | grep -q '\[r1 src/thing.sh p=0.91 cutoff=0.5\]' \
     || fail "a shim answer above the cutoff prints a finding: $out"
-  jq -e -s 'all(.[] | select(.kind == "check"); .input_tokens == 123 and .model == "jev-1.13.0")' "$rec" >/dev/null \
-    || fail "the shim's usage and model reach the record"
+  jq -e -s 'all(.[] | select(.kind == "check"); .input_tokens == 123)' "$rec" >/dev/null \
+    || fail "the shim's usage reaches the record"
   grep -q 'SECRETKEY123' "$rec" && fail "the key must never reach the record"
   pass "requests go through the call shim and its answers reach the record"
 }
 
 test_shim_unavailable_raises_no_finding() {
-  local rec="$TMP_ROOT/unavail.jsonl" body="$TMP_ROOT/shim-body.json" out rc
-  out=$(env -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    FM_FAKE_CURL_BODY="$body" FM_FAKE_CURL_FAIL=1 "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null); rc=$?
+  local rec="$TMP_ROOT/unavail.jsonl" out rc
+  out=$(env FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" FM_FAKE_JEV_RULES="$RULES" \
+    FM_FAKE_JEV_PROBS='{"r1":0.91}' FM_FAKE_JEV_FAIL=1 \
+    "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null); rc=$?
   [ "$rc" -eq 0 ] || fail "an unavailable shim still exits 0 (rc=$rc)"
   echo "$out" | grep -q 'finding' && fail "an unavailable shim raises no finding: $out"
   jq -e -s 'all(.[] | select(.kind == "check"); .probability == null and .flagged == false)' "$rec" >/dev/null \
@@ -279,12 +286,11 @@ test_shim_unavailable_raises_no_finding() {
 }
 
 test_shim_reads_the_key_from_the_home_env() {
-  local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" body="$TMP_ROOT/dotenv-body.json" out
+  local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" out
   mkdir -p "$home2/data"
   printf 'TYPESAFE_API_KEY=sk-dotenv-SECRETKEY456\n' > "$home2/.env"
-  printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":0.91}},"usage":{"input_tokens":123}}' > "$body"
-  out=$(env -u FM_JEV_LINT_STUB -u FM_HOME -u TYPESAFE_API_KEY FM_ROOT_OVERRIDE="$home2" \
-    FM_FAKE_CURL_BODY="$body" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>&1)
+  out=$(env -u FM_HOME -u TYPESAFE_API_KEY FM_ROOT_OVERRIDE="$home2" FM_FAKE_JEV_RULES="$RULES" \
+    FM_FAKE_JEV_PROBS='{"r1":0.91,"r2":0.11,"r4":0.75}' "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>&1)
   echo "$out" | grep -q '\[r1 src/thing.sh p=0.91 cutoff=0.5\]' \
     || fail "the request reaches the shim when the key lives only in the home .env: $out"
   echo "$out" | grep -q 'SECRETKEY456' && fail "the key must never be printed"
@@ -293,37 +299,33 @@ test_shim_reads_the_key_from_the_home_env() {
 }
 
 test_disabled_rule_is_skipped() {
-  local rules="$TMP_ROOT/rules.json" rec="$TMP_ROOT/disabled.jsonl" stub="$TMP_ROOT/dis-stub.json" out
-  jq '.rules.r4.enabled = false' "$ROOT/bin/fm-jev-lint-rules.json" > "$rules"
-  printf '{"r1":0.91,"r2":0.11,"r4":0.99}' > "$stub"
-  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" FM_JEV_LINT_RULES="$rules" \
-    TYPESAFE_API_KEY="sk-test-SECRETKEY123" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
+  local rules="$TMP_ROOT/rules.json" rec="$TMP_ROOT/disabled.jsonl" out
+  jq '.rules.r4.enabled = false' "$RULES" > "$rules"
+  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    FM_FAKE_JEV_RULES="$rules" FM_FAKE_JEV_PROBS='{"r1":0.91,"r2":0.11,"r4":0.99}' \
+    FM_JEV_LINT_RULES="$rules" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
   echo "$out" | grep -q '\[r4 ' && fail "disabled r4 must not run even at p=0.99"
   [ "$(jq -s 'length' "$rec")" -eq 2 ] || fail "disabled r4 records nothing"
   pass "flipping enabled to false removes a rule in one data line"
 }
 
 test_r3_enumeration_subjects() {
-  local rec="$TMP_ROOT/r3.jsonl" stub="$TMP_ROOT/r3-stub.json" out
-  printf '{"r3":0.5}' > "$stub"
-  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    "$TOOL" check --diff-file "$R3DIFF" --record "$rec" 2>/dev/null)
+  local rec="$TMP_ROOT/r3.jsonl" out
+  out=$(check_env '{"r3":0.5}' "$TOOL" check --diff-file "$R3DIFF" --record "$rec" 2>/dev/null)
   [ "$(jq -s 'length' "$rec")" -eq 2 ] || fail "r3 yields the inline enumeration and the bullet run"
   jq -e -s 'all(.[]; .rule == "r3" and .cutoff == 0.2 and .flagged == true)' "$rec" >/dev/null \
     || fail "r3 0.50 >= 0.20 flags with the frozen cutoff"
   echo "$out" | grep -q '\[r3 docs/tools.md' || fail "r3 findings print with rule and file: $out"
   grep -q 'SECRETKEY123' "$rec" && fail "API key must never reach the record"
-  local low="$TMP_ROOT/r3-low.jsonl" lowstub="$TMP_ROOT/r3-low-stub.json"
-  printf '{"r3":0.18}' > "$lowstub"
-  out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$lowstub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    "$TOOL" check --diff-file "$R3DIFF" --record "$low" 2>/dev/null)
+  local low="$TMP_ROOT/r3-low.jsonl"
+  out=$(check_env '{"r3":0.18}' "$TOOL" check --diff-file "$R3DIFF" --record "$low" 2>/dev/null)
   echo "$out" | grep -q 'finding' && fail "r3 0.18 < 0.20 must stay silent (version-string drift band)"
   pass "r3 extracts enumerations and applies the frozen 0.20 cutoff"
 }
 
 test_secret_content_is_dropped() {
   local rec="$TMP_ROOT/secret.jsonl" out rc
-  out=$(env -u TYPESAFE_API_KEY -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+  out=$(env -u TYPESAFE_API_KEY -u FM_FAKE_JEV_PROBS FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
     "$TOOL" check --diff-file "$SECRETDIFF" --record "$rec" 2> "$TMP_ROOT/secret.err"); rc=$?
   [ "$rc" -eq 0 ] || fail "check still exits 0 (rc=$rc): $(cat "$TMP_ROOT/secret.err")"
   grep -q 'fake curl must never run' "$TMP_ROOT/secret.err" \

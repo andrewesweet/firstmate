@@ -7,8 +7,8 @@
 #   fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed [--reason <text>] [--record <path>]
 #   fm-jev-lint.sh score [--record <path>]
 #
-# What check does: diffs the worktree against the merge-base of HEAD with
-#   origin/main, else main, with -U8, extracts diff-scoped
+# What check does: diffs HEAD against the merge-base of HEAD with origin/main,
+#   else main, with -U8 (committed work only), extracts diff-scoped
 #   subjects deterministically (changed functions with their leading comments
 #   as R1, touched test blocks as R2, added prose enumerations with their
 #   surrounding diff context as R3, timeout or budget declarations in the
@@ -66,10 +66,6 @@
 #   run_id, kind "dropped", and count - the count alone, never the subject.
 #   Only data/ itself is created when absent; a failed append prints one
 #   stderr line and never changes the exit code.
-#
-# Test seam: FM_JEV_LINT_STUB points at a JSON object mapping a rule id to a
-#   probability (e.g. {"r1":0.9}); stubbed calls record 100 input tokens and
-#   1 ms latency and make no network call. Production never sets it.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -360,27 +356,20 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim>
   resp_file="$workdir/resp-$seq"
   req_file="$workdir/req-$seq"
   prob=null tokens=0 lat_ms=1
-  if [ -n "${FM_JEV_LINT_STUB:-}" ]; then
-    prob=$(jq -r --arg r "$rule" '.[$r] // 0' "$FM_JEV_LINT_STUB")
-    tokens=100
-  else
-    jq -n --arg model "$model" --arg claim "$claim" --arg ev "$ev" \
-      --arg q "$question" --arg t "$crit_t" --arg f "$crit_f" '
-      {model: $model, state: {claim: $claim, evidence: $ev},
-       questions: {violated: {type: "noul", instructions: $q,
-         criteria: {"true": $t, "false": $f}}}}' > "$req_file" || return 0
-    local t0 t1
-    t0=$(date +%s%3N 2>/dev/null || date +%s)
-    "$JEV_SHIM" < "$req_file" > "$resp_file" 2>/dev/null || true
-    t1=$(date +%s%3N 2>/dev/null || date +%s)
-    if [[ "$t0" == *N || "$t1" == *N ]]; then lat_ms=0
-    elif [ "${#t0}" -le 10 ]; then lat_ms=$(( (t1 - t0) * 1000 )); else lat_ms=$((t1 - t0)); fi
-    if jq -e '.ok' "$resp_file" >/dev/null 2>&1; then
-      prob=$(jq -r '.answers.violated.noul // "null"' "$resp_file" 2>/dev/null) || prob=null
-      tokens=$(jq -r '.usage.input_tokens // 0' "$resp_file" 2>/dev/null) || tokens=0
-    else
-      prob=null
-    fi
+  jq -n --arg model "$model" --arg claim "$claim" --arg ev "$ev" \
+    --arg q "$question" --arg t "$crit_t" --arg f "$crit_f" '
+    {model: $model, state: {claim: $claim, evidence: $ev},
+     questions: {violated: {type: "noul", instructions: $q,
+       criteria: {"true": $t, "false": $f}}}}' > "$req_file" || return 0
+  local t0 t1
+  t0=$(date +%s%3N 2>/dev/null || date +%s)
+  "$JEV_SHIM" < "$req_file" > "$resp_file" 2>/dev/null || true
+  t1=$(date +%s%3N 2>/dev/null || date +%s)
+  if [[ "$t0" == *N || "$t1" == *N ]]; then lat_ms=0
+  elif [ "${#t0}" -le 10 ]; then lat_ms=$(( (t1 - t0) * 1000 )); else lat_ms=$((t1 - t0)); fi
+  if jq -e '.ok' "$resp_file" >/dev/null 2>&1; then
+    prob=$(jq -r '.answers.violated.noul // "null"' "$resp_file" 2>/dev/null) || prob=null
+    tokens=$(jq -r '.usage.input_tokens // 0' "$resp_file" 2>/dev/null) || tokens=0
   fi
   local flagged=false
   if [ "$prob" != "null" ] && awk -v p="$prob" -v c="$cutoff" 'BEGIN{exit !(p >= c)}'; then
