@@ -55,6 +55,14 @@ index 0000000..1111111 100644
 +++ b/.env
 @@ -0,0 +1 @@
 +TYPESAFE_API_KEY=sekrit
+diff --git a/deploy/secrets/values.sh b/deploy/secrets/values.sh
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ b/deploy/secrets/values.sh
+@@ -0,0 +1,3 @@
++# returns the tenant list
++fm_tenants() { echo acme-globex-initech-hunter2 }
 EOF
 
 printf '{"r1":0.91,"r2":0.11,"r4":0.75}' > "$STUB"
@@ -124,6 +132,7 @@ test_extraction_and_cutoffs() {
   jq -e -s 'map(select(.rule == "r4")) | .[0].flagged == true' "$RECORD" >/dev/null \
     || fail "r4 0.75 >= 0.60 flags"
   grep -q 'sekrit' "$RECORD" && fail ".env subject must never reach the record"
+  grep -q 'hunter2' "$RECORD" && fail "a file under a secrets-like directory must never reach the record"
   grep -q 'SECRETKEY123' "$RECORD" && fail "API key must never reach the record"
   pass "extraction finds R1/R2/R4, excludes .env, and applies frozen cutoffs"
 }
@@ -169,6 +178,10 @@ test_resolve_and_score() {
   FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$id" --verdict maybe --record "$RECORD" 2>/dev/null \
     && fail "resolve refuses an unknown verdict"
   [ $? -eq 2 ] || fail "resolve misuse exits 2"
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id 9999-1-7 --verdict fixed --reason x --record "$RECORD" 2>/dev/null \
+    && fail "resolve refuses an id no finding has"
+  jq -e -s 'all(.[] | select(.kind == "outcome"); .rule != "")' "$RECORD" >/dev/null \
+    || fail "no outcome is recorded without the rule it belongs to"
   out=$(FM_HOME="$HOME_DIR" "$TOOL" score --record "$RECORD")
   echo "$out" | grep -q 'runs=1 checks=3 flagged=2 fixed=1 dismissed=0 open=1' \
     || fail "score counts checks, flags, and outcomes: $out"

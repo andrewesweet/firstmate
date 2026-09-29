@@ -41,7 +41,7 @@
 #   nothing logs or writes it, and the record never carries it.
 #
 # Data boundary: subjects are drawn from the worker's own diff only, and paths
-#   whose basename looks secrets-like are never read or sent: .env files,
+#   any of whose components look secrets-like are never read or sent: .env files,
 #   *secret*, *credential*, *passwd*, *.pem, *.p12, id_rsa*, id_ed25519*, and
 #   *.key. The `excluded` expression in extract_subjects' flush_file is the
 #   single owner of that list. Path exclusion is not enough on its own, so
@@ -190,8 +190,7 @@ extract_subjects() {
   { in_hunk = 0; next }
   function flush_file(  i, j, k, claim, ev, body, added) {
     if (file == "" || n == 0) { n = 0; return }
-    base = file; sub(/.*\//, "", base)
-    excluded = (base ~ /^\.env/ || base ~ /secret/ || base ~ /credential/ || base ~ /passwd/ || base ~ /\.pem$/ || base ~ /\.p12$/ || base ~ /^id_rsa/ || base ~ /^id_ed25519/ || base ~ /\.key$/)
+    excluded = (file ~ /(^|\/)\.env/ || file ~ /secret/ || file ~ /credential/ || file ~ /passwd/ || file ~ /\.pem$/ || file ~ /\.p12$/ || file ~ /(^|\/)id_rsa/ || file ~ /(^|\/)id_ed25519/ || file ~ /\.key$/)
     if (!excluded) {
       for (i = 1; i <= n; i++) {
         if (!is_func(lines[i])) continue
@@ -402,7 +401,9 @@ cmd_resolve() {
   command -v jq >/dev/null 2>&1 || die "jq required"
   local rule run_id
   run_id=${id%-*}
+  [ -r "$record" ] || die "no record at $record"
   rule=$(jq -rs --arg id "$id" 'map(select(.kind == "check" and .id == $id)) | .[0].rule // ""' "$record" 2>/dev/null) || rule=''
+  [ -n "$rule" ] || die "no finding with id $id in $record"
   local line
   line=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg run "$run_id" \
     --arg id "$id" --arg rule "$rule" --arg v "$verdict" --arg reason "$reason" '
