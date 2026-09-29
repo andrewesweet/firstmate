@@ -1,0 +1,19 @@
+### backlog rows
+# Backlog
+
+## In flight
+## Queued
+- [ ] upstream-rowline - upstream ticket https://github.com/andrewesweet/firstmate/issues/43 (since 2026-09-29)
+- [ ] body-only-link - body link row (since 2026-09-29)
+  https://github.com/andrewesweet/firstmate/issues/44
+## Done
+- [x] mirror-upstream-42 - mirror upstream ticket (done 2026-09-29)
+  original considered body
+
+  gh:andrewesweet/firstmate#42
+  closed; gh:andrewesweet/firstmate#42
+
+### fleet snapshot extracted links per row
+upstream-rowline ['https://github.com/andrewesweet/firstmate/issues/43']
+body-only-link []
+mirror-upstream-42 []  (gh: pointer in body, as documented, not observed)

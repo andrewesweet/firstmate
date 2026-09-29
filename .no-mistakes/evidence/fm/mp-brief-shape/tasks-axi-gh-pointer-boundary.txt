@@ -1,0 +1,23 @@
+### --pr refuses an issue URL
+error: "--pr must be a canonical pull request URL: https://github.com/<owner>/<repo>/pull/<n> (GitHub) or https://<host>/<owner>/<repo>/pulls/<n> (Forgejo)"
+code: VALIDATION_ERROR
+
+### update --body-file with --archive-body keeps prior body
+  closed: "-"
+  deps: none
+  links: none
+  body: "original considered body\n\ngh:andrewesweet/firstmate#42\n"
+help[1]:
+  - Run `tasks-axi show mirror-upstream-42 --full` to see the result
+
+### done --note at close, body pointer survives archive
+ok: done mirror-upstream-42 -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+### persisted backlog rows
+6:- [x] mirror-upstream-42 - mirror upstream ticket (done 2026-09-29)
+7-  original considered body
+8-
+9-  gh:andrewesweet/firstmate#42
+10-  closed; gh:andrewesweet/firstmate#42

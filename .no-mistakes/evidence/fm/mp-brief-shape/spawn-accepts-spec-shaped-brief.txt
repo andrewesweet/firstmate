@@ -1,0 +1,7 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.apYn9x
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+failed to create worktree: git worktree add --detach /home/andre/.treehouse/proj-2677bf/1/proj refs/remotes/origin/master: fatal: invalid reference: refs/remotes/origin/master
+error: task spec-shape-demo could not lease a Treehouse pool slot for /tmp/fm-lab.apYn9x/proj; refusing to launch a worker without a reserved copy

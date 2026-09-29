@@ -1,0 +1,2 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.apYn9x
+error: /tmp/fm-lab.apYn9x/data/spec-shape-demo/brief.md still contains {TASK}, {FIRSTMATE_SPEC}, or {PUBLISHED_INTENT}; fill ## Captain's intent, ## Published intent, and ## Firstmate spec before spawn
