@@ -2291,8 +2291,8 @@ The real Pi/Herdr return guard (`FM_AFK_PI_HERDR_E2E=1 tests/fm-afk-pi-herdr-ret
 
 ## Claude Code supervision branch
 
-The supervision-branch mod (`.claude/mods/fm-branch-mod`, [docs/claude-supervision-branch.md](../claude-supervision-branch.md)) is a Claude Code function-hooks module measured against one pinned release, and it refuses to load on any other.
-This section is the dated record the owning page's post-upgrade test refreshes.
+The supervision-branch mod (`.claude/mods/fm-branch-mod`, [docs/claude-supervision-branch.md](../claude-supervision-branch.md)) is a Claude Code function-hooks module that loads on whichever Claude Code release hosts the session.
+This section is the dated record of the releases the owning page's post-upgrade test has live-tested it against.
 
 ### 2026-09-16 Claude Code 2.1.273 pin evidence
 
