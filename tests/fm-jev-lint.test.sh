@@ -3,8 +3,9 @@
 #
 # Drives the public argv interface with a fixture diff, a stubbed Jev answer
 # source, and a scratch record. No network, no key on the wire: a fakebin curl
-# that fails loudly guards every test, so any production network path attempt
-# fails the test instead of calling out. The stub probabilities pin cutoff
+# fails loudly unless a test hands it a canned response body, so a production
+# network path attempt fails the test instead of calling out, and the transport
+# tests drive the real call shim against that canned body. The stub probabilities pin cutoff
 # application exactly, and the scorer test hand-computes every number from its
 # fixture record.
 set -u
@@ -15,7 +16,20 @@ set -u
 TOOL="$ROOT/bin/fm-jev-lint.sh"
 TMP_ROOT=$(fm_test_tmproot fm-jev-lint)
 FAKEBIN=$(fm_fakebin "$TMP_ROOT")
-printf '#!/usr/bin/env bash\necho "fake curl must never run" >&2\nexit 42\n' > "$FAKEBIN/curl"
+cat > "$FAKEBIN/curl" <<'CURL'
+#!/usr/bin/env bash
+if [ -z "${FM_FAKE_CURL_BODY:-}" ]; then
+  echo "fake curl must never run" >&2
+  exit 42
+fi
+out=''
+while [ $# -gt 0 ]; do
+  case $1 in -o) out=$2; shift 2 ;; *) shift ;; esac
+done
+[ -n "${FM_FAKE_CURL_FAIL:-}" ] && exit 7
+cat "$FM_FAKE_CURL_BODY" > "$out"
+printf '200'
+CURL
 chmod +x "$FAKEBIN/curl"
 export PATH="$FAKEBIN:$PATH"
 
@@ -82,6 +96,18 @@ index 0000000..1111111 100644
 EOF
 
 printf '{"r1":0.91,"r2":0.11,"r4":0.75}' > "$STUB"
+
+UNIDIFF="$TMP_ROOT/unicode.diff"
+cat > "$UNIDIFF" <<'EOF'
+diff --git "a/docs/r\303\251sum\303\251.sh" "b/docs/r\303\251sum\303\251.sh"
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ "b/docs/r\303\251sum\303\251.sh"
+@@ -0,0 +1,2 @@
++# returns the summary
++fm_resume() { echo summary }
+EOF
 
 R3DIFF="$TMP_ROOT/r3.diff"
 cat > "$R3DIFF" <<'EOF'
@@ -217,6 +243,41 @@ test_resolve_and_score() {
   pass "resolve records outcomes and score reports fixed-versus-dismissed rates"
 }
 
+test_quoted_non_ascii_path_is_decoded() {
+  local rec="$TMP_ROOT/unicode.jsonl" stub="$TMP_ROOT/uni-stub.json"
+  printf '{"r1":0.91}' > "$stub"
+  env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" FM_JEV_LINT_STUB="$stub" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    "$TOOL" check --diff-file "$UNIDIFF" --record "$rec" >/dev/null 2>&1 \
+    || fail "check exits 0 for a quoted non-ASCII path"
+  jq -e -s '.[0].file == "docs/résumé.sh"' "$rec" >/dev/null \
+    || fail "a git-quoted non-ASCII path is recorded decoded: $(jq -r -s '.[0].file' "$rec")"
+  pass "a git-quoted non-ASCII path reaches the record as the real path"
+}
+
+test_shim_carries_the_request() {
+  local rec="$TMP_ROOT/shim.jsonl" body="$TMP_ROOT/shim-body.json" out
+  printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":0.91}},"usage":{"input_tokens":123}}' > "$body"
+  out=$(env -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    FM_FAKE_CURL_BODY="$body" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null)
+  echo "$out" | grep -q '\[r1 src/thing.sh p=0.91 cutoff=0.5\]' \
+    || fail "a shim answer above the cutoff prints a finding: $out"
+  jq -e -s 'all(.[] | select(.kind == "check"); .input_tokens == 123 and .model == "jev-1.13.0")' "$rec" >/dev/null \
+    || fail "the shim's usage and model reach the record"
+  grep -q 'SECRETKEY123' "$rec" && fail "the key must never reach the record"
+  pass "requests go through the call shim and its answers reach the record"
+}
+
+test_shim_unavailable_raises_no_finding() {
+  local rec="$TMP_ROOT/unavail.jsonl" body="$TMP_ROOT/shim-body.json" out rc
+  out=$(env -u FM_JEV_LINT_STUB FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    FM_FAKE_CURL_BODY="$body" FM_FAKE_CURL_FAIL=1 "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null); rc=$?
+  [ "$rc" -eq 0 ] || fail "an unavailable shim still exits 0 (rc=$rc)"
+  echo "$out" | grep -q 'finding' && fail "an unavailable shim raises no finding: $out"
+  jq -e -s 'all(.[] | select(.kind == "check"); .probability == null and .flagged == false)' "$rec" >/dev/null \
+    || fail "an unavailable shim records a null probability"
+  pass "an unavailable shim is recorded and never raises a finding"
+}
+
 test_disabled_rule_is_skipped() {
   local rules="$TMP_ROOT/rules.json" rec="$TMP_ROOT/disabled.jsonl" stub="$TMP_ROOT/dis-stub.json" out
   jq '.rules.r4.enabled = false' "$ROOT/bin/fm-jev-lint-rules.json" > "$rules"
@@ -272,3 +333,6 @@ test_absent_key_skips_silently
 test_record_never_carries_key
 test_resolve_and_score
 test_disabled_rule_is_skipped
+test_quoted_non_ascii_path_is_decoded
+test_shim_carries_the_request
+test_shim_unavailable_raises_no_finding
