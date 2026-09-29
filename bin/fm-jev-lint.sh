@@ -41,7 +41,8 @@
 #   nothing logs or writes it, and the record never carries it.
 #
 # Data boundary: subjects are drawn from the worker's own diff only, and paths
-#   any of whose components look secrets-like are never read or sent: .env files,
+#   any of whose components look secrets-like are never read or sent, matched
+#   case-insensitively: .env files,
 #   *secret*, *credential*, *passwd*, *.pem, *.p12, id_rsa*, id_ed25519*, and
 #   *.key. The `excluded` expression in extract_subjects' flush_file is the
 #   single owner of that list. Path exclusion is not enough on its own, so
@@ -179,8 +180,13 @@ extract_subjects() {
     if (claim == "" || ev == "") return
     printf "%s\t%s\t%s\t%s\n", rule, file, claim, ev
   }
-  /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; in_hunk = 0; delete bound; next }
-  !in_hunk && /^\+\+\+ / { next }
+  /^diff --git / { flush_file(); file = ""; n = 0; in_hunk = 0; delete bound; next }
+  !in_hunk && /^\+\+\+ / {
+    file = substr($0, 5)
+    if (file ~ /^"/) { file = substr(file, 2, length(file) - 2); gsub(/\\"/, "\"", file); gsub(/\\\\/, "\\", file) }
+    sub(/^b\//, "", file)
+    next
+  }
   !in_hunk && /^--- / { next }
   /^\\/ { next }
   /^@@ / { in_hunk = 1; bound[n + 1] = 1; next }
@@ -188,9 +194,10 @@ extract_subjects() {
   in_hunk && /^\+/ { lines[++n] = substr($0, 2); kinds[n] = "+"; next }
   in_hunk && /^-/ { next }
   { in_hunk = 0; next }
-  function flush_file(  i, j, k, claim, ev, body, added) {
+  function flush_file(  i, j, k, claim, ev, body, added, lf) {
     if (file == "" || n == 0) { n = 0; return }
-    excluded = (file ~ /(^|\/)\.env/ || file ~ /secret/ || file ~ /credential/ || file ~ /passwd/ || file ~ /\.pem$/ || file ~ /\.p12$/ || file ~ /(^|\/)id_rsa/ || file ~ /(^|\/)id_ed25519/ || file ~ /\.key$/)
+    lf = tolower(file)
+    excluded = (lf ~ /(^|\/)\.env/ || lf ~ /secret/ || lf ~ /credential/ || lf ~ /passwd/ || lf ~ /\.pem$/ || lf ~ /\.p12$/ || lf ~ /(^|\/)id_rsa/ || lf ~ /(^|\/)id_ed25519/ || lf ~ /\.key$/)
     if (!excluded) {
       for (i = 1; i <= n; i++) {
         if (!is_func(lines[i])) continue
@@ -402,8 +409,14 @@ cmd_resolve() {
   local rule run_id
   run_id=${id%-*}
   [ -r "$record" ] || die "no record at $record"
-  rule=$(jq -rs --arg id "$id" 'map(select(.kind == "check" and .id == $id)) | .[0].rule // ""' "$record" 2>/dev/null) || rule=''
-  [ -n "$rule" ] || die "no finding with id $id in $record"
+  rule=$(jq -rs --arg id "$id" '
+    if any(.[]; .kind == "outcome" and .id == $id) then "duplicate"
+    else ([.[] | select(.kind == "check" and .id == $id and .flagged)] | .[0].rule // "missing") end' \
+    "$record" 2>/dev/null) || rule=missing
+  case "$rule" in
+    duplicate) die "id $id is already resolved in $record" ;;
+    missing|'') die "no flagged finding with id $id in $record" ;;
+  esac
   local line
   line=$(jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg run "$run_id" \
     --arg id "$id" --arg rule "$rule" --arg v "$verdict" --arg reason "$reason" '
