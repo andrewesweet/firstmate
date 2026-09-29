@@ -74,7 +74,7 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-FM_HOME="${FM_HOME:-$FM_ROOT}"
+export FM_HOME="${FM_HOME:-$FM_ROOT}"
 RULES_FILE="${FM_JEV_LINT_RULES:-$SCRIPT_DIR/fm-jev-lint-rules.json}"
 RECORD_DEFAULT="$FM_HOME/data/jev-lint.jsonl"
 

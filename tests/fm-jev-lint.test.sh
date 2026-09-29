@@ -278,6 +278,20 @@ test_shim_unavailable_raises_no_finding() {
   pass "an unavailable shim is recorded and never raises a finding"
 }
 
+test_shim_reads_the_key_from_the_home_env() {
+  local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" body="$TMP_ROOT/dotenv-body.json" out
+  mkdir -p "$home2/data"
+  printf 'TYPESAFE_API_KEY=sk-dotenv-SECRETKEY456\n' > "$home2/.env"
+  printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":0.91}},"usage":{"input_tokens":123}}' > "$body"
+  out=$(env -u FM_JEV_LINT_STUB -u FM_HOME -u TYPESAFE_API_KEY FM_ROOT_OVERRIDE="$home2" \
+    FM_FAKE_CURL_BODY="$body" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>&1)
+  echo "$out" | grep -q '\[r1 src/thing.sh p=0.91 cutoff=0.5\]' \
+    || fail "the request reaches the shim when the key lives only in the home .env: $out"
+  echo "$out" | grep -q 'SECRETKEY456' && fail "the key must never be printed"
+  grep -q 'SECRETKEY456' "$rec" && fail "the key must never reach the record"
+  pass "a key held only in the home .env still reaches the shim"
+}
+
 test_disabled_rule_is_skipped() {
   local rules="$TMP_ROOT/rules.json" rec="$TMP_ROOT/disabled.jsonl" stub="$TMP_ROOT/dis-stub.json" out
   jq '.rules.r4.enabled = false' "$ROOT/bin/fm-jev-lint-rules.json" > "$rules"
@@ -336,3 +350,4 @@ test_disabled_rule_is_skipped
 test_quoted_non_ascii_path_is_decoded
 test_shim_carries_the_request
 test_shim_unavailable_raises_no_finding
+test_shim_reads_the_key_from_the_home_env
