@@ -1,0 +1,17 @@
+=== ship brief, forge=none (fm_dod_block no-mistakes task-42 fm/task-42 <data> none) ===
+Ship branch: fm/task-42
+The task is complete only when committed on your branch.
+After implementation and before starting validation, run the advisory self-check `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PK1CCTXZK9N59RDZ92GFQC/bin/fm-jev-lint.sh check` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PK1CCTXZK9N59RDZ92GFQC/bin/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append `done:` and wait for firstmate's instruction.
+
+
+=== ship brief, forge=gerrit ===
+Those three are the only steps that reach a forge, and skipping them is a supported outcome, not a degraded one.
+The task is complete only when committed on your branch.
+After implementation and before starting validation, run the advisory self-check `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PK1CCTXZK9N59RDZ92GFQC/bin/fm-jev-lint.sh check` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PK1CCTXZK9N59RDZ92GFQC/bin/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+When your implementation is committed, start /no-mistakes yourself to validate; do not append `done:` and wait for firstmate's instruction.
+

@@ -1,0 +1,14 @@
+$ bin/fm-jev-lint.sh check      # no --diff-file: this branch's own diff vs merge-base with origin/main
+jev-lint finding 1790694352-1082322-1 [r3 AGENTS.md p=0.41 cutoff=0.2]: .env                 optional Relay pairing token (presence-gates section 14), mail-plane credentials (schema: docs/configuration.md "Mail plane"), and TypeSafe key TYPESAFE_API_KEY (presence-gates bin/fm-dispatch-resolve.sh, bin/fm-branch-shadow-jev.sh, and the ship worker self-check bin/fm-jev-lint.sh; docs/configuration.md "Typed dispatch resolution", "Jev self-check record"); LOCAL, gitignored
+jev-lint finding 1790694352-1082322-12 [r3 bin/fm-jev-lint.sh p=0.23 cutoff=0.2]: #   (UTC ISO 8601), run_id, kind "check", id "<run_id>-<seq>", rule, cutoff,
+jev-lint finding 1790694352-1082322-17 [r3 docs/configuration.md p=0.23 cutoff=0.2]: Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
+jev-lint finding 1790694352-1082322-19 [r2 tests/fm-jev-lint.test.sh p=0.65 cutoff=0.6]: diff --git "a/docs/r\303\251sum\303\251.sh" "b/docs/r\303\251sum\303\251.sh"
+jev-lint finding 1790694352-1082322-20 [r2 tests/fm-jev-lint.test.sh p=0.67 cutoff=0.6]:   grep -q 'sekrit' "$RECORD" && fail ".env subject must never reach the record"
+jev-lint finding 1790694352-1082322-23 [r4 tests/fm-jev-lint.test.sh p=0.89 cutoff=0.6]: +FM_TIMEOUT=5
+jev-lint finding 1790694352-1082322-24 [r4 tests/fm-jev-lint.test.sh p=0.94 cutoff=0.6]: {"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-3","rule":"r4","cutoff":0.6,"file":"a.test.sh","claim":"FM_TIMEOUT=5","evidence":"sleep 60","probability":0.75,"flagged":true,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
+jev-lint finding 1790694352-1082322-26 [r3 tests/fm-jev-lint.test.sh p=0.22 cutoff=0.2]:     '{model: "jev-1.13.0", answers: {violated: {noul: $p}}, usage: {input_tokens: $tok}}' > "$out"
+jev-lint finding 1790694352-1082322-25 [r3 tests/fm-jev-lint.test.sh p=0.2 cutoff=0.2]:   printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":"high"}},"usage":{"input_tokens":"lots"}}' > "$out"
+jev-lint finding 1790694352-1082322-30 [r3 tests/fm-jev-lint.test.sh p=0.24 cutoff=0.2]:   out=$(check_env '{"r1":0.91,"r2":0.11,"r4":0.75}' "$TOOL" check --diff-file "$DIFF" --record "$RECORD" 2> "$TMP_ROOT/check.err"); rc=$?
+jev-lint finding 1790694352-1082322-29 [r3 tests/fm-jev-lint.test.sh p=0.91 cutoff=0.2]: +The fleet supports exactly three harnesses: `claude`, `codex`, and `pi`.
+jev-lint: run 1790694352-1082322: 30 subject(s) checked, 3 dropped as secret-like, 11 finding(s) above (if any) are advisory
+record lines: 31; API key occurrences in record: 0; dropped line: {"ts":"2026-09-29T15:05:52Z","run_id":"1790694352-1082322","kind":"dropped","count":3}

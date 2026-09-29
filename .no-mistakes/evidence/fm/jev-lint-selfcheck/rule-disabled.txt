@@ -1,0 +1,9 @@
+$ fm-jev-lint.sh check with r1 enabled=false (one-line data change in the rules file)
+jev-lint finding 1790694385-1122781-2 [r2 tests/widget.test.sh p=0.9 cutoff=0.6]: it "returns 0 and writes nothing to disk", {
+jev-lint finding 1790694385-1122781-3 [r2 tests/widget.test.sh p=0.9 cutoff=0.6]:   pass "called it"
+jev-lint finding 1790694385-1122781-4 [r4 tests/widget.test.sh p=0.9 cutoff=0.6]: FM_WIDGET_TIMEOUT=2  # covers the full 60 second shutdown drain
+jev-lint: run 1790694385-1122781: 3 subject(s) checked, 0 dropped as secret-like, 3 finding(s) above (if any) are advisory
+questions dispatched on the wire:
+  The test's name makes a claim about behavior,
+  The text declares a time budget and describes
+rules recorded: r2 r4 

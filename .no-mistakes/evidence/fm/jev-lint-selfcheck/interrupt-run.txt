@@ -1,0 +1,14 @@
+findings printed to the worker:
+8
+check lines in the record: 8
+every printed finding id present in the record:
+  1790694305-1035129-1 recorded
+  1790694305-1035129-2 recorded
+  1790694305-1035129-3 recorded
+  1790694305-1035129-4 recorded
+  1790694305-1035129-5 recorded
+  1790694305-1035129-6 recorded
+  1790694305-1035129-7 recorded
+  1790694305-1035129-8 recorded
+requests still arriving after the kill: 16 total (16 subjects in the diff)
+jev-lint: 1790694305-1035129-1 recorded as dismissed

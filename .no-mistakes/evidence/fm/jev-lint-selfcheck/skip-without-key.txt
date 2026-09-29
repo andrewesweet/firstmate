@@ -1,0 +1,4 @@
+$ env -u TYPESAFE_API_KEY fm-jev-lint.sh check   (no key in env, none in $FM_HOME/.env)
+jev-lint: skipped (TYPESAFE_API_KEY absent from the environment and /tmp/jevlab.PtyKzX/.env)
+exit=0
+record created: no

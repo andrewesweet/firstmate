@@ -1,0 +1,4 @@
+$ fm-jev-lint.sh score   # r1 after 20 runs: 3 fixed, 17 dismissed
+jev-lint score: runs=20 checks=20 flagged=20 fixed=3 dismissed=17 open=0 cost_usd=8.399999999999997e-05 cost_per_run=4.199999999999999e-06 mean_latency_ms=100 input_tokens=2000
+  rule r1: runs=20 checks=20 flagged=20 cost_usd=8.399999999999997e-05 cost_per_run=4.199999999999999e-06 mean_latency_ms=100 fixed=3 dismissed=17 fixed_rate=0.15
+  DROP-CANDIDATE rule r1: 20 runs, fixed-over-resolved=0.15 below 0.80 - flip enabled to false in fm-jev-lint-rules.json
