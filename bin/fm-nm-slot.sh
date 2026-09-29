@@ -12,13 +12,16 @@
 # register its run before it returns (a bounded `--wait` start does), so the
 # next caller's count includes it.
 #
-# Only a run that is CONSUMING the memory this cap protects counts: a live run
-# (bin/fm-nm-run-lib.sh's fm_nm_run_status_class owns which status words are
-# live) that is queued, or that has a non-ci step executing, and that is not
-# waiting on its agent at a gate. A run parked at a gate, or waiting on forge
-# CI, holds no slot, so a host of parked runs cannot starve every worker.
-# Ceiling: a parked run that is later resumed re-enters the executing set
-# without re-checking the limit, so resumptions can briefly exceed it.
+# Every live run counts (bin/fm-nm-run-lib.sh's fm_nm_run_status_class owns
+# which status words are live), including one sitting between steps, EXCEPT a
+# run parked waiting on its agent at a gate and a run whose only executing step
+# is the forge CI wait: neither holds the memory this cap protects, so a host
+# of parked runs cannot starve every worker.
+# Two ceilings, both deliberate, with no liveness or staleness machinery here:
+# a parked run that is later resumed re-enters the counted set without
+# re-checking the limit, and a run abandoned mid-step (its daemon killed) keeps
+# its place in the count until an operator cancels it - the wait message names
+# the counted run ids so that operator knows which runs hold the slots.
 #
 # Limit configuration (host-level, deliberately outside FM_HOME, so
 # secondmate inheritance and propagation never see it):
@@ -32,9 +35,11 @@
 # (NM_HOME is honored because the no-mistakes CLI itself honors it, and a
 # relative NM_HOME resolves from the working directory as its other reader
 # does). The CLI has no host-wide machine-readable run listing - its listings
-# are repository-scoped - so the count is a read-only SQL query and rendered
-# CLI text is never parsed. If the count cannot be read (sqlite3 missing,
-# store missing, or the query failing), this script refuses with the exact
+# are repository-scoped - so the count is a read-only SQL query through the
+# same python3 sqlite3 read-only URI reader the repo's other store reader
+# uses, and rendered CLI text is never parsed. If the count cannot be read
+# (python3 missing, store missing, or the query failing), this script refuses
+# with the exact
 # error and never guesses a count; a stale store left by a stopped daemon can
 # only admit a start that then fails visibly at the CLI.
 #
@@ -97,8 +102,7 @@ default_limit=3
 limit=$default_limit
 if [ -e "$limit_file" ]; then
   raw=$(cat "$limit_file") || die_refusal "cannot read limit configuration $limit_file"
-  raw=${raw%"${raw##*[![:space:]]}"}
-  raw=${raw#"${raw%%[![:space:]]*}"}
+  raw=$(fm_nm_trim "$raw")
   if [ -z "$raw" ]; then
     die_refusal "limit configuration $limit_file is empty; write one positive integer or remove the file for the default of $default_limit"
   fi
@@ -124,37 +128,46 @@ if ! flock -w 120 9; then
   exit "$FM_NM_SLOT_WAIT"
 fi
 
-command -v sqlite3 >/dev/null 2>&1 \
-  || die_refusal "sqlite3 is not on PATH; cannot read the no-mistakes daemon state"
+command -v python3 >/dev/null 2>&1 \
+  || die_refusal "python3 is not on PATH; cannot read the no-mistakes daemon state"
 [ -f "$nm_db" ] \
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
-rows=$(sqlite3 -readonly "$nm_db" "
-  SELECT r.status, CASE
-    WHEN r.awaiting_agent_since IS NOT NULL THEN 0
-    WHEN r.status = 'pending' THEN 1
-    WHEN EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id
-                 AND s.status IN ('running','fixing') AND s.step_name <> 'ci') THEN 1
-    ELSE 0 END, count(*)
-  FROM runs r GROUP BY 1, 2;" 2>&1) \
-  || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $rows"
+rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>&1 <<'READER'
+import sqlite3
+import sys
+from contextlib import closing
+from pathlib import Path
+
+with closing(sqlite3.connect(Path(sys.argv[1]).as_uri() + "?mode=ro", uri=True, timeout=30)) as db:
+    db.execute("BEGIN")
+    rows = db.execute(
+        "SELECT r.status, r.id FROM runs r WHERE r.awaiting_agent_since IS NULL AND NOT ("
+        "  EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
+        "          AND s.status IN ('running','fixing') AND s.step_name = 'ci')"
+        "  AND NOT EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
+        "          AND s.status IN ('running','fixing') AND s.step_name <> 'ci'))"
+    ).fetchall()
+for status, run_id in rows:
+    print("%s|%s" % (status, run_id))
+READER
+) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $rows"
 
 count=0
-while IFS='|' read -r status executing rows_n; do
+counted_ids=''
+declare -A status_class=()
+while IFS='|' read -r status run_id; do
   [ -n "${status:-}" ] || continue
-  case ${rows_n:-} in
-    '' | *[!0-9]*)
-      die_refusal "cannot read the no-mistakes daemon state from $nm_db: unexpected count output '$rows'"
-      ;;
-  esac
-  [ "$executing" = 1 ] || continue
-  [ "$(fm_nm_run_status_class "$status")" = live ] || continue
-  count=$((count + rows_n))
+  [ -n "${status_class[$status]:-}" ] \
+    || status_class[$status]=$(fm_nm_run_status_class "$status")
+  [ "${status_class[$status]}" = live ] || continue
+  count=$((count + 1))
+  counted_ids="${counted_ids:+$counted_ids, }$run_id"
 done <<EOF
 $rows
 EOF
 
 if [ "$count" -ge "$limit" ]; then
-  echo "wait: $count executing no-mistakes run(s) on this host >= limit $limit; retry when one finishes" >&2
+  echo "wait: $count counted no-mistakes run(s) on this host >= limit $limit; retry when one finishes. Counted runs: $counted_ids" >&2
   exit "$FM_NM_SLOT_WAIT"
 fi
 

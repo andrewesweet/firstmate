@@ -34,43 +34,59 @@ ERR_FILE="$ENV_ROOT/slot-stderr"
 mkdir -p "$NM_HOME" "$XDG_RUNTIME_DIR" "$XDG_CONFIG_HOME/firstmate"
 export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 
-# seed_db <executing> <parked> <ci> <terminal>: rebuild the fake daemon store
-# with <executing> live runs working a non-ci step (the only shape that holds
-# a slot), <parked> live runs waiting on their agent at a gate, <ci> live runs
-# whose only executing step is the forge CI wait, and <terminal> finished
-# runs. Only the first group may count.
+# seed_db <kind>:<count>...: rebuild the fake daemon store from run shapes.
+#   executing  live run working a non-ci step                   counts
+#   between    live run whose steps all sit pending between steps  counts
+#   queued     registered run the daemon has not picked up yet   counts
+#   cimix      live run running ci and a non-ci step together    counts
+#   parked     live run waiting on its agent at a gate           holds no slot
+#   ci         live run whose only executing step is the ci wait holds no slot
+#   terminal   finished run                                      holds no slot
 seed_db() {
-  local executing=$1 parked=$2 ci=$3 terminal=$4 runs='' steps='' i
-  for ((i = 1; i <= executing; i++)); do
-    runs+="${runs:+,}('exec-$i','running',NULL)"
-    steps+="${steps:+,}('exec-$i','review','running')"
-  done
-  for ((i = 1; i <= parked; i++)); do
-    runs+="${runs:+,}('parked-$i','running',1790676506)"
-    steps+="${steps:+,}('parked-$i','review','fixing')"
-  done
-  for ((i = 1; i <= ci; i++)); do
-    runs+="${runs:+,}('ci-$i','running',NULL)"
-    steps+="${steps:+,}('ci-$i','ci','running')"
-  done
-  for ((i = 1; i <= terminal; i++)); do
-    runs+="${runs:+,}('done-$i','completed',NULL)"
-    steps+="${steps:+,}('done-$i','review','completed')"
-  done
+  local spec kind n i runs='' steps=''
   rm -f "$DB"
+  for spec in "$@"; do
+    kind=${spec%%:*}
+    n=${spec#*:}
+    for ((i = 1; i <= n; i++)); do
+      case $kind in
+        executing)
+          runs+="${runs:+,}('exec-$i','running',NULL)"
+          steps+="${steps:+,}('exec-$i','review','running')"
+          ;;
+        between)
+          runs+="${runs:+,}('between-$i','running',NULL)"
+          steps+="${steps:+,}('between-$i','review','completed'),('between-$i','test','pending')"
+          ;;
+        queued)
+          runs+="${runs:+,}('queued-$i','pending',NULL)"
+          steps+="${steps:+,}('queued-$i','review','pending')"
+          ;;
+        cimix)
+          runs+="${runs:+,}('cimix-$i','running',NULL)"
+          steps+="${steps:+,}('cimix-$i','ci','running'),('cimix-$i','test','running')"
+          ;;
+        parked)
+          runs+="${runs:+,}('parked-$i','running',1790676506)"
+          steps+="${steps:+,}('parked-$i','review','fixing')"
+          ;;
+        ci)
+          runs+="${runs:+,}('ci-$i','running',NULL)"
+          steps+="${steps:+,}('ci-$i','review','completed'),('ci-$i','ci','running')"
+          ;;
+        terminal)
+          runs+="${runs:+,}('done-$i','completed',NULL)"
+          steps+="${steps:+,}('done-$i','review','completed')"
+          ;;
+        *) fail "unknown seed kind '$kind'" ;;
+      esac
+    done
+  done
   sqlite3 "$DB" "
     CREATE TABLE runs (id TEXT, status TEXT, awaiting_agent_since INTEGER);
     CREATE TABLE step_results (run_id TEXT, step_name TEXT, status TEXT);
     ${runs:+INSERT INTO runs VALUES $runs;}
     ${steps:+INSERT INTO step_results VALUES $steps;}"
-}
-
-seed_pending() {  # <count>
-  local i
-  seed_db 0 0 0 0
-  for ((i = 1; i <= $1; i++)); do
-    sqlite3 "$DB" "INSERT INTO runs VALUES ('queued-$i','pending',NULL);"
-  done
 }
 
 clear_limit_file() {
@@ -101,7 +117,7 @@ started_count() {
 # --- absent config means the default of 3, and below-limit runs the start ----
 
 clear_limit_file
-seed_db 2 0 0 4
+seed_db executing:2 terminal:4
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq 0 ] || fail "below the default limit should admit, got $RUN_STATUS: $RUN_ERR"
 [ -z "$RUN_ERR" ] || fail "an admitted start should stay silent on stderr, got: $RUN_ERR"
@@ -112,36 +128,56 @@ printf '%s' "$RUN_OUT" | grep -q 'marker-from-command' \
 # --- at the limit the caller must wait, and the start must not run -----------
 
 : > "$START_LOG"
-seed_db 3 0 0 1
+seed_db executing:3 terminal:1
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$WAIT_CODE" ] || fail "at the limit should exit $WAIT_CODE, got $RUN_STATUS"
 [ "$(started_count)" -eq 0 ] || fail "a refused caller must not run the wrapped start"
-printf '%s' "$RUN_ERR" | grep -q '3 executing' || fail "wait reason must name the count, got: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q '3 counted' || fail "wait reason must name the count, got: $RUN_ERR"
 printf '%s' "$RUN_ERR" | grep -q 'limit 3' || fail "wait reason must name the limit, got: $RUN_ERR"
+for held in exec-1 exec-2 exec-3; do
+  printf '%s' "$RUN_ERR" | grep -q "$held" \
+    || fail "wait reason must name the counted run ids so an operator can clear them, got: $RUN_ERR"
+done
+! printf '%s' "$RUN_ERR" | grep -q 'done-1' \
+  || fail "wait reason must name only the counted runs, got: $RUN_ERR"
 
 # --- parked and ci-waiting runs hold no slot ---------------------------------
 
-seed_db 1 5 4 2
+seed_db executing:1 parked:5 ci:4 terminal:2
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq 0 ] \
   || fail "parked and ci-waiting runs must not count toward the cap, got $RUN_STATUS: $RUN_ERR"
 
 # --- a queued run counts, so a just-registered start is not double-admitted --
 
-seed_pending 3
+seed_db queued:3
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
   || fail "three queued runs should reach the default limit, got $RUN_STATUS: $RUN_ERR"
 
+# --- a run between steps still holds its slot --------------------------------
+
+seed_db between:3
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "runs sitting between steps must keep counting, got $RUN_STATUS: $RUN_ERR"
+
+# --- a ci wait alongside a live non-ci step still holds its slot -------------
+
+seed_db cimix:3
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "a run working a non-ci step beside its ci wait must count, got $RUN_STATUS: $RUN_ERR"
+
 # --- a limit-file override is honored ---------------------------------------
 
 printf '5\n' > "$LIMIT_FILE"
-seed_db 3 0 0 0
+seed_db executing:3
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq 0 ] || fail "override raising the limit to 5 should admit 3 executing, got $RUN_STATUS: $RUN_ERR"
 
 printf '1\n' > "$LIMIT_FILE"
-seed_db 1 0 0 9
+seed_db executing:1 terminal:9
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$WAIT_CODE" ] || fail "override lowering the limit to 1 should wait, got $RUN_STATUS"
 printf '%s' "$RUN_ERR" | grep -q 'limit 1' || fail "wait reason must name the overridden limit, got: $RUN_ERR"
@@ -150,7 +186,7 @@ printf '%s' "$RUN_ERR" | grep -q 'limit 1' || fail "wait reason must name the ov
 
 for bad in '' 'abc' '0' '-2' '3 3' '0x3'; do
   printf '%s\n' "$bad" > "$LIMIT_FILE"
-  seed_db 0 0 0 0
+  seed_db terminal:1
   run_slot "$FAKE_START"
   [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] || fail "invalid limit '$bad' should refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
   printf '%s' "$RUN_ERR" | grep -qF "$LIMIT_FILE" \
@@ -160,7 +196,7 @@ done
 # --- an unreadable daemon count refuses with the exact error -----------------
 
 clear_limit_file
-seed_db 0 0 0 0
+seed_db terminal:1
 mv "$DB" "$DB.bak"
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] || fail "missing daemon store should refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
@@ -173,13 +209,13 @@ run_slot "$FAKE_START"
 
 # --- a call without a command refuses rather than claiming an advisory slot ---
 
-seed_db 0 0 0 0
+seed_db terminal:1
 run_slot
 [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] || fail "a bare call should refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
 
 # --- two concurrent callers at limit-1 admit exactly one ---------------------
 
-seed_db 2 0 0 1
+seed_db executing:2 terminal:1
 : > "$START_LOG"
 REGISTERING_START="$ENV_ROOT/registering-start"
 cat > "$REGISTERING_START" <<EOF
@@ -208,7 +244,7 @@ WAITED=0
 # --- a wrapped command's own failure codes reach the caller unchanged --------
 
 for code in 1 2 7; do
-  seed_db 1 0 0 0
+  seed_db executing:1
   FAKE_FAIL="$ENV_ROOT/fake-fail"
   printf '#!/usr/bin/env bash\nexit %s\n' "$code" > "$FAKE_FAIL"
   chmod +x "$FAKE_FAIL"

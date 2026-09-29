@@ -371,20 +371,20 @@ EOF
 # The per-host validation slot, written once and emitted beside both
 # no-mistakes start instructions, the way this file's other blocks are
 # shared. bin/fm-nm-slot.sh owns the mechanism and the exit codes; the bounded
-# --wait keeps its slot lock held only across the first start's registration,
-# and the driving block owns every later drive and reattach call, which never
-# claims a slot because a reattach creates no new run.
+# --wait keeps its slot lock held only across a start's own registration, and
+# the driving block owns every drive, reattach, and respond call, which never
+# claims a slot because none of them creates a new run.
 fm_nm_slot_block() {  # <forge>
   local slot_bin skip=''
   slot_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-nm-slot.sh"
   [ "${1:-}" = gerrit ] && skip=' --skip push,pr,ci'
   cat <<EOF
-Before starting the run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s$skip\`.
-The script checks the host's executing validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that first start so two workers cannot both squeeze in.
+Before starting a run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s$skip\`.
+The script checks the host's counted validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that start so two workers cannot both squeeze in.
 On exit 75 the host is at its limit: append one \`paused [at=<epoch>]: validation slot full; waiting for a running validation to finish\` line, retry on a bounded backoff (60s first, doubling to a 10m cap), and start the run the moment a retry passes.
 On exit 78 the count or the limit could not be read: append \`blocked [at=<epoch>]: {the script's exact error}\` and stop.
 Any other non-zero exit is the start command's own failure, not the slot gate: handle it exactly as the rules below describe.
-Once that first start returns, make every later drive and reattach call exactly as the rules below describe, without the wrapper: only the first start claims a slot.
+Every command that starts a NEW run goes through the wrapper, including a later follow-up run on the same branch after a final outcome; drive, reattach, and \`respond\` calls on a run that already exists never claim a slot, so make them exactly as the rules below describe, without the wrapper.
 EOF
 }
 
@@ -572,7 +572,7 @@ At the CI gate, poll every 60 seconds with one poll per command, and never put a
 Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
 A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: when \`no-mistakes axi status\` shows a parked gate, feed each item to it with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
 When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to \`$data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
-A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`.
+A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, started through the validation-slot wrapper like any other run start and driven to its outcome before \`done:\`.
 Never hand-commit while a run is active and never start a second run while one is active.
 Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those paths first; never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered.
 A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [at=<epoch>] [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [at=<epoch>] [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
