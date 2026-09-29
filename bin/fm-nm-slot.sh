@@ -12,11 +12,13 @@
 # register its run before it returns (a bounded `--wait` start does), so the
 # next caller's count includes it.
 #
-# Every live run counts (bin/fm-nm-run-lib.sh's fm_nm_run_status_class owns
-# which status words are live), including one sitting between steps, EXCEPT a
-# run parked waiting on its agent at a gate and a run whose only executing step
-# is the forge CI wait: neither holds the memory this cap protects, so a host
-# of parked runs cannot starve every worker.
+# Every run counts that bin/fm-nm-run-lib.sh's fm_nm_run_status_class, the
+# repo's owner of the daemon's status words, does not call terminal - a status
+# word it does not recognise holds a slot rather than vanishing from the count -
+# including a run sitting between steps, EXCEPT a run parked waiting on its
+# agent at a gate and a run whose only executing step is the forge CI wait:
+# neither holds the memory this cap protects, so a host of parked runs cannot
+# starve every worker.
 # Two ceilings, both deliberate, with no liveness or staleness machinery here:
 # a parked run that is later resumed re-enters the counted set without
 # re-checking the limit, and a run abandoned mid-step (its daemon killed) keeps
@@ -154,12 +156,9 @@ READER
 
 count=0
 counted_ids=''
-declare -A status_class=()
 while IFS='|' read -r status run_id; do
   [ -n "${status:-}" ] || continue
-  [ -n "${status_class[$status]:-}" ] \
-    || status_class[$status]=$(fm_nm_run_status_class "$status")
-  [ "${status_class[$status]}" = live ] || continue
+  [ "$(fm_nm_run_status_class "$status")" != terminal ] || continue
   count=$((count + 1))
   counted_ids="${counted_ids:+$counted_ids, }$run_id"
 done <<EOF

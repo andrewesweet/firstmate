@@ -42,6 +42,7 @@ export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 #   parked     live run waiting on its agent at a gate           holds no slot
 #   ci         live run whose only executing step is the ci wait holds no slot
 #   terminal   finished run                                      holds no slot
+#   unknown    live run carrying a status word this repo does not classify  counts
 seed_db() {
   local spec kind n i runs='' steps=''
   rm -f "$DB"
@@ -77,6 +78,10 @@ seed_db() {
         terminal)
           runs+="${runs:+,}('done-$i','completed',NULL)"
           steps+="${steps:+,}('done-$i','review','completed')"
+          ;;
+        unknown)
+          runs+="${runs:+,}('unknown-$i','quiescing',NULL)"
+          steps+="${steps:+,}('unknown-$i','review','running')"
           ;;
         *) fail "unknown seed kind '$kind'" ;;
       esac
@@ -168,6 +173,15 @@ seed_db cimix:3
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
   || fail "a run working a non-ci step beside its ci wait must count, got $RUN_STATUS: $RUN_ERR"
+
+# --- an unrecognised status word holds a slot rather than vanishing ----------
+
+seed_db unknown:3
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "a status word the repo does not classify must still count, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q 'unknown-1' \
+  || fail "wait reason must name the unclassified runs holding slots, got: $RUN_ERR"
 
 # --- a limit-file override is honored ---------------------------------------
 
