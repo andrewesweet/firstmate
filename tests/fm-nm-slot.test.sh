@@ -40,7 +40,8 @@ export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 #   queued     registered run the daemon has not picked up yet   counts
 #   cimix      live run running ci and a non-ci step together    counts
 #   parked     live run waiting on its agent at a gate           holds no slot
-#   ci         live run whose only executing step is the ci wait holds no slot
+#   ci         live run whose only executing step is the ci monitor holds no slot
+#   cifix      live run whose ci step has moved on to a fix round   counts
 #   terminal   finished run                                      holds no slot
 #   unknown    live run carrying a status word this repo does not classify  counts
 seed_db() {
@@ -74,6 +75,10 @@ seed_db() {
         ci)
           runs+="${runs:+,}('ci-$i','running',NULL)"
           steps+="${steps:+,}('ci-$i','review','completed'),('ci-$i','ci','running')"
+          ;;
+        cifix)
+          runs+="${runs:+,}('cifix-$i','running',NULL)"
+          steps+="${steps:+,}('cifix-$i','review','completed'),('cifix-$i','ci','fixing')"
           ;;
         terminal)
           runs+="${runs:+,}('done-$i','completed',NULL)"
@@ -146,12 +151,23 @@ done
 ! printf '%s' "$RUN_ERR" | grep -q 'done-1' \
   || fail "wait reason must name only the counted runs, got: $RUN_ERR"
 
-# --- parked and ci-waiting runs hold no slot ---------------------------------
+# --- parked and ci-monitoring runs hold no slot ------------------------------
 
 seed_db executing:1 parked:5 ci:4 terminal:2
 run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq 0 ] \
-  || fail "parked and ci-waiting runs must not count toward the cap, got $RUN_STATUS: $RUN_ERR"
+  || fail "parked and ci-monitoring runs must not count toward the cap, got $RUN_STATUS: $RUN_ERR"
+
+# --- a ci fix round is work, not a monitor, and holds its slot ---------------
+# The ship brief drives workers into this state with `axi respond --action fix`
+# after CI fails: the run has no other executing step, but a fixer agent runs.
+
+seed_db cifix:3
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "runs whose ci step is fixing must count toward the cap, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q 'cifix-1' \
+  || fail "the wait reason must name the counted ci fix rounds, got: $RUN_ERR"
 
 # --- a queued run counts, so a just-registered start is not double-admitted --
 

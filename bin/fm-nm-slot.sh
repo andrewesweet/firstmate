@@ -21,9 +21,11 @@
 # repo's owner of the daemon's status words, does not call terminal - a status
 # word it does not recognise holds a slot rather than vanishing from the count -
 # including a run sitting between steps, EXCEPT a run parked waiting on its
-# agent at a gate and a run whose only executing step is the forge CI wait:
-# neither holds the memory this cap protects, so a host of parked runs cannot
-# starve every worker.
+# agent at a gate and a run whose only executing step is the forge CI monitor
+# (its ci step still `running`): neither holds the memory this cap protects, so
+# a host of parked runs cannot starve every worker. A ci step that has moved to
+# `fixing` is a fix round doing work, not a monitor, and counts like any other
+# executing step - bin/fm-crew-state.sh reads ci/fixing the same way.
 # Two ceilings, both deliberate, with no liveness or staleness machinery here:
 # a parked run that is later resumed re-enters the counted set without
 # re-checking the limit, and a run abandoned mid-step (its daemon killed) keeps
@@ -202,7 +204,7 @@ with closing(sqlite3.connect(Path(sys.argv[1]).as_uri() + "?mode=ro", uri=True, 
         "SELECT r.status, count(*), group_concat(r.id, ', ') FROM runs r"
         " WHERE r.awaiting_agent_since IS NULL AND NOT ("
         "  EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
-        "          AND s.status IN ('running','fixing') AND s.step_name = 'ci')"
+        "          AND s.status = 'running' AND s.step_name = 'ci')"
         "  AND NOT EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
         "          AND s.status IN ('running','fixing') AND s.step_name <> 'ci'))"
         " GROUP BY r.status"
