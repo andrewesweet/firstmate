@@ -101,6 +101,18 @@ record_append() {  # <record-path> <json-line>
   return 0
 }
 
+# Ends every still-running subject job so an interrupted run stops where it is
+# instead of printing findings no record line can answer.
+stop_jobs() {
+  local pids
+  pids=$(jobs -p)
+  [ -n "$pids" ] || return 0
+  # shellcheck disable=SC2086  # deliberate split: one kill for every job id
+  kill $pids 2>/dev/null || true
+  wait 2>/dev/null || true
+  return 0
+}
+
 # Appends every finished job's check line to the record. Runs once on the
 # normal path and from the interrupt trap, so a killed run keeps the lines its
 # completed jobs already produced.
@@ -328,7 +340,8 @@ cmd_check() {
   run_id="$(date +%s)-$$"
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   workdir=$(mktemp -d) || die "mktemp failed"
-  trap 'flush_record_lines "$workdir" "$record"; rm -rf "$workdir"' EXIT INT TERM
+  trap 'flush_record_lines "$workdir" "$record"; rm -rf "$workdir"' EXIT
+  trap 'stop_jobs; flush_record_lines "$workdir" "$record"; rm -rf "$workdir"; exit 0' INT TERM
   local seq=0 live=0 checked=0 dropped=0
   while IFS=$'\t' read -r rule file claim ev; do
     if subject_has_secret "$claim $ev"; then dropped=$((dropped + 1)); continue; fi
@@ -399,7 +412,7 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <rule> <file> <claim> <ev> <mo
     {ts: $ts, run_id: $run, kind: "check", id: $id, rule: $rule, cutoff: $cutoff,
      file: $file, claim: $claim, evidence: $ev, probability: $prob, flagged: $flagged,
      input_tokens: $tok, cost_usd: $cost, latency_ms: $lat, model: $model}')
-  printf '%s\n' "$line" > "$workdir/line-$seq"
+  printf '%s\n' "$line" > "$workdir/tmp-$seq" && mv "$workdir/tmp-$seq" "$workdir/line-$seq"
   if [ "$flagged" = true ]; then
     printf 'jev-lint finding %s [%s %s p=%s cutoff=%s]: %s\n' "$id" "$rule" "$file" "$prob" "$cutoff" "$claim"
   fi
