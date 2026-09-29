@@ -345,7 +345,7 @@ test_interrupted_run_stops_and_keeps_its_record_lines() {
     FM_FAKE_JEV_RULES="$RULES" FM_FAKE_JEV_PROBS='{"r1":0.91}' FM_FAKE_JEV_SLEEP=4 \
     "$TOOL" check --diff-file "$MANYDIFF" --record "$rec" > "$out" 2>/dev/null &
   pid=$!
-  sleep 5
+  sleep 6
   t0=$SECONDS
   kill -TERM "$pid" 2>/dev/null
   wait "$pid" 2>/dev/null
