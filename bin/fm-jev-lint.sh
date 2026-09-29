@@ -21,8 +21,10 @@
 #   (R1, R2, R4, R3), so a larger diff loses whatever that order reaches last;
 #   the subject-shaping ones are the named constants and literals in
 #   extract_subjects. What resolve does: appends one outcome line recording how a
-#   finding was handled. What score does: reads the record and prints per-rule
-#   cost, latency, and fixed-versus-dismissed rates. docs/configuration.md
+#   finding was handled. What score does: reads the record and the rules file
+#   and prints per-rule cost, latency, fixed-versus-dismissed rates, and the
+#   drop candidates; an unreadable rules file is an error, not an empty
+#   report. docs/configuration.md
 #   "Jev self-check record" owns the operator contract; this header owns the
 #   exact flags, subject shapes, and record fields.
 #
