@@ -49,25 +49,6 @@ mkdir -p "$pool"
 : >> "$leases"
 : >> "$calls"
 printf 'treehouse %s\n' "$*" >> "$calls"
-if [ "${1:-}" = status ]; then
-  first=1
-  printf '['
-  for slotdir in "$pool"/*/; do
-    [ -d "$slotdir" ] || continue
-    slot=$(basename "$slotdir")
-    case "$slot" in .* ) continue ;; esac
-    holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
-    [ "$first" = 1 ] || printf ','
-    first=0
-    if [ -n "$holder" ]; then
-      printf '{"name":"%s","path":"%sproject","status":"leased","lease_holder":"%s"}' "$slot" "$slotdir" "$holder"
-    else
-      printf '{"name":"%s","path":"%sproject","status":"available","lease_holder":""}' "$slot" "$slotdir"
-    fi
-  done
-  printf ']\n'
-  exit 0
-fi
 if [ "${1:-}" = get ]; then
   lease=0
   holder=""
@@ -396,12 +377,12 @@ test_teardown_leaves_an_absent_copy_leased_to_another_task() {
   pass "teardown leaves an absent copy whose lease belongs to another task alone"
 }
 
-# A record written before slot claims existed carries none, so the lease is the
-# only reading that can name the slot's owner: when treehouse reports it leased
-# to a live task, teardown must finish this record without touching that task's
-# copy, branch or lease.
-test_teardown_of_an_unclaimed_record_leaves_the_leased_copy_untouched() {
-  local rec out status branch_before
+# A record written before slot claims existed carries none, so only treehouse's
+# own refusal on the return can reveal that the slot has become another task's:
+# teardown must then refuse, leaving that task's copy and lease and this record
+# in place for manual cleanup rather than freeing or deleting anything.
+test_teardown_refuses_a_slot_leased_to_another_task() {
+  local rec out status
   rec=$(make_pool_case unclaimedslot 1 2)
   read_pool_record "$rec"
 
@@ -419,24 +400,22 @@ test_teardown_of_an_unclaimed_record_leaves_the_leased_copy_untouched() {
   printf '1 lease-otherowner-r2\n' > "$POOL_DIR/.fake-leases"
   printf 'another live task is working here\n' > "$POOL_DIR/1/project/other-task-work.txt"
   git -C "$POOL_DIR/1/project" checkout -q -b other-task-branch
-  branch_before=$(git -C "$POOL_DIR/1/project" rev-parse --abbrev-ref HEAD)
 
   out=$(run_pool_teardown lease-unclaimed-r1)
   status=$?
-  expect_code 0 "$status" "teardown of an unclaimed record on a reassigned slot should succeed"$'\n'"$out"
+  [ "$status" -ne 0 ] \
+    || fail "teardown of a record whose slot is leased to another task should refuse"$'\n'"$out"
+  assert_contains "$out" "lease-unclaimed-r1" \
+    "the refusal did not name the task whose teardown was refused"
+  assert_contains "$out" "$POOL_DIR/1/project" \
+    "the refusal did not name the slot it left alone"
   [ -f "$POOL_DIR/1/project/other-task-work.txt" ] \
-    || fail "teardown cleaned or removed a copy leased to another task"$'\n'"$out"
-  [ "$(git -C "$POOL_DIR/1/project" rev-parse --abbrev-ref HEAD)" = "$branch_before" ] \
-    || fail "teardown moved the branch of a copy leased to another task"$'\n'"$out"
+    || fail "the refused teardown deleted or reset a copy leased to another task"$'\n'"$out"
   grep -Fxq "1 lease-otherowner-r2" "$POOL_DIR/.fake-leases" \
-    || fail "teardown dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
-  grep -Fq "return --force" "$POOL_DIR/.fake-calls" \
-    && fail "teardown asked treehouse to return a slot leased to another task: $(cat "$POOL_DIR/.fake-calls")"
-  [ ! -e "$HOME_DIR/state/lease-unclaimed-r1.meta" ] \
-    || fail "teardown left the task record behind"$'\n'"$out"
-  assert_contains "$out" "is leased to task lease-otherowner-r2" \
-    "teardown did not name the task the slot is leased to"
-  pass "teardown of an unclaimed record leaves a slot leased to another task untouched"
+    || fail "the refused teardown dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
+  [ -e "$HOME_DIR/state/lease-unclaimed-r1.meta" ] \
+    || fail "the refused teardown removed the task record it should keep for a rerun"$'\n'"$out"
+  pass "teardown refuses a slot leased to another task, keeping its copy, lease and record"
 }
 
 # make_child_pool_case <name> wraps make_pool_case in a secondmate home holding
@@ -539,9 +518,9 @@ test_aborted_spawn_keeps_a_dirty_copys_work() {
 }
 
 # A child slot still on disk whose lease treehouse reports for another task is
-# that task's copy: the holder-mismatch refusal must leave it on disk, not fall
-# through to deleting it.
-test_child_cleanup_leaves_a_present_copy_leased_to_another_task() {
+# that task's copy: the refusal must stop the retirement with that copy, its
+# lease and the child record all still in place, never delete the copy.
+test_child_cleanup_refuses_a_present_copy_leased_to_another_task() {
   local out status
   make_child_pool_case childpresent lease-child-r3 >/dev/null
   git -C "$PROJECT_DIR" worktree prune
@@ -554,16 +533,19 @@ test_child_cleanup_leaves_a_present_copy_leased_to_another_task() {
 
   out=$(run_pool_teardown domain --force)
   status=$?
-  expect_code 0 "$status" "forced teardown of the secondmate home should succeed"$'\n'"$out"
+  [ "$status" -ne 0 ] \
+    || fail "forced retirement should refuse while a child slot is leased to another task"$'\n'"$out"
+  assert_contains "$out" "lease-child-r3" \
+    "the refusal did not name the child whose slot it left alone"
+  assert_contains "$out" "$POOL_DIR/1/project" \
+    "the refusal did not name the slot it left alone"
   [ -f "$POOL_DIR/1/project/other-task-work.txt" ] \
     || fail "child cleanup deleted or reset a pool copy leased to another task"$'\n'"$out"
   grep -Fxq "1 lease-otherowner-r3" "$POOL_DIR/.fake-leases" \
     || fail "child cleanup dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
-  assert_contains "$out" "lease holder does not match" \
-    "child cleanup did not report treehouse refusing another task's lease"
-  [ ! -e "$CASE_DIR/subhome" ] \
-    || fail "child cleanup left the secondmate home behind"$'\n'"$out"
-  pass "child cleanup leaves a present copy whose lease belongs to another task alone"
+  [ -e "$CASE_DIR/subhome/state/lease-child-r3.meta" ] \
+    || fail "the refused retirement removed the child record it should keep for a rerun"$'\n'"$out"
+  pass "child cleanup refuses a present copy whose lease belongs to another task"
 }
 
 # The endpoint cannot be told to enter the leased copy: the spawn refuses
@@ -607,10 +589,10 @@ test_teardown_frees_the_lease_for_reuse
 test_teardown_completes_for_a_record_with_no_lease
 test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_teardown_leaves_an_absent_copy_leased_to_another_task
-test_teardown_of_an_unclaimed_record_leaves_the_leased_copy_untouched
+test_teardown_refuses_a_slot_leased_to_another_task
 test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone
 test_child_cleanup_leaves_an_absent_copy_leased_to_another_task
-test_child_cleanup_leaves_a_present_copy_leased_to_another_task
+test_child_cleanup_refuses_a_present_copy_leased_to_another_task
 test_aborted_spawn_keeps_a_dirty_copys_work
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease
