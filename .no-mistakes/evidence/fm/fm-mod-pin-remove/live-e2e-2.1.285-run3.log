@@ -1,0 +1,71 @@
+ok - Claude Code 2.1.285 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+ok - the captain-class wake is passed to main by the classifier with a covering outcome row, and the next routine wake reaches the same agent through SendMessage
+ok - a wake after the in-memory window reaches the same persisted agent: the send succeeds, no rotation
+ok - one spawn, every send successful, no dropped hand-back, no backstop delivery across the run
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Sonnet 5.5 · Claude Max
+ ▝▝   ▝▝   /tmp/fm-branch-claude-live.PVFAQL/home
+
+▎ Debug mode enabled · logging to /tmp/fm-branch-claude-live.PVFAQL/debug.log
+
+● fm-branch-mod: fm-branch-mod: loaded (enabled, home /tmp/fm-branch-claude-live.PVFAQL/home, Claude Code 2.1.285)
+
+❯ Take this home's session lock with bin/fm-lock.sh, then reply ready.
+
+● Bash(bin/fm-lock.sh)
+  ⎿  lock acquired: harness pid 361309
+
+● ready
+
+✻ Sautéed for 6s · done 10:32 PM · 1 monitor still running
+
+● Stop hook feedback
+
+● Stop hook reports watcher auto-arm failed: pid 367924 already running, no fresh beacon verified. I have not investigated. Home rules limit me to bin/ and
+  forbid bin/fm-watch-arm.sh. Captain must check the Stop hook and watcher startup.
+
+✻ Sautéed for 4s · done 10:32 PM · 1 monitor still running
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● Prompt dropped by a hook: fm-branch-mod: routed to supervision branch
+
+● fm-branch-mod: ⛵ dummy: Dummy worker is still working through its loop (steps 1-4 logged); nothing to act on.
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 to keep future transcripts
+  [CAVEMAN:ULTRA]                                                                                                                                          /rc
+  ⏵⏵ bypass permissions on · 1 monitor
+{"t":"2026-09-29T21:32:38.697Z","kind":"grant.publish","data":{"seqs":["1","2"],"rc":0}}
+{"t":"2026-09-29T21:32:38.731Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch","branchGeneration":1,"result":{"model":"claude-sonnet-5-5","agentId":"acecc5898976de899"}}}
+{"t":"2026-09-29T21:32:38.740Z","kind":"wake.delivered","data":{"wakeNo":1,"seqs":["1","2"],"ok":true,"via":"spawn","detail":"acecc5898976de899","spawnCount":1,"sendCount":0,"source":"monitor"}}
+{"t":"2026-09-29T21:32:38.740Z","kind":"wake.dropped","data":{"wakeNo":1,"source":"monitor"}}
+{"t":"2026-09-29T21:32:38.790Z","kind":"turn.step","data":{"agentId":"acecc5898976de899","wakeNo":1,"model":"claude-sonnet-5-5","index":0,"effort":"medium","messageCount":11}}
+{"t":"2026-09-29T21:32:39.492Z","kind":"prompt.submit","data":{"origin":{"kind":"task-notification"},"isWake":true,"text":"<task-notification>\n<summary>Stop hook feedback</summary>\n</task-notification>\n<system-reminder>\nStop hook blocking error from command \"Stop\": firstmate watcher wake - one supervision event needs a handling turn now.\ncheck: rearm-resurface\nRun bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh a"}}
+{"t":"2026-09-29T21:32:39.507Z","kind":"wake.scope","data":{"reason":"check: rearm-resurface","scope":{"status":"safe","eligible":true,"eligibleSeqs":["1","2"],"eligibleWakeKey":"1790717557:1,1790717557:2","eligibleTasks":["dummy"],"corrupted":false,"needsDecisionTasks":[],"allSeqs":["1","2"]},"source":"stop-hook"}}
+{"t":"2026-09-29T21:32:39.509Z","kind":"wake.deduped","data":{"seqs":["1","2"],"source":"stop-hook"}}
+{"t":"2026-09-29T21:32:40.335Z","kind":"tool.call.bash","data":{"agentId":"acecc5898976de899","wakeNo":1,"command":"bin/fm-wake-drain.sh"}}
+{"t":"2026-09-29T21:32:41.032Z","kind":"turn.step","data":{"agentId":"acecc5898976de899","wakeNo":1,"model":"claude-sonnet-5-5","index":1,"effort":"medium","messageCount":16}}
+{"t":"2026-09-29T21:32:43.101Z","kind":"report.call","data":{"agentId":"acecc5898976de899","task":"dummy","verdict":"routine","summary":"Dummy worker is still working through its loop (steps 1-4 logged); nothing to act on.","silent":false,"wakeNo":1}}
+{"t":"2026-09-29T21:32:43.243Z","kind":"deliver.routine","data":{"seq":1,"task":"dummy","summary":"Dummy worker is still working through its loop (steps 1-4 logged); nothing to act on.","silent":false,"wakeNo":1}}
+{"t":"2026-09-29T21:32:43.260Z","kind":"turn.step","data":{"agentId":"acecc5898976de899","wakeNo":1,"model":"claude-sonnet-5-5","index":2,"effort":"medium","messageCount":19}}
+{"t":"2026-09-29T21:32:44.874Z","kind":"tool.call.bash","data":{"agentId":"acecc5898976de899","wakeNo":1,"command":"bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 367924.1790717557.IoeQCE"}}
+{"t":"2026-09-29T21:32:45.054Z","kind":"turn.step","data":{"agentId":"acecc5898976de899","wakeNo":1,"model":"claude-sonnet-5-5","index":3,"effort":"medium","messageCount":22}}
+{"t":"2026-09-29T21:32:46.387Z","kind":"turn.complete.branch","data":{"agentId":"acecc5898976de899","wakeNo":1,"via":"spawn","reason":"answer","usage":{"input_tokens":8,"output_tokens":324,"cache_read_input_tokens":61477,"cache_creation_input_tokens":4947,"model":"claude-sonnet-5-5"},"wakeTokens":66432,"steps":4,"stepContext":16608,"elapsedMs":7686,"reportedSeqs":[1],"wake":"signal: /tmp/fm-branch-claude-live.PVFAQL/home/state/dummy.status","answer":"done"}}
+{"t":"2026-09-29T21:32:46.499Z","kind":"backstop.check","data":{"task":"dummy","wakeNo":1,"rc":0,"lines":[],"stderr":""}}
+{"t":"2026-09-29T21:32:59.438Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>bcnxih2ey</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - cycle ended without an actionable reason</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:33:12.491Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>bcnxih2ey</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - cycle ended without an actionable reason</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:33:25.324Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>bcnxih2ey</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - cycle ended without an actionable reason</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+not ok - Claude Code 2.1.285 never reached the unresumable rotation
+# lab logs kept at /tmp/fm-branch-claude-live-logs.efK3J3 (lab /tmp/fm-branch-claude-live.7HScOv)
+# lab logs kept at /tmp/fm-branch-claude-live-logs.SoH20A (lab /tmp/fm-branch-claude-live.PVFAQL)
+EXIT=1

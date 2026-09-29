@@ -1,0 +1,66 @@
+ok - Claude Code 2.1.285 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+● Prompt dropped by a hook: fm-branch-mod: monitor notice without a wake
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [CAVEMAN:ULTRA]                                                                                                                                          /rc
+  ⏵⏵ bypass permissions on · 1 monitor · ← 3 agents
+{"t":"2026-09-29T21:04:04.725Z","kind":"backstop.check","data":{"task":"dummy","wakeNo":1,"rc":0,"lines":[],"stderr":""}}
+{"t":"2026-09-29T21:04:07.176Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:09.189Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:11.203Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:13.219Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:15.233Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:17.277Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:19.304Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:21.329Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:23.380Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:25.392Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:27.422Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:29.427Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:31.439Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:33.475Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:35.494Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:37.529Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:39.566Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:41.594Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+{"t":"2026-09-29T21:04:43.626Z","kind":"monitor.event","data":{"reasons":[],"expired":false,"text":"<task-notification>\n<task-id>befng6tpc</task-id>\n<summary>Monitor event: \"fm-branch-mod watcher continuity\"</summary>\n<event>quiet: watcher: FAILED - refusing to arm from a disposable validation checkout: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3QESM79SRCQFN3ZHJ66ATCE/bin</event>\nIf this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.\n</task-notification>"}}
+not ok - Claude Code 2.1.285 never reached the classifier's captain verdict on the done line
+# lab logs kept at /tmp/fm-branch-claude-live-logs.RTK8H3 (lab /tmp/fm-branch-claude-live.M4gDsX)

@@ -1,0 +1,11 @@
+=== A: no opt-in ===
+skip: live: opt-in; set FM_BRANCH_MOD_LIVE=1 to run
+exit=0
+
+=== C: opt-in, claude --version prints nothing ===
+not ok - claude is installed but reports no version
+exit=1
+
+=== B: opt-in, tmux absent from PATH ===
+not ok - FM_BRANCH_MOD_LIVE was requested but tmux is not installed
+exit=1

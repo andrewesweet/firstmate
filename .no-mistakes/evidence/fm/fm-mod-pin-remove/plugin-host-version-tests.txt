@@ -1,0 +1,5 @@
+(pass) host version > loads on an arbitrary Claude Code version and records it on session.start [134.59ms]
+(pass) host version > the binary hosting the session decides the recorded version when PATH claude differs [75.15ms]
+(pass) host version > PATH claude decides when the running binary's version is unavailable [79.55ms]
+(pass) host version > an unusable PATH answer is recorded as unknown, never as a blank version [63.26ms]
+(pass) host version > without state/.branch-mod-mode the module loads inert and passes every wake through unclassified [62.00ms]

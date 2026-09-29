@@ -1,0 +1,12 @@
+# fm-branch-mod session.start records, live labs on Claude Code 2.1.285 (no pin)
+## /tmp/fm-branch-claude-live-logs.cXrVal
+{"t":"2026-09-29T21:58:56.048Z","kind":"session.start","data":{"cwd":"/tmp/fm-branch-claude-live.CzMYdt/home","home":"/tmp/fm-branch-claude-live.CzMYdt/home","state":"/tmp/fm-branch-claude-live.CzMYdt/home/state","enabled":true,"generation":"cc1790719135449","version":"2.1.285","versionSource":"running binary","probe":"2.1.285 (Claude Code)","persistenceOn":true,"persistenceCause":"default"}}
+pin.refused events: 0
+{"t":"2026-09-29T21:59:32.961Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch","branchGeneration":1,"result":{"model":"claude-sonnet-5-5","agentId":"a14c46fb58921769d"}}}
+## /tmp/fm-branch-claude-live-logs.xDKtBi
+{"t":"2026-09-29T22:07:00.980Z","kind":"session.start","data":{"cwd":"/tmp/fm-branch-claude-live.FEMpWF/home","home":"/tmp/fm-branch-claude-live.FEMpWF/home","state":"/tmp/fm-branch-claude-live.FEMpWF/home/state","enabled":true,"generation":"cc1790719620523","version":"2.1.285","versionSource":"running binary","probe":"2.1.285 (Claude Code)","persistenceOn":false,"persistenceCause":"inherited CLAUDE_CODE_CHILD_SESSION marker"}}
+pin.refused events: 0
+{"t":"2026-09-29T22:07:36.557Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch","branchGeneration":1,"result":{"model":"claude-sonnet-5-5","agentId":"a6dd6393b3009a83e"}}}
+{"t":"2026-09-29T22:08:16.125Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch-2","branchGeneration":2,"result":{"model":"claude-sonnet-5-5","agentId":"a01e7ebb474d7c66c"}}}
+{"t":"2026-09-29T22:08:16.133Z","kind":"agent.rotated","data":{"why":"unresumable","branchGeneration":2,"name":"fm-branch-2","ok":true,"detail":"a01e7ebb474d7c66c","sendDetail":"Agent \"fm-branch\" could not be resumed: No transcript found for agent ID: a6dd6393b3009a83e"}}
+{"t":"2026-09-29T22:09:55.664Z","kind":"agent.spawn","data":{"model":"sonnet","name":"fm-branch-3","branchGeneration":3,"result":{"model":"claude-sonnet-5-5","agentId":"ad715d7d1b6b7a36b"}}}

@@ -1,0 +1,5 @@
+# live session.start on Claude Code 2.1.285 (old pin was 2.1.281)
+"kind":"session.start","data":{"cwd":"/tmp/fm-branch-claude-live.M4gDsX/home","home":"/tmp/fm-branch-claude-live.M4gDsX/home","state":"/tmp/fm-branch-claude-live.M4gDsX/home/state","enabled":true,"generation":"cc1790715796690","version":"2.1.285","versionSource":"running binary","probe":"2.1.285 (Claude Code)","persistenceOn":true,"persistenceCause":"default"}
+# pin.refused records:
+0
+0

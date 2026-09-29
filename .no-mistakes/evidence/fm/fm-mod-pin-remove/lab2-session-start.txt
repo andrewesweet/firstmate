@@ -1,0 +1,18 @@
+# lab 2 (child-session) session.start, run 3 - mod loaded on Claude Code 2.1.285, no pin refusal
+{
+ "t": "2026-09-29T21:32:03.029Z",
+ "kind": "session.start",
+ "data": {
+  "cwd": "/tmp/fm-branch-claude-live.PVFAQL/home",
+  "home": "/tmp/fm-branch-claude-live.PVFAQL/home",
+  "state": "/tmp/fm-branch-claude-live.PVFAQL/home/state",
+  "enabled": true,
+  "generation": "cc1790717522637",
+  "version": "2.1.285",
+  "versionSource": "running binary",
+  "probe": "2.1.285 (Claude Code)",
+  "persistenceOn": false,
+  "persistenceCause": "inherited CLAUDE_CODE_CHILD_SESSION marker"
+ }
+}
+pin.refused records: 0
