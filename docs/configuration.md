@@ -760,7 +760,8 @@ Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.
 Every request goes out through `bin/fm-branch-shadow-jev.sh`, the repository's single TypeSafe call shim, which owns the endpoint and the key; an unavailable answer is recorded with a null probability and raises no finding.
 The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
 Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
-When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check explains the skip on stderr and exits 0, making no request and recording nothing.
+When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check prints nothing and exits 0, making no request and recording nothing.
+One run checks at most 30 subjects, taken in diff order, and an R3 bullet run contributes at most its first 10 items; a diff with more is silently truncated to those bounds.
 A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
 Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
 

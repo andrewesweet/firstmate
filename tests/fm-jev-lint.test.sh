@@ -230,10 +230,10 @@ test_absent_key_skips_silently() {
   local rec="$TMP_ROOT/nokey.jsonl" out rc
   out=$(env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" "$TOOL" check --diff-file "$DIFF" --record "$rec" 2> "$TMP_ROOT/nokey.err"); rc=$?
   [ "$rc" -eq 0 ] || fail "absent key still exits 0 (rc=$rc)"
-  echo "$out" | grep -q 'finding' && fail "absent key prints no findings"
+  [ -z "$out" ] || fail "absent key prints nothing on stdout: $out"
+  [ -s "$TMP_ROOT/nokey.err" ] && fail "absent key prints nothing on stderr: $(cat "$TMP_ROOT/nokey.err")"
   [ -e "$rec" ] && fail "absent key writes no record"
-  grep -q 'skipped' "$TMP_ROOT/nokey.err" || fail "absent key explains the skip on stderr"
-  pass "absent TYPESAFE_API_KEY skips with exit 0 and no record"
+  pass "absent TYPESAFE_API_KEY skips silently with exit 0 and no record"
 }
 
 test_record_never_carries_key() {

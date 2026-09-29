@@ -15,7 +15,10 @@
 #   diff as R4), sends one Jev noul request per subject in parallel through
 #   bin/fm-branch-shadow-jev.sh, prints one
 #   line per flagged finding with its id, and appends one JSON line per subject
-#   to the record. What resolve does: appends one outcome line recording how a
+#   to the record. Two bounds keep the cost fixed and are silent when they
+#   bite: at most MAX_SUBJECTS (30) subjects per run, taken in diff order, so a
+#   larger diff has its later subjects dropped unchecked; and an R3 bullet run
+#   contributes at most its first 10 items to the claim. What resolve does: appends one outcome line recording how a
 #   finding was handled. What score does: reads the record and prints per-rule
 #   cost, latency, and fixed-versus-dismissed rates. docs/configuration.md
 #   "Jev self-check record" owns the operator contract; this header owns the
@@ -36,8 +39,8 @@
 # Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
-#   Absent in both: one "jev-lint: skipped ..." line on stderr, exit 0, no
-#   network call, nothing recorded. The gate is a presence check only: the key
+#   Absent in both: nothing on stdout or stderr, exit 0, no network call,
+#   nothing recorded. The gate is a presence check only: the key
 #   value is never read into this script. Every request goes through
 #   bin/fm-branch-shadow-jev.sh, which owns the endpoint and the key
 #   discipline; an unavailable answer records a null probability and raises no
@@ -127,11 +130,10 @@ flush_record_lines() {  # <workdir> <record-path>
 }
 
 # Opt-in gate shared by check (resolve and score are local-only and never need
-# the key). Prints the skip line and returns 1 when absent, else 0.
+# the key). Returns 1 without printing anything when the key is absent, else 0.
 require_key() {
   [ -n "${TYPESAFE_API_KEY:-}" ] && return 0
   fmx_env_get TYPESAFE_API_KEY "$FM_HOME/.env" | grep -q . && return 0
-  echo "jev-lint: skipped (TYPESAFE_API_KEY absent from the environment and $FM_HOME/.env)" >&2
   return 1
 }
 
@@ -368,8 +370,9 @@ cmd_check() {
 }
 
 # One Jev request for one subject: POSTs the frozen question with the subject
-# as state, prints a finding line when p >= cutoff, and writes its one check
-# line into the workdir for cmd_check to append after every job has finished.
+# as state, prints a finding line when p >= cutoff, and publishes its one check
+# line in the workdir for cmd_check to append once the run finishes or is
+# interrupted.
 # The key never enters this script: bin/fm-branch-shadow-jev.sh owns the
 # transport and the key discipline, and an unavailable answer records a null
 # probability that can never raise a finding.
