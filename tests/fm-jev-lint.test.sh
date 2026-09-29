@@ -250,7 +250,7 @@ test_record_never_carries_key() {
 test_resolve_and_score() {
   # The record is the documented jsonl contract (docs/configuration.md "Jev
   # self-check record"); writing one here pins every scorer number by hand.
-  local rec="$TMP_ROOT/score.jsonl" out
+  local rec="$TMP_ROOT/score.jsonl" out rc
   cat > "$rec" <<'REC'
 {"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-1","rule":"r1","cutoff":0.5,"file":"a.sh","claim":"# returns zero","evidence":"fm_a() { return 1 }","probability":0.91,"flagged":true,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
 {"ts":"2026-01-01T00:00:00Z","run_id":"100","kind":"check","id":"100-2","rule":"r2","cutoff":0.6,"file":"a.test.sh","claim":"it \"works\", {","evidence":"run_thing","probability":0.11,"flagged":false,"input_tokens":100,"cost_usd":0.00000420,"latency_ms":1,"model":"jev-1.13.0"}
@@ -276,6 +276,10 @@ REC
     || fail "score reports per-rule cost, latency, and fixed-versus-dismissed rates: $out"
   echo "$out" | grep -qF 'rule r2: runs=1 checks=1 flagged=0 cost_usd=0.00000420 cost_per_run=4.2e-06 mean_latency_ms=1 fixed=0 dismissed=0 fixed_rate=n/a' \
     || fail "score reports n/a for a rule with no resolved findings: $out"
+  out=$(FM_HOME="$HOME_DIR" FM_JEV_LINT_RULES="$TMP_ROOT/absent-rules.json" "$TOOL" score --record "$rec" 2>&1); rc=$?
+  [ "$rc" -eq 2 ] || fail "score with an unreadable rules file exits 2 (rc=$rc): $out"
+  echo "$out" | grep -q 'rules file not readable' \
+    || fail "score names the unreadable rules file instead of printing an empty report: $out"
   pass "resolve records outcomes and score reports fixed-versus-dismissed rates"
 }
 
@@ -403,6 +407,7 @@ test_r3_enumeration_subjects() {
 
 test_secret_content_is_dropped() {
   local rec="$TMP_ROOT/secret.jsonl" out rc
+  : > "$rec"
   out=$(env -u TYPESAFE_API_KEY -u FM_FAKE_JEV_PROBS FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
     "$TOOL" check --diff-file "$SECRETDIFF" --record "$rec" 2> "$TMP_ROOT/secret.err"); rc=$?
   [ "$rc" -eq 0 ] || fail "check still exits 0 (rc=$rc): $(cat "$TMP_ROOT/secret.err")"
@@ -412,8 +417,10 @@ test_secret_content_is_dropped() {
   grep -q 'unquotedhunter2' "$rec" && fail "an unquoted lowercase secret assignment must never reach the record"
   [ "$(jq -s 'map(select(.kind == "check")) | length' "$rec")" -eq 0 ] \
     || fail "a dropped subject is not recorded as a checked subject"
-  jq -e -s 'map(select(.kind == "dropped")) | .[0].count == 3' "$rec" >/dev/null \
-    || fail "the run records the dropped count alone: $(cat "$rec")"
+  [ "$(jq -s 'map(select(.kind == "dropped")) | length' "$rec")" -eq 0 ] \
+    || fail "a dropped subject is never recorded at all: $(cat "$rec")"
+  grep -q '3 dropped as secret-like' "$TMP_ROOT/secret.err" \
+    || fail "the run reports the dropped count on stderr: $(cat "$TMP_ROOT/secret.err")"
   pass "diff lines carrying a key or a quoted or unquoted secret are dropped, not sent"
 }
 

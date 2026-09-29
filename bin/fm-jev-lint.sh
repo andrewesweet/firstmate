@@ -67,8 +67,8 @@
 #   null on transport failure), flagged, input_tokens, cost_usd, latency_ms,
 #   and model. An outcome line carries ts, run_id, kind "outcome", id (the
 #   finding it answers), rule, verdict "fixed" or "dismissed", and reason.
-#   A run that dropped secret-like subjects appends one line carrying ts,
-#   run_id, kind "dropped", and count - the count alone, never the subject.
+#   A secret-like subject is dropped before the request and never recorded;
+#   the per-run stderr summary reports how many were dropped.
 #   Only data/ itself is created when absent; a failed append prints one
 #   stderr line and never changes the exit code.
 set -u
@@ -364,10 +364,6 @@ cmd_check() {
   flags=$(grep -c . "$workdir/count" 2>/dev/null || echo 0)
   trap - EXIT
   rm -rf "$workdir"
-  if [ "$dropped" -gt 0 ]; then
-    record_append "$record" "$(jq -cn --arg ts "$ts" --arg run "$run_id" --argjson n "$dropped" \
-      '{ts: $ts, run_id: $run, kind: "dropped", count: $n}')"
-  fi
   echo "jev-lint: run $run_id: $checked subject(s) checked, $dropped dropped as secret-like, $flags finding(s) above (if any) are advisory" >&2
   return 0
 }
@@ -478,6 +474,7 @@ cmd_score() {
     esac
   done
   command -v jq >/dev/null 2>&1 || die "jq required"
+  [ -r "$RULES_FILE" ] || die "rules file not readable: $RULES_FILE"
   [ -r "$record" ] || { printf 'jev-lint score: no record at %s\n' "$record"; exit 0; }
   jq -rs --slurpfile rules "$RULES_FILE" '
     [.[] | select(.kind == "check")] as $checks |
