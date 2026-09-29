@@ -445,7 +445,7 @@ test_no_mistakes_dod_wording() {
     "no-mistakes DOD must route review feedback through the fix action on a parked gate"
   assert_grep "shows no parked gate, write the comment's text and URL to \`$home/data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$home/data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR" "$brief" \
     "no-mistakes DOD must route green-CI review feedback to firstmate as a keyed needs-decision pointing at a data-dir file"
-  assert_grep "A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, driven to its outcome before \`done:\`" "$brief" \
+  assert_grep "A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, started through the validation-slot wrapper like any other run start and driven to its outcome before \`done:\`" "$brief" \
     "no-mistakes DOD must apply a fix answer only at the run's next stopping point"
   assert_grep "Never hand-commit while a run is active and never start a second run while one is active" "$brief" \
     "no-mistakes DOD must forbid hand-commits and a second run while one is active"
