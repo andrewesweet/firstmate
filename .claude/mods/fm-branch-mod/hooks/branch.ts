@@ -35,11 +35,6 @@
 //       older than the stale bound counts as dead), and from the branch's
 //       settlement - never dependent on a captain prompt to exist.
 //
-// The module refuses to load on any Claude Code version other than CLAUDE_CODE_PIN:
-// the version is read from the binary hosting the session (PATH `claude` is only
-// the fallback), every hook passes through untouched on a mismatch, and the
-// session runs as if the plugin were absent.
-//
 // Switch (a file under the home's state directory):
 //   .branch-mod-mode        present = route wakes; absent = log only, never route.
 //                           The same presence switches every bin/ piece the mod relies on.
@@ -109,9 +104,7 @@ import {
   wakeUsageFold,
 } from '../lib/fm-branch-settlement.ts'
 
-export const CLAUDE_CODE_PIN = '2.1.281'
-
-type PinCheck = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
+type HostVersion = { version: string; source: 'running binary' | 'PATH claude'; probe: string }
 
 const PLUGIN = 'fm-branch-mod'
 const REPORT_TOOL = `mcp__${PLUGIN}__fm_branch_report`
@@ -127,7 +120,6 @@ const BOAT = '⛵'
 const ANCHOR = '⚓'
 
 let bound = false
-let refused = false
 let cwd = ''
 let home = ''
 let state = ''
@@ -614,19 +606,19 @@ export function backstopCheck($: any, tasks: Set<string>, wakeNo: number): Promi
   )
 }
 
-// ---- the version pin ----
+// ---- the host version ----
 
-// The version pin: the module is measured against one Claude Code release and
-// refuses every other one, so a silent engine change cannot reroute wakes.
-// The binary actually hosting this session decides: the launcher execs the
-// pinned release by absolute path to survive the installer symlink moving, so
-// PATH can name a different release than the one running here. The probe runs
-// the host binary's own `--version` through /proc (Linux only); the PATH call
-// stays as the fallback, and a probe answer without a version shape is treated
-// as unavailable so a misresolved executable can never cause a false refusal.
-// The answer names which source decided and the probe's raw output, so a split
-// between the two is one log line.
-async function checkPin($: any): Promise<PinCheck> {
+// The running Claude Code version, read at session start so the session.start
+// record ties the session's behaviour to the release that hosted it. The
+// binary actually hosting this session decides: the launcher execs the release
+// by absolute path to survive the installer symlink moving, so PATH can name a
+// different release than the one running here. The probe runs the host
+// binary's own `--version` through /proc (Linux only); the PATH call stays as
+// the fallback, and a probe answer without a version shape is treated as
+// unavailable so a misresolved executable never masks the fallback. The answer
+// names which source decided and the probe's raw output, so a split between
+// the two is one log line.
+async function readHostVersion($: any): Promise<HostVersion> {
   let probe = ''
   try {
     const r = await $.process.run(['sh', '-c', 'exec "$(readlink /proc/$PPID/exe)" --version'], { timeoutMs: 10000 })
@@ -675,15 +667,8 @@ async function sessionTranscriptId($: any): Promise<string> {
 export function register(on: On) {
   on('session.start', async ($, e, next) => {
     await bind($, e.cwd)
-    const { version, source: pinSource, probe } = await checkPin($)
-    if (version !== CLAUDE_CODE_PIN) {
-      refused = true
-      $.ui.log(`${PLUGIN}: refusing to load on Claude Code ${version || 'unknown'} (${pinSource}); built for ${CLAUDE_CODE_PIN}`)
-      log($, 'pin.refused', { version, pin: CLAUDE_CODE_PIN, pinSource, probe })
-      return next(e)
-    }
+    const { version, source: versionSource, probe } = await readHostVersion($)
     const persistence = await transcriptPersistence($)
-    refused = false
     generation = `cc${Date.now()}`
     activated = false
     router.resetForSession()
@@ -728,19 +713,17 @@ export function register(on: On) {
     }
     const enabled = await modeOn($)
     $.ui.log(`${PLUGIN}: loaded (${enabled ? 'enabled' : 'inert: no state/.branch-mod-mode'}, home ${home}, Claude Code ${version})`)
-    log($, 'session.start', { cwd, home, state, enabled, generation, version, pinSource, probe, persistenceOn: persistence.on, persistenceCause: persistence.cause })
+    log($, 'session.start', { cwd, home, state, enabled, generation, version, versionSource, probe, persistenceOn: persistence.on, persistenceCause: persistence.cause })
     return next(e)
   }).catch(($, e, next) => next(e))
 
   on('turn.start', async ($, e, next) => {
-    if (refused) return next(e)
     await ensureBound($)
     log($, 'turn.start', { turnId: e.turnId, text: e.text.slice(0, 300) })
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
-    if (refused) return next(e)
     await ensureBound($)
     const kind = e.origin?.kind
     if (kind === 'peer') {
@@ -797,7 +780,6 @@ export function register(on: On) {
 
   // ---- (c) Bash actor rewrite and tool denial for the branch ----
   on('tool.call', async ($, e, next) => {
-    if (refused) return next(e)
     await ensureBound($)
     const agentId = (e as { agentId?: string }).agentId
     if (agentId && delivery.knowsAgent(agentId)) {
@@ -832,7 +814,6 @@ export function register(on: On) {
 
   // ---- (f) effort rewrite for the branch's own agent ids ----
   on('turn.step', async function* ($, e, next) {
-    if (refused) return yield* next(e)
     const agentId = (e as { agentId?: string }).agentId
     if (agentId && delivery.knowsAgent(agentId)) {
       stepsThisWake += 1
@@ -843,7 +824,6 @@ export function register(on: On) {
   })
 
   on('session.compact', async ($, e, next) => {
-    if (refused) return next(e)
     await ensureBound($)
     log($, 'session.compact', { agentId: (e as any).agentId, wakeNo: router.peekInFlight()?.wakeNo })
     return next(e)
@@ -851,7 +831,6 @@ export function register(on: On) {
 
   // ---- (e) settlement ----
   on('turn.complete', async ($, e, next) => {
-    if (refused) return next(e)
     await ensureBound($)
     const agentId = e.agentId
     if (!agentId) {

@@ -2,13 +2,13 @@
 
 Fleet supervision on a Claude Code primary can run on a second, persistent agent inside the same `claude` process as the captain's chat, exactly as the [Pi supervision branch](pi-supervision-branch.md) does inside `pi`.
 The Claude Code branch is the `fm-branch-mod` plugin under `.claude/mods/fm-branch-mod`: one function-hooks binding (`hooks/branch.ts`, the thin Claude Code surface that keeps only what needs the host object), the canonical shared modules it delegates to (`lib/fm-branch-eligibility.ts`, `lib/fm-branch-report-sequence.ts`, `lib/fm-branch-provider-latch.ts`, `lib/fm-branch-classifier.ts`, `lib/fm-branch-shadow.ts`, `lib/fm-branch-text.ts`, `lib/fm-branch-scope.ts`, `lib/fm-branch-routing.ts`, `lib/fm-branch-delivery.ts`, `lib/fm-branch-monitor.ts`, and `lib/fm-branch-settlement.ts`), one agent definition (`agents/fm-branch.md`), and the classifier's system prompt (`classifier-system.txt`).
-This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, its version pin and the pin-bump procedure, its state and config files, the durable classification and shadow advisory logs and their scorers, and the bounds measured on the pinned Claude Code version.
+This document owns the operator contract: what the mod does, how a home opts in, the launch settings it requires, the Claude Code releases it runs on and the post-upgrade test, its state and config files, the durable classification and shadow advisory logs and their scorers, and the bounds with their dated verification record.
 The module header owns the module's own shape, and [`pi-supervision-branch.md`](pi-supervision-branch.md) owns the design the two branches share: the outcome store, the leases, the verdict distinction, and the lost-wake backstop.
 
 The mod is deliberately inert everywhere it is not asked for:
 
 - It loads only through `--plugin-dir`; unlike the Calm mod it is never linked into `.claude/skills`, so no trusted project, worktree, or crewmate session auto-loads it.
-- It refuses to load on any Claude Code version other than its pin (see [Version pin](#version-pin)), and a refused module passes every hook through untouched.
+- It loads on whatever Claude Code release hosts the session and records that version on its `session.start` event (see [Claude Code versions](#claude-code-versions)).
 - Every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`; a home without that file runs the unchanged wake path, and `bin/fm-lease-lib.sh`, `bin/fm-branch-outcome.sh`, and `bin/fm-wake-grant.sh` are shared with the Pi branch unchanged.
 - It never sets `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` or any other Claude Code setting; enabling the function-hooks surface is the captain's own explicit opt-in per session, and `config/claude-function-hooks` is the per-home opt-in that puts the variable on a launched worker's environment (docs/configuration.md "Claude function hooks").
 - It depends on nothing outside the tracked `bin/` scripts it calls; in particular it never imports or calls the fork-only tracing series.
@@ -25,7 +25,7 @@ The branch agent runs on the same system prompt as the Pi branch (`bin/fm-branch
 The module's eligibility scan delegates to the same shared fold the Pi extension consumes, whose canonical copy lives in the mod's own `lib/fm-branch-eligibility.ts` (pure core only - a hooks module may import nothing but its own files, so the scan orchestration in `lib/fm-branch-scope.ts` binds it to the host's file/stat seams instead of `node:fs`, the `FM_CLASSIFY_*` environment read stays in the hook because the strict validator lists the environment a module reads from its literal call sites, and the repo's `lib/fm-branch-eligibility.ts` is a thin wrapper that re-exports the core and adds those bindings).
 The loader's rule is realpath containment: a symlink is followed and its target must stay inside the plugin, so the shared modules' canon lives under the mod and the repo's `lib/` entries are tracked symlinks to it, inverting the earlier vendoring (the Calm-mod pattern, [calm.md](calm.md)); no build or resolve hook exists on the plugin surface.
 The same canon carries the report/processed decision core (`lib/fm-branch-report-sequence.ts`: report validation, scope verdicts, the settlement argv builders and the module-owned settlement path (call order and failure meanings), and the machine-owned failure and success wordings this host renders byte-identically to Pi), the failure latch machine (`lib/fm-branch-provider-latch.ts`), the pre-branch classifier (`lib/fm-branch-classifier.ts`: evidence mapping, the deterministic verb route, the host-agnostic verdict interpretation, the classification-log record builder, and the passed-to-main cover argv), and the shadow advisory trial (`lib/fm-branch-shadow.ts`: facts construction, ablation variants, the answer-call loop, and the shadow-log record builder), with this host declaring its latch policy (threshold two, fixed five-minute cooldown, no recovery probe - the doubled-value cap makes the exponential base unobservable here) and keeping its own seams: the duplicate-report guard and the captain-facing latch strings (the scoping refusal's normal-result shape and wording, the failure predicate, and the remaining settlement strings are unified across both hosts by the captain's 2026-09-20 ruling, so they are no longer mod-only).
-The mod's own binding modules own the rest of the host-independent decisions the hook used to carry inline: the text builders and parses (`lib/fm-branch-text.ts`: the rewake banner, the reason-line filter, the monitor-event parse, the deterministic new-status-lines note, the processing request, the Bash actor command, and the version-pin probe parsing), the wake-routing decision (`lib/fm-branch-routing.ts`: the pass/grant verdict sequence, the passed-wake dedupe key and window, the classifier gate, and the pass effects), the delivery state machine (`lib/fm-branch-delivery.ts`: spawn-once-then-send, the pinned-ref retry, the unresumable rotation, and the own-agent bookkeeping), the monitor guard (`lib/fm-branch-monitor.ts`: the armed claim, the stale-claim expiry, the re-arm gating, and the Monitor loop command), and the session and settlement rules (`lib/fm-branch-settlement.ts`: the deterministic backstop, the transcript-persistence rule, the counters record, and the usage fold with the rotation bound); each takes its host effects as per-call deps, because the validator's spelling rule for `$` keeps the host object at the call sites.
+The mod's own binding modules own the rest of the host-independent decisions the hook used to carry inline: the text builders and parses (`lib/fm-branch-text.ts`: the rewake banner, the reason-line filter, the monitor-event parse, the deterministic new-status-lines note, the processing request, the Bash actor command, and the version probe parsing), the wake-routing decision (`lib/fm-branch-routing.ts`: the pass/grant verdict sequence, the passed-wake dedupe key and window, the classifier gate, and the pass effects), the delivery state machine (`lib/fm-branch-delivery.ts`: spawn-once-then-send, the pinned-ref retry, the unresumable rotation, and the own-agent bookkeeping), the monitor guard (`lib/fm-branch-monitor.ts`: the armed claim, the stale-claim expiry, the re-arm gating, and the Monitor loop command), and the session and settlement rules (`lib/fm-branch-settlement.ts`: the deterministic backstop, the transcript-persistence rule, the counters record, and the usage fold with the rotation bound); each takes its host effects as per-call deps, because the validator's spelling rule for `$` keeps the host object at the call sites.
 The classifier's and the shadow trial's facts objects and log records are byte-stable across both hosts by construction: both hosts consume the same canonical files under the mod's `lib/`, Pi through the repo's tracked symlinks.
 It records each handled wake through the mod's `fm_branch_report` tool, which appends to the shared outcome store (`bin/fm-branch-outcome.sh`) before anything reaches main.
 A `routine` outcome ends there.
@@ -116,12 +116,11 @@ The condition path must be absolute: the runner's working directory is the watch
 
 ## Opting a home in
 
-1. Install Claude Code at the pinned version.
-   The pin check reads the version of the binary actually running the session, so launch the pinned binary by absolute path; `claude --version` through PATH is only the fallback and may name a different release.
+1. Install Claude Code; the mod loads on whatever release hosts the session (see [Claude Code versions](#claude-code-versions) for the post-upgrade test).
 2. Create `state/.branch-mod-mode`; its presence alone switches the mod and every `bin/` piece it relies on, and its content is ignored.
    Remove the file to switch them all off together.
 3. Optionally write `config/classifier-model` and `config/supervision-branch-model`; optionally set `config/classifier-shadow` to `jev` to join the shadow advisory trial.
-4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported rather than discovered when the mod refuses to load.
+4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported and the post-upgrade test in [Claude Code versions](#claude-code-versions) can be run.
 5. Launch the primary with the settings below.
 
 ### Mutual exclusion with the supervision host
@@ -135,7 +134,7 @@ Wake eligibility itself is one implementation for both (`tests/fm-branch-eligibi
 
 ## Launch settings
 
-Measured on Claude Code 2.1.281 (2026-09-23); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
+Measured on Claude Code 2.1.285 (2026-09-29); `tests/fm-branch-claude-mod-live-e2e.test.sh` launches exactly this way.
 
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` in the environment: a Herdr server started inside a Claude session hands the pane its `CLAUDE_CODE_CHILD_SESSION` marker, which switches transcript saving off, and without a disk transcript every resume of the branch agent fails once Claude Code evicts the finished agent from memory 30-60 s after it completes; set in the main home after the branch-reuse root-cause report of 2026-09-19 measured 25 of 25 rotations failing this way.
@@ -151,21 +150,20 @@ Measured on Claude Code 2.1.281 (2026-09-23); `tests/fm-branch-claude-mod-live-e
   `$.tool.call({tool: 'Task'})` is refused by the host itself (`tool.call: runs the Agent tool: that is $.agent.spawn (host check)`), so the mod never issues it.
 - `FM_HOME` and `FM_ROOT_OVERRIDE` in the environment when the home is not the code root; the module resolves its home exactly as `bin/` does (`FM_HOME`, then `FM_ROOT_OVERRIDE`, then the code root three levels above the plugin folder) and honours `FM_STATE_OVERRIDE` and `FM_CONFIG_OVERRIDE`.
 
-## Version pin
+## Claude Code versions
 
-The module is measured against one Claude Code release and declares it as `CLAUDE_CODE_PIN` in `hooks/branch.ts` (currently `2.1.281`).
-At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable); on any other version it logs `pin.refused`, prints `fm-branch-mod: refusing to load on Claude Code <version> (<source>); built for <pin>`, and passes every hook through untouched for the rest of the session.
-Both the `session.start` and the `pin.refused` event record `pinSource` (`running binary` or `PATH claude`) and the probe's raw `--version` output as `probe`, so a split between the running binary and PATH is one log line.
-A refusal is a version fact, never a bug to work around: the function-hooks API may change between releases without notice, and the mod's behaviour is only known on the release the live test last passed on.
-A home whose Claude Code is not the pin (the main home ran 2.1.271 when the pin was set) runs the unchanged Claude protocol until Claude Code is updated.
+The mod loads on whatever Claude Code release hosts the session; there is no version pin.
+At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable) and records it on the event with `versionSource` (`running binary` or `PATH claude`) and the probe's raw `--version` output as `probe`, so a behaviour change can be tied to the release that hosted it and a split between the running binary and PATH is one log line.
+The function-hooks surface the mod binds is early access and can change between releases, so a new release is a test trigger, not a known-good state.
+After a Claude Code upgrade, run the mod's checks on the new release and treat a failure as the finding:
 
-### Updating the pin
+```sh
+FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh
+claude plugin validate --strict .claude/mods/fm-branch-mod
+bin/fm-test-run.sh tests/fm-branch-claude-mod-plugin.test.sh
+```
 
-1. The watched-tool update check reports `claude: update available ...` (the `version_url` entry in [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson)).
-2. Install the new version in the home that will run the test, then run the live test against it: `FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh` with `CLAUDE_CODE_PIN` temporarily set to the new version.
-   Run `claude plugin validate --strict .claude/mods/fm-branch-mod` and `tests/fm-branch-claude-mod-plugin.test.sh` on the same version.
-3. When all three pass, land a pin-bump PR that changes `CLAUDE_CODE_PIN`, this page's measured version, and the dated record in [`verification/runtime-backends.md`](verification/runtime-backends.md); when one fails, the mod stays pinned and the failure is the finding.
-   The plugin test suite imports its `PIN` from `hooks/branch.ts`, so `CLAUDE_CODE_PIN` is the only version value to change.
+The `claude` entry in `config/watched-tools.json` ([configuration.md](configuration.md#watched-tool-updates-configwatched-toolsjson)) is what reports a new release, and the dated results live in [`verification/runtime-backends.md`](verification/runtime-backends.md#claude-code-supervision-branch).
 
 ## State and configuration
 
@@ -212,5 +210,5 @@ tests/fm-branch-claude-mod-plugin.test.sh
 FM_BRANCH_MOD_LIVE=1 tests/fm-branch-claude-mod-live-e2e.test.sh
 ```
 
-The first ten are portable (Node and bash; the eligibility test drives the mod's exported `bind` and `scopeForUnreadWake`, see [`pi-supervision-branch.md`](pi-supervision-branch.md) for the four-fold guarantee it pins, the report-sequence test drives the shared decision core and both latch policies through the mod's exported serving functions against one fixture transcript, and the six per-module suites drive the mod's binding modules directly through their per-call deps), the eleventh runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` is exactly the pin and `tmux` exists; it also proves, across two labs, that a minutes-later wake resumes the persisted agent when transcript saving is on and rotates with `why=unresumable` when an inherited `CLAUDE_CODE_CHILD_SESSION` breaks resume.
+The first ten are portable (Node and bash; the eligibility test drives the mod's exported `bind` and `scopeForUnreadWake`, see [`pi-supervision-branch.md`](pi-supervision-branch.md) for the four-fold guarantee it pins, the report-sequence test drives the shared decision core and both latch policies through the mod's exported serving functions against one fixture transcript, and the six per-module suites drive the mod's binding modules directly through their per-call deps), the eleventh runs `claude plugin validate --strict` and the engine-hosted `claude plugin test` suite wherever `claude` is installed, and the live test submits a few Sonnet turns in a temporary scratch home and skips unless `claude --version` reports a version and `tmux` exists; it also proves, across two labs, that a minutes-later wake resumes the persisted agent when transcript saving is on and rotates with `why=unresumable` when an inherited `CLAUDE_CODE_CHILD_SESSION` breaks resume.
 The dated results live in [`verification/runtime-backends.md`](verification/runtime-backends.md#claude-code-supervision-branch).

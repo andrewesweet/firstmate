@@ -6,7 +6,7 @@
 # mocked clock, environment, file system, classifier, and process runner. No
 # model turn is submitted and no credential is spent, so the guard runs by
 # default wherever `claude` is installed; the portable checks that need no
-# Claude Code binary live in tests/fm-branch-claude-mod.test.sh, and the pinned
+# Claude Code binary live in tests/fm-branch-claude-mod.test.sh, and the live
 # end-to-end session in tests/fm-branch-claude-mod-live-e2e.test.sh.
 #
 # The early-access function-hooks surface is default-off; the flag is set on
@@ -75,7 +75,7 @@ test_plugin_suite() {
     printf '%s\n' "$report" >&2
     fail "Claude Code $CLAUDE_VERSION reported supervision-branch mod plugin test failures"
   }
-  pass "Claude Code $CLAUDE_VERSION runs the supervision-branch mod's plugin test suite clean: pin refusal, classification records, captain hand-back, and routine spawn"
+  pass "Claude Code $CLAUDE_VERSION runs the supervision-branch mod's plugin test suite clean: the host version record, classification records, captain hand-back, and routine spawn"
 }
 
 test_validate_strict

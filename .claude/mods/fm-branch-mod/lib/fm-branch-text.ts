@@ -138,8 +138,8 @@ export function versionToken(text: string): string {
   return text.split(/\s+/)[0] ?? ''
 }
 
-/** The version-pin shape test: a token is a version exactly when it opens
- * with three dot-separated numbers. */
+/** The version shape test: a token is a version exactly when it opens with
+ * three dot-separated numbers. */
 export function isVersionShaped(version: string): boolean {
   return /^\d+\.\d+\.\d+/.test(version)
 }
