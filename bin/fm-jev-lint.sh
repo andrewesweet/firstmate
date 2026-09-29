@@ -17,9 +17,10 @@
 #   line per flagged finding with its id, and appends one JSON line per subject
 #   to the record. Fixed per-run and per-subject bounds keep the cost flat and
 #   truncate silently when they bite: the run-level one is MAX_SUBJECTS (30)
-#   subjects per run, taken in diff order, so a larger diff has its later
-#   subjects dropped unchecked; the subject-shaping ones are the named
-#   constants and literals in extract_subjects. What resolve does: appends one outcome line recording how a
+#   subjects per run, taken in file order and, within a file, in rule order
+#   (R1, R2, R4, R3), so a larger diff loses whatever that order reaches last;
+#   the subject-shaping ones are the named constants and literals in
+#   extract_subjects. What resolve does: appends one outcome line recording how a
 #   finding was handled. What score does: reads the record and prints per-rule
 #   cost, latency, and fixed-versus-dismissed rates. docs/configuration.md
 #   "Jev self-check record" owns the operator contract; this header owns the
