@@ -3,12 +3,12 @@
 # worker's own diff, run after implementation and before no-mistakes validation.
 #
 # Usage:
-#   fm-jev-lint.sh check [--base <ref>] [--diff-file <file>] [--record <path>]
+#   fm-jev-lint.sh check [--diff-file <file>] [--record <path>]
 #   fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed [--reason <text>] [--record <path>]
 #   fm-jev-lint.sh score [--record <path>]
 #
-# What check does: diffs the worktree against --base (default: the merge-base
-#   of HEAD with origin/main, else main) with -U8, extracts diff-scoped
+# What check does: diffs the worktree against the merge-base of HEAD with
+#   origin/main, else main, with -U8, extracts diff-scoped
 #   subjects deterministically (changed functions with their leading comments
 #   as R1, touched test blocks as R2, added prose enumerations with their
 #   surrounding diff context as R3, timeout or budget declarations in the
@@ -177,7 +177,6 @@ extract_subjects() {
   function emit(rule, file, claim, ev) {
     claim = cap(flat(claim), claim_cap); ev = cap(flat(ev), ev_cap)
     if (claim == "" || ev == "") return
-    gsub(/\\/, "\\\\", claim); gsub(/\\/, "\\\\", ev)
     printf "%s\t%s\t%s\t%s\n", rule, file, claim, ev
   }
   /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; delete bound; next }
@@ -255,10 +254,9 @@ extract_subjects() {
 
 # --- check --------------------------------------------------------------------
 cmd_check() {
-  local base='' diff_file='' record="$RECORD_DEFAULT" jobs=8
+  local diff_file='' record="$RECORD_DEFAULT" jobs=8
   while [ $# -gt 0 ]; do
     case "$1" in
-      --base) [ $# -ge 2 ] || die "--base needs a value"; base=$2; shift 2 ;;
       --diff-file) [ $# -ge 2 ] || die "--diff-file needs a value"; diff_file=$2; shift 2 ;;
       --record) [ $# -ge 2 ] || die "--record needs a value"; record=$2; shift 2 ;;
       -h|--help) usage; exit 0 ;;
@@ -277,14 +275,13 @@ cmd_check() {
     [ -r "$diff_file" ] || die "diff file not readable: $diff_file"
     diff_text=$(cat "$diff_file")
   else
-    if [ -z "$base" ]; then
-      if git rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
-        base=$(git merge-base HEAD origin/main 2>/dev/null) || die "no merge-base with origin/main (pass --base)"
-      elif git rev-parse --verify --quiet main >/dev/null 2>&1; then
-        base=$(git merge-base HEAD main 2>/dev/null) || die "no merge-base with main (pass --base)"
-      else
-        die "no base ref found (pass --base or --diff-file)"
-      fi
+    local base
+    if git rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+      base=$(git merge-base HEAD origin/main 2>/dev/null) || die "no merge-base with origin/main (pass --diff-file)"
+    elif git rev-parse --verify --quiet main >/dev/null 2>&1; then
+      base=$(git merge-base HEAD main 2>/dev/null) || die "no merge-base with main (pass --diff-file)"
+    else
+      die "no base ref found (pass --diff-file)"
     fi
     diff_text=$(git diff -U8 "$base"...HEAD -- . 2>/dev/null) || die "git diff failed"
   fi
@@ -446,8 +443,7 @@ cmd_score() {
   jq -rs --slurpfile rules "$RULES_FILE" '
     ([.[] | select(.kind == "check")] | group_by(.rule) | map({
       key: .[0].rule,
-      value: {runs: ([.[] | .run_id] | unique | length),
-              resolved: ([.[] | .id] | unique | length)}
+      value: {runs: ([.[] | .run_id] | unique | length)}
     }) | from_entries) as $by_rule |
     ([.[] | select(.kind == "outcome")] | group_by(.rule) | map({
       key: .[0].rule,
