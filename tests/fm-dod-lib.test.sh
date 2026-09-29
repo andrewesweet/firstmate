@@ -401,6 +401,32 @@ test_pr_based_dod_draft_check_uses_gh_axi() {
   pass "PR-based DoD draft check uses gh-axi"
 }
 
+# Every no-mistakes ship path reaches the moment the self-check is for -
+# implementation committed, validation about to start - so both arms must carry
+# it, and the paths that never run the pipeline must not.
+test_no_mistakes_dod_carries_the_self_check() {
+  local out
+  for forge in none gerrit; do
+    out="$TMP_ROOT/dod-nm-$forge.md"
+    fm_dod_block no-mistakes dod-jev-task fm/dod-jev-task "$TMP_ROOT/data" "$forge" > "$out"
+    # shellcheck disable=SC2016  # backticks must stay literal in the brief
+    assert_grep 'fm-jev-lint.sh check` from your worktree root' "$out" \
+      "no-mistakes:$forge: DoD must tell the worker to run the self-check"
+    # shellcheck disable=SC2016
+    assert_grep 'fm-jev-lint.sh resolve --id <finding-id>' "$out" \
+      "no-mistakes:$forge: DoD must tell the worker how to resolve a finding"
+    assert_grep 'never gate, skip, prune, or approve validation' "$out" \
+      "no-mistakes:$forge: DoD must say findings never gate"
+  done
+  for mode in direct-PR local-only; do
+    out="$TMP_ROOT/dod-$mode.md"
+    fm_dod_block "$mode" dod-jev-task fm/dod-jev-task "$TMP_ROOT/data" > "$out"
+    assert_no_grep 'fm-jev-lint.sh' "$out" "$mode: DoD must not mention the pipeline self-check"
+  done
+  pass "both no-mistakes arms carry the advisory self-check, pipeline-free modes do not"
+}
+
+test_no_mistakes_dod_carries_the_self_check
 test_scout_done_is_not_gated
 test_unpushed_ship_done_is_refused
 test_no_mistakes_and_empty_bare_done_is_gated

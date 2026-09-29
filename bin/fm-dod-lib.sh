@@ -443,6 +443,14 @@ On this no-mistakes ship, complete everything above before starting validation; 
 EOF
 }
 
+fm_jev_self_check_block() {
+  cat <<EOF
+After implementation and before starting validation, run the advisory self-check \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh check\` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+EOF
+}
+
 fm_dod_block() {  # <mode> <task-id> [branch] <data-dir> [<forge>]
   local mode=$1 id=$2 data=$4 forge=${5:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id}
@@ -480,6 +488,7 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
+      fm_jev_self_check_block
       fm_nm_implement_ordering_block
       cat <<EOF
 
@@ -556,11 +565,7 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
-      cat <<EOF
-After implementation and before starting validation, run the advisory self-check \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh check\` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
-For each finding it prints, either fix the code or record why it stands with \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
-Findings are candidates only: they never gate, skip, prune, or approve validation.
-EOF
+      fm_jev_self_check_block
       fm_nm_implement_ordering_block
       cat <<EOF
 

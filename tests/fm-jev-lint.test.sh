@@ -36,8 +36,12 @@ question=$(printf '%s' "$req" | jq -r '.questions.violated.instructions')
 rule=$(jq -r --arg q "$question" '.rules | to_entries[] | select(.value.question == $q) | .key' "${FM_FAKE_JEV_RULES:?}")
 prob=$(printf '%s' "${FM_FAKE_JEV_PROBS}" | jq -r --arg r "$rule" '.[$r] // empty')
 [ -n "$prob" ] || { printf '404'; exit 0; }
-jq -cn --argjson p "$prob" --argjson tok "${FM_FAKE_JEV_TOKENS:-100}" \
-  '{model: "jev-1.13.0", answers: {violated: {noul: $p}}, usage: {input_tokens: $tok}}' > "$out"
+if [ -n "${FM_FAKE_JEV_MALFORMED:-}" ]; then
+  printf '{"model":"jev-1.13.0","answers":{"violated":{"noul":"high"}},"usage":{"input_tokens":"lots"}}' > "$out"
+else
+  jq -cn --argjson p "$prob" --argjson tok "${FM_FAKE_JEV_TOKENS:-100}" \
+    '{model: "jev-1.13.0", answers: {violated: {noul: $p}}, usage: {input_tokens: $tok}}' > "$out"
+fi
 printf '200'
 CURL
 chmod +x "$FAKEBIN/curl"
@@ -287,6 +291,20 @@ test_shim_unavailable_raises_no_finding() {
   pass "an unavailable shim is recorded and never raises a finding"
 }
 
+test_malformed_answer_is_recorded_unavailable() {
+  local rec="$TMP_ROOT/malformed.jsonl" out rc
+  out=$(env FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" FM_FAKE_JEV_RULES="$RULES" \
+    FM_FAKE_JEV_PROBS='{"r1":0.91,"r2":0.11,"r4":0.75}' FM_FAKE_JEV_MALFORMED=1 \
+    "$TOOL" check --diff-file "$DIFF" --record "$rec" 2>/dev/null); rc=$?
+  [ "$rc" -eq 0 ] || fail "a malformed answer still exits 0 (rc=$rc)"
+  echo "$out" | grep -q 'finding' && fail "a non-numeric probability raises no finding: $out"
+  [ "$(jq -s 'map(select(.kind == "check")) | length' "$rec")" -eq 3 ] \
+    || fail "every subject still gets one record line: $(cat "$rec")"
+  jq -e -s 'all(.[] | select(.kind == "check"); .probability == null and .flagged == false and .input_tokens == 0)' "$rec" >/dev/null \
+    || fail "a malformed answer records a null probability and no tokens: $(cat "$rec")"
+  pass "a non-numeric answer field is recorded as unavailable, never flagged"
+}
+
 test_shim_reads_the_key_from_the_home_env() {
   local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" out
   mkdir -p "$home2/data"
@@ -353,3 +371,4 @@ test_quoted_non_ascii_path_is_decoded
 test_shim_carries_the_request
 test_shim_unavailable_raises_no_finding
 test_shim_reads_the_key_from_the_home_env
+test_malformed_answer_is_recorded_unavailable

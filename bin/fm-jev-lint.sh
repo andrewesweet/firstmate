@@ -368,8 +368,8 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim>
   if [[ "$t0" == *N || "$t1" == *N ]]; then lat_ms=0
   elif [ "${#t0}" -le 10 ]; then lat_ms=$(( (t1 - t0) * 1000 )); else lat_ms=$((t1 - t0)); fi
   if jq -e '.ok' "$resp_file" >/dev/null 2>&1; then
-    prob=$(jq -r '.answers.violated.noul // "null"' "$resp_file" 2>/dev/null) || prob=null
-    tokens=$(jq -r '.usage.input_tokens // 0' "$resp_file" 2>/dev/null) || tokens=0
+    prob=$(jq -r '.answers.violated.noul | if type == "number" then . else "null" end' "$resp_file" 2>/dev/null) || prob=null
+    tokens=$(jq -r '.usage.input_tokens | if type == "number" then . else 0 end' "$resp_file" 2>/dev/null) || tokens=0
   fi
   local flagged=false
   if [ "$prob" != "null" ] && awk -v p="$prob" -v c="$cutoff" 'BEGIN{exit !(p >= c)}'; then
