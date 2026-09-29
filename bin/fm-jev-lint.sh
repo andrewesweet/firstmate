@@ -255,8 +255,8 @@ extract_subjects() {
         ev = lines[i]; body = 0
         for (k = i + 1; k <= n && body < 8; k++) {
           if (bound[k]) break
-          if (kinds[k] != "+") continue
           if (is_func(lines[k])) break
+          if (kinds[k] != "+") continue
           ev = ev " " lines[k]; body++
         }
         emit("r1", file, claim, ev)
@@ -268,7 +268,7 @@ extract_subjects() {
           claim = lines[i]; ev = ""; body = 0
           for (k = i + 1; k <= n && body < 12; k++) {
             if (bound[k]) break
-            if (kinds[k] == "+" && is_test_name(lines[k])) break
+            if (is_test_name(lines[k])) break
             ev = ev (ev == "" ? "" : " ") lines[k]; body++
           }
           emit("r2", file, claim, ev)
@@ -346,12 +346,13 @@ cmd_check() {
   workdir=$(mktemp -d) || die "mktemp failed"
   trap 'flush_record_lines "$workdir" "$record"; rm -rf "$workdir"' EXIT
   trap 'stop_jobs; flush_record_lines "$workdir" "$record"; rm -rf "$workdir"; exit 0' INT TERM
-  local seq=0 live=0 checked=0 dropped=0
+  local enabled seq=0 live=0 checked=0 dropped=0
+  enabled=$(enabled_rules)
   while IFS=$'\t' read -r rule file claim ev; do
     if subject_has_secret "$claim $ev"; then dropped=$((dropped + 1)); continue; fi
+    grep -qx "$rule" <<< "$enabled" || continue
     seq=$((seq + 1))
     [ "$seq" -gt "$MAX_SUBJECTS" ] && break
-    enabled_rules | grep -qx "$rule" || continue
     jev_lint_one "$workdir" "$seq" "$run_id" "$ts" "$rule" "$file" "$claim" "$ev" "$model" "$rate" &
     checked=$((checked + 1))
     live=$((live + 1))
@@ -478,45 +479,37 @@ cmd_score() {
   done
   command -v jq >/dev/null 2>&1 || die "jq required"
   [ -r "$record" ] || { printf 'jev-lint score: no record at %s\n' "$record"; exit 0; }
-  jq -rs '
-    ([.[] | select(.kind == "check")] | length) as $checks |
-    ([.[] | select(.kind == "check" and .flagged)] | length) as $flags |
-    ([.[] | select(.kind == "check") | .run_id] | unique | length) as $runs |
-    ([.[] | select(.kind == "check") | .input_tokens] | add // 0) as $toks |
-    ([.[] | select(.kind == "check") | .cost_usd] | add // 0) as $cost |
-    ([.[] | select(.kind == "check") | .latency_ms] | (add // 0) / (length | if . == 0 then 1 else . end)) as $lat |
-    ([.[] | select(.kind == "outcome" and .verdict == "fixed")] | length) as $fixed |
-    ([.[] | select(.kind == "outcome" and .verdict == "dismissed")] | length) as $dismissed |
-    "jev-lint score: runs=\($runs) checks=\($checks) flagged=\($flags) fixed=\($fixed) dismissed=\($dismissed) open=\($flags - $fixed - $dismissed) cost_usd=\($cost) cost_per_run=\(if $runs == 0 then 0 else $cost / $runs end) mean_latency_ms=\($lat | floor) input_tokens=\($toks)",
-    (([.[] | select(.kind == "outcome")] | group_by(.rule) | map({
+  jq -rs --slurpfile rules "$RULES_FILE" '
+    [.[] | select(.kind == "check")] as $checks |
+    [.[] | select(.kind == "outcome")] as $outcomes |
+    ($checks | length) as $nchecks |
+    ([$checks[] | select(.flagged)] | length) as $flags |
+    ([$checks[] | .run_id] | unique | length) as $runs |
+    ([$checks[] | .input_tokens] | add // 0) as $toks |
+    ([$checks[] | .cost_usd] | add // 0) as $cost |
+    ([$checks[] | .latency_ms] | (add // 0) / (if $nchecks == 0 then 1 else $nchecks end)) as $lat |
+    ([$outcomes[] | select(.verdict == "fixed")] | length) as $fixed |
+    ([$outcomes[] | select(.verdict == "dismissed")] | length) as $dismissed |
+    ($outcomes | group_by(.rule) | map({
       key: .[0].rule,
       value: {fixed: ([.[] | select(.verdict == "fixed")] | length),
               dismissed: ([.[] | select(.verdict == "dismissed")] | length)}
     }) | from_entries) as $out |
-    ([.[] | select(.kind == "check")] | group_by(.rule) | map(
-      .[0].rule as $r |
-      (map(.run_id) | unique | length) as $rr |
-      (length) as $cc |
-      ([.[] | select(.flagged)] | length) as $ff |
-      ([.[] | .cost_usd] | add // 0) as $rc |
-      ([.[] | .latency_ms] | (add // 0) / $cc) as $rl |
+    ($checks | group_by(.rule) | map({key: .[0].rule, value: .}) | from_entries) as $by_rule |
+    "jev-lint score: runs=\($runs) checks=\($nchecks) flagged=\($flags) fixed=\($fixed) dismissed=\($dismissed) open=\($flags - $fixed - $dismissed) cost_usd=\($cost) cost_per_run=\(if $runs == 0 then 0 else $cost / $runs end) mean_latency_ms=\($lat | floor) input_tokens=\($toks)",
+    ($by_rule | to_entries[] |
+      .key as $r | .value as $rows |
+      ([$rows[] | .run_id] | unique | length) as $rr |
+      ($rows | length) as $cc |
+      ([$rows[] | select(.flagged)] | length) as $ff |
+      ([$rows[] | .cost_usd] | add // 0) as $rc |
+      ([$rows[] | .latency_ms] | (add // 0) / $cc) as $rl |
       ($out[$r].fixed // 0) as $rfix |
       ($out[$r].dismissed // 0) as $rdis |
-      "  rule \($r): runs=\($rr) checks=\($cc) flagged=\($ff) cost_usd=\($rc) cost_per_run=\(if $rr == 0 then 0 else $rc / $rr end) mean_latency_ms=\($rl | floor) fixed=\($rfix) dismissed=\($rdis) fixed_rate=\(if $rfix + $rdis == 0 then "n/a" else $rfix / ($rfix + $rdis) end)"
-    ))[])' "$record"
-  jq -rs --slurpfile rules "$RULES_FILE" '
-    ([.[] | select(.kind == "check")] | group_by(.rule) | map({
-      key: .[0].rule,
-      value: {runs: ([.[] | .run_id] | unique | length)}
-    }) | from_entries) as $by_rule |
-    ([.[] | select(.kind == "outcome")] | group_by(.rule) | map({
-      key: .[0].rule,
-      value: {fixed: ([.[] | select(.verdict == "fixed")] | length),
-              dismissed: ([.[] | select(.verdict == "dismissed")] | length)}
-    }) | from_entries) as $out |
+      "  rule \($r): runs=\($rr) checks=\($cc) flagged=\($ff) cost_usd=\($rc) cost_per_run=\(if $rr == 0 then 0 else $rc / $rr end) mean_latency_ms=\($rl | floor) fixed=\($rfix) dismissed=\($rdis) fixed_rate=\(if $rfix + $rdis == 0 then "n/a" else $rfix / ($rfix + $rdis) end)"),
     ($rules[0].rules | to_entries[] |
       .key as $r | .value.enabled as $en |
-      ($by_rule[$r].runs // 0) as $runs |
+      ([($by_rule[$r] // [])[] | .run_id] | unique | length) as $runs |
       (($out[$r].fixed // 0) + ($out[$r].dismissed // 0)) as $res |
       (if $res == 0 then 1 else ($out[$r].fixed // 0) / $res end) as $prec |
       if $en and $runs >= 20 and $prec < 0.80
