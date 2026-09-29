@@ -368,6 +368,24 @@ Two firstmate-specific rules layer on top of that guidance:
 EOF
 }
 
+# The per-host validation slot, written once and emitted beside both
+# no-mistakes start instructions, the way this file's other blocks are
+# shared. bin/fm-nm-slot.sh owns the mechanism and the exit codes; the bounded
+# --wait keeps its slot lock held only across the first start's registration,
+# and the driving block owns every later drive and reattach call, which never
+# claims a slot because a reattach creates no new run.
+fm_nm_slot_block() {
+  local slot_bin
+  slot_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-nm-slot.sh"
+  cat <<EOF
+Before starting the run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s\`.
+The script checks the host's active validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that first start so two workers cannot both squeeze in.
+On exit 1 the host is at its limit: append one \`paused [at=<epoch>]: validation slot full; waiting for a running validation to finish\` line, retry on a bounded backoff (60s first, doubling to a 10m cap), and start the run the moment a retry passes.
+On exit 2 the count or the limit could not be read: append \`blocked [at=<epoch>]: {the script's exact error}\` and stop.
+Once that first start returns, make every later drive and reattach call exactly as the rules below describe, without the wrapper: only the first start claims a slot.
+EOF
+}
+
 # How a worker on a forge=gerrit project publishes, shared by both publishing
 # modes so the one push, the Change-Id rule, and the ready report are written
 # once. gerrit-axi owns the squash mechanics; this names the one call and what
@@ -465,6 +483,10 @@ EOF
 When your implementation is committed, start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
+      fm_nm_slot_block
+      cat <<EOF
+
+EOF
       fm_nm_driving_block "$forge"
       cat <<EOF
 
@@ -535,6 +557,10 @@ EOF
       cat <<EOF
 
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
+
+EOF
+      fm_nm_slot_block
+      cat <<EOF
 
 EOF
       fm_nm_driving_block "$forge"

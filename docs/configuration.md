@@ -14,6 +14,7 @@ Start with the directory layout, then use the setting reference for the behavior
 | Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), and [Calm preference](#calm-preference-configcalm) |
 | Persistent secondmates | [Secondmate routes](#secondmate-routes-datasecondmatesmd) |
 | Per-run overrides and tuning | [Environment variables](#environment-variables) |
+| Concurrent validations on this host | [Validation slot limit](#validation-slot-limit-host-level) |
 
 ## FM_HOME
 
@@ -632,6 +633,20 @@ Where the repository documents no standard, the skill's code-smell baseline is a
 Being trusted configuration, this too is honored only from the default-branch copy.
 
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.
+
+## Validation slot limit (host-level)
+
+Ship workers claim a validation slot before their first no-mistakes run start, so concurrent validations on one machine cannot exhaust its memory and get the no-mistakes daemon killed mid-run; `bin/fm-nm-slot.sh` owns the mechanism and its exit codes.
+The cap is per host, not fleet-wide, and every firstmate home on the host shares one slot lock and one active-run count; there is deliberately no cross-host coordination, and each host is sized to its own RAM.
+
+| Setting | Location | Default |
+| --- | --- | --- |
+| Maximum concurrent no-mistakes validations on this host | `${XDG_CONFIG_HOME:-$HOME/.config}/firstmate/nm-max-concurrent-validations` | `3` |
+
+The file holds one plain positive integer.
+An absent file means the default, and any other content refuses the start with a clear message instead of falling back.
+The setting is host-level: it is deliberately outside `FM_HOME`, so secondmate inheritance and propagation never see it.
+The active-run count comes from the host's no-mistakes daemon state store, and when it cannot be read the script refuses with the exact error rather than guessing a count.
 
 ## Captain Preferences (data/captain.md / data/captain-shared.md)
 
