@@ -317,33 +317,65 @@ done
 
 NOFLOCK_BIN="$ENV_ROOT/noflock-bin"
 mkdir -p "$NOFLOCK_BIN"
-for tool in bash env python3 sqlite3 mkdir mktemp grep tail cat dirname basename timeout rm awk; do
+BOUNDING_TOOL=''
+for tool in bash env python3 sqlite3 mkdir mktemp grep tail cat dirname basename rm awk timeout gtimeout perl; do
   tool_path=$(command -v "$tool") || continue
   ln -sf "$tool_path" "$NOFLOCK_BIN/$tool"
+  case $tool in timeout | gtimeout | perl) BOUNDING_TOOL=${BOUNDING_TOOL:-$tool} ;; esac
 done
 [ ! -e "$NOFLOCK_BIN/flock" ] || fail "the flock-less PATH must not expose flock"
 
-# run_noflock <args...>: drive the gate with a PATH that has no flock binary.
-run_noflock() {
-  RUN_OUT=$(PATH="$NOFLOCK_BIN" "$SLOT" "$@" 2>"$ERR_FILE")
+if [ -z "$BOUNDING_TOOL" ]; then
+  echo "skip: no bounding tool (timeout, gtimeout or perl) for the flock-less lock path"
+else
+  # run_noflock <args...>: drive the gate with a PATH that has no flock binary.
+  run_noflock() {
+    RUN_OUT=$(PATH="$NOFLOCK_BIN" "$SLOT" "$@" 2>"$ERR_FILE")
+    RUN_STATUS=$?
+    RUN_ERR=$(cat "$ERR_FILE")
+  }
+
+  clear_limit_file
+  seed_db executing:1
+  run_noflock "$FAKE_START"
+  [ "$RUN_STATUS" -eq 0 ] \
+    || fail "a host without flock must still admit below the limit, got $RUN_STATUS: $RUN_ERR"
+  [ -z "$RUN_ERR" ] \
+    || fail "an admitted start on a flock-less host must stay silent on stderr, got: $RUN_ERR"
+
+  seed_db executing:3
+  run_noflock "$FAKE_START"
+  [ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+    || fail "a host without flock must still wait at the limit, got $RUN_STATUS: $RUN_ERR"
+
+  assert_serialised "the python3 lock" "$NOFLOCK_BIN"
+
+  # An unopenable lock file must refuse like the flock branch, not surface a
+  # python traceback as the start command's own failure.
+  UNUSABLE_LOCK="$ENV_ROOT/unusable-runtime"
+  mkdir -p "$UNUSABLE_LOCK/firstmate/nm-validation-slot.lock"
+  seed_db executing:1
+  RUN_OUT=$(PATH="$NOFLOCK_BIN" XDG_RUNTIME_DIR="$UNUSABLE_LOCK" "$SLOT" "$FAKE_START" 2>"$ERR_FILE")
   RUN_STATUS=$?
   RUN_ERR=$(cat "$ERR_FILE")
-}
+  [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] \
+    || fail "an unopenable slot lock must refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
+  [ "$(printf '%s' "$RUN_ERR" | wc -l | tr -d ' ')" -eq 0 ] \
+    || fail "the lock refusal must be one line, got: $RUN_ERR"
 
-clear_limit_file
-seed_db executing:1
-run_noflock "$FAKE_START"
-[ "$RUN_STATUS" -eq 0 ] \
-  || fail "a host without flock must still admit below the limit, got $RUN_STATUS: $RUN_ERR"
-[ -z "$RUN_ERR" ] \
-  || fail "an admitted start on a flock-less host must stay silent on stderr, got: $RUN_ERR"
-
-seed_db executing:3
-run_noflock "$FAKE_START"
-[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
-  || fail "a host without flock must still wait at the limit, got $RUN_STATUS: $RUN_ERR"
-
-assert_serialised "the python3 lock" "$NOFLOCK_BIN"
+  # The lock-held marker must not reach the started command or its children.
+  MARKER_PROBE="$ENV_ROOT/marker-probe"
+  cat > "$MARKER_PROBE" <<'PROBE'
+#!/usr/bin/env bash
+printf 'marker=[%s]\n' "${FM_NM_SLOT_LOCK_HELD:-}"
+PROBE
+  chmod +x "$MARKER_PROBE"
+  seed_db executing:1
+  run_noflock "$MARKER_PROBE"
+  [ "$RUN_STATUS" -eq 0 ] || fail "the marker probe should run, got $RUN_STATUS: $RUN_ERR"
+  printf '%s' "$RUN_OUT" | grep -qF 'marker=[]' \
+    || fail "the lock-held marker must not leak into the started command, got: $RUN_OUT"
+fi
 
 # --- the ship briefs route their start through this wrapper ------------------
 # The rendered brief is the generated agent-facing interface that applies the

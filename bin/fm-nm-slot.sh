@@ -144,9 +144,14 @@ import os
 import sys
 import time
 
-lock_path, wait_secs, wait_code = sys.argv[1], float(sys.argv[2]), int(sys.argv[3])
-command = sys.argv[4:]
-fd = os.open(lock_path, os.O_CREAT | os.O_WRONLY, 0o600)
+lock_path, wait_secs = sys.argv[1], float(sys.argv[2])
+wait_code, refusal_code = int(sys.argv[3]), int(sys.argv[4])
+command = sys.argv[5:]
+try:
+    fd = os.open(lock_path, os.O_CREAT | os.O_WRONLY, 0o600)
+except OSError:
+    sys.stderr.write("error: cannot open slot lock %s\n" % lock_path)
+    sys.exit(refusal_code)
 deadline = time.monotonic() + wait_secs
 while True:
     try:
@@ -159,10 +164,15 @@ while True:
             sys.exit(wait_code)
         time.sleep(0.2)
 os.dup2(fd, 9)
-os.execvp(command[0], command)
-' "$lock_path" 120 "$FM_NM_SLOT_WAIT" bash "$0" "$@"
+try:
+    os.execvp(command[0], command)
+except OSError:
+    sys.stderr.write("error: cannot run %s while holding slot lock %s\n" % (command[0], lock_path))
+    sys.exit(refusal_code)
+' "$lock_path" 120 "$FM_NM_SLOT_WAIT" "$FM_NM_SLOT_REFUSAL" bash "$0" "$@"
   fi
 fi
+unset FM_NM_SLOT_LOCK_HELD
 [ -f "$nm_db" ] \
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
