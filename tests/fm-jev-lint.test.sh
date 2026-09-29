@@ -3,11 +3,13 @@
 #
 # Drives the public argv interface with a fixture diff, a fakebin curl that
 # answers the real call shim, and a scratch record. No network, no key on the
-# wire: the fake curl fails loudly unless a test hands it per-rule
-# probabilities, so a production network path attempt fails the test instead of
-# calling out. Those probabilities pin cutoff application exactly, and the
-# scorer test hand-computes every number from a record fixture written to the
-# documented record contract (docs/configuration.md "Jev self-check record").
+# wire: the fake curl refuses to answer unless a test hands it per-rule
+# probabilities, so a request that escaped the suite's control can only be
+# recorded as unavailable. What a subject was dispatched at all is asserted on
+# the record instead - the secret-drop test requires zero check lines. The
+# probabilities pin cutoff application exactly, and the scorer test
+# hand-computes every number from a record fixture written to the documented
+# record contract (docs/configuration.md "Jev self-check record").
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -328,8 +330,6 @@ test_secret_content_is_dropped() {
   out=$(env -u TYPESAFE_API_KEY -u FM_FAKE_JEV_PROBS FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
     "$TOOL" check --diff-file "$SECRETDIFF" --record "$rec" 2> "$TMP_ROOT/secret.err"); rc=$?
   [ "$rc" -eq 0 ] || fail "check still exits 0 (rc=$rc): $(cat "$TMP_ROOT/secret.err")"
-  grep -q 'fake curl must never run' "$TMP_ROOT/secret.err" \
-    && fail "a subject carrying a key must never reach the network"
   echo "$out" | grep -q 'finding' && fail "a dropped subject yields no finding: $out"
   grep -q 'REALKEY123' "$rec" && fail "a dropped subject must never reach the record"
   grep -q 'zzz111' "$rec" && fail "a lowercase secret assignment must never reach the record"
