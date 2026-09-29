@@ -644,7 +644,7 @@ The cap is per host, not fleet-wide, and every firstmate home on the host shares
 | Maximum concurrent no-mistakes validations on this host | `${XDG_CONFIG_HOME:-$HOME/.config}/firstmate/nm-max-concurrent-validations` | `3` |
 
 The file holds one plain positive integer.
-The gate needs `python3` on the host to read the daemon's state store, and uses `flock` for the host-wide start mutex when it is present; where `flock` is absent (macOS) the cap is still enforced on the count alone and the start warns that concurrent starts are not serialised.
+The gate needs `python3` on the host: it reads the daemon's state store, and takes the host-wide start mutex through `fcntl.flock` where the `flock` binary is absent (macOS), so the lock is held across the count-then-start window on every host.
 An absent file means the default, and any other content refuses the start with a clear message instead of falling back.
 The setting is host-level: it is deliberately outside `FM_HOME`, so secondmate inheritance and propagation never see it.
 The count comes from the host's no-mistakes daemon state store, and when it cannot be read the script refuses with the exact error rather than guessing a count.

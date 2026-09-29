@@ -5,16 +5,16 @@
 # Concurrent no-mistakes validations on one machine can exhaust its memory and
 # get the daemon killed mid-run. This gate is per host, not fleet-wide, and
 # every firstmate home on the host shares one cap; there is deliberately no
-# cross-host coordination. The mechanism: take one host-wide flock mutex, read
+# cross-host coordination. The mechanism: take one host-wide mutex, read
 # the count of the daemon's executing runs, and only while that count is below
 # the limit run the wrapped start command with the lock still held, so two
 # workers cannot both see room and both start. The wrapped command must
 # register its run before it returns (a bounded `--wait` start does), so the
 # next caller's count includes it.
-# Where flock is absent (macOS, as bin/fm-spend-ledger-append.sh already
-# handles), the cap is still enforced on the count alone and the start warns on
-# stderr: the ceiling is that two starts racing inside the same count window can
-# both be admitted, which beats stopping every validation on the host.
+# The mutex is the same advisory lock on the same file either way: the flock
+# binary where the host has it, otherwise python3's fcntl.flock, which re-execs
+# this script with the locked descriptor on fd 9. python3 is already required
+# for the count below, so every host takes the lock and none degrades.
 #
 # Every run counts that bin/fm-nm-run-lib.sh's fm_nm_run_status_class, the
 # repo's owner of the daemon's status words, does not call terminal - a status
@@ -124,20 +124,45 @@ fi
 
 mkdir -p "$(dirname "$lock_path")" 2>/dev/null \
   || die_refusal "cannot create slot lock directory $(dirname "$lock_path")"
-if command -v flock >/dev/null 2>&1; then
-  if ! { exec 9>"$lock_path"; } 2>/dev/null; then
-    die_refusal "cannot open slot lock $lock_path"
-  fi
-  if ! flock -w 120 9; then
-    echo "wait: slot lock busy at $lock_path; another validation start is in flight" >&2
-    exit "$FM_NM_SLOT_WAIT"
-  fi
-else
-  echo "warning: flock is not on PATH; the cap is enforced on the count alone and concurrent starts on this host are not serialised" >&2
-fi
 
 command -v python3 >/dev/null 2>&1 \
-  || die_refusal "python3 is not on PATH; cannot read the no-mistakes daemon state"
+  || die_refusal "python3 is not on PATH; cannot take the host slot lock or read the no-mistakes daemon state"
+
+if [ -z "${FM_NM_SLOT_LOCK_HELD:-}" ]; then
+  if command -v flock >/dev/null 2>&1; then
+    if ! { exec 9>"$lock_path"; } 2>/dev/null; then
+      die_refusal "cannot open slot lock $lock_path"
+    fi
+    if ! flock -w 120 9; then
+      echo "wait: slot lock busy at $lock_path; another validation start is in flight" >&2
+      exit "$FM_NM_SLOT_WAIT"
+    fi
+  else
+    FM_NM_SLOT_LOCK_HELD=1 exec python3 -c '
+import fcntl
+import os
+import sys
+import time
+
+lock_path, wait_secs, wait_code = sys.argv[1], float(sys.argv[2]), int(sys.argv[3])
+command = sys.argv[4:]
+fd = os.open(lock_path, os.O_CREAT | os.O_WRONLY, 0o600)
+deadline = time.monotonic() + wait_secs
+while True:
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        break
+    except OSError:
+        if time.monotonic() >= deadline:
+            sys.stderr.write(
+                "wait: slot lock busy at %s; another validation start is in flight\n" % lock_path)
+            sys.exit(wait_code)
+        time.sleep(0.2)
+os.dup2(fd, 9)
+os.execvp(command[0], command)
+' "$lock_path" 120 "$FM_NM_SLOT_WAIT" bash "$0" "$@"
+  fi
+fi
 [ -f "$nm_db" ] \
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \

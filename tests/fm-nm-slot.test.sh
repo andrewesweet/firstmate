@@ -16,9 +16,9 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 command -v sqlite3 >/dev/null 2>&1 \
-  || fail "sqlite3 is required to fake the no-mistakes daemon state"
-command -v flock >/dev/null 2>&1 \
-  || fail "flock is required to exercise the slot mutex"
+  || { echo "skip: sqlite3 is required to fake the no-mistakes daemon state"; exit 0; }
+command -v python3 >/dev/null 2>&1 \
+  || { echo "skip: python3 is required to read the daemon state and take the slot lock"; exit 0; }
 
 SLOT="$ROOT/bin/fm-nm-slot.sh"
 WAIT_CODE=75
@@ -262,8 +262,6 @@ run_slot
 
 # --- two concurrent callers at limit-1 admit exactly one ---------------------
 
-seed_db executing:2 terminal:1
-: > "$START_LOG"
 REGISTERING_START="$ENV_ROOT/registering-start"
 cat > "$REGISTERING_START" <<EOF
 #!/usr/bin/env bash
@@ -272,21 +270,34 @@ sqlite3 '$DB' "INSERT INTO runs VALUES ('new-start','running',NULL);
 echo started >> '$START_LOG'
 EOF
 chmod +x "$REGISTERING_START"
-"$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c1-out" 2>"$ENV_ROOT/c1-err" &
-PID1=$!
-"$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c2-out" 2>"$ENV_ROOT/c2-err" &
-PID2=$!
-wait "$PID1"; STATUS1=$?
-wait "$PID2"; STATUS2=$?
-ADMITTED=0
-WAITED=0
-[ "$STATUS1" -eq 0 ] && ADMITTED=$((ADMITTED + 1))
-[ "$STATUS2" -eq 0 ] && ADMITTED=$((ADMITTED + 1))
-[ "$STATUS1" -eq "$WAIT_CODE" ] && WAITED=$((WAITED + 1))
-[ "$STATUS2" -eq "$WAIT_CODE" ] && WAITED=$((WAITED + 1))
-[ "$ADMITTED" -eq 1 ] || fail "exactly one concurrent caller should be admitted, got $ADMITTED (statuses $STATUS1/$STATUS2)"
-[ "$WAITED" -eq 1 ] || fail "exactly one concurrent caller should wait, got $WAITED (statuses $STATUS1/$STATUS2)"
-[ "$(started_count)" -eq 1 ] || fail "the wrapped start must run exactly once, ran $(started_count) times"
+
+# assert_serialised <label> <PATH for the gate>: two callers race one free
+# slot; the mutex must let exactly one through whichever lock implementation
+# the gate's PATH leaves it.
+assert_serialised() {
+  local label=$1 slot_path=$2 status1 status2 admitted=0 waited=0
+  seed_db executing:2 terminal:1
+  : > "$START_LOG"
+  PATH="$slot_path" "$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c1-out" 2>"$ENV_ROOT/c1-err" &
+  local pid1=$!
+  PATH="$slot_path" "$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c2-out" 2>"$ENV_ROOT/c2-err" &
+  local pid2=$!
+  wait "$pid1"; status1=$?
+  wait "$pid2"; status2=$?
+  [ "$status1" -eq 0 ] && admitted=$((admitted + 1))
+  [ "$status2" -eq 0 ] && admitted=$((admitted + 1))
+  [ "$status1" -eq "$WAIT_CODE" ] && waited=$((waited + 1))
+  [ "$status2" -eq "$WAIT_CODE" ] && waited=$((waited + 1))
+  [ "$admitted" -eq 1 ] || fail "$label: exactly one concurrent caller should be admitted, got $admitted (statuses $status1/$status2)"
+  [ "$waited" -eq 1 ] || fail "$label: exactly one concurrent caller should wait, got $waited (statuses $status1/$status2)"
+  [ "$(started_count)" -eq 1 ] || fail "$label: the wrapped start must run exactly once, ran $(started_count) times"
+}
+
+if command -v flock >/dev/null 2>&1; then
+  assert_serialised "the flock lock" "$PATH"
+else
+  echo "skip: flock is absent, so only the python3 lock path is exercised"
+fi
 
 # --- a wrapped command's own failure codes reach the caller unchanged --------
 
@@ -300,38 +311,39 @@ for code in 1 2 7; do
     || fail "a wrapped command exiting $code must surface as $code, got $RUN_STATUS"
 done
 
-# --- a host without flock still enforces the cap, with a warning -------------
-# macOS worker hosts have no flock; the cap must fall back to the count alone
-# rather than stopping every validation on the host.
+# --- a host without the flock binary keeps the same mutex --------------------
+# macOS worker hosts have no flock; the gate must take the same host-wide lock
+# through python3 rather than admitting an unserialised start.
 
 NOFLOCK_BIN="$ENV_ROOT/noflock-bin"
 mkdir -p "$NOFLOCK_BIN"
-for tool in bash env python3 mkdir mktemp grep tail cat dirname basename timeout rm awk; do
+for tool in bash env python3 sqlite3 mkdir mktemp grep tail cat dirname basename timeout rm awk; do
   tool_path=$(command -v "$tool") || continue
   ln -sf "$tool_path" "$NOFLOCK_BIN/$tool"
 done
-command -v flock >/dev/null 2>&1 && [ ! -e "$NOFLOCK_BIN/flock" ] \
-  || fail "the flock-less PATH must not expose flock"
+[ ! -e "$NOFLOCK_BIN/flock" ] || fail "the flock-less PATH must not expose flock"
+
+# run_noflock <args...>: drive the gate with a PATH that has no flock binary.
+run_noflock() {
+  RUN_OUT=$(PATH="$NOFLOCK_BIN" "$SLOT" "$@" 2>"$ERR_FILE")
+  RUN_STATUS=$?
+  RUN_ERR=$(cat "$ERR_FILE")
+}
 
 clear_limit_file
 seed_db executing:1
-CLEAN_PATH=$PATH
-PATH="$NOFLOCK_BIN"
-run_slot "$FAKE_START"
-PATH=$CLEAN_PATH
+run_noflock "$FAKE_START"
 [ "$RUN_STATUS" -eq 0 ] \
   || fail "a host without flock must still admit below the limit, got $RUN_STATUS: $RUN_ERR"
-printf '%s' "$RUN_ERR" | grep -q 'flock' \
-  || fail "a flock-less host must warn that starts are not serialised, got: $RUN_ERR"
-[ "$(printf '%s' "$RUN_ERR" | wc -l | tr -d ' ')" -eq 0 ] \
-  || fail "the flock-less warning must be one line, got: $RUN_ERR"
+[ -z "$RUN_ERR" ] \
+  || fail "an admitted start on a flock-less host must stay silent on stderr, got: $RUN_ERR"
 
 seed_db executing:3
-PATH="$NOFLOCK_BIN"
-run_slot "$FAKE_START"
-PATH=$CLEAN_PATH
+run_noflock "$FAKE_START"
 [ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
   || fail "a host without flock must still wait at the limit, got $RUN_STATUS: $RUN_ERR"
+
+assert_serialised "the python3 lock" "$NOFLOCK_BIN"
 
 # --- the ship briefs route their start through this wrapper ------------------
 # The rendered brief is the generated agent-facing interface that applies the
