@@ -1628,9 +1628,9 @@ The Herdr refusal when a shell accepts the command but does not move is not exer
 
 ### Pane cwd after a builtin cd into the leased copy
 
-Measured 2026-09-28 on Linux x86_64 (WSL2) against Herdr 0.9.0 in an isolated `fm-lab-` session, because spawn now tells the pane `cd -- '<leased copy>'` in its own top-level shell instead of opening a worktree subshell, and `fm_backend_herdr_current_path` settles the spawn on `.result.pane.foreground_cwd`.
+Measured 2026-09-28 on Linux x86_64 (WSL2) against Herdr 0.9.0 in an isolated `fm-lab-` session, because spawn now tells the pane to enter the leased copy itself rather than running `treehouse get` there, and `fm_backend_herdr_current_path` settles the spawn on `.result.pane.foreground_cwd`.
 
-A builtin `cd` leaves no foreground child, so the question was whether that field still tracks the pane after it goes idle. It does: both `cwd` and `foreground_cwd` report the leased copy within one second of the `cd`, and hold it for at least ten.
+The bare builtin `cd` measured here is the weaker case: spawn sends `(cd -- '<leased copy>' && exec "${SHELL:-/bin/sh}")`, which leaves a live foreground child that field is designed to report, while a builtin `cd` leaves none. So the question was whether that field still tracks the pane after it goes idle with no child at all. It does: both `cwd` and `foreground_cwd` report the leased copy within one second of the `cd`, and hold it for at least ten.
 
 ```sh
 herdr pane get w1:p1 --session "$LAB" | jq -c '{cwd:.result.pane.cwd, fg:.result.pane.foreground_cwd}'
