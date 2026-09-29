@@ -644,10 +644,10 @@ The cap is per host, not fleet-wide, and every firstmate home on the host shares
 | Maximum concurrent no-mistakes validations on this host | `${XDG_CONFIG_HOME:-$HOME/.config}/firstmate/nm-max-concurrent-validations` | `3` |
 
 The file holds one plain positive integer.
-The gate needs `python3` on the host: it reads the daemon's state store, and takes the host-wide start mutex through `fcntl.flock` where the `flock` binary is absent (macOS), so the lock is held across the count-then-start window on every host.
+The gate needs `python3` on the host: it takes the host-wide start mutex through `fcntl.flock` and reads the daemon's state store, so the one lock is held across the count-then-start window on every host, macOS included.
 An absent file means the default, and any other content refuses the start with a clear message instead of falling back.
 The setting is host-level: it is deliberately outside `FM_HOME`, so secondmate inheritance and propagation never see it.
-The count comes from the host's no-mistakes daemon state store, and when it cannot be read the script refuses with the exact error rather than guessing a count.
+The count comes from the host's no-mistakes daemon state store; a store that does not exist yet records no run, so the count is zero and the start is admitted, while any other read failure refuses with the exact error rather than guessing a count.
 Every run counts that the repository's status-word owner does not classify as terminal - an unrecognised word holds a slot rather than vanishing from the count - including one sitting between steps, except a run parked waiting on its agent at a gate and a run whose only executing step is the forge CI wait; neither of those holds the memory the cap protects, so a host of parked runs cannot starve every worker.
 There is deliberately no liveness or staleness bound: a run abandoned mid-step keeps its place in the count until an operator cancels it, and the wait message names the counted run ids so the operator knows which ones to look at.
 The script signals its own decisions with exit codes the no-mistakes CLI does not use - 75 when the host is at its limit and the worker must wait, 78 when the limit or the count could not be read - so a start command's own failure is never read as a full slot.

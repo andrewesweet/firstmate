@@ -11,10 +11,11 @@
 # workers cannot both see room and both start. The wrapped command must
 # register its run before it returns (a bounded `--wait` start does), so the
 # next caller's count includes it.
-# The mutex is the same advisory lock on the same file either way: the flock
-# binary where the host has it, otherwise python3's fcntl.flock, which re-execs
-# this script with the locked descriptor on fd 9. python3 is already required
-# for the count below, so every host takes the lock and none degrades.
+# The mutex is one advisory lock, taken through python3's fcntl.flock, which
+# re-execs this script with the locked descriptor on fd 9 - already open when
+# the re-exec lands, which is how this script knows the lock is held. python3 is
+# required for the count below too, so every host locks the same way, including
+# macOS where the flock binary is absent.
 #
 # Every run counts that bin/fm-nm-run-lib.sh's fm_nm_run_status_class, the
 # repo's owner of the daemon's status words, does not call terminal - a status
@@ -43,11 +44,13 @@
 # does). The CLI has no host-wide machine-readable run listing - its listings
 # are repository-scoped - so the count is a read-only SQL query through the
 # same python3 sqlite3 read-only URI reader the repo's other store reader
-# uses, and rendered CLI text is never parsed. If the count cannot be read
-# (python3 missing, store missing, or the query failing), this script refuses
-# with the reader's own last error line, collapsed to the one line the worker
-# writes into its status file, and never guesses a count; a stale store left by
-# a stopped daemon can only admit a start that then fails visibly at the CLI.
+# uses, and rendered CLI text is never parsed. A store file that does not exist
+# yet records no run at all, so the count is zero and the start is admitted.
+# Every other read failure (python3 missing, no bounding tool, a SQL error, a
+# corrupt store) is a host fault firstmate must see: this script refuses with
+# the reader's own last error line, collapsed to the one line the worker writes
+# into its status file, and never guesses a count; a stale store left by a
+# stopped daemon can only admit a start that then fails visibly at the CLI.
 #
 # The lock lives at ${XDG_RUNTIME_DIR:-$HOME/.cache}/firstmate/
 # nm-validation-slot.lock, outside every FM_HOME, and is held only across the
@@ -135,17 +138,8 @@ mkdir -p "$(dirname "$lock_path")" 2>/dev/null \
 command -v python3 >/dev/null 2>&1 \
   || die_refusal "python3 is not on PATH; cannot take the host slot lock or read the no-mistakes daemon state"
 
-if [ -z "${FM_NM_SLOT_LOCK_HELD:-}" ]; then
-  if command -v flock >/dev/null 2>&1; then
-    if ! { exec 9>"$lock_path"; } 2>/dev/null; then
-      die_refusal "cannot open slot lock $lock_path"
-    fi
-    if ! flock -w 120 9; then
-      echo "wait: slot lock busy at $lock_path; another validation start is in flight" >&2
-      exit "$FM_NM_SLOT_WAIT"
-    fi
-  else
-    FM_NM_SLOT_LOCK_HELD=1 exec python3 -c '
+if ! { true >&9; } 2>/dev/null; then
+  exec python3 -c '
 import errno
 import fcntl
 import os
@@ -178,11 +172,8 @@ except OSError as exc:
     sys.stderr.write("error: cannot run %s while holding slot lock %s\n" % (command[0], lock_path))
     sys.exit(126 if exc.errno == errno.EACCES else 127)
 ' "$lock_path" 120 "$FM_NM_SLOT_WAIT" "$FM_NM_SLOT_REFUSAL" bash "$0" "$@"
-  fi
 fi
-unset FM_NM_SLOT_LOCK_HELD
-[ -f "$nm_db" ] \
-  || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
+
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
   || die_refusal "cannot create a reader error file beside $lock_path"
 trap 'rm -f "$reader_err"' EXIT
@@ -197,7 +188,9 @@ reader_error() {
   printf '%s' "$line"
 }
 
-rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>"$reader_err" <<'READER'
+rows=''
+if [ -f "$nm_db" ]; then
+  rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>"$reader_err" <<'READER'
 import sqlite3
 import sys
 from contextlib import closing
@@ -218,6 +211,7 @@ for status, run_count, run_ids in rows:
     print("%s|%s|%s" % (status, run_count, run_ids))
 READER
 ) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $(reader_error)"
+fi
 
 count=0
 counted_ids=''

@@ -212,9 +212,12 @@ done
 clear_limit_file
 seed_db terminal:1
 mv "$DB" "$DB.bak"
+: > "$START_LOG"
 run_slot "$FAKE_START"
-[ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] || fail "missing daemon store should refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
-printf '%s' "$RUN_ERR" | grep -qF "$DB" || fail "refusal must name the store path, got: $RUN_ERR"
+[ "$RUN_STATUS" -eq 0 ] \
+  || fail "a store no daemon has created yet records no run and must admit, got $RUN_STATUS: $RUN_ERR"
+[ "$(started_count)" -eq 1 ] \
+  || fail "the wrapped start must run when the store is absent, ran $(started_count) times"
 
 printf 'this is not a sqlite database\n' > "$DB"
 run_slot "$FAKE_START"
@@ -249,8 +252,10 @@ run_slot "$FAKE_START"
   || fail "a real run must still count when the reader warns on stderr, got $RUN_STATUS: $RUN_ERR"
 printf '%s' "$RUN_ERR" | grep -q 'exec-1' \
   || fail "wait reason must name the real counted run, got: $RUN_ERR"
-! printf '%s' "$RUN_ERR" | grep -q 'mise WARN' \
-  || fail "reader stderr must not reach the wait message, got: $RUN_ERR"
+WAIT_LINE=$(printf '%s\n' "$RUN_ERR" | grep '^wait: ') \
+  || fail "the wait message must survive a noisy reader, got: $RUN_ERR"
+! printf '%s' "$WAIT_LINE" | grep -q 'mise WARN' \
+  || fail "reader stderr must not reach the wait message, got: $WAIT_LINE"
 PATH=$CLEAN_PATH
 clear_limit_file
 
@@ -271,33 +276,23 @@ echo started >> '$START_LOG'
 EOF
 chmod +x "$REGISTERING_START"
 
-# assert_serialised <label> <PATH for the gate>: two callers race one free
-# slot; the mutex must let exactly one through whichever lock implementation
-# the gate's PATH leaves it.
-assert_serialised() {
-  local label=$1 slot_path=$2 status1 status2 admitted=0 waited=0
-  seed_db executing:2 terminal:1
-  : > "$START_LOG"
-  PATH="$slot_path" "$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c1-out" 2>"$ENV_ROOT/c1-err" &
-  local pid1=$!
-  PATH="$slot_path" "$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c2-out" 2>"$ENV_ROOT/c2-err" &
-  local pid2=$!
-  wait "$pid1"; status1=$?
-  wait "$pid2"; status2=$?
-  [ "$status1" -eq 0 ] && admitted=$((admitted + 1))
-  [ "$status2" -eq 0 ] && admitted=$((admitted + 1))
-  [ "$status1" -eq "$WAIT_CODE" ] && waited=$((waited + 1))
-  [ "$status2" -eq "$WAIT_CODE" ] && waited=$((waited + 1))
-  [ "$admitted" -eq 1 ] || fail "$label: exactly one concurrent caller should be admitted, got $admitted (statuses $status1/$status2)"
-  [ "$waited" -eq 1 ] || fail "$label: exactly one concurrent caller should wait, got $waited (statuses $status1/$status2)"
-  [ "$(started_count)" -eq 1 ] || fail "$label: the wrapped start must run exactly once, ran $(started_count) times"
-}
-
-if command -v flock >/dev/null 2>&1; then
-  assert_serialised "the flock lock" "$PATH"
-else
-  echo "skip: flock is absent, so only the python3 lock path is exercised"
-fi
+seed_db executing:2 terminal:1
+: > "$START_LOG"
+"$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c1-out" 2>"$ENV_ROOT/c1-err" &
+PID1=$!
+"$SLOT" "$REGISTERING_START" >"$ENV_ROOT/c2-out" 2>"$ENV_ROOT/c2-err" &
+PID2=$!
+wait "$PID1"; STATUS1=$?
+wait "$PID2"; STATUS2=$?
+ADMITTED=0
+WAITED=0
+[ "$STATUS1" -eq 0 ] && ADMITTED=$((ADMITTED + 1))
+[ "$STATUS2" -eq 0 ] && ADMITTED=$((ADMITTED + 1))
+[ "$STATUS1" -eq "$WAIT_CODE" ] && WAITED=$((WAITED + 1))
+[ "$STATUS2" -eq "$WAIT_CODE" ] && WAITED=$((WAITED + 1))
+[ "$ADMITTED" -eq 1 ] || fail "exactly one concurrent caller should be admitted, got $ADMITTED (statuses $STATUS1/$STATUS2)"
+[ "$WAITED" -eq 1 ] || fail "exactly one concurrent caller should wait, got $WAITED (statuses $STATUS1/$STATUS2)"
+[ "$(started_count)" -eq 1 ] || fail "the wrapped start must run exactly once, ran $(started_count) times"
 
 # --- a wrapped command's own failure codes reach the caller unchanged --------
 
@@ -311,78 +306,34 @@ for code in 1 2 7; do
     || fail "a wrapped command exiting $code must surface as $code, got $RUN_STATUS"
 done
 
-# --- a host without the flock binary keeps the same mutex --------------------
-# macOS worker hosts have no flock; the gate must take the same host-wide lock
-# through python3 rather than admitting an unserialised start.
+# --- the gate's own failure modes on the one lock path -----------------------
 
-NOFLOCK_BIN="$ENV_ROOT/noflock-bin"
-mkdir -p "$NOFLOCK_BIN"
-BOUNDING_TOOL=''
-for tool in bash env python3 sqlite3 mkdir mktemp grep tail cat dirname basename rm awk timeout gtimeout perl; do
-  tool_path=$(command -v "$tool") || continue
-  ln -sf "$tool_path" "$NOFLOCK_BIN/$tool"
-  case $tool in timeout | gtimeout | perl) BOUNDING_TOOL=${BOUNDING_TOOL:-$tool} ;; esac
-done
-[ ! -e "$NOFLOCK_BIN/flock" ] || fail "the flock-less PATH must not expose flock"
+# An unopenable lock file must refuse, not surface a python traceback as the
+# start command's own failure.
+UNUSABLE_LOCK="$ENV_ROOT/unusable-runtime"
+mkdir -p "$UNUSABLE_LOCK/firstmate/nm-validation-slot.lock"
+seed_db executing:1
+RUN_OUT=$(XDG_RUNTIME_DIR="$UNUSABLE_LOCK" "$SLOT" "$FAKE_START" 2>"$ERR_FILE")
+RUN_STATUS=$?
+RUN_ERR=$(cat "$ERR_FILE")
+[ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] \
+  || fail "an unopenable slot lock must refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
+[ "$(printf '%s' "$RUN_ERR" | wc -l | tr -d ' ')" -eq 0 ] \
+  || fail "the lock refusal must be one line, got: $RUN_ERR"
 
-if [ -z "$BOUNDING_TOOL" ]; then
-  echo "skip: no bounding tool (timeout, gtimeout or perl) for the flock-less lock path"
-else
-  # run_noflock <args...>: drive the gate with a PATH that has no flock binary.
-  run_noflock() {
-    RUN_OUT=$(PATH="$NOFLOCK_BIN" "$SLOT" "$@" 2>"$ERR_FILE")
-    RUN_STATUS=$?
-    RUN_ERR=$(cat "$ERR_FILE")
-  }
-
-  clear_limit_file
-  seed_db executing:1
-  run_noflock "$FAKE_START"
-  [ "$RUN_STATUS" -eq 0 ] \
-    || fail "a host without flock must still admit below the limit, got $RUN_STATUS: $RUN_ERR"
-  [ -z "$RUN_ERR" ] \
-    || fail "an admitted start on a flock-less host must stay silent on stderr, got: $RUN_ERR"
-
-  seed_db executing:3
-  run_noflock "$FAKE_START"
-  [ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
-    || fail "a host without flock must still wait at the limit, got $RUN_STATUS: $RUN_ERR"
-
-  assert_serialised "the python3 lock" "$NOFLOCK_BIN"
-
-  # An unopenable lock file must refuse like the flock branch, not surface a
-  # python traceback as the start command's own failure.
-  UNUSABLE_LOCK="$ENV_ROOT/unusable-runtime"
-  mkdir -p "$UNUSABLE_LOCK/firstmate/nm-validation-slot.lock"
-  seed_db executing:1
-  RUN_OUT=$(PATH="$NOFLOCK_BIN" XDG_RUNTIME_DIR="$UNUSABLE_LOCK" "$SLOT" "$FAKE_START" 2>"$ERR_FILE")
-  RUN_STATUS=$?
-  RUN_ERR=$(cat "$ERR_FILE")
-  [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] \
-    || fail "an unopenable slot lock must refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
-  [ "$(printf '%s' "$RUN_ERR" | wc -l | tr -d ' ')" -eq 0 ] \
-    || fail "the lock refusal must be one line, got: $RUN_ERR"
-
-  # The lock-held marker must not reach the started command or its children.
-  MARKER_PROBE="$ENV_ROOT/marker-probe"
-  cat > "$MARKER_PROBE" <<'PROBE'
+# The locked descriptor must not reach the started command, which would hold
+# the host slot for as long as the start's own children live.
+FD_PROBE="$ENV_ROOT/fd-probe"
+cat > "$FD_PROBE" <<'PROBE'
 #!/usr/bin/env bash
-printf 'marker=[%s]\n' "${FM_NM_SLOT_LOCK_HELD:-}"
+if { true >&9; } 2>/dev/null; then echo 'lock-fd=[open]'; else echo 'lock-fd=[closed]'; fi
 PROBE
-  chmod +x "$MARKER_PROBE"
-  seed_db executing:1
-  run_noflock "$MARKER_PROBE"
-  [ "$RUN_STATUS" -eq 0 ] || fail "the marker probe should run, got $RUN_STATUS: $RUN_ERR"
-  printf '%s' "$RUN_OUT" | grep -qF 'marker=[]' \
-    || fail "the lock-held marker must not leak into the started command, got: $RUN_OUT"
-
-  # A start command that cannot be executed is the command's own failure, never
-  # the gate's refusal, on either lock path.
-  seed_db executing:1
-  run_noflock "$ENV_ROOT/no-such-start-command"
-  [ "$RUN_STATUS" -eq 127 ] \
-    || fail "an unexecutable start must surface as 127 on the python3 lock path, got $RUN_STATUS: $RUN_ERR"
-fi
+chmod +x "$FD_PROBE"
+seed_db executing:1
+run_slot "$FD_PROBE"
+[ "$RUN_STATUS" -eq 0 ] || fail "the fd probe should run, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_OUT" | grep -qF 'lock-fd=[closed]' \
+  || fail "the slot lock fd must not leak into the started command, got: $RUN_OUT"
 
 seed_db executing:1
 run_slot "$ENV_ROOT/no-such-start-command"
