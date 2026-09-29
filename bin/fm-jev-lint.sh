@@ -182,10 +182,11 @@ extract_subjects() {
   /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; delete bound; next }
   /^\+\+\+ / { next }
   /^--- / { next }
+  /^\\/ { next }
   /^@@ / { in_hunk = 1; bound[n + 1] = 1; next }
   in_hunk && /^ / { lines[++n] = substr($0, 2); kinds[n] = " "; next }
-  in_hunk && /^\+/ && !/^\+\+\+/ { lines[++n] = substr($0, 2); kinds[n] = "+"; next }
-  in_hunk && /^-/ && !/^--- / { next }
+  in_hunk && /^\+/ { lines[++n] = substr($0, 2); kinds[n] = "+"; next }
+  in_hunk && /^-/ { next }
   { in_hunk = 0; next }
   function flush_file(  i, j, k, claim, ev, body, added) {
     if (file == "" || n == 0) { n = 0; return }
@@ -433,12 +434,21 @@ cmd_score() {
     ([.[] | select(.kind == "outcome" and .verdict == "fixed")] | length) as $fixed |
     ([.[] | select(.kind == "outcome" and .verdict == "dismissed")] | length) as $dismissed |
     "jev-lint score: runs=\($runs) checks=\($checks) flagged=\($flags) fixed=\($fixed) dismissed=\($dismissed) open=\($flags - $fixed - $dismissed) cost_usd=\($cost) cost_per_run=\(if $runs == 0 then 0 else $cost / $runs end) mean_latency_ms=\($lat | floor) input_tokens=\($toks)",
-    (([.[] | select(.kind == "check")] | group_by(.rule) | map(
+    (([.[] | select(.kind == "outcome")] | group_by(.rule) | map({
+      key: .[0].rule,
+      value: {fixed: ([.[] | select(.verdict == "fixed")] | length),
+              dismissed: ([.[] | select(.verdict == "dismissed")] | length)}
+    }) | from_entries) as $out |
+    ([.[] | select(.kind == "check")] | group_by(.rule) | map(
       .[0].rule as $r |
       (map(.run_id) | unique | length) as $rr |
       (length) as $cc |
       ([.[] | select(.flagged)] | length) as $ff |
-      "  rule \($r): runs=\($rr) checks=\($cc) flagged=\($ff) cost_usd=\([.[] | .cost_usd] | add // 0)"
+      ([.[] | .cost_usd] | add // 0) as $rc |
+      ([.[] | .latency_ms] | (add // 0) / $cc) as $rl |
+      ($out[$r].fixed // 0) as $rfix |
+      ($out[$r].dismissed // 0) as $rdis |
+      "  rule \($r): runs=\($rr) checks=\($cc) flagged=\($ff) cost_usd=\($rc) cost_per_run=\(if $rr == 0 then 0 else $rc / $rr end) mean_latency_ms=\($rl | floor) fixed=\($rfix) dismissed=\($rdis) fixed_rate=\(if $rfix + $rdis == 0 then "n/a" else $rfix / ($rfix + $rdis) end)"
     ))[])' "$record"
   jq -rs --slurpfile rules "$RULES_FILE" '
     ([.[] | select(.kind == "check")] | group_by(.rule) | map({
