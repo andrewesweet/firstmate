@@ -1,0 +1,7 @@
+$ fm-brief.sh lab-task-1 firstmate --mode no-mistakes   (self-check lines in the generated ship brief)
+102-Then self-review by following both axes at `~/.agents/skills/code-review/SKILL.md` - Standards (this repository's documented standards) and Spec (faithful implementation of this brief) - and fix what you find before committing to your `fm/lab-task-1` branch.
+103-Commit to `fm/lab-task-1` only: never main, and never push outside this mode's delivery path.
+104:After implementation and before starting validation, run the advisory self-check `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PZACDEJT2RM3VH33Z4FYKV/bin/fm-jev-lint.sh check` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+105:For each finding it prints, either fix the code or record why it stands with `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3PZACDEJT2RM3VH33Z4FYKV/bin/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>`.
+106-Findings are candidates only: they never gate, skip, prune, or approve validation.
+107-On this no-mistakes ship, complete everything above before starting validation; once the run starts the pipeline owns every fix, so never hand-edit during a run and never run a second review beside it. A gap you spot that a parked gate does not list enters as an added finding, as `no-mistakes axi respond --help` describes.

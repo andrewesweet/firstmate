@@ -1,0 +1,22 @@
+$ fm-jev-lint.sh resolve --id 1790700484-2476006-1 --verdict fixed --reason 'comment now matches the body'
+jev-lint: 1790700484-2476006-1 recorded as fixed
+exit: 0
+$ ... resolve --id 1790700484-2476006-6 --verdict dismissed
+jev-lint: 1790700484-2476006-6 recorded as dismissed
+exit: 0
+$ ... resolve --id 1790700484-2476006-1 (again, duplicate)
+jev-lint: error: id 1790700484-2476006-1 is already resolved in /tmp/jevlab.copfkB/home/data/jev-lint.jsonl
+exit: 2
+$ ... resolve --id bogus-9
+jev-lint: error: no flagged finding with id bogus-9 in /tmp/jevlab.copfkB/home/data/jev-lint.jsonl
+exit: 2
+=== outcome lines appended ===
+{"ts":"2026-09-29T16:48:20Z","run_id":"1790700484-2476006","kind":"outcome","id":"1790700484-2476006-1","rule":"r1","verdict":"fixed","reason":"comment now matches the body"}
+{"ts":"2026-09-29T16:48:20Z","run_id":"1790700484-2476006","kind":"outcome","id":"1790700484-2476006-6","rule":"r2","verdict":"dismissed","reason":"name covers the negative case elsewhere"}
+$ fm-jev-lint.sh score
+jev-lint score: runs=1 checks=6 flagged=6 fixed=1 dismissed=1 open=4 cost_usd=3.024e-05 cost_per_run=3.024e-05 mean_latency_ms=31 input_tokens=720
+  rule r1: runs=1 checks=2 flagged=2 cost_usd=1.008e-05 cost_per_run=1.008e-05 mean_latency_ms=29 fixed=1 dismissed=0 fixed_rate=1
+  rule r2: runs=1 checks=1 flagged=1 cost_usd=0.00000504 cost_per_run=5.04e-06 mean_latency_ms=31 fixed=0 dismissed=1 fixed_rate=0
+  rule r3: runs=1 checks=2 flagged=2 cost_usd=1.008e-05 cost_per_run=1.008e-05 mean_latency_ms=34 fixed=0 dismissed=0 fixed_rate=n/a
+  rule r4: runs=1 checks=1 flagged=1 cost_usd=0.00000504 cost_per_run=5.04e-06 mean_latency_ms=31 fixed=0 dismissed=0 fixed_rate=n/a
+exit: 0

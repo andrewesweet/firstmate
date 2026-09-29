@@ -1,0 +1,3 @@
+$ FM_JEV_LINT_RULES=/nope/rules.json fm-jev-lint.sh score --record <record with 6 checks>
+jev-lint: error: rules file not readable: /nope/rules.json
+exit: 2

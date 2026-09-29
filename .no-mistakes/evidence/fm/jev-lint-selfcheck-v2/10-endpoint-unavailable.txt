@@ -1,0 +1,5 @@
+$ fm-jev-lint.sh check   (TS_BASE points at a closed port: endpoint unavailable)
+jev-lint: run 1790700586-2578864: 6 subject(s) checked, 1 dropped as secret-like, 0 finding(s) above (if any) are advisory
+exit: 0
+--- probabilities recorded: [null,null,null,null,null,null]
+--- flagged: [false]

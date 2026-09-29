@@ -1,0 +1,4 @@
+$ env -u TYPESAFE_API_KEY FM_HOME=$LAB/home fm-jev-lint.sh check --record $LAB/home/data/jev-lint.jsonl
+stdout+stderr: []
+exit: 0
+record exists: no
