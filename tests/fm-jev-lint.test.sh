@@ -32,6 +32,7 @@ while [ $# -gt 0 ]; do
 done
 req=$(cat)
 [ -n "${FM_FAKE_JEV_FAIL:-}" ] && exit 7
+[ -n "${FM_FAKE_JEV_SLEEP:-}" ] && sleep "$FM_FAKE_JEV_SLEEP"
 question=$(printf '%s' "$req" | jq -r '.questions.violated.instructions')
 rule=$(jq -r --arg q "$question" '.rules | to_entries[] | select(.value.question == $q) | .key' "${FM_FAKE_JEV_RULES:?}")
 prob=$(printf '%s' "${FM_FAKE_JEV_PROBS}" | jq -r --arg r "$rule" '.[$r] // empty')
@@ -120,6 +121,15 @@ BIGDIFF="$TMP_ROOT/big.diff"
     printf '+fm_render%s() { printf %s; }\n' "$i" "'$esc'"
   done
 } > "$BIGDIFF"
+
+MANYDIFF="$TMP_ROOT/many.diff"
+{
+  for i in $(seq 1 16); do
+    printf 'diff --git a/src/many%s.sh b/src/many%s.sh\n' "$i" "$i"
+    printf 'index 0000000..1111111 100644\n--- /dev/null\n+++ b/src/many%s.sh\n' "$i"
+    printf '@@ -0,0 +1,2 @@\n+# returns the count\n+fm_many%s() { echo %s; }\n' "$i" "$i"
+  done
+} > "$MANYDIFF"
 
 UNIDIFF="$TMP_ROOT/unicode.diff"
 cat > "$UNIDIFF" <<'EOF'
@@ -329,6 +339,21 @@ test_parallel_record_lines_stay_whole() {
   pass "parallel runs append whole record lines, never interleaved fragments"
 }
 
+test_interrupted_run_keeps_finished_record_lines() {
+  local rec="$TMP_ROOT/interrupted.jsonl" pid
+  env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
+    FM_FAKE_JEV_RULES="$RULES" FM_FAKE_JEV_PROBS='{"r1":0.91}' FM_FAKE_JEV_SLEEP=3 \
+    "$TOOL" check --diff-file "$MANYDIFF" --record "$rec" >/dev/null 2>&1 &
+  pid=$!
+  sleep 4.5
+  kill -TERM "$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
+  [ -s "$rec" ] || fail "an interrupted run keeps the lines its finished jobs produced"
+  jq -e -s 'length >= 8 and all(.[]; .kind == "check")' "$rec" >/dev/null \
+    || fail "the kept lines are whole check records: $(wc -l < "$rec") line(s)"
+  pass "an interrupted run still records every finding it already printed"
+}
+
 test_shim_reads_the_key_from_the_home_env() {
   local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" out
   mkdir -p "$home2/data"
@@ -397,3 +422,4 @@ test_shim_unavailable_raises_no_finding
 test_shim_reads_the_key_from_the_home_env
 test_malformed_answer_is_recorded_unavailable
 test_parallel_record_lines_stay_whole
+test_interrupted_run_keeps_finished_record_lines

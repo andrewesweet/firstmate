@@ -101,6 +101,19 @@ record_append() {  # <record-path> <json-line>
   return 0
 }
 
+# Appends every finished job's check line to the record. Runs once on the
+# normal path and from the interrupt trap, so a killed run keeps the lines its
+# completed jobs already produced.
+flush_record_lines() {  # <workdir> <record-path>
+  local line_file
+  for line_file in "$1"/line-*; do
+    [ -e "$line_file" ] || break
+    record_append "$2" "$(cat "$line_file")"
+    rm -f "$line_file"
+  done
+  return 0
+}
+
 # Opt-in gate shared by check (resolve and score are local-only and never need
 # the key). Prints the skip line and returns 1 when absent, else 0.
 require_key() {
@@ -315,7 +328,7 @@ cmd_check() {
   run_id="$(date +%s)-$$"
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   workdir=$(mktemp -d) || die "mktemp failed"
-  trap 'rm -rf "$workdir"' EXIT
+  trap 'flush_record_lines "$workdir" "$record"; rm -rf "$workdir"' EXIT INT TERM
   local seq=0 live=0 checked=0 dropped=0
   while IFS=$'\t' read -r rule file claim ev; do
     if subject_has_secret "$claim $ev"; then dropped=$((dropped + 1)); continue; fi
@@ -328,11 +341,8 @@ cmd_check() {
     if [ "$live" -ge "$jobs" ]; then wait -n; live=$((live - 1)); fi
   done <<< "$subjects"
   wait
-  local flags line_file
-  for line_file in "$workdir"/line-*; do
-    [ -e "$line_file" ] || break
-    record_append "$record" "$(cat "$line_file")"
-  done
+  local flags
+  flush_record_lines "$workdir" "$record"
   flags=$(grep -c . "$workdir/count" 2>/dev/null || echo 0)
   trap - EXIT
   rm -rf "$workdir"
