@@ -172,9 +172,9 @@ test_resolve_and_score() {
   out=$(FM_HOME="$HOME_DIR" "$TOOL" score --record "$RECORD")
   echo "$out" | grep -q 'runs=1 checks=3 flagged=2 fixed=1 dismissed=0 open=1' \
     || fail "score counts checks, flags, and outcomes: $out"
-  echo "$out" | grep -qE 'rule r1: runs=1 checks=1 flagged=1 cost_usd=[0-9.e-]+ cost_per_run=[0-9.e-]+ mean_latency_ms=[0-9]+ fixed=1 dismissed=0 fixed_rate=1' \
+  echo "$out" | grep -qF 'rule r1: runs=1 checks=1 flagged=1 cost_usd=0.00000420 cost_per_run=4.2e-06 mean_latency_ms=1 fixed=1 dismissed=0 fixed_rate=1' \
     || fail "score reports per-rule cost, latency, and fixed-versus-dismissed rates: $out"
-  echo "$out" | grep -qE 'rule r2: .* fixed=0 dismissed=0 fixed_rate=n/a' \
+  echo "$out" | grep -qF 'rule r2: runs=1 checks=1 flagged=0 cost_usd=0.00000420 cost_per_run=4.2e-06 mean_latency_ms=1 fixed=0 dismissed=0 fixed_rate=n/a' \
     || fail "score reports n/a for a rule with no resolved findings: $out"
   pass "resolve records outcomes and score reports fixed-versus-dismissed rates"
 }

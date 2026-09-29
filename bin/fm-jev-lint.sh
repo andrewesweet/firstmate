@@ -179,9 +179,9 @@ extract_subjects() {
     if (claim == "" || ev == "") return
     printf "%s\t%s\t%s\t%s\n", rule, file, claim, ev
   }
-  /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; delete bound; next }
-  /^\+\+\+ / { next }
-  /^--- / { next }
+  /^diff --git / { flush_file(); file = $3; sub(/^a\//, "", file); n = 0; in_hunk = 0; delete bound; next }
+  !in_hunk && /^\+\+\+ / { next }
+  !in_hunk && /^--- / { next }
   /^\\/ { next }
   /^@@ / { in_hunk = 1; bound[n + 1] = 1; next }
   in_hunk && /^ / { lines[++n] = substr($0, 2); kinds[n] = " "; next }
