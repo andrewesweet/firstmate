@@ -212,11 +212,17 @@ unset_inherited() {
 # saving on when `tmux show-environment -g` also carries the marker (an
 # ambient marker), so a server inheriting it from a test run inside a Claude
 # session would hide the child-session defect.
+# The scrub also drops FM_GATE_REFUSE_BYPASS, so the pane re-sets it: the
+# watcher arm the mod runs comes from the checkout under test, and from a
+# no-mistakes validation worktree bin/fm-watch-arm.sh otherwise refuses with
+# "refusing to arm from a disposable validation checkout" and no wake ever
+# reaches the mod. Each lab home is the sandboxed home that escape hatch is
+# for (tests/lib.sh exports the same variable).
 start_claude_session() { # [extra-env...]
   local extra="${*:+$* }"
   # shellcheck disable=SC2046 # intentional: unset_inherited emits separate -u NAME tokens for env
   env $(unset_inherited) "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
-    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
 screen() {
