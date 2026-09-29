@@ -4332,8 +4332,17 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # isolation screen, so a pool that hands back the project itself or the
   # repository primary is refused by that one gate rather than a second copy of
   # it here.
+  # The endpoint enters the leased copy in a CHILD shell, exactly as the
+  # pre-lease `treehouse get` did, never with a builtin cd in the pane's own
+  # top-level shell. Teardown reaps (and treehouse return terminates) every
+  # process whose cwd is inside the worktree BEFORE it closes the endpoint, so
+  # a top-level shell sitting in the copy is killed with the agent and the pane
+  # dies out of band - which on herdr takes the projected workspace with it
+  # before the presentation-journal close, leaving the journal quarantined.
+  # With the child shell, that reap ends the agent's shell and the pane falls
+  # back to its own shell in the project, still alive for the locked close.
   wt_cd_path=${WT//\'/\'\\\'\'}
-  spawn_send_text_line "$WT_TARGET" "cd -- '$wt_cd_path'" || {
+  spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
     exit 1
   }

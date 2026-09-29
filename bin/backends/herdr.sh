@@ -3038,10 +3038,11 @@ fm_backend_herdr_target_ready() {  # <target>
 # CREATION TIME on the version this adapter was written against, so a settle
 # poll reading it would never see the pane "leave" the project directory.
 # `.result.pane.foreground_cwd` tracks the pane's live cwd instead, including
-# after the builtin `cd` into the leased copy that spawn sends - measured on
-# Herdr 0.9.0, where it reports the leased copy within a second of an idle
-# pane's `cd` (docs/verification/runtime-backends.md, "Pane cwd after a builtin
-# cd into the leased copy").
+# after the child shell spawn starts in the leased copy - measured on Herdr
+# 0.9.0, where it reports the leased copy within a second of an idle pane's
+# `cd` (docs/verification/runtime-backends.md, "Pane cwd after a builtin cd
+# into the leased copy"); the child shell is the stronger case, since a live
+# foreground child is exactly what that field was designed to report.
 fm_backend_herdr_current_path() {  # <target>
   fm_backend_herdr_target_ready "$1" || return 0
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null \
