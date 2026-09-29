@@ -221,6 +221,39 @@ run_slot "$FAKE_START"
 [ "$RUN_STATUS" -eq "$REFUSAL_CODE" ] || fail "garbage daemon store should refuse with exit $REFUSAL_CODE, got $RUN_STATUS: $RUN_ERR"
 [ -n "$RUN_ERR" ] || fail "garbage daemon store refusal must carry the exact error"
 
+# --- reader stderr noise is never parsed as a run ----------------------------
+# A python3 launcher that warns on stderr (a mise shim on this host does) must
+# not conjure phantom counted runs out of its own noise.
+
+NOISY_BIN="$ENV_ROOT/noisy-bin"
+mkdir -p "$NOISY_BIN"
+REAL_PYTHON3="$(command -v python3)" || fail "python3 is required to exercise the daemon reader"
+cat > "$NOISY_BIN/python3" <<EOF
+#!/usr/bin/env bash
+echo 'mise WARN no version set for python' >&2
+exec '$REAL_PYTHON3' "\$@"
+EOF
+chmod +x "$NOISY_BIN/python3"
+
+printf '1\n' > "$LIMIT_FILE"
+CLEAN_PATH=$PATH
+PATH="$NOISY_BIN:$PATH"
+seed_db terminal:2
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq 0 ] \
+  || fail "reader stderr must not be counted as a run, got $RUN_STATUS: $RUN_ERR"
+
+seed_db executing:1
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "a real run must still count when the reader warns on stderr, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q 'exec-1' \
+  || fail "wait reason must name the real counted run, got: $RUN_ERR"
+! printf '%s' "$RUN_ERR" | grep -q 'mise WARN' \
+  || fail "reader stderr must not reach the wait message, got: $RUN_ERR"
+PATH=$CLEAN_PATH
+clear_limit_file
+
 # --- a call without a command refuses rather than claiming an advisory slot ---
 
 seed_db terminal:1

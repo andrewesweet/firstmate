@@ -134,7 +134,10 @@ command -v python3 >/dev/null 2>&1 \
   || die_refusal "python3 is not on PATH; cannot read the no-mistakes daemon state"
 [ -f "$nm_db" ] \
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
-rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>&1 <<'READER'
+reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
+  || die_refusal "cannot create a reader error file beside $lock_path"
+trap 'rm -f "$reader_err"' EXIT
+rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>"$reader_err" <<'READER'
 import sqlite3
 import sys
 from contextlib import closing
@@ -152,12 +155,14 @@ with closing(sqlite3.connect(Path(sys.argv[1]).as_uri() + "?mode=ro", uri=True, 
 for status, run_id in rows:
     print("%s|%s" % (status, run_id))
 READER
-) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $rows"
+) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $(cat "$reader_err")"
 
 count=0
 counted_ids=''
-while IFS='|' read -r status run_id; do
-  [ -n "${status:-}" ] || continue
+while IFS='|' read -r status run_id extra; do
+  [ -n "${status:-}${run_id:-}${extra:-}" ] || continue
+  [ -n "${status:-}" ] && [ -n "${run_id:-}" ] && [ -z "${extra:-}" ] \
+    || die_refusal "cannot read the no-mistakes daemon state from $nm_db: unexpected reader output '$status${run_id:+|$run_id}${extra:+|$extra}'"
   [ "$(fm_nm_run_status_class "$status")" != terminal ] || continue
   count=$((count + 1))
   counted_ids="${counted_ids:+$counted_ids, }$run_id"
