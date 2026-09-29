@@ -300,6 +300,59 @@ for code in 1 2 7; do
     || fail "a wrapped command exiting $code must surface as $code, got $RUN_STATUS"
 done
 
+# --- a host without flock still enforces the cap, with a warning -------------
+# macOS worker hosts have no flock; the cap must fall back to the count alone
+# rather than stopping every validation on the host.
+
+NOFLOCK_BIN="$ENV_ROOT/noflock-bin"
+mkdir -p "$NOFLOCK_BIN"
+for tool in bash env python3 mkdir mktemp grep tail cat dirname basename timeout rm awk; do
+  tool_path=$(command -v "$tool") || continue
+  ln -sf "$tool_path" "$NOFLOCK_BIN/$tool"
+done
+command -v flock >/dev/null 2>&1 && [ ! -e "$NOFLOCK_BIN/flock" ] \
+  || fail "the flock-less PATH must not expose flock"
+
+clear_limit_file
+seed_db executing:1
+CLEAN_PATH=$PATH
+PATH="$NOFLOCK_BIN"
+run_slot "$FAKE_START"
+PATH=$CLEAN_PATH
+[ "$RUN_STATUS" -eq 0 ] \
+  || fail "a host without flock must still admit below the limit, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q 'flock' \
+  || fail "a flock-less host must warn that starts are not serialised, got: $RUN_ERR"
+[ "$(printf '%s' "$RUN_ERR" | wc -l | tr -d ' ')" -eq 0 ] \
+  || fail "the flock-less warning must be one line, got: $RUN_ERR"
+
+seed_db executing:3
+PATH="$NOFLOCK_BIN"
+run_slot "$FAKE_START"
+PATH=$CLEAN_PATH
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "a host without flock must still wait at the limit, got $RUN_STATUS: $RUN_ERR"
+
+# --- the ship briefs route their start through this wrapper ------------------
+# The rendered brief is the generated agent-facing interface that applies the
+# cap; nothing else wires the two together.
+
+# shellcheck source=bin/fm-dod-lib.sh
+. "$ROOT/bin/fm-dod-lib.sh"
+for forge in '' gerrit; do
+  BRIEF=$(fm_dod_block no-mistakes slot-brief-task fm/slot-brief-task "$ENV_ROOT/data" $forge) \
+    || fail "rendering the ${forge:-default} ship brief failed"
+  START_LINE=$(printf '%s\n' "$BRIEF" | grep -F 'no-mistakes axi run --intent' | grep -F 'fm-nm-slot.sh') \
+    || fail "the ${forge:-default} ship brief must start the run through fm-nm-slot.sh, got: $BRIEF"
+  if [ "$forge" = gerrit ]; then
+    printf '%s' "$START_LINE" | grep -qF -- '--skip push,pr,ci' \
+      || fail "the gerrit ship brief's slot start line must keep --skip push,pr,ci, got: $START_LINE"
+  else
+    ! printf '%s' "$START_LINE" | grep -qF -- '--skip' \
+      || fail "the default ship brief's slot start line must not skip steps, got: $START_LINE"
+  fi
+done
+
 # --- --help describes the contract -------------------------------------------
 
 run_slot --help

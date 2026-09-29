@@ -11,6 +11,10 @@
 # workers cannot both see room and both start. The wrapped command must
 # register its run before it returns (a bounded `--wait` start does), so the
 # next caller's count includes it.
+# Where flock is absent (macOS, as bin/fm-spend-ledger-append.sh already
+# handles), the cap is still enforced on the count alone and the start warns on
+# stderr: the ceiling is that two starts racing inside the same count window can
+# both be admitted, which beats stopping every validation on the host.
 #
 # Every run counts that bin/fm-nm-run-lib.sh's fm_nm_run_status_class, the
 # repo's owner of the daemon's status words, does not call terminal - a status
@@ -41,9 +45,9 @@
 # same python3 sqlite3 read-only URI reader the repo's other store reader
 # uses, and rendered CLI text is never parsed. If the count cannot be read
 # (python3 missing, store missing, or the query failing), this script refuses
-# with the exact
-# error and never guesses a count; a stale store left by a stopped daemon can
-# only admit a start that then fails visibly at the CLI.
+# with the reader's own last error line, collapsed to the one line the worker
+# writes into its status file, and never guesses a count; a stale store left by
+# a stopped daemon can only admit a start that then fails visibly at the CLI.
 #
 # The lock lives at ${XDG_RUNTIME_DIR:-$HOME/.cache}/firstmate/
 # nm-validation-slot.lock, outside every FM_HOME, and is held only across the
@@ -118,16 +122,18 @@ if [ -e "$limit_file" ]; then
   limit=$raw
 fi
 
-command -v flock >/dev/null 2>&1 \
-  || die_refusal "flock is not on PATH; cannot take the host slot lock"
 mkdir -p "$(dirname "$lock_path")" 2>/dev/null \
   || die_refusal "cannot create slot lock directory $(dirname "$lock_path")"
-if ! { exec 9>"$lock_path"; } 2>/dev/null; then
-  die_refusal "cannot open slot lock $lock_path"
-fi
-if ! flock -w 120 9; then
-  echo "wait: slot lock busy at $lock_path; another validation start is in flight" >&2
-  exit "$FM_NM_SLOT_WAIT"
+if command -v flock >/dev/null 2>&1; then
+  if ! { exec 9>"$lock_path"; } 2>/dev/null; then
+    die_refusal "cannot open slot lock $lock_path"
+  fi
+  if ! flock -w 120 9; then
+    echo "wait: slot lock busy at $lock_path; another validation start is in flight" >&2
+    exit "$FM_NM_SLOT_WAIT"
+  fi
+else
+  echo "warning: flock is not on PATH; the cap is enforced on the count alone and concurrent starts on this host are not serialised" >&2
 fi
 
 command -v python3 >/dev/null 2>&1 \
@@ -136,7 +142,15 @@ command -v python3 >/dev/null 2>&1 \
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
   || die_refusal "cannot create a reader error file beside $lock_path"
-trap 'rm -f "$reader_err"' EXIT
+trap 'rm -f "$reader_err"' EXIT INT TERM
+
+reader_error() {
+  local line
+  line=$(fm_nm_trim "$(grep -v '^[[:space:]]*$' "$reader_err" 2>/dev/null | tail -1)")
+  [ -n "$line" ] || line="the daemon state reader failed without writing an error"
+  printf '%s' "$line"
+}
+
 rows=$(fm_nm_bounded "$PWD" 30 python3 - "$nm_db" 2>"$reader_err" <<'READER'
 import sqlite3
 import sys
@@ -146,26 +160,29 @@ from pathlib import Path
 with closing(sqlite3.connect(Path(sys.argv[1]).as_uri() + "?mode=ro", uri=True, timeout=30)) as db:
     db.execute("BEGIN")
     rows = db.execute(
-        "SELECT r.status, r.id FROM runs r WHERE r.awaiting_agent_since IS NULL AND NOT ("
+        "SELECT r.status, count(*), group_concat(r.id, ', ') FROM runs r"
+        " WHERE r.awaiting_agent_since IS NULL AND NOT ("
         "  EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
         "          AND s.status IN ('running','fixing') AND s.step_name = 'ci')"
         "  AND NOT EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
         "          AND s.status IN ('running','fixing') AND s.step_name <> 'ci'))"
+        " GROUP BY r.status"
     ).fetchall()
-for status, run_id in rows:
-    print("%s|%s" % (status, run_id))
+for status, run_count, run_ids in rows:
+    print("%s|%s|%s" % (status, run_count, run_ids))
 READER
-) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $(cat "$reader_err")"
+) || die_refusal "cannot read the no-mistakes daemon state from $nm_db: $(reader_error)"
 
 count=0
 counted_ids=''
-while IFS='|' read -r status run_id extra; do
-  [ -n "${status:-}${run_id:-}${extra:-}" ] || continue
-  [ -n "${status:-}" ] && [ -n "${run_id:-}" ] && [ -z "${extra:-}" ] \
-    || die_refusal "cannot read the no-mistakes daemon state from $nm_db: unexpected reader output '$status${run_id:+|$run_id}${extra:+|$extra}'"
+while IFS='|' read -r status run_count run_ids extra; do
+  [ -n "${status:-}${run_count:-}${run_ids:-}${extra:-}" ] || continue
+  case ${run_count:-} in '' | *[!0-9]*) run_count='' ;; esac
+  [ -n "${status:-}" ] && [ -n "${run_count:-}" ] && [ -n "${run_ids:-}" ] && [ -z "${extra:-}" ] \
+    || die_refusal "cannot read the no-mistakes daemon state from $nm_db: unexpected reader output '$status|${run_count:-}|${run_ids:-}${extra:+|$extra}'"
   [ "$(fm_nm_run_status_class "$status")" != terminal ] || continue
-  count=$((count + 1))
-  counted_ids="${counted_ids:+$counted_ids, }$run_id"
+  count=$((count + run_count))
+  counted_ids="${counted_ids:+$counted_ids, }$run_ids"
 done <<EOF
 $rows
 EOF
