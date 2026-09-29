@@ -377,10 +377,13 @@ test_teardown_leaves_an_absent_copy_leased_to_another_task() {
   pass "teardown leaves an absent copy whose lease belongs to another task alone"
 }
 
-# A record written before slot claims existed carries none, so only treehouse's
-# own refusal on the return can reveal that the slot has become another task's:
-# teardown must then refuse, leaving that task's copy and lease and this record
-# in place for manual cleanup rather than freeing or deleting anything.
+# A record written before slot claims existed carries none to screen with, so
+# only treehouse's own refusal on the return can reveal that the slot has become
+# another task's: teardown must then refuse, leaving that copy on disk with its
+# work, the lease with its holder and this record in place for a rerun, rather
+# than freeing, resetting or deleting anything. (A record that does carry a
+# claim naming another task never reaches any of those steps; that screen and
+# the copy it protects are covered by tests/fm-teardown-endpoint-safety.test.sh.)
 test_teardown_refuses_a_slot_leased_to_another_task() {
   local rec out status
   rec=$(make_pool_case unclaimedslot 1 2)

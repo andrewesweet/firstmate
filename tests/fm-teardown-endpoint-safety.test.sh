@@ -889,6 +889,8 @@ assert_reassigned_slot_left_alone() {  # <case> <id> <other> <description>
   assert_contains "$(cat "$dir/pool/1/.fm-slot-owner")" "task=$other" \
     "$description: another task's slot claim was rewritten"
   assert_present "$dir/pool/1/project/.git" "$description: the reassigned slot's checkout was removed"
+  [ "$(git -C "$dir/pool/1/project" rev-parse --abbrev-ref HEAD 2>/dev/null)" = other-task-branch ] \
+    || fail "$description: the reassigned slot's branch was detached or deleted"
   ! grep -Fq "treehouse <return>" "$dir/runtime.log" \
     || fail "$description: the reassigned slot was returned to the pool: $(cat "$dir/runtime.log")"
   assert_contains "$(cat "$dir/stderr")" "$other" \
@@ -905,6 +907,7 @@ test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot() {
   # never the other task's live work.
   dir=$(make_case slot-reassigned)
   mark_case_as_treehouse_pool "$dir"
+  git -C "$dir/pool/1/project" checkout -q -b other-task-branch
   fm_write_meta "$dir/home/state/$id.meta" \
     "window=firstmate:fm-$id" "endpoint_task_id=$id" \
     "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
@@ -936,6 +939,7 @@ test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot() {
   # and destroy the live task's copy.
   dir=$(make_case slot-reassigned-clean)
   mark_case_as_treehouse_pool "$dir"
+  git -C "$dir/pool/1/project" checkout -q -b other-task-branch
   rm -f "$dir/worktree/sentinel"
   [ -z "$(git -C "$dir/worktree" status --porcelain)" ] \
     || fail "clean-slot fixture is not clean: $(git -C "$dir/worktree" status --porcelain)"

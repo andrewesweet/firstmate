@@ -168,11 +168,16 @@
 # `--if-lease-holder <task>`, so a slot leased to another task is never
 # released; a slot carrying no
 # lease at all is nobody else's and is returned
-# unconditionally, exactly as it was before slots were leased. If the treehouse
-# return is refused or fails for any reason teardown cannot name - a lease that
-# is another task's included - teardown refuses: no pooled copy is ever deleted
-# or reset on that path, the lease stays with whoever holds it, and the record
-# is kept so a rerun works once the slot is known to be idle. Removing a
+# unconditionally, exactly as it was before slots were leased. A slot whose
+# owner claim names another task is screened out before the first step that
+# would read or change the copy, so nothing in that copy is killed, reset,
+# cleaned or deleted. A record predating claims carries none to screen with, so
+# its worktree steps run in the pre-change order and the return is the first
+# ownership test it meets. If that return is refused or fails for any reason
+# teardown cannot name - a lease that is another task's included - teardown
+# refuses: no pooled copy is deleted or reset on that path, the lease stays with
+# whoever holds it, and the record is kept so a rerun works once the slot is
+# known to be idle. Removing a
 # leased home likewise leaves the home and state in place instead of hiding a
 # still-held lease.
 # Usage: fm-teardown.sh <task-id> [--force] [--legacy-record]
@@ -3415,7 +3420,7 @@ cleanup_firstmate_home_children() {
             safe_rm_rf_child_worktree "$child_wt" "$child_proj"
           fi
         elif [ "$child_is_pool_slot" = 1 ]; then
-          echo "error: child $child_id's worktree $child_wt is a Treehouse pool slot but treehouse is unavailable here, so its lease cannot be proved or released; the slot, its copy and child $child_id's record are left in place" >&2
+          echo "error: child $child_id's worktree $child_wt is a Treehouse pool slot but treehouse is not on PATH, so its lease cannot be proved or released; the slot, its copy and child $child_id's record are left in place - install the pinned treehouse with $SCRIPT_DIR/fm-install-treehouse.sh and re-run this teardown" >&2
           return 1
         else
           safe_rm_rf_child_worktree "$child_wt" "$child_proj"
