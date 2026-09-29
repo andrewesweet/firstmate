@@ -761,7 +761,7 @@ Every request goes out through `bin/fm-branch-shadow-jev.sh`, the repository's s
 The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
 Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
 When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check prints nothing and exits 0, making no request and recording nothing.
-One run checks at most 30 subjects, taken in diff order; an R3 bullet run contributes at most its first 10 items; an R1 subject carries at most 8 evidence body lines and an R2 subject at most 12; and each subject's claim is cut at 500 bytes and its evidence at 1500 bytes. Anything past those bounds is silently truncated, in the request and in the record alike.
+One run checks at most 30 subjects, taken in diff order, so a larger diff has its later subjects dropped unchecked; the bounds that shape each subject's claim and evidence live in `extract_subjects` in `bin/fm-jev-lint.sh`. Anything past a bound is silently truncated, in the request and in the record alike.
 A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
 Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
 

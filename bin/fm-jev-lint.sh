@@ -15,14 +15,11 @@
 #   diff as R4), sends one Jev noul request per subject in parallel through
 #   bin/fm-branch-shadow-jev.sh, prints one
 #   line per flagged finding with its id, and appends one JSON line per subject
-#   to the record. Several bounds keep the cost fixed and are silent when they
-#   bite: at most MAX_SUBJECTS (30) subjects per run, taken in diff order, so a
-#   larger diff has its later subjects dropped unchecked; an R3 bullet run
-#   contributes at most its first 10 items to the claim; an R1 subject's
-#   evidence stops after 8 body lines and an R2 subject's after 12; and every
-#   claim is cut at CLAIM_CAP (500) bytes and every evidence at EVIDENCE_CAP
-#   (1500) bytes, mid-token if need be, before the subject is sent and
-#   recorded. What resolve does: appends one outcome line recording how a
+#   to the record. Fixed per-run and per-subject bounds keep the cost flat and
+#   truncate silently when they bite: the run-level one is MAX_SUBJECTS (30)
+#   subjects per run, taken in diff order, so a larger diff has its later
+#   subjects dropped unchecked; the subject-shaping ones are the named
+#   constants and literals in extract_subjects. What resolve does: appends one outcome line recording how a
 #   finding was handled. What score does: reads the record and prints per-rule
 #   cost, latency, and fixed-versus-dismissed rates. docs/configuration.md
 #   "Jev self-check record" owns the operator contract; this header owns the
