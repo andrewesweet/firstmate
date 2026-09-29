@@ -132,14 +132,15 @@
 # It takes the same optional trailing forge argument, because the rule that keeps
 # a worker off a remote is exactly the rule that changes when the forge does.
 
+_FM_DOD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-pr-lib.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-pr-lib.sh"
+. "$_FM_DOD_LIB_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-classify-lib.sh"
+. "$_FM_DOD_LIB_DIR/fm-classify-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-nm-run-lib.sh"
+. "$_FM_DOD_LIB_DIR/fm-nm-run-lib.sh"
 # shellcheck source=bin/fm-brief-heading-lib.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-brief-heading-lib.sh"
+. "$_FM_DOD_LIB_DIR/fm-brief-heading-lib.sh"
 
 fm_brief_worker_role() {  # <state-dir> <task-id>
   local state=$1 task_id=$2
@@ -442,6 +443,14 @@ On this no-mistakes ship, complete everything above before starting validation; 
 EOF
 }
 
+fm_jev_self_check_block() {
+  cat <<EOF
+After implementation and before starting validation, run the advisory self-check \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh check\` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+EOF
+}
+
 fm_dod_block() {  # <mode> <task-id> [branch] <data-dir> [<forge>]
   local mode=$1 id=$2 data=$4 forge=${5:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id}
@@ -479,6 +488,7 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
+      fm_jev_self_check_block
       fm_nm_implement_ordering_block
       cat <<EOF
 
@@ -555,6 +565,7 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
+      fm_jev_self_check_block
       fm_nm_implement_ordering_block
       cat <<EOF
 

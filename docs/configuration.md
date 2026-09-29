@@ -750,15 +750,31 @@ The query itself never blocks a task and makes no model calls; capture is a loca
 `bin/fm-spend-query.sh --unmeasured <reason> <task-id>` emits the unmeasured shape for a task without measuring, so the producer's own rare fallback - the query failing outright rather than answering unmeasured - reuses this one shell definition of that shape instead of building a second.
 The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_ref` naming the PR URL, `local-main`, `report` with the report path, or none).
 
+## Jev self-check record (data/jev-lint.jsonl)
+
+Ship workers run an advisory self-check after implementation and before no-mistakes validation.
+`bin/fm-jev-lint.sh check` diffs HEAD against its merge-base with `origin/main`, else `main`, so it reads committed work only.
+It extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, prose enumerations with their surrounding diff context, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body, R2 test-name-verifies-claim, R3 skill-registry-drift v2, R4 hook-budget-feasibility, each at its own frozen probability cutoff carried in `bin/fm-jev-lint-rules.json`), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
+Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
+`bin/fm-jev-lint.sh score` reports per-rule cost, latency, and fixed-versus-dismissed rates from the record.
+Every request goes out through `bin/fm-branch-shadow-jev.sh`, the repository's single TypeSafe call shim, which owns the endpoint and the key; an unavailable answer is recorded with a null probability and raises no finding.
+The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
+Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request and never recorded; the per-run stderr summary reports how many subjects were dropped.
+When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check prints nothing and exits 0, making no request and recording nothing.
+One run checks at most 30 subjects, taken in file order and, within a file, in rule order (R1, R2, R4, R3), so a larger diff loses whatever that order reaches last; the bounds that shape each subject's claim and evidence live in `extract_subjects` in `bin/fm-jev-lint.sh`. Anything past a bound is silently truncated, in the request and in the record alike.
+A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
+Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
+
 ## Standing data sources for retrospectives
 
-Five durable, home-local logs record what actually happened, and a retrospective reads them instead of asking anyone to reconstruct events:
+Six durable, home-local logs record what actually happened, and a retrospective reads them instead of asking anyone to reconstruct events:
 
 - `data/dispatch-resolve.jsonl` - one line per typed-dispatch resolution, with outcome, confidence, per-rule probabilities, and the exact rules and brief digests (see "Typed dispatch resolution").
 - `data/dispatch-spawns.jsonl` - one line per successful fresh ship or scout spawn, with the actually dispatched harness, model, and effort, the exact brief digest, and the brief's scaffold-versus-task token split.
 - `state/branch-mod-classifications.jsonl` - one record per supervision-branch classifier call (see [claude-supervision-branch.md](claude-supervision-branch.md)).
 - `state/branch-outcomes.jsonl` - the supervision branch's durable outcome store, owned by `bin/fm-branch-outcome.sh`.
 - `data/spend-ledger.jsonl` - one line per closed ship or scout task with its measured or explicitly unmeasured model spend (see ["Task spend ledger"](#task-spend-ledger-dataspend-ledgerjsonl)).
+- `data/jev-lint.jsonl` - one line per advisory self-check subject and per finding outcome, with the subjects sent, probabilities, token spend, and fixed-versus-dismissed outcomes (see "Jev self-check record").
 
 ## Secondmate routes (data/secondmates.md)
 
@@ -2402,7 +2418,7 @@ FMX_RELAY_URL=https://myfirstmate.io   # optional Relay endpoint override, mainl
 FMX_ENV_FILE=           # optional alternate .env file for direct Relay client invocations; bootstrap still checks $FM_HOME/.env
 FMX_DRY_RUN=            # truthy previews Relay replies and dismissals to state/x-outbox/ without posting or requiring a token
 FMX_X_REPLY_MAX_CHARS=280   # X reply per-message split budget; values below 50 clamp to 50
-TYPESAFE_API_KEY=       # typed dispatch resolution opt-in, from the environment or .env; absent means bin/fm-dispatch-resolve.sh is off (docs/configuration.md "Typed dispatch resolution")
+TYPESAFE_API_KEY=       # TypeSafe opt-in, from the environment or .env; absent means bin/fm-dispatch-resolve.sh, bin/fm-branch-shadow-jev.sh, and the ship worker self-check bin/fm-jev-lint.sh are off (docs/configuration.md "Typed dispatch resolution", "Jev self-check record")
 FMX_DISCORD_REPLY_MAX_CHARS=1900   # Discord reply per-message split budget; values below 50 clamp to 50, values above 2000 reset to 1900
 FMX_X_THREAD_MAX=25     # maximum messages in one auto-split reply thread
 FMX_FOLLOWUP_MAX_AGE_SECS=604800   # local window for posting Relay completion follow-ups (7 days)
