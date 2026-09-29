@@ -753,13 +753,14 @@ The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_re
 ## Jev self-check record (data/jev-lint.jsonl)
 
 Ship workers run an advisory self-check after implementation and before no-mistakes validation.
-`bin/fm-jev-lint.sh check` extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, prose enumerations with their surrounding diff context, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body at 0.50, R2 test-name-verifies-claim at 0.60, R3 skill-registry-drift v2 at 0.20, R4 hook-budget-feasibility at 0.60), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
+`bin/fm-jev-lint.sh check` diffs HEAD against its merge-base with `origin/main`, else `main`, so it reads committed work only.
+It extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, prose enumerations with their surrounding diff context, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body at 0.50, R2 test-name-verifies-claim at 0.60, R3 skill-registry-drift v2 at 0.20, R4 hook-budget-feasibility at 0.60), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
 Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
 `bin/fm-jev-lint.sh score` reports per-rule cost, latency, and fixed-versus-dismissed rates from the record.
 Every request goes out through `bin/fm-branch-shadow-jev.sh`, the repository's single TypeSafe call shim, which owns the endpoint and the key; an unavailable answer is recorded with a null probability and raises no finding.
 The record never carries the API key, and credentials, `.env` files, key material, and secrets-like paths are never sent.
 Path exclusion is backed by a content scan: a subject whose text carries a private-key block, a token-shaped value, or an assignment to a `key`, `token`, `secret`, `password` or `passwd` name is dropped before the request, and the run records only a `kind: "dropped"` line with the count.
-When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check skips silently.
+When TYPESAFE_API_KEY is absent from the environment and the home's `.env`, the check explains the skip on stderr and exits 0, making no request and recording nothing.
 A rule whose live fixed-over-resolved rate falls below 0.80 over its first 20 runs is removed by flipping its `enabled` flag in `bin/fm-jev-lint-rules.json`; `score` flags the candidate but never edits the set.
 Known R3 weak spots, noted but not engineered around: a subset enumeration can false-flag against its source (pilot hard negative 0.67), and version-string drift scores low (0.18-0.24).
 
