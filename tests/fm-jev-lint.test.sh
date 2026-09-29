@@ -109,6 +109,18 @@ index 0000000..1111111 100644
 +fm_upper() { echo uppertenant43 }
 EOF
 
+BIGDIFF="$TMP_ROOT/big.diff"
+{
+  esc=$(printf '\033%.0s' $(seq 1 1500))
+  for i in 1 2 3 4 5 6 7 8; do
+    printf 'diff --git a/src/big%s.sh b/src/big%s.sh\n' "$i" "$i"
+    printf 'index 0000000..1111111 100644\n--- /dev/null\n+++ b/src/big%s.sh\n' "$i"
+    printf '@@ -0,0 +1,3 @@\n'
+    printf '+# returns the rendered board\n'
+    printf '+fm_render%s() { printf %s; }\n' "$i" "'$esc'"
+  done
+} > "$BIGDIFF"
+
 UNIDIFF="$TMP_ROOT/unicode.diff"
 cat > "$UNIDIFF" <<'EOF'
 diff --git "a/docs/r\303\251sum\303\251.sh" "b/docs/r\303\251sum\303\251.sh"
@@ -305,6 +317,18 @@ test_malformed_answer_is_recorded_unavailable() {
   pass "a non-numeric answer field is recorded as unavailable, never flagged"
 }
 
+test_parallel_record_lines_stay_whole() {
+  local rec="$TMP_ROOT/big.jsonl" out
+  out=$(check_env '{"r1":0.91}' "$TOOL" check --diff-file "$BIGDIFF" --record "$rec" 2>&1)
+  [ "$(jq -s 'map(select(.kind == "check")) | length' "$rec")" -eq 8 ] \
+    || fail "every parallel subject lands as one parseable record line: $out"
+  jq -e -s 'all(.[] | select(.kind == "check"); (.evidence | length) > 500)' "$rec" >/dev/null \
+    || fail "the oversized evidence survived into the record intact"
+  [ "$(awk '{ if (length > m) m = length } END { print m + 0 }' "$rec")" -gt 4096 ] \
+    || fail "the fixture must produce record lines past one stdio buffer"
+  pass "parallel runs append whole record lines, never interleaved fragments"
+}
+
 test_shim_reads_the_key_from_the_home_env() {
   local home2="$TMP_ROOT/home-dotenv" rec="$TMP_ROOT/dotenv.jsonl" out
   mkdir -p "$home2/data"
@@ -372,3 +396,4 @@ test_shim_carries_the_request
 test_shim_unavailable_raises_no_finding
 test_shim_reads_the_key_from_the_home_env
 test_malformed_answer_is_recorded_unavailable
+test_parallel_record_lines_stay_whole
