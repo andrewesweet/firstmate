@@ -339,19 +339,28 @@ test_parallel_record_lines_stay_whole() {
   pass "parallel runs append whole record lines, never interleaved fragments"
 }
 
-test_interrupted_run_keeps_finished_record_lines() {
-  local rec="$TMP_ROOT/interrupted.jsonl" pid
+test_interrupted_run_stops_and_keeps_its_record_lines() {
+  local rec="$TMP_ROOT/interrupted.jsonl" out="$TMP_ROOT/interrupted.out" pid t0 id
   env -u TYPESAFE_API_KEY FM_HOME="$HOME_DIR" TYPESAFE_API_KEY="sk-test-SECRETKEY123" \
-    FM_FAKE_JEV_RULES="$RULES" FM_FAKE_JEV_PROBS='{"r1":0.91}' FM_FAKE_JEV_SLEEP=3 \
-    "$TOOL" check --diff-file "$MANYDIFF" --record "$rec" >/dev/null 2>&1 &
+    FM_FAKE_JEV_RULES="$RULES" FM_FAKE_JEV_PROBS='{"r1":0.91}' FM_FAKE_JEV_SLEEP=4 \
+    "$TOOL" check --diff-file "$MANYDIFF" --record "$rec" > "$out" 2>/dev/null &
   pid=$!
-  sleep 4.5
+  sleep 5
+  t0=$SECONDS
   kill -TERM "$pid" 2>/dev/null
   wait "$pid" 2>/dev/null
+  [ $((SECONDS - t0)) -le 1 ] \
+    || fail "SIGTERM must stop the run, not let it finish the remaining subjects"
   [ -s "$rec" ] || fail "an interrupted run keeps the lines its finished jobs produced"
   jq -e -s 'length >= 8 and all(.[]; .kind == "check")' "$rec" >/dev/null \
     || fail "the kept lines are whole check records: $(wc -l < "$rec") line(s)"
-  pass "an interrupted run still records every finding it already printed"
+  sleep 4
+  while read -r id; do
+    [ -n "$id" ] || continue
+    jq -e -s --arg id "$id" 'any(.[]; .kind == "check" and .id == $id)' "$rec" >/dev/null \
+      || fail "printed finding $id has no record line, so it can never be resolved"
+  done < <(sed -n 's/^jev-lint finding \([^ ]*\) .*/\1/p' "$out")
+  pass "an interrupted run stops at once and records every finding it printed"
 }
 
 test_shim_reads_the_key_from_the_home_env() {
@@ -422,4 +431,4 @@ test_shim_unavailable_raises_no_finding
 test_shim_reads_the_key_from_the_home_env
 test_malformed_answer_is_recorded_unavailable
 test_parallel_record_lines_stay_whole
-test_interrupted_run_keeps_finished_record_lines
+test_interrupted_run_stops_and_keeps_its_record_lines
