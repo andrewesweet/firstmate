@@ -389,24 +389,27 @@ run_slot "$ENV_ROOT/no-such-start-command"
 [ "$RUN_STATUS" -eq 127 ] \
   || fail "an unexecutable start must surface as 127, got $RUN_STATUS: $RUN_ERR"
 
-# --- a signal during the wrapped start stops it promptly ---------------------
-# A supervisor that stops a worker mid-start must get the gate and its start
-# down at once, not after the start runs to completion still holding the slot.
+# --- a signal during the wrapped start leaves no reader temp file ------------
+# The wrapped start runs in the foreground, so a signal takes effect when that
+# bounded start returns; what the gate owes either way is its own exit status
+# and a cleaned-up reader temp file, which an untrapped signal would leak.
 
 SLOW_START="$ENV_ROOT/slow-start"
-SLOW_DONE="$ENV_ROOT/slow-start-finished"
+SLOW_RUNNING="$ENV_ROOT/slow-start-running"
 cat > "$SLOW_START" <<SLOW
 #!/usr/bin/env bash
-sleep 10
-: > '$SLOW_DONE'
+: > '$SLOW_RUNNING'
+sleep 2
 SLOW
 chmod +x "$SLOW_START"
 
-# assert_signal_stops <signal> <expected status>
-assert_signal_stops() {
-  local signal=$1 expect=$2 pid status started=0
+# assert_signal_cleans_up <signal> <expected status>: signal the gate only once
+# its wrapped start is provably running, then require the gate's own signal
+# status and no leftover reader temp file.
+assert_signal_cleans_up() {
+  local signal=$1 expect=$2 pid status running=0
   seed_db executing:1
-  rm -f "$SLOW_DONE"
+  rm -f "$SLOW_RUNNING"
   python3 -c '
 import os
 import signal
@@ -416,22 +419,22 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 os.execvp(sys.argv[1], sys.argv[1:])
 ' "$SLOT" "$SLOW_START" >/dev/null 2>"$ENV_ROOT/signal-err" &
   pid=$!
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    sleep 0.3
-    kill -"$signal" "$pid" 2>/dev/null && { started=1; break; }
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    [ -e "$SLOW_RUNNING" ] && { running=1; break; }
+    sleep 0.25
   done
-  [ "$started" -eq 1 ] || fail "$signal: the gate exited before it could be signalled"
+  [ "$running" -eq 1 ] || fail "$signal: the wrapped start never began"
+  kill -"$signal" "$pid" || fail "$signal: the gate exited before it could be signalled"
   wait "$pid"; status=$?
   [ "$status" -eq "$expect" ] \
     || fail "$signal during the wrapped start must exit $expect, got $status"
-  [ ! -e "$SLOW_DONE" ] \
-    || fail "$signal must stop the wrapped start, but it ran to completion"
   [ -z "$(ls "$XDG_RUNTIME_DIR/firstmate"/nm-slot-reader.* 2>/dev/null)" ] \
     || fail "$signal: the reader temp file must not survive a signalled gate"
 }
 
-assert_signal_stops TERM 143
-assert_signal_stops INT 130
+assert_signal_cleans_up TERM 143
+assert_signal_cleans_up INT 130
+assert_signal_cleans_up HUP 129
 
 # --- the ship briefs route their start through this wrapper ------------------
 # The rendered brief is the generated agent-facing interface that applies the

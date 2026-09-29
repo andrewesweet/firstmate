@@ -53,6 +53,13 @@
 # nm-validation-slot.lock, outside every FM_HOME, and is held only across the
 # count-then-start window; the wrapped command never inherits the lock fd.
 #
+# HUP, INT, and TERM remove the reader's temp file and exit 129, 130, and 143.
+# The wrapped start runs in the foreground, with its stdin and the rest of its
+# environment untouched, so a signal delivered while it is running takes effect
+# when it returns - which the bounded `--wait` start does promptly. A supervisor
+# stopping a worker signals the whole process group, so the start receives the
+# same signal directly rather than through this gate.
+#
 # Usage:
 #   fm-nm-slot.sh <command> [args...]   run <command> while holding the claimed slot
 #
@@ -179,8 +186,9 @@ unset FM_NM_SLOT_LOCK_HELD
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
   || die_refusal "cannot create a reader error file beside $lock_path"
 trap 'rm -f "$reader_err"' EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+trap 'rm -f "$reader_err"; exit 129' HUP
+trap 'rm -f "$reader_err"; exit 130' INT
+trap 'rm -f "$reader_err"; exit 143' TERM
 
 reader_error() {
   local line
@@ -231,9 +239,5 @@ if [ "$count" -ge "$limit" ]; then
 fi
 
 start_status=0
-"$@" 9>&- &
-start_pid=$!
-trap 'kill -INT "$start_pid" 2>/dev/null; exit 130' INT
-trap 'kill -TERM "$start_pid" 2>/dev/null; exit 143' TERM
-wait "$start_pid" || start_status=$?
+"$@" 9>&- || start_status=$?
 exit "$start_status"
