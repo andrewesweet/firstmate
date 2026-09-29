@@ -322,13 +322,17 @@ cmd_check() {
     seq=$((seq + 1))
     [ "$seq" -gt "$MAX_SUBJECTS" ] && break
     enabled_rules | grep -qx "$rule" || continue
-    jev_lint_one "$workdir" "$seq" "$run_id" "$ts" "$record" "$rule" "$file" "$claim" "$ev" "$model" "$rate" &
+    jev_lint_one "$workdir" "$seq" "$run_id" "$ts" "$rule" "$file" "$claim" "$ev" "$model" "$rate" &
     checked=$((checked + 1))
     live=$((live + 1))
     if [ "$live" -ge "$jobs" ]; then wait -n; live=$((live - 1)); fi
   done <<< "$subjects"
   wait
-  local flags
+  local flags line_file
+  for line_file in "$workdir"/line-*; do
+    [ -e "$line_file" ] || break
+    record_append "$record" "$(cat "$line_file")"
+  done
   flags=$(grep -c . "$workdir/count" 2>/dev/null || echo 0)
   trap - EXIT
   rm -rf "$workdir"
@@ -341,12 +345,13 @@ cmd_check() {
 }
 
 # One Jev request for one subject: POSTs the frozen question with the subject
-# as state, prints a finding line when p >= cutoff, appends the check record.
+# as state, prints a finding line when p >= cutoff, and writes its one check
+# line into the workdir for cmd_check to append after every job has finished.
 # The key never enters this script: bin/fm-branch-shadow-jev.sh owns the
 # transport and the key discipline, and an unavailable answer records a null
 # probability that can never raise a finding.
-jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim> <ev> <model> <rate>
-  local workdir=$1 seq=$2 run_id=$3 ts=$4 record=$5 rule=$6 file=$7 claim=$8 ev=$9 model=${10} rate=${11}
+jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <rule> <file> <claim> <ev> <model> <rate>
+  local workdir=$1 seq=$2 run_id=$3 ts=$4 rule=$5 file=$6 claim=$7 ev=$8 model=$9 rate=${10}
   local id cutoff question crit_t crit_f prob tokens lat_ms cost resp_file req_file
   id="$run_id-$seq"
   cutoff=$(jq -r --arg r "$rule" '.rules[$r].cutoff' "$RULES_FILE")
@@ -384,7 +389,7 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim>
     {ts: $ts, run_id: $run, kind: "check", id: $id, rule: $rule, cutoff: $cutoff,
      file: $file, claim: $claim, evidence: $ev, probability: $prob, flagged: $flagged,
      input_tokens: $tok, cost_usd: $cost, latency_ms: $lat, model: $model}')
-  record_append "$record" "$line"
+  printf '%s\n' "$line" > "$workdir/line-$seq"
   if [ "$flagged" = true ]; then
     printf 'jev-lint finding %s [%s %s p=%s cutoff=%s]: %s\n' "$id" "$rule" "$file" "$prob" "$cutoff" "$claim"
   fi
