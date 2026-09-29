@@ -391,6 +391,14 @@ There is no pull request, no \`gh-axi\` call, and no forge CI result to report: 
 EOF
 }
 
+fm_jev_self_check_block() {
+  cat <<EOF
+After implementation and before starting validation, run the advisory self-check \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh check\` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
+For each finding it prints, either fix the code or record why it stands with \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
+Findings are candidates only: they never gate, skip, prune, or approve validation.
+EOF
+}
+
 fm_dod_block() {  # <mode> <task-id> [branch] <data-dir> [<forge>]
   local mode=$1 id=$2 data=$4 forge=${5:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id}
@@ -420,6 +428,9 @@ This project's review server is Gerrit: it has no pull requests and no forge CI 
 Pass \`--skip push,pr,ci\` on every \`no-mistakes axi run\` for this task, and skip nothing else: \`review\`, \`test\`, \`document\`, and \`lint\` are the whole point of the run.
 Those three are the only steps that reach a forge, and skipping them is a supported outcome, not a degraded one.
 The task is complete only when committed on your branch.
+EOF
+      fm_jev_self_check_block
+      cat <<EOF
 When your implementation is committed, start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
@@ -476,9 +487,9 @@ EOF
 Delivery contract: mode=no-mistakes
 Ship branch: $branch
 The task is complete only when committed on your branch.
-After implementation and before starting validation, run the advisory self-check \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh check\` from your worktree root; when TYPESAFE_API_KEY is absent it skips silently.
-For each finding it prints, either fix the code or record why it stands with \`$_FM_DOD_LIB_DIR/fm-jev-lint.sh resolve --id <finding-id> --verdict fixed|dismissed --reason <text>\`.
-Findings are candidates only: they never gate, skip, prune, or approve validation.
+EOF
+      fm_jev_self_check_block
+      cat <<EOF
 When your implementation is committed, rebase onto the current default branch, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
 
 EOF
