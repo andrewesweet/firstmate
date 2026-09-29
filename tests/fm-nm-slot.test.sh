@@ -375,7 +375,44 @@ PROBE
   [ "$RUN_STATUS" -eq 0 ] || fail "the marker probe should run, got $RUN_STATUS: $RUN_ERR"
   printf '%s' "$RUN_OUT" | grep -qF 'marker=[]' \
     || fail "the lock-held marker must not leak into the started command, got: $RUN_OUT"
+
+  # A start command that cannot be executed is the command's own failure, never
+  # the gate's refusal, on either lock path.
+  seed_db executing:1
+  run_noflock "$ENV_ROOT/no-such-start-command"
+  [ "$RUN_STATUS" -eq 127 ] \
+    || fail "an unexecutable start must surface as 127 on the python3 lock path, got $RUN_STATUS: $RUN_ERR"
 fi
+
+seed_db executing:1
+run_slot "$ENV_ROOT/no-such-start-command"
+[ "$RUN_STATUS" -eq 127 ] \
+  || fail "an unexecutable start must surface as 127, got $RUN_STATUS: $RUN_ERR"
+
+# --- a signal during the wrapped start stops the gate ------------------------
+# A supervisor that stops a worker mid-start must not get a started validation
+# and a held slot back.
+
+seed_db executing:1
+SLOW_START="$ENV_ROOT/slow-start"
+cat > "$SLOW_START" <<'SLOW'
+#!/usr/bin/env bash
+sleep 10
+SLOW
+chmod +x "$SLOW_START"
+"$SLOT" "$SLOW_START" >/dev/null 2>"$ENV_ROOT/term-err" &
+TERM_PID=$!
+SIGNALLED=0
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  sleep 0.3
+  kill -TERM "$TERM_PID" 2>/dev/null && { SIGNALLED=1; break; }
+done
+[ "$SIGNALLED" -eq 1 ] || fail "the gate exited before it could be signalled"
+wait "$TERM_PID"; TERM_STATUS=$?
+[ "$TERM_STATUS" -eq 143 ] \
+  || fail "a TERM during the wrapped start must exit 143, got $TERM_STATUS"
+[ -z "$(ls "$XDG_RUNTIME_DIR/firstmate"/nm-slot-reader.* 2>/dev/null)" ] \
+  || fail "the reader temp file must not survive a signalled gate"
 
 # --- the ship briefs route their start through this wrapper ------------------
 # The rendered brief is the generated agent-facing interface that applies the

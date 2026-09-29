@@ -139,6 +139,7 @@ if [ -z "${FM_NM_SLOT_LOCK_HELD:-}" ]; then
     fi
   else
     FM_NM_SLOT_LOCK_HELD=1 exec python3 -c '
+import errno
 import fcntl
 import os
 import sys
@@ -166,9 +167,9 @@ while True:
 os.dup2(fd, 9)
 try:
     os.execvp(command[0], command)
-except OSError:
+except OSError as exc:
     sys.stderr.write("error: cannot run %s while holding slot lock %s\n" % (command[0], lock_path))
-    sys.exit(refusal_code)
+    sys.exit(126 if exc.errno == errno.EACCES else 127)
 ' "$lock_path" 120 "$FM_NM_SLOT_WAIT" "$FM_NM_SLOT_REFUSAL" bash "$0" "$@"
   fi
 fi
@@ -177,7 +178,9 @@ unset FM_NM_SLOT_LOCK_HELD
   || die_refusal "no no-mistakes daemon state at $nm_db; is the daemon initialized on this host?"
 reader_err=$(mktemp "$(dirname "$lock_path")/nm-slot-reader.XXXXXX") \
   || die_refusal "cannot create a reader error file beside $lock_path"
-trap 'rm -f "$reader_err"' EXIT INT TERM
+trap 'rm -f "$reader_err"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 reader_error() {
   local line
