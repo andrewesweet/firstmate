@@ -1888,7 +1888,7 @@ teardown_treehouse_project_lock_held() {  # <lock-path>
 teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
   local id=$1 worktree=$2 project=$3 label=$4 lock_path
   [ -n "$worktree" ] || return 0
-  [ -f "$(dirname "$(dirname "$worktree")")/treehouse-state.json" ] || return 0
+  fm_treehouse_pool_slot_recorded "$project" "$worktree" || return 0
   lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
   if [ -n "$project" ] && [ -d "$project" ] && command -v treehouse >/dev/null 2>&1 &&
     teardown_treehouse_project_lock_held "$lock_path" &&
