@@ -1,0 +1,7 @@
+=== Host with 3 CI fix rounds active; a worker asks for a 4th validation slot ===
+--- gate as of ae7580a5 (before this change) ---
+STARTED a 4th validation while 3 CI fix rounds are running
+exit=0
+--- gate as of 703a530b (this change) ---
+wait: 3 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: f1, f2, f3
+exit=75

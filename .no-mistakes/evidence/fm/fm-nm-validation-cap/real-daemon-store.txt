@@ -1,0 +1,10 @@
+=== Gate reading this machine's real no-mistakes daemon store (read-only) ===
+store: /home/andre/.no-mistakes/state.sqlite
+--- limit 1 (forces the gate to report the live count) ---
+wait: 2 counted no-mistakes run(s) on this host >= limit 1; retry when one finishes. Counted runs: 01M3P900ZFRRC8T3113VGNA2CG, 01M3PHE973KGP0C3XDC3A12E22
+exit=75
+--- limit 99 (headroom, start admitted) ---
+STARTED (wrapped start placeholder; no run created)
+exit=0
+--- cross-check against the store, same predicate, via the CLI's own view ---
+

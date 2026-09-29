@@ -1,0 +1,10 @@
+108:Before starting a run, claim a validation slot under this host's concurrent-validation cap: run `/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3P900ZFRRC8T3113VGNA2CG/bin/fm-nm-slot.sh no-mistakes axi run --intent "<the intent string>" --wait 10s`.
+109-The script checks the host's counted validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that start so two workers cannot both squeeze in.
+110:On exit 75 the host is at its limit: append one `paused [at=<epoch>]: validation slot full; waiting for a running validation to finish` line, retry on a bounded backoff (60s first, doubling to a 10m cap), and start the run the moment a retry passes.
+111-On exit 78 the count or the limit could not be read: append `blocked [at=<epoch>]: {the script's exact error}` and stop.
+112-Any other non-zero exit is the start command's own failure, not the slot gate: handle it exactly as the rules below describe.
+113-Every command that starts a NEW run goes through the wrapper, including a later follow-up run on the same branch after a final outcome; drive, reattach, and `respond` calls on a run that already exists never claim a slot, so make them exactly as the rules below describe, without the wrapper.
+114-
+115-You drive no-mistakes by responding to its gates, not by implementing fixes.
+116-Follow the guidance no-mistakes itself provides for the mechanics: it loads when you invoke /no-mistakes, and `no-mistakes axi run --help` plus the `help` lines in each `axi` response are authoritative and version-matched to the installed binary.
+117-When starting no-mistakes, pass `--intent` as only this brief's `## Published intent` subsection body, not its heading, plus any later captain ask restated into that subsection.

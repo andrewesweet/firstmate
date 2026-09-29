@@ -1,0 +1,6 @@
+=== Wrapper hands off to the real no-mistakes CLI (empty host store, slot free) ===
+no-mistakes version v1.79.0 (fc540ac) 2026-09-19T09:34:32Z
+exit=0
+=== The wrapped command does not inherit the slot lock descriptor ===
+fd 9 is closed for the start command
+exit=0

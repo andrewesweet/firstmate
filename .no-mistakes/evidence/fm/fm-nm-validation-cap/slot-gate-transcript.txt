@@ -1,0 +1,37 @@
+
+=== S1 below the default limit of 3: worker start runs ===
+STARTED no-mistakes axi run --intent ... --wait 10s
+exit=0
+
+=== S2 at the limit: worker is told to wait, start never runs ===
+wait: 3 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: r1, r2, r3
+exit=75
+
+=== S3 CI monitor only (ci step running): holds no slot, start runs ===
+STARTED no-mistakes axi run --intent ... --wait 10s
+exit=0
+
+=== S4 CI fix rounds (ci step fixing after axi respond --action fix): count, start refused ===
+wait: 3 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: f1, f2, f3
+exit=75
+
+=== S5 parked at a gate awaiting the agent: holds no slot ===
+STARTED no-mistakes axi run --intent ... --wait 10s
+exit=0
+
+=== S6 limit file set to 1, one ci fix round on the host ===
+wait: 1 counted no-mistakes run(s) on this host >= limit 1; retry when one finishes. Counted runs: f1
+exit=75
+
+=== S6b same limit of 1, that run is only monitoring CI ===
+STARTED no-mistakes axi run --intent ... --wait 10s
+exit=0
+
+=== S7 unreadable limit configuration: refusal, start never runs ===
+error: limit configuration /tmp/nmslot.fw26Ks/config/firstmate/nm-max-concurrent-validations must hold one plain positive integer, got 'three'
+exit=78
+
+=== S8 two workers race at limit 1 with an empty host: only one start is admitted ===
+workerA exit=0: STARTED workerA (registers its run)
+workerB exit=75: wait: 1 counted no-mistakes run(s) on this host >= limit 1; retry when one finishes. Counted runs: workerA
+runs registered in the store: 1
