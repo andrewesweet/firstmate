@@ -177,6 +177,17 @@ test_help_includes_entire_header() {
   pass "fm-brief.sh: --help renders the complete header"
 }
 
+test_help_teaches_spec_shaped_firstmate_spec() {
+  local help
+  help=$("$ROOT/bin/fm-brief.sh" --help)
+  assert_contains "$help" "Shape \`{FIRSTMATE_SPEC}\` as a spec" "fm-brief.sh --help omitted the spec-shaped Firstmate-spec rule"
+  assert_contains "$help" "Suggested skills:" "fm-brief.sh --help omitted the suggested-skills line rule"
+  assert_contains "$help" "reading the named file" "fm-brief.sh --help omitted the read-as-file discipline for crews"
+  assert_contains "$help" "keep secrets out" "fm-brief.sh --help omitted the redact-secrets rule"
+  assert_contains "$help" "line numbers that rot" "fm-brief.sh --help omitted the durability rule"
+  pass "fm-brief.sh: --help teaches the spec-shaped Firstmate-spec rules"
+}
+
 # Registry with one project per delivery mode. fm-brief.sh no longer reads it -
 # the ship mode arrives as an explicit flag - so this fixture exists to prove the
 # scaffold ignores the registered posture (test_ship_mode_is_explicit_not_registry).
@@ -1492,6 +1503,7 @@ test_script_parses
 test_no_heredoc_in_command_substitution
 test_help_includes_entire_header
 test_ship_dod_implement_discipline
+test_help_teaches_spec_shaped_firstmate_spec
 test_ship_modes_generate_clean_briefs
 test_ship_mode_is_required_and_closed_set
 test_ship_mode_is_explicit_not_registry

@@ -576,6 +576,12 @@ When a main-side thread such as a pending captain decision or relay reminder is 
 Captain calls discovered by investigations or visual reviews follow `captain-hold-lifecycle`, which owns their completion gate and recorded-answer rules.
 When the automatic transition gate applies, dispatch and completion move the item themselves - `bin/fm-spawn.sh` and `bin/fm-teardown.sh` own those transitions and refuse rather than report success without them - so what remains yours is filing the item before dispatch, recording decisions, and keeping notes current; `docs/configuration.md` owns gate applicability and the manual-backend exception.
 Re-evaluate queued work after every teardown and heartbeat, dispatching items only when dependencies and time gates have cleared.
+`tasks-axi` is the system of record: every fleet work item, decision, dependency, and follow-up lives there.
+GitHub issues hold only what someone outside the fleet must read or answer (user-filed bugs, maintainer deliberation, public planning).
+Link a row to its GitHub issue by writing `gh:<owner>/<repo>#<n>` in the row body or note (`--pr` is for pull-request URLs only and refuses issue URLs); an upstream-ticket row the contribution observer must watch carries the issue's canonical `https://` URL on the row line itself instead, since only row-line links are extracted, per `bearings`.
+Information flows from GitHub into `tasks-axi`, never by background two-way sync.
+Workers write to GitHub only when their brief authorizes it.
+`docs/configuration.md` owns the full boundary.
 
 `.tasks.toml`, `docs/configuration.md`, and current `tasks-axi --help` own the backlog schema, compatibility, retention, and routine command syntax.
 Use compatible `tasks-axi` when the configured backend selects it, always through `bin/fm-tasks-axi.sh` so the call reaches this home's backlog from any directory, and the documented manual path otherwise; keep only the configured recent Done entries.
@@ -592,6 +598,7 @@ Preserve durable structured identifiers, dependencies, and completion artifact l
 Use its scaffold as the contract, then fill `## Captain's intent` (`{TASK}`) with the captain's own ask and any boundary the captain stated, plus the context needed to read it, including the substance of any report, decision, or PR the ask refers to; never widen the ask there into a general goal or an enumerated coverage list; it stays the captain's private words for judgment and worker steering, never pipeline input.
 Fill `## Published intent` (`{PUBLISHED_INTENT}`) between them with the firstmate-authored statement the no-mistakes worker passes as `--intent`, the only intent text that reaches a PR body: a neutral third-person statement on a repository whose PRs are public, the captain's own intent wording without speaker labels or direct address on a private repository, with visibility decided by firstmate at intake and no script performing a lookup.
 Fill `## Firstmate spec` (`{FIRSTMATE_SPEC}`) with only the build instructions that ask requires, naming what stays out of scope when the ask is narrow; a generalization, consistency sweep, or extra hardening the captain did not ask for is follow-up work to note, not scope to add.
+Shape it as a spec per `bin/fm-brief.sh`: modules and interfaces, testing seams with prior art, explicit out of scope, a Suggested-skills line of skill files the worker reads as files, and durable references without secrets or line numbers.
 `bin/fm-dod-lib.sh` owns that published-intent fill contract and what a no-mistakes worker may pass as `--intent`.
 Keep additions task-specific rather than repeating lifecycle instructions, and alter generated sections only when the task genuinely differs from the standard shape.
 

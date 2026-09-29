@@ -9,7 +9,17 @@
 # direct address; captain rulings that constrain the design belong in that
 # subsection so the reviewer does not re-ask them) and `{FIRSTMATE_SPEC}`
 # under `## Firstmate spec` (build instructions, which are never the captain's
-# intent). A ship brief also carries `{PUBLISHED_INTENT}` under
+# intent). Shape `{FIRSTMATE_SPEC}` as a spec, adapted from the to-spec template:
+# state implementation decisions as the modules and interfaces to build or
+# modify (never file paths or code snippets, which rot); name testing decisions
+# as the seams to test at plus prior art for those tests; close with an explicit
+# out-of-scope list. Carry a `Suggested skills:` line naming installed skill
+# files the worker should read as files (for example
+# `~/.agents/skills/prototype/SKILL.md`); crews reach every discipline by
+# reading the named file, never through a Skill-tool invocation. Reference
+# existing artifacts (reports, decisions, PRs) by path or URL instead of
+# duplicating them; keep secrets out; prefer durable behavioral descriptions
+# over line numbers that rot. A ship brief also carries `{PUBLISHED_INTENT}` under
 # `## Published intent` between them: the firstmate-authored statement a
 # no-mistakes worker passes as `--intent`; scout briefs keep the two
 # subsections. bin/fm-dod-lib.sh owns the no-mistakes `--intent` contract and

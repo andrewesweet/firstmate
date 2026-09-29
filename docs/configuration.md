@@ -352,6 +352,26 @@ While the file exists, main's lease-checked commands also take the per-task leas
 The tracked `.tasks.toml` pins the default `tasks-axi` markdown backend to `data/backlog.md`, with `done_keep = 10` and an archive at `data/done-archive.md`.
 A home may instead select another tasks-axi adapter such as Beads through its own `.tasks.toml` or `TASKS_AXI_BACKEND`; firstmate still uses only tasks-axi verbs for routine backlog reads and mutations, and the adapter maps `start` and evidence-bearing `done` transitions to its native statuses and evidence fields.
 
+### GitHub issues versus tasks-axi
+
+`tasks-axi` is the system of record: every fleet work item (ships, scouts, captain-held decisions, follow-ups, retro rows, wayfinder-mirror rows — a wayfinder map being the shared decision-ticket map an epic too large for one session keeps on the issue tracker, per the installed skill file `~/.agents/skills/wayfinder/SKILL.md`), with its dependencies, holds, notes, and completion artifacts, lives there.
+GitHub issues hold only what needs a repo-scoped, outward-facing home: user-filed bug reports, spec review with maintainers, public planning artifacts, and external-PR deliberation.
+Internal decomposition stays in `tasks-axi`.
+Open a GitHub issue only when someone outside the fleet must read or answer it.
+Link a row to its GitHub issue by writing `gh:<owner>/<repo>#<n>` in the row body or note through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh): `add --body` at creation, `done --note` at close, and on an existing row `update --body-file` with `--archive-body`, passing the full considered body (the current body text plus the `gh:` pointer) because `update` replaces the whole body.
+An upstream-ticket row the contribution observer must watch instead carries the issue's canonical `https://` URL on the row line itself (its title text, not the body or note), because that is the only place `bin/fm-fleet-snapshot.sh` extracts links from for `bin/fm-contributions.sh`; the `bearings` skill owns that rule.
+`--pr` is for pull-request URLs only and refuses issue URLs, and the body pointer survives the done archive.
+A GitHub issue body may carry `fleet-task: <task-id>` as a human hint only.
+Task ids are home-local and never join keys across homes.
+Sync direction is GitHub into `tasks-axi`: firstmate reads the issue and mirrors what matters into a row; no script creates or mutates rows from GitHub, and the only automated read is `bin/fm-contributions.sh` observing issues a row already links by canonical URL.
+`tasks-axi` into GitHub happens only by explicit brief authorization (worker-authored publication the captain approved).
+There is no background two-way sync, and nobody bulk-moves rows into GitHub.
+Workers write to GitHub only when their brief authorizes it.
+Firstmate writes GitHub for merge and PR operations via `gh-axi`.
+A wayfinder map may live on GitHub only when the epic needs one shared URL, and every decision ticket the fleet works still gets a `tasks-axi` row linked to it.
+Solo or internal epics keep the map-equivalent as `tasks-axi` rows plus the epic's scout report, with no GitHub issue.
+Do not adopt a local-markdown tracker (`.scratch/`) as a third store: in fleet worktrees it dies at teardown, so durable local notes belong in `data/<id>/` and the report.
+
 ### Captain holds on Beads
 
 Captain-hold row creation is owned by [`bin/fm-captain-hold.sh`](../bin/fm-captain-hold.sh) `hold`: when no work item exists, it creates an ordinary backlog row (`--kind captain` metadata; Beads native type `task`) and then applies the captain hold.
