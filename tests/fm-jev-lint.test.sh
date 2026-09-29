@@ -63,6 +63,22 @@ index 0000000..1111111 100644
 @@ -0,0 +1,3 @@
 +# returns the tenant list
 +fm_tenants() { echo acme-globex-initech-hunter2 }
+diff --git a/my secrets/key.sh b/my secrets/key.sh
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ b/my secrets/key.sh
+@@ -0,0 +1,3 @@
++# returns the spaced tenant list
++fm_spaced() { echo spacedtenant42 }
+diff --git a/Config/.ENV.sh b/Config/.ENV.sh
+new file mode 100644
+index 0000000..1111111 100644
+--- /dev/null
++++ b/Config/.ENV.sh
+@@ -0,0 +1,3 @@
++# returns the upper-case tenant list
++fm_upper() { echo uppertenant43 }
 EOF
 
 printf '{"r1":0.91,"r2":0.11,"r4":0.75}' > "$STUB"
@@ -133,6 +149,8 @@ test_extraction_and_cutoffs() {
     || fail "r4 0.75 >= 0.60 flags"
   grep -q 'sekrit' "$RECORD" && fail ".env subject must never reach the record"
   grep -q 'hunter2' "$RECORD" && fail "a file under a secrets-like directory must never reach the record"
+  grep -q 'spacedtenant42' "$RECORD" && fail "a secrets-like path containing a space must never reach the record"
+  grep -q 'uppertenant43' "$RECORD" && fail "an upper-case secrets-like path component must never reach the record"
   grep -q 'SECRETKEY123' "$RECORD" && fail "API key must never reach the record"
   pass "extraction finds R1/R2/R4, excludes .env, and applies frozen cutoffs"
 }
@@ -180,6 +198,13 @@ test_resolve_and_score() {
   [ $? -eq 2 ] || fail "resolve misuse exits 2"
   FM_HOME="$HOME_DIR" "$TOOL" resolve --id 9999-1-7 --verdict fixed --reason x --record "$RECORD" 2>/dev/null \
     && fail "resolve refuses an id no finding has"
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$id" --verdict dismissed --reason again --record "$RECORD" 2>/dev/null \
+    && fail "resolve refuses a second outcome for an already resolved finding"
+  local unflagged
+  unflagged=$(jq -r -s 'map(select(.kind == "check" and (.flagged | not))) | .[0].id' "$RECORD")
+  [ -n "$unflagged" ] && [ "$unflagged" != "null" ] || fail "fixture needs an unflagged subject"
+  FM_HOME="$HOME_DIR" "$TOOL" resolve --id "$unflagged" --verdict fixed --record "$RECORD" 2>/dev/null \
+    && fail "resolve refuses a subject that was never flagged"
   jq -e -s 'all(.[] | select(.kind == "outcome"); .rule != "")' "$RECORD" >/dev/null \
     || fail "no outcome is recorded without the rule it belongs to"
   out=$(FM_HOME="$HOME_DIR" "$TOOL" score --record "$RECORD")
