@@ -309,6 +309,17 @@ describe("host version", () => {
     expect(start?.data.probe).toBe("");
   });
 
+  test("an unusable PATH answer is recorded as unknown, never as a blank version", async ($: Engine, on: On) => {
+    // Neither source names a release: the load line and the session.start
+    // record must still name one, so a behaviour change is never tied to "".
+    const w = world(on, { version: "", runningBinaryVersion: "", files: armedHome() });
+    await $.session.start(sessionStart);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code unknown)`))).toBe(true);
+    const start = startEvent(w);
+    expect(start?.data.version).toBe("unknown");
+    expect(start?.data.versionSource).toBe("PATH claude");
+  });
+
   test("without state/.branch-mod-mode the module loads inert and passes every wake through unclassified", async ($: Engine, on: On) => {
     const files = armedHome();
     delete files[`${STATE}/.branch-mod-mode`];

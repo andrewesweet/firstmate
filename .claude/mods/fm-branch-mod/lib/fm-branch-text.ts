@@ -5,7 +5,7 @@
 // task-notice id parse, the deterministic new-status-lines note, the
 // processing request main renders for a captain outcome, the Bash actor
 // rewrite command, the Stop-hook wake predicate, the tool-result text
-// coercion, and the version pin's probe parsing.
+// coercion, and the version probe parsing.
 //
 // Host seams - declared, not unified: every function here is pure except
 // newStatusLinesNote, which reads two state files per task through an
