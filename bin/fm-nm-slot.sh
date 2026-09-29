@@ -231,5 +231,9 @@ if [ "$count" -ge "$limit" ]; then
 fi
 
 start_status=0
-"$@" 9>&- || start_status=$?
+"$@" 9>&- &
+start_pid=$!
+trap 'kill -INT "$start_pid" 2>/dev/null; exit 130' INT
+trap 'kill -TERM "$start_pid" 2>/dev/null; exit 143' TERM
+wait "$start_pid" || start_status=$?
 exit "$start_status"

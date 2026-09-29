@@ -389,30 +389,49 @@ run_slot "$ENV_ROOT/no-such-start-command"
 [ "$RUN_STATUS" -eq 127 ] \
   || fail "an unexecutable start must surface as 127, got $RUN_STATUS: $RUN_ERR"
 
-# --- a signal during the wrapped start stops the gate ------------------------
-# A supervisor that stops a worker mid-start must not get a started validation
-# and a held slot back.
+# --- a signal during the wrapped start stops it promptly ---------------------
+# A supervisor that stops a worker mid-start must get the gate and its start
+# down at once, not after the start runs to completion still holding the slot.
 
-seed_db executing:1
 SLOW_START="$ENV_ROOT/slow-start"
-cat > "$SLOW_START" <<'SLOW'
+SLOW_DONE="$ENV_ROOT/slow-start-finished"
+cat > "$SLOW_START" <<SLOW
 #!/usr/bin/env bash
 sleep 10
+: > '$SLOW_DONE'
 SLOW
 chmod +x "$SLOW_START"
-"$SLOT" "$SLOW_START" >/dev/null 2>"$ENV_ROOT/term-err" &
-TERM_PID=$!
-SIGNALLED=0
-for _ in 1 2 3 4 5 6 7 8 9 10; do
-  sleep 0.3
-  kill -TERM "$TERM_PID" 2>/dev/null && { SIGNALLED=1; break; }
-done
-[ "$SIGNALLED" -eq 1 ] || fail "the gate exited before it could be signalled"
-wait "$TERM_PID"; TERM_STATUS=$?
-[ "$TERM_STATUS" -eq 143 ] \
-  || fail "a TERM during the wrapped start must exit 143, got $TERM_STATUS"
-[ -z "$(ls "$XDG_RUNTIME_DIR/firstmate"/nm-slot-reader.* 2>/dev/null)" ] \
-  || fail "the reader temp file must not survive a signalled gate"
+
+# assert_signal_stops <signal> <expected status>
+assert_signal_stops() {
+  local signal=$1 expect=$2 pid status started=0
+  seed_db executing:1
+  rm -f "$SLOW_DONE"
+  python3 -c '
+import os
+import signal
+import sys
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+os.execvp(sys.argv[1], sys.argv[1:])
+' "$SLOT" "$SLOW_START" >/dev/null 2>"$ENV_ROOT/signal-err" &
+  pid=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    sleep 0.3
+    kill -"$signal" "$pid" 2>/dev/null && { started=1; break; }
+  done
+  [ "$started" -eq 1 ] || fail "$signal: the gate exited before it could be signalled"
+  wait "$pid"; status=$?
+  [ "$status" -eq "$expect" ] \
+    || fail "$signal during the wrapped start must exit $expect, got $status"
+  [ ! -e "$SLOW_DONE" ] \
+    || fail "$signal must stop the wrapped start, but it ran to completion"
+  [ -z "$(ls "$XDG_RUNTIME_DIR/firstmate"/nm-slot-reader.* 2>/dev/null)" ] \
+    || fail "$signal: the reader temp file must not survive a signalled gate"
+}
+
+assert_signal_stops TERM 143
+assert_signal_stops INT 130
 
 # --- the ship briefs route their start through this wrapper ------------------
 # The rendered brief is the generated agent-facing interface that applies the
