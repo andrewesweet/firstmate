@@ -630,7 +630,8 @@ async function readHostVersion($: any): Promise<HostVersion> {
   }
   try {
     const r = await $.process.run(['claude', '--version'], { timeoutMs: 10000 })
-    return { version: versionToken(String(r.stdout ?? '').trim()), source: 'PATH claude', probe }
+    const version = versionToken(String(r.stdout ?? '').trim())
+    return { version: isVersionShaped(version) ? version : 'unknown', source: 'PATH claude', probe }
   } catch (error) {
     return { version: `unreadable (${String(error)})`, source: 'PATH claude', probe }
   }
