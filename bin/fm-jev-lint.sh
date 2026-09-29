@@ -12,7 +12,8 @@
 #   subjects deterministically (changed functions with their leading comments
 #   as R1, touched test blocks as R2, added prose enumerations with their
 #   surrounding diff context as R3, timeout or budget declarations in the
-#   diff as R4), sends one Jev noul request per subject in parallel, prints one
+#   diff as R4), sends one Jev noul request per subject in parallel through
+#   bin/fm-branch-shadow-jev.sh, prints one
 #   line per flagged finding with its id, and appends one JSON line per subject
 #   to the record. What resolve does: appends one outcome line recording how a
 #   finding was handled. What score does: reads the record and prints per-rule
@@ -36,9 +37,11 @@
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
 #   Absent in both: one "jev-lint: skipped ..." line on stderr, exit 0, no
-#   network call, nothing recorded. The key lives in one shell variable and
-#   reaches curl as a header read from a file descriptor, never on argv;
-#   nothing logs or writes it, and the record never carries it.
+#   network call, nothing recorded. The gate is a presence check only: the key
+#   value is never read into this script. Every request goes through
+#   bin/fm-branch-shadow-jev.sh, which owns the endpoint and the key
+#   discipline; an unavailable answer records a null probability and raises no
+#   finding.
 #
 # Data boundary: subjects are drawn from the worker's own diff only, and paths
 #   any of whose components look secrets-like are never read or sent, matched
@@ -69,10 +72,6 @@
 #   1 ms latency and make no network call. Production never sets it.
 set -u
 
-TYPESAFE_API_KEY_PRIVATE=${TYPESAFE_API_KEY:-}
-export -n TYPESAFE_API_KEY_PRIVATE 2>/dev/null || true
-unset TYPESAFE_API_KEY
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-$FM_ROOT}"
@@ -82,8 +81,8 @@ RECORD_DEFAULT="$FM_HOME/data/jev-lint.jsonl"
 # shellcheck source=bin/fm-env-lib.sh
 . "$SCRIPT_DIR/fm-env-lib.sh"
 
-TS_BASE=https://api.typesafe.ai
-TS_TIMEOUT=30
+JEV_SHIM="$SCRIPT_DIR/fm-branch-shadow-jev.sh"
+export TS_TIMEOUT="${TS_TIMEOUT:-30}"
 MAX_SUBJECTS=30
 CLAIM_CAP=500
 EVIDENCE_CAP=1500
@@ -109,14 +108,10 @@ record_append() {  # <record-path> <json-line>
 # Opt-in gate shared by check (resolve and score are local-only and never need
 # the key). Prints the skip line and returns 1 when absent, else 0.
 require_key() {
-  if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
-    TYPESAFE_API_KEY_PRIVATE=$(fmx_env_get TYPESAFE_API_KEY "$FM_HOME/.env")
-  fi
-  if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
-    echo "jev-lint: skipped (TYPESAFE_API_KEY absent from the environment and $FM_HOME/.env)" >&2
-    return 1
-  fi
-  return 0
+  [ -n "${TYPESAFE_API_KEY:-}" ] && return 0
+  fmx_env_get TYPESAFE_API_KEY "$FM_HOME/.env" | grep -q . && return 0
+  echo "jev-lint: skipped (TYPESAFE_API_KEY absent from the environment and $FM_HOME/.env)" >&2
+  return 1
 }
 
 # Content boundary for the subjects the path filter cannot catch: credential
@@ -141,9 +136,9 @@ enabled_rules() {
 # subject on stdout: rule, file, claim, evidence (tabs and newlines flattened,
 # capped). Deterministic: same diff bytes always yield the same subjects.
 extract_subjects() {
-  awk -v claim_cap="$CLAIM_CAP" -v ev_cap="$EVIDENCE_CAP" '
+  LC_ALL=C awk -v claim_cap="$CLAIM_CAP" -v ev_cap="$EVIDENCE_CAP" '
   function cap(s, n) { if (length(s) > n) s = substr(s, 1, n); return s }
-  function flat(s) { gsub(/\t/, " ", s); gsub(/\r/, "", s); return s }
+  function flat(s) { gsub(/\t/, " ", s); gsub(/\n/, " ", s); gsub(/\r/, "", s); return s }
   function is_comment(l) { return (l ~ /^[[:space:]]*(#|\/\/|\*|;|")/) }
   function is_banner(l) { return (l ~ /^[[:space:]]*(#|\/\/|;|\*)+[[:space:]]*[-=]{2,}/) }
   function is_func(l) {
@@ -175,15 +170,40 @@ extract_subjects() {
     return ev
   }
   function is_test_file(f) { return (f ~ /[Tt]est|[Ss]pec/) }
+  function unquote(p,   out, i, c, d, n, j) {
+    if (p !~ /^"/) return p
+    p = substr(p, 2, length(p) - 2)
+    out = ""
+    for (i = 1; i <= length(p); i++) {
+      c = substr(p, i, 1)
+      if (c != "\\") { out = out c; continue }
+      c = substr(p, ++i, 1)
+      if (c == "t") out = out "\t"
+      else if (c == "n") out = out "\n"
+      else if (c == "r") out = out "\r"
+      else if (c >= "0" && c <= "7") {
+        n = 0
+        for (j = 0; j < 3; j++) {
+          d = substr(p, i, 1)
+          if (d < "0" || d > "7") break
+          n = n * 8 + (d + 0); i++
+        }
+        i--
+        out = out sprintf("%c", n)
+      }
+      else out = out c
+    }
+    return out
+  }
   function emit(rule, file, claim, ev) {
+    file = flat(file)
     claim = cap(flat(claim), claim_cap); ev = cap(flat(ev), ev_cap)
     if (claim == "" || ev == "") return
     printf "%s\t%s\t%s\t%s\n", rule, file, claim, ev
   }
   /^diff --git / { flush_file(); file = ""; n = 0; in_hunk = 0; delete bound; next }
   !in_hunk && /^\+\+\+ / {
-    file = substr($0, 5)
-    if (file ~ /^"/) { file = substr(file, 2, length(file) - 2); gsub(/\\"/, "\"", file); gsub(/\\\\/, "\\", file) }
+    file = unquote(substr($0, 5))
     sub(/^b\//, "", file)
     next
   }
@@ -272,7 +292,6 @@ cmd_check() {
   done
   require_key || exit 0
   command -v jq >/dev/null 2>&1 || die "jq required"
-  command -v curl >/dev/null 2>&1 || die "curl required"
   [ -r "$RULES_FILE" ] || die "rules file not readable: $RULES_FILE"
   local model rate
   model=$(jq -r '.model' "$RULES_FILE")
@@ -327,7 +346,9 @@ cmd_check() {
 
 # One Jev request for one subject: POSTs the frozen question with the subject
 # as state, prints a finding line when p >= cutoff, appends the check record.
-# The key reaches curl from a file descriptor, never on argv.
+# The key never enters this script: bin/fm-branch-shadow-jev.sh owns the
+# transport and the key discipline, and an unavailable answer records a null
+# probability that can never raise a finding.
 jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim> <ev> <model> <rate>
   local workdir=$1 seq=$2 run_id=$3 ts=$4 record=$5 rule=$6 file=$7 claim=$8 ev=$9 model=${10} rate=${11}
   local id cutoff question crit_t crit_f prob tokens lat_ms cost resp_file req_file
@@ -348,16 +369,13 @@ jev_lint_one() {  # <workdir> <seq> <run_id> <ts> <record> <rule> <file> <claim>
       {model: $model, state: {claim: $claim, evidence: $ev},
        questions: {violated: {type: "noul", instructions: $q,
          criteria: {"true": $t, "false": $f}}}}' > "$req_file" || return 0
-    local t0 t1 http
+    local t0 t1
     t0=$(date +%s%3N 2>/dev/null || date +%s)
-    http=$(curl -sS --max-time "$TS_TIMEOUT" -o "$resp_file" -w '%{http_code}' \
-      -X POST "$TS_BASE/v1/systemone" -H 'Content-Type: application/json' \
-      -H @/dev/fd/3 3< <(printf 'Authorization: Bearer %s\n' "$TYPESAFE_API_KEY_PRIVATE") \
-      --data-binary @"$req_file" 2>/dev/null) || http=000
+    "$JEV_SHIM" < "$req_file" > "$resp_file" 2>/dev/null || true
     t1=$(date +%s%3N 2>/dev/null || date +%s)
     if [[ "$t0" == *N || "$t1" == *N ]]; then lat_ms=0
     elif [ "${#t0}" -le 10 ]; then lat_ms=$(( (t1 - t0) * 1000 )); else lat_ms=$((t1 - t0)); fi
-    if [ "$http" = 200 ]; then
+    if jq -e '.ok' "$resp_file" >/dev/null 2>&1; then
       prob=$(jq -r '.answers.violated.noul // "null"' "$resp_file" 2>/dev/null) || prob=null
       tokens=$(jq -r '.usage.input_tokens // 0' "$resp_file" 2>/dev/null) || tokens=0
     else
