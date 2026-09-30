@@ -5434,6 +5434,45 @@ if (JSON.stringify(expandedActual) !== JSON.stringify(expandedStock)) {
 if (!expandedStock.join("\n").includes("OUTCOME_TWELVE") || JSON.stringify(expandedStock) === JSON.stringify(collapsedStock)) {
   throw new Error("stock rendering fixture did not exercise expanded output");
 }
+
+// fm_branch_processed takes a required `through`, so Pi's stock call line
+// always carries that argument. Compare it byte-for-byte the same way, with
+// non-empty args, so a probe-seam miss cannot pass as a title-only line.
+const processedActual = tools.find((tool) => tool.name === "fm_branch_processed");
+if (!processedActual) throw new Error("fm_branch_processed was not registered");
+const processedStock = { ...processedActual };
+delete processedStock.renderShell;
+delete processedStock.renderCall;
+delete processedStock.renderResult;
+const processedArgs = { through: 7 };
+const processedResult = {
+  content: [{ type: "text", text: "captain outcomes marked processed" }],
+  details: undefined,
+  isError: false,
+};
+const processedStockRow = new ToolExecutionComponent("fm_branch_processed", "stock", processedArgs, { showImages: false }, processedStock, ui, process.cwd());
+const processedActualRow = new ToolExecutionComponent("fm_branch_processed", "actual", processedArgs, { showImages: false }, processedActual, ui, process.cwd());
+for (const row of [processedStockRow, processedActualRow]) {
+  row.markExecutionStarted();
+  row.setArgsComplete();
+  row.updateResult(processedResult);
+}
+const processedCollapsedStock = processedStockRow.render(100);
+if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedCollapsedStock)) {
+  throw new Error("fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
+}
+if (!processedCollapsedStock.join("\n").includes("7")) {
+  throw new Error("fm_branch_processed fixture did not exercise a rendered call argument");
+}
+processedStockRow.setExpanded(true);
+processedActualRow.setExpanded(true);
+const processedExpandedStock = processedStockRow.render(100);
+if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedExpandedStock)) {
+  throw new Error("expanded fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
+}
+if (JSON.stringify(processedExpandedStock) === JSON.stringify(processedCollapsedStock)) {
+  throw new Error("fm_branch_processed fixture did not exercise expanded output");
+}
 pi.events.emit("firstmate:calm-presentation", { active: true, stockExportRendering: false });
 actualRow.invalidate();
 if (actualRow.render(100).length !== 0) {
