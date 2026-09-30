@@ -4399,7 +4399,18 @@ if (!messages || !tree) process.exit(1);
 if (!/<div class="user-message"[^>]*>[\s\S]*Show a deterministic tool example\./.test(messages)) process.exit(1);
 if (!/<div class="assistant-message"[^>]*>[\s\S]*The deterministic tool example is complete\./.test(messages)) process.exit(1);
 if (messages.includes('<div class="hook-message"')) process.exit(1);
-if (messages.includes("[firstmate-synthetic-input]")) process.exit(1);
+// Pi 0.99 renders hidden custom messages in the export DOM with its stock
+// `hook-message-hidden` marker and CSS-hides them unless the reader opts in,
+// where older Pi omitted them entirely. The Calm boundary stays behavioral:
+// the synthetic operational input may appear only inside such stock-hidden
+// hook rows, and the export must not enable Pi's show-hidden-messages mode.
+let syntheticIndex = messages.indexOf("[firstmate-synthetic-input]");
+while (syntheticIndex !== -1) {
+  const rowStart = messages.lastIndexOf('<div class="hook-message', syntheticIndex);
+  if (rowStart === -1 || !messages.startsWith('<div class="hook-message hook-message-hidden"', rowStart)) process.exit(1);
+  syntheticIndex = messages.indexOf("[firstmate-synthetic-input]", syntheticIndex + 1);
+}
+if (/<body[^>]*show-hidden-messages/.test(dom)) process.exit(1);
 for (const current of ["CURRENT_WATCHER_E2E", "CURRENT_TURN_END_E2E", "CURRENT_AWAY_E2E", "CURRENT_FROM_FIRSTMATE_E2E", "CURRENT_LAUNCH_BRIEF_E2E"]) {
   if (!messages.includes(current)) process.exit(1);
 }

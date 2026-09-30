@@ -2392,6 +2392,47 @@ ${context.command}
     return stockOutcomesPreviewLines ?? undefined;
   };
 
+  // Pi 0.99 renders the stock tool-call line as the title plus the call's
+  // arguments (collapsed `key=value` pairs, expanded `key: value` lines), and
+  // that formatting is not a package export. The installed stock component is
+  // the only authority for it, so probe its call fallback with the real args
+  // and expansion state the same way the preview probe above works, instead
+  // of copying strings that drift with the next Pi release. A probe miss
+  // falls back to the title-only line pre-0.99 Pi rendered.
+  const getStockOutcomesCallText = (toolName: string, args: unknown, expanded: boolean): string | null => {
+    try {
+      const probeDefinition: ToolDefinition = {
+        name: toolName,
+        label: "Call probe",
+        description: "Call probe",
+        parameters: Type.Object({}),
+        execute: async () => ({ content: [], details: undefined }),
+      };
+      const probe = new ToolExecutionComponent(
+        toolName,
+        "fm-outcomes-call-probe",
+        args,
+        { showImages: false },
+        probeDefinition,
+        { requestRender() {} } as ConstructorParameters<typeof ToolExecutionComponent>[5],
+        root,
+      );
+      probe.setArgsComplete();
+      if (expanded) probe.setExpanded(true);
+      // contentBox is a private member of the stock component.
+      // The probe reads it through a narrow structural view of that
+      // undocumented seam, guarded by the catch below like every other
+      // stock-probe fallback in this extension.
+      const region = (probe as unknown as {
+        contentBox?: { children?: Array<{ child?: { text?: unknown } }> };
+      }).contentBox?.children?.[0];
+      const text = region?.child?.text;
+      return typeof text === "string" && text.length > 0 ? text : null;
+    } catch {
+      return null;
+    }
+  };
+
   type OutcomesToolShellState = {
     shell?: Box;
     call?: Text;
@@ -2426,11 +2467,12 @@ ${context.command}
       recent: Type.Optional(Type.Number({ description: "How many most-recent outcomes to read (default 20)" })),
     }),
     renderShell: "self",
-    renderCall: (_args, theme, context) => {
+    renderCall: (args, theme, context) => {
       if (calmPresentation.stockExportRendering) throw new Error("Use Pi stock export rendering");
       if (calmHides("assistant-tool-call")) return new Container();
       const shellState = context.state as OutcomesToolShellState;
-      shellState.call = new Text(theme.fg("toolTitle", theme.bold("fm_branch_outcomes")), 0, 0);
+      const stockCall = getStockOutcomesCallText("fm_branch_outcomes", args, context.expanded);
+      shellState.call = new Text(stockCall ?? theme.fg("toolTitle", theme.bold("fm_branch_outcomes")), 0, 0);
       return refreshOutcomesToolShell(shellState, theme, context);
     },
     renderResult: (result, options, theme, context) => {
@@ -2488,11 +2530,12 @@ ${context.command}
       through: Type.Number({ description: "The highest outcome sequence number this conversation has processed" }),
     }),
     renderShell: "self",
-    renderCall: (_args, theme, context) => {
+    renderCall: (args, theme, context) => {
       if (calmPresentation.stockExportRendering) throw new Error("Use Pi stock export rendering");
       if (calmHides("assistant-tool-call")) return new Container();
       const shellState = context.state as OutcomesToolShellState;
-      shellState.call = new Text(theme.fg("toolTitle", theme.bold("fm_branch_processed")), 0, 0);
+      const stockCall = getStockOutcomesCallText("fm_branch_processed", args, context.expanded);
+      shellState.call = new Text(stockCall ?? theme.fg("toolTitle", theme.bold("fm_branch_processed")), 0, 0);
       return refreshOutcomesToolShell(shellState, theme, context);
     },
     renderResult: (result, _options, theme, context) => {
