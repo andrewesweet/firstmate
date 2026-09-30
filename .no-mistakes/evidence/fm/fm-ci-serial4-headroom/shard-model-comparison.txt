@@ -1,0 +1,65 @@
+# Portable serial shard packing: base 2bec13f0 vs target 725c04a6
+
+Modeled per-shard sums produced with each commit's own bin/fm-test-run.sh shard membership
+(bin/fm-test-run.sh --list --lane portable-serial-<k>of9) scored against the refreshed 2026-09-30
+measured hints, i.e. the durations CI actually produced. 30-minute job cap = 1800000 ms.
+
+## Target (725c04a6) membership, target hints
+shard 1  scripts=1  modeled_ms=1122548  (18m42s)
+shard 2  scripts=25  modeled_ms=1007492  (16m47s)
+shard 3  scripts=28  modeled_ms=1007456  (16m47s)
+shard 4  scripts=28  modeled_ms=1007486  (16m47s)
+shard 5  scripts=28  modeled_ms=1007461  (16m47s)
+shard 6  scripts=28  modeled_ms=1007456  (16m47s)
+shard 7  scripts=27  modeled_ms=1007486  (16m47s)
+shard 8  scripts=29  modeled_ms=1007485  (16m47s)
+shard 9  scripts=29  modeled_ms=1007496  (16m47s)
+
+## Base (2bec13f0) membership, base (stale) hints - looked balanced
+shard 1  scripts=14  modeled_ms=714353  (11m54s)
+shard 2  scripts=25  modeled_ms=714320  (11m54s)
+shard 3  scripts=27  modeled_ms=714346  (11m54s)
+shard 4  scripts=27  modeled_ms=714354  (11m54s)
+shard 5  scripts=26  modeled_ms=714345  (11m54s)
+shard 6  scripts=26  modeled_ms=714351  (11m54s)
+shard 7  scripts=26  modeled_ms=714335  (11m54s)
+shard 8  scripts=26  modeled_ms=714342  (11m54s)
+shard 9  scripts=26  modeled_ms=714334  (11m54s)
+
+## Base membership re-scored with the refreshed measured hints - what CI really ran
+base shard 1  scripts=14  measured_model_ms=1146842 (19m06s)
+base shard 2  scripts=25  measured_model_ms=844288 (14m04s)
+base shard 3  scripts=27  measured_model_ms=974451 (16m14s)
+base shard 4  scripts=27  measured_model_ms=1470548 (24m30s)
+base shard 5  scripts=26  measured_model_ms=870292 (14m30s)
+base shard 6  scripts=26  measured_model_ms=995211 (16m35s)
+base shard 7  scripts=26  measured_model_ms=821777 (13m41s)
+base shard 8  scripts=26  measured_model_ms=853365 (14m13s)
+base shard 9  scripts=26  measured_model_ms=1205592 (20m05s)
+
+## Coverage guard
+FM_TEST_COVERAGE ok total=263 parallel=24 parallel_max_ms=417163 parallel_imbalance_ms=2894 parallel_unhinted=0 serial=223 serial_shards=9 serial_unhinted=0 herdr=16
+
+## Shard-count / index guards
+fm-test-run: lane 'portable-serial-4of8' asks for 8 portable serial shards but this runner is configured for 9 (see --list-lanes)
+fm-test-run: lane 'portable-serial-10of9' shard index is outside 1..9 (see --list-lanes)
+fm-test-run: lane 'portable-serial-0of9' shard index is outside 1..9 (see --list-lanes)
+
+## Hints lowered from base to target: 0 (doc claims none)
+
+## Live shard wall times on this host (non-CI), --max-wall-ms 1800000
+shard 1 rc=0 wall=969s
+shard 4 rc=1 wall=847s
+shard 1 = tests/fm-watch-triage.test.sh alone, the modeled floor (hint 1122548 ms); measured 969695 ms
+shard 4 = the shard that hit the 30-minute cap on PR 85 before this repack; measured 846270 ms
+shard 4 rc=1 from two environment-bound failures that reproduce standalone on this host and are untouched by this change:
+  tests/fm-branch-mod-bin.test.sh  not ok - absent key must print an unavailable record: {"ok":false,"unavailable":"http 422","model":"jev"}
+  tests/fm-procevent-quota.test.sh error: process-event state root is not a private directory  (world-writable /tmp, mode 1777)
+
+## tests/fm-test-run.test.sh, target vs base on this host
+target 725c04a6: 48 ok, 2 not ok (rc=1)
+base   2bec13f0: 48 ok, 2 not ok (rc=1) - identical failures, so host-bound and not from this repack:
+not ok - --jobs on a proven family must be admitted, got 1:  FM_TEST_BEGIN 2026-09-30T17:41:41Z tests/fm-session-lock-ancestry.test.sh family=watcher-wake-lock expected_gate_skip=none
+not ok - the pty-host was not reparented to init after the daemon ended
+
+The repacked-hint case passes on target: ok - family, all, changed, and script selections ignore parallel hints
