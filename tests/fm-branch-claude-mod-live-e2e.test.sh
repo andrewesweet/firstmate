@@ -3,7 +3,7 @@
 # (.claude/mods/fm-branch-mod, docs/claude-supervision-branch.md): one real
 # Claude Code primary in tmux, launched exactly as the docs page prescribes,
 # supervising one stand-in task in a temporary scratch home. It proves, on the
-# pinned Claude Code version only:
+# installed Claude Code version:
 #   1. the module loads (enabled by state/.branch-mod-mode) and main takes the
 #      home's session lock;
 #   2. the first watcher wake on a routine status line passes the classifier
@@ -23,10 +23,9 @@
 #      defect's launch shape) rotates to a fresh agent (agent.rotated
 #      why=unresumable, a second agent.spawn) and keeps the wake instead of
 #      passing it to main.
-# The pin is the module's own refusal gate: on any other Claude Code version the
-# test skips, because the module would refuse to load and the assertions would
-# be meaningless. A pin bump is landed by running this test on the new version
-# (docs/claude-supervision-branch.md "Updating the pin").
+# The test runs against whatever Claude Code is installed and records the
+# installed version in its output, so a failure names the release it was found
+# on (docs/claude-supervision-branch.md "Claude Code versions").
 # The project and FM_HOME are isolated; Claude keeps using its existing managed
 # authentication and one trusted temporary folder. A few Sonnet turns are
 # submitted (about six minutes across the two labs). FM_BRANCH_MOD_LIVE_KEEP=1
@@ -41,14 +40,8 @@ set -u
 fm_live_gate opt-in FM_BRANCH_MOD_LIVE claude tmux
 
 MOD="$ROOT/.claude/mods/fm-branch-mod"
-PIN=$(sed -n "s/^export const CLAUDE_CODE_PIN = '\([0-9.]*\)'$/\1/p" "$MOD/hooks/branch.ts")
-[ -n "$PIN" ] || fail "the module declares no CLAUDE_CODE_PIN"
 CLAUDE_VERSION=$(claude --version 2>/dev/null | awk '{ print $1 }')
 [ -n "$CLAUDE_VERSION" ] || fail "claude is installed but reports no version"
-if [ "$CLAUDE_VERSION" != "$PIN" ]; then
-  echo "skip: Claude Code $CLAUDE_VERSION installed, the supervision-branch mod is pinned to $PIN"
-  exit 0
-fi
 
 REAL_TMUX=$(command -v tmux)
 SESSION="fm-branch-e2e"
@@ -219,11 +212,17 @@ unset_inherited() {
 # saving on when `tmux show-environment -g` also carries the marker (an
 # ambient marker), so a server inheriting it from a test run inside a Claude
 # session would hide the child-session defect.
+# The scrub also drops FM_GATE_REFUSE_BYPASS, so the pane re-sets it: the
+# watcher arm the mod runs comes from the checkout under test, and from a
+# no-mistakes validation worktree bin/fm-watch-arm.sh otherwise refuses with
+# "refusing to arm from a disposable validation checkout" and no wake ever
+# reaches the mod. Each lab home is the sandboxed home that escape hatch is
+# for (tests/lib.sh exports the same variable).
 start_claude_session() { # [extra-env...]
   local extra="${*:+$* }"
   # shellcheck disable=SC2046 # intentional: unset_inherited emits separate -u NAME tokens for env
   env $(unset_inherited) "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
-    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
 screen() {
@@ -366,7 +365,6 @@ make_lab "$SOCKET1"
 LAB1=$LAB
 start_claude_session
 wait_event session.start '"enabled":true' 'the module loading enabled'
-[ "$(count pin.refused)" = 0 ] || fail "the module refused its own pin"
 wait_composer
 take_lock
 pass "Claude Code $CLAUDE_VERSION loads the supervision-branch mod enabled and main holds the session lock"
@@ -432,7 +430,6 @@ make_lab "$SOCKET2"
 LAB2=$LAB
 start_claude_session CLAUDE_CODE_CHILD_SESSION=1
 wait_event session.start '"enabled":true' 'the module loading enabled in the child-session lab'
-[ "$(count pin.refused)" = 0 ] || fail "the module refused its own pin in the child-session lab"
 wait_composer
 take_lock
 start_dummy

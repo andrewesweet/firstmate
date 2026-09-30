@@ -1,4 +1,4 @@
-// fm-branch-mod under `claude plugin test`: the version pin, the presence switch, the durable
+// fm-branch-mod under `claude plugin test`: the host version record, the presence switch, the durable
 // classification log, and the cover row a captain verdict writes for main.
 //
 // The world beneath the module is mocked noun by noun: the environment names a
@@ -12,7 +12,8 @@ import { mock, type MockClock } from "claude-code/testing";
 const HOME = "/fm/home";
 const STATE = `${HOME}/state`;
 const CONFIG = `${HOME}/config`;
-import { CLAUDE_CODE_PIN as PIN } from "../hooks/branch.ts";
+/** An arbitrary Claude Code release: the mod loads on whatever the host reports. */
+const HOST_VERSION = "9.9.9";
 const sessionStart = { cwd: "/work", surface: "terminal" as const, isInteractive: true };
 const SESSION_ID = "0f3a9c2e-kit-session";
 
@@ -114,7 +115,7 @@ function world(on: On, options: WorldOptions = {}): World {
   const submitted: string[] = [];
   const spawns: World["spawns"] = [];
   const toolCalls: Record<string, unknown>[] = [];
-  const version = options.version ?? PIN;
+  const version = options.version ?? HOST_VERSION;
   const runningBinary = options.runningBinaryVersion !== undefined ? options.runningBinaryVersion : version;
 
   on("fs.read", async (_$, e) => {
@@ -264,62 +265,59 @@ async function drained(): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-describe("version pin", () => {
-  test("refuses to load on any other Claude Code version and passes every wake through", async ($: Engine, on: On) => {
-    const w = world(on, { version: "2.1.271", files: armedHome() });
+describe("host version", () => {
+  test("loads on an arbitrary Claude Code version and records it on session.start", async ($: Engine, on: On) => {
+    const w = world(on, { version: "2.1.999", files: armedHome() });
     await $.session.start(sessionStart);
-    expect(w.logs.some((l) => l.includes("refusing to load on Claude Code 2.1.271") && l.includes(PIN))).toBe(true);
-    expect(w.registered).toEqual([]);
-    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
-    expect(w.submitted).toEqual([WAKE]);
-    expect(w.completions.length).toBe(0);
-    expect(w.appended(CLASSIFICATIONS)).toEqual([]);
-  });
-
-  test("loads on the pinned version and registers the report tools", async ($: Engine, on: On) => {
-    const w = world(on, { files: armedHome() });
-    await $.session.start(sessionStart);
-    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code 2.1.999)`))).toBe(true);
     expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
+    const start = startEvent(w);
+    expect(start?.data.version).toBe("2.1.999");
+    // The module is live, not a pass-through: a wake still reaches the classifier.
+    await $.prompt.submit({ text: WAKE, origin: { kind: "task-notification" } });
+    expect(w.completions.length).toBe(1);
   });
 
-  test("the binary hosting the session decides the pin when PATH claude differs", async ($: Engine, on: On) => {
-    // The launcher execs the pinned binary by absolute path while the installer
-    // symlink moved on: PATH answers a later release, the running binary the pin.
-    const w = world(on, { version: "2.1.999", runningBinaryVersion: PIN, files: armedHome() });
+  test("the binary hosting the session decides the recorded version when PATH claude differs", async ($: Engine, on: On) => {
+    // The launcher execs the running binary by absolute path while the
+    // installer symlink moved on: PATH answers a later release, the running
+    // binary the session's own.
+    const w = world(on, { version: "9.9.99", runningBinaryVersion: HOST_VERSION, files: armedHome() });
     await $.session.start(sessionStart);
-    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${HOST_VERSION})`))).toBe(true);
     expect(w.registered).toEqual(["fm_branch_report", "fm_branch_processed"]);
     // The probe is issued first and answers, so PATH claude is never asked.
     expect(w.runs[0]?.argv).toEqual(["sh", "-c", 'exec "$(readlink /proc/$PPID/exe)" --version']);
     expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(false);
     // The load record names the source that decided and the probe's raw answer.
     const start = startEvent(w);
-    expect(start?.data.version).toBe(PIN);
-    expect(start?.data.pinSource).toBe("running binary");
-    expect(start?.data.probe).toBe(`${PIN} (Claude Code)`);
-  });
-
-  test("a refusal records which source decided against the pin", async ($: Engine, on: On) => {
-    const w = world(on, { version: PIN, runningBinaryVersion: "2.1.1", files: armedHome() });
-    await $.session.start(sessionStart);
-    const events = w.appended(`${STATE}/branch-mod-events.jsonl`).map((line) => JSON.parse(line));
-    const refused = events.find((e) => e.kind === "pin.refused");
-    expect(refused?.data).toEqual({ version: "2.1.1", pin: PIN, pinSource: "running binary", probe: "2.1.1 (Claude Code)" });
-    expect(w.registered).toEqual([]);
+    expect(start?.data.version).toBe(HOST_VERSION);
+    expect(start?.data.versionSource).toBe("running binary");
+    expect(start?.data.probe).toBe(`${HOST_VERSION} (Claude Code)`);
   });
 
   test("PATH claude decides when the running binary's version is unavailable", async ($: Engine, on: On) => {
     // /proc is Linux-only: on a host without it the probe fails and the old
-    // PATH call must still carry the pin check.
-    const w = world(on, { version: PIN, runningBinaryVersion: "", files: armedHome() });
+    // PATH call must still carry the version record.
+    const w = world(on, { version: HOST_VERSION, runningBinaryVersion: "", files: armedHome() });
     await $.session.start(sessionStart);
-    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${PIN})`))).toBe(true);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code ${HOST_VERSION})`))).toBe(true);
     expect(w.runs[0]?.argv[2]).toContain("/proc/$PPID/exe");
     expect(w.runs.some((r) => r.argv[0] === "claude" && r.argv[1] === "--version")).toBe(true);
     const start = startEvent(w);
-    expect(start?.data.pinSource).toBe("PATH claude");
+    expect(start?.data.versionSource).toBe("PATH claude");
     expect(start?.data.probe).toBe("");
+  });
+
+  test("an unusable PATH answer is recorded as unknown, never as a blank version", async ($: Engine, on: On) => {
+    // Neither source names a release: the load line and the session.start
+    // record must still name one, so a behaviour change is never tied to "".
+    const w = world(on, { version: "", runningBinaryVersion: "", files: armedHome() });
+    await $.session.start(sessionStart);
+    expect(w.logs.some((l) => l.includes(`loaded (enabled, home ${HOME}, Claude Code unknown)`))).toBe(true);
+    const start = startEvent(w);
+    expect(start?.data.version).toBe("unknown");
+    expect(start?.data.versionSource).toBe("PATH claude");
   });
 
   test("without state/.branch-mod-mode the module loads inert and passes every wake through unclassified", async ($: Engine, on: On) => {

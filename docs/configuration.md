@@ -301,8 +301,8 @@ Both choices are local to each Firstmate home and are not part of secondmate inh
 
 ## Claude Code supervision branch (state/.branch-mod-mode, config/classifier-model)
 
-On a Claude Code primary, the `fm-branch-mod` plugin runs the same supervision branch as a persistent background agent inside the captain's `claude` process; [docs/claude-supervision-branch.md](claude-supervision-branch.md) owns its behaviour, launch settings, version pin, and bounds.
-The mod is opt-in per home and inert everywhere else: it loads only through `--plugin-dir`, refuses to load on any Claude Code version other than its pin, and every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`.
+On a Claude Code primary, the `fm-branch-mod` plugin runs the same supervision branch as a persistent background agent inside the captain's `claude` process; [docs/claude-supervision-branch.md](claude-supervision-branch.md) owns its behaviour, launch settings, Claude Code versions, and bounds.
+The mod is opt-in per home and inert everywhere else: it loads only through `--plugin-dir`, loads on whatever Claude Code release hosts the session, and every `bin/` piece it relies on is switched by the presence of `state/.branch-mod-mode`.
 That file's presence is the whole switch and its content is ignored: create it to route eligible wakes to the branch, and remove it to switch the mod and its `bin/` pieces off together.
 A text-only classifier runs ahead of the branch on every eligible wake, and every task wake hands the branch the deterministic new-status-lines note; neither has a switch.
 `config/classifier-model` and `config/classifier-shadow` below are read by both hosts: the Claude Code mod and the Pi extension run the same shared classifier and shadow cores ([docs/pi-supervision-branch.md](pi-supervision-branch.md) "Pre-branch classifier and the shadow trial" owns the Pi integration).
@@ -311,7 +311,7 @@ The model actually used, after any fallback, is written into every record of `st
 `config/classifier-shadow` set to exactly `jev` joins the home's granted wakes to the shadow advisory trial: a detached Jev answer per ablation variant, recorded with deterministic facts in `state/branch-mod-shadow.jsonl` and scored by `bin/fm-branch-shadow-score.sh` and `bin/fm-branch-shadow-gates.sh`, that never delays or alters the wake path; absent or any other value is off, and [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Shadow advisory trial" owns the contract.
 The branch agent's own model comes from `config/supervision-branch-model`, shared with the Pi branch above, defaulting to `sonnet`; `config/supervision-branch-effort` is Pi-only, because the mod runs the branch's model steps at low effort.
 `state/.branch-mod-counters`, `state/.branch-mod-passed`, `state/branch-mod-events.jsonl`, and `state/.<task>.classifier-offset` are the mod's own runtime records, listed with their owners in `AGENTS.md`'s `state/` inventory.
-A home running the mod should watch Claude Code through the `claude` entry documented under [Watched tool updates](#watched-tool-updates-configwatched-toolsjson), so a new release is reported instead of being discovered as a refusal to load.
+A home running the mod can watch Claude Code through the `claude` entry documented under [Watched tool updates](#watched-tool-updates-configwatched-toolsjson), so a new release is reported and the mod's post-upgrade test in [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Claude Code versions" can be run.
 None of these files is inherited by secondmate homes.
 
 ## Supervision host (config/supervision-host)
@@ -1459,7 +1459,7 @@ This section is the single owner of the canonical schema.
   }
   ```
 
-  A home running the Claude Code supervision-branch mod should carry that entry, because the mod refuses to load on any Claude Code version other than its pin and this check is what turns a new release into the pin-bump procedure in [`docs/claude-supervision-branch.md`](claude-supervision-branch.md).
+  A home running the Claude Code supervision-branch mod can carry that entry to learn when a release lands, the trigger for the mod's post-upgrade test in [`docs/claude-supervision-branch.md`](claude-supervision-branch.md) "Claude Code versions".
 - A `git` entry reports how many commits the local clone is behind its remote branch, and stays silent when the clone is current or ahead.
 - An omitted `branch` uses the remote's default branch, taken from the clone's own record of it and otherwise asked of the remote directly, so a `--single-branch` clone still resolves.
 Both probe kinds are read-only and bounded, and a probe that cannot answer is reported as a check failure rather than assumed current.

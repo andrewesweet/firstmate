@@ -5,7 +5,7 @@
 // task-notice id parse, the deterministic new-status-lines note, the
 // processing request main renders for a captain outcome, the Bash actor
 // rewrite command, the Stop-hook wake predicate, the tool-result text
-// coercion, and the version pin's probe parsing.
+// coercion, and the version probe parsing.
 //
 // Host seams - declared, not unified: every function here is pure except
 // newStatusLinesNote, which reads two state files per task through an
@@ -138,8 +138,8 @@ export function versionToken(text: string): string {
   return text.split(/\s+/)[0] ?? ''
 }
 
-/** The version-pin shape test: a token is a version exactly when it opens
- * with three dot-separated numbers. */
+/** The version shape test: a token is a version exactly when it opens with
+ * three dot-separated numbers. */
 export function isVersionShaped(version: string): boolean {
   return /^\d+\.\d+\.\d+/.test(version)
 }
