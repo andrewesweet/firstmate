@@ -1,0 +1,10 @@
+$ which treehouse -> /tmp/fm-rt.tuR40o/bin/treehouse (v2.3.0); tasks-axi -> /home/cti/.local/bin/tasks-axi
+ok - a real treehouse lease is recorded for its own task and released by teardown (treehouse v2.3.0)
+ok - a record whose slot carries no lease is cleaned, reset and returned (treehouse v2.3.0)
+ok - teardown releases a real treehouse reservation whose copy was pruned (treehouse v2.3.0)
+# all fm-spawn-slot-lease-live-e2e tests passed
+
+real	0m27.465s
+user	0m9.849s
+sys	0m8.241s
+exit=0

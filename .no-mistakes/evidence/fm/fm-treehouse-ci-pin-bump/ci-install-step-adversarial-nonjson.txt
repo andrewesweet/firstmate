@@ -1,0 +1,6 @@
+v2.2.0
+POOL  SLOT  STATUS
+~/pool/1  free
+jq: parse error: Invalid numeric literal at line 1, column 5
+::error::treehouse status --json did not print valid JSON
+step exit=1

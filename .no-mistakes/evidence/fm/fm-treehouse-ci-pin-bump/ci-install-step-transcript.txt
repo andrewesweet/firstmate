@@ -1,0 +1,11 @@
+$ PATH (host treehouse excluded): command -v treehouse -> none
+fm-install-treehouse.sh: downloading treehouse-v2.3.0-linux-amd64.tar.gz from https://github.com/kunchenguid/treehouse/releases/download/v2.3.0/treehouse-v2.3.0-linux-amd64.tar.gz
+fm-install-treehouse.sh: installed treehouse v2.3.0 to /tmp/fm-rt.tuR40o/bin/treehouse
+v2.3.0
+v2.3.0
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+[]
+step exit=0
+GITHUB_PATH contents: /tmp/fm-rt.tuR40o/bin
