@@ -5347,7 +5347,10 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers() {
   ln -s "$package_dir/node_modules/@earendil-works/pi-ai" "$fixture/node_modules/@earendil-works/pi-ai"
   ln -s "$package_dir/node_modules/typebox" "$fixture/node_modules/typebox"
 
-  out=$(cd "$fixture" && EXT="$fixture/.pi/extensions/fm-branch-supervision.ts" PI_PACKAGE_DIR="$package_dir" node --input-type=module 2>&1 <<'JS'
+  # Stock macOS Bash 3.2 mis-scans a here-document nested in a command
+  # substitution, so keep this body in a plain subshell and read its output
+  # from a file instead.
+  (cd "$fixture" && EXT="$fixture/.pi/extensions/fm-branch-supervision.ts" PI_PACKAGE_DIR="$package_dir" node --input-type=module <<'JS'
 import { pathToFileURL } from "node:url";
 
 const packageRoot = process.env.PI_PACKAGE_DIR;
@@ -5434,6 +5437,45 @@ if (JSON.stringify(expandedActual) !== JSON.stringify(expandedStock)) {
 if (!expandedStock.join("\n").includes("OUTCOME_TWELVE") || JSON.stringify(expandedStock) === JSON.stringify(collapsedStock)) {
   throw new Error("stock rendering fixture did not exercise expanded output");
 }
+
+// fm_branch_processed takes a required `through`, so Pi's stock call line
+// always carries that argument. Compare it byte-for-byte the same way, with
+// non-empty args, so a probe-seam miss cannot pass as a title-only line.
+const processedActual = tools.find((tool) => tool.name === "fm_branch_processed");
+if (!processedActual) throw new Error("fm_branch_processed was not registered");
+const processedStock = { ...processedActual };
+delete processedStock.renderShell;
+delete processedStock.renderCall;
+delete processedStock.renderResult;
+const processedArgs = { through: 7 };
+const processedResult = {
+  content: [{ type: "text", text: "captain outcomes marked processed" }],
+  details: undefined,
+  isError: false,
+};
+const processedStockRow = new ToolExecutionComponent("fm_branch_processed", "stock", processedArgs, { showImages: false }, processedStock, ui, process.cwd());
+const processedActualRow = new ToolExecutionComponent("fm_branch_processed", "actual", processedArgs, { showImages: false }, processedActual, ui, process.cwd());
+for (const row of [processedStockRow, processedActualRow]) {
+  row.markExecutionStarted();
+  row.setArgsComplete();
+  row.updateResult(processedResult);
+}
+const processedCollapsedStock = processedStockRow.render(100);
+if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedCollapsedStock)) {
+  throw new Error("fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
+}
+if (!processedCollapsedStock.join("\n").includes("through=7")) {
+  throw new Error("collapsed fm_branch_processed call line did not carry its through argument");
+}
+processedStockRow.setExpanded(true);
+processedActualRow.setExpanded(true);
+const processedExpandedStock = processedStockRow.render(100);
+if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedExpandedStock)) {
+  throw new Error("expanded fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
+}
+if (!processedExpandedStock.join("\n").includes("  through: 7")) {
+  throw new Error("expanded fm_branch_processed call line did not carry its through argument");
+}
 pi.events.emit("firstmate:calm-presentation", { active: true, stockExportRendering: false });
 actualRow.invalidate();
 if (actualRow.render(100).length !== 0) {
@@ -5456,8 +5498,9 @@ if (actualCall !== undefined || actualResult !== undefined || stockCall !== unde
   throw new Error("stock export rendering did not delegate to Pi's structured fallback");
 }
 JS
-  )
+  ) > "$TMP_ROOT/stock-render-output" 2>&1
   status=$?
+  out=$(cat "$TMP_ROOT/stock-render-output")
   expect_code 0 "$status" "Pi outcomes rendering consumers must preserve stock behavior: $out"
   [ -z "$out" ] || fail "Pi outcomes rendering consumer test printed output: $out"
   pass "fm_branch_outcomes hides through ToolExecutionComponent while Calm-off and HTML export stay stock"

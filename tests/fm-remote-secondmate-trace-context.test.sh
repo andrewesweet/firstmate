@@ -95,6 +95,17 @@ install_remote_herdr_fixture "$REMOTE_ROOT" "$HERDR_STATE" "$HERDR_LOG" \
 git -C "$REMOTE_ROOT" init -q -b main
 git -C "$REMOTE_ROOT" config user.email test@example.com
 git -C "$REMOTE_ROOT" config user.name Test
+# The fixture commit must never race its own background housekeeping.
+# Newer git detaches a "git maintenance run --auto" after every commit,
+# and its default-on geometric-repack task fires at only 100 loose
+# objects, packs them, and deletes them while the remote seed's local
+# clone below is still copying them file by file.
+# That race failed CI's serial shard with a mid-copy ENOENT from the
+# clone and never reproduced on older git without the maintenance task.
+# Pin automatic maintenance off at the repo level, so the fixture's
+# object store stays immutable for the whole run.
+git -C "$REMOTE_ROOT" config maintenance.auto false
+git -C "$REMOTE_ROOT" config gc.auto 0
 git -C "$REMOTE_ROOT" add .
 git -C "$REMOTE_ROOT" commit -qm 'remote fixture root'
 

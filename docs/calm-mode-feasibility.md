@@ -17,7 +17,7 @@ Pi 0.81.1 was installed when Calm was first built, and Pi 0.82.0 was the later r
 The inspected Pi CHANGELOG shows no relevant presentation API introduced at either version, so those versions remain verification evidence rather than compatibility bounds.
 The exported classes used by the adapters (`AssistantMessageComponent` and `InteractiveMode`) are undocumented internals with no stated version guarantee.
 `tests/fm-calm-pi-extension.test.sh` records the installed Pi version as evidence without gating on it and covers both newer synthetic versions and an unavailable adapter seam.
-This host tracks Pi latest, so the version the evidence is pinned to moves; the [2026-09-07 record](#2026-09-07-pi-0851-renderer-and-export-dom-verification) owns the currently pinned version and the renderer comparison behind it.
+This host tracks Pi latest, so the version the evidence is pinned to moves; the [2026-09-29 record](#2026-09-29-pi-0991-renderer-and-export-dom-verification) owns the currently pinned version and the renderer comparison behind it.
 
 ### Built-in tool override constraints
 
@@ -198,6 +198,7 @@ Toggling Calm cycles tool expansion and restores its original value, which rebui
 Returning from stock export rendering instead invalidates only the tool rows Calm currently presents: Pi 0.83.0 made every expansion change emit its own status line, and Pi coalesces consecutive status lines, so an expansion cycle there overwrote the `Session exported to:` confirmation the export had just printed.
 Exported and shared HTML retain genuine user prompts, genuine assistant responses, current operational user messages, ordinary tool rendering, and the complete session artifact.
 Serialized session data and Pi 0.81.1's sidebar tree also retain legacy hidden operational custom messages.
+From Pi 0.99.x the exported HTML additionally emits every hidden custom message as a stock stylesheet-hidden row rather than omitting it; the [2026-09-29 record](#2026-09-29-pi-0991-renderer-and-export-dom-verification) owns that boundary and the guard behind it.
 
 ## Firstmate Pi tool audit
 
@@ -207,8 +208,8 @@ Every tool registered or supplied by Firstmate under `.pi/extensions` has this d
 | --- | --- | --- |
 | `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls` | Calm wrappers for Pi's seven main-session built-ins | Their call and text-result shells hide while Calm is active; ordinary and stock export rendering delegate to Pi's original renderers. |
 | `fm_watch_arm_pi` | Main-session custom tool in `fm-primary-pi-watch.ts` | Its complete self-rendered shell hides while Calm is active and returns unchanged when Calm is off or stock export rendering is active. |
-| `fm_branch_outcomes` | Main-session custom tool in `fm-branch-supervision.ts` | Its complete self-rendered shell hides while Calm is active; when visible, the self-renderer reconstructs Pi's ordinary boxed fallback shell and probes Pi's rendered stock fallback to preserve that installed surface's collapsed or all-line output policy plus expanded state, while stock export rendering deliberately falls through to Pi's structured fallback. |
-| `fm_branch_processed` | Main-session custom tool in `fm-branch-supervision.ts` | Its complete self-rendered shell hides while Calm is active, exactly like `fm_branch_outcomes`; when visible, the self-renderer reconstructs Pi's ordinary boxed fallback shell around the one-line acknowledgement result, while stock export rendering deliberately falls through to Pi's structured fallback. |
+| `fm_branch_outcomes` | Main-session custom tool in `fm-branch-supervision.ts` | Its complete self-rendered shell hides while Calm is active; when visible, the self-renderer reconstructs Pi's ordinary boxed fallback shell and probes Pi's rendered stock fallback to preserve that installed surface's collapsed or all-line output policy, its call line including rendered arguments, plus expanded state, while stock export rendering deliberately falls through to Pi's structured fallback. |
+| `fm_branch_processed` | Main-session custom tool in `fm-branch-supervision.ts` | Its complete self-rendered shell hides while Calm is active, exactly like `fm_branch_outcomes`; when visible, the self-renderer reconstructs Pi's ordinary boxed fallback shell around the one-line acknowledgement result and probes the same stock call line, so its required `through` argument renders exactly as stock does, while stock export rendering deliberately falls through to Pi's structured fallback. |
 | `fm_branch_report` | Branch-session custom tool supplied directly to `createAgentSession` | It runs only in the headless supervision session and has no main-session `ToolExecutionComponent`; successful execution writes the outcome store and delivers a routine note or exact captain entry through the separately audited delivery path, so the tool cannot emit a dump-shaped row in the captain's transcript. |
 | branch-local `read` built-in | Branch-session built-in enabled through `createAgentSession` | It runs only in the headless supervision session and has no main-session `ToolExecutionComponent`, so its file output cannot emit a row in the captain's transcript. |
 | branch-local `bash` override | Branch-session replacement supplied directly to `createAgentSession` | It runs only in the headless supervision session and has no main-session `ToolExecutionComponent`, so its command output cannot emit a row in the captain's transcript. |
@@ -299,7 +300,7 @@ The same real-Pi reproduction then delivered the notification exactly once in a 
 
 ## Regression coverage
 
-`tests/fm-calm-pi-extension.test.sh` compares wrapped and stock renderers and verifies all seven built-ins plus `fm_watch_arm_pi`; `tests/fm-pi-branch-extension.test.sh` verifies `fm_branch_outcomes` Calm toggling, capability-probed all-line versus collapsed stock output, exact expanded output, and export rendering.
+`tests/fm-calm-pi-extension.test.sh` compares wrapped and stock renderers and verifies all seven built-ins plus `fm_watch_arm_pi`; `tests/fm-pi-branch-extension.test.sh` verifies `fm_branch_outcomes` Calm toggling, capability-probed all-line versus collapsed stock output, exact expanded output, and export rendering, and compares both outcome rows byte-for-byte against stock with non-empty arguments so a call line missing its rendered arguments fails.
 Together they exercise redraw of already-rendered tool, thinking, current operational-user, and legacy synthetic rows, and cover every policy class.
 It covers persisted preference restoration across every session-start reason and a real restart, proves the working-ship presentation and Calm-off stock `Working...` row through a delayed deterministic provider, asserts no Calm status row, verifies operational messages remain exact ordinary user-role session entries and complete exports, and drives genuine 100 by 44, 160 by 36, and 180 by 44 terminal fixtures.
 A native deterministic `/skill:ahoy` turn produces thinking, tool-call, and tool-result blocks, asserts that the collapsed skill-to-final gap equals the two-row visible-only baseline, expands and re-collapses original thinking, restores Calm-off rendering, verifies persisted hidden history, and repeats the geometry assertion after restart with `terminal.clearOnShrink` explicitly off.
@@ -840,4 +841,29 @@ $ FM_CLAUDE_CALM_LIVE_E2E=1 bash tests/fm-calm-claude-mod-live-e2e.test.sh
 ok - Claude Code 2.1.282 (Claude Code) with the flag unset: no hooks module, no /calm, stock working row, stock tool rows, preference on ignored
 ok - Claude Code 2.1.282 (Claude Code) with the flag on: the mod auto-loads from .claude/skills, /calm exists, the sailboat replaces and moves in the working row, tool rows and the record-backed operational doorbell draw at zero height, /calm restores and re-hides them while persisting the shared preference
 ok - Claude Code 2.1.282 (Claude Code) resumes the transcript with Calm's hidden rows still hidden and the preference intact
+```
+
+## 2026-09-29 Pi 0.99.1 renderer and export-DOM verification
+
+The portable guards were re-verified against the globally installed `@earendil-works/pi-coding-agent` 0.99.1 on Linux 6.6.87 (WSL2) x86_64 with Node v24.21.0.
+Two unrelated stock-behavior changes had drifted past the guards, and both fixes keep the comparisons behavioral against real stock rendering rather than loosening the assertions.
+
+First, Pi 0.99.x's stock tool-call rendering draws arguments in the call line through its `formatToolCallWithArgs` fallback: collapsed rows render `key=<JSON>` pairs cut at 100 characters and expanded rows render indented `key: value` lines.
+The `fm_branch_outcomes` and `fm_branch_processed` outcome rows in `.pi/extensions/fm-branch-supervision.ts` still rendered title-only, so the Calm-off comparison failed against 0.99.1.
+Following the same runtime stock-probing approach as the 2026-08-28 Pi 0.84.4 fix, both `renderCall` hooks now construct a probe component with the real arguments and reuse the stock call text they produce, falling back to the title-only text when the probe seam is unavailable.
+
+Second, Pi 0.99.x's exported HTML no longer omits hidden custom messages: every custom message now renders as `<div class="hook-message hook-message-hidden">` with a "Hidden in terminal" label, hidden only by the stylesheet's `body:not(.show-hidden-messages)` rule.
+The export-DOM guard in `tests/fm-calm-pi-extension.test.sh` still enforces the conversation boundary in the visible DOM: no visible hook-message row may appear, every synthetic firstmate string must sit inside the hidden-message variant, and the exported body must not carry the show-hidden class.
+
+```text
+$ pi --version
+0.99.1
+
+$ tests/fm-pi-branch-extension.test.sh
+ok - a failing store script surfaces to the branch, its outcome is neither lost nor delivered twice, and fm_branch_processed renders the unified wordings byte-exactly
+ok - a failed cursor write re-delivers a routine note exactly once more while a captain outcome stays deduplicated
+
+$ tests/fm-calm-pi-extension.test.sh
+ok - the rendered-export-DOM guard renders in one pass, retries a bounded number of Chrome start-up failures, and reports the Chrome binary, Chrome version, Pi version, exit status, and Chrome diagnostic when every attempt fails
+ok - Pi calm native E2E replaces the stock working row with a moving, resize-clamped working ship that freezes and resumes across two working periods in one Pi session, clears on abort, keeps captain turns visible, hides exact operational user rows without changing persistence, restores stock rendering Calm-off, survives restart, and preserves export plus Ctrl+O behavior
 ```
