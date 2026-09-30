@@ -225,6 +225,43 @@ start_claude_session() { # [extra-env...]
     "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
+# A Claude Code binary installed or launched for a release check must never
+# run its own autoupdater: the updater answers with a global npm install of
+# the latest release over the machine's normal install (the /tmp pin-install
+# incident behind the DISABLE_AUTOUPDATER rule). The launch must embed
+# DISABLE_AUTOUPDATER=1 in the pane command so the assignment survives a
+# scrubbed or daemon-built pane; this asserts the environment the running
+# binary actually has rather than the command text that launched it. The
+# environ read needs /proc: where it exists but answers nothing the check
+# fails rather than passing unchecked, and where there is no /proc it says so
+# and the launch's embedded assignment is the guard.
+assert_autoupdater_off() { # <what>
+  local what=$1 pane_pid child i=0 checked=0
+  pane_pid=$("$REAL_TMUX" -L "$SOCKET" list-panes -t "$SESSION:main" -F '#{pane_pid}') || \
+    fail "cannot read the main pane's pid to check $what"
+  while [ "$i" -lt 40 ]; do
+    for child in $(pgrep -P "$pane_pid" 2>/dev/null); do
+      [ -r "/proc/$child/environ" ] || continue
+      checked=1
+      if tr '\0' '\n' <"/proc/$child/environ" | grep -Fxq 'DISABLE_AUTOUPDATER=1'; then
+        return 0
+      fi
+    done
+    [ "$checked" = 1 ] && break
+    sleep 0.25
+    i=$((i + 1))
+  done
+  if [ "$checked" = 1 ]; then
+    fail "Claude Code $CLAUDE_VERSION runs with its autoupdater enabled ($what): the launch must embed DISABLE_AUTOUPDATER=1 so a release-check binary cannot npm-install @latest over the machine's normal install"
+    return 1
+  fi
+  if [ -d /proc/self ]; then
+    fail "no readable /proc environ under pane pid $pane_pid, so $what's autoupdater guard went unchecked on a /proc platform"
+    return 1
+  fi
+  printf 'assert_autoupdater_off: no /proc on this platform, so the running binary'"'"'s environment went unchecked; the launch'"'"'s embedded DISABLE_AUTOUPDATER=1 is the guard here\n' >&2
+}
+
 screen() {
   "$REAL_TMUX" -L "$SOCKET" capture-pane -p -t "$SESSION:main" 2>/dev/null || true
 }
@@ -365,6 +402,7 @@ make_lab "$SOCKET1"
 LAB1=$LAB
 start_claude_session
 wait_event session.start '"enabled":true' 'the module loading enabled'
+assert_autoupdater_off 'the module-load lab'
 wait_composer
 take_lock
 pass "Claude Code $CLAUDE_VERSION loads the supervision-branch mod enabled and main holds the session lock"
