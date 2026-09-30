@@ -63,6 +63,7 @@ The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains i
 An unfinished or failed invocation is not a healthy duration sample.
 The three `tests/fm-branch-claude-mod*.test.sh` hints and the `tests/fm-branch-mod-bin.test.sh` hint, plus the `tests/fm-precompact-skills.test.sh`, `tests/fm-promote.test.sh`, and `tests/fm-trace-span-lib.test.sh` hints, are local measurements from 2026-09-16 doubled, pending their first green CI artifacts.
 The `tests/fm-branch-eligibility.test.sh` and `tests/fm-branch-report-sequence.test.sh` hints are single local measurements from 2026-09-20, pending their first green CI artifacts.
+On 2026-09-30 the upstream merge pushed portable serial shard 5 past its 30-minute job cap while the other shards finished, because several merged scripts had outgrown their hints: `tests/fm-contributions.test.sh` measured 134885 ms against a 35676 ms hint, `tests/fm-branch-eligibility.test.sh` 5036 ms against 950 ms, and the 26 scripts the merge added, including `tests/fm-live-lab.test.sh` at 74859 ms, were packed on the default weight. The hints for those 87 scripts, and for every other script measured in the same local serial run of the whole lane, are local measurements from 2026-09-30, retained only where they exceed the CI-derived value, pending their first green CI artifacts; across the 36 scripts with both samples the local run totalled 1.11x the CI hints, so it neither replaced nor lowered the CI evidence.
 The six `tests/fm-branch-{text,scope,routing,delivery,monitor,settlement}.test.sh` hints are single local measurements from 2026-09-21 doubled, pending their first green CI artifacts.
 A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default.
 Hints only affect balance: the coverage guard keeps the partition complete and disjoint whatever they say, so a stale hint costs a slower shard rather than lost coverage.
@@ -72,7 +73,7 @@ That is not hypothetical: by 2026-09-01 the lane had grown from 116 to 139 scrip
 Refresh the hints whenever the serial lane gains scripts, rather than waiting for that bound to trip.
 
 `bin/fm-test-run.sh` owns the per-shard packing, so its `--check-coverage` output is the current account of lane size and coverage rather than a copied inventory.
-Nine serial runners pack the refreshed measurements into a longest modeled script sum of 697969 ms (11m38s), with other shards near 10m36s.
+Nine serial runners pack the refreshed measurements into modeled script sums between 714320 ms and 714354 ms (11m54s), so every shard now models the same load rather than one carrying 813 s of real work against a 732 s estimate.
 The longest script, `tests/fm-watch-triage.test.sh`, legitimately occupies one whole shard and is the indivisible floor for this layout.
 This is a packing estimate, not measured new-workflow execution or an end-to-end latency guarantee.
 Job timeouts remain hang tripwires under the policy in [Timeouts](#timeouts) below; they are not the desired healthy duration.
