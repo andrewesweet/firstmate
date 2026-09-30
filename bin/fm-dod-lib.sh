@@ -414,7 +414,11 @@ EOF
 # The implement discipline every ship worker follows before its mode's own
 # delivery path takes over: test-first at the brief's agreed seams with
 # regular typechecking and test runs, one full suite at the end, then a
-# two-axis self-review with findings fixed before the ship-branch commit.
+# two-axis self-review with findings fixed before the ship-branch commit,
+# plus four pre-commit riders adopted from cursor's pstack plugin: an
+# undefined-imports check on each test in self-review, a proof run for a
+# diff the worker does not fully trust, a behaviour pin before a
+# behaviour-preserving change, and repro-before-fix ordering for bug fixes.
 # The named skills are user-invoked, so a crew follows them by reading the
 # installed files, never through a Skill-tool invocation; the fleet
 # adaptations are the ship branch, never main, and never pushing outside the
@@ -426,8 +430,12 @@ fm_implement_discipline_block() {  # <branch>
   cat <<EOF
 Implement by following the discipline at \`~/.agents/skills/implement/SKILL.md\`, read as a file: those skills are user-invoked, so read them instead of invoking them through a Skill tool.
 Test first with the discipline at \`~/.agents/skills/tdd/SKILL.md\` at the seams this brief agrees.
+Before committing, prove a diff you do not fully trust: name the one fact the change is safe because of and prove it by running the real code (a small script calling the real code), citing the run, or mark the diff unproven.
+Before committing a behaviour-preserving change, pin current behaviour first with a characterisation test, snapshot, or equivalence harness - structure moves only after the pin, and type checks and lint are not a pin.
+Before committing a bug fix, reproduce the bug on the surface where it was reported, verify the fix on that same surface, and commit the failing reproduction before the fix.
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 Then self-review by following both axes at \`~/.agents/skills/code-review/SKILL.md\` - Standards (this repository's documented standards) and Spec (faithful implementation of this brief) - and fix what you find before committing to your \`$branch\` branch.
+In that self-review, check each test with the undefined-imports test before committing: if the test would still pass when every imported function returned undefined, rewrite the assertion or delete it.
 Commit to \`$branch\` only: never main, and never push outside this mode's delivery path.
 EOF
 }
