@@ -220,15 +220,21 @@ unset_inherited() {
 # for (tests/lib.sh exports the same variable).
 start_claude_session() { # [extra-env...]
   local extra="${*:+$* }"
+  # DISABLE_AUTOUPDATER=1 is embedded in the pane command, not leaned on from
+  # the ambient export: a release-check binary that self-updates performs a
+  # global npm install of the latest release over the machine's normal
+  # install, and an embedded assignment keeps the guard up even where the
+  # ambient value is absent (the same reasoning as bin/fm-spawn.sh's
+  # embedding). assert_autoupdater_off pins the running binary's environment.
   # shellcheck disable=SC2046 # intentional: unset_inherited emits separate -u NAME tokens for env
   env $(unset_inherited) "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
-    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 DISABLE_AUTOUPDATER=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
 # A Claude Code binary installed or launched for a release check must never
 # run its own autoupdater: the updater answers with a global npm install of
 # the latest release over the machine's normal install (the /tmp pin-install
-# incident behind the DISABLE_AUTOUPDATER rule). The launch must embed
+# incident behind the DISABLE_AUTOUPDATER rule). The launch below embeds
 # DISABLE_AUTOUPDATER=1 in the pane command so the assignment survives a
 # scrubbed or daemon-built pane; this asserts the environment the running
 # binary actually has rather than the command text that launched it. The

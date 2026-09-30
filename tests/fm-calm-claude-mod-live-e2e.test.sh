@@ -73,9 +73,15 @@ launch() {  # <debug-log> <flag: 1|0> [claude args...]
   local log=$1 flag=$2 flag_env=''
   shift 2
   [ "$flag" = 1 ] && flag_env="CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1"
+  # DISABLE_AUTOUPDATER=1 is embedded in the pane command, not leaned on from
+  # the ambient export: a release-check binary that self-updates performs a
+  # global npm install of the latest release over the machine's normal
+  # install, and an embedded assignment keeps the guard up even where the
+  # ambient value is absent (the same reasoning as bin/fm-spawn.sh's
+  # embedding).
   tmux -L "$SOCKET" kill-session -t "$SESSION" 2>/dev/null || true
   tmux -L "$SOCKET" new-session -d -s "$SESSION" -x 160 -y 44 -c "$PROJECT" \
-    "env $(unset_inherited) $flag_env FM_HOME='$FM_HOME_DIR' CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --model haiku --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\"}' --debug-file '$log' $*; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+    "env $(unset_inherited) $flag_env DISABLE_AUTOUPDATER=1 FM_HOME='$FM_HOME_DIR' CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --model haiku --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\"}' --debug-file '$log' $*; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
 }
 
 screen() {
