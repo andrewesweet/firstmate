@@ -132,6 +132,73 @@ EOF
     "mode=ship"
 }
 
+# A single argv argument is capped by the kernel (MAX_ARG_STRLEN on Linux) far
+# below what real fleet JSON reaches, so every content-bearing payload must
+# reach jq off argv. This feeds oversized backlog rows, status lines, and fold
+# summaries and asserts the snapshot still emits their full content.
+test_oversized_payloads_travel_off_argv() {
+  local home fakebin out big body
+  home=$(make_home oversized)
+  big=$(head -c 400000 /dev/zero | tr '\0' 'A')
+  body="OVERSIZE-SENTINEL-$big"
+  mkdir -p "$home/projects/alpha-worktree" "$home/secondmate-home"
+  {
+    printf '## In flight\n'
+    printf -- '- [ ] ship-task - Ship Task %s (repo: alpha) (kind: ship) (since 2026-07-07)\n' "$body"
+  } > "$home/data/backlog.md"
+  fm_write_meta "$home/state/ship-task.meta" \
+    "window=firstmate:fm-ship-task" \
+    "worktree=$home/projects/alpha-worktree" \
+    "project=alpha" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=ship" \
+    "yolo=off"
+  fm_write_meta "$home/state/secondmate-task.meta" \
+    "window=firstmate:fm-secondmate-task" \
+    "worktree=$home/secondmate-home" \
+    "project=$home/secondmate-home" \
+    "harness=codex" \
+    "kind=secondmate" \
+    "mode=secondmate" \
+    "home=$home/secondmate-home" \
+    "projects=alpha,"
+  printf 'needs-decision: %s\n' "$body" > "$home/state/ship-task.status"
+  {
+    printf 'working [key=phase-a]: %s\n' "$body"
+    printf 'needs-decision: %s\n' "$body"
+  } > "$home/state/secondmate-task.status"
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --contribution-input)
+  printf '%s' "$out" | jq -e . >/dev/null \
+    || fail "oversized contribution input must still emit JSON: $out"
+  printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
+    (.backlog.records | length) == 1
+      and (.tasks | length) == 2
+      and .backlog.records[0].raw | contains($s)
+  ' >/dev/null \
+    || fail "oversized backlog content was lost from the contribution input"
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_SNAPSHOT_NOW_EPOCH=1700000100 "$SNAPSHOT" --json)
+  printf '%s' "$out" | jq -e . >/dev/null \
+    || fail "oversized fleet snapshot must still emit JSON"
+  printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
+    (.tasks | length) == 2
+      and ([.tasks[] | select(.id == "ship-task")][0].paths.status_log.last_event.raw | contains($s))
+      and ([.tasks[] | select(.id == "ship-task")][0].hints.last_event_text | contains($s))
+      and ([.tasks[] | select(.id == "ship-task")][0].hints.open_decisions[0].summary | contains($s))
+  ' >/dev/null \
+    || fail "oversized task event and decision content was lost from the snapshot"
+  printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
+    .secondmate_current.records[] | select(.id == "secondmate-task")
+    | .parent_event.raw | contains($s)
+      and (.parent_event.note | contains($s))
+      and (.parent_event.open_decisions[0].summary | contains($s))
+      and (.parent_event.activity_scan.records[0].summary | contains($s))
+  ' >/dev/null \
+    || fail "oversized secondmate parent-event content was lost from the snapshot"
+  pass "snapshot preserves payloads larger than the argv argument limit"
+}
+
 test_empty_fleet_json() {
   local home out view
   home=$(make_home empty)
@@ -1157,6 +1224,7 @@ EOF
   pass "home-summary excludes kind=secondmate from unowned_current and terminal_in_flight"
 }
 
+test_oversized_payloads_travel_off_argv
 test_empty_fleet_json
 test_fixture_snapshot_json
 test_home_summary_excludes_secondmate_from_child_inventory
