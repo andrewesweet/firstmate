@@ -328,7 +328,7 @@ A home that does not run the host behaves exactly as it does without it, and a P
 `fm_supervision_host_enabled` in `bin/fm-supervision-engine-lib.sh` implements this gate for every reader.
 
 While the home runs the host, the primary's arm owner runs it in place of the watcher arm.
-The one exception is a home that also enables the Claude Code supervision-branch mod (`state/.branch-mod-mode`): the two opt-ins are mutually exclusive, the host steps aside to the plain watcher arm, and [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns what happens.
+The one exception is a home that also enables the Claude Code supervision-branch mod (`state/.branch-mod-mode`): the mod and the host are mutually exclusive, so a mod home must write `off` here; without it the host steps aside to the plain watcher arm, and [docs/claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns what happens.
 The host handles wakes on the engine under the [posture rules](supervision-host.md#postures), including an away record and attended operation on a Claude or Cursor primary with a verified dialog mirror.
 On that home, `/afk` launches no away daemon; see [Quiet mode](supervision-host.md#quiet-mode) for `/quiet`'s attended statement and fallback.
 The same gate governs the primary's dialog-mirror hooks (`bin/fm-host-mirror.sh`), which record on a Claude or Cursor primary ([supervision-host.md](supervision-host.md#the-dialog-mirror)).
