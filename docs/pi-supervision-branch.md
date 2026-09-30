@@ -71,7 +71,7 @@ This in-process supervision branch is Pi-only by construction:
   A home on any harness that already has an outcome store still receives the shared drain compatibility recovery described in [Lost-wake outcome backstop](#lost-wake-outcome-backstop).
 - It does not change which harness is primary and never moves a home to Pi.
 
-On an opted-in non-Pi home, the supervision host runs the branch beside the primary, away and on Claude and Cursor also attended.
+On a non-Pi home that runs the supervision host, the host runs the branch beside the primary, away and on Claude and Cursor also attended.
 [supervision-host.md](supervision-host.md) owns its scope and mechanism.
 
 ## Components and their owners
@@ -113,7 +113,14 @@ A decision-owned event surfaced by `bin/fm-watch.sh`'s signal path gets the same
 - A `captain-held` declaration surfaced through the no-verb fallback.
 - A pending-reply second-mate escalation.
 
-`scopeForUnreadWake` excludes every marked row from what the branch may claim.
+`scopeForUnreadWake` excludes every marked row from what the branch may claim, as well as second-mate signals classified by the span rule below.
+
+A second mate's status log is one shared channel carrying many independently keyed decisions, so its signal row is judged by the lines presented since the last drain rather than by the whole log.
+The row is excluded when one of those lines is a decision, blocked, or captain-held line, resolves a decision open just before it, or declares, in the status parser's key positions, the key of a decision still open in that log.
+A resolution that closes nothing, key-less beside only keyed decisions or keyed for a key never open, stays routine.
+A key-less line otherwise falls back to its verb; an unrelated open decision alone leaves a routine span eligible, while a mixed span goes wholly to main.
+The status-presentation cursor bounds that span, and a missing or unmatched cursor falls back to the whole log.
+Single-task crewmate signals keep their existing Pi payload and attended-host whole-log rules, except that the TypeScript decision fold now ignores bare transition words without a colon or complete key token, matching `bin/fm-classify-lib.sh` on both crewmate and second-mate logs.
 
 For a stale row, `scopeForUnreadWake` folds the mapped task's status log.
 It excludes the row when any `needs-decision` remains open or the current meaningful declaration is `captain-held`.
@@ -246,11 +253,11 @@ The guards are wired into these scripts:
 | Scripts | Guard behavior |
 | --- | --- |
 | `fm-send.sh`, `fm-control.sh`, and `fm-teardown.sh` | Overlap, lease-checked, with claim serialization retained through the mutation. |
-| `fm-pr-merge.sh`, `fm-merge-local.sh`, `fm-spawn.sh`, and `fm-send.sh --resolve-key` for a decision key | Main-owned while attended; branch refused. |
+| `fm-pr-merge.sh`, `fm-merge-local.sh`, `fm-spawn.sh`, `fm-send.sh --resolve-key` for a decision key, and `fm-teardown.sh` for a second mate | Main-owned while attended; branch refused. |
 
 A relaunch through `fm-control` stays branch-legal recovery in both postures.
 Under the away-posture record, the PR merge, a fresh spawn, and a decision answer relocate to the branch behind each script's own gate.
-Local-only landing never does ("Postures" below).
+Local-only landing and second-mate retirement never do ("Postures" below).
 
 ### Autonomy
 
@@ -380,7 +387,7 @@ Stage two is the branch's verdict on each handled event, reported through its `f
 
 | Verdict | Delivery |
 | --- | --- |
-| `routine` | Keeps the existing custom-message path without a follow-up turn. |
+| `routine` | A non-silent outcome uses the custom-message path; a silent outcome is stored without a rendered note. Neither opens a follow-up turn. |
 | `captain` | Appends a versioned `fm-branch-visible-outcome` custom session entry. |
 
 ### The visible captain entry
@@ -407,8 +414,13 @@ Together, these let a cold start that acquires the lock through the startup dige
 Display is only half of a captain outcome.
 The other half is processing, because a blocker, a decision, or a ready PR needs main to act, not only the captain to see it.
 
-1. After the visible entry exists and the read cursor has passed it, the extension hands every still-unprocessed captain row to main as one hidden, typed `fm-branch-process` request (kind `branch-outcome`).
-   The request lists each `[seq N] task: summary`.
+1. After the visible entry exists and the read cursor has passed it, the extension hands the oldest batch of at most 32 still-unprocessed captain rows to main as one hidden, typed `fm-branch-process` request (kind `branch-outcome`), and presents the next batch after main acknowledges that one.
+   The request lists each `[seq N, recorded <age> ago] task: summary`, with the age from the store's `recordedAgo` (`bin/fm-branch-outcome.sh` owns its wording), and asks main to check the task's current state first.
+   Summaries over 1024 characters are abbreviated within that bound and point to `bin/fm-branch-outcome.sh lookup --seqs <N>` for the full outcome.
+   Main must read the full outcome for any abbreviated line before acting on, relaying, or acknowledging it.
+   It says each outcome was recorded earlier and may already have been seen or handled, rather than claiming a visible entry in this transcript, because an outcome carried over from before a restart or a switch of primary has none here.
+   Main sorts the outcomes by that state, and its reply to the captain covers only the still-open ones, as if the settled ones had never been listed; a settled one needs only the acknowledgement below.
+   A listed row without a valid age breaks the store's contract, so the extension reports it to main as a visible note and sends no request; every row stays unprocessed and is presented once the store is healthy.
 2. That request opens exactly one main turn.
 3. Main closes it only by calling `fm_branch_processed` with the highest sequence the request listed.
    That call advances a processed marker, which `bin/fm-branch-outcome.sh` keeps separately from the read cursor and never moves past it or backwards.
@@ -429,18 +441,14 @@ After that, the request rides the captain's next prompt, so an ignored request c
 Changed sequence membership and a session replacement each start that budget over.
 
 Routine outcomes never enter this path and stay turn-free.
-A home upgraded with outcomes already delivered treats those rows as processed once, at the first reconciliation that finds no processed marker, so its history is not re-presented.
+A home with no processed marker, including an upgrade or switch from the supervision host, re-presents delivered captain rows dated and check-first until acknowledged; see the marker contract in `bin/fm-branch-outcome.sh`.
 
 ### Ownership and verdict rules
 
 The generated [Pi supervision protocol](supervision-protocols/pi.md) owns event ownership for merged outcomes and main's acknowledgement duty.
 Deterministic entry delivery owns captain visibility.
 
-A no-change heartbeat outcome explicitly reported with `task=fleet` and `silent=true` is also delivered silently with no rendered note.
-Every other `routine` outcome stays rendered with its sailboat prefix.
-
-The branch prompt's "Verdict: routine or captain" section owns the verdict criteria, including how requested work's finished results and its mere progress updates are classified.
-Unsolicited routine outcomes remain routine sailboat notes, unchanged fleet reviews remain silent, and doubt escalates.
+The branch prompt's "Verdict: routine or captain" section owns the classification criteria, including task-level silence eligibility and the rule to escalate doubt.
 
 Its "PR identity: copy or abstain" section owns where a PR URL in a summary or tool argument may come from:
 
@@ -502,7 +510,7 @@ The branch runs its normal operating procedure for the wake (`bin/fm-branch-prom
 
 | Review result | Report |
 | --- | --- |
-| Found literally nothing worth reporting | Verdict `routine`, `task=fleet`, and `silent=true`, so it has no rendered note. |
+| Found literally nothing worth reporting | Verdict `routine`, `task=fleet`, and `silent=true`, so it is stored without a rendered note. |
 | A fleet-wide routine action | Omits `silent` and keeps its rendered sailboat note. |
 
 Only a captain-worthy finding reports verdict `captain` and appends a visible captain outcome entry.
@@ -598,8 +606,8 @@ A leftover `state/.afk` flag declines nothing.
 ### Authority relocation
 
 `fm_lease_forbid_branch` passes the branch actor only for the actions whose guarded script opts in.
-It does so only while `bin/fm-afk-contract.sh validate` succeeds on a complete, readable, live record.
-An archived, incomplete, or invalid record restores the attended refusal byte for byte.
+It does so only while `bin/fm-afk-contract.sh validate` succeeds on a complete, readable, live away record (`mode` is not quiet).
+An archived, incomplete, invalid, or quiet record restores the attended refusal byte for byte.
 
 The captain's away words are the whole mandate:
 
@@ -651,25 +659,26 @@ At that moment the branch reports any refusal instead of concluding there is "no
 - Requested-versus-unsolicited delivery, exact visible entry content, and no unkeyed model turn.
 - The sequence-keyed processing request and its acknowledgement.
 - Re-presentation after an empty reply and after an unrelated prior answer, the triggered-then-next-turn pacing, and session-start re-presentation.
-- Routine outcomes staying turn-free, and the processed-marker migration.
+- Routine outcomes staying turn-free, task-level no-change notes staying hidden, absent-marker re-presentation, and malformed-age reporting without acknowledgement.
 - Idle and busy main state, and incident-shaped compaction and unrelated-assistant context.
 - Cold-start post-lock recovery, crash-before-cursor reload recovery, and repeated-reload idempotency.
 - Mirroring.
 - Post-construction provider-error and no-report fallback, the unified failure latch (provider errors and report-less error-free turns count alike), cooldown probe, exponential backoff, report-plus-settlement recovery, and report-before-error re-latch.
 - Cache key, and model and effort selection.
 - In `test_branch_dispatch_classifies_main_only_rows_and_writes_the_eligible_snapshot`: decision-owned signal and stale rows' exclusion from `eligibleSeqs`, their presence in `needsDecisionKeys`, task alias resolution, reserved-key configuration, status-log race refusal, a symlinked status log reading as an empty fold, non-vetoing behavior for unrelated eligible rows, and decision-only queues reading as ordinary main-only absence.
+- In `test_branch_dispatch_routes_secondmate_signal_by_new_span`: second-mate signal routing by new span on the Pi and attended-host paths, including an unrelated open hold, mixed, same-key, stamped-key, key-less blocked, and resolution spans, the whole-log fallback, stale-row isolation, and crewmate routing.
 
 `tests/fm-branch-supervision.test.sh` covers:
 
-- Prompt stability, including the landed-work cleanup instruction.
-- Store append-only behavior, the captain cursor barrier, and the processed marker's sequence bounds.
+- Prompt stability, including the landed-work cleanup instruction and the second-mate relay, signal-span, and stale-liveness rules.
+- Store append-only behavior, the captain cursor barrier, processed-marker sequence bounds and absent-marker safety, and captain-only recorded ages.
 - Leases, guards, and non-branch-home invariance.
 - The away relocation: only under a valid live record, never for local-only landing, queued-only branch dispatch rather than orphaned in-flight recovery, the spend cap for both actors and its lock-held recheck, and the attended guarded-action behavior restored by archive or an invalid record.
 `tests/fm-afk-return.test.sh` covers the ordered cleanup-due section, its durable merge-marker requirement, and exclusion of both a done task without durable merge evidence and a persistent secondmate carrying that evidence.
 `tests/fm-branch-eligibility.test.sh` pins the four-fold equivalence of the wake-eligibility and open-decision classification: one fixture set of status logs, wake-queue rows, and task metas driven through the bash fold (`status_open_decisions`), the Pi extension's `scopeForUnreadWake`, the mod's exported `scopeForUnreadWake` bound through its exported `bind` (both exports are behavior-neutral and exist for this test), and the shared module `lib/fm-branch-eligibility.ts`, asserting byte-identical normalised scope JSON wherever the folds agree.
-`lib/fm-branch-eligibility.ts` is the shared fold both TypeScript folds adopt - the bash v8 rule plus the guards the ports carry, with bash's behaviour wherever bash has one - re-exporting the canonical core under the mod's `lib/` and adding the `node:fs` bindings, and its leg must be byte-equal to the bash fold on every fixture.
+`lib/fm-branch-eligibility.ts` is the shared fold both TypeScript folds adopt - the bash v9 rule plus the guards the ports carry, with bash's behaviour wherever bash has one - re-exporting the canonical core under the mod's `lib/` and adding the `node:fs` bindings, and its leg must be byte-equal to the bash fold on every fixture.
 The Pi extension consumes the shared module: `.pi/extensions/lib/fm-branch-dispatch.ts` delegates its `scopeForUnreadWake` to it and its inline fold is deleted, so the Pi branch's eligibility verdicts come from the same code the equivalence test proves equal to bash.
-That wiring deliberately aligns the Pi branch with the bash v8 fold: a ship or scout task whose status log ends in `done:` or `failed:` stops keeping earlier decisions open and stops being a decision-owned stale row on Pi, a symlinked status log reads as bash's empty fold instead of refusing the whole scan, and a torn-epoch queue row now refuses the scan exactly as the mod does.
+That wiring deliberately aligns the Pi branch with the bash fold: a ship or scout task whose status log ends in `done:` or `failed:` stops keeping earlier decisions open and stops being a decision-owned stale row on Pi, a symlinked status log reads as bash's empty fold instead of refusing the whole scan, and a torn-epoch queue row now refuses the scan exactly as the mod does.
 Bash contributes the fold truth alone because no bash-side eligible-row scan exists, and no port drift remains: the mod consumes the shared module too - the canonical copy `.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts` it imports directly (pure core only - a hooks module may import nothing but its own files), bound to its host stat seam whose refusal of a symlinked status log matches bash's.
 Two further supervision behaviors are extracted the same way (A4), their remaining seams unified by the captain's 2026-09-20 ruling ("D* - use mod"): `lib/fm-branch-report-sequence.ts` owns the report/processed decision core (report validation and scope verdicts, outcome-sequence parsing, the settlement argv builders and the module-owned settlement path (call order and failure meanings), and the module-owned failure and success wordings both hosts render byte-identically), and the refusal and failure strings that stay host-rendered (the task-scope refusal, the through validation, the mark-read and mark-processed failures, the processed success tail) carry the mod's byte-identical wording on both hosts, with the task-scope refusal a normal tool result on both; the mod's duplicate-report guard remains its only report-sequence seam; the shared fixture suite pins the mod's bytes and `tests/fm-pi-branch-extension.test.sh` pins the same bytes against the real Pi extension; `lib/fm-branch-provider-latch.ts` owns the failure latch machine (the unified predicate - a provider error or a report-less error-free turn is one failure on both hosts - threshold, base and capped exponential cooldown, one recovery probe per cooldown where the host policy enables it, success recovery, and explicit reset) with each host declaring its policy and rendering its own captain-facing strings.
 `tests/fm-branch-report-sequence.test.sh` drives one fixture transcript through the lib, the mod's exported `serveReport`/`serveProcessed` bound to a mock host, and both latch policies, asserting verdict, argv, and unified-text equality and the exact pinned latch schedules on a fixed clock.
@@ -677,6 +686,8 @@ Two further supervision behaviors are extracted the same way (A4), their remaini
 `tests/fm-pi-watch-extension.test.sh` covers the away eligibility collapse (check-kind and decision-owned triggers offered) with the broken-queue vetoes and the watcher-failure alarm still reaching main, and `tests/fm-pi-branch-extension.test.sh` covers the posture tail with the verbatim read-back, the unscoped claim of check and heartbeat rows, no processing turn under the record, cancellation of a request pending when the record appears, and the re-presentation at the first run boundary after archive.
 
 `tests/fm-pr-merge.test.sh` covers the branch actor merging a green task under the record, being refused on a red check, an unreported required check, or `--allow-red`/`--allow-missing` under it, and being refused at the partition while attended.
+
+`tests/fm-secondmate-safety.test.sh` covers the branch actor being refused second-mate retirement with the mate's record, home, route, and endpoint left intact.
 
 `tests/fm-send-resolve-key.test.sh` covers the decision-answer partition:
 

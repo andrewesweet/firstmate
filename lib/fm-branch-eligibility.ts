@@ -14,7 +14,9 @@
 import { foldStatusLines, foldVocabularyFromEnv, scopeForUnreadWake, serializeOpenDecisions, statusKindFromMetaText } from "./fm-branch-eligibility-core.ts";
 import type { DecisionVerdictCache, QueueMeta, StatusStat, StatusText, UnreadWakeScope } from "./fm-branch-eligibility-core.ts";
 export * from "./fm-branch-eligibility-core.ts";
+import { execFileSync } from "node:child_process";
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
+import type { StatusSpan } from "./fm-branch-eligibility-core.ts";
 
 // ---- thin default bindings over node:fs ------------------------------------
 // What the equivalence test and a plain caller need: bind the pure core to
@@ -52,6 +54,74 @@ function readStatusTextOnDisk(state: string, task: string): StatusText {
   }
   const version = statVersion(path);
   return version === null ? { state: "torn" } : { state: "ok", text, version };
+}
+
+// bin/fm-classify-lib.sh's _fm_open_decisions_file_ident, which stamps each
+// row of state/.status-presentation-cursor. Any failure throws, and the caller
+// then reads the whole log as the span.
+function statusFileIdentity(path: string): string {
+  const darwin = process.platform === "darwin";
+  const output = execFileSync(
+    darwin ? "/usr/bin/stat" : "stat",
+    darwin ? ["-f", "%d:%i|%B|%FB", path] : ["-c", "%d:%i|%W|%w", path],
+    { encoding: "utf8", env: { ...process.env, LC_ALL: "C" }, stdio: ["ignore", "pipe", "ignore"] },
+  ).trim();
+  const [ident, birthEpoch, birth] = output.split("|");
+  if (!ident || !birthEpoch) throw new Error("status identity unavailable");
+  return birthEpoch !== "0" && birth ? `strong:${ident}:${birth}` : `weak:${ident}`;
+}
+
+/** The per-task presentation-cursor rows (task, identity, presented offset,
+ * backstop), in the format bin/fm-classify-lib.sh writes
+ * (status_presentation_cursor_offset reads the same rows). Null when the
+ * cursor is absent or malformed, so every span read falls back to the whole
+ * log. */
+function readPresentationCursor(state: string): Map<string, { ident: string; offset: number } | null> | null {
+  try {
+    const path = `${state}/.status-presentation-cursor`;
+    if (!lstatSync(path).isFile()) return null;
+    const rows = new Map<string, { ident: string; offset: number } | null>();
+    for (const row of readFileSync(path, "utf8").split("\n")) {
+      if (!row) continue;
+      const [task, ident, offset, backstop = "", ...extra] = row.split("\t");
+      if (!task || !ident || !/^[0-9]+$/.test(offset ?? "") || !/^[0-9]*$/.test(backstop) || extra.length > 0) return null;
+      rows.set(task, rows.has(task) ? null : { ident, offset: Number(offset) });
+    }
+    return rows;
+  } catch {
+    return null;
+  }
+}
+
+/** One task's presented/unread split at the presentation cursor: the span is
+ * the whole log whenever no trustworthy cursor row covers it (absent,
+ * malformed, a rotated identity, or an offset past the log). */
+function readPresentedSpanOnDisk(state: string, task: string): StatusSpan {
+  const path = `${state}/${task}.status`;
+  if (statVersion(path) === null) return { state: "refused" };
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(path);
+  } catch {
+    return { state: "refused" };
+  }
+  const version = statVersion(path);
+  if (version === null) return { state: "torn" };
+  const cursor = readPresentationCursor(state)?.get(task);
+  let offset = 0;
+  if (cursor && cursor.offset <= bytes.length) {
+    try {
+      if (cursor.ident === statusFileIdentity(path)) offset = cursor.offset;
+    } catch {
+      // No identity to match: the span is the whole log.
+    }
+  }
+  return {
+    state: "ok",
+    presented: bytes.subarray(0, offset).toString("utf8"),
+    span: bytes.subarray(offset).toString("utf8"),
+    version,
+  };
 }
 
 function readMetaKindOnDisk(state: string, task: string): string {
@@ -109,6 +179,7 @@ export function scanStateDirectory(state: string, options: StateDirectoryScanOpt
     metas: listQueueMetas(state),
     statStatus: (task) => statStatusOnDisk(state, task),
     readStatusText: (task) => readStatusTextOnDisk(state, task),
+    readPresentedSpan: (task) => readPresentedSpanOnDisk(state, task),
     readKind: (task) => readMetaKindOnDisk(state, task),
     env: foldVocabularyFromEnv((name) => process.env[name]),
     heartbeat: options.heartbeat ?? false,

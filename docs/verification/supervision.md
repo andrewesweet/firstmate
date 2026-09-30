@@ -205,18 +205,19 @@ The detailed reconciliation and task chronology stay in the private audit report
 
 ### Per-task endpoint reads cannot truncate the digest
 
-On 2026-09-13 a real outage truncated a live session-start digest silently: a per-task Herdr endpoint liveness read died mid-read inside the digest process, every later stage vanished, and the parent wrapper bannered nothing because it named only the runtime-bound exit.
-The digest now runs each per-task endpoint read in its own bounded child (fixed 10s bound) whose death, hang, or nonzero surprise becomes that task's own `endpoint: error` line, and the parent wrapper banners ANY nonzero child exit, naming the stage and the abnormal exit status.
-Verified on 2026-09-13 with the deterministic process-tree tests that reproduce both failure shapes with real processes and no harness:
+A per-task backend endpoint liveness read that dies mid-read inside the digest process takes every later stage with it, and a parent wrapper that banners only the runtime-bound exit stays silent about the missing sections.
+The digest now runs each per-task endpoint read in its own bounded child (`FM_SESSION_START_ENDPOINT_TIMEOUT`, default 10s) whose death, hang, or nonzero surprise becomes that task's own `endpoint: error` line, and the parent wrapper banners ANY nonzero child exit, naming the stage and the abnormal exit status.
+Verified on 2026-09-27 with the deterministic process-tree tests that reproduce both failure shapes with real processes and no harness:
 
 ```sh
 tests/fm-session-start.test.sh
 # ok - a killed per-task endpoint read becomes that task's error line and the digest completes
-# ok - a hung per-task endpoint read hits its own bound, reports the task, and leaves nothing stuck
+# ok - a hung per-task endpoint read hits its configured bound, reports the task, and leaves nothing stuck
 # ok - a digest child killed mid-stage is bannered by the parent, which still exits 0
 ```
 
 The kill test's fake `ps` walks real `/proc` ancestry to TERM the digest bash itself mid-lock-stage, so the parent-wrapper banner path is exercised end to end rather than asserted from output shape alone.
+Both process-tree cases therefore need a readable `/proc` and print a skip line without it, and the companion case that pins a signal death to a nonzero status on the perl timeout mechanism skips when `perl` is absent.
 These guarantees are process semantics, not vendor-emitted signals, so no live-harness guard is owed; the same suite is the refresh command.
 
 ## Semantic busy state
@@ -593,7 +594,7 @@ tests/fm-turnend-guard.test.sh
 
 ## Supervision host
 
-This supports [supervision-host.md](../supervision-host.md): the Claude engine, the away-wake path, its failure direction, and the unchanged behavior of homes without `config/supervision-host`.
+This pre-flip evidence supports [supervision-host.md](../supervision-host.md)'s Claude engine, away-wake path, and failure direction; its no-file baseline describes the earlier opt-in release, not the current Claude default.
 It was measured on 2026-09-23 on macOS 26.6.2 arm64 with Claude Code 2.1.281 as both primary and engine (model `sonnet`), Pi 0.87.0 workers on `openai-codex/gpt-5.6-sol`, and Herdr 0.9.0, in disposable lab homes on private tmux sockets and named Herdr lab sessions.
 
 The opt-in live guard refreshes the engine evidence:
@@ -621,7 +622,7 @@ Claude's `--output-format json` reports `total_cost_usd` as the resumed conversa
 Five consecutive turns of one conversation, a host restart between the second and third, reported totals of 0.2093, 0.3441, 0.4234, 0.4870, and 0.5408 with per-turn `cache_read_input_tokens` of 423687, 359255, 245302, 174613, and 185598.
 Each handled away wake cost between $0.05 and $0.21 on `sonnet`.
 
-Without `config/supervision-host`, the same live sessions and guards ran on the tree before the host (`ac2ed3b2`) and with it, with identical results:
+Before the Claude default-on flip, without `config/supervision-host`, the same live sessions and guards ran on the tree before the host (`ac2ed3b2`) and with it, with identical results:
 
 | Check | Before | After |
 | --- | --- | --- |

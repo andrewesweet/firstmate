@@ -139,10 +139,11 @@ test_single_stale_first_read_is_not_accepted() {
 }
 
 # A pane that reports the leased copy from the very first read ends the wait
-# on that read - no extra polling cycle on top of it. Counting the pane reads
+# on that read - no extra polling cycle on top of it - and the launch-boundary
+# cwd check before launch reads the pane once more. Counting the pane reads
 # measures the loop itself; wall-clock time would fold in every other cost of a
 # spawn (fetch, trust registration) and drift with the machine.
-test_already_settled_pane_costs_one_read() {
+test_already_settled_pane_costs_two_reads() {
   local rec id out status reads
   id=settle-already-settled-z2
   rec=$(make_settle_case settle-already-settled "$id" 0)
@@ -154,8 +155,8 @@ test_already_settled_pane_costs_one_read() {
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
     "meta did not record the already-settled worktree"
   reads=$(cat "$COUNTFILE")
-  [ "$reads" -eq 1 ] || fail "already-settled pane took $reads reads to settle - expected the first read alone"
-  pass "an already-settled pane settles on its first read, with no extra polling"
+  [ "$reads" -eq 2 ] || fail "already-settled pane took $reads reads - expected the first settle read plus the launch-boundary cwd check, with no confirmation read"
+  pass "an already-settled pane costs the first settle read and the launch-boundary cwd check only"
 }
 
 # make_primary_case <name> <id> <stale_reads> builds the linked-home shape: the
@@ -225,7 +226,7 @@ test_primary_checkout_that_never_settles_fails_at_the_deadline() {
 }
 
 test_single_stale_first_read_is_not_accepted
-test_already_settled_pane_costs_one_read
+test_already_settled_pane_costs_two_reads
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
 

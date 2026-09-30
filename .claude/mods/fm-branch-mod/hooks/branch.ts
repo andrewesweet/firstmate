@@ -699,7 +699,7 @@ export function register(on: On) {
             verdict: { type: 'string', enum: ['routine', 'captain'], description: 'Use captain or routine exactly as the "Verdict: routine or captain" section of your system prompt decides.' },
             summary: { type: 'string', description: 'One or two sentences in captain outcome language; include the full https:// PR URL when a PR is involved' },
             wake: { type: 'string', description: 'The wake reason line this outcome answers' },
-            silent: { type: 'boolean', description: 'True only when a fleet-wide heartbeat review found literally nothing worth reporting' },
+            silent: { type: 'boolean', description: 'True only for an eligible routine no-change outcome; captain outcomes are never silent, and actions, state changes, or new results stay rendered' },
           },
           required: ['task', 'verdict', 'summary'],
         },

@@ -54,7 +54,7 @@ Handle it start to finish in one turn sequence:
    Never drive a worker's terminal with raw `herdr pane send-keys`, `tmux send-keys`, or arrow-key navigation.
    Accept a harness confirmation dialog only through the typed key plane: `bin/fm-send.sh <task> --key Enter`, or `Escape` or `C-c` when the dialog calls for it, and drive lifecycle only through `bin/fm-control.sh`.
    When the option that accepts the dialog is not already under the cursor, report verdict captain with the dialog text instead of navigating.
-4. Report exactly once per handled event through the report surface the wake names (the fm_branch_report tool, or the `bin/fm-branch-report.sh` command), with the task id, the verdict, and a one-or-two-sentence summary; set silent true only for a fleet-wide heartbeat review that found literally nothing worth reporting.
+4. Report exactly once per handled event through the report surface the wake names (the fm_branch_report tool, or the `bin/fm-branch-report.sh` command), with the task id, the verdict, and a one-or-two-sentence summary; set silent true only for a routine no-change outcome as defined under "Verdict: routine or captain" below.
    The report is what durably records your outcome and merges it into MAIN; an event without a report is an event MAIN never learns about, so never skip it, including for events where you took no action.
 5. Acknowledge: after the report succeeds, run the exact `--ack-through` command the drain printed as WAKE_ACK_REQUIRED.
 6. Release every lease you claimed: `bin/fm-lease.sh release <task>`.
@@ -72,10 +72,17 @@ A `check: merge landed:` wake names exactly that moment; a stale, inactive-outco
 Claim the task's lease and run `bin/fm-teardown.sh <task>` with no flags: the script proves the work landed and refuses otherwise, so a refusal is reported with its exact reason and never forced, worked around, or repaired by hand.
 Report the cleanup in that event's outcome with the PR's URL.
 
+A second mate's status log is a relay channel for its child work, not a record of its own completion: a `done:` or merged-PR line there is a child's outcome, never the second mate finishing, and retiring a second mate is MAIN's alone (`bin/fm-teardown.sh` refuses you).
+Report a second mate's signal wake from the status lines that wake newly presents; an older entry under OPEN DECISIONS is context, not news, unless a new line carries its key.
+A second mate's stale wake is a liveness event: report it even when it presents no new status lines.
+
 # Verdict: routine or captain
 
 Report verdict captain for the finished result of work the captain requested, even when that result is healthy.
 A start or still-working update on requested work that brings no new artifact, finding, or decision is verdict routine.
+Set silent true for a task-level routine outcome only when it says the worker is still busy, nothing new has happened since the last outcome, and no action was taken.
+Any routine outcome reporting an action, state change, or new result stays rendered; captain outcomes are never silent.
+When in doubt, render.
 Also report verdict captain for:
 - work ready for review - include the PR's full https:// URL when the task's ready status or `pr=` metadata holds one, otherwise only the identifier you actually have;
 - a decision only the captain can make, including every ask-user finding from a validation gate;

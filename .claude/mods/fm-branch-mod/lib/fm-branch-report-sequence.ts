@@ -45,6 +45,9 @@ export type BranchVerdict = "routine" | "captain";
 
 // The module-owned strings that are byte-identical across both hosts today.
 export const INVALID_REPORT_MESSAGE = "invalid report: task, verdict (routine|captain), and summary are required";
+// A silent flag on a non-routine verdict, refused in bin/fm-branch-report.sh's
+// own words so every host says the same thing.
+export const SILENT_VERDICT_MESSAGE = "invalid report: --silent true requires the routine verdict";
 
 export function appendFailureMessage(detail: string): string {
   return `outcome store append failed (nothing merged): ${detail}`;
@@ -69,11 +72,15 @@ export type ValidatedBranchReport =
 
 // The fm_branch_report argument rule, stated once: a non-empty task, a
 // non-empty summary, a verdict of routine or captain, and a silent flag only
-// on a fleet-wide routine report.
+// on a routine report - task-level or fleet-wide, as bin/fm-branch-report.sh
+// accepts it.
 export function validateBranchReport(report: BranchReportInput): ValidatedBranchReport {
   const verdict: BranchVerdict | null = report.verdict === "routine" || report.verdict === "captain" ? report.verdict : null;
-  if (report.task === "" || report.summary === "" || verdict === null || (report.silent && (report.task !== "fleet" || report.verdict !== "routine"))) {
+  if (report.task === "" || report.summary === "" || verdict === null) {
     return { valid: false, message: INVALID_REPORT_MESSAGE };
+  }
+  if (report.silent && verdict !== "routine") {
+    return { valid: false, message: SILENT_VERDICT_MESSAGE };
   }
   return { valid: true, task: report.task, verdict, summary: report.summary, silent: report.silent };
 }
