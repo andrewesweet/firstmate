@@ -955,7 +955,7 @@ portable_serial_weight_for() {
 # Deterministic: candidates are ordered by hint descending then path, and ties
 # between equally loaded bins always take the lowest bin index.
 portable_serial_assignments() {
-  local ms script i best best_load
+  local ms script i best best_load pin pinned
   local -a loads=()
   i=1
   while [ "$i" -le "$PORTABLE_SERIAL_SHARDS" ]; do
@@ -976,14 +976,19 @@ portable_serial_assignments() {
     done
     # A pinned script keeps its recorded slot instead of the packed one; see
     # PORTABLE_SERIAL_PINNED_SHARDS above for why the pin exists.
-    case ";$PORTABLE_SERIAL_PINNED_SHARDS;" in
+    pinned=";$PORTABLE_SERIAL_PINNED_SHARDS;"
+    case "$pinned" in
       *";$script:"*)
-        pin=${PORTABLE_SERIAL_PINNED_SHARDS#*"$script":}
+        pin=${pinned#*";$script:"}
         pin=${pin%%;*}
-        if [ "$pin" -ge 1 ] && [ "$pin" -le "$PORTABLE_SERIAL_SHARDS" ] 2>/dev/null; then
-          best=$pin
-          best_load=${loads[$pin]}
+        case "$pin" in
+          ''|*[!0-9]*) die "pinned shard for '$script' must be an integer in 1..$PORTABLE_SERIAL_SHARDS, got '$pin'" ;;
+        esac
+        if [ "$pin" -lt 1 ] || [ "$pin" -gt "$PORTABLE_SERIAL_SHARDS" ]; then
+          die "pinned shard $pin for '$script' is outside 1..$PORTABLE_SERIAL_SHARDS"
         fi
+        best=$pin
+        best_load=${loads[$pin]}
         ;;
     esac
     loads[best]=$((best_load + ms))
@@ -1032,7 +1037,7 @@ select_proven_isolated() {
 }
 
 select_lane() {
-  local want=$1 s shard idx found=0
+  local want=$1 s shard idx found=0 assignments
   case "$want" in
     portable-parallel-1)
       while IFS= read -r s; do
@@ -1058,13 +1063,14 @@ select_lane() {
     portable-serial-*)
       # One separate-runner shard of the same remainder, still serial in itself.
       shard=$(portable_serial_shard_index "$want")
+      assignments=$(portable_serial_assignments) || exit 2
       while IFS=$'\t' read -r idx s; do
         [ -n "$s" ] || continue
         if [ "$idx" = "$shard" ]; then
           add_script "$s"
           found=1
         fi
-      done < <(portable_serial_assignments)
+      done <<<"$assignments"
       ;;
     real-herdr-gated)
       select_family real-herdr-gated
