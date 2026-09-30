@@ -42,7 +42,7 @@ export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 #   parked     live run waiting on its agent at a gate           holds no slot
 #   ci         live run whose only executing step is the ci monitor holds no slot
 #   cifix      live run whose ci step has moved on to a fix round   counts
-#   fixing     live run whose non-ci step has moved on to a fix round   counts
+#   fixing     live run running ci while a non-ci step is in a fix round   counts
 #   terminal   finished run                                      holds no slot
 #   unknown    live run carrying a status word this repo does not classify  counts
 seed_db() {
@@ -83,7 +83,7 @@ seed_db() {
           ;;
         fixing)
           runs+="${runs:+,}('fixing-$i','running',NULL)"
-          steps+="${steps:+,}('fixing-$i','review','fixing')"
+          steps+="${steps:+,}('fixing-$i','ci','running'),('fixing-$i','review','fixing')"
           ;;
         terminal)
           runs+="${runs:+,}('done-$i','completed',NULL)"
@@ -176,7 +176,8 @@ printf '%s' "$RUN_ERR" | grep -q 'cifix-1' \
 
 # --- a live non-ci fix round is work, not a wait, and holds its slot ----------
 # `axi respond --action fix` at a review gate moves the review step to
-# `fixing` while the run stays live: a fixer agent works, so the slot holds.
+# `fixing` while the run stays live: a fixer agent works, so the slot holds
+# even when a ci monitor step is also running and would otherwise free it.
 
 seed_db fixing:3
 run_slot "$FAKE_START"
