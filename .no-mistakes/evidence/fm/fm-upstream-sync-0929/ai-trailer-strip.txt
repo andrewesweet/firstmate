@@ -1,0 +1,5 @@
+### committed message as stored in the commit object
+feat: real commit through the spawn-installed hook
+
+Co-Authored-By: Real Human <human@example.com>
+

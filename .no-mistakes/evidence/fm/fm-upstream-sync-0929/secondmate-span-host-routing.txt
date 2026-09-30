@@ -1,0 +1,18 @@
+== lab home: $LAB (disposable) ==
+--- presented span (drained) ---
+needs-decision [at=1790000000] [key=old-hold]: deferred captain call
+--- new unread span ---
+done [at=1790000100]: sample-a PR merged
+--- host entry: fm-branch-dispatch.mjs scope (routine span behind unrelated parked hold) ---
+status=safe
+corrupted=0
+rows=1
+tasks=mate
+unscoped=0
+
+--- adversarial: append a NEW keyed decision to the same span ---
+status=unsafe
+corrupted=0
+rows=
+tasks=
+unscoped=0

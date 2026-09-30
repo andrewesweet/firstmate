@@ -1,0 +1,15 @@
+not ok - second-mate signal rows must be routed by their new span: file:///home/andre/.no-mistakes/worktrees/feb37d45d9da/01M3RD12VGXBVKWPE4ZP5W45HH/[eval1]:31
+
+Reproduction (tests/fm-pi-branch-extension.test.sh, case
+test_branch_dispatch_routes_secondmate_signal_by_new_span):
+  a second mate's status log carries an unrelated, still-open
+  needs-decision hold; the span presented since the last drain holds only
+  "done [at=...]: sample-a PR merged". Expected both routing paths to give the
+  routine close to the supervision branch.
+  Actual: pi=true host=false - the attended-host path still folds the WHOLE log
+  (lib/fm-branch-eligibility-core.ts:435, staleDecisionVerdict), so the routine
+  close stays on main behind the unrelated hold.
+Upstream ships the span fold inside .pi/extensions/lib/fm-branch-dispatch.ts
+(1f2c9548 lines 313-500: readPresentationCursor, secondmates set, spanRule);
+the merge kept the fork's shared-module canon and did not port it into
+lib/fm-branch-eligibility-core.ts or bin/fm-classify-lib.sh.

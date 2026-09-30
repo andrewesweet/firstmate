@@ -1,0 +1,14 @@
+### 1. fresh Claude home, no config/supervision-host file
+  gate(claude): host RUNS
+8:- Supervision host: on; it takes away-posture wakes and, where the dialog mirror is verified, eligible attended wakes itself, and hands the rest to you (protocol at the end of this block).
+39:Supervision host: on for this home (`config/supervision-host` holding `off` turns it off; [`supervision-host.md`](../supervision-host.md) owns the design).
+
+### 2. non-Claude primary (cursor), file still absent
+  gate(cursor): host does NOT run
+
+### 3. mod home opts out with 'off'
+  gate(claude): host does NOT run
+  host protocol lines in rendered block: 0
+
+### 4. explicit opt-in on cursor
+  gate(cursor): host RUNS
