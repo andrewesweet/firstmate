@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # fm-install-treehouse.sh - install CI's pinned, verified Treehouse build.
 #
-# Used only by the required portable-serial CI lane, for
+# Used by the required portable-serial CI lane, for
 # tests/fm-spawn-slot-lease-live-e2e.test.sh: the default-on live guard that
 # exercises bin/fm-teardown.sh's absent-copy ownership proof against the real
-# binary. Same pin/checksum discipline as fm-install-herdr.sh: official
+# binary; and by the required real-Herdr CI lane, for E2E scripts that need
+# treehouse for spawn worktree acquisition. Same pin/checksum discipline as fm-install-herdr.sh: official
 # release URL, exact asset, SHA-256, bounded download, post-install version
 # check. Never a floating package-manager latest.
 #
@@ -13,7 +14,8 @@
 #
 # Pins Treehouse v2.3.0: it carries `return --if-lease-holder`, which
 # bin/fm-teardown.sh requires to prove a slot's lease is the task's own
-# before returning it, and its `status` supports --json.
+# before returning it, and its `status` supports --json (the
+# portable-serial lane asserts that after installing).
 set -eu
 
 FM_TREEHOUSE_CI_VERSION=2.3.0

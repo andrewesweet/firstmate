@@ -224,8 +224,12 @@ jobs:
           command -v jq >/dev/null || { echo "::error::jq is required by the slot-lease live guard"; exit 1; }
           bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          PATH="$RUNNER_TEMP/bin:$PATH"
           command -v treehouse >/dev/null || { echo "::error::treehouse not on PATH after install"; exit 1; }
           treehouse --version
+          status=$(treehouse status --json)
+          printf '%s\n' "$status"
+          printf '%s' "$status" | jq -e . >/dev/null || { echo "::error::treehouse status --json did not print valid JSON"; exit 1; }
       # The Pi extension tests read the installed Pi package's own types and
       # runtime, so without it they gate-skip and pass silently. It is a public
       # npm package and needs no credential, so CI can hold the real thing.
@@ -286,11 +290,20 @@ jobs:
           set -eu
           bin/fm-install-herdr.sh "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install pinned Treehouse
+        run: |
+          set -eu
+          # Several real-herdr-gated E2E scripts require treehouse for spawn
+          # worktree acquisition (presentation, workspace-per-home, autodetect).
+          bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: Assert Herdr pin and protocol floor
         run: |
           set -eu
           command -v herdr >/dev/null || { echo "::error::herdr not on PATH after install"; exit 1; }
+          command -v treehouse >/dev/null || { echo "::error::treehouse not on PATH after install"; exit 1; }
           herdr --version
+          treehouse --version
           status=$(herdr status --json)
           printf '%s\n' "$status"
           version=$(printf '%s' "$status" | jq -r '.client.version // empty')
