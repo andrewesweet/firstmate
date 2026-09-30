@@ -664,7 +664,7 @@ test_claude_threads_model_and_effort() {
   expect_code 0 "$status" "claude spawn with profile flags should succeed"
   assert_meta_profile "$HOME_DIR/state/$id.meta" claude sonnet high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "claude --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG --model 'sonnet' --effort 'high'" \
+  assert_contains "$launch" "claude --dangerously-skip-permissions $(claude_worker_add_dirs "$HOME_DIR" "$id")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG --model 'sonnet' --effort 'high'" \
     "claude launch did not thread model and effort flags"
   assert_not_contains "$launch" "--tui-mode" "non-Pi launches must not receive Pi's TUI mode override"
   pass "claude receives --model and --effort profile flags"

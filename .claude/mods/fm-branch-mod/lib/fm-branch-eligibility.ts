@@ -20,6 +20,11 @@
 //     (FM_CLASSIFY_RESERVED_KEY_PREFIXES, default `pending-reply-`), and the
 //     pause verb the event vocabulary needs (FM_CLASSIFY_PAUSED_VERB,
 //     default `paused`).
+//   - Time tags (bash v9): every head/note question - the declaration
+//     guard, the terminal-close colon test, the key reader, the note reader -
+//     reads the line with its `[at=...]` stamp stripped
+//     (statusLineUnstamped), so a readable worker stamp cannot move the
+//     separator. The stored bytes stay the writer's own.
 //   - Terminal close (bash v8): a `done:`/`failed:` declaration closes the
 //     WHOLE open set when the task's kind is ship or scout; a secondmate's
 //     terminal event may describe other work and closes nothing.
@@ -101,21 +106,50 @@ export function statusLineVerb(line: string): string {
   return words.filter((word, index) => index === 0 || !/^corr=[0-9a-f]{16}$/i.test(word)).join(" ");
 }
 
-/** The `[key=<slug>]` decision key: a complete token before the first colon,
- * else one at the head of the note, else `default`; null when the slug is
- * not well-formed, which makes the line ordinary status here. */
-export function decisionKey(line: string): string | null {
+/** bin/fm-classify-lib.sh `_fm_status_unstamped` (fold version 9): drop every
+ * time-tag-shaped run before the head ends, so a worker-written readable stamp
+ * like `[at=10:30]` cannot move the head/note separator the key and note
+ * readers below look for. The line's own bytes are never altered. */
+export function statusLineUnstamped(line: string): string {
+  let rest = line;
+  let keep = "";
+  for (;;) {
+    const start = rest.indexOf("[at=");
+    const end = start < 0 ? -1 : rest.indexOf("]", start + 4);
+    if (end < 0) break;
+    const before = rest.slice(0, start);
+    if (before.includes(":")) break;
+    keep += before.endsWith(" ") ? before.slice(0, -1) : before;
+    rest = rest.slice(end + 1);
+  }
+  return keep + rest;
+}
+
+/** The key a line STATES in one of the parser's declared positions, if any:
+ * a complete token before the head's colon, or one at the head of its note.
+ * Undefined when the line declares none (unlike decisionKey, which falls back
+ * to `default`). */
+export function declaredDecisionKey(rawLine: string): string | undefined {
+  const line = statusLineUnstamped(rawLine);
   const colon = line.indexOf(":");
   const beforeColon = colon < 0 ? line : line.slice(0, colon);
   const beforeMatch = beforeColon.match(/\[key=([^\]]*)\]/);
   const noteMatch = beforeMatch || colon < 0 ? null : line.slice(colon + 1).trimStart().match(/^\[key=([^\]]*)\]/);
-  const key = (beforeMatch ?? noteMatch)?.[1] ?? "default";
+  return (beforeMatch ?? noteMatch)?.[1];
+}
+
+/** The `[key=<slug>]` decision key: a complete token before the first colon,
+ * else one at the head of the note, else `default`; null when the slug is
+ * not well-formed, which makes the line ordinary status here. */
+export function decisionKey(line: string): string | null {
+  const key = declaredDecisionKey(line) ?? "default";
   return /^[A-Za-z0-9._-]+$/.test(key) ? key : null;
 }
 
 /** Text after the first colon, trimmed, with a note-head key token stripped
  * when the key was stated there instead of before the colon. */
-export function statusLineNote(line: string): string {
+export function statusLineNote(rawLine: string): string {
+  const line = statusLineUnstamped(rawLine);
   const colon = line.indexOf(":");
   if (colon < 0) return line;
   const note = line.slice(colon + 1).trimStart();
@@ -146,12 +180,15 @@ export function foldDecisionLine(
   vocab: FoldVocabulary,
   kind: string,
 ): OpenDecisionRecord[] {
+  // Both colon tests ask where the head ends, the same question the key and
+  // note readers ask, so they read the same unstamped copy (bash fold v9).
+  const unstamped = statusLineUnstamped(line);
   // Declaration guard: a line holding neither a colon nor a complete
   // "[key=...]" token is continuation prose and can never move the set.
-  if (!line.includes(":") && !/\[key=[^\]]*\]/.test(line)) return [...open];
+  if (!unstamped.includes(":") && !/\[key=[^\]]*\]/.test(unstamped)) return [...open];
   const verb = statusLineVerb(line);
   // Terminal close: done/failed clears the WHOLE open set for ship and scout.
-  if (line.includes(":") && (verb === "done" || verb === "failed") && (kind === "ship" || kind === "scout")) {
+  if (unstamped.includes(":") && (verb === "done" || verb === "failed") && (kind === "ship" || kind === "scout")) {
     return [];
   }
   if (!["needs-decision", "blocked", vocab.resolveVerb, vocab.heldVerb].includes(verb)) return [...open];
@@ -201,6 +238,35 @@ export function statusKindFromMetaText(metaText: string | null): string {
  * or the captain-held verb on the last recognized event. */
 export function statusDecisionOwned(lines: readonly string[], kind: string, vocab: FoldVocabulary): boolean {
   return hasOpenNeedsDecision(lines, kind, vocab) || currentDeclarationHeld(lines, vocab);
+}
+
+/** The second-mate span rule (docs/pi-supervision-branch.md owns the routing
+ * contract): a second mate's `.status` stream doubles as its routed-reply
+ * channel, so its signal row is judged by the lines NEW since the presented
+ * cursor, not by the whole log - a routine close must not stay on main behind
+ * an unrelated decision the captain already parked. Walk the span in order: a
+ * resolution owns the row only when it closes a decision that was open
+ * immediately before that line, and a line that states an open decision's key
+ * is that decision's own traffic. */
+export function spanDecisionOwned(
+  presented: readonly string[],
+  span: readonly string[],
+  vocab: FoldVocabulary,
+  kind: string,
+): boolean {
+  const openAcrossLog = foldStatusLines([...presented, ...span], vocab, kind);
+  let before = foldStatusLines(presented, vocab, kind);
+  for (const line of span) {
+    const verb = statusLineVerb(line);
+    if (["needs-decision", "blocked", vocab.heldVerb].includes(verb)) return true;
+    const resolved = verb === vocab.resolveVerb ? decisionKey(line) : null;
+    const wasOpen = resolved !== null && before.some((record) => record.key === resolved);
+    before = foldDecisionLine(before, line, vocab, kind);
+    if (wasOpen && !before.some((record) => record.key === resolved)) return true;
+    const declared = declaredDecisionKey(line);
+    if (declared !== undefined && openAcrossLog.some((record) => record.key === declared)) return true;
+  }
+  return false;
 }
 
 export function hasOpenNeedsDecision(
@@ -300,6 +366,16 @@ export type DecisionVerdictCache = Map<
   { version: string; config: string; decisionOwned: boolean }
 >;
 
+/** A presented/unread split of one status log, bound by the consumer from the
+ * state directory's `.status-presentation-cursor` rows: the already-presented
+ * history and the span a new wake covers, or refused/torn exactly as
+ * StatusText. A consumer that cannot answer omits the binding, and every
+ * second-mate signal row then falls back to the whole-log rule. */
+export type StatusSpan =
+  | { state: "ok"; presented: string; span: string; version: string }
+  | { state: "refused" }
+  | { state: "torn" };
+
 export interface UnreadWakeInputs {
   /** The `.wake-queue` bytes, or null when it cannot be read (unsafe scan). */
   queueText: string | null;
@@ -308,6 +384,9 @@ export interface UnreadWakeInputs {
   metas: readonly QueueMeta[] | null;
   statStatus(task: string): StatusStat;
   readStatusText(task: string): StatusText;
+  /** The presented/unread split a second-mate signal row is judged by; omit
+   * to keep every row on the whole-log rule. */
+  readPresentedSpan?(task: string): StatusSpan;
   /** The resolved kind (statusKindFromMetaText applied to the meta read). */
   readKind(task: string): string;
   env: FoldVocabulary;
@@ -428,15 +507,19 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
     let task = "";
     if (kind === "signal") {
       task = key.replace(/\.(?:status|turn-ended)$/, "");
+      // A second mate's signal is judged by its new span on BOTH paths; every
+      // other signal row keeps the historical rule, where only an attended
+      // host folds the whole log.
+      const spanRule = task !== "" && inputs.readPresentedSpan !== undefined && inputs.readKind(task) === "secondmate";
       if (/^needs-decision:/.test(fields[4] ?? "")) {
         needsDecisionKeys.push(key);
         needsDecisionTasks.push(task);
         if (!inputs.afk) continue;
-      } else if (inputs.attendedHost && task) {
+      } else if (task && (spanRule || inputs.attendedHost)) {
         // An attended host can have accepted a routine signal before its
         // task gained a main-owned decision: fold the status log exactly as
         // a stale row does, so the offer rule keeps that close on main.
-        const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
+        const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig, spanRule);
         if (verdict === "torn") return UNSAFE_SCOPE;
         if (verdict) {
           needsDecisionKeys.push(key);
@@ -495,17 +578,39 @@ function staleDecisionVerdict(
   inputs: UnreadWakeInputs,
   memo: Map<string, boolean>,
   verdictConfig: string,
+  spanRule = false,
 ): boolean | "torn" {
-  const memoized = memo.get(task);
+  // One task can carry a stale row and a second-mate signal row in the same
+  // queue, and the two rules can disagree, so the rule is part of the key.
+  const memoKey = spanRule ? `span\0${task}` : task;
+  const memoized = memo.get(memoKey);
   if (memoized !== undefined) return memoized;
-  const cache = inputs.cache;
+  const cache = spanRule ? undefined : inputs.cache;
   const stat = inputs.statStatus(task);
   if (stat.state !== "ok") {
     // refused: bash's empty fold, uncached - an absent log may appear
     // between scans.
     cache?.delete(task);
-    memo.set(task, false);
+    memo.set(memoKey, false);
     return false;
+  }
+  if (spanRule) {
+    // ponytail: the span verdict is read once per scan and never cached
+    // across scans - the presentation cursor can move without the log
+    // changing, so the stat version alone cannot key it. Cache it on the
+    // cursor's own offset if a scan ever folds enough second mates to care.
+    const read = inputs.readPresentedSpan!(task);
+    if (read.state === "torn") return "torn";
+    const owned = read.state === "ok"
+      && spanDecisionOwned(
+        read.presented.split("\n").filter((line) => /\S/.test(line)),
+        read.span.split("\n").filter((line) => /\S/.test(line)),
+        inputs.env,
+        inputs.readKind(task),
+      );
+    if (read.state === "ok" && read.version !== stat.version) return "torn";
+    memo.set(memoKey, owned);
+    return owned;
   }
   let owned: boolean;
   const hit = cache?.get(task);
@@ -524,7 +629,7 @@ function staleDecisionVerdict(
       if (oldest.value !== undefined) cache.delete(oldest.value);
     }
   }
-  memo.set(task, owned);
+  memo.set(memoKey, owned);
   return owned;
 }
 
