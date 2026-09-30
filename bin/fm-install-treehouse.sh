@@ -5,9 +5,10 @@
 # tests/fm-spawn-slot-lease-live-e2e.test.sh: the default-on live guard that
 # exercises bin/fm-teardown.sh's absent-copy ownership proof against the real
 # binary; and by the required real-Herdr CI lane, for E2E scripts that need
-# treehouse for spawn worktree acquisition. Same pin/checksum discipline as fm-install-herdr.sh: official
-# release URL, exact asset, SHA-256, bounded download, post-install version
-# check. Never a floating package-manager latest.
+# treehouse for spawn worktree acquisition. Same pin/checksum discipline as
+# fm-install-herdr.sh: official release URL, exact asset, SHA-256, bounded
+# download, post-install version check. Never a floating package-manager
+# latest.
 #
 # Usage:
 #   fm-install-treehouse.sh <destination-directory>
