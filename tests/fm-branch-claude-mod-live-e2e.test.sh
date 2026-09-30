@@ -259,11 +259,9 @@ assert_autoupdater_off() { # <what>
   done
   if [ "$checked" = 1 ]; then
     fail "Claude Code $CLAUDE_VERSION runs with its autoupdater enabled ($what): the launch must embed DISABLE_AUTOUPDATER=1 so a release-check binary cannot npm-install @latest over the machine's normal install"
-    return 1
   fi
   if [ -d /proc/self ]; then
     fail "no readable /proc environ under pane pid $pane_pid, so $what's autoupdater guard went unchecked on a /proc platform"
-    return 1
   fi
   printf 'assert_autoupdater_off: no /proc on this platform, so the running binary'"'"'s environment went unchecked; the launch'"'"'s embedded DISABLE_AUTOUPDATER=1 is the guard here\n' >&2
 }
