@@ -74,10 +74,11 @@ That is not hypothetical: by 2026-09-01 the lane had grown from 116 to 139 scrip
 Refresh the hints whenever the serial lane gains scripts, rather than waiting for that bound to trip.
 
 `bin/fm-test-run.sh` owns the per-shard packing, so its `--check-coverage` output is the current account of lane size and coverage rather than a copied inventory.
-Nine serial runners pack the refreshed measurements into modeled script sums between 1072425 ms and 1196951 ms (17m52s-19m57s).
+Nine serial runners pack the refreshed measurements into modeled script sums between 1072423 ms and 1196951 ms (17m52s-19m56s).
 The slowest shard is `tests/fm-supervision-host.test.sh` alone at its 1196951 ms slowest sample and the second is `tests/fm-watch-triage.test.sh` alone at 1122548 ms; each heavyweight's volatile duration exposes only its own shard, and the other seven shards model 17m52s.
 The 30-minute bound is a job timeout, so it covers the job's setup as well as the shard: the full-history checkout, the pinned ShellCheck and actionlint installs, and the two `npm install -g` steps together already cost more than `fm-test-run.sh`'s own inter-script overhead inside a shard.
 With that setup the slowest shard's 1196951 ms script sum lands near 22 minutes of job wall, about 8 minutes of margin under the 30-minute job timeout, so every shard still finishes with clear headroom.
+One placement is pinned ahead of the weights: `PORTABLE_SERIAL_PINNED_SHARDS` in `bin/fm-test-run.sh` holds `tests/fm-calm-pi-extension.test.sh` on shard 7 because its ~9 s viewport bound failed twice on the heavier shard 4 neighborhood while it passed every green run on shard 7; the pin masks an unexplained shard-placement failure and is not evidence about the script's duration.
 This is a packing estimate, not measured new-workflow execution or an end-to-end latency guarantee.
 Job timeouts remain hang tripwires under the policy in [Timeouts](#timeouts) below; they are not the desired healthy duration.
 `tests/fm-ci-workflow.test.sh` compares the parsed CI matrix to the executable runner lanes, and the runner rejects parallel `--jobs` on a serial lane even when that shard has only one member.

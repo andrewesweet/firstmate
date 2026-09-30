@@ -215,6 +215,16 @@ PORTABLE_SERIAL_DEFAULT_WEIGHT_MS=27000
 # instead of silently. docs/fm-test-portable-shards.md owns the refresh.
 PORTABLE_SERIAL_MAX_UNHINTED_PERCENT=15
 
+# Script<shard> pairs forced onto a specific shard ahead of the weight packing.
+# tests/fm-calm-pi-extension.test.sh is a timing-fragile Pi viewport E2E that
+# failed only on shard 4 after the 2026-09-30 refresh moved it there (CI runs
+# 36763685875 and its rerun; its ~9s geometry bound expires behind that shard's
+# daemon-spawning session-start, remote-*, and startup-network suites) while
+# passing on shard 7 in every other green run sampled. The pin holds it to the
+# proven slot; it masks an unexplained shard-placement failure, not evidence
+# about the script itself, so revisit it when that diagnosis lands.
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh:7'
+
 usage() {
   awk '
     NR == 1 { next }
@@ -964,6 +974,18 @@ portable_serial_assignments() {
       fi
       i=$((i + 1))
     done
+    # A pinned script keeps its recorded slot instead of the packed one; see
+    # PORTABLE_SERIAL_PINNED_SHARDS above for why the pin exists.
+    case ";$PORTABLE_SERIAL_PINNED_SHARDS;" in
+      *";$script:"*)
+        pin=${PORTABLE_SERIAL_PINNED_SHARDS#*"$script":}
+        pin=${pin%%;*}
+        if [ "$pin" -ge 1 ] && [ "$pin" -le "$PORTABLE_SERIAL_SHARDS" ] 2>/dev/null; then
+          best=$pin
+          best_load=${loads[$pin]}
+        fi
+        ;;
+    esac
     loads[best]=$((best_load + ms))
     printf '%s\t%s\n' "$best" "$script"
   done < <(
