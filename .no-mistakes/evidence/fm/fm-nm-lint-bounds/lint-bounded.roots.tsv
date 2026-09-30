@@ -1,0 +1,23 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Linux x86_64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	1200
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	12582912
+meta	timing_mechanism	perl
+begin	1	bin/fm-path-lib.sh	0	full	1790771694545
+end	1	bin/fm-path-lib.sh	0	full	1790771694545	1790771694609	64	0	ok	13696
+begin	2	bin/fm-marker-lib.sh	1	full	1790771694621
+end	2	bin/fm-marker-lib.sh	1	full	1790771694621	1790771694888	267	0	ok	52480
+begin	3	bin/fm-extension.sh	1	full	1790771694895
+end	3	bin/fm-extension.sh	1	full	1790771694895	1790771694961	66	0	ok	13440
+meta	roots_begun	3
+meta	roots_completed	3
+meta	roots_unfinished	0
+meta	result_exit	0
