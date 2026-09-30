@@ -393,6 +393,9 @@ test_no_mistakes_dod_wording() {
     "no-mistakes DOD must render literal backticks around help"
   assert_grep "pass \`--intent\` as only this brief's \`## Published intent\`" "$brief" \
     "no-mistakes DOD must require --intent to be the Published intent subsection"
+  # shellcheck disable=SC2016  # Backticks in the generated contract are literal.
+  assert_grep 'Keep `--intent` text in a worker-private file (created with `mktemp` or inside the task worktree), never in a fixed shared path.' "$brief" \
+    "no-mistakes DOD must keep --intent text in a worker-private file"
   assert_grep "plus any later captain ask restated into that subsection" "$brief" \
     "no-mistakes DOD must allow later captain asks restated into the published subsection"
   assert_grep "firstmate-authored at dispatch and is the only authorized source" "$brief" \
