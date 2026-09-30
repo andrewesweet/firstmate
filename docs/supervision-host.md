@@ -23,7 +23,7 @@ An arm owner is the component in each primary harness that starts watcher cycles
 The host runs by default on a Claude primary and is opt-in per home on the other five primaries it supports; a `config/supervision-host` that says `off` opts any home out, and [configuration.md](configuration.md#supervision-host-configsupervision-host) owns the file.
 A home that does not run the host behaves exactly as it does without it.
 Today it runs beside a Claude, Cursor, OpenCode, omp, Grok, or Codex primary: away on all six, and attended on Claude and Cursor, the primaries with a verified [dialog mirror](#the-dialog-mirror).
-The opt-in is mutually exclusive with the Claude Code supervision-branch mod's `state/.branch-mod-mode`: when that file exists at startup the host steps aside to the plain watcher arm and surfaces the conflict once per episode, and a mod enabled later stands the host down at every attended acceptance; [claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns the details.
+Running the host is mutually exclusive with the Claude Code supervision-branch mod's `state/.branch-mod-mode`, so a mod home opts out with `off`: when `state/.branch-mod-mode` exists at startup the host steps aside to the plain watcher arm and surfaces the conflict once per episode, and a mod enabled later stands the host down at every attended acceptance; [claude-supervision-branch.md](claude-supervision-branch.md) "Mutual exclusion with the supervision host" owns the details.
 
 ### Behavior by posture and harness
 

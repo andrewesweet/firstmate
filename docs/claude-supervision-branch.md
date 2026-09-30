@@ -119,17 +119,19 @@ The condition path must be absolute: the runner's working directory is the watch
 1. Install Claude Code; the mod loads on whatever release hosts the session (see [Claude Code versions](#claude-code-versions) for the post-upgrade test).
 2. Create `state/.branch-mod-mode`; its presence alone switches the mod and every `bin/` piece it relies on, and its content is ignored.
    Remove the file to switch them all off together.
+   Write `off` in `config/supervision-host` as well: the supervision host runs by default on a Claude primary, so without that opt-out the arm owner launches the host on every turn end for it to step aside; see [Mutual exclusion with the supervision host](#mutual-exclusion-with-the-supervision-host).
 3. Optionally write `config/classifier-model` and `config/supervision-branch-model`; optionally set `config/classifier-shadow` to `jev` to join the shadow advisory trial.
 4. Add the `claude` entry to `config/watched-tools.json` exactly as [`configuration.md`](configuration.md#watched-tool-updates-configwatched-toolsjson) "Watched tool updates" documents it, so a new Claude Code release is reported and the post-upgrade test in [Claude Code versions](#claude-code-versions) can be run.
 5. Launch the primary with the settings below.
 
 ### Mutual exclusion with the supervision host
 
-A home must not enable both `state/.branch-mod-mode` and `config/supervision-host`: the mod consumes the primary's wakes inside the captain's own Claude process, while the host runs them through a headless engine beside it, so a home with both opt-ins would have two consumers of the same wakes.
-The opt-ins are mutually exclusive by construction, with the host stepping aside: when `state/.branch-mod-mode` is present, `bin/fm-supervision-host.sh` execs the plain watcher arm even though `config/supervision-host` opts in, so the watcher cycle is the ordinary watcher arm's - an owner that launched the host still applies its own host-mode close handling, which is what makes the notice actionable - and it prints one `supervision-host:` notice naming the conflict - once per episode, suppressed by a marker until a later host run finds no mod, so a renewed conflict is surfaced again (`bin/fm-supervision-host.sh`'s header owns the mechanics).
+A home must not run both the mod (`state/.branch-mod-mode`) and the supervision host: the mod consumes the primary's wakes inside the captain's own Claude process, while the host runs them through a headless engine beside it, so a home running both would have two consumers of the same wakes.
+A Claude primary runs the host by default, so a mod home is a home with both enabled unless `config/supervision-host` says `off` ([configuration.md](configuration.md#supervision-host-configsupervision-host) owns that gate).
+The two are mutually exclusive by construction, with the host stepping aside: when `state/.branch-mod-mode` is present, `bin/fm-supervision-host.sh` execs the plain watcher arm even though the home's gate runs the host, so the watcher cycle is the ordinary watcher arm's - an owner that launched the host still applies its own host-mode close handling, which is what makes the notice actionable - and it prints one `supervision-host:` notice naming the conflict - once per episode, suppressed by a marker until a later host run finds no mod, so a renewed conflict is surfaced again (`bin/fm-supervision-host.sh`'s header owns the mechanics).
 A mod enabled while a host already runs is caught too: every attended acceptance re-reads `state/.branch-mod-mode`, and while it exists the host stands down for that close, which reaches main exactly as the plain watcher arm delivers it, with no added line.
-Only a host run can clear that marker, so a conflict ended by removing `config/supervision-host` rather than `state/.branch-mod-mode` leaves `state/.supervision-host-mod-conflict` in place - no host runs to clear it - and a conflict re-created later by re-adding the host opt-in is not noticed again, even though the host still steps aside on every run it makes with the mod present.
-The mod's own path is unchanged: an owner only launches the host when `config/supervision-host` exists, so with only the mod enabled every wake is consumed as this doc describes.
+Only a host run can clear that marker, so a conflict ended by opting the home out of the host rather than by removing `state/.branch-mod-mode` leaves `state/.supervision-host-mod-conflict` in place - no host runs to clear it - and a conflict re-created later by dropping that opt-out is not noticed again, even though the host still steps aside on every run it makes with the mod present.
+The mod's own path is unchanged either way: whether the owner launches the plain watcher arm or a host that steps aside, every wake is consumed as this doc describes.
 Wake eligibility itself is one implementation for both (`tests/fm-branch-eligibility.test.sh` pins the host's command entry, the Pi extension, the mod, and the shared lib to one verdict); the exclusivity is about who consumes a wake, not about which rows each would claim.
 
 ## Launch settings
@@ -167,7 +169,7 @@ The `claude` entry in `config/watched-tools.json` ([configuration.md](configurat
 
 ## State and configuration
 
-`AGENTS.md` section 2 and [`configuration.md`](configuration.md) route each record to its owner; this is the list.
+The [`operational-home-layout`](../.agents/skills/operational-home-layout/SKILL.md) skill and [`configuration.md`](configuration.md) route each record to its owner; this is the list.
 
 - `state/.branch-mod-mode`: the opt-in switch; its presence switches the mod, the drain backstop extension, and the pretool escape.
 - `state/.branch-mod-passed`: the queue sequences passed to main and not yet acknowledged; module-owned.
@@ -181,7 +183,7 @@ The `claude` entry in `config/watched-tools.json` ([configuration.md](configurat
 - `config/classifier-model`: the model name `$.model.complete` is given; default, fallback, and the recorded model are owned by [configuration.md](configuration.md) "Claude Code supervision branch".
 - `config/classifier-shadow`: `jev` joins granted wakes to the shadow advisory trial; absent or any other value is off.
 - `config/supervision-branch-model`: the branch agent's model (default `sonnet`), shared with Pi.
-- The outcome store, cursors, and leases are the shared files listed under `AGENTS.md` section 2 for the Pi branch.
+- The outcome store, cursors, and leases are the shared files that skill lists for the Pi branch.
 
 ## Bounds
 

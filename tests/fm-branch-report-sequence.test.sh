@@ -50,6 +50,8 @@ PLAN='[
  {"kind":"report","input":{"task":"fleet","verdict":"captain","summary":"x","silent":true}},
  {"kind":"report","input":{"task":"other-task","verdict":"routine","summary":"x","silent":false}},
  {"kind":"report","input":{"task":"ship-a","verdict":"routine","summary":"did the thing","silent":false,"wake":"heartbeat: fleet-wide nothing-to-do"}},
+ {"kind":"inflight","value":{"tasks":["ship-a"],"heartbeat":false,"wakeKey":"","reportedSeqs":[]}},
+ {"kind":"report","input":{"task":"ship-a","verdict":"routine","summary":"nothing new, no action taken","silent":true}},
  {"kind":"inflight","value":{"tasks":["ship-a"],"heartbeat":false,"wakeKey":"9:12","reportedSeqs":[]}},
  {"kind":"report","input":{"task":"ship-a","verdict":"captain","summary":"found a thing","silent":false,"wake":"stale: flake"}},
  {"kind":"inflight","value":{"tasks":["ship-a"],"heartbeat":true,"wakeKey":"","reportedSeqs":[]}},
@@ -315,6 +317,22 @@ if [ -s "$TMP_ROOT/mod.module-texts" ] && cmp -s "$TMP_ROOT/mod.module-texts" "$
 else
   fail "module-owned texts diverge between mod and lib"
 fi
+
+# ---------- the silent rule, as bin/fm-branch-report.sh states it -------------
+# A task-level routine no-change outcome is silent-eligible on every host
+# (bin/fm-branch-report.sh "--silent true is legal only for a routine
+# outcome", pinned live by tests/fm-supervision-host.test.sh), and a silent
+# non-routine verdict is refused in that script's own words. Both legs must
+# say so, so neither host can drift back to a fleet-only silent rule.
+for leg in mod lib; do
+  admitted=$(jq -c '[.[] | select(.argv[0][6] == "nothing new, no action taken") | {cls, denied, silent: .argv[0][7:9]}]' "$TMP_ROOT/$leg.json")
+  [ "$admitted" = '[{"cls":"module:report-success","denied":false,"silent":["--silent","true"]}]' ] \
+    || fail "$leg refused or mis-stored a silent task-level routine outcome: $admitted"
+  refused=$(jq -r '[.[] | select(.cls == "module:silent-verdict") | .text] | unique | .[]' "$TMP_ROOT/$leg.json")
+  [ "$refused" = "invalid report: --silent true requires the routine verdict" ] \
+    || fail "$leg did not refuse a silent non-routine verdict in the host's words: $refused"
+done
+pass "a silent task-level routine outcome is admitted and a silent non-routine verdict is refused on both adapters"
 
 # ---------- unified host seam strings: byte-equal across the adapters --------
 # The refusal/failure texts are host-rendered but unified (2026-09-20
