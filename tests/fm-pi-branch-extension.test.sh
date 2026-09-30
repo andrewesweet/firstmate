@@ -5461,8 +5461,8 @@ const processedCollapsedStock = processedStockRow.render(100);
 if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedCollapsedStock)) {
   throw new Error("fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
 }
-if (!processedCollapsedStock.join("\n").includes("7")) {
-  throw new Error("fm_branch_processed fixture did not exercise a rendered call argument");
+if (!processedCollapsedStock.join("\n").includes("through=7")) {
+  throw new Error("collapsed fm_branch_processed call line did not carry its through argument");
 }
 processedStockRow.setExpanded(true);
 processedActualRow.setExpanded(true);
@@ -5470,8 +5470,8 @@ const processedExpandedStock = processedStockRow.render(100);
 if (JSON.stringify(processedActualRow.render(100)) !== JSON.stringify(processedExpandedStock)) {
   throw new Error("expanded fm_branch_processed ToolExecutionComponent rendering differs from Pi stock");
 }
-if (JSON.stringify(processedExpandedStock) === JSON.stringify(processedCollapsedStock)) {
-  throw new Error("fm_branch_processed fixture did not exercise expanded output");
+if (!processedExpandedStock.join("\n").includes("  through: 7")) {
+  throw new Error("expanded fm_branch_processed call line did not carry its through argument");
 }
 pi.events.emit("firstmate:calm-presentation", { active: true, stockExportRendering: false });
 actualRow.invalidate();
