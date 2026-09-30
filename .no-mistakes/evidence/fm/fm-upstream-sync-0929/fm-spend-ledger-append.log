@@ -1,0 +1,8 @@
+ok - one close appends exactly one schema-versioned line with pipeline columns
+ok - a task closed by a captain answer after cleanup still records its line
+ok - a failed spend query records an explicit unmeasured line instead of none
+ok - a capture failure stays best effort and wakes nobody
+ok - tasks that never ran a worker record no spend line
+ok - the ledger line carries the task branch's pipeline cost
+ok - a pipeline run recorded against the task worktree lands on the task's line
+OK: fm-spend-ledger-append

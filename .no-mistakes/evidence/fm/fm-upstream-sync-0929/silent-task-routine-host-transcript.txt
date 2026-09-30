@@ -1,0 +1,12 @@
+$ fm-branch-report.sh --task alpha --verdict routine --summary "nothing new, no action taken" --silent true
+recorded seq 1 [routine]; silent outcome remains in the outcome store
+exit=0
+
+$ fm-branch-report.sh --task alpha --verdict captain --summary "PR ready" --silent true
+invalid report: --silent true requires the routine verdict
+exit=2
+
+$ cat state/branch-outcomes.jsonl
+{"seq":1,"epoch":1790742594,"task":"alpha","wake":"signal: alpha.status","verdict":"routine","summary":"nothing new, no action taken","silent":true,"statusEndpoint":0,"statusIdent":"-"}
+$ cat state/.wake-queue
+(no captain wake queued for the silent outcome)

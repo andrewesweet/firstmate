@@ -1,0 +1,5 @@
+ok - two Skill calls with one duplicate record de-duplicated in first-load order and exit 0
+ok - an empty transcript writes an empty record and exits 0
+ok - missing and unreadable transcripts write empty records and exit 0
+ok - an invocation without piped stdin exits 0 without hanging
+ok - bin/fm-precompact-skills.sh is clean under bin/fm-lint.sh

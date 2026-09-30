@@ -1,0 +1,33 @@
+Pi stock row (collapsed, width 100):
+
+[48;5;23m                                                                                                    [49m
+[48;5;23m [38;5;254mfm_branch_outcomes[39m [38;5;145mrecent=2[39m                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_ONE[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_TWO[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_THREE[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_FOUR[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_FIVE[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_SIX[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_SEVEN[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_EIGHT[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_NINE[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_TEN[39m[38;5;145m                                                                                        [49m
+[48;5;23m [38;5;145m... (2 more lines,[39m [38;5;102m[39m[38;5;145m to expand[39m[38;5;145m)[39m                                                                     [49m
+[48;5;23m                                                                                                    [49m
+
+Extension self-rendered row (collapsed, width 100):
+
+[48;5;23m                                                                                                    [49m
+[48;5;23m [38;5;254mfm_branch_outcomes[39m                                                                                 [49m
+[48;5;23m [38;5;145mOUTCOME_ONE[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_TWO[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_THREE[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_FOUR[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_FIVE[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_SIX[39m                                                                                        [49m
+[48;5;23m [38;5;145mOUTCOME_SEVEN[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_EIGHT[39m                                                                                      [49m
+[48;5;23m [38;5;145mOUTCOME_NINE[39m                                                                                       [49m
+[48;5;23m [38;5;145mOUTCOME_TEN[39m[38;5;145m                                                                                        [49m
+[48;5;23m [38;5;145m... (2 more lines,[39m [38;5;102m[39m[38;5;145m to expand[39m[38;5;145m)[39m                                                                     [49m
+[48;5;23m                                                                                                    [49m

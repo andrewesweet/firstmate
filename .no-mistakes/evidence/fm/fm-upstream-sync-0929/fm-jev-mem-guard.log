@@ -1,0 +1,43 @@
+Running Pattern 46 regression tests...
+ok - shellcheck clean
+ok - python syntax clean
+ok - --help works
+ok - json audit schema valid
+fm-jev-mem-guard — 2026-09-30T03:57:42Z
+  • RAM: 49.2% used (5.94 GB available / 11.68 GB total)
+  • Swap: 35.4% used (4.25 GB used / 12.0 GB total)
+  • Status: OK
+  • Recommendation: Memory and swap utilization are within thresholds; the caller should continue unchanged.
+
+  Top 10 RSS Processes:
+    - PID 5475 (python): 1374.5 MB
+    - PID 1452621 (claude): 354.5 MB
+    - PID 1515697 (claude): 330.4 MB
+    - PID 4873 (claude): 330.0 MB
+    - PID 3314959 (claude): 292.7 MB
+    - PID 3225981 (claude): 288.8 MB
+    - PID 1326087 (pi): 285.4 MB
+    - PID 4143671 (pi): 266.3 MB
+    - PID 1276618 (pi): 251.0 MB
+    - PID 2197665 (pi): 247.7 MB
+ok - --check exits 0 with pass-forcing thresholds
+fm-jev-mem-guard — 2026-09-30T03:57:42Z
+  • RAM: 49.1% used (5.94 GB available / 11.68 GB total)
+  • Swap: 35.4% used (4.25 GB used / 12.0 GB total)
+  • Status: CRITICAL
+  • Recommendation: Memory or swap utilization is at or above a critical threshold; this host condition can explain worker silence while it holds.
+
+  Top 10 RSS Processes:
+    - PID 5475 (python): 1374.5 MB
+    - PID 1452621 (claude): 354.5 MB
+    - PID 1515697 (claude): 330.4 MB
+    - PID 4873 (claude): 330.0 MB
+    - PID 3314959 (claude): 292.7 MB
+    - PID 3225981 (claude): 288.8 MB
+    - PID 1326087 (pi): 285.4 MB
+    - PID 4143671 (pi): 266.3 MB
+    - PID 1276618 (pi): 251.0 MB
+    - PID 2197665 (pi): 247.7 MB
+ok - --check exits 1 with fail-forcing thresholds
+ok - text mode runs cleanly
+ok - all Pattern 46 memory guard tests passed

@@ -1,0 +1,10 @@
+fm_branch_outcomes collapsed tool-call line, ToolExecutionComponent at width 100, installed Pi 0.99.1 (ANSI shown with cat -v)
+
+-- Pi stock definition --
+^[[48;5;23m ^[[38;5;254mfm_branch_outcomes^[[39m ^[[38;5;145mrecent=2^[[39m                                                                        ^[[49m
+
+-- extension BEFORE the fix (base .pi/extensions/fm-branch-supervision.ts at 12328f08): arguments dropped --
+^[[48;5;23m ^[[38;5;254mfm_branch_outcomes^[[39m                                                                                 ^[[49m
+
+-- extension AFTER the fix (733af137): byte-identical to stock --
+^[[48;5;23m ^[[38;5;254mfm_branch_outcomes^[[39m ^[[38;5;145mrecent=2^[[39m                                                                        ^[[49m

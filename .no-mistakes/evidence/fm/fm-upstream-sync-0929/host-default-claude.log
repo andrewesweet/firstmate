@@ -1,0 +1,6 @@
+=== lab home, Claude primary, no config/supervision-host: host runs by default ===
+supervision-host stood down: this session does not own supervision
+park exit=0
+=== same lab, config/supervision-host = off: no host, plain arm ===
+supervision-host stood down: this session does not own supervision
+park exit=0
