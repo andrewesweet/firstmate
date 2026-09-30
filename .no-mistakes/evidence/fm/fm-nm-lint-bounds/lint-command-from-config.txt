@@ -1,1 +1,1 @@
-tracked commands.lint = FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1 bin/fm-lint.sh
+tracked commands.lint: FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1 bin/fm-lint.sh

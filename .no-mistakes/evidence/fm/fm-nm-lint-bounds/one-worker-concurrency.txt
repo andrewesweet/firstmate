@@ -1,0 +1,7 @@
+roots linted: 5
+max concurrent shellcheck processes observed: 1
+jobs	1
+=== script default (two workers, no prefix) ===
+max concurrent shellcheck processes observed: 2
+jobs	2
+root_bounds_enforced	0

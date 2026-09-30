@@ -1,0 +1,11 @@
+=== baseline: base-commit lint command (no prefix) ===
+rc=0
+jobs	2
+root_bounds_enforced	0
+root_timing_mechanism	none
+
+=== target: tracked bounded command ===
+jobs	1
+root_bounds_enforced	1
+root_memory_limit_kib	12582912
+root_timing_mechanism	perl

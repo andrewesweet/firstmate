@@ -1,0 +1,57 @@
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+rc=0
+format	fm-lint-telemetry-v1
+git_head	5c6aed4d30e87b58be2342809de89853e533032d
+content_cksum	2762787351-35
+shellcheck_version	0.11.0
+analysis_mode	full
+partition	all
+jobs	1
+root_bounds_enforced	1
+root_deadline_seconds	1200
+root_kill_grace_seconds	5
+root_memory_limit_kib	12582912
+root_timing_mechanism	perl
+root_count	1
+direct_lines	39
+direct_bytes	1208
+source_directives	0
+source_boundary_directives	0
+source_followed_directives	0
+source_target_count	0
+shard_1_weight_bytes	1208
+shard_2_weight_bytes	0
+wall_seconds	0
+worker_wall_sum_seconds	0.07
+max_worker_wall_seconds	0.07
+user_seconds	0.03
+system_seconds	0.01
+max_worker_rss_kib	13696
+worker_rss_sum_kib	17280
+shellcheck_processes_start	0
+shellcheck_processes_end	0
+load_average_start	1.11/1.44/1.57
+load_average_end	1.11/1.44/1.57
+aggregate_cpu_percent_start	84.20
+aggregate_cpu_percent_end	84.00
+result_exit	0
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Linux x86_64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	1200
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	12582912
+meta	timing_mechanism	perl
+begin	1	bin/fm-path-lib.sh	0	full	1790808503723
+end	1	bin/fm-path-lib.sh	0	full	1790808503723	1790808503788	65	0	ok	13696
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	0
