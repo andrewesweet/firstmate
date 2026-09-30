@@ -2,7 +2,7 @@
 // branch's TypeScript ports (docs/pi-supervision-branch.md,
 // docs/claude-supervision-branch.md). This module is the one owner of the
 // fold that the repo previously carried three times: the authoritative bash
-// fold (bin/fm-classify-lib.sh `status_open_decisions`, fold version 8), the
+// fold (bin/fm-classify-lib.sh `status_open_decisions`, fold version 9), the
 // Pi extension's `scopeForUnreadWake`
 // (.pi/extensions/lib/fm-branch-dispatch.ts, which now delegates here), and
 // the Claude mod's port (.claude/mods/fm-branch-mod/hooks/branch.ts, still
@@ -10,7 +10,8 @@
 // bash fold on one fixture set, so wherever this file and bash disagree, the
 // test fails.
 //
-// Behaviour is bash v8 truth wherever bin/fm-classify-lib.sh has an opinion.
+// Behaviour is bash v9 truth wherever bin/fm-classify-lib.sh has an opinion.
+// Each rule below names the bash fold version that introduced it.
 // Where bash has none, this module takes the stricter of the two ports and
 // records the choice here, one line per choice:
 //   - Fold vocabulary: bash's names and defaults exactly - the resolve verb
