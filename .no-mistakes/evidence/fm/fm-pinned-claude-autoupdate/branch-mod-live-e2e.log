@@ -1,0 +1,3 @@
+FM_TEST_BEGIN 2026-09-30T23:27:54Z tests/fm-branch-claude-mod-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - Claude Code 2.1.285 loads the supervision-branch mod enabled and main holds the session lock
+ok - the first routine wake passes the classifier and spawns the branch agent, which reports it routine

@@ -1,0 +1,22 @@
+[change launch shape (embedded)] tmux server global env DISABLE_AUTOUPDATER: unknown variable: DISABLE_AUTOUPDATER
+[change launch shape (embedded)] running pid 2897601 exe=/home/cti/.local/bin/claude -> DISABLE_AUTOUPDATER=1
+[change launch shape (embedded)] pane screen (first lines):
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /tmp/fm-lab-au.BT0NPz
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not,
+ take a moment to review what's in this folder first.
+[control (no embed)] tmux server global env DISABLE_AUTOUPDATER: unknown variable: DISABLE_AUTOUPDATER
+[control (no embed)] running pid 2902026 exe=/home/cti/.local/bin/claude -> DISABLE_AUTOUPDATER absent
+[control (no embed)] pane screen (first lines):
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /tmp/fm-lab-au.BT0NPz
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not,
+ take a moment to review what's in this folder first.

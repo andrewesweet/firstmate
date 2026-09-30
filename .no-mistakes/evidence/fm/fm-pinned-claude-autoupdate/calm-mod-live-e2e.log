@@ -1,0 +1,2 @@
+FM_TEST_BEGIN 2026-09-30T23:27:56Z tests/fm-calm-claude-mod-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - Claude Code 2.1.285 (Claude Code) with the flag unset: no hooks module, no /calm, stock working row, stock tool rows, preference on ignored
