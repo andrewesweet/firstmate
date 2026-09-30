@@ -1003,7 +1003,7 @@ portable_serial_assignments() {
     done < <(list_portable_serial) | LC_ALL=C sort -t$'\t' -k1,1nr -k2,2
   )
   IFS=';' read -ra pins <<<"$PORTABLE_SERIAL_PINNED_SHARDS"
-  for entry in "${pins[@]}"; do
+  for entry in "${pins[@]+"${pins[@]}"}"; do
     [ -n "$entry" ] || continue
     path=${entry%:*}
     shard=${entry##*:}
