@@ -132,7 +132,6 @@
 # It takes the same optional trailing forge argument, because the rule that keeps
 # a worker off a remote is exactly the rule that changes when the forge does.
 
-_FM_DOD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _FM_DOD_LIB_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$_FM_DOD_LIB_DIR/fm-pr-lib.sh"
