@@ -1,0 +1,11 @@
+# per-shard modeled sums from bin/fm-test-run.sh --list-scheduled (live)
+shard 1: scripts=1   modeled_ms=1196951  (19m56s)
+shard 2: scripts=1   modeled_ms=1122548  (18m42s)
+shard 3: scripts=31  modeled_ms=1072468  (17m52s)
+shard 4: scripts=32  modeled_ms=1072453  (17m52s)
+shard 5: scripts=31  modeled_ms=1072425  (17m52s)
+shard 6: scripts=32  modeled_ms=1072465  (17m52s)
+shard 7: scripts=32  modeled_ms=1072464  (17m52s)
+shard 8: scripts=31  modeled_ms=1072430  (17m52s)
+shard 9: scripts=32  modeled_ms=1072462  (17m52s)
+lane total modeled_ms=9826666

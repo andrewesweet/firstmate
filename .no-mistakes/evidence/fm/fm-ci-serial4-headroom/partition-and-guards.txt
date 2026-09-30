@@ -1,0 +1,11 @@
+== partition complete and disjoint ==
+shard members total: 223  unique: 223  whole lane: 223
+diff lane vs shard union:
+(identical)
+
+== adversarial: parallel jobs on a single-member serial shard ==
+fm-test-run: --jobs 2 refused: portable serial lanes stay serial; use --jobs 1
+exit=0
+
+== adversarial: out-of-range shard index ==
+fm-test-run: lane 'portable-serial-10of9' shard index is outside 1..9 (see --list-lanes)
