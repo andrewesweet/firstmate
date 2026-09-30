@@ -1454,6 +1454,9 @@ test_crewmate_scaffolds_forbid_pool_administration() {
 # one full suite, two-axis self-review before the ship-branch commit) as
 # file reads - crews must not Skill-tool-invoke the user-invoked skills - and
 # only the no-mistakes contract carries the before-validation ordering.
+# It also carries the four pstack pre-commit riders (undefined-imports test
+# check, untrusted-diff proof run, refactor behaviour pin, bug-fix
+# repro-before-fix), so the rider assertions run in every mode in the loop.
 test_ship_dod_implement_discipline() {
   local home id mode brief
   home="$TMP_ROOT/implement-discipline-home"
@@ -1483,6 +1486,15 @@ test_ship_dod_implement_discipline() {
       "$mode DOD must self-review on both the Standards and Spec axes"
     assert_grep "Commit to \`fm/$id\` only" "$brief" \
       "$mode DOD must confine commits to the task ship branch"
+    # Pstack riders, each phrased as the worker's own pre-commit discipline.
+    assert_grep 'if the test would still pass when every imported function returned undefined, rewrite the assertion or delete it' "$brief" \
+      "$mode DOD must add the undefined-imports rider to self-review"
+    assert_grep 'name the one fact the change is safe because of and prove it by running the real code' "$brief" \
+      "$mode DOD must add the untrusted-diff proof rider"
+    assert_grep 'pin current behaviour first with a characterisation test, snapshot, or equivalence harness' "$brief" \
+      "$mode DOD must add the behaviour-pin rider for behaviour-preserving changes"
+    assert_grep 'reproduce the bug on the surface where it was reported, verify the fix on that same surface, and commit the failing reproduction before the fix' "$brief" \
+      "$mode DOD must add the repro-before-fix rider for bug fixes"
     if [ "$mode" = no-mistakes ]; then
       assert_grep 'complete everything above before starting validation' "$brief" \
         "no-mistakes DOD must order the discipline before validation"
