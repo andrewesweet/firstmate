@@ -1167,6 +1167,55 @@ test_portable_serial_shards_partition_the_serial_lane() {
   pass "portable serial shards are a deterministic disjoint cover of the serial lane"
 }
 
+test_portable_serial_pin_holds_its_shard() {
+  local count listed tmp rc pinned_script pinned_shard
+  pinned_script=tests/fm-calm-pi-extension.test.sh
+  pinned_shard=7
+  count=$("$RUNNER" --list-lanes | grep -c '^portable-serial-[0-9]*of[0-9]*$')
+  [ "$pinned_shard" -le "$count" ] \
+    || fail "pinned shard $pinned_shard exceeds the $count configured shard lanes"
+
+  # A pinned placement is a second authority over the weight packing, so assert
+  # the placement itself rather than the partition, which stays complete either
+  # way. This is independent of the hint magnitudes.
+  listed=$("$RUNNER" --list --lane "portable-serial-${pinned_shard}of${count}")
+  printf '%s\n' "$listed" | grep -Fqx "$pinned_script" \
+    || fail "portable-serial-${pinned_shard}of${count} must hold the pinned $pinned_script"
+
+  # A pin that names no lane member, or that drops its shard number, must refuse
+  # instead of silently returning the script to its packed slot.
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-pin.XXXXXX")
+  mkdir -p "$tmp/bin"
+  ln -s "$ROOT/tests" "$tmp/tests"
+
+  sed "s|PORTABLE_SERIAL_PINNED_SHARDS='[^']*'|PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-not-a-suite.test.sh:${pinned_shard}'|" \
+    "$RUNNER" >"$tmp/bin/fm-test-run.sh"
+  chmod +x "$tmp/bin/fm-test-run.sh"
+  set +e
+  "$tmp/bin/fm-test-run.sh" --list --lane "portable-serial-${pinned_shard}of${count}" \
+    >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 2 ] || { rm -rf "$tmp"; fail "a pin outside the serial lane must refuse (exit 2), got $rc"; }
+  [ ! -s "$tmp/out" ] || { rm -rf "$tmp"; fail "a refused pin must not list tests"; }
+  grep -Fq "is not in the portable serial lane" "$tmp/err" \
+    || { rm -rf "$tmp"; fail "membership refusal message missing: $(cat "$tmp/err")"; }
+
+  sed "s|PORTABLE_SERIAL_PINNED_SHARDS='[^']*'|PORTABLE_SERIAL_PINNED_SHARDS='${pinned_script}'|" \
+    "$RUNNER" >"$tmp/bin/fm-test-run.sh"
+  chmod +x "$tmp/bin/fm-test-run.sh"
+  set +e
+  "$tmp/bin/fm-test-run.sh" --list --lane "portable-serial-${pinned_shard}of${count}" \
+    >"$tmp/out2" 2>"$tmp/err2"
+  rc=$?
+  set -e
+  [ "$rc" -eq 2 ] || { rm -rf "$tmp"; fail "a pin without a shard number must refuse (exit 2), got $rc"; }
+  grep -Fq "must have the form <script>:<shard>" "$tmp/err2" \
+    || { rm -rf "$tmp"; fail "shape refusal must name the expected form: $(cat "$tmp/err2")"; }
+  rm -rf "$tmp"
+  pass "the pinned portable serial placement holds and malformed pins refuse"
+}
+
 test_portable_serial_hint_coverage_is_reported_and_bounded() {
   local out serial unhinted
   # Shards are packed from measured duration hints, so an unmeasured script is
@@ -1815,6 +1864,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights
 test_portable_shard_union_and_coverage_guard
 test_portable_parallel_lanes_stay_duration_balanced
 test_portable_serial_shards_partition_the_serial_lane
+test_portable_serial_pin_holds_its_shard
 test_portable_serial_hint_coverage_is_reported_and_bounded
 test_portable_serial_shard_lane_refusals
 test_jobs_requires_proven_isolated

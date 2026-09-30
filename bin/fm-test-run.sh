@@ -955,7 +955,7 @@ portable_serial_weight_for() {
 # Deterministic: candidates are ordered by hint descending then path, and ties
 # between equally loaded bins always take the lowest bin index.
 portable_serial_assignments() {
-  local ms script i best best_load pin pinned matched entry path
+  local ms script i best best_load pin pinned matched entry path shard
   local -a pins=()
   matched=
   local -a loads=()
@@ -1006,6 +1006,14 @@ portable_serial_assignments() {
   for entry in "${pins[@]}"; do
     [ -n "$entry" ] || continue
     path=${entry%:*}
+    shard=${entry##*:}
+    case "$path:$shard" in
+      "$entry") ;;
+      *) die "pinned entry '$entry' must have the form <script>:<shard>" ;;
+    esac
+    case "$shard" in
+      ''|*[!0-9]*) die "pinned entry '$entry' must have the form <script>:<shard>" ;;
+    esac
     case ";$matched;" in
       *";$path;"*) ;;
       *) die "pinned script '$path' is not in the portable serial lane (see --list --lane portable-serial)" ;;
