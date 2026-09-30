@@ -1,0 +1,28 @@
+# Portable serial shard modelled wall clock (script-time sums from the runner's own hint table)
+
+job timeout: 30 min (.github/workflows/ci.yml:184), matrix shard: [1..9] (:189)
+
+## base 2bec13f0 (pre-rebalance packing, refreshed hints)
+shard 1: 1147511 ms (19m07s), 14 scripts
+shard 2: 855689 ms (14m15s), 25 scripts
+shard 3: 977434 ms (16m17s), 27 scripts
+shard 4: 2049637 ms (34m09s), 27 scripts
+shard 5: 872814 ms (14m32s), 26 scripts
+shard 6: 1018420 ms (16m58s), 26 scripts
+shard 7: 822719 ms (13m42s), 26 scripts
+shard 8: 856401 ms (14m16s), 26 scripts
+shard 9: 1226041 ms (20m26s), 26 scripts
+
+## target acd49ba9 (this change)
+shard 1: 1196951 ms (19m56s), 1 scripts
+shard 2: 1122548 ms (18m42s), 1 scripts
+shard 3: 1072430 ms (17m52s), 30 scripts
+shard 4: 1072466 ms (17m52s), 32 scripts
+shard 5: 1072464 ms (17m52s), 32 scripts
+shard 6: 1072462 ms (17m52s), 32 scripts
+shard 7: 1072454 ms (17m52s), 32 scripts
+shard 8: 1072423 ms (17m52s), 31 scripts
+shard 9: 1072468 ms (17m52s), 32 scripts
+
+Base shard 4 models 34m09s, above the 30-minute job cap - the reported timeout.
+Every shard after the change models at most 19m56s.

@@ -1,0 +1,35 @@
+# Pinned-shard behaviour and refusals, driven through bin/fm-test-run.sh
+
+$ ./bin/fm-test-run.sh --list --lane portable-serial-7of9 | grep -Fx tests/fm-calm-pi-extension.test.sh
+tests/fm-calm-pi-extension.test.sh
+exit=0  (pin holds tests/fm-calm-pi-extension.test.sh on shard 7)
+
+Variants below run a copy of the runner with PORTABLE_SERIAL_PINNED_SHARDS rewritten:
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh:7'
+  exit=0 listed=32 calm_pi_on_shard7=1
+  stderr: 
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh'
+  exit=2 listed=0 calm_pi_on_shard7=0
+  stderr: fm-test-run: pinned entry 'tests/fm-calm-pi-extension.test.sh' must have the form <script>:<shard>
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh:99'
+  exit=2 listed=0 calm_pi_on_shard7=0
+  stderr: fm-test-run: pinned shard 99 for 'tests/fm-calm-pi-extension.test.sh' is outside 1..9
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh:'
+  exit=2 listed=0 calm_pi_on_shard7=0
+  stderr: fm-test-run: pinned shard for 'tests/fm-calm-pi-extension.test.sh' must be an integer in 1..9, got ''
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-nope-does-not-exist.test.sh:7'
+  exit=2 listed=0 calm_pi_on_shard7=0
+  stderr: fm-test-run: pinned script 'tests/fm-nope-does-not-exist.test.sh' is not in the portable serial lane (see --list --lane portable-serial)
+
+PORTABLE_SERIAL_PINNED_SHARDS=''
+  exit=0 listed=32 calm_pi_on_shard7=0
+  stderr: 
+
+PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-pi-calm-pi-extension.test.sh:5;tests/fm-calm-pi-extension.test.sh:7'
+  exit=2 listed=0 calm_pi_on_shard7=0
+  stderr: fm-test-run: pinned script 'tests/fm-pi-calm-pi-extension.test.sh' is not in the portable serial lane (see --list --lane portable-serial)
