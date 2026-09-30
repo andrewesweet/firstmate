@@ -45,12 +45,20 @@ review:
 # default handling, which does not invoke the repository's canonical lint gate.
 # `bin/fm-lint.sh` owns the context-sensitive ShellCheck modes and GitHub
 # workflow lint via pinned actionlint in `bin/fm-lint-workflows.sh`.
+# The leading assignments bound it the way CI bounds its own lint step, and
+# no-mistakes runs the command through a shell, so they take effect:
+# FM_LINT_JOBS=1 keeps one ShellCheck worker at a time and
+# FM_LINT_REQUIRE_BOUNDS=1 refuses to lint without a per-root resource
+# envelope, which roughly halves the daemon lint step's peak memory demand on
+# this shared host versus the script's two-worker default. A host whose shell
+# rejects `ulimit -v` (macOS, for example) therefore gets a deliberate lint
+# refusal rather than an unbounded run.
 # Invocation wiring is asserted by `tests/fm-lint.test.sh` and
 # `tests/fm-lint-workflows.test.sh`.
 #
 # Keep commands.test absent; the firstmate-coding-guidelines skill owns this policy.
 commands:
-  lint: 'bin/fm-lint.sh'
+  lint: 'FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1 bin/fm-lint.sh'
 
 # Publish each run's test evidence to the orphan no-mistakes/evidence branch linked from the PR.
 # The evidence is not committed to the feature or default branch.
