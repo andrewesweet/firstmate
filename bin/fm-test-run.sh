@@ -184,10 +184,10 @@ PER_SCRIPT_TIMEOUT_SECS=0
 # Bound applied automatically on the automatic --changed path, derived from
 # measured healthy runtimes with margin rather than picked: the slowest measured
 # script is tests/fm-watch-triage.test.sh in the watcher-wake-lock family, at
-# about 434s alone and about 698s under CI load (the hint table below records
+# about 434s alone and about 1123s under CI load (the hint table below records
 # that loaded figure), and the slowest script in a runner-file changed selection
 # is tests/fm-calm-pi-extension.test.sh at 77s once its Chrome reap terminates.
-# 1500s keeps every measured script under the bound with roughly 2.1x headroom
+# 1500s keeps every measured script under the bound with roughly 1.3x headroom
 # over the slowest loaded measurement, and it stays under the 30-minute normal
 # CI tier so a wedged script fails here, with its output, before the job cap
 # cancels the lane. It is a guard, not a speed control: a HUNG script becomes a
@@ -199,9 +199,10 @@ CHANGED_DEFAULT_TIMEOUT_SECS=1500
 # One owner: CI lane names carry this count and are refused when they disagree.
 PORTABLE_SERIAL_SHARDS=9
 
-# Balance hint for a portable-serial script with no measured duration, close to
-# the measured per-script mean so a newly added test neither starves nor
-# overloads the shard it lands in.
+# Balance hint for a portable-serial script with no measured duration. It sits
+# below the current measured per-script mean of about 41s, so a newly added test
+# is packed optimistically rather than starving the shard it lands in; the
+# coverage guard's unhinted-share bound is what keeps that optimism bounded.
 PORTABLE_SERIAL_DEFAULT_WEIGHT_MS=27000
 
 # Largest share of the serial lane allowed to run on the default weight above.
