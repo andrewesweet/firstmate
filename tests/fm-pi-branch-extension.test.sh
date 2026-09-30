@@ -5347,7 +5347,10 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers() {
   ln -s "$package_dir/node_modules/@earendil-works/pi-ai" "$fixture/node_modules/@earendil-works/pi-ai"
   ln -s "$package_dir/node_modules/typebox" "$fixture/node_modules/typebox"
 
-  out=$(cd "$fixture" && EXT="$fixture/.pi/extensions/fm-branch-supervision.ts" PI_PACKAGE_DIR="$package_dir" node --input-type=module 2>&1 <<'JS'
+  # Stock macOS Bash 3.2 mis-scans a here-document nested in a command
+  # substitution, so keep this body in a plain subshell and read its output
+  # from a file instead.
+  (cd "$fixture" && EXT="$fixture/.pi/extensions/fm-branch-supervision.ts" PI_PACKAGE_DIR="$package_dir" node --input-type=module <<'JS'
 import { pathToFileURL } from "node:url";
 
 const packageRoot = process.env.PI_PACKAGE_DIR;
@@ -5495,8 +5498,9 @@ if (actualCall !== undefined || actualResult !== undefined || stockCall !== unde
   throw new Error("stock export rendering did not delegate to Pi's structured fallback");
 }
 JS
-  )
+  ) > "$TMP_ROOT/stock-render-output" 2>&1
   status=$?
+  out=$(cat "$TMP_ROOT/stock-render-output")
   expect_code 0 "$status" "Pi outcomes rendering consumers must preserve stock behavior: $out"
   [ -z "$out" ] || fail "Pi outcomes rendering consumer test printed output: $out"
   pass "fm_branch_outcomes hides through ToolExecutionComponent while Calm-off and HTML export stay stock"
