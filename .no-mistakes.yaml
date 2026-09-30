@@ -48,8 +48,11 @@ review:
 # The leading assignments bound it the way CI bounds its own lint step, and
 # no-mistakes runs the command through a shell, so they take effect:
 # FM_LINT_JOBS=1 keeps one ShellCheck worker at a time and
-# FM_LINT_REQUIRE_BOUNDS=1 refuses to lint uncapped, so the daemon's lint step
-# on this shared, memory-limited host cannot trigger an out-of-memory kill.
+# FM_LINT_REQUIRE_BOUNDS=1 refuses to lint without a per-root resource
+# envelope, which roughly halves the daemon lint step's peak memory demand on
+# this shared host versus the script's two-worker default. A host whose shell
+# rejects `ulimit -v` (macOS, for example) therefore gets a deliberate lint
+# refusal rather than an unbounded run.
 # Invocation wiring is asserted by `tests/fm-lint.test.sh` and
 # `tests/fm-lint-workflows.test.sh`.
 #
