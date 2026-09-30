@@ -5415,11 +5415,15 @@ test_branch_dispatch_routes_secondmate_signal_by_new_span() {
   local repo home out status
   repo="$TMP_ROOT/dispatch-span-root"
   home="$TMP_ROOT/dispatch-span-home"
-  mkdir -p "$repo/.pi/extensions/lib" "$home/state" "$home/projects/approved"
+  mkdir -p "$repo/.pi/extensions/lib" "$repo/lib" "$home/state" "$home/projects/approved"
   cp "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$repo/.pi/extensions/lib/fm-branch-dispatch.ts"
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
   cp "$ROOT/.pi/extensions/lib/fm-async-exec.ts" "$repo/.pi/extensions/lib/fm-async-exec.ts"
   cp "$ROOT/.pi/extensions/lib/fm-branch-model-picker.ts" "$repo/.pi/extensions/lib/fm-branch-model-picker.ts"
+  # The fork's dispatch lib imports the shared eligibility scan, so the fixture
+  # needs repo/lib too (upstream's copy list predates that import).
+  cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
+  cp "$ROOT/lib/fm-branch-eligibility-core.ts" "$repo/lib/fm-branch-eligibility-core.ts"
   printf 'project=%s/projects/approved\nwindow=mate-window\nkind=secondmate\n' "$home" > "$home/state/mate.meta"
   printf 'project=%s/projects/approved\nwindow=crew-window\nkind=ship\n' "$home" > "$home/state/crew.meta"
   LIB="$repo/.pi/extensions/lib/fm-branch-dispatch.ts" FM_HOME="$home" CLASSIFY_LIB="$ROOT/bin/fm-classify-lib.sh" \
@@ -5510,8 +5514,12 @@ for (const [order, queue, signalSeq, staleSeq] of [
 }
 
 // Single-task crewmate logs are unchanged: Pi judges only the row payload, and
-// the attended host keeps its whole-log rule.
-stage("crew", hold, "done: routine follow-up\n");
+// the attended host keeps its whole-log rule. The span is a non-terminal note
+// because this fork's fold is bash truth, where a ship or scout `done:` closes
+// the WHOLE open set (.claude/mods/fm-branch-mod/lib/fm-branch-eligibility.ts
+// "Terminal close"): a terminal span would close the unrelated hold and the
+// whole-log rule would have nothing left to keep on main.
+stage("crew", hold, "note: routine follow-up\n");
 const [crewPi, crewHost] = verdicts();
 if (!crewPi || crewHost) throw new Error(`crewmate signal routing changed: pi=${crewPi} host=${crewHost}`);
 process.exit(0);

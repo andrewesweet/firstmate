@@ -131,7 +131,7 @@ for (const step of plan) {
   const input = step.input;
   const validated = m.validateBranchReport(input);
   if (!validated.valid) {
-    out.push({ denied: true, cls: "module:invalid", text: m.INVALID_REPORT_MESSAGE, argv: calls.slice(before) });
+    out.push({ denied: true, cls: validated.message === m.SILENT_VERDICT_MESSAGE ? "module:silent-verdict" : "module:invalid", text: validated.message, argv: calls.slice(before) });
     continue;
   }
   const scope = m.reportTaskScopeVerdict(
@@ -214,6 +214,7 @@ const HOST_PREFIXES = [
 ];
 function classify(text) {
   if (text === vmod.INVALID_REPORT_MESSAGE) return "module:invalid";
+  if (text === vmod.SILENT_VERDICT_MESSAGE) return "module:silent-verdict";
   if (/^outcome store append failed \(nothing merged\): /.test(text)) return "module:append-failed";
   if (/^recorded seq [0-9]+ and delivered \[(routine|captain)\] into main$/.test(text)) return "module:report-success";
   if (/^captain outcomes through seq [0-9]+ marked processed$/.test(text)) return "host:processed-success";
