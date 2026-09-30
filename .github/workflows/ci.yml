@@ -214,6 +214,18 @@ jobs:
           set -eu
           npm install -g tasks-axi
           tasks-axi --version
+      # tests/fm-spawn-slot-lease-live-e2e.test.sh is the default-on live guard
+      # that exercises bin/fm-teardown.sh's absent-copy ownership proof against
+      # the real binary, and it runs in these shards, so the pin has to be here
+      # or that guard proves nothing (it capability-skips without treehouse).
+      - name: Install pinned Treehouse
+        run: |
+          set -eu
+          command -v jq >/dev/null || { echo "::error::jq is required by the slot-lease live guard"; exit 1; }
+          bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          command -v treehouse >/dev/null || { echo "::error::treehouse not on PATH after install"; exit 1; }
+          treehouse --version
       # The Pi extension tests read the installed Pi package's own types and
       # runtime, so without it they gate-skip and pass silently. It is a public
       # npm package and needs no credential, so CI can hold the real thing.
@@ -274,20 +286,11 @@ jobs:
           set -eu
           bin/fm-install-herdr.sh "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      - name: Install pinned Treehouse
-        run: |
-          set -eu
-          # Several real-herdr-gated E2E scripts require treehouse for spawn
-          # worktree acquisition (presentation, workspace-per-home, autodetect).
-          bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: Assert Herdr pin and protocol floor
         run: |
           set -eu
           command -v herdr >/dev/null || { echo "::error::herdr not on PATH after install"; exit 1; }
-          command -v treehouse >/dev/null || { echo "::error::treehouse not on PATH after install"; exit 1; }
           herdr --version
-          treehouse --version
           status=$(herdr status --json)
           printf '%s\n' "$status"
           version=$(printf '%s' "$status" | jq -r '.client.version // empty')
