@@ -46,7 +46,7 @@ remote_put() {  # <home> <payload-file> <generation>
 # the run dies at that exact publication step and leaves the on-disk state a
 # crash at that point would leave.
 interrupted_put() {  # <home> <payload-file> <generation> <fail-on-call>
-  local home=$1 payload=$2 generation=$3 fail_on=$4 fakebin counter real_mv out rc=0
+  local home=$1 payload=$2 generation=$3 fail_on=$4 fakebin counter real_mv out bytes hash rc=0
   fakebin="$TMP_ROOT/failing-mv-bin"
   counter="$TMP_ROOT/mv-calls"
   real_mv=$(command -v mv)
@@ -61,10 +61,10 @@ if [ "\$calls" -eq '$fail_on' ]; then exit 1; fi
 exec '$real_mv' "\$@"
 EOF
   chmod +x "$fakebin/mv"
+  bytes=$(LC_ALL=C wc -c < "$payload" | tr -d ' ')
+  hash=$(fm_inherit_sha256 "$payload") || fail "cannot hash inheritance payload"
   out=$(PATH="$fakebin:$BASE_PATH" FM_HOME="$home" "$ROOT/bin/fm-remote-inherit.sh" \
-    put data/captain-shared.md \
-    "$(LC_ALL=C wc -c < "$payload" | tr -d ' ')" \
-    "$(fm_inherit_sha256 "$payload")" "$generation" < "$payload" 2>&1) || rc=$?
+    put data/captain-shared.md "$bytes" "$hash" "$generation" < "$payload" 2>&1) || rc=$?
   [ "$rc" -ne 0 ] || fail "interrupted put unexpectedly succeeded: $out"
 }
 
