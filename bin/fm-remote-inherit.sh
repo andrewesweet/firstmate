@@ -197,6 +197,9 @@ pending_payload_at_dest() {
 
 commit_generation() {
   read_generation_receipt
+  # An older pending record whose payload the destination already holds was
+  # published by an interrupted run; treat it as applied before it is
+  # replaced, so a second interruption cannot make that payload read as drift.
   if [ -n "$PENDING_GEN" ] && [ "$PENDING_GEN" -lt "$GENERATION" ] && pending_payload_at_dest; then
     APPLIED_PRESENT=1
     APPLIED_GEN=$PENDING_GEN APPLIED_BYTES=$PENDING_BYTES APPLIED_HASH=$PENDING_HASH APPLIED_CMD=$PENDING_CMD
