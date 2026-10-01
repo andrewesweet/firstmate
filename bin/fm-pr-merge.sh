@@ -1393,10 +1393,10 @@ github_stack_membership_class() { # <pull-json> -> stacked|standalone|undetermin
   local json=$1
   printf '%s' "$json" | jq -r '
     if type != "object" then "undeterminable"
-    elif ((.base // "") | type) != "object" then "undeterminable"
-    elif ((.base.ref // "") | type) != "string" or (.base.ref // "") == "" then "undeterminable"
     elif (has("stack") | not) or .stack == null then "standalone"
     elif (.stack | type) != "object" then "undeterminable"
+    elif ((.base // "") | type) != "object" then "undeterminable"
+    elif ((.base.ref // "") | type) != "string" or (.base.ref // "") == "" then "undeterminable"
     elif ((.stack.number // "") | type) != "number"
       or (.stack.number != (.stack.number | floor))
       or .stack.number < 1 then "undeterminable"
