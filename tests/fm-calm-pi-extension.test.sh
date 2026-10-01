@@ -2870,6 +2870,14 @@ TS
 
   tmux -L "$TMUX_SOCKET" send-keys -t "$TMUX_SESSION" -l '/reload'
   tmux -L "$TMUX_SOCKET" send-keys -t "$TMUX_SESSION" Enter
+  # Regression: reload can finish before the geometry observer's first capture.
+  # Synchronize on Pi's persistent acknowledgement so the transient notice is
+  # already gone, as happens when a loaded runner schedules the observer late.
+  wait_for_geometry_text "$snapshot" "Reloaded keybindings, extensions, skills, prompts, themes, and context files" \
+    || fail "Pi Calm hidden-block geometry E2E did not acknowledge /reload"
+  assert_not_contains "$(cat "$snapshot")" \
+    "Reloading keybindings, extensions, skills, prompts, themes, and context files..." \
+    "the completed-before-capture reload regression still had a transient notice"
   wait_for_geometry_transition \
     "$snapshot" \
     "Reloading keybindings, extensions, skills, prompts, themes, and context files..." \
