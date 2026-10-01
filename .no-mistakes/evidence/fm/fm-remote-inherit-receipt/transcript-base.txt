@@ -1,0 +1,91 @@
+##### BASE (b8dfb4f7)
+== Scenario A: crash before publish, retry ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v1
+  receipt: 1 13 09ff0798880e46a4b6e489ec88b2de9701759f2e4932929d73011ab0fbc555f1 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #2)
+  [receiver pid 3022477 SIGKILLed]
+  exit=137
+  DEST: inherited v1
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+quarantined: data/captain-shared.md.remote-quarantine-20261001T010348Z-3022700 (replaced)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 1
+== Scenario B: crash after publish (before promote), retry ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #3)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+unchanged: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+== Scenario C: double interruption gen2 after publish, gen3 before publish, retry gen3 ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #3)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 3: inherited v3> (crash at mv #2)
+  [receiver pid 3024447 SIGKILLed]
+  exit=137
+  DEST: inherited v2
+  receipt: 3 13 951c996a0484faeb9e77a64ca156a18725bf2080fc3d7fae5f83fc6f652aad09 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 3: inherited v3> (crash at mv #0)
+quarantined: data/captain-shared.md.remote-quarantine-20261001T010350Z-3024676 (replaced)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v3
+  receipt: 3 13 951c996a0484faeb9e77a64ca156a18725bf2080fc3d7fae5f83fc6f652aad09 put 
+  quarantines: 1
+== Scenario D: crash before publish, captain edits DEST, retry (must quarantine) ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #2)
+  [receiver pid 3025303 SIGKILLed]
+  exit=137
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+quarantined: data/captain-shared.md.remote-quarantine-20261001T010350Z-3025486 (replaced)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 1
+  quarantine content: captain edit
+== Scenario E: malformed receipts fail closed ==
+-- no trailing newline
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+error: inheritance generation record is malformed
+  exit=1
+-- 10-line receipt led by pending
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+error: inheritance generation record is malformed
+  exit=1
+-- legacy 4-line receipt
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0

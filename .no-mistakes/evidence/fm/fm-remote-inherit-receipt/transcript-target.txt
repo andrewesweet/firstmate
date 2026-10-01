@@ -1,0 +1,89 @@
+##### TARGET (e11c97f2)
+== Scenario A: crash before publish, retry ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v1
+  receipt: applied 1 13 09ff0798880e46a4b6e489ec88b2de9701759f2e4932929d73011ab0fbc555f1 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #2)
+  [receiver pid 3017132 SIGKILLed]
+  exit=137
+  DEST: inherited v1
+  receipt: applied 1 13 09ff0798880e46a4b6e489ec88b2de9701759f2e4932929d73011ab0fbc555f1 put pending 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: applied 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+== Scenario B: crash after publish (before promote), retry ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #3)
+  [receiver pid 3017957 SIGKILLed]
+  exit=137
+  DEST: inherited v2
+  receipt: applied 1 13 09ff0798880e46a4b6e489ec88b2de9701759f2e4932929d73011ab0fbc555f1 put pending 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+unchanged: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: applied 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+== Scenario C: double interruption gen2 after publish, gen3 before publish, retry gen3 ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #3)
+  [receiver pid 3018832 SIGKILLed]
+  exit=137
+  DEST: inherited v2
+  receipt: applied 1 13 09ff0798880e46a4b6e489ec88b2de9701759f2e4932929d73011ab0fbc555f1 put pending 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 3: inherited v3> (crash at mv #2)
+  [receiver pid 3019144 SIGKILLed]
+  exit=137
+  DEST: inherited v2
+  receipt: applied 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put pending 3 13 951c996a0484faeb9e77a64ca156a18725bf2080fc3d7fae5f83fc6f652aad09 put 
+  quarantines: 0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 3: inherited v3> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v3
+  receipt: applied 3 13 951c996a0484faeb9e77a64ca156a18725bf2080fc3d7fae5f83fc6f652aad09 put 
+  quarantines: 0
+== Scenario D: crash before publish, captain edits DEST, retry (must quarantine) ==
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 1: inherited v1> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #2)
+  [receiver pid 3020343 SIGKILLed]
+  exit=137
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+quarantined: data/captain-shared.md.remote-quarantine-20261001T010347Z-3020727 (replaced)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: applied 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 1
+  quarantine content: captain edit
+== Scenario E: malformed receipts fail closed ==
+-- no trailing newline
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+error: inheritance generation record is malformed
+  exit=1
+-- 10-line receipt led by pending
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+error: inheritance generation record is malformed
+  exit=1
+-- legacy 4-line receipt
+$ fm-remote-inherit.sh put data/captain-shared.md <gen 2: inherited v2> (crash at mv #0)
+pushed: data/captain-shared.md
+  exit=0
+  DEST: inherited v2
+  receipt: applied 2 13 fe439637d7fba2ad365a27e6087e800a1314b389b0d8082a6b5b9a8339d390b7 put 
+  quarantines: 0
