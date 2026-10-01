@@ -80,10 +80,8 @@ TMP=
 GENERATION_TMP=
 # Digest this receiver last published to DEST, read from the receipt's applied
 # record before staging a newer generation. Empty when no put generation has
-# been applied here. LAST_PENDING_HASH is the payload digest of an interrupted
-# in-flight put generation, so a destination holding it is convergence too.
+# been applied here.
 LAST_PUBLISHED_HASH=
-LAST_PENDING_HASH=
 cleanup() {
   [ -z "$TMP" ] || rm -f -- "$TMP"
   [ -z "$GENERATION_TMP" ] || rm -f -- "$GENERATION_TMP"
@@ -125,14 +123,14 @@ read_generation_receipt() {
   [ -f "$GENERATION_FILE" ] && [ ! -L "$GENERATION_FILE" ] || die "inheritance generation record is unsafe"
   local line lines=0
   set --
-  while IFS= read -r line || [ -n "$line" ]; do
+  while IFS= read -r line; do
     lines=$((lines + 1))
     [ "$lines" -le 10 ] || die "inheritance generation record is malformed"
     set -- "$@" "$line"
   done < "$GENERATION_FILE"
-  [ "$lines" -ge 1 ] || die "inheritance generation record is malformed"
+  [ -z "$line" ] && [ "$lines" -ge 1 ] || die "inheritance generation record is malformed"
   if [ "$1" = applied ] || [ "$1" = pending ]; then
-    case "$lines" in 5|10) ;; *) die "inheritance generation record is malformed" ;; esac
+    case "$1:$lines" in applied:5|applied:10|pending:5) ;; *) die "inheritance generation record is malformed" ;; esac
     validate_receipt_record "$1" "$2" "$3" "$4" "$5"
     if [ "$1" = applied ]; then
       APPLIED_PRESENT=1
@@ -188,8 +186,21 @@ write_pending_generation() {
   GENERATION_TMP=
 }
 
+# True when the destination already holds the pending record's payload.
+pending_payload_at_dest() {
+  if [ "$PENDING_CMD" = put ]; then
+    [ -f "$DEST" ] && [ "$(sha256_file "$DEST")" = "$PENDING_HASH" ]
+  else
+    [ ! -e "$DEST" ]
+  fi
+}
+
 commit_generation() {
   read_generation_receipt
+  if [ -n "$PENDING_GEN" ] && [ "$PENDING_GEN" -lt "$GENERATION" ] && pending_payload_at_dest; then
+    APPLIED_PRESENT=1
+    APPLIED_GEN=$PENDING_GEN APPLIED_BYTES=$PENDING_BYTES APPLIED_HASH=$PENDING_HASH APPLIED_CMD=$PENDING_CMD
+  fi
   if [ "$APPLIED_PRESENT" = 1 ]; then
     [ "$APPLIED_CMD" != put ] || LAST_PUBLISHED_HASH=$APPLIED_HASH
     if [ "$APPLIED_GEN" -gt "$GENERATION" ]; then
@@ -197,7 +208,6 @@ commit_generation() {
     fi
   fi
   if [ -n "$PENDING_GEN" ]; then
-    [ "$PENDING_CMD" != put ] || LAST_PENDING_HASH=$PENDING_HASH
     if [ "$PENDING_GEN" -gt "$GENERATION" ]; then
       die "inheritance write generation is superseded"
     fi
@@ -226,16 +236,13 @@ promote_generation() {
   write_applied_generation "$GENERATION" "$EXPECTED_BYTES" "$EXPECTED_HASH" "$COMMAND"
 }
 
-# True when the destination still holds the bytes of the last applied or last
-# staged put generation, so replacing it is ordinary convergence rather than
-# destination drift.
+# True when the destination still holds the bytes this receiver last published,
+# so replacing it is ordinary convergence rather than destination drift.
 dest_matches_last_published() {
   local actual
-  [ -f "$DEST" ] || return 1
+  [ -n "$LAST_PUBLISHED_HASH" ] && [ -f "$DEST" ] || return 1
   actual=$(sha256_file "$DEST") || return 1
-  [ -n "$LAST_PUBLISHED_HASH" ] && [ "$actual" = "$LAST_PUBLISHED_HASH" ] && return 0
-  [ -n "$LAST_PENDING_HASH" ] && [ "$actual" = "$LAST_PENDING_HASH" ] && return 0
-  return 1
+  [ "$actual" = "$LAST_PUBLISHED_HASH" ]
 }
 
 quarantine_shared() {

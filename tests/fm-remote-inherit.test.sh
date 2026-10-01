@@ -217,10 +217,76 @@ test_old_format_receipt_is_treated_as_applied() {
   pass "an old-format four-line receipt is read as an applied generation"
 }
 
+test_second_interruption_does_not_quarantine_earlier_interrupted_payload() {
+  local home payload_v1 payload_v2 payload_v3 out
+  home=$(new_home interrupted-twice)
+  payload_v1="$TMP_ROOT/interrupted-twice-v1.md"
+  payload_v2="$TMP_ROOT/interrupted-twice-v2.md"
+  payload_v3="$TMP_ROOT/interrupted-twice-v3.md"
+  printf 'inherited v1\n' > "$payload_v1"
+  printf 'inherited v2\n' > "$payload_v2"
+  printf 'inherited v3\n' > "$payload_v3"
+
+  out=$(remote_put "$home" "$payload_v1" 1) || fail "first inherit failed: $out"
+  # Generation 2 publishes the destination, then dies before promotion.
+  interrupted_put "$home" "$payload_v2" 2 3
+  # Generation 3 stages its receipt, then dies before publication.
+  interrupted_put "$home" "$payload_v3" 3 2
+  cmp -s "$payload_v2" "$home/data/captain-shared.md" \
+    || fail "the second interruption should leave generation 2's payload in place"
+
+  out=$(remote_put "$home" "$payload_v3" 3) || fail "retry after two interruptions failed: $out"
+  assert_not_contains "$out" "quarantined:" \
+    "retry after two interruptions quarantined the payload generation 2 transferred"
+  [ "$(quarantine_count "$home")" -eq 0 ] \
+    || fail "retry after two interruptions left a recovery copy of transferred bytes"
+  cmp -s "$payload_v3" "$home/data/captain-shared.md" \
+    || fail "retry after two interruptions did not install generation 3"
+  assert_receipt_applied_only "$home"
+  pass "a second interruption keeps the earlier interrupted payload recognized as published"
+}
+
+assert_receipt_refused() {  # <home> <payload-file> <generation> <message>
+  local out rc=0
+  out=$(remote_put "$1" "$2" "$3") || rc=$?
+  [ "$rc" -ne 0 ] || fail "$4: $out"
+  assert_contains "$out" "inheritance generation record is malformed" "$4"
+}
+
+test_malformed_receipt_shapes_are_refused() {
+  local home payload hash record
+  home=$(new_home malformed-receipt)
+  payload="$TMP_ROOT/malformed-receipt.md"
+  printf 'inherited v1\n' > "$payload"
+  hash=$(fm_inherit_sha256 "$payload")
+  record="1
+13
+$hash
+put"
+
+  printf 'applied\n%s' "$record" > "$home/data/$RECEIPT_NAME"
+  assert_receipt_refused "$home" "$payload" 2 \
+    "a receipt without a trailing newline was accepted"
+
+  printf 'pending\n%s\npending\n%s\n' "$record" "$record" > "$home/data/$RECEIPT_NAME"
+  assert_receipt_refused "$home" "$payload" 2 \
+    "a ten-line receipt led by a pending record was accepted"
+
+  printf 'applied\n%s\napplied\n%s\n' "$record" "$record" > "$home/data/$RECEIPT_NAME"
+  assert_receipt_refused "$home" "$payload" 2 \
+    "a ten-line receipt whose second record is not pending was accepted"
+
+  [ ! -e "$home/data/captain-shared.md" ] \
+    || fail "a refused receipt still published the destination"
+  pass "malformed receipt shapes fail closed"
+}
+
 test_interrupted_transfer_retry_neither_quarantines_previous_copy_nor_loses_new_one
 test_interrupted_transfer_retry_still_quarantines_real_drift
 test_interrupted_transfer_after_publication_retry_reports_unchanged
 test_newer_generation_after_interrupted_publication_does_not_quarantine_transferred_payload
 test_old_format_receipt_is_treated_as_applied
+test_second_interruption_does_not_quarantine_earlier_interrupted_payload
+test_malformed_receipt_shapes_are_refused
 
 echo "# all fm-remote-inherit tests passed"
