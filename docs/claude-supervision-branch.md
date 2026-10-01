@@ -145,6 +145,7 @@ Measured on Claude Code 2.1.285 (2026-09-29); `tests/fm-branch-claude-mod-live-e
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
 - `promptSuggestionEnabled: false` in the launch settings (and `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` in the environment): a prompt suggestion is a model call main would make between wakes, so it is switched off.
 - The ordinary Claude Stop hook (`bin/fm-claude-stop-autoarm.sh` with `asyncRewake`), as the [Claude supervision protocol](supervision-protocols/claude.md) already requires; the rewake it delivers is what the mod routes.
+  Run it from the code root's `bin/`, the same directory the mod arms from: watcher ownership matches the watcher's script path exactly, so a home's symlinked `bin/` copy is a different owner and the two would not recognise each other's watcher.
 - `--strict-mcp-config`, so only the mod's own `fm_branch_report` and `fm_branch_processed` tools reach the session beside Claude Code's built-ins.
 - No `autoCompactWindow` setting: the branch's context bound lives in the mod.
 - No `permissions.deny` entry for `SendMessage`, `Monitor`, or `Agent`.
