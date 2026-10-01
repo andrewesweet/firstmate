@@ -1,0 +1,9 @@
+(LC_ALL=C, clean tree)
+calm placement:
+portable-serial-4of9	tests/fm-calm-pi-extension.test.sh
+shard union == portable-serial lane: yes
+scripts in >1 shard: 0
+$ grep -rn "PINNED_SHARDS|pin_holds" bin docs tests
+(none)
+FM_TEST_COVERAGE ok total=264 parallel=24 parallel_max_ms=417163 parallel_imbalance_ms=2894 parallel_unhinted=0 serial=224 serial_shards=9 serial_unhinted=1 herdr=16
+rc=0

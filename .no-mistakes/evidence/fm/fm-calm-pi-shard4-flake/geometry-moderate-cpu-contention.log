@@ -1,0 +1,7 @@
+contention: 4 busy loops on 4 cores (full saturation)
+[new run 1 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+[new run 2 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+[new run 3 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+[new run 4 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+[new run 5 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+[new run 6 rc=1] not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators

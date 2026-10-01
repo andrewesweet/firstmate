@@ -1,0 +1,11 @@
+load4 run1 PASS
+load4 run2 PASS
+load4 run3 PASS
+load4 run4 PASS
+load4 run5 PASS
+load4 run6 PASS
+load16 run1 PASS
+load16 run2 PASS
+load16 run3 PASS
+load16 run4 PASS
+load16 run5 PASS

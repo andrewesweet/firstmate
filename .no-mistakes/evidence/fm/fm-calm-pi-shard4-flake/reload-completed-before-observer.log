@@ -1,0 +1,7 @@
+Observer delayed 4s after /reload Enter (reload completes before first capture)
+[old-test run 1 rc=1] not ok - Pi Calm hidden-block geometry E2E did not complete the /reload viewport transition
+[old-test run 2 rc=1] not ok - Pi Calm hidden-block geometry E2E did not complete the /reload viewport transition
+[old-test run 3 rc=1] not ok - Pi Calm hidden-block geometry E2E did not complete the /reload viewport transition
+[new-test run 1 rc=0] ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+[new-test run 2 rc=0] ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+[new-test run 3 rc=0] ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering

@@ -1,0 +1,6 @@
+FM_TEST_COVERAGE ok total=264 parallel=24 parallel_max_ms=417163 parallel_imbalance_ms=2894 parallel_unhinted=0 serial=224 serial_shards=9 serial_unhinted=1 herdr=16
+check-coverage rc=0
+ci shard example: 
+total listed: 224 unique: 224
+serial lane total: 224
+4of9 tests/fm-calm-pi-extension.test.sh

@@ -1,0 +1,15 @@
+skip: node or npm not found for Pi calm home-resolution test
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: node or npm not found for Pi calm degraded-adapter test
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: node or npm not found for Pi Calm queued-row test
+skip: node or npm not found for Pi calm gate test
+skip: node or npm not found for Pi calm activation test
+skip: node or npm not found for Pi calm renderer test
+skip: node or npm not found for Pi calm mid-turn renderer test
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 0.99.1 with Calm on keeps a queued Firstmate notification unlisted, out of the editor on Escape, and delivers it once in a new announced turn, while Calm off stays stock
+ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+skip: node or npm not found for Pi Calm working-ship test
+ok - the rendered-export-DOM guard renders in one pass, retries a bounded number of Chrome start-up failures, and reports the Chrome binary, Chrome version, Pi version, exit status, and Chrome diagnostic when every attempt fails
+not ok - Chrome or Chromium is required for rendered export DOM assertions; set FM_CHROME_BIN to one
