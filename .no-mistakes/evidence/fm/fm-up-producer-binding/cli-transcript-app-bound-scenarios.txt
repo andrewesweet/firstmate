@@ -1,0 +1,72 @@
+===== scenario classic:status  rc=1
+--- gh merge calls:
+(none)
+--- stderr (tail):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+===== scenario ruleset:status  rc=1
+--- gh merge calls:
+(none)
+--- stderr (tail):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+===== scenario classic:absent  rc=1
+--- gh merge calls:
+(none)
+--- stderr (tail):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+===== scenario ruleset:absent  rc=1
+--- gh merge calls:
+(none)
+--- stderr (tail):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+===== scenario classic:unbound  rc=0
+--- gh merge calls:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+--- stderr (tail):
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+===== scenario ruleset:unbound  rc=0
+--- gh merge calls:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+--- stderr (tail):
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+===== scenario classic:wrong-app  rc=1
+--- gh merge calls:
+(none)
+--- stderr (tail):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+===== scenario classic:correct-app  rc=0
+--- gh merge calls:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+--- stderr (tail):
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+===== scenario classic:waived  rc=0
+--- gh merge calls:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash --admin
+--- stderr (tail):
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
