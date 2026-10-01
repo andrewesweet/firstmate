@@ -1,0 +1,30 @@
+### Mutation A: drop 'fixing' from the non-ci IN list (s.status IN ('running','fixing') -> s.status = 'running')
+ bin/fm-nm-slot.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-- new test (this branch):
+$ tests/fm-nm-slot.test.sh
+not ok - a live run whose non-ci step is fixing must count toward the cap, got 0: 
+exit=1
+-- old test (base 3e3d7b6):
+$ tests/.old-fm-nm-slot.test.sh
+ok - fm-nm-slot admits, waits, refuses, and serializes starts per contract
+exit=0
+
+### Mutation B: --help states the wrong default (header 'default of 3' -> 'default of 5')
+37:holds one plain positive integer. Absent file means the default of 5; any
+-- new test (this branch):
+$ tests/fm-nm-slot.test.sh
+         codes are outside the range the no-mistakes CLI uses, so a failed
+         start is never read as a full slot.
+exit=1
+-- old test (base 3e3d7b6):
+$ tests/.old-fm-nm-slot.test.sh
+ok - fm-nm-slot admits, waits, refuses, and serializes starts per contract
+exit=0
+
+### Restored: both tests against unmodified script
+-- new test:
+$ tests/fm-nm-slot.test.sh
+ok - fm-nm-slot admits, waits, refuses, and serializes starts per contract
+exit=0
+not ok - --help should state the exact default limit of 3, got: fm-nm-slot.sh - admit one 

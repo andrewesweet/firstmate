@@ -1,0 +1,17 @@
+## Scenario 2: mutation - drop 'fixing' from the non-ci IN list
+diff --git a/bin/fm-nm-slot.sh b/bin/fm-nm-slot.sh
+index 7cd39b4..fdb50c8 100755
+--- a/bin/fm-nm-slot.sh
++++ b/bin/fm-nm-slot.sh
+@@ -206,7 +206,7 @@ with closing(sqlite3.connect(Path(sys.argv[1]).as_uri() + "?mode=ro", uri=True,
+         "  EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
+         "          AND s.status = 'running' AND s.step_name = 'ci')"
+         "  AND NOT EXISTS (SELECT 1 FROM step_results s WHERE s.run_id = r.id"
+-        "          AND s.status IN ('running','fixing') AND s.step_name <> 'ci'))"
++        "          AND s.status = 'running' AND s.step_name <> 'ci'))"
+         " GROUP BY r.status"
+     ).fetchall()
+ for status, run_count, run_ids in rows:
+$ PATH=<sqlite3-shim>:$PATH bash tests/fm-nm-slot.test.sh
+not ok - a live run whose non-ci step is fixing must count toward the cap, got 0: 
+exit=1

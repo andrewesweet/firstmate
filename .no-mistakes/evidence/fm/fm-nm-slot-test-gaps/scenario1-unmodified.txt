@@ -1,0 +1,6 @@
+## Scenario 1: unmodified bin/fm-nm-slot.sh (commit 4357ae6)
+$ PATH=<sqlite3-shim>:$PATH bash tests/fm-nm-slot.test.sh
+mise WARN no version set for python
+mise WARN no version set for python
+ok - fm-nm-slot admits, waits, refuses, and serializes starts per contract
+exit=0

@@ -1,0 +1,75 @@
+fm-nm-slot.sh - admit one no-mistakes validation start under the host's
+concurrent-validation cap.
+
+Concurrent no-mistakes validations on one machine can exhaust its memory and
+get the daemon killed mid-run. This gate is per host, not fleet-wide, and
+every firstmate home on the host shares one cap; there is deliberately no
+cross-host coordination. The mechanism: take one host-wide mutex, read
+the count of the daemon's executing runs, and only while that count is below
+the limit run the wrapped start command with the lock still held, so two
+workers cannot both see room and both start. The wrapped command must
+register its run before it returns (a bounded `--wait` start does), so the
+next caller's count includes it.
+The mutex is one advisory lock, taken through python3's fcntl.flock, which
+re-execs this script with the locked descriptor on fd 9 - already open when
+the re-exec lands, which is how this script knows the lock is held. python3 is
+required for the count below too, so every host locks the same way, including
+macOS where the flock binary is absent.
+
+Every run counts that bin/fm-nm-run-lib.sh's fm_nm_run_status_class, the
+repo's owner of the daemon's status words, does not call terminal - a status
+word it does not recognise holds a slot rather than vanishing from the count -
+including a run sitting between steps, EXCEPT a run parked waiting on its
+agent at a gate and a run whose only executing step is the forge CI monitor
+(its ci step still `running`): neither holds the memory this cap protects, so
+a host of parked runs cannot starve every worker. A ci step that has moved to
+`fixing` is a fix round doing work, not a monitor, and counts like any other
+executing step - bin/fm-crew-state.sh reads ci/fixing the same way.
+Two ceilings, both deliberate, with no liveness or staleness machinery here:
+a parked run that is later resumed re-enters the counted set without
+re-checking the limit, and a run abandoned mid-step (its daemon killed) keeps
+its place in the count until an operator cancels it - the wait message names
+the counted run ids so that operator knows which runs hold the slots.
+
+Limit configuration (host-level, deliberately outside FM_HOME, so
+secondmate inheritance and propagation never see it):
+  ${XDG_CONFIG_HOME:-$HOME/.config}/firstmate/nm-max-concurrent-validations
+holds one plain positive integer. Absent file means the default of 3; any
+other content refuses with a clear message instead of falling back. Size
+each host to its own RAM.
+
+The count is read from the no-mistakes daemon's own durable state store,
+  ${NM_HOME:-$HOME/.no-mistakes}/state.sqlite
+(NM_HOME is honored because the no-mistakes CLI itself honors it, and a
+relative NM_HOME resolves from the working directory as its other reader
+does). The CLI has no host-wide machine-readable run listing - its listings
+are repository-scoped - so the count is a read-only SQL query through the
+same python3 sqlite3 read-only URI reader the repo's other store reader
+uses, and rendered CLI text is never parsed. A store file that does not exist
+yet records no run at all, so the count is zero and the start is admitted.
+Every other read failure (python3 missing, no bounding tool, a SQL error, a
+corrupt store) is a host fault firstmate must see: this script refuses with
+the reader's own last error line, collapsed to the one line the worker writes
+into its status file, and never guesses a count; a stale store left by a
+stopped daemon can only admit a start that then fails visibly at the CLI.
+
+The lock lives at ${XDG_RUNTIME_DIR:-$HOME/.cache}/firstmate/
+nm-validation-slot.lock, outside every FM_HOME, and is held only across the
+count-then-start window; the wrapped command never inherits the lock fd.
+
+HUP, INT, and TERM remove the reader's temp file and exit 129, 130, and 143.
+The wrapped start runs in the foreground, with its stdin and the rest of its
+environment untouched, so a signal delivered while it is running takes effect
+when it returns - which the bounded `--wait` start does promptly. A supervisor
+stopping a worker signals the whole process group, so the start receives the
+same signal directly rather than through this gate.
+
+Usage:
+  fm-nm-slot.sh <command> [args...]   run <command> while holding the claimed slot
+
+Exit codes:
+  75     wait: the limit is reached, or the slot lock is busy with another start
+  78     refusal: the limit configuration or the daemon count could not be read
+  other  the wrapped command's own exit status, after admission. Both gate
+         codes are outside the range the no-mistakes CLI uses, so a failed
+         start is never read as a full slot.

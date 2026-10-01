@@ -1,0 +1,5 @@
+== baseline (sqlite3 CLI shim over python stdlib sqlite3): tests/fm-nm-slot.test.sh vs unmodified bin/fm-nm-slot.sh ==
+mise WARN no version set for python
+mise WARN no version set for python
+ok - fm-nm-slot admits, waits, refuses, and serializes starts per contract
+exit=0
