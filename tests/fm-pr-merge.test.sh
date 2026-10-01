@@ -273,7 +273,7 @@ case "${1:-} ${2:-}" in
         [ -n "$line" ] || line=$(tail -n1 "$FM_TEST_GH_ASYNC_POLL_SEQUENCE")
         case "$line" in
           pending)
-            printf 'HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"pending","uuid":"stack-test-uuid-0001"}\n'
+            printf 'HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"pending","details":{"message":"Merge request enqueued.","uuid":"stack-test-uuid-0001"}}\n'
             ;;
           merged)
             printf 'HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"merged"}\n'
@@ -297,8 +297,8 @@ case "${1:-} ${2:-}" in
         ;;
       *"/merge-async "*)
         # The submit. The default answer is 202 pending with the submitted
-        # head echoed back as expected_head_sha; a case file overrides the
-        # status and body. An HTTP error status exits 1 the way gh does.
+        # head echoed back as details.expected_head_sha, the shape GitHub's live
+        # answer carries; a case file overrides the status and body. An HTTP error status exits 1 the way gh does.
         if [ -n "${FM_TEST_META_AT_MERGE:-}" ] && [ -f "${FM_STATE_OVERRIDE:-}/task-x1.meta" ]; then
           cat "${FM_STATE_OVERRIDE}/task-x1.meta" > "$FM_TEST_META_AT_MERGE"
         fi
@@ -315,11 +315,11 @@ case "${1:-} ${2:-}" in
           if [ -f "${FM_TEST_GH_ASYNC_SUBMIT_BODY:-}" ]; then
             body=$(cat "$FM_TEST_GH_ASYNC_SUBMIT_BODY")
           else
-            body='{"status":"pending","uuid":"stack-test-uuid-0001"}'
+            body='{"status":"pending","details":{"message":"Merge request enqueued.","uuid":"stack-test-uuid-0001"}}'
           fi
         else
           status=202
-          body="{\"status\":\"pending\",\"uuid\":\"stack-test-uuid-0001\",\"expected_head_sha\":\"$sha\"}"
+          body="{\"status\":\"pending\",\"details\":{\"message\":\"Merge request enqueued.\",\"uuid\":\"stack-test-uuid-0001\",\"merge_method\":\"merge\",\"merge_action\":\"direct_merge\",\"expected_head_sha\":\"$sha\",\"bypass_rules\":false}}"
         fi
         printf 'HTTP/1.1 %s\nContent-Type: application/json\n\n%s\n' "$status" "$body"
         case "$status" in 4*|5*) exit 1 ;; esac
@@ -4712,7 +4712,7 @@ test_stacked_submit_answers_never_report_a_landing() {
   # 409: an existing request, named by uuid.
   case_dir=$(build_stacked_case stacked-submit-conflict "$head" 105)
   printf '409\n' > "$case_dir/github-async-submit-status"
-  printf '{"status":"pending","uuid":"other-request-uuid","merge_method":"squash","expected_head_sha":"%s"}\n' "$head" \
+  printf '{"status":"pending","details":{"uuid":"other-request-uuid","merge_method":"squash","expected_head_sha":"%s"}}\n' "$head" \
     > "$case_dir/github-async-submit-body"
   set +e
   run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/105 \
@@ -4728,7 +4728,7 @@ test_stacked_submit_answers_never_report_a_landing() {
   # 400 with GitHub's message.
   case_dir=$(build_stacked_case stacked-submit-invalid "$head" 106)
   printf '400\n' > "$case_dir/github-async-submit-status"
-  printf '{"status":"failed","message":"Validation failed: head sha mismatch"}\n' \
+  printf '{"status":"failed","details":{"message":"Pull request head branch was modified."}}\n' \
     > "$case_dir/github-async-submit-body"
   set +e
   run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/106 \
@@ -4736,7 +4736,7 @@ test_stacked_submit_answers_never_report_a_landing() {
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || fail "stacked-submit-invalid: must exit non-zero"
-  assert_grep 'Validation failed: head sha mismatch' "$case_dir/stderr" \
+  assert_grep 'Pull request head branch was modified.' "$case_dir/stderr" \
     "stacked-submit-invalid: GitHub's message was not quoted"
   assert_grep 'nothing was merged' "$case_dir/stderr" \
     "stacked-submit-invalid: the report did not state that nothing was merged"

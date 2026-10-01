@@ -1689,14 +1689,14 @@ github_accept_stack_merge_request() {
   fm_afk_contract_lock_release || true
   fm_lock_release "$MERGE_CONTROL_LOCK" || true
   MERGE_CONTROL_LOCK=
-  FM_PR_STACK_MERGE_UUID=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.uuid // "") | type) == "string" then .uuid else empty end' 2>/dev/null) || FM_PR_STACK_MERGE_UUID=''
+  FM_PR_STACK_MERGE_UUID=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.uuid // "") | type) == "string" then .details.uuid else empty end' 2>/dev/null) || FM_PR_STACK_MERGE_UUID=''
   case "$FM_PR_STACK_MERGE_UUID" in
     '' | *[!A-Za-z0-9_-]*)
       github_report_stack_unproven "${FM_PR_STACK_MERGE_UUID:-unreadable}" "GitHub's 202 answer carried no readable result uuid"
       exit 1
       ;;
   esac
-  expected=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.expected_head_sha // "") | type) == "string" then .expected_head_sha else empty end' 2>/dev/null) || expected=''
+  expected=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.expected_head_sha // "") | type) == "string" then .details.expected_head_sha else empty end' 2>/dev/null) || expected=''
   if [ -n "$expected" ] && [ "$expected" != "$FM_PR_MERGE_HEAD" ]; then
     echo "error: GitHub's 202 answer for pull request $PR_NUMBER names expected head $expected, which disagrees with the verified head $FM_PR_MERGE_HEAD this run bound into the request; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
     exit 1
@@ -1722,9 +1722,9 @@ github_submit_stack_merge() {
       exit 1
       ;;
     409)
-      conflict_uuid=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.uuid // "") | type) == "string" then .uuid else empty end' 2>/dev/null) || conflict_uuid=''
-      conflict_method=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.merge_method // "") | type) == "string" then .merge_method else empty end' 2>/dev/null) || conflict_method=''
-      conflict_head=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.expected_head_sha // "") | type) == "string" then .expected_head_sha else empty end' 2>/dev/null) || conflict_head=''
+      conflict_uuid=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.uuid // "") | type) == "string" then .details.uuid else empty end' 2>/dev/null) || conflict_uuid=''
+      conflict_method=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.merge_method // "") | type) == "string" then .details.merge_method else empty end' 2>/dev/null) || conflict_method=''
+      conflict_head=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.expected_head_sha // "") | type) == "string" then .details.expected_head_sha else empty end' 2>/dev/null) || conflict_head=''
       fm_afk_contract_lock_release || true
       fm_lock_release "$MERGE_CONTROL_LOCK" || true
       MERGE_CONTROL_LOCK=
