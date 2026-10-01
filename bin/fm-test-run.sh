@@ -215,16 +215,6 @@ PORTABLE_SERIAL_DEFAULT_WEIGHT_MS=27000
 # instead of silently. docs/fm-test-portable-shards.md owns the refresh.
 PORTABLE_SERIAL_MAX_UNHINTED_PERCENT=15
 
-# Script<shard> pairs forced onto a specific shard ahead of the weight packing.
-# tests/fm-calm-pi-extension.test.sh is a timing-fragile Pi viewport E2E that
-# failed only on shard 4 after the 2026-09-30 refresh moved it there (CI runs
-# 36763685875 and its rerun; its ~9s geometry bound expires behind that shard's
-# daemon-spawning session-start, remote-*, and startup-network suites) while
-# passing on shard 7 in every other green run sampled. The pin holds it to the
-# proven slot; it masks an unexplained shard-placement failure, not evidence
-# about the script itself, so revisit it when that diagnosis lands.
-PORTABLE_SERIAL_PINNED_SHARDS='tests/fm-calm-pi-extension.test.sh:7'
-
 usage() {
   awk '
     NR == 1 { next }
@@ -955,9 +945,7 @@ portable_serial_weight_for() {
 # Deterministic: candidates are ordered by hint descending then path, and ties
 # between equally loaded bins always take the lowest bin index.
 portable_serial_assignments() {
-  local ms script i best best_load pin pinned matched entry path shard
-  local -a pins=()
-  matched=
+  local ms script i best best_load
   local -a loads=()
   i=1
   while [ "$i" -le "$PORTABLE_SERIAL_SHARDS" ]; do
@@ -976,24 +964,6 @@ portable_serial_assignments() {
       fi
       i=$((i + 1))
     done
-    # A pinned script keeps its recorded slot instead of the packed one; see
-    # PORTABLE_SERIAL_PINNED_SHARDS above for why the pin exists.
-    pinned=";$PORTABLE_SERIAL_PINNED_SHARDS;"
-    case "$pinned" in
-      *";$script:"*)
-        pin=${pinned#*";$script:"}
-        pin=${pin%%;*}
-        case "$pin" in
-          ''|*[!0-9]*) die "pinned shard for '$script' must be an integer in 1..$PORTABLE_SERIAL_SHARDS, got '$pin'" ;;
-        esac
-        if [ "$pin" -lt 1 ] || [ "$pin" -gt "$PORTABLE_SERIAL_SHARDS" ]; then
-          die "pinned shard $pin for '$script' is outside 1..$PORTABLE_SERIAL_SHARDS"
-        fi
-        best=$pin
-        best_load=${loads[$pin]}
-        matched="$matched;$script"
-        ;;
-    esac
     loads[best]=$((best_load + ms))
     printf '%s\t%s\n' "$best" "$script"
   done < <(
@@ -1002,23 +972,6 @@ portable_serial_assignments() {
       printf '%s\t%s\n' "$(portable_serial_weight_for "$script")" "$script"
     done < <(list_portable_serial) | LC_ALL=C sort -t$'\t' -k1,1nr -k2,2
   )
-  IFS=';' read -ra pins <<<"$PORTABLE_SERIAL_PINNED_SHARDS"
-  for entry in "${pins[@]+"${pins[@]}"}"; do
-    [ -n "$entry" ] || continue
-    path=${entry%:*}
-    shard=${entry##*:}
-    case "$path:$shard" in
-      "$entry") ;;
-      *) die "pinned entry '$entry' must have the form <script>:<shard>" ;;
-    esac
-    case "$shard" in
-      ''|*[!0-9]*) die "pinned entry '$entry' must have the form <script>:<shard>" ;;
-    esac
-    case ";$matched;" in
-      *";$path;"*) ;;
-      *) die "pinned script '$path' is not in the portable serial lane (see --list --lane portable-serial)" ;;
-    esac
-  done
 }
 
 # Parse "<k>of<n>" from a portable-serial shard lane and echo <k>, refusing when
