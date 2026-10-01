@@ -1,0 +1,48 @@
+######## base
+--- fm_dod_block no-mistakes id1  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=1
+/tmp/fm-dodcmp.sPClBS/base/bin/fm-dod-lib.sh: line 464: $4: unbound variable
+--- fm_dod_block local-only id1 fm/custom  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=1
+/tmp/fm-dodcmp.sPClBS/base/bin/fm-dod-lib.sh: line 464: $4: unbound variable
+--- fm_dod_block direct-PR id1 fm/x gerrit  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=direct-PR
+Ship branch: fm/x
+--- fm_dod_block direct-PR id1 fm/x none  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=direct-PR
+Ship branch: fm/x
+--- fm_dod_block local-only id1 fm/x gerrit  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=local-only
+Ship branch: fm/x
+--- no-home no-mistakes (FM_HOME and FM_DATA_OVERRIDE unset)
+rc=1
+/tmp/fm-dodcmp.sPClBS/base/bin/fm-dod-lib.sh: line 464: $4: unbound variable
+######## head
+--- fm_dod_block no-mistakes id1  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=no-mistakes
+Ship branch: fm/id1
+On exit 78 the count or the limit could not be read: append `blocked [at=<epoch>]: {the script's exact error}` and stop.
+When review feedback arrives and `no-mistakes axi status` shows no parked gate, write the comment's text and URL to `/tmp/fm-dodcmp.sPClBS/libhome/data/id1/pr-<n>-<comment-id>.txt` and append `needs-decision [at=<epoch>]
+--- fm_dod_block local-only id1 fm/custom  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=local-only
+Ship branch: fm/custom
+--- fm_dod_block direct-PR id1 fm/x gerrit  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=direct-PR forge=gerrit shape=squash
+Ship branch: fm/x
+   A failure prints a typed error record instead; fix what it names and publish again, which updates the same change rather than creating another.
+--- fm_dod_block direct-PR id1 fm/x none  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=0
+Delivery contract: mode=direct-PR
+Ship branch: fm/x
+--- fm_dod_block local-only id1 fm/x gerrit  (FM_HOME=/tmp/fm-dodcmp.sPClBS/libhome)
+rc=1
+error: fm_dod_block: forge=gerrit cannot ship mode=local-only - that mode publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; s
+--- no-home no-mistakes (FM_HOME and FM_DATA_OVERRIDE unset)
+rc=1
+error: fm_dod_feedback_dir: set FM_DATA_OVERRIDE or FM_HOME to select the home for review-feedback snapshots
