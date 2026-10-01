@@ -142,6 +142,7 @@ Measured on Claude Code 2.1.285 (2026-09-29); `tests/fm-branch-claude-mod-live-e
 - `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` in the environment: the function-hooks surface is early access and default-off, and without it the module never loads.
 - `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1` in the environment: a Herdr server started inside a Claude session hands the pane its `CLAUDE_CODE_CHILD_SESSION` marker, which switches transcript saving off, and without a disk transcript every resume of the branch agent fails once Claude Code evicts the finished agent from memory 30-60 s after it completes; set in the main home after the branch-reuse root-cause report of 2026-09-19 measured 25 of 25 rotations failing this way.
   The live test does not set it: it scrubs every inherited `CLAUDE_CODE_*` variable instead, so its scratch session never carries the marker; the `session.start` event's `persistenceOn` / `persistenceCause` fields (see the event log below) show which case a home is in.
+- `DISABLE_AUTOUPDATER=1` in the environment: a Claude Code binary installed or launched for a release check runs its own autoupdater otherwise, which answers with a global `npm install` of the latest release over the machine's normal install (the September 2026 pin-install incident); `tests/fm-branch-claude-mod-live-e2e.test.sh` also embeds the assignment in the pane command, so the guard survives a scrubbed or daemon-built pane, and `assert_autoupdater_off` in that test pins the running binary's environment.
 - `--plugin-dir <code root>/.claude/mods/fm-branch-mod`: the only load path.
 - `promptSuggestionEnabled: false` in the launch settings (and `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` in the environment): a prompt suggestion is a model call main would make between wakes, so it is switched off.
 - The ordinary Claude Stop hook (`bin/fm-claude-stop-autoarm.sh` with `asyncRewake`), as the [Claude supervision protocol](supervision-protocols/claude.md) already requires; the rewake it delivers is what the mod routes.
@@ -159,7 +160,8 @@ Measured on Claude Code 2.1.285 (2026-09-29); `tests/fm-branch-claude-mod-live-e
 The mod loads on whatever Claude Code release hosts the session; there is no version pin.
 At `session.start` it reads the version of the binary hosting the session (`readlink /proc/$PPID/exe`, Linux only, with `claude --version` through PATH as the fallback where that is unavailable) and records it on the event with `versionSource` (`running binary` or `PATH claude`) and the probe's raw `--version` output as `probe`, so a behaviour change can be tied to the release that hosted it and a split between the running binary and PATH is one log line.
 The function-hooks surface the mod binds is early access and can change between releases, so a new release is a test trigger, not a known-good state.
-After a Claude Code upgrade, run the mod's checks on the new release and treat a failure as the finding:
+After a Claude Code upgrade, run the mod's checks on the new release and treat a failure as the finding.
+When the release under test is installed side-by-side or launched by absolute path, run the checks with `DISABLE_AUTOUPDATER=1` (see [Launch settings](#launch-settings)): the binary's own autoupdater would otherwise perform a global `npm install` of the latest release over the machine's normal install.
 
 ```sh
 FM_BRANCH_MOD_LIVE=1 bin/fm-test-run.sh tests/fm-branch-claude-mod-live-e2e.test.sh

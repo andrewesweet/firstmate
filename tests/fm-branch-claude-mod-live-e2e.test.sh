@@ -94,12 +94,14 @@ pause_dummy() { : > "$STATE/dummy.pause"; }
 resume_dummy() { rm -f "$STATE/dummy.pause"; }
 
 # Claude Code refuses to nest inside another Claude session, and the home's
-# scripts must not inherit this shell's firstmate environment.
+# scripts must not inherit this shell's firstmate environment. The ambient
+# DISABLE_AUTOUPDATER goes too, so only the launch's embedded assignment can
+# turn the autoupdater off and assert_autoupdater_off tests that embed.
 unset_inherited() {
   local name
   while IFS= read -r name; do
     printf -- '-u %s ' "$name"
-  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | sort -u)
+  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|DISABLE_AUTOUPDATER|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | sort -u)
 }
 
 # Launch Claude Code exactly as the docs page prescribes, in a fresh tmux
@@ -118,9 +120,50 @@ unset_inherited() {
 # for (tests/lib.sh exports the same variable).
 start_claude_session() { # [extra-env...]
   local extra="${*:+$* }"
+  # DISABLE_AUTOUPDATER=1 is embedded in the pane command, not leaned on from
+  # the ambient export: a release-check binary that self-updates performs a
+  # global npm install of the latest release over the machine's normal
+  # install, and an embedded assignment keeps the guard up even where the
+  # ambient value is absent (the same reasoning as bin/fm-spawn.sh's
+  # embedding). assert_autoupdater_off pins the running binary's environment.
   # shellcheck disable=SC2046 # intentional: unset_inherited emits separate -u NAME tokens for env
   env $(unset_inherited) "$REAL_TMUX" -L "$SOCKET" new-session -d -s "$SESSION" -n main -x 160 -y 44 -c "$HOME_DIR" \
-    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+    "env $(unset_inherited) PATH='$SHIM:$PATH' CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 DISABLE_AUTOUPDATER=1 FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' FM_GATE_REFUSE_BYPASS=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 ${extra}claude --model sonnet --plugin-dir '$MOD' --settings '$LAB/settings.json' --strict-mcp-config --dangerously-skip-permissions --debug-file '$LAB/debug.log'; printf '\nCLAUDE_EXIT=%s\n' \"\$?\"; sleep 30"
+}
+
+# A Claude Code binary installed or launched for a release check must never
+# run its own autoupdater: the updater answers with a global npm install of
+# the latest release over the machine's normal install (the /tmp pin-install
+# incident behind the DISABLE_AUTOUPDATER rule). The launch below embeds
+# DISABLE_AUTOUPDATER=1 in the pane command so the assignment survives a
+# scrubbed or daemon-built pane; this asserts the environment the running
+# binary actually has rather than the command text that launched it. The
+# environ read needs /proc: where it exists but answers nothing the check
+# fails rather than passing unchecked, and where there is no /proc it says so
+# and the launch's embedded assignment is the guard.
+assert_autoupdater_off() { # <what>
+  local what=$1 pane_pid child i=0 checked=0
+  pane_pid=$("$REAL_TMUX" -L "$SOCKET" list-panes -t "$SESSION:main" -F '#{pane_pid}') || \
+    fail "cannot read the main pane's pid to check $what"
+  while [ "$i" -lt 40 ]; do
+    for child in $(pgrep -P "$pane_pid" 2>/dev/null); do
+      [ -r "/proc/$child/environ" ] || continue
+      checked=1
+      if tr '\0' '\n' <"/proc/$child/environ" | grep -Fxq 'DISABLE_AUTOUPDATER=1'; then
+        return 0
+      fi
+    done
+    [ "$checked" = 1 ] && break
+    sleep 0.25
+    i=$((i + 1))
+  done
+  if [ "$checked" = 1 ]; then
+    fail "Claude Code $CLAUDE_VERSION runs with its autoupdater enabled ($what): the launch must embed DISABLE_AUTOUPDATER=1 so a release-check binary cannot npm-install @latest over the machine's normal install"
+  fi
+  if [ -d /proc/self ]; then
+    fail "no readable /proc environ under pane pid $pane_pid, so $what's autoupdater guard went unchecked on a /proc platform"
+  fi
+  printf 'assert_autoupdater_off: no /proc on this platform, so the running binary'"'"'s environment went unchecked; the launch'"'"'s embedded DISABLE_AUTOUPDATER=1 is the guard here\n' >&2
 }
 
 screen() {
@@ -271,6 +314,7 @@ fi
 LAB1=$LAB
 start_claude_session
 wait_event session.start '"enabled":true' 'the module loading enabled'
+assert_autoupdater_off 'the module-load lab'
 wait_composer
 take_lock
 pass "Claude Code $CLAUDE_VERSION loads the supervision-branch mod enabled and main holds the session lock"
