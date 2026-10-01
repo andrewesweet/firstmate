@@ -2841,6 +2841,17 @@ TS
   start_geometry_pi "--session-dir '$sessions'"
   wait_for_geometry_text "$snapshot" "geometry-provider.ts" \
     || fail "Pi Calm hidden-block geometry E2E did not reach the ready composer"
+  # Pi asynchronously warns about this tmux server's keyboard settings after the
+  # composer is ready. A loaded runner can render that warning inside the turn
+  # below, between the skill row and final response, so let it land first. Pi
+  # bounds its own tmux query at 2s and then shows nothing, so absence is fine.
+  case "$(tmux -L "$TMUX_SOCKET" show -gv extended-keys 2>/dev/null || true)" in
+    on|always)
+      [ "$(tmux -L "$TMUX_SOCKET" show -gv extended-keys-format 2>/dev/null || true)" != xterm ] \
+        || wait_for_geometry_text "$snapshot" "tmux extended-keys-format is xterm" || true
+      ;;
+    *) wait_for_geometry_text "$snapshot" "tmux extended-keys is off" || true ;;
+  esac
   tmux -L "$TMUX_SOCKET" send-keys -t "$TMUX_SESSION" -l '/calm-geometry-e2e'
   tmux -L "$TMUX_SOCKET" send-keys -t "$TMUX_SESSION" Enter
   sleep 0.1
