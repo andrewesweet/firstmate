@@ -384,23 +384,24 @@ fm_backend_herdr_workspace_label() {
 # compatible if a future herdr build honors it. Never used by
 # fm_backend_herdr_version_check, which is intentionally session-independent
 # (reads only .client.* fields).
+# Shared by every herdr client invocation below, including the detached
+# server launch: the server outlives its launcher and passes its startup
+# environment to every later pane, where an inherited FM_CREW_STATE_*_OVERRIDE
+# would make fm-crew-state.sh read the wrong task (2026-09-16 override-leak
+# incident). Scrubbed on EVERY client invocation, not only the explicit
+# `server` launch, because any CLI call can be the one that auto-starts the
+# server.
+FM_BACKEND_HERDR_ENV_SCRUB=(
+  -u FM_CREW_STATE_META_OVERRIDE
+  -u FM_CREW_STATE_STATUS_OVERRIDE
+  -u FM_SESSION_START_STAGE_FILE
+  -u FM_HOME_SUMMARY_IF_IDLE
+  -u FM_HOME_SUMMARY_WORKER_BEST_EFFORT
+)
+
 fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   local session=$1 rc=0 err failed_bin selected_bin client_bin=herdr
   shift
-  # Per-call fleet-state overrides and session-start-scoped variables never
-  # reach the herdr client: the server outlives its launcher and passes its
-  # startup environment to every later pane, where an inherited
-  # FM_CREW_STATE_*_OVERRIDE would make fm-crew-state.sh read the wrong task
-  # (2026-09-16 override-leak incident). Scrubbed on EVERY client invocation,
-  # not only the explicit `server` launch, because any CLI call can be the
-  # one that auto-starts the server.
-  local -a env_scrub=(
-    -u FM_CREW_STATE_META_OVERRIDE
-    -u FM_CREW_STATE_STATUS_OVERRIDE
-    -u FM_SESSION_START_STAGE_FILE
-    -u FM_HOME_SUMMARY_IF_IDLE
-    -u FM_HOME_SUMMARY_WORKER_BEST_EFFORT
-  )
   if [ "${FM_BACKEND_HERDR_CLIENT_SESSION:-}" = "$session" ]; then
     client_bin=$(fm_backend_herdr_bin)
   fi
@@ -410,18 +411,18 @@ fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   # The long-lived `server` launch is exec'd straight through: buffering its
   # stderr would hold this call open for the server's whole lifetime.
   if [ "${1:-}" = server ]; then
-    HERDR_SESSION="$session" env "${env_scrub[@]}" "$client_bin" "$@" --session "$session"
+    HERDR_SESSION="$session" env "${FM_BACKEND_HERDR_ENV_SCRUB[@]}" "$client_bin" "$@" --session "$session"
     return $?
   fi
   failed_bin=$client_bin
-  { err=$(HERDR_SESSION="$session" env "${env_scrub[@]}" "$failed_bin" "$@" --session "$session" 2>&1 1>&3 3>&-) || rc=$?; } 3>&1
+  { err=$(HERDR_SESSION="$session" env "${FM_BACKEND_HERDR_ENV_SCRUB[@]}" "$failed_bin" "$@" --session "$session" 2>&1 1>&3 3>&-) || rc=$?; } 3>&1
   if [ "$rc" -ne 0 ]; then
     case "$err" in
       *protocol_mismatch*)
         fm_backend_herdr_client_select "$session" force
         selected_bin=$(fm_backend_herdr_bin)
         if [ "$selected_bin" != "$failed_bin" ]; then
-          HERDR_SESSION="$session" env "${env_scrub[@]}" "$selected_bin" "$@" --session "$session"
+          HERDR_SESSION="$session" env "${FM_BACKEND_HERDR_ENV_SCRUB[@]}" "$selected_bin" "$@" --session "$session"
           return $?
         fi
         ;;
@@ -1674,7 +1675,7 @@ fm_backend_herdr_server_ensure() {  # <session>
   (
     unset FM_HOME FM_ROOT_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE FM_PROJECTS_OVERRIDE FM_CONFIG_OVERRIDE \
       CURSOR_AGENT CURSOR_INVOKED_AS CLAUDECODE PI_CODING_AGENT FM_PI_HARNESS GROK_AGENT FM_SUPERVISION_MODEL
-    fm_backend_herdr_cli "$session" server >/dev/null 2>&1 &
+    fm_backend_herdr_server_launch "$session"
   ) || return 1
   for i in $(seq 1 20); do
     running=$(fm_backend_herdr_cli "$session" status --json 2>/dev/null | jq -r '.server.running // false' 2>/dev/null)
@@ -1683,6 +1684,48 @@ fm_backend_herdr_server_ensure() {  # <session>
   done
   echo "error: herdr server for session '$session' did not report running within 10s" >&2
   return 1
+}
+
+# fm_backend_herdr_server_launch: start the herdr server fully detached from
+# its launcher: its own login session when setsid(1) exists, stdin from
+# /dev/null, stdout and stderr to /dev/null, and every other inherited
+# descriptor (fd 3 through 20) closed.
+#
+# The old launch - a plain `... server >/dev/null 2>&1 &` - detached only fds
+# 0-2. Over plain SSH that still hung the caller: the remote doctor carries a
+# bash-internal duplicate of the session's stdout pipe on a high fd, and the
+# started server inherited it, so sshd waited for EOF on a channel the server
+# held open for its whole lifetime (2026-10-01 remote-hang incident). Closing
+# fds 3-20 at launch removes the whole class: bash closes an already-closed
+# descriptor silently, and any future higher duplicate lands in that range or
+# is caught by the same regression test that pins this behavior.
+#
+# The launch is a single subshell whose last command is `exec`, so the async
+# fork immediately becomes setsid/env/... - no interpreter of the caller stays
+# alive as the server's parent inside the caller's session. setsid(1) is
+# Linux-common but absent on stock macOS; there the fallback still fully
+# detaches the descriptors and the server is reparented to init once this
+# launcher exits, while launchd owns the usual Aqua-session server on macOS
+# hosts. The bounded status poll in fm_backend_herdr_server_ensure remains the
+# verification that the server actually came up.
+fm_backend_herdr_server_launch() {  # <session>
+  local session=$1 client_bin=herdr
+  if [ "${FM_BACKEND_HERDR_CLIENT_SESSION:-}" = "$session" ]; then
+    client_bin=$(fm_backend_herdr_bin)
+  fi
+  (
+    # exec replaces this subshell with the server launch; the plain-env
+    # fallback only runs when setsid is absent, because the exec above never
+    # returns.
+    if command -v setsid >/dev/null 2>&1; then
+      exec setsid env "${FM_BACKEND_HERDR_ENV_SCRUB[@]}" HERDR_SESSION="$session" \
+        "$client_bin" server --session "$session"
+    fi
+    exec env "${FM_BACKEND_HERDR_ENV_SCRUB[@]}" HERDR_SESSION="$session" \
+      "$client_bin" server --session "$session"
+  ) </dev/null >/dev/null 2>&1 \
+    3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 10>&- 11>&- 12>&- 13>&- \
+    14>&- 15>&- 16>&- 17>&- 18>&- 19>&- 20>&- &
 }
 
 # fm_backend_herdr_workspace_find_all: EVERY workspace id inside <session>

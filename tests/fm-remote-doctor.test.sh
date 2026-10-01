@@ -264,6 +264,13 @@ case "${1:-} ${2:-}" in
     ;;
   "server "*|"server ")
     printf 'true\n' > "$FM_FAKE_HERDR_RUNNING"
+    # A herdr server stays alive in the foreground on whatever descriptors it
+    # inherits. Cases that need that reality set herdr-server-stays; the rest
+    # keep the instant-exit server that predates this fixture.
+    if [ -f "$FM_FAKE_STATE/herdr-server-stays" ]; then
+      printf '%s\n' "$$" > "$FM_FAKE_STATE/herdr-server-pid"
+      exec /bin/sleep 30
+    fi
     ;;
 esac
 exit 0
@@ -322,6 +329,7 @@ doctor() {
     SHELL="${CASE_ENV_SHELL-${SHELL-}}" \
     FM_REMOTE_JOB_PLATFORM_OVERRIDE="${CASE_PLATFORM_OVERRIDE-}" \
     FM_REMOTE_JOB_ACTIVE="${CASE_REMOTE_JOB_ACTIVE-1}" \
+    ${DOCTOR_TIMEOUT:+timeout $DOCTOR_TIMEOUT} \
     "$ROOT/bin/fm-remote-doctor.sh" "$@" 2>&1
   )
   DOCTOR_RC=$?
@@ -778,6 +786,47 @@ assert_contains "$DOCTOR_OUT" 'fix herdr-server=applied:' "--fix did not report 
 assert_contains "$DOCTOR_OUT" 'check herdr-server=ok:' "the started server was not confirmed by the re-check"
 [ ! -s "$CASE_LAUNCHCTL_LOG" ] || fail "the linux path invoked launchctl"
 pass "a non-darwin host skips launch agents and starts its herdr server directly"
+
+# --- a started server must be detached: --fix returns with its pipe closed ---
+
+# The reported hang: over SSH, --fix started the herdr server but the command
+# never returned, and the server kept a `bash fm-remote-doctor.sh --fix`
+# interpreter alive as its parent inside the caller's session. DOCTOR_TIMEOUT
+# bounds the whole run so a leaked descriptor in any descendant surfaces as a
+# failed case instead of a hung suite: the doctor's captured output is a pipe
+# read, so anything downstream of --fix that holds that pipe open cannot
+# return.
+new_case Linux with-herdr no-gui
+touch "$CASE_STATE/herdr-server-stays"
+command -v timeout >/dev/null 2>&1 && DOCTOR_TIMEOUT=30
+doctor --fix
+DOCTOR_TIMEOUT=
+expect_code 0 "$DOCTOR_RC" "--fix hung or failed with a stub server that stays alive"
+assert_contains "$DOCTOR_OUT" 'fix herdr-server=applied:' "--fix did not report starting the server"
+assert_contains "$DOCTOR_OUT" 'check herdr-server=ok:' "the started server was not confirmed by the re-check"
+SERVER_PID=$(cat "$CASE_STATE/herdr-server-pid" 2>/dev/null || true)
+case "$SERVER_PID" in ''|*[!0-9]*) fail "the stub server did not record its pid" ;; esac
+HOLDER_PIDS+=("$SERVER_PID")
+kill -0 "$SERVER_PID" 2>/dev/null || fail "the stub server died during or right after --fix"
+
+# Nothing of the caller may survive in the server's ancestry: its parent,
+# while one exists, must never be a doctor interpreter.
+SERVER_PPID=$(ps -o ppid= -p "$SERVER_PID" | tr -d ' ')
+SERVER_PARENT_ARGS=$(ps -o args= -p "$SERVER_PPID" 2>/dev/null || true)
+case "$SERVER_PARENT_ARGS" in
+  *fm-remote-doctor.sh*) fail "the started server is still parented by a doctor interpreter: $SERVER_PARENT_ARGS" ;;
+esac
+
+# With setsid(1) available the server must also sit in its own session, not
+# the caller's.
+if command -v setsid >/dev/null 2>&1; then
+  SERVER_SID=$(ps -o sid= -p "$SERVER_PID" | tr -d ' ')
+  RUNNER_SID=$(ps -o sid= -p $$ | tr -d ' ')
+  if [ -z "$SERVER_SID" ] || [ "$SERVER_SID" = "$RUNNER_SID" ]; then
+    fail "the started server stayed in the caller's session (sid $SERVER_SID)"
+  fi
+fi
+pass "--fix starts a staying server detached and returns with its pipe closed"
 
 # --- --fix may add only owned wrappers for version-manager tools -------------
 
