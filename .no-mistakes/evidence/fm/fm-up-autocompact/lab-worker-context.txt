@@ -1,0 +1,80 @@
+treehouse get
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/home/projects/notes$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes. Type 'exit' to return.
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes$ cd -- '/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes'
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes$ export GOTMPDIR=/tmp/fm-lab6af6e5bb6541-worker/gotmp
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes$ export COMPACT_ADVISER_DISABLE=1
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes$ export FM_TASK_ID=lab6af6e5bb6541-worker
+cti@arma-cti-b:/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes$ . '/tmp/fm-lab6af6e5bb6541-worker+6d60c040f91788ca3e9adf38a3646168de7f6367140fcd2484c48057f04f1e30/launch.s1790815479.1475587.14809.sh'
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes
+
+▎ [✻] [✻] [✻] · Share Claude Code and earn £10 in usage credits · /passes
+
+❯ : Firstmate operational input waiting: read '/tmp/fmlab.A7uAnG/home/state/operational-inbox/1790815480-32c7b7912faedc61.msg' and handle its contents as Firstmate operational input.
+
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes
+
+▎ [✻] [✻] [✻] · Share Claude Code and earn £10 in usage credits · /passes
+
+❯ : Firstmate operational input waiting: read '/tmp/fmlab.A7uAnG/home/state/operational-inbox/1790815480-32c7b7912faedc61.msg' and handle its contents as Firstmate operational input.
+
+● Auto mode lets Claude handle permission prompts automatically — Claude checks each tool call for risky actions and prompt injection before executing. Actions Claude identifies as safe are executed, while
+  actions Claude identifies as risky are blocked and Claude may try a different approach. Ideal for long-running tasks. Claude can make mistakes that allow harmful commands to run, it's recommended to only use in
+  isolated environments. Shift+Tab to change mode.
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(pwd -P; git rev-parse --show-toplevel; git checkout -b fm/lab6af6e5bb6541-worker --; ls /tmp/fmlab.A7uAnG/home/data/lab6af6e5bb6541-worker/; ls /tmp/fmlab.A7uAn…)
+  ⎿  /tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes
+     /tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes
+     Switched to a new branch 'fm/lab6af6e5bb6541-worker'
+     … +3 lines (ctrl+o to expand)
+  ⎿  Allowed by auto mode classifier
+
+● Isolation verified, branch created, gate absent. Reporting paused.
+
+● Bash(echo "paused [at=$(date +%s)]: waiting for gate file /tmp/fmlab.A7uAnG/home/data/lab6af6e5bb6541-worker/gate and a resume message" >> '/tmp/fmlab.A7uAnG/home/st…)
+  ⎿  (No output)
+  ⎿  Allowed by auto mode classifier
+
+● I'm paused. I haven't implemented count_notes() yet.
+
+  The worktree is isolated and I created the branch fm/lab6af6e5bb6541-worker. The gate file /tmp/fmlab.A7uAnG/home/data/lab6af6e5bb6541-worker/gate doesn't exist yet, so I appended a paused status line naming it. I'll
+  wait for a resume message and check the gate again before writing any code.
+
+✻ Crunched for 13s · done 1:44 AM
+
+❯ /context
+  ⎿  Context Usage
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛁   Sonnet 5.5
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   claude-sonnet-5-5
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   43.8k/220k tokens (20%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 2.5k tokens (1.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 15.3k tokens (7.0%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP server instructions: 1.3k tokens (0.6%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Skills: 7.4k tokens (3.4%)
+     ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Messages: 17.3k tokens (7.9%)
+                           ⛶ Free space: 143.2k (65.1%)
+                           ⛝ Autocompact buffer: 33k tokens (15.0%)
+
+     Auto-compact window: 220k tokens
+
+     MCP tools · /mcp (loaded on-demand)
+
+     Available
+     ├ mcp__claude_ai_Claude_Docs__batch
+     ├ mcp__claude_ai_Claude_Docs__create
+     ├ mcp__claude_ai_Claude_Docs__delete
+     ├ mcp__claude_ai_Claude_Docs__export
+     ├ mcp__claude_ai_Claude_Docs__guide
+     ├ mcp__claude_ai_Claude_Docs__query

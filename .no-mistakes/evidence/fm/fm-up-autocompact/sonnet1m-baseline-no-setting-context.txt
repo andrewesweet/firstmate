@@ -1,0 +1,197 @@
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Sonnet 5.5 · Claude Max
+ ▝▝   ▝▝   /tmp/fmlab.A7uAnG/home
+
+
+❯ /context
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛀ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Sonnet 5.5
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   claude-sonnet-5-5[1m]
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   43.3k/1m tokens (4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 2.3k tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 12.2k tokens (1.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP tools: 640 tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP server instructions: 1.3k tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Memory files: 16k tokens (1.6%)
+                                               ⛁ Skills: 9.9k tokens (1.0%)
+                                               ⛁ Messages: 959 tokens (0.1%)
+                                               ⛶ Free space: 923.7k (92.4%)
+                                               ⛝ Autocompact buffer: 33k tokens (3.3%)
+
+     Auto-compact window: 1m tokens
+
+     MCP tools · /mcp (loaded on-demand)
+
+     Loaded
+     ├ mcp__claude_ai_Claude_Docs__batch: 157 tokens
+     ├ mcp__claude_ai_Claude_Docs__guide: 199 tokens
+     └ mcp__claude_ai_Claude_Docs__update: 284 tokens
+
+     Available
+     ├ mcp__claude_ai_Claude_Docs__create
+     ├ mcp__claude_ai_Claude_Docs__delete
+     ├ mcp__claude_ai_Claude_Docs__export
+     ├ mcp__claude_ai_Claude_Docs__query
+     ├ mcp__claude_ai_Claude_Docs__read
+     ├ mcp__claude_ai_Context7__query-docs
+     ├ mcp__claude_ai_Context7__resolve-library-id
+     ├ mcp__claude_ai_DeepWiki__authenticate
+     ├ mcp__claude_ai_DeepWiki__complete_authentication
+     ├ mcp__claude_ai_Fastmail__add_to_note
+     ├ mcp__claude_ai_Fastmail__archive_email
+     ├ mcp__claude_ai_Fastmail__compose_event
+     ├ mcp__claude_ai_Fastmail__create_contact
+     ├ mcp__claude_ai_Fastmail__create_event
+     ├ mcp__claude_ai_Fastmail__create_note
+     ├ mcp__claude_ai_Fastmail__delete_contact
+     ├ mcp__claude_ai_Fastmail__delete_email
+     ├ mcp__claude_ai_Fastmail__delete_event
+     ├ mcp__claude_ai_Fastmail__delete_note
+     ├ mcp__claude_ai_Fastmail__draft_email
+     ├ mcp__claude_ai_Fastmail__list_calendars
+     ├ mcp__claude_ai_Fastmail__list_folders
+     ├ mcp__claude_ai_Fastmail__list_identities
+     ├ mcp__claude_ai_Fastmail__read_email
+     ├ mcp__claude_ai_Fastmail__read_note
+     ├ mcp__claude_ai_Fastmail__read_thread
+     ├ mcp__claude_ai_Fastmail__rsvp_event
+     ├ mcp__claude_ai_Fastmail__search_contacts
+     ├ mcp__claude_ai_Fastmail__search_email
+     ├ mcp__claude_ai_Fastmail__search_events
+     ├ mcp__claude_ai_Fastmail__search_notes
+     ├ mcp__claude_ai_Fastmail__send_email
+     ├ mcp__claude_ai_Fastmail__set_memo
+     ├ mcp__claude_ai_Fastmail__update_contact
+     ├ mcp__claude_ai_Fastmail__update_email
+     ├ mcp__claude_ai_Fastmail__update_event
+     ├ mcp__claude_ai_Fastmail__update_note
+     ├ mcp__claude_ai_Fastmail__upload_attachment
+     ├ mcp__claude_ai_Gmail__apply_sensitive_message_label
+     ├ mcp__claude_ai_Gmail__apply_sensitive_thread_label
+     ├ mcp__claude_ai_Gmail__create_draft
+     ├ mcp__claude_ai_Gmail__create_label
+     ├ mcp__claude_ai_Gmail__delete_draft
+     ├ mcp__claude_ai_Gmail__delete_label
+     ├ mcp__claude_ai_Gmail__forward
+     ├ mcp__claude_ai_Gmail__get_draft
+     ├ mcp__claude_ai_Gmail__get_message
+     ├ mcp__claude_ai_Gmail__get_thread
+     ├ mcp__claude_ai_Gmail__label_message
+     ├ mcp__claude_ai_Gmail__label_thread
+     ├ mcp__claude_ai_Gmail__list_drafts
+     ├ mcp__claude_ai_Gmail__list_labels
+     ├ mcp__claude_ai_Gmail__mark_message_spam
+     ├ mcp__claude_ai_Gmail__mark_thread_spam
+     ├ mcp__claude_ai_Gmail__reply
+     ├ mcp__claude_ai_Gmail__search_threads
+     ├ mcp__claude_ai_Gmail__send_message
+     ├ mcp__claude_ai_Gmail__trash_message
+     ├ mcp__claude_ai_Gmail__trash_thread
+     ├ mcp__claude_ai_Gmail__unlabel_message
+     ├ mcp__claude_ai_Gmail__unlabel_thread
+     ├ mcp__claude_ai_Gmail__unmark_message_spam
+     ├ mcp__claude_ai_Gmail__unmark_thread_spam
+     ├ mcp__claude_ai_Gmail__untrash_message
+     ├ mcp__claude_ai_Gmail__untrash_thread
+     ├ mcp__claude_ai_Gmail__update_draft
+     ├ mcp__claude_ai_Gmail__update_label
+     ├ mcp__claude_ai_Gmail__update_message_labels
+     ├ mcp__claude_ai_Google_Calendar__authenticate
+     ├ mcp__claude_ai_Google_Calendar__complete_authentication
+     ├ mcp__claude_ai_Google_Drive__authenticate
+     ├ mcp__claude_ai_Google_Drive__complete_authentication
+     ├ mcp__claude_ai_Microsoft_365__authenticate
+     ├ mcp__claude_ai_Microsoft_365__complete_authentication
+     ├ mcp__claude_ai_Microsoft_Learn__authenticate
+     ├ mcp__claude_ai_Microsoft_Learn__complete_authentication
+     ├ mcp__claude_ai_Port_IO__authenticate
+     └ mcp__claude_ai_Port_IO__complete_authentication
+
+     Memory files · /memory
+     ├ CLAUDE.md: 4 tokens
+     └ AGENTS.md: 16k tokens
+
+     Skills · /skills
+
+     Project
+     ├ afk: ~310 tokens
+     ├ bearings: ~260 tokens
+     ├ bootstrap-diagnostics: ~260 tokens
+     ├ fmx-respond: ~240 tokens
+     ├ process-event-sources: ~220 tokens
+     ├ firstmate-coding-guidelines: ~210 tokens
+     ├ quiet: ~200 tokens
+     ├ stuck-crewmate-recovery: ~190 tokens
+     ├ secondmate-provisioning: ~180 tokens
+     ├ updatefirstmate: ~180 tokens
+     ├ captain-hold-lifecycle: ~160 tokens
+     ├ harness-adapters: ~140 tokens
+     ├ ask-user-authority: ~140 tokens
+     ├ stow: ~140 tokens
+     ├ firstmate-codexapp: ~120 tokens
+     ├ project-management: ~110 tokens
+     ├ diagnostic-reasoning: ~100 tokens
+     ├ quota-array-dispatch: ~90 tokens
+     ├ firstmate-orca: ~90 tokens
+     ├ decision-hold-lifecycle: ~80 tokens
+     ├ ahoy: ~70 tokens
+     ├ validation-supervision: ~70 tokens
+     ├ session-start-recovery: ~60 tokens
+     ├ scout-completion: ~50 tokens
+     ├ operational-home-layout: ~50 tokens
+     ├ away-quiet-supervision: ~50 tokens
+     ├ ship-landing: ~40 tokens
+     └ agent-skill-trigger-index: ~40 tokens
+
+     User
+     └ no-mistakes: ~120 tokens
+
+     claude.ai sync
+     ├ docs: ~340 tokens
+     ├ computer-use: ~320 tokens
+     ├ docx: ~320 tokens
+     ├ built-in-browser: ~290 tokens
+     ├ chrome-browser: ~260 tokens
+     ├ image: ~260 tokens
+     ├ copywriting: ~240 tokens
+     ├ ad-creative: ~230 tokens
+     ├ copy-editing: ~210 tokens
+     ├ marketing-ideas: ~210 tokens
+     ├ anthropic-skills:deep-research: ~200 tokens
+     ├ marketing-psychology: ~170 tokens
+     ├ launch-strategy: ~170 tokens
+     ├ import-memory: ~60 tokens
+     ├ product-marketing-context: < 20 tokens
+     ├ pricing-strategy: < 20 tokens
+     ├ skill-creator: < 20 tokens
+     ├ morning: < 20 tokens
+     ├ pptx: < 20 tokens
+     ├ xlsx: < 20 tokens
+     └ pdf: < 20 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ code-review: ~280 tokens
+     ├ update-config: ~240 tokens
+     ├ artifact-capabilities: ~220 tokens
+     ├ claude-in-chrome: ~180 tokens
+     ├ schedule: ~130 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ artifact-diagramming: ~70 tokens
+     ├ artifact-design: ~70 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents                                                                 tmux focus-events off · add 'set -g focus-events on' to ~/.tmux.conf and reattach for focus tracking
+

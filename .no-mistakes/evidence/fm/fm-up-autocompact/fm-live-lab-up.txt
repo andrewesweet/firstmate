@@ -1,0 +1,15 @@
+lab: /tmp/fmlab.A7uAnG (tear down with: bin/fm-live-lab.sh down /tmp/fmlab.A7uAnG)
+tree: 1d4578e6b1dbd0a1aba12d97cc32075e5addd1a1 from /home/cti/.no-mistakes/worktrees/2a44951e43f8/01M3TE1KQ7J5FBFRRMQCEM5BYK
+spawned lab6af6e5bb6541-worker harness=claude kind=ship mode=local-only yolo=on window=firstmate:fm-lab6af6e5bb6541-worker worktree=/tmp/fmlab.A7uAnG/treehouse/.treehouse/notes-300936/1/notes
+gate: /tmp/fmlab.A7uAnG/home/data/lab6af6e5bb6541-worker/gate (touch, then message the worker to resume)
+primary: claude --setting-sources project,local --model sonnet --effort medium --permission-mode auto
+ok primary: claude pid 1503899 in /tmp/fmlab.A7uAnG/home
+ok probe: the primary answered LABREADY-6af6e5bb6541
+ok trust: /tmp/fmlab.A7uAnG/home is trusted in the Claude store
+fail host: supervision host pid 1530048 runs (expected none)
+ok watcher: live watcher with a fresh beacon
+ok worker: lab6af6e5bb6541-worker parked on /tmp/fmlab.A7uAnG/home/data/lab6af6e5bb6541-worker/gate
+ok treehouse: ~/.treehouse unchanged
+not ready after 600s; the lab is left up for inspection: bin/fm-live-lab.sh pane /tmp/fmlab.A7uAnG, then bin/fm-live-lab.sh down /tmp/fmlab.A7uAnG
+
+[exited with code 0]
