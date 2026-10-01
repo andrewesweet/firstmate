@@ -113,6 +113,7 @@ rt_unset_hash_functions() {
 rt_export_alias_shasum() {
   RT_TEST_SHA_BIN=$1
   export RT_TEST_SHA_BIN
+  # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
   shasum() {
     if [ "${1:-}" = -a ]; then
       shift
@@ -128,10 +129,12 @@ rt_export_alias_shasum() {
 rt_export_broken_hasher() {
   case $1 in
     shasum)
+      # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
       shasum() { printf 'shasum unavailable (simulated)\n' >&2; return 127; }
       export -f shasum
       ;;
     sha256sum)
+      # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
       sha256sum() { printf 'sha256sum unavailable (simulated)\n' >&2; return 127; }
       export -f sha256sum
       ;;
