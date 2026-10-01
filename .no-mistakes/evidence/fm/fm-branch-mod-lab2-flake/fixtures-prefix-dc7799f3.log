@@ -1,0 +1,3 @@
+not ok - Stop hook and mod must recognize the same lab watcher: watcher: already running pid 2677458
+watcher: FAILED - cycle ended without an actionable reason: expected exit 0, got 1
+not ok - branch-mod lab watcher isolation
