@@ -392,13 +392,60 @@ test_pr_based_dod_draft_check_uses_gh_axi() {
   local mode out
   for mode in direct-PR no-mistakes; do
     out="$TMP_ROOT/dod-$mode.md"
-    fm_dod_block "$mode" dod-draft-task fm/dod-draft-task "$TMP_ROOT/data" > "$out"
+    FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block "$mode" dod-draft-task fm/dod-draft-task > "$out"
     assert_no_grep 'gh pr view' "$out" "$mode: DoD must not document a raw gh draft check"
     # shellcheck disable=SC2016  # single quotes are deliberate: the backticks must stay literal
     assert_grep 'confirm it is not a draft (`gh-axi pr view <number>` must print `draft: no`' "$out" \
       "$mode: DoD must read the draft state through gh-axi"
   done
   pass "PR-based DoD draft check uses gh-axi"
+}
+
+# R1 realignment: the forge sits in argument 4 again, so upstream's
+# <mode> <task-id> [branch] [<forge>] calls render without re-adaptation, and
+# the review-feedback snapshot directory resolves from the home's data
+# resolution instead of a positional argument.
+test_upstream_shaped_calls_render_upstream_contracts() {
+  local out
+  out=$(FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block no-mistakes dod-upstream-task) \
+    || fail "the two-argument upstream-shaped no-mistakes call must render"
+  assert_contains "$out" "Delivery contract: mode=no-mistakes" \
+    "two-argument call must render the no-mistakes contract"
+  assert_contains "$out" "Ship branch: fm/dod-upstream-task" \
+    "two-argument call must default the branch to fm/<task-id>"
+  assert_contains "$out" "$TMP_ROOT/data/dod-upstream-task/pr-<n>-<comment-id>.txt" \
+    "two-argument call must resolve review-feedback snapshots from FM_DATA_OVERRIDE"
+
+  out=$(FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block local-only dod-upstream-task fm/custom-branch) \
+    || fail "the three-argument upstream-shaped call must render"
+  assert_contains "$out" "Ship branch: fm/custom-branch" \
+    "three-argument call must honor a custom branch"
+
+  for mode in direct-PR no-mistakes; do
+    out=$(FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block "$mode" dod-upstream-task fm/custom-branch gerrit) \
+      || fail "$mode: the four-argument upstream-shaped gerrit call must render"
+    assert_contains "$out" "forge=gerrit shape=squash" \
+      "$mode: a four-argument call must bind gerrit as the forge, not as a data directory"
+  done
+  pass "upstream-shaped two-, three-, and four-argument calls render upstream contracts"
+}
+
+# The snapshot directory is independent of the argument positions: it falls
+# back to the selected home's data/ directory, and the no-mistakes render
+# refuses rather than emit a path when nothing selects a home.
+test_feedback_snapshot_dir_resolves_from_the_home() {
+  local out rc
+  out=$(FM_HOME="$TMP_ROOT/home" FM_DATA_OVERRIDE='' fm_dod_block no-mistakes dod-home-task) \
+    || fail "the no-mistakes call must render when only FM_HOME selects the home"
+  assert_contains "$out" "$TMP_ROOT/home/data/dod-home-task/pr-<n>-<comment-id>.txt" \
+    "the snapshot directory must fall back to the selected home's data/ directory"
+
+  out=$(FM_DATA_OVERRIDE='' FM_HOME='' fm_dod_block no-mistakes dod-homeless-task 2>&1)
+  rc=$?
+  [ "$rc" -ne 0 ] || fail "a no-mistakes render without a selected home must be refused"
+  assert_contains "$out" "FM_DATA_OVERRIDE or FM_HOME" \
+    "the refusal must name the variables that select the snapshot home"
+  pass "the snapshot directory resolves from the home, refusing when none is selected"
 }
 
 # Every no-mistakes ship path reaches the moment the self-check is for -
@@ -408,7 +455,7 @@ test_no_mistakes_dod_carries_the_self_check() {
   local out
   for forge in none gerrit; do
     out="$TMP_ROOT/dod-nm-$forge.md"
-    fm_dod_block no-mistakes dod-jev-task fm/dod-jev-task "$TMP_ROOT/data" "$forge" > "$out"
+    FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block no-mistakes dod-jev-task fm/dod-jev-task "$forge" > "$out"
     # shellcheck disable=SC2016  # backticks must stay literal in the brief
     assert_grep 'fm-jev-lint.sh check` from your worktree root' "$out" \
       "no-mistakes:$forge: DoD must tell the worker to run the self-check"
@@ -420,7 +467,7 @@ test_no_mistakes_dod_carries_the_self_check() {
   done
   for mode in direct-PR local-only; do
     out="$TMP_ROOT/dod-$mode.md"
-    fm_dod_block "$mode" dod-jev-task fm/dod-jev-task "$TMP_ROOT/data" > "$out"
+    fm_dod_block "$mode" dod-jev-task fm/dod-jev-task > "$out"
     assert_no_grep 'fm-jev-lint.sh' "$out" "$mode: DoD must not mention the pipeline self-check"
   done
   pass "both no-mistakes arms carry the advisory self-check, pipeline-free modes do not"
@@ -445,5 +492,7 @@ test_standalone_local_only_needs_project_ref
 test_non_done_lines_are_not_gated
 test_fenced_and_indented_captain_lines_are_not_intent
 test_pr_based_dod_draft_check_uses_gh_axi
+test_upstream_shaped_calls_render_upstream_contracts
+test_feedback_snapshot_dir_resolves_from_the_home
 
 echo "all fm-dod-lib tests passed"

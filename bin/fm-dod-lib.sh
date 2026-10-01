@@ -6,15 +6,16 @@
 # receives. Both paths must hand the worker the same contract: a promoted
 # no-mistakes worker that never received the ask-user escalation rule or the
 # `--yes` ban is the exact delivery hole this single owner exists to close.
-# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] <data-dir> [<forge>]
+# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>]
 # prints the block on stdout with no trailing blank line. The caller validates the
 # mode; an unknown mode is refused rather than silently rendered as the pipeline
 # contract.
 # The optional third argument is the task's full ship-branch name (a project's
 # registered prefix may replace the legacy `fm/` one); it defaults to `fm/<task-id>`
 # and is the immutable task branch rendered in every delivery contract.
-# <data-dir> names where the no-mistakes block tells the worker to file review
-# feedback.
+# The forge defaults to none. Review-feedback snapshots resolve through
+# fm_dod_feedback_dir, so nothing required follows the optional branch and a
+# forge value is never read as a directory.
 # Callers of the gate are bin/fm-crew-state.sh (current-state done),
 # bin/fm-pr-check.sh (PR registration), and bin/fm-inactive-reconcile.sh
 # (secondmate ledger-first publish of a child done). A ship `done:` is not
@@ -114,7 +115,8 @@
 # `no-mistakes axi respond --action fix`, never dismissed as a non-required
 # check; feedback that lands while no gate is parked is a keyed
 # `needs-decision [key=pr-<n>-<comment-id>]` line pointing at
-# `<data-dir>/<task-id>/pr-<n>-<comment-id>.txt` that the worker keeps polling
+# fm_dod_feedback_dir's `<task-id>/pr-<n>-<comment-id>.txt` snapshot that the
+# worker keeps polling
 # behind until firstmate answers dismiss (reply on the PR) or fix, which is
 # applied only at the run's next stopping point (a parked gate, or a follow-up
 # commit plus a new run on the same branch after the final outcome), and
@@ -460,9 +462,22 @@ Findings are candidates only: they never gate, skip, prune, or approve validatio
 EOF
 }
 
-fm_dod_block() {  # <mode> <task-id> [branch] <data-dir> [<forge>]
-  local mode=$1 id=$2 data=$4 forge=${5:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
-  local branch=${3:-fm/$id}
+# The review-feedback snapshot directory for a rendered no-mistakes block:
+# the home's existing data resolution, FM_DATA_OVERRIDE when set, otherwise
+# the selected home's data/. Refuses when neither selects a home, so a
+# rendered feedback path can never land outside the brief's own home.
+fm_dod_feedback_dir() {  # -> <data-dir>
+  case "${FM_DATA_OVERRIDE:-}${FM_HOME:-}" in
+    '')
+      echo "error: fm_dod_feedback_dir: set FM_DATA_OVERRIDE or FM_HOME to select the home for review-feedback snapshots" >&2
+      return 1 ;;
+  esac
+  printf '%s\n' "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
+}
+
+fm_dod_block() {  # <mode> <task-id> [branch] [<forge>]
+  local mode=$1 id=$2 forge=${4:-none} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
+  local branch=${3:-fm/$id} data
   fm_forge_valid_for_mode "$forge" "$mode" fm_dod_block || return 1
   case "$mode:$forge" in
     direct-PR:gerrit)
@@ -566,6 +581,7 @@ The configured merge authority approves the ready branch, then firstmate merges 
 EOF
       ;;
     no-mistakes:*)
+      data=$(fm_dod_feedback_dir) || return 1
       cat <<EOF
 # Definition of done
 Delivery contract: mode=no-mistakes

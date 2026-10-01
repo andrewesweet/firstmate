@@ -427,7 +427,7 @@ assert_signal_cleans_up HUP 129
 # shellcheck source=bin/fm-dod-lib.sh
 . "$ROOT/bin/fm-dod-lib.sh"
 for forge in '' gerrit; do
-  BRIEF=$(fm_dod_block no-mistakes slot-brief-task fm/slot-brief-task "$ENV_ROOT/data" $forge) \
+  BRIEF=$(FM_DATA_OVERRIDE="$ENV_ROOT/data" fm_dod_block no-mistakes slot-brief-task fm/slot-brief-task $forge) \
     || fail "rendering the ${forge:-default} ship brief failed"
   START_LINE=$(printf '%s\n' "$BRIEF" | grep -F 'no-mistakes axi run --intent' | grep -F 'fm-nm-slot.sh') \
     || fail "the ${forge:-default} ship brief must start the run through fm-nm-slot.sh, got: $BRIEF"
