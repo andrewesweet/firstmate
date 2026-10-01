@@ -1763,7 +1763,7 @@ github_submit_stack_merge() {
 # every unreadable answer is unproven and keeps the authority for the armed
 # poll. Only the verified merged path returns.
 github_poll_stack_merge() {
-  local uuid=$1 polls=0 answer='' message=''
+  local uuid=$1 polls=0 answer='' message='' live_head=''
   local delay=${FM_PR_GITHUB_MERGE_POLL_DELAY:-1}
   case "$delay" in
     [0-9] | 10) ;;
@@ -1782,6 +1782,17 @@ github_poll_stack_merge() {
           fi
           if [ "$FM_PR_GITHUB_MERGED" != true ]; then
             echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request reads back as state=$FM_PR_GITHUB_STATE, merged=$FM_PR_GITHUB_MERGED, isInMergeQueue=$FM_PR_GITHUB_QUEUED; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          # GitHub merges exactly the bound head, so a commit pushed after
+          # verification leaves the closed pull request's head off the base.
+          live_head=$(gh pr view "$URL" --json headRefOid --jq .headRefOid 2>/dev/null) || live_head=''
+          if [ -z "$live_head" ]; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request's head could not be read back; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          if [ "$live_head" != "$FM_PR_MERGE_HEAD" ]; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request's head reads back as $live_head, not the bound verified head $FM_PR_MERGE_HEAD; the bound head landed but the newer pushed commit $live_head is not on the base; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
             exit 1
           fi
           printf 'verified: %s is merged (state=%s, merged=%s, isInMergeQueue=%s)\n' \

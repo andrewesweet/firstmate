@@ -302,6 +302,11 @@ case "${1:-} ${2:-}" in
         if [ -n "${FM_TEST_META_AT_MERGE:-}" ] && [ -f "${FM_STATE_OVERRIDE:-}/task-x1.meta" ]; then
           cat "${FM_STATE_OVERRIDE}/task-x1.meta" > "$FM_TEST_META_AT_MERGE"
         fi
+        # A descendant pushed between verification and the submit moves the
+        # pull request's live head while GitHub merges the bound one.
+        if [ -f "${FM_TEST_GH_HEAD_AFTER_SUBMIT:-}" ]; then
+          cp "$FM_TEST_GH_HEAD_AFTER_SUBMIT" "$FM_TEST_GH_HEAD"
+        fi
         sha=
         prev=
         for arg in "$@"; do
@@ -4799,6 +4804,40 @@ test_stacked_merged_answer_with_conflicting_readback_reports_disagreement() {
   pass "a merged answer with a conflicting read-back is a disagreement, never a landing"
 }
 
+test_stacked_merged_with_a_newer_pushed_head_reports_disagreement() {
+  local case_dir rc head newer
+  head=d35c000000000000000000000000000000000012
+  newer=d35c000000000000000000000000000000000013
+  case_dir=$(build_stacked_case stacked-merged-newer-head "$head" 110)
+  printf 'merged\n' > "$case_dir/github-async-poll-sequence"
+  printf '%s\n' "$newer" > "$case_dir/github-head-after-submit"
+
+  set +e
+  FM_PR_GITHUB_MERGE_POLL_DELAY=0 \
+  FM_TEST_GH_HEAD_AFTER_SUBMIT="$case_dir/github-head-after-submit" \
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/110 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  [ "$rc" -ne 0 ] || fail "stacked-merged-newer-head: a merge that left a newer pushed head off the base must exit non-zero"
+  grep -qxF "$(github_async_submit_line 110 "$head")" "$case_dir/gh.log" \
+    || fail "stacked-merged-newer-head: the submit did not bind the verified head"
+  assert_no_grep 'verified:' "$case_dir/stdout" \
+    "stacked-merged-newer-head: a verified line printed despite the newer head"
+  assert_grep "$newer" "$case_dir/stderr" \
+    "stacked-merged-newer-head: the report did not name the newer head"
+  assert_grep "$head" "$case_dir/stderr" \
+    "stacked-merged-newer-head: the report did not name the bound head"
+  assert_grep 'disagreement' "$case_dir/stderr" \
+    "stacked-merged-newer-head: the report did not name the disagreement"
+  [ -s "$case_dir/state/task-x1.merge-authority" ] \
+    || fail "stacked-merged-newer-head: the authority was not kept"
+  [ ! -e "$case_dir/state/task-x1.pr-poll-merge-notified" ] \
+    || fail "stacked-merged-newer-head: an outcome was published"
+  pass "a stacked merge whose pull request head moved past the bound head is a disagreement, never a landing"
+}
+
 test_stacked_refuses_a_head_the_pipeline_has_not_validated() {
   local case_dir rc head other nmless_path
   head=f1eb400000000000000000000000000000000012
@@ -5020,6 +5059,7 @@ test_stacked_failed_result_quotes_github_and_retires_authority
 test_stacked_pending_or_unreadable_result_keeps_authority
 test_stacked_submit_answers_never_report_a_landing
 test_stacked_merged_answer_with_conflicting_readback_reports_disagreement
+test_stacked_merged_with_a_newer_pushed_head_reports_disagreement
 test_stacked_refuses_a_head_the_pipeline_has_not_validated
 test_stacked_regression_pins_keep_the_check_gates
 test_stacked_direct_pr_merges_without_the_pipeline_read
