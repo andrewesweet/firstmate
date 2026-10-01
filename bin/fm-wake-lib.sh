@@ -1459,8 +1459,12 @@ fm_treehouse_pool_slot() {  # <project-dir> <worktree>
 # still holds its task's durable lease, so teardown must be able to take the
 # project lock and return it. The git-identity check above needs a checkout that
 # is no longer there, so an absent slot is matched on the pool state file that
-# lists it: treehouse writes one `path` per managed worktree there, and only a
-# path it still lists is a slot of that pool.
+# lists it. The matcher reads every `path` value recorded in the state file,
+# not only the ones treehouse keeps in its worktrees array (parsing that array
+# would need jq, which is deliberately not a dependency here); the exact-path
+# match still means only a treehouse-recorded path counts as a slot of that
+# pool, and the guarded return this predicate feeds refuses a slot whose lease
+# is not the caller's.
 fm_treehouse_pool_slot_recorded() {  # <project-dir> <worktree>
   local project=$1 worktree=$2 state
   fm_treehouse_pool_slot "$project" "$worktree" && return 0

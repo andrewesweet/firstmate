@@ -4410,10 +4410,16 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # cheapest point, rather than launching a worker with no reserved copy.
   if ! WT_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "$ID"); then
     echo "error: task $ID could not lease a Treehouse pool slot for $PROJ_ABS; refusing to launch a worker without a reserved copy" >&2
+    # A get that fails may still have recorded the reservation before failing
+    # - for example a checkout step failing after the lease is written - so
+    # the lease is treated as maybe-held from here on: the abort trap returns
+    # whatever path the command printed, and a pathless failure warns that the
+    # lease may still be held, instead of either one stranding it silently.
+    SPAWN_LEASE_HELD=1
     exit 1
   fi
-  # A lease treehouse has recorded is held from this point on, whatever the
-  # command printed, so every refusal below returns it through the abort trap.
+  # The lease is held from this point on, so every refusal below returns it
+  # through the abort trap.
   SPAWN_LEASE_HELD=1
   [ -n "$WT_LEASED" ] || {
     echo "error: task $ID leased a Treehouse pool slot for $PROJ_ABS but treehouse reported no worktree path; refusing to launch" >&2
