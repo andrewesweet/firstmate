@@ -1,0 +1,39 @@
+# treehouse v2.3.0
+
+=== A: spawn against an exhausted REAL pool ===
+pool slot /tmp/fm-live-followups.qYX7YK/exhausted/pool/.treehouse/project-0ab4c0/1/project leased to: other-task-r9
+fm-spawn exit=1
+error: task live-exh-r1 could not lease a Treehouse pool slot for /tmp/fm-live-followups.qYX7YK/exhausted/project; refusing to launch a worker without a reserved copy
+warning: task live-exh-r1's failed treehouse get may have recorded a lease before it failed; check with (cd /tmp/fm-live-followups.qYX7YK/exhausted/project && treehouse status), and release any slot still leased to live-exh-r1 with: (cd /tmp/fm-live-followups.qYX7YK/exhausted/project && treehouse return --force --if-lease-holder live-exh-r1 <slot-path>)
+record published? no
+slot holder after: other-task-r9
+RESULT A: PASS
+
+=== B: pre-claim record, REAL slot now leased to another task ===
+slot holder before teardown: other-live-r2
+fm-teardown exit=1
+error: treehouse return failed for task live-pre-r1's worktree /tmp/fm-live-followups.qYX7YK/preclaim-other/pool/.treehouse/project-14eff5/1/project; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task live-pre-r1's record is kept for a rerun
+kept other-task-work.txt
+kept .claude/settings.local.json
+kept .opencode/plugins/fm-turn-end.js
+kept .fm-grok-turnend
+HEAD: other-task-branch
+slot holder after: other-live-r2
+record kept? yes
+RESULT B: PASS
+
+=== C: pre-claim record, REAL slot still leased to its own task ===
+slot holder before teardown: live-own-r1
+fm-teardown exit=0
+
+🌳 Worktree returned to pool.
+teardown live-own-r1 complete (window firstmate:fm-live-own-r1, worktree /tmp/fm-live-followups.qYX7YK/preclaim-own/pool/.treehouse/project-771396/1/project)
+Backlog: live-own-r1 just finished (this home keeps no markdown backlog at /tmp/fm-live-followups.qYX7YK/preclaim-own/home/data/backlog.md). Update /tmp/fm-live-followups.qYX7YK/preclaim-own/home/data/backlog.md - move live-own-r1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+slot holder after: ''
+record removed? yes
+hook swept: .claude/settings.local.json
+hook swept: .fm-kimi-turnend
+HEAD: HEAD
+branch ref fm/live-own-r1 dropped
+re-lease after teardown -> /tmp/fm-live-followups.qYX7YK/preclaim-own/pool/.treehouse/project-771396/1/project
+RESULT C: PASS

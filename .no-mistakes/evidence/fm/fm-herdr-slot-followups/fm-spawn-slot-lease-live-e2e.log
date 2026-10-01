@@ -1,0 +1,4 @@
+ok - a real treehouse lease is recorded for its own task and released by teardown (treehouse v2.3.0)
+ok - a record whose slot carries no lease is cleaned, reset and returned (treehouse v2.3.0)
+ok - teardown releases a real treehouse reservation whose copy was pruned (treehouse v2.3.0)
+# all fm-spawn-slot-lease-live-e2e tests passed

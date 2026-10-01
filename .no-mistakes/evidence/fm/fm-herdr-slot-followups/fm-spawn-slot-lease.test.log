@@ -1,0 +1,17 @@
+ok - a leased task slot is not reissued while its task exists, and an exhausted pool refuses cleanly
+ok - teardown frees the lease, and the next spawn reuses the freed copy
+ok - a failing get that recorded its lease returns it through the abort path
+ok - a failing silent get leaves its lease with a may-still-be-held warning
+ok - teardown completes for a record whose slot carries no lease
+ok - teardown frees the lease even when the slot's copy was removed before it ran
+ok - teardown leaves an absent copy whose lease belongs to another task alone
+ok - teardown warns for an absent copy whose path the state file no longer lists
+ok - teardown refuses a slot leased to another task, keeping its copy, lease and record
+ok - child cleanup frees a lease whose slot copy was removed
+ok - child cleanup leaves an absent copy whose lease belongs to another task alone
+ok - child cleanup refuses a present copy whose lease belongs to another task
+ok - child cleanup refuses a pre-claim present copy whose lease belongs to another task
+ok - an aborted spawn leaves a dirty copy's work and names its manual return
+ok - a spawn whose endpoint cannot be told to cd returns its lease
+ok - a spawn whose endpoint never reaches the leased copy returns its lease
+# all fm-spawn-slot-lease tests passed
