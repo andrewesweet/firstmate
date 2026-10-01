@@ -1,0 +1,56 @@
+=== shasum-only: PATH has shasum=1 sha256sum=0
+rc=0
+rc=0
+rc=0 (replay)
+receipts:
+  anomaly-needs-decision-1869c254.receipt
+  anomaly-needs-decision-4ec2ae16.receipt
+=== sha256sum-only: PATH has shasum=0 sha256sum=1
+rc=0
+rc=0
+rc=0 (replay)
+receipts:
+  anomaly-needs-decision-1869c254.receipt
+  anomaly-needs-decision-4ec2ae16.receipt
+=== both-absent: PATH has shasum=0 sha256sum=0
+fm-retro-trigger: cannot hash the evidence (shasum -a 256 or sha256sum required)
+rc=1
+fm-retro-trigger: cannot hash the evidence (shasum -a 256 or sha256sum required)
+rc=1
+fm-retro-trigger: cannot hash the evidence (shasum -a 256 or sha256sum required)
+rc=1 (replay)
+receipts:
+=== expected suffixes (independent sha256sum):
+  key-one -> 4ec2ae16
+  key-two -> 1869c254
+=== broken selected hasher (shasum on PATH exits 1)
+fm-retro-trigger: cannot hash the evidence (shasum -a 256 or sha256sum required)
+rc=1
+receipts: 0
+=== malformed hasher output (shasum prints a short non-hex digest)
+fm-retro-trigger: cannot hash the evidence (shasum -a 256 or sha256sum required)
+rc=1
+receipts: 0
+
+##### presentation hook: wake drain of a status line
+--- status line: done: PR https://e/1
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: done: PR https://e/1
+  receipt anomaly-done-unseen-27162543.receipt: kind=done-unseen evidence=epoch=1790839055 done: PR https://e/1 
+--- status line: done [at=1790839055]: PR https://e/2
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: done [at=1790839055]: PR https://e/2
+  receipt anomaly-done-unseen-ca148a2f.receipt: kind=done-unseen evidence=epoch=1790839055 done [at=1790839055]: PR https://e/2 
+--- status line: done corr=0123456789abcdef [at=1790839055]: PR https://e/3
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: done corr=0123456789abcdef [at=1790839055]: PR https://e/3
+  receipt anomaly-done-unseen-5ec98cbc.receipt: kind=done-unseen evidence=epoch=1790839055 done corr=0123456789abcdef [at=1790839055]: PR https://e/3 
+--- status line: needs-decision [at=1790839055] [key=cap-10]: pick
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: needs-decision [at=1790839055] [key=cap-10]: pick
+  receipt anomaly-needs-decision-b5a94ac2.receipt: kind=needs-decision evidence=cap-10 
+--- status line: blocked [at=1790839055]: stuck
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: blocked [at=1790839055]: stuck
+  receipt anomaly-blocked-fe663694.receipt: kind=blocked evidence=blocked [at=1790839055]: stuck 
+--- status line: working [at=1790839055]: busy
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: working [at=1790839055]: busy
+  receipt: (none)
+--- status line: donezo: not a verb
+  drain> wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: donezo: not a verb
+  receipt: (none)

@@ -1,0 +1,6 @@
+=== fresh stamped done (age 0 < 30min threshold) and multi-line span
+wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: done [at=1790842664]: PR https://e/9
+fresh receipts: 0
+wake annotation: unread wake-EVENT since last drain, not current state: crew.status: working: a
+wake annotation: latest wake-EVENT observed at drain, not current state: crew.status: done [at=1790839064]: PR https://e/10
+multi-line receipts: 0
