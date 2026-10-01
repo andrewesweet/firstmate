@@ -87,6 +87,12 @@ make_seeded_secondmate_home() {
   git -C "$home" init -q -b main
 }
 
+task_inbox_export() {  # <home> <id>
+  local state
+  state=$(CDPATH='' cd -- "$1/state" && pwd -P) || fail "cannot resolve state dir $1/state"
+  printf "export FM_TASK_INBOX='%s'; " "$state/$2.inbox"
+}
+
 ai_trailer_hooks_prefix() {  # <home> <id>
   local state
   state=$(CDPATH='' cd -- "$1/state" && pwd -P) || fail "cannot resolve state dir $1/state"
@@ -624,9 +630,10 @@ test_active_dispatch_profile_allows_raw_launch_command() {
   assert_meta_profile "$HOME_DIR/state/$id.meta" custom-agent default default
   launch=$(cat "$LAUNCH_LOG")
   # The unverified-adapter escape hatch is still an agent this fleet launched,
-  # so it carries the trace scrub, the AI-trailer strip, and the
-  # compact-adviser kill switch; nothing else may rewrite the captain's command.
-  [ "$launch" = "unset TRACEPARENT; export COMPACT_ADVISER_DISABLE=1; $(ai_trailer_hooks_prefix "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
+  # so it carries the trace scrub, the steering-inbox export, the AI-trailer
+  # strip, and the compact-adviser kill switch; nothing else may rewrite the
+  # captain's command.
+  [ "$launch" = "unset TRACEPARENT; export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$HOME_DIR" "$id")$(ai_trailer_hooks_prefix "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
   pass "active crew-dispatch profile allows the raw launch-command escape hatch"
 }
 
@@ -1964,7 +1971,7 @@ claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [hooks-env-
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "unset TRACEPARENT; ${adviser_prefix}$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY ${hooks_prefix}CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "unset TRACEPARENT; ${adviser_prefix}$(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI -u CLAUDE_CODE_SKIP_PROMPT_HISTORY ${hooks_prefix}CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"disableClaudeAiConnectors\":true,\"deniedMcpServers\":[{\"serverName\":\"claude-in-chrome\"}],\"autoCompactWindow\":220000,\"autoMemoryEnabled\":false,\"disableWorkflows\":true,\"disableBundledSkills\":true,\"permissions\":{\"deny\":[\"Artifact\",\"ReportFindings\",\"ScheduleWakeup\",\"AskUserQuestion\"]}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {

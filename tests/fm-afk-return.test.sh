@@ -549,6 +549,35 @@ test_return_brief_all_silent_window_does_not_point_at_drain() {
   pass "the all-silent return keeps the outcome stored without promising a drain presentation"
 }
 
+test_return_brief_all_silent_window_does_not_point_at_drain() {
+  local dir fakebin out f
+  dir="$TMP_ROOT/window-pointer-silent"
+  install_runner "$dir"
+  for f in fm-supervision-engine-lib.sh fm-harness.sh fm-cursor-lib.sh fm-gemini-lib.sh; do
+    cp "$ROOT/bin/$f" "$dir/bin/"
+  done
+  : > "$dir/home/config/supervision-host"
+  fakebin="$dir/fakebin"
+  mkdir -p "$fakebin"
+  ln -s /bin/bash "$fakebin/claude"
+  contract_in "$dir" enter --words 'watch the fleet' >/dev/null 2>&1 || fail "could not record the away posture"
+  outcome_in "$dir" append --task demo --verdict routine --summary 'still building; nothing new has happened; no action was taken' --silent true >/dev/null \
+    || fail "could not seed the silent routine outcome"
+  touch "$dir/home/state/.last-watcher-beat"
+  : > "$dir/home/state/.fake-drain"
+  # shellcheck disable=SC2016 # the single-quoted script expands in the harness shell
+  out=$(FM_HOME="$dir/home" FM_STATE_OVERRIDE="$dir/home/state" FM_CONFIG_OVERRIDE="$dir/home/config" \
+    "$fakebin/claude" -c '"$0" begin 2>&1' "$dir/bin/fm-afk-return.sh") || fail "the all-silent return did not clear: $out"
+  assert_contains "$out" '1 outcome(s) handled by the away session (1 routine, 0 escalated above)' \
+    "the all-silent window's stored outcome count was lost"
+  assert_contains "$out" '1 routine outcome(s) recorded; none were visible.' \
+    "the all-silent window should report no visible routine notes"
+  assert_not_contains "$out" 'still building' "the return brief rendered the silent routine note"
+  assert_not_contains "$out" 'BRANCH OUTCOMES section' "the all-silent brief pointed at a drain section that does not exist"
+  [ ! -e "$dir/home/state/.branch-outcomes-cursor" ] || fail "the return moved the outcome store's read cursor"
+  pass "the all-silent return keeps the outcome stored without promising a drain presentation"
+}
+
 # The drain is the only presenter of branch outcomes and owner of their read
 # cursor, so a drain that presented them but could not record the presentation
 # fails, and the return keeps catch-up gated until a check drains again and

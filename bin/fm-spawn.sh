@@ -306,7 +306,9 @@
 #   marker FM_TASK_ID that ship and scout panes receive above.
 #   An enabled task trace also retains TRACEPARENT and
 #   OTEL_RESOURCE_ATTRIBUTES. Explicit Firstmate launch assignments still
-#   apply inside the filtered environment. Raw commands must
+#   apply inside the filtered environment, including the FM_TASK_INBOX export
+#   every launch carries (the absolute state/<id>.inbox path the steering
+#   doorbell names). Raw commands must
 #   be POSIX sh compatible under this opt-in; the absent-file path is unchanged.
 #   This is an exec environment boundary, not a sandbox for the pane's startup
 #   shell, credential files, same-user processes, or later shell initialization.
@@ -5466,10 +5468,16 @@ fi
 if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
   LAUNCH="export LAVISH_AXI_HOST=$(shell_quote "$LAVISH_AXI_HOST"); $LAUNCH"
 fi
-# Upstream compact-adviser kill switch: the adviser stays disabled on every
-# launch except a Claude worker on the function-hooks path, where it runs auto.
-# The exception clears the variable rather than merely skipping the assignment,
-# so a relaunch in a pane that a previous launch disabled still runs the adviser.
+# Every launch also exports the absolute path of this task's steering inbox, so
+# the constant doorbell line (bin/fm-task-inbox-lib.sh) can name
+# "$FM_TASK_INBOX" instead of a path that grows with the home's depth. Like the
+# kill switch below it is an export statement, so it survives a compound raw
+# launch and the launch-env-allowlist `env -i` wrapper.
+LAUNCH="export FM_TASK_INBOX=$(shell_quote "$STATE_REAL/$ID.inbox"); $LAUNCH"
+# Compact-adviser kill switch: the adviser stays disabled on every launch
+# except a Claude worker on the function-hooks path, where it runs auto. The
+# exception clears the variable rather than merely skipping the assignment, so
+# a relaunch in a pane that a previous launch disabled still runs the adviser.
 if [ "$HARNESS" != claude ] || [ "$CLAUDE_HOOKS_PRESENT" != 1 ]; then
   LAUNCH="export COMPACT_ADVISER_DISABLE=1; $LAUNCH"
 else

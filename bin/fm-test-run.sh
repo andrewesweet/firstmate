@@ -136,6 +136,10 @@
 # split it across separate runners, so two of its stateful scripts still never
 # share a machine. This script owns <n>: a lane whose <n> disagrees with the
 # configured shard count is refused, so a CI matrix cannot silently drop a shard.
+# --check-coverage also reports serial_max_ms (largest packed hint sum, including
+# default weights) and serial_budget_ms (the 20-minute packing target), refusing
+# a split above that target. Neither figure is an execution timeout or proof of
+# observed headroom: refresh growing files from CI measurements.
 # --changed is conservative: it over-selects related families rather than
 # under-selecting, and never expands to the complete suite unless --all. The one
 # place it is deliberately narrow is a bin/ path with no curated family: a test
@@ -206,6 +210,11 @@ PORTABLE_SERIAL_SHARDS=9
 # lands in; the coverage guard's unhinted-share bound is what keeps that
 # optimism bounded.
 PORTABLE_SERIAL_DEFAULT_WEIGHT_MS=27000
+
+# Packing target, not an execution timeout: leave at least ten minutes of the
+# normal CI tier for setup and runtime variance. --check-coverage refuses a
+# modeled serial shard above this target; refresh hints or rebalance instead.
+PORTABLE_SERIAL_MAX_WEIGHT_MS=1200000
 
 # Largest share of the serial lane allowed to run on the default weight above.
 # Hints are what keep the shards balanced, so once too much of the lane is
@@ -516,30 +525,30 @@ EOF
 # refresh procedure are owned by docs/fm-test-portable-shards.md.
 portable_parallel_weight_hints() {
   cat <<'EOF'
-tests/fm-arm-pretool-check.test.sh 30898
-tests/fm-backend-herdr.test.sh 22144
-tests/fm-brief.test.sh 1625
-tests/fm-captain-hold-lifecycle.test.sh 296481
-tests/fm-cd-pretool-check.test.sh 16964
-tests/fm-composer-ghost.test.sh 2120
-tests/fm-composer-lib.test.sh 4798
-tests/fm-crew-state.test.sh 11557
-tests/fm-ensure-agents-md.test.sh 901
-tests/fm-grok-harness.test.sh 6563
-tests/fm-herdr-lab.test.sh 9800
-tests/fm-lint.test.sh 164262
-tests/fm-pi-primary-types.test.sh 8624
-tests/fm-pr-merge.test.sh 111145
-tests/fm-review-diff.test.sh 2747
-tests/fm-send-popup-settle.test.sh 4939
-tests/fm-send-settle.test.sh 2051
-tests/fm-send-strict.test.sh 3861
-tests/fm-spawn-batch.test.sh 2265
-tests/fm-supervision-instructions.test.sh 297
-tests/fm-test-run.test.sh 92944
-tests/fm-tmux-submit-busy.test.sh 2477
-tests/fm-transition-lib.test.sh 99
-tests/fm-x-mode.test.sh 31870
+tests/fm-arm-pretool-check.test.sh 33778
+tests/fm-backend-herdr.test.sh 36331
+tests/fm-brief.test.sh 10594
+tests/fm-captain-hold-lifecycle.test.sh 343658
+tests/fm-cd-pretool-check.test.sh 16801
+tests/fm-composer-ghost.test.sh 2292
+tests/fm-composer-lib.test.sh 9521
+tests/fm-crew-state.test.sh 82058
+tests/fm-ensure-agents-md.test.sh 895
+tests/fm-grok-harness.test.sh 7666
+tests/fm-herdr-lab.test.sh 18325
+tests/fm-lint.test.sh 252498
+tests/fm-pi-primary-types.test.sh 5426
+tests/fm-pr-merge.test.sh 300199
+tests/fm-review-diff.test.sh 4134
+tests/fm-send-popup-settle.test.sh 6624
+tests/fm-send-settle.test.sh 2310
+tests/fm-send-strict.test.sh 4804
+tests/fm-spawn-batch.test.sh 2987
+tests/fm-supervision-instructions.test.sh 809
+tests/fm-test-run.test.sh 156781
+tests/fm-tmux-submit-busy.test.sh 2600
+tests/fm-transition-lib.test.sh 101
+tests/fm-x-mode.test.sh 29896
 EOF
 }
 
@@ -562,17 +571,19 @@ portable_parallel_lane_weight() {
 # workflow step moved with it.
 list_portable_parallel_1() {
   cat <<'EOF'
-tests/fm-lint.test.sh
 tests/fm-pr-merge.test.sh
-tests/fm-test-run.test.sh
+tests/fm-lint.test.sh
+tests/fm-backend-herdr.test.sh
+tests/fm-x-mode.test.sh
 tests/fm-cd-pretool-check.test.sh
-tests/fm-pi-primary-types.test.sh
-tests/fm-grok-harness.test.sh
 tests/fm-composer-lib.test.sh
+tests/fm-send-popup-settle.test.sh
+tests/fm-pi-primary-types.test.sh
 tests/fm-review-diff.test.sh
-tests/fm-tmux-submit-busy.test.sh
-tests/fm-composer-ghost.test.sh
-tests/fm-brief.test.sh
+tests/fm-send-settle.test.sh
+tests/fm-ensure-agents-md.test.sh
+tests/fm-supervision-instructions.test.sh
+tests/fm-transition-lib.test.sh
 EOF
 }
 
@@ -580,18 +591,16 @@ EOF
 list_portable_parallel_2() {
   cat <<'EOF'
 tests/fm-captain-hold-lifecycle.test.sh
-tests/fm-x-mode.test.sh
-tests/fm-arm-pretool-check.test.sh
-tests/fm-backend-herdr.test.sh
+tests/fm-test-run.test.sh
 tests/fm-crew-state.test.sh
+tests/fm-arm-pretool-check.test.sh
 tests/fm-herdr-lab.test.sh
-tests/fm-send-popup-settle.test.sh
+tests/fm-brief.test.sh
+tests/fm-grok-harness.test.sh
 tests/fm-send-strict.test.sh
 tests/fm-spawn-batch.test.sh
-tests/fm-send-settle.test.sh
-tests/fm-ensure-agents-md.test.sh
-tests/fm-supervision-instructions.test.sh
-tests/fm-transition-lib.test.sh
+tests/fm-tmux-submit-busy.test.sh
+tests/fm-composer-ghost.test.sh
 EOF
 }
 
@@ -675,8 +684,9 @@ list_portable_serial() {
 
 # Measured portable-serial script durations in milliseconds, from the CI timing
 # artifacts recorded in docs/fm-test-portable-shards.md. Each value is the
-# slowest successful sample in the referenced complete/partial CI runs, rather
-# than only on the fastest one measured. These are balance hints only: the shard
+# slowest successful sample in the referenced complete/partial CI runs, with
+# the version-specific host and native-Windows exceptions documented there.
+# These are balance hints only: the shard
 # partition stays complete and disjoint whatever they say, so a stale hint costs
 # balance rather than coverage. That doc owns the refresh procedure.
 portable_serial_weight_hints() {
@@ -784,6 +794,7 @@ tests/fm-kimi-harness.test.sh 50026
 tests/fm-launch-prompt-signals-live-e2e.test.sh 67
 tests/fm-lint-workflows.test.sh 931
 tests/fm-live-gate.test.sh 6719
+tests/fm-live-lab-up-mate.test.sh 17363
 tests/fm-live-lab.test.sh 80192
 tests/fm-mail-check.test.sh 9162
 tests/fm-mail.test.sh 10872
@@ -854,6 +865,7 @@ tests/fm-sessionstart-hook-live-e2e.test.sh 106
 tests/fm-sessionstart-instruction-refresh-live-e2e.test.sh 77
 tests/fm-sessionstart-nudge.test.sh 73711
 tests/fm-shared-captain-inheritance.test.sh 8531
+tests/fm-spawn-compact-adviser-disable-remote.test.sh 38561
 tests/fm-spawn-dispatch-profile.test.sh 164985
 tests/fm-spawn-orca-worktree.test.sh 2513
 tests/fm-spawn-pool-base-freshen.test.sh 62249
@@ -917,6 +929,15 @@ portable_serial_unhinted() {
   list_portable_serial | LC_ALL=C sort -u >"$tmp/serial"
   comm -23 "$tmp/serial" "$tmp/hinted"
   rm -rf "$tmp"
+}
+
+# Sum serial weights for paths on stdin, including the unmeasured default.
+portable_serial_lane_weight() {
+  awk -v fallback="$PORTABLE_SERIAL_DEFAULT_WEIGHT_MS" '
+    NR == FNR { if (NF) { hint[$1] = $2 }; next }
+    NF { total += ($1 in hint) ? hint[$1] : fallback }
+    END { printf "%d\n", total + 0 }
+  ' <(portable_serial_weight_hints) -
 }
 
 portable_parallel_weight_for() {
@@ -1057,7 +1078,7 @@ select_lane() {
 }
 
 run_coverage_guard() {
-  local tmp missing extra a b shard unhinted serial_total
+  local tmp missing extra a b shard unhinted serial_total serial_ms serial_max_ms=0
   local p1_ms p1_unhinted p2_ms p2_unhinted parallel_max_ms parallel_imbalance_ms
   local -a saved_scripts=()
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-coverage.XXXXXX")
@@ -1103,6 +1124,8 @@ run_coverage_guard() {
       return 1
     fi
     printf '%s\n' "${SCRIPTS[@]+"${SCRIPTS[@]}"}" >>"$tmp/serial_shards_raw"
+    serial_ms=$(printf '%s\n' "${SCRIPTS[@]+"${SCRIPTS[@]}"}" | portable_serial_lane_weight)
+    [ "$serial_ms" -le "$serial_max_ms" ] || serial_max_ms=$serial_ms
     shard=$((shard + 1))
   done
   SCRIPTS=()
@@ -1178,6 +1201,13 @@ run_coverage_guard() {
     return 1
   fi
 
+  if [ "$serial_max_ms" -gt "$PORTABLE_SERIAL_MAX_WEIGHT_MS" ]; then
+    log "coverage guard: largest portable serial shard packs ${serial_max_ms}ms above the ${PORTABLE_SERIAL_MAX_WEIGHT_MS}ms target"
+    log "refresh CI hints and rebalance or add shards; do not raise the job timeout: docs/fm-test-portable-shards.md"
+    rm -rf "$tmp"
+    return 1
+  fi
+
   if [ -x "$ROOT/bin/fm-test-isolation-proof.sh" ]; then
     "$ROOT/bin/fm-test-isolation-proof.sh" --list | LC_ALL=C sort -u >"$tmp/proof_list"
     if ! cmp -s "$tmp/proven" "$tmp/proof_list"; then
@@ -1197,7 +1227,7 @@ run_coverage_guard() {
   parallel_imbalance_ms=$((p1_ms - p2_ms))
   [ "$parallel_imbalance_ms" -ge 0 ] || parallel_imbalance_ms=$((-parallel_imbalance_ms))
 
-  printf 'FM_TEST_COVERAGE ok total=%s parallel=%s parallel_max_ms=%s parallel_imbalance_ms=%s parallel_unhinted=%s serial=%s serial_shards=%s serial_unhinted=%s herdr=%s\n' \
+  printf 'FM_TEST_COVERAGE ok total=%s parallel=%s parallel_max_ms=%s parallel_imbalance_ms=%s parallel_unhinted=%s serial=%s serial_shards=%s serial_unhinted=%s serial_max_ms=%s serial_budget_ms=%s herdr=%s\n' \
     "$(wc -l <"$tmp/all" | tr -d ' ')" \
     "$(wc -l <"$tmp/shards_union" | tr -d ' ')" \
     "$parallel_max_ms" \
@@ -1206,6 +1236,8 @@ run_coverage_guard() {
     "$(wc -l <"$tmp/serial" | tr -d ' ')" \
     "$PORTABLE_SERIAL_SHARDS" \
     "$unhinted" \
+    "$serial_max_ms" \
+    "$PORTABLE_SERIAL_MAX_WEIGHT_MS" \
     "$(wc -l <"$tmp/herdr" | tr -d ' ')"
   rm -rf "$tmp"
   return 0

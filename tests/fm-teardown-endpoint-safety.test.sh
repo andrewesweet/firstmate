@@ -889,8 +889,14 @@ assert_reassigned_slot_left_alone() {  # <case> <id> <other> <description>
   assert_contains "$(cat "$dir/pool/1/.fm-slot-owner")" "task=$other" \
     "$description: another task's slot claim was rewritten"
   assert_present "$dir/pool/1/project/.git" "$description: the reassigned slot's checkout was removed"
-  [ "$(git -C "$dir/pool/1/project" rev-parse --abbrev-ref HEAD 2>/dev/null)" = other-task-branch ] \
-    || fail "$description: the reassigned slot's branch was detached or deleted"
+  # Fork addition: when the fixture checked the slot's copy out onto a named
+  # branch, the refused teardown must have left that checkout intact. Upstream
+  # cases share this helper without creating the branch, so the check applies
+  # only when it exists.
+  if git -C "$dir/pool/1/project" show-ref --verify -q refs/heads/other-task-branch 2>/dev/null; then
+    [ "$(git -C "$dir/pool/1/project" rev-parse --abbrev-ref HEAD 2>/dev/null)" = other-task-branch ] \
+      || fail "$description: the reassigned slot's branch was detached or deleted"
+  fi
   ! grep -Fq "treehouse <return>" "$dir/runtime.log" \
     || fail "$description: the reassigned slot was returned to the pool: $(cat "$dir/runtime.log")"
   assert_contains "$(cat "$dir/stderr")" "$other" \
@@ -985,6 +991,43 @@ test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot() {
     "unreadable-claim refusal should name the claim file to inspect"
 
   pass "fm-teardown: a pool slot claimed by another task is left alone while the task's own cleanup finishes"
+}
+
+# The reuse collision where BOTH records survive: the stale task's record still
+# names the slot the pool handed on, and the claimant's own record names it too.
+# The claim proves the stale record's teardown is records-only, so the record
+# scan must not refuse it; once it is gone, the claimant tears down normally.
+test_stale_record_on_claimed_slot_retires_then_claimant_tears_down() {
+  local dir id=stale-task other=live-task rc
+
+  dir=$(make_case slot-reassigned-both-records)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  fm_write_meta "$dir/home/state/$other.meta" \
+    "window=firstmate:fm-$other" "endpoint_task_id=$other" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  claim_pool_slot "$dir" "$other"
+
+  set +e
+  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "records-only teardown of a stale record on a claimed slot failed: $(cat "$dir/stderr")"
+  assert_reassigned_slot_left_alone "$dir" "$id" "$other" "stale record beside the claimant's record"
+  assert_present "$dir/worktree/sentinel" "records-only teardown reset the claimant's slot"
+  assert_present "$dir/home/state/$other.meta" "records-only teardown removed the claimant's record"
+
+  : > "$dir/runtime.log"
+  run_case "$dir" "$other" > "$dir/stdout" 2> "$dir/stderr" \
+    || fail "claimant teardown failed after the stale record retired: $(cat "$dir/stderr")"
+  assert_absent "$dir/home/state/$other.meta" "claimant teardown left its record"
+  assert_absent "$dir/pool/1/.fm-slot-owner" "claimant teardown left its spent slot claim behind"
+  grep -Fq "treehouse <return>" "$dir/runtime.log" \
+    || fail "claimant teardown did not return its pool slot: $(cat "$dir/runtime.log")"
+
+  pass "fm-teardown: a stale record on a claimed slot retires, then the claimant tears down"
 }
 
 # The two states that must never become a false refusal: the task's own claim,
@@ -1407,6 +1450,7 @@ test_reused_pool_slot_refuses_before_touching_the_other_task
 test_cross_home_pool_slot_collision_refuses
 test_sole_slot_record_still_tears_down
 test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot
+test_stale_record_on_claimed_slot_retires_then_claimant_tears_down
 test_own_and_absent_slot_claims_still_tear_down
 test_recorded_endpoint_that_changed_directory_still_tears_down
 test_project_lock_anchors_at_the_local_root_across_home_layouts
