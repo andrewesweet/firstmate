@@ -176,7 +176,10 @@
 # named result to a terminal answer; a failed result quotes GitHub's own
 # report, retires the authority, and reports that nothing was merged, because
 # the request is atomic; a merged result is accepted only after a live
-# read-back agrees, and any disagreement keeps the authority and refuses. A
+# read-back agrees it merged with the pull request's head still the bound one,
+# because GitHub merges exactly the bound head and a commit pushed after
+# verification would be left off the base; any disagreement keeps the
+# authority and refuses. A
 # result that cannot be read - a transport failure, an unreadable body, a
 # vanished uuid, or a request still pending after 300 polls - reports that
 # nothing is proven landed and leaves the merge authority and the armed merge
