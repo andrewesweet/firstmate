@@ -1,0 +1,33 @@
+ok - Claude Code 2.1.285 (Claude Code) with the flag unset: no hooks module, no /calm, stock working row, stock tool rows, preference on ignored
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Haiku 4.5 · Claude Max
+ ▝▝   ▝▝   /tmp/fm-calm-claude-live.KR0UdH/project
+
+▎ Debug mode enabled · logging to /tmp/fm-calm-claude-live.KR0UdH/debug-on.log
+
+❯ Run this exact bash command with the Bash tool: sleep 5; cat notes.txt   Then reply with one short sentence naming the three words.
+
+● Bash(sleep 5; cat notes.txt)
+  ⎿  alpha
+     beta
+     gamma
+
+● The three words are alpha, beta, and gamma.
+
+✻ Churned for 9s · done 2:01 AM
+
+❯ : Firstmate operational input waiting: read '/tmp/fm-calm-claude-live.KR0UdH/fmhome/state/operational-inbox/1790816518-1a7f1a33ca7be13b.msg' and handle its
+  contents as Firstmate operational input.
+
+  Read 1 file (ctrl+o to expand)
+
+● OPERATIONAL_PROCESSED
+
+✻ Crunched for 4s · done 2:02 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+not ok - Claude Code 2.1.285 (Claude Code) never showed the restored tool row after /calm off
+EXIT=1

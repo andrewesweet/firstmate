@@ -1,0 +1,2 @@
+not ok - Claude Code 2.1.285 runs with its autoupdater enabled (the module-load lab): the launch must embed DISABLE_AUTOUPDATER=1 so a release-check binary cannot npm-install @latest over the machine's normal install
+EXIT=1
