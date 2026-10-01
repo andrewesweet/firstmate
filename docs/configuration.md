@@ -984,6 +984,12 @@ This applies only to agents Firstmate launches; the captain's own primary Firstm
 
 [`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the delivery mechanics, with focused regression coverage in [`tests/fm-spawn-compact-adviser-disable.test.sh`](../tests/fm-spawn-compact-adviser-disable.test.sh) and [`tests/fm-spawn-compact-adviser-disable-remote.test.sh`](../tests/fm-spawn-compact-adviser-disable-remote.test.sh).
 
+### Auto compact window
+
+Every Claude launch's inline `--settings` JSON sets `"autoCompactWindow":220000`, so a Claude worker on a 1M-context model still auto-compacts near 187k tokens instead of never compacting under the default `auto` window, which never threshold-compacts on such models.
+The setting travels with the launch flag, so a captain's own Claude sessions are untouched.
+[`fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics, with regression coverage in [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh), and the [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) owns the observed Claude Code behavior behind the value.
+
 ### Commit attribution
 
 The optional local, gitignored `config/keep-ai-trailers` presence flag opts this home into keeping AI co-author trailers on its launched workers.

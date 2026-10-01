@@ -1079,7 +1079,7 @@ test_claude_forwards_firstmate_config_dir_when_set() {
   status=$?
   expect_code 0 "$status" "claude spawn with CLAUDE_CONFIG_DIR set should succeed"
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions $(claude_worker_add_dirs "$HOME_DIR" "$id")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
+  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions $(claude_worker_add_dirs "$HOME_DIR" "$id")--settings '{\"feedbackDrafts\":\"off\",\"autoCompactWindow\":220000,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
     "claude launch did not forward firstmate's CLAUDE_CONFIG_DIR to the crewmate pane"
   pass "claude forwards firstmate's CLAUDE_CONFIG_DIR so the crewmate uses the same credential store"
 }
@@ -1160,22 +1160,26 @@ test_non_claude_harness_ignores_config_dir() {
   pass "non-claude harnesses do not receive the claude CLAUDE_CONFIG_DIR prefix"
 }
 
+# Two settings policies ride every claude launch's inline --settings JSON.
 # The captain's attribution policy lives in the `user` settings scope, which a
-# spawned worker's settings sources are not guaranteed to load. Every claude
-# launch must therefore carry the policy itself, or a spawned worker writes
+# spawned worker's settings sources are not guaranteed to load, so every claude
+# launch must carry the policy itself, or a spawned worker writes
 # Co-Authored-By and Claude-Session trailers into commits and PR bodies.
-assert_attribution_policy() {  # <launch-command> <what>
+# Claude Code's default `auto` compaction window never threshold-compacts on
+# 1M-context models, so every claude launch must also set autoCompactWindow
+# itself or a spawned worker on such a model runs with unbounded context.
+assert_claude_worker_settings() {  # <launch-command> <what>
   local launch=$1 what=$2 settings
   settings=$(claude_settings_json_arg "$launch")
-  printf '%s' "$settings" | jq -e '.feedbackDrafts == "off" and .attribution == {"commit":"","pr":"","sessionUrl":false}' >/dev/null \
-    || fail "$what launch settings JSON does not disable Claude attribution: $settings"
+  printf '%s' "$settings" | jq -e '.feedbackDrafts == "off" and .autoCompactWindow == 220000 and .attribution == {"commit":"","pr":"","sessionUrl":false}' >/dev/null \
+    || fail "$what launch settings JSON does not carry the worker settings policy: $settings"
 }
 
-assert_attribution_policy_absent() {  # <launch-command> <what>
+assert_claude_worker_settings_without_attribution() {  # <launch-command> <what>
   local launch=$1 what=$2 settings
   settings=$(claude_settings_json_arg "$launch")
-  printf '%s' "$settings" | jq -e '.feedbackDrafts == "off" and (has("attribution") | not)' >/dev/null \
-    || fail "$what launch settings JSON still disables Claude attribution: $settings"
+  printf '%s' "$settings" | jq -e '.feedbackDrafts == "off" and .autoCompactWindow == 220000 and (has("attribution") | not)' >/dev/null \
+    || fail "$what launch settings JSON does not carry the worker settings policy: $settings"
 }
 
 test_claude_task_launch_carries_control_channel_authority() {
@@ -1249,7 +1253,7 @@ test_claude_crewmate_launch_carries_the_attribution_policy() {
   status=$?
   expect_code 0 "$status" "claude crewmate spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
-  assert_attribution_policy "$launch" "claude crewmate"
+  assert_claude_worker_settings "$launch" "claude crewmate"
   [ -d "$HOME_DIR/state/$id.git-hooks" ] || fail "default config did not install the AI trailer hooks"
   pass "a claude crewmate launch carries the attribution-off policy in its own settings"
 }
@@ -1265,7 +1269,7 @@ test_keep_ai_trailers_omits_attribution_settings_and_strip_hooks() {
   status=$?
   expect_code 0 "$status" "claude spawn with keep-ai-trailers should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
-  assert_attribution_policy_absent "$launch" "opted-in claude"
+  assert_claude_worker_settings_without_attribution "$launch" "opted-in claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "opted-in launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$id.git-hooks" ] \
@@ -1295,7 +1299,7 @@ test_keep_ai_trailers_reaches_secondmate_crew_launches() {
   status=$?
   expect_code 0 "$status" "secondmate crew spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
-  assert_attribution_policy_absent "$launch" "secondmate crew claude"
+  assert_claude_worker_settings_without_attribution "$launch" "secondmate crew claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "secondmate crew launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$crew_id.git-hooks" ] \
@@ -1316,7 +1320,7 @@ test_claude_secondmate_launch_carries_the_attribution_policy() {
   status=$?
   expect_code 0 "$status" "secondmate claude spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
-  assert_attribution_policy "$launch" "claude secondmate"
+  assert_claude_worker_settings "$launch" "claude secondmate"
   pass "a claude secondmate launch carries the attribution-off policy too"
 }
 
@@ -1688,7 +1692,7 @@ claude_expected_launch() {  # <launch> <home> <id> <permission-flag>
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"autoCompactWindow\":220000,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
