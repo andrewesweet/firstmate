@@ -42,16 +42,16 @@ install_autoarm_scripts() {
   chmod +x "$dir/bin/fm-claude-stop-autoarm.sh" "$dir/bin/fm-lock.sh" "$dir/bin/fm-afk-contract.sh"
 }
 
-# A Claude home runs the supervision host unless config/supervision-host says
-# off, so the fixture home opts out: most cases exercise the plain arm, and
-# the supervision-host cases below replace or remove the file.
+# A Claude home runs the supervision host unless config/supervision-host-off
+# opts it out, so the fixture home opts out: most cases exercise the plain arm,
+# and the supervision-host cases below remove the opt-out.
 make_primary_dir() {
   local dir=$1
   mkdir -p "$dir/state" "$dir/config"
   git init -q "$dir"
   git -C "$dir" commit -q --allow-empty -m init
   : > "$dir/AGENTS.md"
-  printf 'off\n' > "$dir/config/supervision-host"
+  : > "$dir/config/supervision-host-off"
   install_autoarm_scripts "$dir"
   printf '%s\n' "$dir"
 }
@@ -195,6 +195,19 @@ printf 'signal: task.status done: fixture\n'
 exit 0
 SH
       ;;
+    gated-actionable)
+      # Cycle whose watcher closes only when the test releases it, so a second
+      # session can fire its Stop while the cycle is still under way. Appends
+      # after the shared prelude so a handling successor still records apart.
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
+printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
+touch "$FM_HOME/state/.last-watcher-beat"
+printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+printf 'signal: %s/state/tfmut-116.turn-ended\n' "$FM_HOME"
+exit 0
+SH
+      ;;
     afk-appears)
       cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
 : > "$FM_HOME/state/.afk"
@@ -209,19 +222,6 @@ SH
       cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
 printf '%s\n' "${FM_GUARD_GRACE:-unset}" > "$FM_HOME/state/arm-received-grace"
 printf 'watcher: attached pid=%s (beacon 2s)\n' "$$"
-exit 0
-SH
-      ;;
-    gated-actionable)
-      # Cycle whose watcher closes only when the test releases it, so a second
-      # session can fire its Stop while the cycle is still under way. Appends
-      # after the shared prelude so a handling successor still records apart.
-      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
-while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
-printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
-touch "$FM_HOME/state/.last-watcher-beat"
-printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
-printf 'signal: %s/state/tfmut-116.turn-ended\n' "$FM_HOME"
 exit 0
 SH
       ;;
@@ -1216,9 +1216,7 @@ record_autoarm_v2_claim() {
 
 # A live open generation claim needs no lock to keep the gate closed: the
 # ledger alone defers a concurrent firing, however old the entry, while the
-# watcher keeps beating the beacon. The owner is a child of the lock-holding
-# session, as a real concurrent hook is; an owner outside that session is the
-# orphan case tested below.
+# watcher keeps beating the beacon.
 test_open_generation_claim_defers_without_any_lock() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/v2-open-claim")
@@ -1558,23 +1556,41 @@ SH
 test_host_off_flag_keeps_the_arm() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-flag-off")
-  printf 'off\n' > "$dir/config/supervision-host"
+  : > "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_arm_fixture "$dir" actionable
   write_host_fixture "$dir" boundary
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 2 "$status" "a home whose config/supervision-host says off must still rewake from the arm"
-  assert_present "$dir/state/arm-ran" "a home whose config/supervision-host says off did not run the arm"
-  [ ! -e "$dir/state/host-ran" ] || fail "a home whose config/supervision-host says off ran the supervision host"
+  expect_code 2 "$status" "a home opted out by config/supervision-host-off must still rewake from the arm"
+  assert_present "$dir/state/arm-ran" "a home opted out by config/supervision-host-off did not run the arm"
+  [ ! -e "$dir/state/host-ran" ] || fail "a home opted out by config/supervision-host-off ran the supervision host"
   assert_contains "$out" "stale: fixture-win actionable" "the arm's reason must still reach the rewake"
   assert_not_contains "$out" "supervision-host" "an opted-out home's rewake must carry no host line"
-  pass "auto-arm: an off config/supervision-host keeps the hook on the arm exactly as before"
+  pass "auto-arm: config/supervision-host-off keeps the hook on the arm exactly as before"
+}
+
+test_branch_mod_alone_keeps_the_arm() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/host-mod-alone")
+  mkdir -p "$dir/config"
+  : > "$dir/state/task.meta"
+  write_arm_fixture "$dir" actionable
+  write_host_fixture "$dir" boundary
+  # Only the branch mod's opt-in: the host's step-aside cannot be reached
+  # because the owner still selects the plain arm on an opted-out home.
+  : > "$dir/state/.branch-mod-mode"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a home with only the branch mod opt-in must still rewake from the arm"
+  assert_present "$dir/state/arm-ran" "a home with only the branch mod opt-in did not run the arm"
+  [ ! -e "$dir/state/host-ran" ] || fail "a home with only the branch mod opt-in ran the supervision host"
+  assert_contains "$out" "stale: fixture-win actionable" "the arm's reason must still reach the rewake"
+  pass "auto-arm: with only the branch mod opt-in the hook runs the arm exactly as before"
 }
 
 test_host_absent_flag_runs_the_host() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-flag-absent")
-  rm -f "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_arm_fixture "$dir" actionable
   write_host_fixture "$dir" boundary
@@ -1588,29 +1604,11 @@ test_host_absent_flag_runs_the_host() {
   pass "auto-arm: a Claude home without config/supervision-host runs the host by default"
 }
 
-test_branch_mod_alone_keeps_the_arm() {
-  local dir out status
-  dir=$(make_primary_dir "$TMP_ROOT/host-mod-alone")
-  mkdir -p "$dir/config"
-  : > "$dir/state/task.meta"
-  write_arm_fixture "$dir" actionable
-  write_host_fixture "$dir" boundary
-  # Only the branch mod's opt-in: the host's step-aside cannot be reached
-  # because the owner still selects the plain arm without config/supervision-host.
-  : > "$dir/state/.branch-mod-mode"
-  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 2 "$status" "a home with only the branch mod opt-in must still rewake from the arm"
-  assert_present "$dir/state/arm-ran" "a home with only the branch mod opt-in did not run the arm"
-  [ ! -e "$dir/state/host-ran" ] || fail "a home with only the branch mod opt-in ran the supervision host"
-  assert_contains "$out" "stale: fixture-win actionable" "the arm's reason must still reach the rewake"
-  pass "auto-arm: with only the branch mod opt-in the hook runs the arm exactly as before"
-}
-
 test_host_boundary_rewakes_with_the_host_line() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-boundary")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_arm_fixture "$dir" actionable
   write_host_fixture "$dir" boundary
@@ -1634,7 +1632,7 @@ test_host_handback_under_away_record_is_not_a_return() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-handback")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   : > "$dir/state/.afk-contract"
   write_host_fixture "$dir" handed-back
@@ -1652,7 +1650,7 @@ test_host_handback_beside_a_quiet_record_carries_no_away_note() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-handback-quiet")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   FM_HOME="$dir" FM_AFK_MODE=quiet "$ROOT/bin/fm-afk-contract.sh" enter --words 'keep routine wakes off my main' >/dev/null 2>&1 \
     || fail "fixture: could not record quiet mode"
@@ -1683,7 +1681,7 @@ test_host_handback_carries_every_host_line() {
   local dir out status expected
   dir=$(make_primary_dir "$TMP_ROOT/host-many")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_host_fixture "$dir" handed-back-many
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
@@ -1703,7 +1701,7 @@ test_host_stand_down_is_silent() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-stand-down")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_host_fixture "$dir" stood-down
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
@@ -1718,7 +1716,7 @@ test_host_crash_is_retried_then_reported() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-crash")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_host_fixture "$dir" crash
   # A live watcher with a fresh beacon would pass the plain arm's benign-close
@@ -1741,7 +1739,7 @@ test_arguments_never_arm() {
   local dir arg rc out before after before_contents after_contents status
   dir=$(make_primary_dir "$TMP_ROOT/help-mode")
   mkdir -p "$dir/config"
-  : > "$dir/config/supervision-host"
+  rm -f "$dir/config/supervision-host-off"
   : > "$dir/state/task.meta"
   write_arm_fixture "$dir" actionable
   write_host_fixture "$dir" boundary

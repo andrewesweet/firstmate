@@ -69,7 +69,7 @@
 # Those nine names are also the runtime-bound stage list below, so a truncated
 # startup can name exactly which of them never ran - and the parent banners
 # EVERY nonzero child exit, not only the bound: a child that dies or is killed
-# mid-stage must never truncate the digest silently (the 2026-09-13 outage).
+# mid-stage must never truncate the digest silently.
 #
 # NO NETWORK ON THE BLOCKING PATH. This digest runs on a session-open hook that
 # blocks session initialization, so anything it waits for is time the captain
@@ -323,8 +323,7 @@ if [ -z "${FM_SESSION_START_STAGE_FILE:-}" ]; then
   # ANY nonzero child exit is a truncation: the banner contract promises that
   # a stage that cannot print is named. Exit 124 is the bound firing; any
   # other status means the child died or was killed mid-stage, which truncates
-  # silently when unbanned - the silent-truncation shape the 2026-09-13
-  # outage actually took. The parent must banner it, never exit 0 around it.
+  # silently when unbanned - the parent must banner it, never exit 0 around it.
   if [ "$SESSION_START_RC" -ne 0 ]; then
     SESSION_START_LAST_STAGE=$(cat "$SESSION_START_STAGE_FILE" 2>/dev/null) || SESSION_START_LAST_STAGE=
     [ -n "$SESSION_START_LAST_STAGE" ] || SESSION_START_LAST_STAGE=unknown
