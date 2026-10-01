@@ -94,6 +94,83 @@ rt_skip_unless_fire() {  # <test-name>: firing needs the real tasks-axi
   return 0
 }
 
+rt_skip_unless_sha256sum() {  # <test-name>: the hash scenarios need a real sha256sum
+  command -v sha256sum >/dev/null 2>&1 \
+    || { pass "skipped, sha256sum absent: $1"; return 1; }
+  return 0
+}
+
+# rt_unset_hash_functions: drop every hasher function a previous scenario
+# exported, so later scenarios and tests see only the real host tools.
+rt_unset_hash_functions() {
+  unset -f shasum sha256sum 2>/dev/null || :
+}
+
+# rt_export_alias_shasum <sha256-binary>: export a shasum function that
+# delegates to a real SHA-256 binary (same digest bytes, same output shape),
+# so the shasum-first selection is tested honestly on a host without shasum.
+# Only the helper's call shape, shasum -a 256 over stdin, is translated.
+rt_export_alias_shasum() {
+  RT_TEST_SHA_BIN=$1
+  export RT_TEST_SHA_BIN
+  # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
+  shasum() {
+    if [ "${1:-}" = -a ]; then
+      shift
+      [ "${1:-}" = 256 ] && shift
+    fi
+    "$RT_TEST_SHA_BIN" "$@"
+  }
+  export -f shasum
+}
+
+# rt_export_broken_hasher <name>: export a hasher function that fails like a
+# broken tool, simulating failure without touching the host's real binaries.
+rt_export_broken_hasher() {
+  case $1 in
+    shasum)
+      # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
+      shasum() { printf 'shasum unavailable (simulated)\n' >&2; return 127; }
+      export -f shasum
+      ;;
+    sha256sum)
+      # shellcheck disable=SC2329 # Exported; invoked by the trigger subprocess.
+      sha256sum() { printf 'sha256sum unavailable (simulated)\n' >&2; return 127; }
+      export -f sha256sum
+      ;;
+  esac
+}
+
+# rt_portable_bin <name> <with-shasum 0|1> <with-sha256sum 0|1>: a PATH-
+# restricted fixture directory holding every tool the trigger and its lock
+# helpers need except the withheld hashers, so tool absence is real inside
+# the subprocess without modifying any host tool.
+rt_portable_bin() {
+  local name=$1 want_shasum=$2 want_sha256sum=$3 dir tool src
+  dir="$TMP_ROOT/$name-bin"
+  mkdir -p "$dir"
+  for tool in env bash sh awk basename cat cut date dirname head ln mktemp mkdir mv printf ps readlink rm rmdir sed sleep sort uname wc; do
+    src=$(command -v "$tool" 2>/dev/null) || continue
+    ln -sf "$src" "$dir/$tool"
+  done
+  if [ "$want_shasum" = 1 ] && src=$(command -v shasum 2>/dev/null); then
+    ln -sf "$src" "$dir/shasum"
+  fi
+  if [ "$want_sha256sum" = 1 ] && src=$(command -v sha256sum 2>/dev/null); then
+    ln -sf "$src" "$dir/sha256sum"
+  fi
+  printf '%s\n' "$dir"
+}
+
+# rt_run_path <fakebin> <home> <args...>: rt_run with PATH holding only the
+# fixture's tools, so withheld hashers are genuinely absent in the subprocess.
+rt_run_path() {
+  local bin=$1 home=$2
+  shift 2
+  PATH="$bin" FM_CONFIG_OVERRIDE="$home/config" FM_STATE_OVERRIDE="$home/state" \
+    FM_DATA_OVERRIDE="$home/data" "$RT" "$@"
+}
+
 test_inert_without_config() {
   local home out
   home=$(rt_home inert)
@@ -371,6 +448,20 @@ test_hook_records_needs_decision_with_key_evidence() {
   assert_present "$receipt" "hook: the presented needs-decision line must record a receipt"
   assert_grep "evidence=cap-9" "$receipt" \
     "hook: the receipt evidence must carry the line's [key=...] decision key"
+  # A stamped needs-decision keeps its key evidence through the same verb
+  # selection, and a key written before the stamp is still extracted.
+  home=$(rt_home hook-nd-stamped)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  out=$(rt_annotate "$home" crew.status \
+    "needs-decision [at=1790000000] [key=cap-10]: pick a name" 1790000000)
+  assert_contains "$out" "wake annotation:" \
+    "hook: the stamped needs-decision annotation must still print"
+  receipt=$(grep -l '^kind=needs-decision$' \
+    "$home/state/retro-trigger/receipts/g1"/*.receipt 2>/dev/null | head -1)
+  assert_present "$receipt" "hook: a stamped needs-decision must record a receipt"
+  assert_grep "evidence=cap-10" "$receipt" \
+    "hook: the stamped needs-decision receipt must keep the line's [key=...] decision key"
   pass "the hook turns a presented needs-decision line into a keyed receipt"
 }
 
@@ -390,6 +481,32 @@ test_hook_done_unseen_epoch_binding() {
   assert_present "$receipt" "hook: a stale single-line done must record a receipt"
   assert_grep "epoch=$old" "$receipt" \
     "hook: the done-unseen receipt must name the bound wake row epoch"
+  # A stamped completion line is still a completion: the canonical verb
+  # decides, not the raw done: prefix.
+  home=$(rt_home hook-done-stamped)
+  rt_config "$home" "spend_usd=10000" "done_unseen_minutes=30"
+  rt_seed_open_generation "$home" g1
+  out=$(rt_annotate "$home" crew.status "done [at=$old]: PR https://example.test/4" "$old")
+  assert_contains "$out" "wake annotation:" \
+    "hook: the stamped done annotation must still print"
+  receipt=$(grep -l '^kind=done-unseen$' \
+    "$home/state/retro-trigger/receipts/g1"/*.receipt 2>/dev/null | head -1)
+  assert_present "$receipt" "hook: a stale stamped done must record a receipt"
+  assert_grep "epoch=$old" "$receipt" \
+    "hook: the stamped done receipt must name the bound wake row epoch"
+  # A correlation-marked, stamped completion line is still a completion.
+  home=$(rt_home hook-done-corr)
+  rt_config "$home" "spend_usd=10000" "done_unseen_minutes=30"
+  rt_seed_open_generation "$home" g1
+  out=$(rt_annotate "$home" crew.status \
+    "done corr=0123456789abcdef [at=$old]: PR https://example.test/5" "$old")
+  assert_contains "$out" "wake annotation:" \
+    "hook: the correlation-marked done annotation must still print"
+  receipt=$(grep -l '^kind=done-unseen$' \
+    "$home/state/retro-trigger/receipts/g1"/*.receipt 2>/dev/null | head -1)
+  assert_present "$receipt" "hook: a stale correlation-marked done must record a receipt"
+  assert_grep "epoch=$old" "$receipt" \
+    "hook: the correlation-marked done receipt must name the bound wake row epoch"
   # A multi-line span cannot bind the done line to one row: no receipt.
   home=$(rt_home hook-done-multi)
   rt_config "$home" "spend_usd=10000" "done_unseen_minutes=30"
@@ -415,6 +532,104 @@ test_hook_done_unseen_epoch_binding() {
   assert_equals "0" "$count" \
     "hook: a fresh done under the threshold must record nothing"
   pass "done-unseen binds only an exact single-line single-row epoch, never approximates"
+}
+
+test_hash_selection_is_portable_and_a_broken_hasher_refuses() {
+  local home bin out rc receipt expected
+  rt_skip_unless_sha256sum "portable hash selection" || return 0
+
+  # Only shasum can produce a digest: the selection must take it and publish
+  # a real receipt, never an empty-suffix collapse of distinct observations.
+  home=$(rt_home hash-shasum-only)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  rt_unset_hash_functions
+  rt_export_alias_shasum "$(command -v sha256sum)"
+  rt_export_broken_hasher sha256sum
+  set +e
+  out=$(rt_run "$home" observe anomaly needs-decision t1 "first evidence" 2>&1)
+  rc=$?
+  set -e
+  rt_unset_hash_functions
+  expect_code 0 "$rc" "hash: a shasum-only observation must succeed"
+  assert_equals "1" "$(rt_receipt_count "$home")" \
+    "hash: a shasum-only observation must record its receipt"
+  receipt=$(printf '%s\n' "$home/state/retro-trigger/receipts/g1"/anomaly-*.receipt | head -1)
+  case "$receipt" in
+    *anomaly-needs-decision-.receipt) \
+      fail "hash: a shasum-only host must not publish an empty-suffix receipt" ;;
+  esac
+
+  # shasum genuinely absent, sha256sum present: the fallback must carry it.
+  home=$(rt_home hash-sha256sum-only)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  rt_unset_hash_functions
+  bin=$(rt_portable_bin sha256sum-only 0 1)
+  set +e
+  out=$(rt_run_path "$bin" "$home" observe anomaly needs-decision t1 "first evidence" 2>&1)
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "hash: a sha256sum-only observation must succeed"
+  assert_equals "1" "$(rt_receipt_count "$home")" \
+    "hash: a sha256sum-only observation must record its receipt"
+
+  # Neither hasher exists: a loud refusal that publishes nothing, not a
+  # silent empty-suffix receipt.
+  home=$(rt_home hash-both-absent)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  bin=$(rt_portable_bin both-absent 0 0)
+  set +e
+  out=$(rt_run_path "$bin" "$home" observe anomaly needs-decision t1 "first evidence" 2>&1)
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "hash: with no hasher the observation must refuse loudly"
+  assert_contains "$out" "cannot hash the evidence" \
+    "hash: the absent-hasher refusal must name the hashing failure"
+  assert_equals "0" "$(rt_receipt_count "$home")" \
+    "hash: an absent hasher must publish no receipt"
+
+  # The selected hasher is present but fails: the same loud refusal.
+  home=$(rt_home hash-broken-hasher)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  rt_unset_hash_functions
+  rt_export_broken_hasher sha256sum
+  bin=$(rt_portable_bin broken-hasher 0 1)
+  set +e
+  out=$(rt_run_path "$bin" "$home" observe anomaly needs-decision t1 "first evidence" 2>&1)
+  rc=$?
+  set -e
+  rt_unset_hash_functions
+  expect_code 1 "$rc" "hash: a failing selected hasher must refuse loudly"
+  assert_contains "$out" "cannot hash the evidence" \
+    "hash: the broken-hasher refusal must name the hashing failure"
+  assert_equals "0" "$(rt_receipt_count "$home")" \
+    "hash: a broken hasher must publish no receipt"
+
+  # Distinct evidence keeps distinct receipts and a replay stays idempotent.
+  home=$(rt_home hash-distinct)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  rt_run "$home" observe anomaly needs-decision t1 "key-one" >/dev/null 2>&1
+  rt_run "$home" observe anomaly needs-decision t1 "key-two" >/dev/null 2>&1
+  assert_equals "2" "$(rt_receipt_count "$home")" \
+    "hash: distinct evidence must keep distinct receipts, never one"
+  rt_run "$home" observe anomaly needs-decision t1 "key-one" >/dev/null 2>&1
+  assert_equals "2" "$(rt_receipt_count "$home")" \
+    "hash: replaying the same evidence must stay one receipt"
+
+  # Receipt identity is unchanged: the truncated SHA-256 of the same bytes,
+  # hashed independently by the host's own sha256sum.
+  home=$(rt_home hash-compat)
+  rt_config "$home" "spend_usd=10000"
+  rt_seed_open_generation "$home" g1
+  rt_run "$home" observe anomaly blocked compat-t "epoch=123 done: x" >/dev/null 2>&1
+  expected=$(printf '%s\n' blocked compat-t "epoch=123 done: x" | sha256sum | LC_ALL=C cut -c1-8)
+  assert_present "$home/state/retro-trigger/receipts/g1/anomaly-blocked-$expected.receipt" \
+    "hash: receipt identity must stay the truncated SHA-256 of kind, task, and evidence"
+  pass "the portable hasher selection publishes real receipts and refuses a missing or broken hasher"
 }
 
 test_hook_replay_is_idempotent_and_failure_is_absorbed() {
@@ -593,6 +808,7 @@ test_hook_is_inert_without_config_and_never_fails_the_drain
 test_hook_records_needs_decision_with_key_evidence
 test_hook_done_unseen_epoch_binding
 test_hook_replay_is_idempotent_and_failure_is_absorbed
+test_hash_selection_is_portable_and_a_broken_hasher_refuses
 test_teardown_records_a_closure_receipt_without_failing
 test_teardown_without_config_stays_inert
 test_teardown_absorbs_a_broken_store

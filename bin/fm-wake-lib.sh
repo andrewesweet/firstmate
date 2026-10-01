@@ -2727,12 +2727,18 @@ fm_retro_trigger_done_epoch() {  # <status-key> <deduped-raw-rows>
 }
 
 fm_retro_trigger_observe_event() {  # <status-key> <event-line> <deduped-raw-rows>
-  local status_key=$1 event_line=$2 rows=$3 task kind evidence epoch
+  local status_key=$1 event_line=$2 rows=$3 task kind evidence epoch verb
   fm_retro_trigger_active || return 0
-  case "$event_line" in
-    needs-decision:*|needs-decision\ *) kind=needs-decision ;;
-    blocked:*|blocked\ *) kind=blocked ;;
-    done:*) kind=done-unseen ;;
+  # The canonical status parser owns the verb, so a stamped or
+  # correlation-marked completion reaches the observer exactly like a raw
+  # done: line. Selection is by verb alone; the raw line below still feeds
+  # the evidence and the existing key extraction.
+  _fm_wake_require_classify || return 0
+  status_line_verb "$event_line" verb
+  case "$verb" in
+    needs-decision) kind=needs-decision ;;
+    blocked) kind=blocked ;;
+    done) kind=done-unseen ;;
     *) return 0 ;;
   esac
   task=${status_key%.status}
