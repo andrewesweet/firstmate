@@ -1,0 +1,36 @@
+$ bash tests/fm-backend-herdr-metadata.test.sh
+ok - publish projects task/role, intent, wait marker, and PR pointer from the records
+ok - a working task with no PR clears its marker and pointer instead of leaving them stale
+ok - done states project review-ready and report-ready markers with their pointers
+ok - titles clip to the API cap and secondmate charters project their intent
+ok - a pane whose live workspace disagrees with the record refuses the write
+ok - vanished panes and records without binding fields refuse instead of writing
+ok - non-Herdr and remote-hosted records are silent no-ops
+ok - a failed metadata write is a one-line diagnostic the caller can discard
+ok - clear erases exactly Firstmate-owned values on the validated pane and refuses otherwise
+ok - clear treats non-Herdr and absent records as silent no-ops
+ok - the entry rejects bad usage with exit 2 and a usage line
+ok - each publish reads current state once, for the projected task only
+ok - watcher reconcile publishes only on stamp expiry and survives a fresh stamp
+ok - fm-backend-herdr-metadata: all tests passed
+
+$ herdr --version; herdr pane report-metadata --help (flag compatibility with installed client)
+herdr 0.9.3
+      --source <ID>
+      --agent <LABEL>
+      --applies-to-source <ID>
+      --title <TEXT>
+      --clear-title
+      --display-agent <TEXT>
+      --clear-display-agent
+      --state-label <STATUS=TEXT>
+      --clear-state-labels
+      --token <NAME=VALUE>
+      --clear-token <NAME>
+      --seq <N>
+      --ttl-ms <N>
+
+$ bin/fm-herdr-lab.sh provision fm-lab-meta-2675209-5096
+fm-herdr-lab: fleet-state tripwire requires exactly one running default session (rc=1)
+$ herdr session list --json
+{"sessions":[{"default":true,"name":"default","running":false,"session_dir":"/home/cti/.config/herdr","socket_path":"/home/cti/.config/herdr/herdr.sock"},{"default":false,"name":"fm-remote","running":true,"session_dir":"/home/cti/.config/herdr/sessions/fm-remote","socket_path":"/home/cti/.config/herdr/sessions/fm-remote/herdr.sock"}]}
