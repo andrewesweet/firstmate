@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Default-on live guard for the durable task-slot lease against the REAL
-# treehouse binary on PATH. It is a local guard: the required CI lanes install
-# no treehouse, so there it takes the shared live gate's ordinary capability
-# skip and says so, rather than turning a required lane red for a vendor
-# reason.
+# treehouse binary on PATH. The required portable-serial CI lane installs the
+# pinned treehouse (bin/fm-install-treehouse.sh) and runs this guard there;
+# where no treehouse is on PATH it takes the shared live gate's ordinary
+# capability skip and says so.
 #
 # Two vendor facts carry the lease mechanism, and no fixture can establish
 # either - tests/fm-spawn-slot-lease.test.sh can only assert against a fake that
