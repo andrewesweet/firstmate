@@ -269,7 +269,7 @@ case "${1:-} ${2:-}" in
     # keep the instant-exit server that predates this fixture.
     if [ -f "$FM_FAKE_STATE/herdr-server-stays" ]; then
       printf '%s\n' "$$" > "$FM_FAKE_STATE/herdr-server-pid"
-      exec /bin/sleep 30
+      exec /bin/sleep 60
     fi
     ;;
 esac
@@ -330,7 +330,11 @@ doctor() {
     FM_REMOTE_JOB_PLATFORM_OVERRIDE="${CASE_PLATFORM_OVERRIDE-}" \
     FM_REMOTE_JOB_ACTIVE="${CASE_REMOTE_JOB_ACTIVE-1}" \
     ${DOCTOR_TIMEOUT:+timeout $DOCTOR_TIMEOUT} \
-    "$ROOT/bin/fm-remote-doctor.sh" "$@" 2>&1
+    "$ROOT/bin/fm-remote-doctor.sh" "$@" 2>&1 |
+      ${DOCTOR_TIMEOUT:+timeout $DOCTOR_TIMEOUT} cat
+    rcs=("${PIPESTATUS[@]}")
+    [ "${rcs[1]}" = 0 ] || exit 124
+    exit "${rcs[0]}"
   )
   DOCTOR_RC=$?
   set -e
@@ -791,17 +795,21 @@ pass "a non-darwin host skips launch agents and starts its herdr server directly
 
 # The reported hang: over SSH, --fix started the herdr server but the command
 # never returned, and the server kept a `bash fm-remote-doctor.sh --fix`
-# interpreter alive as its parent inside the caller's session. DOCTOR_TIMEOUT
-# bounds the whole run so a leaked descriptor in any descendant surfaces as a
-# failed case instead of a hung suite: the doctor's captured output is a pipe
-# read, so anything downstream of --fix that holds that pipe open cannot
-# return.
+# interpreter alive as its parent inside the caller's session. The doctor's
+# output is read from a pipe to EOF, so a descendant that still holds that
+# pipe delays the read until the stub server's 60s life ends. The read must
+# finish well inside that: DOCTOR_TIMEOUT bounds both the doctor and the pipe
+# reader where timeout(1) exists, and the elapsed time is checked regardless.
 new_case Linux with-herdr no-gui
 touch "$CASE_STATE/herdr-server-stays"
-command -v timeout >/dev/null 2>&1 && DOCTOR_TIMEOUT=30
+command -v timeout >/dev/null 2>&1 && DOCTOR_TIMEOUT=15
+SECONDS=0
 doctor --fix
+elapsed=$SECONDS
 DOCTOR_TIMEOUT=
-expect_code 0 "$DOCTOR_RC" "--fix hung or failed with a stub server that stays alive"
+[ "$DOCTOR_RC" != 124 ] && [ "$elapsed" -lt 15 ] ||
+  fail "--fix did not return with its output pipe closed within 15s (${elapsed}s, rc $DOCTOR_RC)"
+expect_code 0 "$DOCTOR_RC" "--fix failed with a stub server that stays alive"
 assert_contains "$DOCTOR_OUT" 'fix herdr-server=applied:' "--fix did not report starting the server"
 assert_contains "$DOCTOR_OUT" 'check herdr-server=ok:' "the started server was not confirmed by the re-check"
 SERVER_PID=$(cat "$CASE_STATE/herdr-server-pid" 2>/dev/null || true)
