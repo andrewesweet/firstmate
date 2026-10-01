@@ -1,0 +1,405 @@
+{
+  "backlog": {
+    "path": "/tmp/fm-parity-fixed/data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "body_excerpt": null,
+        "body_lines": [],
+        "captain_actionable": false,
+        "checked": false,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "current_role": "worker",
+        "done": null,
+        "hold_age_days": 86,
+        "hold_bucket": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_set": null,
+        "hold_until": null,
+        "id": "ship-task",
+        "kind": "ship",
+        "links": [],
+        "local_note": null,
+        "merged": null,
+        "order": 1,
+        "pr_url": null,
+        "priority": null,
+        "raw": "- [ ] ship-task - Ship \"quoted\" $HOME `tick` \\ é ✓ (repo: alpha) (kind: ship) (since 2026-07-07)",
+        "repo": "alpha",
+        "report_path": null,
+        "reported": null,
+        "requires_child_metadata": true,
+        "since": "2026-07-07",
+        "state": "in_flight",
+        "structured": true,
+        "title": "Ship \"quoted\" $HOME `tick` \\ é ✓",
+        "unresolved_blocker_ids": []
+      }
+    ]
+  },
+  "contributions": {
+    "captain": [],
+    "captain_omitted": 0,
+    "checked": 0,
+    "complete": true,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "known": 0,
+    "missing_verdicts": 0,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "unmeasured": 0,
+    "unreadable_records": 0,
+    "valid_until": 900
+  },
+  "fm_home": "/tmp/fm-parity-fixed",
+  "generated": "2026-10-01T00:04:35Z",
+  "main_inventory": {
+    "orphan_in_flight": [],
+    "reason": null,
+    "unstructured_current_count": 0,
+    "valid": true
+  },
+  "roots": {
+    "config": "/tmp/fm-parity-fixed/config",
+    "data": "/tmp/fm-parity-fixed/data",
+    "fm_root": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3TC8DCFFWSA6VRZTKZZ2VFY",
+    "projects": "/tmp/fm-parity-fixed/projects",
+    "state": "/tmp/fm-parity-fixed/state"
+  },
+  "schema": "fm-fleet-snapshot.v1",
+  "scout_reports": [],
+  "secondmate_current": {
+    "records": [
+      {
+        "active_children": [],
+        "contradiction": false,
+        "counts": {
+          "active_children": 0,
+          "decisions_open": 0,
+          "endpoints": 0,
+          "holds": 0,
+          "landed": 0,
+          "queued": 0
+        },
+        "current": {
+          "reason": "secondmate metadata is not registered",
+          "state": "unknown"
+        },
+        "decisions_open": [],
+        "endpoints": [],
+        "freshness": {
+          "age_seconds": 100,
+          "status": "historical-event"
+        },
+        "holds": [],
+        "home": "/tmp/fm-parity-fixed/secondmate-home",
+        "host": null,
+        "id": "secondmate-task",
+        "invalidity": null,
+        "landed": [],
+        "omitted": [],
+        "parent_event": {
+          "activity_scan": {
+            "available": true,
+            "input_truncated": false,
+            "lines_in_window": 2,
+            "reasons": [],
+            "records": [
+              {
+                "key": "p",
+                "summary": "act $y ✓",
+                "verb": "working"
+              }
+            ],
+            "records_in_window": 1,
+            "retained_truncated": false
+          },
+          "age_seconds": null,
+          "note": "act $y ✓",
+          "open_activities": [
+            {
+              "key": "p",
+              "summary": "act $y ✓",
+              "verb": "working"
+            }
+          ],
+          "open_decisions": [
+            {
+              "key": "default",
+              "summary": "parent q \"x\"",
+              "verb": "needs-decision"
+            }
+          ],
+          "raw": "working [key=p]: act $y ✓"
+        },
+        "provenance": {
+          "parent_event_role": "fallback-only-not-current",
+          "selected": "parent-event-fallback",
+          "structured_home": "/tmp/fm-parity-fixed/secondmate-home"
+        },
+        "queued": [],
+        "reconcile_inventory": null,
+        "registered": false,
+        "remote": false,
+        "spawn_gen": null,
+        "terminal_evidence": {
+          "bytes": 0,
+          "captured": true,
+          "contradiction": false,
+          "event_note_seen": false,
+          "freshness": "fresh",
+          "lines": 0,
+          "provenance": "parent-direct-report-terminal",
+          "reason": null,
+          "trust": "untrusted-supplement"
+        }
+      }
+    ],
+    "registry": {
+      "available": true,
+      "complete": true,
+      "freshness": {
+        "status": "fresh"
+      },
+      "input_truncated": false,
+      "lines_in_window": 0,
+      "path": "/tmp/fm-parity-fixed/data/secondmates.md",
+      "present": false,
+      "provenance": "registered-table",
+      "reason": null,
+      "reasons": [],
+      "records": [],
+      "records_in_window": 0,
+      "records_truncated": false
+    },
+    "shown": 1,
+    "total": 1,
+    "total_registered": 0,
+    "truncated": 0
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  },
+  "secondmate_landed": {
+    "partial": [],
+    "records": [],
+    "truncated": [],
+    "unreadable": [
+      "/tmp/fm-parity-fixed/secondmate-home"
+    ]
+  },
+  "tasks": [
+    {
+      "actions": {
+        "return_channel_note": "Secondmate answers come back through status/doc paths after a marked fm-send request.",
+        "send": "bin/fm-send.sh fm-secondmate-task '<request>'",
+        "watch": "read status/doc return channel; do not routinely fm-peek a secondmate for answers"
+      },
+      "backend": "tmux",
+      "backlog": null,
+      "branch": null,
+      "current_state": {
+        "detail": "parent q \"x\"",
+        "freshness": "fresh",
+        "raw": "state: parked · source: status-log · parent q \"x\"",
+        "source": "status-log",
+        "state": "parked"
+      },
+      "endpoint": {
+        "agent_alive": "unknown",
+        "exists": true,
+        "freshness": "fresh",
+        "status": "unknown",
+        "target": "firstmate:fm-secondmate-task"
+      },
+      "harness": "codex",
+      "hints": {
+        "blocked_event": false,
+        "last_event_text": "working [key=p]: act $y ✓",
+        "open_decisions": [
+          {
+            "key": "default",
+            "summary": "parent q \"x\"",
+            "verb": "needs-decision"
+          }
+        ],
+        "pending_decision": true,
+        "scout_report_present": false
+      },
+      "id": "secondmate-task",
+      "kind": "secondmate",
+      "mode": "secondmate",
+      "paths": {
+        "home": {
+          "path": "/tmp/fm-parity-fixed/secondmate-home",
+          "present": true
+        },
+        "meta": {
+          "path": "/tmp/fm-parity-fixed/state/secondmate-task.meta",
+          "present": true
+        },
+        "report": {
+          "path": "/tmp/fm-parity-fixed/data/secondmate-task/report.md",
+          "present": false
+        },
+        "status_log": {
+          "kind": "event_history",
+          "last_event": {
+            "age_seconds": null,
+            "note": "act $y ✓",
+            "raw": "working [key=p]: act $y ✓",
+            "state": "working"
+          },
+          "path": "/tmp/fm-parity-fixed/state/secondmate-task.status",
+          "present": true
+        },
+        "worktree": {
+          "path": "/tmp/fm-parity-fixed/secondmate-home",
+          "present": true
+        }
+      },
+      "pr": {
+        "head": null,
+        "source": "absent",
+        "url": null
+      },
+      "project": "/tmp/fm-parity-fixed/secondmate-home",
+      "remote": null,
+      "secondmate_projects": [
+        "alpha"
+      ],
+      "spawn_gen": null,
+      "yolo": ""
+    },
+    {
+      "actions": {
+        "return_channel_note": null,
+        "steer": "bin/fm-send.sh fm-ship-task '<instruction>'",
+        "watch": "bin/fm-peek.sh fm-ship-task"
+      },
+      "backend": "tmux",
+      "backlog": {
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "body_excerpt": null,
+        "body_lines": [],
+        "captain_actionable": false,
+        "checked": false,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "current_role": "worker",
+        "done": null,
+        "hold_age_days": 86,
+        "hold_bucket": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_set": null,
+        "hold_until": null,
+        "id": "ship-task",
+        "kind": "ship",
+        "links": [],
+        "local_note": null,
+        "merged": null,
+        "order": 1,
+        "pr_url": null,
+        "priority": null,
+        "raw": "- [ ] ship-task - Ship \"quoted\" $HOME `tick` \\ é ✓ (repo: alpha) (kind: ship) (since 2026-07-07)",
+        "repo": "alpha",
+        "report_path": null,
+        "reported": null,
+        "requires_child_metadata": true,
+        "since": "2026-07-07",
+        "state": "in_flight",
+        "structured": true,
+        "title": "Ship \"quoted\" $HOME `tick` \\ é ✓",
+        "unresolved_blocker_ids": []
+      },
+      "branch": null,
+      "current_state": {
+        "detail": "worktree gone (torn down?)",
+        "freshness": "fresh",
+        "raw": "state: unknown · source: none · worktree gone (torn down?)",
+        "source": "none",
+        "state": "unknown"
+      },
+      "endpoint": {
+        "agent_alive": "not_checked",
+        "exists": true,
+        "freshness": "fresh",
+        "status": "unknown",
+        "target": "firstmate:fm-ship-task"
+      },
+      "harness": "claude",
+      "hints": {
+        "blocked_event": false,
+        "last_event_text": "needs-decision: pick \"A\" or $B \\ é ✓ \t tab",
+        "open_decisions": [
+          {
+            "key": "default",
+            "summary": "pick \"A\" or $B \\ é ✓ \t tab",
+            "verb": "needs-decision"
+          }
+        ],
+        "pending_decision": true,
+        "scout_report_present": false
+      },
+      "id": "ship-task",
+      "kind": "ship",
+      "mode": "ship",
+      "paths": {
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "meta": {
+          "path": "/tmp/fm-parity-fixed/state/ship-task.meta",
+          "present": true
+        },
+        "report": {
+          "path": "/tmp/fm-parity-fixed/data/ship-task/report.md",
+          "present": false
+        },
+        "status_log": {
+          "kind": "event_history",
+          "last_event": {
+            "age_seconds": null,
+            "note": "pick \"A\" or $B \\ é ✓ \t tab",
+            "raw": "needs-decision: pick \"A\" or $B \\ é ✓ \t tab",
+            "state": "needs-decision"
+          },
+          "path": "/tmp/fm-parity-fixed/state/ship-task.status",
+          "present": true
+        },
+        "worktree": {
+          "path": "/tmp/fm-parity-fixed/projects/nope",
+          "present": false
+        }
+      },
+      "pr": {
+        "head": null,
+        "source": "absent",
+        "url": null
+      },
+      "project": "alpha",
+      "remote": null,
+      "secondmate_projects": [],
+      "spawn_gen": null,
+      "yolo": "off"
+    }
+  ]
+}

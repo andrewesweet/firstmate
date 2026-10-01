@@ -1,0 +1,9 @@
+# diff of normalized --json output, base 3e3d7b68 vs head 4017ba93, same small fleet with quotes/$/backslash/unicode/tab payloads
+67c67
+<   "generated": "2026-10-01T00:04:36Z",
+---
+>   "generated": "2026-10-01T00:04:35Z",
+77c77
+<     "fm_root": "/tmp/fm-base.qiuIMz/base",
+---
+>     "fm_root": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3TC8DCFFWSA6VRZTKZZ2VFY",

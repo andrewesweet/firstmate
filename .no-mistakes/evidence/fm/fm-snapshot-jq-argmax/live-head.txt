@@ -1,0 +1,37 @@
+== HEAD-4017ba93: real tmux windows on private socket
+fm-ship-task
+fm-secondmate-task
+== status file sizes (bytes)
+ 450077 $LAB/state/secondmate-task.status
+ 400035 $LAB/state/ship-task.status
+ 400194 $LAB/data/backlog.md
+1250306 total
+== HEAD-4017ba93: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3TC8DCFFWSA6VRZTKZZ2VFY/bin/fm-fleet-snapshot.sh --contribution-input
+exit=0 stdout_bytes=802715
+{"records":2,"tasks":2,"backlog_raw_has_sentinel":true,"backlog_raw_len":400092}
+== HEAD-4017ba93: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3TC8DCFFWSA6VRZTKZZ2VFY/bin/fm-fleet-snapshot.sh --json
+exit=0 stdout_bytes=4763872
+[{"id":"secondmate-task","last_event_raw_len":50041,"decision_summary_has_sentinel":true},{"id":"ship-task","last_event_raw_len":400034,"decision_summary_has_sentinel":false}]
+[{"id":"secondmate-task","parent_raw_has_activity":true,"parent_decision_has_sentinel":true}]
+== HEAD-4017ba93: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3TC8DCFFWSA6VRZTKZZ2VFY/bin/fm-fleet-view.sh
+exit=0 stdout_bytes=947
+# Fleet View
+
+Schema: fm-fleet-snapshot.v1
+Home: /tmp/fm-lab.a92OdW
+
+## Under Way
+| ID | Current | Kind | Repo/Project | Backend | Endpoint | Artifact | Path | Watch / return channel |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| secondmate-task | parked / status-log | secondmate | alpha | tmux | present / unknown | - | /tmp/fm-lab.a92OdW/secondmate-home | bin/fm-send.sh fm-secondmate-
+| ship-task | unknown / pane | ship | alpha | tmux | present | - | /tmp/fm-lab.a92OdW/projects/alpha-worktree | bin/fm-peek.sh fm-ship-task |
+
+## Queued
+No queued backlog records found.
+
+## Done
+No done backlog records found.
+
+## Secondmates
+For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supple
+== leftover transport dirs for this run in TMPDIR: 0

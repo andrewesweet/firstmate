@@ -1,0 +1,20 @@
+== BASE-3e3d7b68: real tmux windows on private socket
+fm-ship-task
+fm-secondmate-task
+== status file sizes (bytes)
+ 450077 $LAB/state/secondmate-task.status
+ 400035 $LAB/state/ship-task.status
+ 400194 $LAB/data/backlog.md
+1250306 total
+== BASE-3e3d7b68: /tmp/fm-base.qiuIMz/base/bin/fm-fleet-snapshot.sh --contribution-input
+exit=0 stdout_bytes=0
+/tmp/fm-base.qiuIMz/base/bin/fm-fleet-snapshot.sh: line 1994: /usr/bin/jq: Argument list too long
+== BASE-3e3d7b68: /tmp/fm-base.qiuIMz/base/bin/fm-fleet-snapshot.sh --json
+exit=1 stdout_bytes=0
+/tmp/fm-base.qiuIMz/base/bin/fm-fleet-snapshot.sh: line 353: /usr/bin/jq: Argument list too long
+fm-fleet-snapshot: task observation failed
+== BASE-3e3d7b68: /tmp/fm-base.qiuIMz/base/bin/fm-fleet-view.sh
+exit=1 stdout_bytes=0
+/tmp/fm-base.qiuIMz/base/bin/fm-fleet-snapshot.sh: line 353: /usr/bin/jq: Argument list too long
+fm-fleet-snapshot: task observation failed
+== leftover transport dirs for this run in TMPDIR: 0
