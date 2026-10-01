@@ -29,7 +29,8 @@
 # The project and FM_HOME are isolated; Claude keeps using its existing managed
 # authentication and one trusted temporary folder. A few Sonnet turns are
 # submitted (about six minutes across the two labs). FM_BRANCH_MOD_LIVE_KEEP=1
-# copies each lab's logs (module events, Claude debug, watcher triage, status)
+# copies each lab's logs (module events, Claude debug, watcher triage, cycle
+# exits, delivery records, beacon, status)
 # to a fresh temporary directory named on stdout, for a post-mortem.
 # shellcheck disable=SC2016 # prompt text is read by the model, not this test shell, and settle conditions are re-evaluated, not expanded
 set -u
@@ -48,29 +49,38 @@ SESSION="fm-branch-e2e"
 SOCKET1="fm-branch-claude-$$"
 SOCKET2="fm-branch-claude-child-$$"
 LAB1='' LAB2='' # every lab root, so cleanup reaches both
-SOCKET='' LAB='' HOME_DIR='' STATE='' EVENTS='' SHIM='' # the lab under setup
+SOCKET='' LAB='' HOME_DIR='' STATE='' EVENTS='' SHIM='' LAB_TMUX_DIR='' # the lab under setup
 GAP_BASELINE=0 SENDS_BEFORE_GAP=0 # where the production gap left the branch
 
 # shellcheck source=tests/branch-mod-lab-helpers.sh
 . "$ROOT/tests/branch-mod-lab-helpers.sh"
 
 cleanup() {
-  local lab st keep
-  teardown_lab "$SOCKET1" "$LAB1"
-  teardown_lab "$SOCKET2" "$LAB2"
+  local lab st keep cleanup_failed=0
+  teardown_lab "$SOCKET1" "$LAB1" || cleanup_failed=1
+  teardown_lab "$SOCKET2" "$LAB2" || cleanup_failed=1
   if [ "${FM_BRANCH_MOD_LIVE_KEEP:-}" = 1 ]; then
     for lab in "$LAB1" "$LAB2"; do
       [ -n "$lab" ] || continue
       st="$lab/home/state"
       keep=$(mktemp -d "${TMPDIR:-/tmp}/fm-branch-claude-live-logs.XXXXXX") || continue
-      cp "$st/branch-mod-events.jsonl" "$lab/debug.log" "$st/.watch-triage.log" "$st/dummy.status" "$st/.wake-queue" "$keep/" 2>/dev/null || true
+      cp "$st/branch-mod-events.jsonl" "$lab/debug.log" "$st/.watch-triage.log" "$st/.watch-cycle-exits.log" "$st/.watch-deliveries.log" "$st/.last-watcher-beat" "$st/dummy.status" "$st/.wake-queue" "$keep/" 2>/dev/null || true
       echo "# lab logs kept at $keep (lab $lab)"
     done
+  fi
+  if [ "$cleanup_failed" -ne 0 ]; then
+    echo "not ok - lab cleanup could not confirm watcher/server shutdown; preserving $LAB1 $LAB2" >&2
+    exit 1
   fi
   rm -rf "$LAB1" "$LAB2" 2>/dev/null || true
   fm_test_cleanup
 }
 trap cleanup EXIT
+# Let the combined EXIT cleanup stop the lab's owners before removing state.
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+trap 'exit 131' QUIT
 
 # Start the stand-in crewmate window running the lab's dummy script.
 start_dummy() {
@@ -183,6 +193,11 @@ settle() { # <attempts> <shell condition, evaluated fresh on each try>
 # Successful sends, counted through the escaped-JSON success marker.
 success_sends() { count agent.send '\"success\":true'; }
 
+assert_watcher_continuity() {
+  [ "$(count monitor.event 'watcher: FAILED')" = 0 ] \
+    || fail "the lab reported a watcher continuity failure: $(events monitor.event)"
+}
+
 # The composer is up once the trust dialog is gone and the prompt glyph shows.
 wait_composer() {
   local i=0 shot
@@ -249,7 +264,10 @@ production_gap() {
 }
 
 # --- 1. load and lock (lab 1: the scrubbed launch, transcript persistence on)
-make_lab "$SOCKET1"
+if ! make_lab "$SOCKET1"; then
+  LAB1=$LAB
+  fail 'could not create the first isolated lab'
+fi
 LAB1=$LAB
 start_claude_session
 wait_event session.start '"enabled":true' 'the module loading enabled'
@@ -306,7 +324,8 @@ settle 10 '[ "$(count agent.send)" = "$(success_sends)" ]' || fail "a send was r
 pass "one spawn, every send successful, no dropped hand-back, no backstop delivery across the run"
 
 # Lab 1 is proven; free its server and panes before the second lab launches.
-teardown_lab "$SOCKET" "$LAB"
+assert_watcher_continuity
+teardown_lab "$SOCKET" "$LAB" || fail 'could not stop the first lab before starting the second'
 
 # --- 6. inherited CLAUDE_CODE_CHILD_SESSION: the unresumable rotation ----------
 # The production defect's launch shape: the primary inherited
@@ -314,7 +333,10 @@ teardown_lab "$SOCKET" "$LAB"
 # session), so background-agent transcripts are never written to disk. The
 # same minutes-later gap then finds no transcript and no in-memory agent: the
 # mod must rotate to a fresh agent and keep the wake, never pass it to main.
-make_lab "$SOCKET2"
+if ! make_lab "$SOCKET2"; then
+  LAB2=$LAB
+  fail 'could not create the second isolated lab'
+fi
 LAB2=$LAB
 start_claude_session CLAUDE_CODE_CHILD_SESSION=1
 wait_event session.start '"enabled":true' 'the module loading enabled in the child-session lab'
@@ -362,4 +384,5 @@ done
   || fail "the rotation chain stalled: $(events wake.delivered)"
 [ "$(count wake.passed)" = 0 ] || fail "a later wake was passed to main: $(events wake.passed)"
 [ "$(count handback.dropped)" = 0 ] || fail "a later hand-back was dropped: $(events handback.dropped)"
+assert_watcher_continuity
 pass "a minutes-later wake on an inherited CLAUDE_CODE_CHILD_SESSION rotates to a fresh agent (why=unresumable) and keeps the wake"

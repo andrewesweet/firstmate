@@ -2,20 +2,25 @@
 # Scratch-home fixtures shared by the branch mod's live guard and its portable
 # watcher-isolation regression in fm-test-fixtures.test.sh.
 # Callers supply ROOT, REAL_TMUX and SESSION; make_lab sets the current lab's
-# SOCKET, LAB, HOME_DIR, STATE, EVENTS and SHIM. Call teardown_lab before
+# SOCKET, LAB, HOME_DIR, STATE, EVENTS, SHIM and LAB_TMUX_DIR. Call teardown_lab before
 # removing a lab, and retain the test's combined EXIT cleanup.
 # shellcheck disable=SC2016 # scratch instructions are consumed by Claude
 
 teardown_lab() { # <socket> <lab>
-  local socket=$1 lab=$2 i=0
+  local socket=$1 lab=$2 home tmux_dir
   [ -n "$lab" ] || return 0
-  "$REAL_TMUX" -L "$socket" kill-server 2>/dev/null || true
-  # The watcher and Claude's debug logger may still be winding down in the lab.
-  while [ "$i" -lt 20 ] && pgrep -f "$lab/" >/dev/null 2>&1; do
-    sleep 0.25
-    i=$((i + 1))
-  done
-  pkill -f "$lab/" 2>/dev/null || true
+  home="$lab/home"
+  [ -d "$home/state" ] || return 0
+  if [ -f "$home/state/.fm-lab-tmux-dir" ]; then
+    tmux_dir=$("$ROOT/bin/fm-lab-home.sh" tmux-dir "$home") || return 1
+    TMUX_TMPDIR="$tmux_dir" "$REAL_TMUX" -L "$socket" kill-server 2>/dev/null || true
+  fi
+  # Detached handling successors and mod-owned watchers have the code root,
+  # not the lab, in argv. Stop only the watcher this home's lock identifies,
+  # after killing its primary so no Stop firing can re-arm it during cleanup.
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    "$ROOT/bin/fm-watch-arm.sh" --stop || return 1
+  "$ROOT/bin/fm-lab-home.sh" teardown "$home"
 }
 
 # Each scenario runs in its own throwaway home, so the child-session launch
@@ -26,16 +31,21 @@ teardown_lab() { # <socket> <lab>
 # way.
 make_lab() { # <socket>: build a fresh scratch home; sets the lab globals
   SOCKET=$1
-  LAB=$(fm_test_tmproot fm-branch-claude-live)
+  LAB=$(fm_test_tmproot fm-branch-claude-live) || return 1
   HOME_DIR="$LAB/home"
   STATE="$HOME_DIR/state"
+  # shellcheck disable=SC2034 # Read by the live guard's events() helper.
   EVENTS="$STATE/branch-mod-events.jsonl"
   SHIM="$LAB/shim"
-  mkdir -p "$STATE" "$HOME_DIR/data" "$HOME_DIR/config" "$HOME_DIR/projects/dummy" "$HOME_DIR/bin" "$SHIM"
+  "$ROOT/bin/fm-lab-home.sh" create "$HOME_DIR" >/dev/null || return 1
+  LAB_TMUX_DIR=$("$ROOT/bin/fm-lab-home.sh" tmux-dir "$HOME_DIR") || return 1
+  export TMUX_TMPDIR="$LAB_TMUX_DIR"
+  mkdir -p "$HOME_DIR/projects/dummy" "$HOME_DIR/bin" "$SHIM"
 for f in "$ROOT"/bin/*; do ln -s "$f" "$HOME_DIR/bin/$(basename "$f")"; done
 for d in .agents docs .tasks.toml; do ln -s "$ROOT/$d" "$HOME_DIR/$d"; done
 git -C "$HOME_DIR" init -q
 printf 'tmux\n' > "$HOME_DIR/config/backend"
+printf 'off\n' > "$HOME_DIR/config/supervision-host"
 : > "$STATE/.branch-mod-mode"
 cat > "$HOME_DIR/AGENTS.md" <<'MD'
 # Scratch primary for the fm-branch-mod live regression
@@ -92,12 +102,15 @@ DUMMY
 # hook) lands on this test's private server.
 cat > "$SHIM/tmux" <<EOF
 #!/usr/bin/env bash
-exec '$REAL_TMUX' -L '$SOCKET' "\$@"
+TMUX_TMPDIR='$LAB_TMUX_DIR' exec '$REAL_TMUX' -L '$SOCKET' "\$@"
 EOF
 chmod +x "$SHIM/tmux" "$LAB/dummy.sh"
 
 # The launch settings the docs page prescribes: the Stop-owned watcher auto-arm,
-# prompt suggestion off, and no autoCompactWindow.
+# prompt suggestion off, and no autoCompactWindow. The hook must run from the
+# same tracked bin as the mod: watcher ownership matches the script path
+# exactly, so the home's per-file symlink overlay is not an interchangeable
+# entry point for these two arm owners.
 cat > "$LAB/settings.json" <<EOF
 {
   "promptSuggestionEnabled": false,
@@ -107,7 +120,7 @@ cat > "$LAB/settings.json" <<EOF
         "hooks": [
           {
             "type": "command",
-            "command": "FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' exec '$HOME_DIR/bin/fm-claude-stop-autoarm.sh'",
+            "command": "FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' exec '$ROOT/bin/fm-claude-stop-autoarm.sh'",
             "asyncRewake": true,
             "timeout": 28800
           }
