@@ -72,7 +72,15 @@ if [ "${1:-}" = get ]; then
         done
         [ -n "$checkout" ] || continue
         printf '%s %s\n' "$slot" "$holder" >> "$leases"
+        if [ "${FM_FAKE_TREEHOUSE_GET_FAIL_SILENT:-0}" = 1 ]; then
+          echo "error: fake pool $pool: recorded the lease, then the checkout step failed" >&2
+          exit 1
+        fi
         ( cd "$checkout" && pwd -P )
+        if [ "${FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE:-0}" = 1 ]; then
+          echo "error: fake pool $pool: printed the checkout, then the finalize step failed" >&2
+          exit 1
+        fi
         exit 0
       fi
     done
@@ -218,6 +226,10 @@ test_leased_slot_is_not_reissued_while_task_exists() {
   [ "$status" -ne 0 ] || fail "a spawn with no free pool slot launched anyway"$'\n'"$out"
   assert_contains "$out" "could not lease a Treehouse pool slot" \
     "the exhausted-pool spawn did not name the missing lease as the reason"
+  assert_not_contains "$out" "leased a Treehouse pool slot" \
+    "the exhausted-pool spawn claimed a lease it never took"
+  assert_contains "$out" "may have recorded a lease before it failed" \
+    "the exhausted-pool spawn did not hedge whether its failed get left a lease"
   [ ! -e "$HOME_DIR/state/lease-third-r1.meta" ] \
     || fail "the refused spawn published a task record"
   grep -Fq "lease-third-r1" "$POOL_DIR/.fake-leases" \
@@ -377,6 +389,40 @@ test_teardown_leaves_an_absent_copy_leased_to_another_task() {
   pass "teardown leaves an absent copy whose lease belongs to another task alone"
 }
 
+# A pooled copy gone from disk whose path the state file no longer lists - the
+# slot was returned elsewhere, or the listing is stale - cannot be proved a
+# pool slot any more, but the state file proves a pool still lives there. Its
+# lease may still be held, so teardown must still warn with the command that
+# frees the slot instead of dropping it silently.
+test_teardown_warns_when_an_absent_copys_path_is_no_longer_listed() {
+  local rec out status
+  rec=$(make_pool_case unlisted 1 2)
+  read_pool_record "$rec"
+
+  out=$(run_pool_spawn lease-unlisted-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "the spawn before the copy went absent should launch"$'\n'"$out"
+  printf '# Scout findings\n\nNo changes needed.\n' > "$HOME_DIR/data/lease-unlisted-r1/report.md"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
+    FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete lease-unlisted-r1 --none >/dev/null
+
+  # The copy is pruned and the state file no longer lists its path.
+  rm -rf "$POOL_DIR/1/project"
+  git -C "$PROJECT_DIR" worktree prune
+  printf '{"worktrees":[{"name":"2","path":"%s"},{"name":"_end","path":"none"}]}\n' \
+    "$POOL_DIR/2/project" > "$POOL_DIR/treehouse-state.json"
+
+  out=$(run_pool_teardown lease-unlisted-r1)
+  status=$?
+  expect_code 0 "$status" "an unlisted absent copy must not block its own teardown"$'\n'"$out"
+  assert_contains "$out" "its Treehouse slot lease was not returned" \
+    "teardown did not warn that the absent copy's lease may still be held"
+  assert_contains "$out" "treehouse return --force --if-lease-holder lease-unlisted-r1 $POOL_DIR/1/project" \
+    "the warning did not name the manual release for the slot it could not prove"
+  pass "teardown warns for an absent copy whose path the state file no longer lists"
+}
+
 # A record written before slot claims existed carries none to screen with, so
 # only treehouse's own refusal on the return can reveal that the slot has become
 # another task's: teardown must then refuse, leaving that copy on disk with its
@@ -398,11 +444,16 @@ test_teardown_refuses_a_slot_leased_to_another_task() {
     "$ROOT/bin/fm-captain-hold.sh" complete lease-unclaimed-r1 --none >/dev/null
 
   # A pre-claim-era record: no claim to read, and the slot is now another live
-  # task's, with that task's work in the checkout.
+  # task's, with that task's work in the checkout - its branch checked out and
+  # its hook files in place.
   rm -f "$POOL_DIR/1/.fm-slot-owner"
   printf '1 lease-otherowner-r2\n' > "$POOL_DIR/.fake-leases"
   printf 'another live task is working here\n' > "$POOL_DIR/1/project/other-task-work.txt"
   git -C "$POOL_DIR/1/project" checkout -q -b other-task-branch
+  mkdir -p "$POOL_DIR/1/project/.claude" "$POOL_DIR/1/project/.opencode/plugins"
+  printf 'holder hooks\n' > "$POOL_DIR/1/project/.claude/settings.local.json"
+  printf 'holder grok hook\n' > "$POOL_DIR/1/project/.fm-grok-turnend"
+  printf 'holder turnend hook\n' > "$POOL_DIR/1/project/.opencode/plugins/fm-turn-end.js"
 
   out=$(run_pool_teardown lease-unclaimed-r1)
   status=$?
@@ -414,6 +465,16 @@ test_teardown_refuses_a_slot_leased_to_another_task() {
     "the refusal did not name the slot it left alone"
   [ -f "$POOL_DIR/1/project/other-task-work.txt" ] \
     || fail "the refused teardown deleted or reset a copy leased to another task"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/.claude/settings.local.json" ] \
+    || fail "the refused teardown removed hook files from a copy leased to another task"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/.fm-grok-turnend" ] \
+    || fail "the refused teardown removed a turnend hook from a copy leased to another task"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/.opencode/plugins/fm-turn-end.js" ] \
+    || fail "the refused teardown removed a turnend plugin from a copy leased to another task"$'\n'"$out"
+  git -C "$POOL_DIR/1/project" rev-parse --verify -q other-task-branch >/dev/null \
+    || fail "the refused teardown deleted the branch a copy leased to another task was working on"$'\n'"$out"
+  [ "$(git -C "$POOL_DIR/1/project" rev-parse --abbrev-ref HEAD)" = "other-task-branch" ] \
+    || fail "the refused teardown detached the checked-out branch of a copy leased to another task"$'\n'"$out"
   grep -Fxq "1 lease-otherowner-r2" "$POOL_DIR/.fake-leases" \
     || fail "the refused teardown dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
   [ -e "$HOME_DIR/state/lease-unclaimed-r1.meta" ] \
@@ -551,6 +612,42 @@ test_child_cleanup_refuses_a_present_copy_leased_to_another_task() {
   pass "child cleanup refuses a present copy whose lease belongs to another task"
 }
 
+# A child record from before slot claims existed, whose pooled copy is still on
+# disk but leased to another live task, must be refused the same way - and the
+# hook sweep a claimed child's cleanup runs must not fire before the one
+# ownership proof, so the other task's copy keeps every one of its files.
+test_child_cleanup_refuses_a_preclaim_present_copy_leased_to_another_task() {
+  local out status
+  make_child_pool_case childpre lease-child-r4 >/dev/null
+  git -C "$PROJECT_DIR" worktree prune
+  git -C "$PROJECT_DIR" worktree add --quiet --detach "$POOL_DIR/1/project" HEAD
+  printf 'another live task is working here\n' > "$POOL_DIR/1/project/other-task-work.txt"
+  mkdir -p "$POOL_DIR/1/project/.claude" "$POOL_DIR/1/project/.opencode/plugins"
+  printf 'holder hooks\n' > "$POOL_DIR/1/project/.claude/settings.local.json"
+  printf 'holder turnend hook\n' > "$POOL_DIR/1/project/.opencode/plugins/fm-turn-end.js"
+  printf '1 lease-otherowner-r4\n' > "$POOL_DIR/.fake-leases"
+
+  out=$(run_pool_teardown domain --force)
+  status=$?
+  [ "$status" -ne 0 ] \
+    || fail "forced retirement should refuse while a pre-claim child slot is leased to another task"$'\n'"$out"
+  assert_contains "$out" "lease-child-r4" \
+    "the refusal did not name the child whose slot it left alone"
+  assert_contains "$out" "$POOL_DIR/1/project" \
+    "the refusal did not name the slot it left alone"
+  [ -f "$POOL_DIR/1/project/other-task-work.txt" ] \
+    || fail "child cleanup deleted or reset a pre-claim pool copy leased to another task"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/.claude/settings.local.json" ] \
+    || fail "child cleanup removed hook files from a pre-claim copy leased to another task"$'\n'"$out"
+  [ -f "$POOL_DIR/1/project/.opencode/plugins/fm-turn-end.js" ] \
+    || fail "child cleanup removed a turnend plugin from a pre-claim copy leased to another task"$'\n'"$out"
+  grep -Fxq "1 lease-otherowner-r4" "$POOL_DIR/.fake-leases" \
+    || fail "child cleanup dropped a lease held for another task: $(cat "$POOL_DIR/.fake-leases")"
+  [ -e "$CASE_DIR/subhome/state/lease-child-r4.meta" ] \
+    || fail "the refused retirement removed the child record it should keep for a rerun"$'\n'"$out"
+  pass "child cleanup refuses a pre-claim present copy whose lease belongs to another task"
+}
+
 # The endpoint cannot be told to enter the leased copy: the spawn refuses
 # before any worker launches, and the lease does not outlive it.
 test_failed_send_returns_its_lease() {
@@ -587,15 +684,60 @@ test_settle_timeout_returns_its_lease() {
   pass "a spawn whose endpoint never reaches the leased copy returns its lease"
 }
 
+# A `treehouse get --lease` that records the reservation and then fails must
+# not strand it: the abort trap returns the slot the failed get printed.
+test_a_failing_get_that_recorded_its_lease_returns_it() {
+  local rec out status
+  rec=$(make_pool_case getfail 1)
+  read_pool_record "$rec"
+
+  out=$(FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE=1 run_pool_spawn lease-getfail-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its lease get failed"$'\n'"$out"
+  assert_contains "$out" "could not lease a Treehouse pool slot" \
+    "the spawn did not refuse when its lease get failed"
+  [ ! -e "$HOME_DIR/state/lease-getfail-r1.meta" ] \
+    || fail "the failed get published a task record"
+  [ ! -s "$POOL_DIR/.fake-leases" ] \
+    || fail "a failed get stranded the lease it had recorded: $(cat "$POOL_DIR/.fake-leases")"
+  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
+    || fail "the abort path did not return the slot the failed get had leased: $(tail -3 "$POOL_DIR/.fake-calls")"
+  pass "a failing get that recorded its lease returns it through the abort path"
+}
+
+# And a failed get that printed nothing leaves no path for the trap to return,
+# so the abort path must warn that a lease may have been recorded instead of
+# passing silently.
+test_a_failing_silent_get_warns_that_the_lease_may_be_held() {
+  local rec out status
+  rec=$(make_pool_case getfailquiet 1)
+  read_pool_record "$rec"
+
+  out=$(FM_FAKE_TREEHOUSE_GET_FAIL_SILENT=1 run_pool_spawn lease-getquiet-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its lease get failed"$'\n'"$out"
+  assert_contains "$out" "may have recorded a lease before it failed" \
+    "the aborted spawn did not warn that its lease may still be held"
+  assert_contains "$out" "treehouse return --force --if-lease-holder lease-getquiet-r1" \
+    "the warning did not name how to release a lease the failed get may have left"
+  grep -Fxq "1 lease-getquiet-r1" "$POOL_DIR/.fake-leases" \
+    || fail "the failed get's lease vanished without a return: $(cat "$POOL_DIR/.fake-leases")"
+  pass "a failing silent get leaves its lease with a may-still-be-held warning"
+}
+
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
+test_a_failing_get_that_recorded_its_lease_returns_it
+test_a_failing_silent_get_warns_that_the_lease_may_be_held
 test_teardown_completes_for_a_record_with_no_lease
 test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_teardown_leaves_an_absent_copy_leased_to_another_task
+test_teardown_warns_when_an_absent_copys_path_is_no_longer_listed
 test_teardown_refuses_a_slot_leased_to_another_task
 test_child_cleanup_frees_the_lease_when_the_slot_directory_is_gone
 test_child_cleanup_leaves_an_absent_copy_leased_to_another_task
 test_child_cleanup_refuses_a_present_copy_leased_to_another_task
+test_child_cleanup_refuses_a_preclaim_present_copy_leased_to_another_task
 test_aborted_spawn_keeps_a_dirty_copys_work
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease

@@ -186,13 +186,14 @@
 # unconditionally, exactly as it was before slots were leased. A slot whose
 # owner claim names another task is screened out before the first step that
 # would read or change the copy, so nothing in that copy is killed, reset,
-# cleaned or deleted. A record predating claims carries none to screen with, so
-# its worktree steps run in the pre-change order and the return is the first
-# ownership test it meets. If that return is refused or fails for any reason
-# teardown cannot name - a lease that is another task's included - teardown
-# refuses: no pooled copy is deleted or reset on that path, the lease stays with
-# whoever holds it, and the record is kept so a rerun works once the slot is
-# known to be idle. Removing a
+# cleaned or deleted. A record predating claims carries none to screen with,
+# so its durable lease return is the FIRST ownership test it meets and runs
+# before the reap, the branch drop or the hook sweep can touch that copy. If
+# that return is refused or fails for any reason teardown cannot name - a
+# lease that is another task's included - teardown refuses: no pooled copy is
+# deleted, reset or swept on that path, the lease stays with whoever holds it,
+# and the record is kept so a rerun works once the slot is known to be idle.
+# Removing a
 # leased home likewise leaves the home and state in place instead of hiding a
 # still-held lease.
 # Usage: fm-teardown.sh <task-id> [--force] [--legacy-record]
@@ -1852,11 +1853,21 @@ teardown_treehouse_project_lock_held() {  # <lock-path>
 # the project lock that serialises every allocation and return. A refusal - a
 # lease that is some other task's, or a treehouse without that flag - carries
 # treehouse's own reason and the command that frees it, so nothing is dropped
-# silently or taken from its real owner.
+# silently or taken from its real owner. When the recorded predicate cannot
+# prove the absent path is a pool slot at all - no live checkout, and a path
+# the state file no longer lists - a state file still living at the path's
+# grandparent is still evidence a pool does, so the same warning is the last
+# honest signal for a lease that may outlive its record. Only a gone state
+# file means no pool and no lease to name.
 teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
-  local id=$1 worktree=$2 project=$3 label=$4 lock_path
+  local id=$1 worktree=$2 project=$3 label=$4 lock_path state
   [ -n "$worktree" ] || return 0
-  fm_treehouse_pool_slot_recorded "$project" "$worktree" || return 0
+  if ! fm_treehouse_pool_slot_recorded "$project" "$worktree"; then
+    state="$(dirname "$(dirname "$worktree")")/treehouse-state.json"
+    [ -f "$state" ] && [ ! -L "$state" ] || return 0
+    echo "warning: task $id's $label $worktree is gone from disk and its Treehouse slot lease was not returned; if that slot is still this task's, release it with: (cd ${project:-<project>} && treehouse return --force --if-lease-holder $id $worktree)" >&2
+    return 0
+  fi
   lock_path=$(fm_treehouse_project_lock_path "$project" 2>/dev/null) || lock_path=
   if [ -n "$project" ] && [ -d "$project" ] && command -v treehouse >/dev/null 2>&1 &&
     teardown_treehouse_project_lock_held "$lock_path" &&
@@ -3368,6 +3379,25 @@ cleanup_firstmate_home_children() {
         :
       elif [ "$child_owner_rc" -ne 0 ]; then
         require_owned_worktree_slot_record "$child_id" "$child_wt" || return 1
+      elif [ "$child_is_pool_slot" = 1 ] && [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
+        # Pre-claim legacy child record: the durable lease return is the only
+        # ownership proof, so it runs before the hook sweep or any other step
+        # can touch a copy whose slot may have been silently reissued. The
+        # descendant preflight above already took this project's Treehouse
+        # lock, so no concurrent allocation can hand the slot out mid-return.
+        # A refusal leaves the copy, its lease and the child record in place;
+        # a refusal for a busy lock re-raises its own rc so the teardown can
+        # retry once the lock clears.
+        if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree" "$child_id"; then
+          fm_treehouse_slot_owner_release "$child_wt" "$child_id"
+        else
+          child_return_rc=$?
+          if [ "$child_return_rc" -eq "$TEARDOWN_TREEHOUSE_LOCK_REFUSED" ]; then
+            return "$child_return_rc"
+          fi
+          echo "error: treehouse return failed for child $child_id's pool slot $child_wt; that slot, its copy and its lease are left exactly as they are, and child $child_id's record is kept for a rerun once the slot is known to be idle" >&2
+          return 1
+        fi
       else
         validate_child_worktree_for_removal "$child_wt" "$child_proj" >/dev/null || return 1
         rm -f "$child_wt/.claude/settings.local.json" "$child_wt/.opencode/plugins/fm-turn-end.js" \
@@ -3732,14 +3762,47 @@ else
 fi
 
 # Every landed/discard-work refusal above has now passed (or --force skipped
-# them). Fix 1 and Fix 2 (see script header) run here, unconditionally on
-# --force, and before ANY destructive step below - a still-parked run or a
-# leaked process can own live work in this exact worktree. Not for
+# them). One check runs before the reaps and before any destructive step
+# below: a record whose slot carries no claim (pre-claim legacy) and whose
+# pooled copy treehouse still reports must prove ownership through the durable
+# lease return BEFORE the reap, the branch drop or the hook sweep can touch
+# that copy - all three would hit another live task's work if the slot had
+# been silently reissued. The guarded return refuses instead whenever the
+# lease is not this task's, leaving the slot, its copy and its lease exactly
+# as they are and the record in place for a rerun. The project lock is
+# already held here (the lock gate above required it for a live pool slot),
+# so no concurrent allocation can hand the slot out mid-return.
+TEARDOWN_ABSENT_CLAIM_RETURNED=0
+TEARDOWN_ABSENT_CLAIM_BRANCH=
+if [ "$KIND" != secondmate ] && teardown_owns_worktree \
+   && [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
+  fm_treehouse_slot_owner_state "$WT" "$ID"
+  if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
+    conclude_task_no_mistakes_run "$WT"
+    TEARDOWN_ABSENT_CLAIM_BRANCH=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
+    post_lock_cleanup_check=
+    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ]; then
+      post_lock_cleanup_check=validate_worktree_teardown_safety
+    fi
+    if teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check"; then
+      TEARDOWN_ABSENT_CLAIM_RETURNED=1
+    else
+      echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
+      exit 1
+    fi
+  fi
+fi
+
+# Fix 1 and Fix 2 (see script header) run here, unconditionally on --force,
+# and before any destructive step below them - a still-parked run or a leaked
+# process can own live work in this exact worktree. When the ownership return
+# above succeeded it already terminated the copy's lingering processes, so
+# this reap scans a returned pooled copy and reaps nothing of ours. Not for
 # kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
 # dedicated process-event and firstmate-home removal machinery further below,
 # not by task-worktree cleanup.
 if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
-  conclude_task_no_mistakes_run "$WT"
+  [ "$TEARDOWN_ABSENT_CLAIM_RETURNED" = 1 ] || conclude_task_no_mistakes_run "$WT"
   reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
 elif [ "$KIND" != secondmate ]; then
   reap_task_worktree_processes tasktmp "$TASK_TMP"
@@ -3774,32 +3837,45 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
 elif [ "$KIND" != secondmate ] && ! teardown_owns_worktree; then
   :
 elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
-  branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-  if [ "$branch" != "HEAD" ]; then
-    if git -C "$WT" checkout --detach -q 2>/dev/null; then
-      git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
+  if [ "$TEARDOWN_ABSENT_CLAIM_RETURNED" = 1 ]; then
+    # The pre-claim ownership return above already put this slot back in the
+    # pool and its reset cleaned the copy, so nothing here may return or reset
+    # it again: drop this task's captured branch ref best-effort, sweep any
+    # hook files the reset left, and drop the spent claim.
+    if [ "$TEARDOWN_ABSENT_CLAIM_BRANCH" != "HEAD" ]; then
+      git -C "$PROJ" branch -D "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null 2>&1 || true
     fi
+    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
+      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
+    fm_treehouse_slot_owner_release "$WT" "$ID"
+  else
+    branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
+    if [ "$branch" != "HEAD" ]; then
+      if git -C "$WT" checkout --detach -q 2>/dev/null; then
+        git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
+      fi
+    fi
+    # Remove our hook file so a reused pool worktree cannot fire signals for a dead task.
+    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
+      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
+    # Kills remaining processes in the worktree (including the agent), resets, returns
+    # to pool. treehouse resolves the pool from the working directory, so run it from
+    # the project. teardown_treehouse_return tolerates transient and stale git locks
+    # left by a killed crew process; see the script header for retry and stale-lock proof.
+    post_lock_cleanup_check=
+    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
+      post_lock_cleanup_check=validate_worktree_teardown_safety
+    fi
+    teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
+      echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
+      exit 1
+    }
+    # The slot is back in the pool, so this task's claim on it is spent. Dropping
+    # it here - and only after a return that succeeded - keeps a returned slot
+    # unclaimed until its next holder claims it, and leaves the claim in place
+    # whenever the return did not actually happen.
+    fm_treehouse_slot_owner_release "$WT" "$ID"
   fi
-  # Remove our hook file so a reused pool worktree cannot fire signals for a dead task.
-  rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
-    "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
-  # Kills remaining processes in the worktree (including the agent), resets, returns
-  # to pool. treehouse resolves the pool from the working directory, so run it from
-  # the project. teardown_treehouse_return tolerates transient and stale git locks
-  # left by a killed crew process; see the script header for retry and stale-lock proof.
-  post_lock_cleanup_check=
-  if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
-    post_lock_cleanup_check=validate_worktree_teardown_safety
-  fi
-  teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
-    echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
-    exit 1
-  }
-  # The slot is back in the pool, so this task's claim on it is spent. Dropping
-  # it here - and only after a return that succeeded - keeps a returned slot
-  # unclaimed until its next holder claims it, and leaves the claim in place
-  # whenever the return did not actually happen.
-  fm_treehouse_slot_owner_release "$WT" "$ID"
 elif [ "$KIND" != secondmate ] && [ -n "$WT" ]; then
   # The recorded copy is gone from disk - removed or pruned outside Firstmate -
   # so none of the steps above run and nothing else would ever release this
