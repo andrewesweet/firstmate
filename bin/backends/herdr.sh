@@ -1678,9 +1678,14 @@ fm_backend_herdr_server_ensure() {  # <session>
     fm_backend_herdr_server_launch "$session"
   ) || return 1
   for i in $(seq 1 20); do
+    # Sleep before every probe, including the first: the launch above is
+    # asynchronous, so an immediate probe would race the server process being
+    # dispatched at all - observed as a CI-only fixture-ordering flake, and
+    # pointless against a real server that needs hundreds of milliseconds to
+    # bind. 20 sleeps and probes span the full 10s budget.
+    sleep 0.5
     running=$(fm_backend_herdr_cli "$session" status --json 2>/dev/null | jq -r '.server.running // false' 2>/dev/null)
     [ "$running" = "true" ] && return 0
-    sleep 0.5
   done
   echo "error: herdr server for session '$session' did not report running within 10s" >&2
   return 1
