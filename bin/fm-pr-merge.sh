@@ -143,6 +143,47 @@
 # destination, normal-case deduplication, and at-least-once recovery.
 # A landed merge whose outcome cannot be written is reported loudly rather than
 # misreported as a failed merge.
+#
+# A pull request that belongs to a native GitHub stack is detected from the
+# forge's own record before anything is recorded: the pull request's REST
+# resource carries a stack object naming the stack number, this layer's
+# position, and the stack's base branch, and a pull request without that
+# object merges through the synchronous path exactly as before. When that
+# record cannot be read, or its shape is not one this script recognises, the
+# merge refuses before anything is recorded, because guessing could merge a
+# layer out of order. A stacked pull request merges only bottom-up, one layer
+# at a time, through GitHub's asynchronous merge API: the stack's own record
+# must show every lower layer already merged, the pull request's base must be
+# the stack's base - which is how GitHub retargets the lowest unmerged layer
+# after each landing - and the request is a merge commit bound to the verified
+# head, so --squash, --rebase, and every other merge method refuse, as does
+# every forge flag from --auto to --delete-branch even with --attended-override,
+# because none of them has a counterpart in the asynchronous merge API. Every
+# existing live gate still runs on the stacked path: the mergeable read with its
+# green-checks and required-check gates verifies the same live head the request
+# binds, so a stacked pull request faces every refusal a synchronous one does
+# plus the stack's own. The
+# merge-queue gates stay absolute: a base branch whose merge-queue state does
+# not prove an immediate merge refuses the stacked request attended or away
+# alike, and while the away-posture record exists the asynchronous request
+# itself refuses with exit 2 - at the authority read before anything is
+# recorded, and again inside the record's lock before the submit. For a
+# no-mistakes task the pipeline must have validated the live head with its ci
+# step running before the request is bound; a direct-PR task carries no such
+# pipeline record and skips that rule. The submit's answers are read from the
+# response status, never from this script's hope: a 202 with a pending result
+# persists the merge authority, releases the away-record lock, and polls the
+# named result to a terminal answer; a failed result quotes GitHub's own
+# report, retires the authority, and reports that nothing was merged, because
+# the request is atomic; a merged result is accepted only after a live
+# read-back agrees it merged with the pull request's head still the bound one,
+# because GitHub merges exactly the bound head and a commit pushed after
+# verification would be left off the base; any disagreement keeps the
+# authority and refuses. A
+# result that cannot be read - a transport failure, an unreadable body, a
+# vanished uuid, or a request still pending after 300 polls - reports that
+# nothing is proven landed and leaves the merge authority and the armed merge
+# poll to report the landing later.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -158,6 +199,8 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 . "$SCRIPT_DIR/fm-merge-outcome-lib.sh"
 # shellcheck source=bin/fm-merge-authority-lib.sh
 . "$SCRIPT_DIR/fm-merge-authority-lib.sh"
+# shellcheck source=bin/fm-nm-run-lib.sh
+. "$SCRIPT_DIR/fm-nm-run-lib.sh"
 # shellcheck source=bin/fm-afk-contract.sh
 . "$SCRIPT_DIR/fm-afk-contract.sh"
 
@@ -364,6 +407,10 @@ if [ "$PROVIDER" = gitlab ]; then
   done
 fi
 FM_PR_AWAY_POSTURE=false
+FM_PR_STACKED=false
+FM_PR_STACK_NUMBER=
+FM_PR_STACK_POSITION=
+FM_PR_STACK_MERGE_UUID=
 
 fm_backlog_directory_present "$STATE" "state directory" || {
   echo "error: PR merge refused: $FM_BACKLOG_TRANSITION_ERROR" >&2
@@ -1121,6 +1168,10 @@ require_current_away_authority() {
   FM_PR_AWAY_POSTURE=false
   if fm_afk_contract_away_present "$STATE"; then
     FM_PR_AWAY_POSTURE=true
+    if [ "$FM_PR_STACKED" = true ]; then
+      echo "error: the stacked merge path is asynchronous; while the away-posture record exists a stacked pull request cannot merge, so nothing was merged and no merge poll is armed" >&2
+      return 2
+    fi
     if [ "$PROVIDER" = github ] && [ "$FM_PR_GITHUB_AUTO_REQUESTED" = true ]; then
       echo "error: --auto is attended-only; while the away-posture record exists only a synchronous merge may run under its authority lock" >&2
       return 2
@@ -1326,9 +1377,470 @@ gitlab_confirm_merged() {
   [ "$state" = merged ]
 }
 
+# A stacked pull request never merges through the synchronous forge command:
+# GitHub merges stacked layers only through its asynchronous merge API, one
+# layer at a time, bottom-up. github_detect_stack_membership owns detection,
+# and the functions below own order verification, the validated-head rule,
+# the submit, the poll, and every refusal in between. FM_PR_STACKED selects
+# the path, and FM_PR_STACK_MERGE_UUID carries an accepted request's identity.
+#
+# The stack-membership class reads one live pull request resource and sorts it
+# three ways: stacked when the stack object is one this script recognises,
+# standalone when the stack key is absent or null, and undeterminable for
+# everything else, including a stack key whose value is any other shape - so a
+# "stack": false or a half-written object refuses instead of guessing.
+github_stack_membership_class() { # <pull-json> -> stacked|standalone|undeterminable on stdout
+  local json=$1
+  printf '%s' "$json" | jq -r '
+    if type != "object" then "undeterminable"
+    elif (has("stack") | not) or .stack == null then "standalone"
+    elif (.stack | type) != "object" then "undeterminable"
+    elif ((.base // "") | type) != "object" then "undeterminable"
+    elif ((.base.ref // "") | type) != "string" or (.base.ref // "") == "" then "undeterminable"
+    elif ((.stack.number // "") | type) != "number"
+      or (.stack.number != (.stack.number | floor))
+      or .stack.number < 1 then "undeterminable"
+    elif ((.stack.position // "") | type) != "number"
+      or (.stack.position != (.stack.position | floor))
+      or .stack.position < 1 then "undeterminable"
+    elif ((.stack.base // "") | type) != "object" then "undeterminable"
+    elif ((.stack.base.ref // "") | type) != "string"
+      or (.stack.base.ref // "") == "" then "undeterminable"
+    else "stacked" end' 2>/dev/null || printf 'undeterminable\n'
+}
+
+github_detect_stack_membership() {
+  local json class
+  if ! json=$(gh api "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER" 2>/dev/null) || [ -z "$json" ]; then
+    echo "error: stack membership could not be determined for pull request $PR_NUMBER because the pull request's record could not be read; nothing was merged and nothing was recorded" >&2
+    return 1
+  fi
+  class=$(github_stack_membership_class "$json")
+  case "$class" in
+    stacked)
+      FM_PR_STACKED=true
+      FM_PR_STACK_NUMBER=$(printf '%s' "$json" | jq -r '.stack.number')
+      FM_PR_STACK_POSITION=$(printf '%s' "$json" | jq -r '.stack.position')
+      ;;
+    standalone) ;;
+    *)
+      echo "error: stack membership could not be determined for pull request $PR_NUMBER because the stack field is not a shape this script recognises; nothing was merged and nothing was recorded" >&2
+      return 1
+      ;;
+  esac
+}
+
+# The asynchronous merge API accepts exactly one method, a merge commit. The
+# stacked path therefore takes no method, --merge, or --method merge, and
+# refuses everything else before anything is recorded, including the protected
+# forge flags even when --attended-override re-enabled them for the
+# synchronous path.
+reject_stacked_merge_args() {
+  local arg pending_method=false
+  for arg in "$@"; do
+    if [ "$pending_method" = true ]; then
+      pending_method=false
+      case "$arg" in
+        [mM][eE][rR][gG][eE]) continue ;;
+        *)
+          echo "error: a stacked pull request merges only with a merge commit: --method accepts only merge on the asynchronous merge path" >&2
+          return 1
+          ;;
+      esac
+    fi
+    case "$arg" in
+      --merge) ;;
+      --method) pending_method=true ;;
+      --method=*)
+        case "${arg#--method=}" in
+          [mM][eE][rR][gG][eE]) ;;
+          *)
+            echo "error: a stacked pull request merges only with a merge commit: --method accepts only merge on the asynchronous merge path" >&2
+            return 1
+            ;;
+        esac
+        ;;
+      --squash|--rebase)
+        echo "error: a stacked pull request merges only with a merge commit: --squash and --rebase have no counterpart in the asynchronous merge API" >&2
+        return 1
+        ;;
+      --auto|--admin|--delete-branch|--delete-branch=*|-[d]*)
+        echo "error: a stacked pull request merges only through the asynchronous merge API: --auto, --admin and branch deletion have no place on it, attended or not" >&2
+        return 1
+        ;;
+      *)
+        echo "error: extra merge argument '$arg' has no counterpart in the asynchronous merge API; a stacked pull request accepts no method, --merge or --method merge" >&2
+        return 1
+        ;;
+    esac
+  done
+  if [ "$pending_method" = true ]; then
+    echo "error: --method requires a value, and a stacked pull request merges only with a merge commit: pass --method merge or nothing at all" >&2
+    return 1
+  fi
+}
+
+# One live read of the stack's own record proves this pull request is its
+# lowest unmerged layer: it is present in the recorded layers, every recorded
+# layer below it has merged, and its base is the stack's base, which is how
+# GitHub retargets the lowest unmerged layer after each landing. Every refusal
+# here is a live-state refusal, so pr= stays recorded.
+github_verify_stack_order() {
+  local json stack_base='' entry_number='' merged_at='' found=false lower_unmerged=''
+  if ! json=$(gh api "repos/$PR_OWNER/$PR_REPO/stacks/$FM_PR_STACK_NUMBER" 2>/dev/null) || [ -z "$json" ]; then
+    echo "error: stack $FM_PR_STACK_NUMBER's record could not be read, so the stacked bottom-up order cannot be verified; nothing was merged" >&2
+    return 1
+  fi
+  stack_base=$(printf '%s' "$json" | jq -r 'if type == "object" and ((.base // "") | type) == "object" and ((.base.ref // "") | type) == "string" and (.base.ref // "") != "" then .base.ref else empty end' 2>/dev/null) || stack_base=''
+  if [ -z "$stack_base" ]; then
+    echo "error: stack $FM_PR_STACK_NUMBER's record has no readable base branch, so the stacked bottom-up order cannot be verified; nothing was merged" >&2
+    return 1
+  fi
+  while read -r entry_number merged_at; do
+    [ -n "$entry_number" ] || continue
+    if [ "$entry_number" = "$PR_NUMBER" ]; then
+      found=true
+      continue
+    fi
+    if [ "$found" = true ]; then
+      continue
+    fi
+    if [ -z "$merged_at" ] || [ "$merged_at" = null ]; then
+      lower_unmerged=$entry_number
+      break
+    fi
+  done <<EOF
+$(printf '%s' "$json" | jq -r 'if type == "object" and ((.pull_requests // "") | type) == "array" then (.pull_requests | sort_by(.position))[] | ((.number // "") | tostring) + " " + ((.merged_at // "") | tostring) else empty end' 2>/dev/null || true)
+EOF
+  if [ -n "$lower_unmerged" ]; then
+    echo "error: pull request $lower_unmerged in stack $FM_PR_STACK_NUMBER has not merged, so pull request $PR_NUMBER (position $FM_PR_STACK_POSITION) is not the lowest unmerged layer; merge the lower layers first" >&2
+    return 1
+  fi
+  if [ "$found" != true ]; then
+    echo "error: pull request $PR_NUMBER is not in stack $FM_PR_STACK_NUMBER's recorded layers, so this script will not merge it as a stacked pull request; nothing was merged" >&2
+    return 1
+  fi
+  if [ "$FM_PR_GITHUB_BASE" != "$stack_base" ]; then
+    echo "error: pull request $PR_NUMBER's base $FM_PR_GITHUB_BASE is not stack $FM_PR_STACK_NUMBER's base $stack_base, so GitHub has not retargeted this layer to the stack base yet; nothing was merged" >&2
+    return 1
+  fi
+}
+
+# The stacked request is asynchronous, so a merge-queue base refuses it
+# attended or away alike: a queued landing can outlive any authority this run
+# holds, and a stack cannot queue one layer at a time.
+github_refuse_queue_for_stack() {
+  github_read_queue_method
+  if [ "$FM_PR_GITHUB_QUEUE_STATUS" = none ]; then
+    return 0
+  fi
+  echo "error: a stacked pull request cannot enter a merge queue: the base branch's merge queue state reads '$FM_PR_GITHUB_QUEUE_STATUS', so the asynchronous merge request is refused; nothing was handed to the forge" >&2
+  return 1
+}
+
+# The ci step's state from a captured axi status document's steps rows, or
+# empty when the document names no ci row. Local copy of the row extraction
+# bin/fm-crew-state.sh owns, taking the document as an argument instead of the
+# supervisor's global.
+github_nm_ci_step_state() { # <toon-output>
+  printf '%s\n' "$1" | awk '
+    /^[[:space:]]*steps\[[0-9]+\]\{/ { hdr = index($0, "steps"); inblock = 1; next }
+    inblock {
+      if ($0 ~ /^[[:space:]]*$/) { inblock = 0; next }
+      match($0, /[^ \t]/)
+      if (RSTART <= hdr) { inblock = 0; next }
+      row = $0
+      sub(/^[ \t]*/, "", row)
+      step = row
+      sub(/,.*/, "", step)
+      if (step == "ci") {
+        rest = row
+        sub(/^[^,]*,/, "", rest)
+        sub(/,.*/, "", rest)
+        print rest
+        exit
+      }
+    }'
+}
+
+# Whether an active_steps row leads with ci, by the same row extraction.
+github_nm_ci_step_active() { # <toon-output>
+  printf '%s\n' "$1" | awk '
+    /^[[:space:]]*active_steps\[[0-9]+\]\{/ { hdr = index($0, "active_steps"); inblock = 1; next }
+    inblock {
+      if ($0 ~ /^[[:space:]]*$/) { inblock = 0; next }
+      match($0, /[^ \t]/)
+      if (RSTART <= hdr) { inblock = 0; next }
+      row = $0
+      sub(/^[ \t]*/, "", row)
+      step = row
+      sub(/,.*/, "", step)
+      if (step == "ci") { found = 1; exit }
+    }
+    END { if (found) exit 0; exit 1 }'
+}
+
+# Before the request is bound, the task's own no-mistakes pipeline must have
+# validated the live head with its ci step running, so a push that lands after
+# validation refuses instead of merging an unverified head. A direct-PR task
+# has no pipeline record and skips the rule; a no-mistakes task whose record,
+# local copy, or status document cannot be read refuses, because an unreadable
+# validation is not a validation.
+github_verify_pipeline_validated_head() {
+  local mode='' worktree='' out='' validated='' ci_state='' validated_resolved='' live_resolved=''
+  mode=$(grep '^mode=' "$META" | tail -1 | cut -d= -f2- || true)
+  [ "$mode" = "direct-PR" ] && return 0
+  worktree=$(grep '^worktree=' "$META" | tail -1 | cut -d= -f2- || true)
+  if [ -z "$worktree" ] || [ ! -d "$worktree" ] || ! command -v no-mistakes >/dev/null 2>&1; then
+    echo "error: the pipeline for task $ID has not validated the live head $FM_PR_MERGE_HEAD: no readable no-mistakes pipeline record exists for this task's local copy, so the stacked merge refuses until the pipeline re-validates it" >&2
+    return 1
+  fi
+  out=$(fm_nm_run_checked "$worktree" 15 axi status) || out=''
+  case "$out" in
+    run:*) ;;
+    *) out='' ;;
+  esac
+  if [ -n "$out" ]; then
+    validated=$(fm_nm_branch_sync_nested "$out" pipeline current_head)
+    [ -n "$validated" ] || validated=$(fm_nm_strip_quotes "$(fm_nm_field "$out" head_sha)")
+    ci_state=$(fm_nm_strip_quotes "$(github_nm_ci_step_state "$out")")
+  fi
+  if [ -z "$validated" ]; then
+    echo "error: the pipeline for task $ID has not validated the live head $FM_PR_MERGE_HEAD: its status document names no validated head${ci_state:+ and its ci step reads $ci_state}, so the stacked merge refuses until the pipeline re-validates it" >&2
+    return 1
+  fi
+  if [ "$validated" != "$FM_PR_MERGE_HEAD" ]; then
+    validated_resolved=$(fm_nm_resolve_commit "$worktree" "$validated") || validated_resolved=''
+    live_resolved=$(fm_nm_resolve_commit "$worktree" "$FM_PR_MERGE_HEAD") || live_resolved=''
+    if [ -z "$validated_resolved" ] || [ -z "$live_resolved" ] || [ "$validated_resolved" != "$live_resolved" ]; then
+      echo "error: the pipeline for task $ID has not validated the live head $FM_PR_MERGE_HEAD: its last validated head is $validated${ci_state:+ and its ci step reads $ci_state}, so the stacked merge refuses until the pipeline re-validates it" >&2
+      return 1
+    fi
+  fi
+  if [ "$ci_state" != running ] || ! github_nm_ci_step_active "$out"; then
+    echo "error: the pipeline for task $ID has not validated the live head $FM_PR_MERGE_HEAD: its ci step reads ${ci_state:-unreadable}, so the stacked merge refuses until the ci step runs green again" >&2
+    return 1
+  fi
+}
+
+FM_PR_MERGE_ASYNC_STATUS=
+FM_PR_MERGE_ASYNC_BODY=
+# One gh api --include call against the asynchronous merge API, splitting the
+# answer into its HTTP status code and body. gh prints headers and body to
+# stdout even on an HTTP error, so the answer is read from the status line and
+# a transport failure leaves both empty: fate unknown, never failure.
+github_merge_async_call() { # <method> <endpoint> [gh api args...]
+  local method=$1 endpoint=$2
+  shift 2
+  local raw='' status='' body=''
+  FM_PR_MERGE_ASYNC_STATUS=
+  FM_PR_MERGE_ASYNC_BODY=
+  raw=$(gh api --include -X "$method" "$endpoint" "$@" 2>/dev/null) || raw=${raw:-}
+  if [ -n "$raw" ]; then
+    status=$(printf '%s\n' "$raw" | tr -d '\r' | sed -n 's/^HTTP\/[0-9.]*[[:space:]]*\([0-9][0-9][0-9]\).*$/\1/p' | tail -1) || status=''
+    body=$(printf '%s\n' "$raw" | tr -d '\r' | awk 'seen { print; next } /^$/ { seen = 1 }') || body=''
+  fi
+  FM_PR_MERGE_ASYNC_STATUS=$status
+  FM_PR_MERGE_ASYNC_BODY=$body
+}
+
+# GitHub's own message from an asynchronous API answer body, marked as the
+# forge's text and kept apart from this script's verdict.
+github_report_github_message() {
+  printf 'error: GitHub'"'"'s own report follows, not this script'"'"'s verdict:\n' >&2
+  printf 'error: > %s\n' "$1" >&2
+}
+
+github_merge_async_message() { # <body> -> message on stdout
+  local message=''
+  message=$(printf '%s' "$1" | jq -r 'if type == "object" then (.details.message // .message // empty) else empty end' 2>/dev/null) || message=''
+  if [ -z "$message" ] || [ "$message" = null ]; then
+    message='GitHub returned no readable message'
+  fi
+  printf '%s' "$message"
+}
+
+# An unproven stacked result: the request's fate is unknown, nothing is proven
+# landed, and the armed merge poll reports the landing if the request ever
+# completes. The merge authority stays so that poll can tag its landing.
+github_report_stack_unproven() {
+  local uuid=$1 reason=${2:-the result could not be read}
+  printf 'actionable: the asynchronous merge request %s for %s has no proven result: %s; GitHub keeps the result for about 24 hours, nothing is proven landed, and the merge poll reports the landing if the request completes\n' \
+    "$uuid" "$URL" "$reason" >&2
+}
+
+github_retire_stack_merge_authority() {
+  local recorded_authority='' recorded_identity=''
+  if fm_merge_authority_read "$STATE" "$ID" "$PROVIDER" "$PR_HOST" "$PR_PATH" "$PR_NUMBER"; then
+    recorded_authority=$FM_MERGE_AUTHORITY
+    recorded_identity=$FM_MERGE_AUTHORITY_RECORD_IDENTITY
+    fm_merge_authority_remove_if_matches "$STATE" "$ID" "$PROVIDER" "$PR_HOST" "$PR_PATH" \
+      "$PR_NUMBER" "$recorded_authority" "$recorded_identity" || true
+  fi
+}
+
+# The 202 pending answer is the only acceptance: persist the merge authority
+# against the still-matching task metadata, release the away-record lock, and
+# bind the request's uuid for the poll. A 202 whose uuid or expected head
+# cannot be trusted reports an unproven result or a disagreement and keeps the
+# authority for the armed poll.
+github_accept_stack_merge_request() {
+  local expected=''
+  if ! persist_accepted_merge_authority; then
+    return 1
+  fi
+  fm_afk_contract_lock_release || true
+  fm_lock_release "$MERGE_CONTROL_LOCK" || true
+  MERGE_CONTROL_LOCK=
+  FM_PR_STACK_MERGE_UUID=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.uuid // "") | type) == "string" then .details.uuid else empty end' 2>/dev/null) || FM_PR_STACK_MERGE_UUID=''
+  case "$FM_PR_STACK_MERGE_UUID" in
+    '' | *[!A-Za-z0-9_-]*)
+      github_report_stack_unproven "${FM_PR_STACK_MERGE_UUID:-unreadable}" "GitHub's 202 answer carried no readable result uuid"
+      exit 1
+      ;;
+  esac
+  expected=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.expected_head_sha // "") | type) == "string" then .details.expected_head_sha else empty end' 2>/dev/null) || expected=''
+  if [ -n "$expected" ] && [ "$expected" != "$FM_PR_MERGE_HEAD" ]; then
+    echo "error: GitHub's 202 answer for pull request $PR_NUMBER names expected head $expected, which disagrees with the verified head $FM_PR_MERGE_HEAD this run bound into the request; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+    exit 1
+  fi
+}
+
+# Submit the stacked merge request: one merge-commit request bound to the
+# verified head. Every answer path below exits; only the caller's 202 pending
+# acceptance returns, with FM_PR_STACK_MERGE_UUID set.
+github_submit_stack_merge() {
+  local invalid_message='' conflict_uuid='' conflict_method='' conflict_head=''
+  github_merge_async_call PUT "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/merge-async" \
+    -f merge_method=merge -f merge_action=direct_merge -f "sha=$FM_PR_MERGE_HEAD"
+  case "${FM_PR_MERGE_ASYNC_STATUS%% *}" in
+    202)
+      github_accept_stack_merge_request || exit 1
+      ;;
+    200)
+      fm_afk_contract_lock_release || true
+      fm_lock_release "$MERGE_CONTROL_LOCK" || true
+      MERGE_CONTROL_LOCK=
+      echo "error: GitHub reports pull request $PR_NUMBER had already merged before this submit, so this run did not merge it and records no landing" >&2
+      exit 1
+      ;;
+    409)
+      conflict_uuid=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.uuid // "") | type) == "string" then .details.uuid else empty end' 2>/dev/null) || conflict_uuid=''
+      conflict_method=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.merge_method // "") | type) == "string" then .details.merge_method else empty end' 2>/dev/null) || conflict_method=''
+      conflict_head=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.details.expected_head_sha // "") | type) == "string" then .details.expected_head_sha else empty end' 2>/dev/null) || conflict_head=''
+      fm_afk_contract_lock_release || true
+      fm_lock_release "$MERGE_CONTROL_LOCK" || true
+      MERGE_CONTROL_LOCK=
+      echo "error: GitHub is already handling an asynchronous merge request for pull request $PR_NUMBER (uuid ${conflict_uuid:-unreadable}, method ${conflict_method:-unreadable}, expected head ${conflict_head:-unreadable}); this request was not adopted and this run did not merge anything" >&2
+      exit 1
+      ;;
+    400)
+      invalid_message=$(github_merge_async_message "$FM_PR_MERGE_ASYNC_BODY")
+      fm_afk_contract_lock_release || true
+      fm_lock_release "$MERGE_CONTROL_LOCK" || true
+      MERGE_CONTROL_LOCK=
+      github_report_github_message "$invalid_message"
+      echo "error: GitHub rejected the asynchronous merge request for pull request $PR_NUMBER, and nothing was merged" >&2
+      exit 1
+      ;;
+    404)
+      fm_afk_contract_lock_release || true
+      fm_lock_release "$MERGE_CONTROL_LOCK" || true
+      MERGE_CONTROL_LOCK=
+      echo "error: GitHub's asynchronous merge API answered 404 for pull request $PR_NUMBER, so the request was not accepted and nothing was merged" >&2
+      exit 1
+      ;;
+    *)
+      fm_afk_contract_lock_release || true
+      fm_lock_release "$MERGE_CONTROL_LOCK" || true
+      MERGE_CONTROL_LOCK=
+      echo "error: GitHub answered HTTP ${FM_PR_MERGE_ASYNC_STATUS:-with an unreadable status} for the asynchronous merge request on pull request $PR_NUMBER, so the request's fate is unknown; nothing is proven landed and the merge poll remains armed" >&2
+      exit 1
+      ;;
+  esac
+}
+
+# Poll one accepted stacked merge request to a terminal answer, at most 300
+# polls apart. merged is accepted only after a live read-back agrees; failed
+# retires the authority because the request is atomic and nothing merged;
+# every unreadable answer is unproven and keeps the authority for the armed
+# poll. Only the verified merged path returns.
+github_poll_stack_merge() {
+  local uuid=$1 polls=0 answer='' message='' live_head=''
+  local delay=${FM_PR_GITHUB_MERGE_POLL_DELAY:-1}
+  case "$delay" in
+    [0-9] | 10) ;;
+    *) delay=1 ;;
+  esac
+  while [ "$polls" -lt 300 ]; do
+    polls=$((polls + 1))
+    github_merge_async_call GET "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/merge-async/$uuid"
+    if [ "${FM_PR_MERGE_ASYNC_STATUS%% *}" = 200 ]; then
+      answer=$(printf '%s' "$FM_PR_MERGE_ASYNC_BODY" | jq -r 'if type == "object" and ((.status // "") | type) == "string" then .status else empty end' 2>/dev/null) || answer=''
+      case "$answer" in
+        merged)
+          if ! github_read_outcome; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request's live state could not be read back; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          if [ "$FM_PR_GITHUB_MERGED" != true ]; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request reads back as state=$FM_PR_GITHUB_STATE, merged=$FM_PR_GITHUB_MERGED, isInMergeQueue=$FM_PR_GITHUB_QUEUED; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          # GitHub merges exactly the bound head, so a commit pushed after
+          # verification leaves the closed pull request's head off the base.
+          live_head=$(gh pr view "$URL" --json headRefOid --jq .headRefOid 2>/dev/null) || live_head=''
+          if [ -z "$live_head" ]; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request's head could not be read back; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          if [ "$live_head" != "$FM_PR_MERGE_HEAD" ]; then
+            echo "error: GitHub reports the asynchronous merge request $uuid for $URL merged, but the pull request's head reads back as $live_head, not the bound verified head $FM_PR_MERGE_HEAD; the bound head landed but the newer pushed commit $live_head is not on the base; this is a disagreement, the merge authority stays, and the merge poll remains armed" >&2
+            exit 1
+          fi
+          printf 'verified: %s is merged (state=%s, merged=%s, isInMergeQueue=%s)\n' \
+            "$URL" "$FM_PR_GITHUB_STATE" "$FM_PR_GITHUB_MERGED" "$FM_PR_GITHUB_QUEUED"
+          return 0
+          ;;
+        failed)
+          message=$(github_merge_async_message "$FM_PR_MERGE_ASYNC_BODY")
+          github_report_github_message "$message"
+          echo "error: GitHub reports the asynchronous merge request $uuid for $URL failed, and nothing was merged, because the request is atomic" >&2
+          github_retire_stack_merge_authority
+          exit 1
+          ;;
+        enqueued)
+          printf 'verified: %s'"'"'s asynchronous merge request is enqueued; the merge poll reports the landing\n' "$URL"
+          exit 0
+          ;;
+        pending) ;;
+        *)
+          github_report_stack_unproven "$uuid" "the poll's result status reads '${answer:-unreadable}'"
+          exit 1
+          ;;
+      esac
+    else
+      github_report_stack_unproven "$uuid" "the poll returned HTTP ${FM_PR_MERGE_ASYNC_STATUS:-with an unreadable status}"
+      exit 1
+    fi
+    sleep "$delay"
+  done
+  github_report_stack_unproven "$uuid" "the request is still pending after 300 polls"
+  exit 1
+}
+
 # Record before either forge call. This arms the merge poll without claiming a
 # landed outcome, so even a provider read failure after a real merge cannot
 # leave teardown without the PR identity it needs to verify the result.
+# A stacked pull request is detected from GitHub's own record before anything
+# is recorded: detection, not the caller, selects the stacked path, and an
+# unreadable or unrecognisable record refuses instead of guessing.
+if [ "$PROVIDER" = github ]; then
+  github_detect_stack_membership || exit 1
+  if [ "$FM_PR_STACKED" = true ]; then
+    reject_stacked_merge_args "$@" || exit 1
+  fi
+fi
 away_status=0
 require_current_away_authority || away_status=$?
 [ "$away_status" -eq 0 ] || exit "$away_status"
@@ -1384,6 +1896,13 @@ case "$PROVIDER" in
     require_current_away_authority || away_status=$?
     [ "$away_status" -eq 0 ] || exit "$away_status"
     refuse_github_queue_while_away || exit 2
+    if [ "$FM_PR_STACKED" = true ]; then
+      github_refuse_queue_for_stack || exit 1
+      github_verify_stack_order || exit 1
+      github_verify_pipeline_validated_head || exit 1
+      github_submit_stack_merge || exit 1
+      github_poll_stack_merge "$FM_PR_STACK_MERGE_UUID" || exit 1
+    else
     merge_status=0
     merge_output=$(gh pr merge "$PR_NUMBER" --repo "$PR_OWNER/$PR_REPO" \
       --match-head-commit "$FM_PR_MERGE_HEAD" \
@@ -1424,6 +1943,7 @@ case "$PROVIDER" in
       github_report_forge_output "$merge_output"
       github_report_unmerged_outcome
       exit 1
+    fi
     fi
     ;;
   gitlab)
