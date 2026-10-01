@@ -72,10 +72,6 @@ if [ "${1:-}" = get ]; then
         done
         [ -n "$checkout" ] || continue
         printf '%s %s\n' "$slot" "$holder" >> "$leases"
-        if [ "${FM_FAKE_TREEHOUSE_GET_FAIL_SILENT:-0}" = 1 ]; then
-          echo "error: fake pool $pool: recorded the lease, then the checkout step failed" >&2
-          exit 1
-        fi
         ( cd "$checkout" && pwd -P )
         if [ "${FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE:-0}" = 1 ]; then
           echo "error: fake pool $pool: printed the checkout, then the finalize step failed" >&2
@@ -226,6 +222,8 @@ test_leased_slot_is_not_reissued_while_task_exists() {
   [ "$status" -ne 0 ] || fail "a spawn with no free pool slot launched anyway"$'\n'"$out"
   assert_contains "$out" "could not lease a Treehouse pool slot" \
     "the exhausted-pool spawn did not name the missing lease as the reason"
+  assert_not_contains "$out" "leased a Treehouse pool slot" \
+    "the exhausted-pool spawn warned about a lease it never took"
   [ ! -e "$HOME_DIR/state/lease-third-r1.meta" ] \
     || fail "the refused spawn published a task record"
   grep -Fq "lease-third-r1" "$POOL_DIR/.fake-leases" \
@@ -681,8 +679,7 @@ test_settle_timeout_returns_its_lease() {
 }
 
 # A `treehouse get --lease` that records the reservation and then fails must
-# not strand it: from the failure on the spawn treats the lease as maybe-held,
-# so the abort trap returns the slot the failed get had leased.
+# not strand it: the abort trap returns the slot the failed get printed.
 test_a_failing_get_that_recorded_its_lease_returns_it() {
   local rec out status
   rec=$(make_pool_case getfail 1)
@@ -702,28 +699,9 @@ test_a_failing_get_that_recorded_its_lease_returns_it() {
   pass "a failing get that recorded its lease returns it through the abort path"
 }
 
-# And a failed get that printed nothing leaves no path for the trap to return,
-# so the abort path must warn that the lease may still be held instead of
-# passing silently.
-test_a_failing_silent_get_warns_that_the_lease_may_be_held() {
-  local rec out status
-  rec=$(make_pool_case getfailquiet 1)
-  read_pool_record "$rec"
-
-  out=$(FM_FAKE_TREEHOUSE_GET_FAIL_SILENT=1 run_pool_spawn lease-getquiet-r1 "$POOL_DIR/1/project" --scout)
-  status=$?
-  [ "$status" -ne 0 ] || fail "spawn launched although its lease get failed"$'\n'"$out"
-  assert_contains "$out" "no path for it survived the aborted spawn" \
-    "the aborted spawn did not warn that its lease may still be held"
-  grep -Fxq "1 lease-getquiet-r1" "$POOL_DIR/.fake-leases" \
-    || fail "the failed get's lease vanished without a return: $(cat "$POOL_DIR/.fake-leases")"
-  pass "a failing silent get leaves its lease with a may-still-be-held warning"
-}
-
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
 test_a_failing_get_that_recorded_its_lease_returns_it
-test_a_failing_silent_get_warns_that_the_lease_may_be_held
 test_teardown_completes_for_a_record_with_no_lease
 test_teardown_frees_the_lease_when_the_slot_directory_is_gone
 test_teardown_leaves_an_absent_copy_leased_to_another_task
