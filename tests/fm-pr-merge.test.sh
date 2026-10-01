@@ -415,19 +415,25 @@ JSON
 }
 
 # write_github_stack_json <case_dir> <stack_number> <base_ref> <entry...>:
-# the stack's own record, bottom-to-top. An entry is "<number>" for an
-# unmerged layer or "<number>@<merged_at>" for a merged one.
+# the stack's own record. An entry is "<number>" for an unmerged layer or
+# "<number>@<merged_at>" for a merged one, optionally suffixed "#<position>";
+# without a suffix the entry's position is its place in the argument list.
 write_github_stack_json() {
-  local case_dir=$1 stack_number=$2 base=$3 entry entries='' merged
+  local case_dir=$1 stack_number=$2 base=$3 entry entries='' merged position index=0
   shift 3
   for entry in "$@"; do
+    index=$((index + 1))
+    position=$index
+    case "$entry" in
+      *'#'*) position=${entry##*#}; entry=${entry%#*} ;;
+    esac
     case "$entry" in
       *@*)
         merged=${entry#*@}
-        entries="$entries{\"number\":${entry%%@*},\"merged_at\":\"$merged\"},"
+        entries="$entries{\"number\":${entry%%@*},\"position\":$position,\"merged_at\":\"$merged\"},"
         ;;
       *)
-        entries="$entries{\"number\":$entry,\"merged_at\":null},"
+        entries="$entries{\"number\":$entry,\"position\":$position,\"merged_at\":null},"
         ;;
     esac
   done
@@ -4438,9 +4444,27 @@ test_stacked_refuses_until_it_is_the_lowest_unmerged_layer() {
   grep -q '^pr=' "$case_dir/state/task-x1.meta" \
     || fail "stacked-lower-unmerged: pr= should stay recorded (a live-state refusal)"
 
+  # The stack lists its layers out of position order: the unmerged lower layer
+  # listed after this one still refuses.
+  case_dir=$(build_stacked_case stacked-lower-listed-after "$head" 94)
+  write_github_stacked_pull_json "$case_dir" 94 77 2 main main
+  write_github_stack_json "$case_dir" 77 main '94#2' '93#1'
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/94 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "stacked-lower-listed-after: must refuse while a lower layer is unmerged, whatever the listing order"
+  assert_grep 'pull request 93' "$case_dir/stderr" \
+    "stacked-lower-listed-after: the refusal did not name the unmerged lower layer"
+  assert_no_grep 'merge-async' "$case_dir/gh.log" \
+    "stacked-lower-listed-after: an async request ran"
+
   # Lower merged but the base still differs from the stack base.
   case_dir=$(build_stacked_case stacked-base-not-retargeted "$head" 94)
   write_github_stacked_pull_json "$case_dir" 94 77 2 main 93-main
+  sed 's/"baseRefName":"main"/"baseRefName":"93-main"/' "$case_dir/github-view.json" > "$case_dir/github-view.json.tmp"
+  mv "$case_dir/github-view.json.tmp" "$case_dir/github-view.json"
   write_github_stack_json "$case_dir" 77 main '93@2026-01-01T00:00:00Z' '94'
   set +e
   run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/94 \
@@ -4858,6 +4882,22 @@ test_stacked_refuses_a_head_the_pipeline_has_not_validated() {
     "stacked-ci-fixing: the refusal did not name the CI step's state"
   assert_no_grep 'merge-async' "$case_dir/gh.log" \
     "stacked-ci-fixing: an async request ran"
+
+  # A status document without branch_sync names its validated head only in
+  # the quoted head_sha field: that head is the live head, so the merge runs.
+  case_dir=$(build_stacked_case stacked-head-sha-fallback "$head" 116)
+  printf 'merged\n' > "$case_dir/github-async-poll-sequence"
+  sed '/^branch_sync:/,$d' "$case_dir/nm-status" > "$case_dir/nm-status.tmp"
+  mv "$case_dir/nm-status.tmp" "$case_dir/nm-status"
+  set +e
+  FM_PR_GITHUB_MERGE_POLL_DELAY=0 \
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/116 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "stacked-head-sha-fallback: the quoted head_sha must validate the live head: $(cat "$case_dir/stderr")"
+  assert_grep "$(github_async_submit_line 116 "$head")" "$case_dir/gh.log" \
+    "stacked-head-sha-fallback: the async request did not bind the live head"
   pass "a stacked merge refuses a head the pipeline has not validated with a running ci step"
 }
 

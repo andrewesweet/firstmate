@@ -407,7 +407,6 @@ FM_PR_AWAY_POSTURE=false
 FM_PR_STACKED=false
 FM_PR_STACK_NUMBER=
 FM_PR_STACK_POSITION=
-FM_PR_BASE_REF=
 FM_PR_STACK_MERGE_UUID=
 
 fm_backlog_directory_present "$STATE" "state directory" || {
@@ -1419,10 +1418,6 @@ github_detect_stack_membership() {
       FM_PR_STACKED=true
       FM_PR_STACK_NUMBER=$(printf '%s' "$json" | jq -r '.stack.number')
       FM_PR_STACK_POSITION=$(printf '%s' "$json" | jq -r '.stack.position')
-      FM_PR_BASE_REF=$(printf '%s' "$json" | jq -r '.base.ref')
-      # The queue reader reads the base branch's rules, and the stacked path
-      # skips the mergeable read that otherwise sets this for it.
-      FM_PR_GITHUB_BASE=$FM_PR_BASE_REF
       ;;
     standalone) ;;
     *)
@@ -1512,7 +1507,7 @@ github_verify_stack_order() {
       break
     fi
   done <<EOF
-$(printf '%s' "$json" | jq -r 'if type == "object" and ((.pull_requests // "") | type) == "array" then .pull_requests[] | ((.number // "") | tostring) + " " + ((.merged_at // "") | tostring) else empty end' 2>/dev/null || true)
+$(printf '%s' "$json" | jq -r 'if type == "object" and ((.pull_requests // "") | type) == "array" then (.pull_requests | sort_by(.position))[] | ((.number // "") | tostring) + " " + ((.merged_at // "") | tostring) else empty end' 2>/dev/null || true)
 EOF
   if [ -n "$lower_unmerged" ]; then
     echo "error: pull request $lower_unmerged in stack $FM_PR_STACK_NUMBER has not merged, so pull request $PR_NUMBER (position $FM_PR_STACK_POSITION) is not the lowest unmerged layer; merge the lower layers first" >&2
@@ -1522,8 +1517,8 @@ EOF
     echo "error: pull request $PR_NUMBER is not in stack $FM_PR_STACK_NUMBER's recorded layers, so this script will not merge it as a stacked pull request; nothing was merged" >&2
     return 1
   fi
-  if [ "$FM_PR_BASE_REF" != "$stack_base" ]; then
-    echo "error: pull request $PR_NUMBER's base $FM_PR_BASE_REF is not stack $FM_PR_STACK_NUMBER's base $stack_base, so GitHub has not retargeted this layer to the stack base yet; nothing was merged" >&2
+  if [ "$FM_PR_GITHUB_BASE" != "$stack_base" ]; then
+    echo "error: pull request $PR_NUMBER's base $FM_PR_GITHUB_BASE is not stack $FM_PR_STACK_NUMBER's base $stack_base, so GitHub has not retargeted this layer to the stack base yet; nothing was merged" >&2
     return 1
   fi
 }
@@ -1604,8 +1599,8 @@ github_verify_pipeline_validated_head() {
   esac
   if [ -n "$out" ]; then
     validated=$(fm_nm_branch_sync_nested "$out" pipeline current_head)
-    [ -n "$validated" ] || validated=$(fm_nm_field "$out" head_sha)
-    ci_state=$(github_nm_ci_step_state "$out")
+    [ -n "$validated" ] || validated=$(fm_nm_strip_quotes "$(fm_nm_field "$out" head_sha)")
+    ci_state=$(fm_nm_strip_quotes "$(github_nm_ci_step_state "$out")")
   fi
   if [ -z "$validated" ]; then
     echo "error: the pipeline for task $ID has not validated the live head $FM_PR_MERGE_HEAD: its status document names no validated head${ci_state:+ and its ci step reads $ci_state}, so the stacked merge refuses until the pipeline re-validates it" >&2
