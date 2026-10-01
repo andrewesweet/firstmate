@@ -1,0 +1,6 @@
+run=1 rev=base geometry: not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+run=1 rev=head geometry: ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+run=2 rev=base geometry: not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+run=2 rev=head geometry: not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+run=3 rev=base geometry: not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+run=3 rev=head geometry: not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators

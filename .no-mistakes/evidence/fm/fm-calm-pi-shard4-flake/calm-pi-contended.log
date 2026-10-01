@@ -1,0 +1,44 @@
+ 09:55:36 up 50 days, 11:10,  7 users,  load average: 2.97, 3.57, 5.20
+=== run 1
+skip: node or npm not found for Pi calm home-resolution test
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: node or npm not found for Pi calm degraded-adapter test
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: node or npm not found for Pi Calm queued-row test
+skip: node or npm not found for Pi calm gate test
+skip: node or npm not found for Pi calm activation test
+skip: node or npm not found for Pi calm renderer test
+skip: node or npm not found for Pi calm mid-turn renderer test
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 0.99.1 with Calm on keeps a queued Firstmate notification unlisted, out of the editor on Escape, and delivers it once in a new announced turn, while Calm off stays stock
+not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+exit=1
+=== run 2
+skip: node or npm not found for Pi calm home-resolution test
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: node or npm not found for Pi calm degraded-adapter test
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: node or npm not found for Pi Calm queued-row test
+skip: node or npm not found for Pi calm gate test
+skip: node or npm not found for Pi calm activation test
+skip: node or npm not found for Pi calm renderer test
+skip: node or npm not found for Pi calm mid-turn renderer test
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 0.99.1 with Calm on keeps a queued Firstmate notification unlisted, out of the editor on Escape, and delivers it once in a new announced turn, while Calm off stays stock
+not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+exit=1
+=== run 3
+skip: node or npm not found for Pi calm home-resolution test
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: node or npm not found for Pi calm degraded-adapter test
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: node or npm not found for Pi Calm queued-row test
+skip: node or npm not found for Pi calm gate test
+skip: node or npm not found for Pi calm activation test
+skip: node or npm not found for Pi calm renderer test
+skip: node or npm not found for Pi calm mid-turn renderer test
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 0.99.1 with Calm on keeps a queued Firstmate notification unlisted, out of the editor on Escape, and delivers it once in a new announced turn, while Calm off stays stock
+not ok - completed native Calm /skill:ahoy turn left 5 rows between the collapsed skill row and final response instead of the two standard visible-row separators
+exit=1
+ 10:01:06 up 50 days, 11:16,  7 users,  load average: 18.36, 14.06, 9.46
