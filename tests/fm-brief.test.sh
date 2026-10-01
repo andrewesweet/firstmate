@@ -879,6 +879,22 @@ test_secondmate_directory_paths_are_absolute_and_output_is_stable() {
   assert_grep ">> '$home/state/relative-data.status'" "$brief" \
     "relative FM_DATA_OVERRIDE changed the absolute default status path"
 
+  brief="$data_override/relative-data-ship/brief.md"
+  FM_HOME="$home" FM_DATA_OVERRIDE="$data_override" \
+    "$ROOT/bin/fm-brief.sh" relative-data-ship some-proj --mode no-mistakes >/dev/null 2>&1
+  baseline="$root/absolute-data-ship-brief"
+  cp "$brief" "$baseline"
+  rm -f "$brief"
+  (
+    cd "$root" || exit 1
+    CDPATH="$root/cdpath" FM_HOME="$home" FM_DATA_OVERRIDE=data-override \
+      "$ROOT/bin/fm-brief.sh" relative-data-ship some-proj --mode no-mistakes >/dev/null 2>&1
+  )
+  cmp -s "$baseline" "$brief" \
+    || fail "relative FM_DATA_OVERRIDE changed no-mistakes brief bytes compared with the same absolute data directory"
+  assert_grep "review feedback file=$data_override/relative-data-ship/pr-<n>-<comment-id>.txt" "$brief" \
+    "relative FM_DATA_OVERRIDE did not render an absolute review-feedback snapshot path"
+
   err="$root/unresolved.err"
   (
     cd "$root" || exit 1
