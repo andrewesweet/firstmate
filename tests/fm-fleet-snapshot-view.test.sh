@@ -137,11 +137,14 @@ EOF
 # reach jq off argv. This feeds oversized backlog rows, status lines, and fold
 # summaries and asserts the snapshot still emits their full content.
 test_oversized_payloads_travel_off_argv() {
-  local home fakebin out big body
+  local home fakebin out big body small
   home=$(make_home oversized)
   big=$(head -c 400000 /dev/zero | tr '\0' 'A')
+  small=$(head -c 50000 /dev/zero | tr '\0' 'B')
   body="OVERSIZE-SENTINEL-$big"
-  mkdir -p "$home/projects/alpha-worktree" "$home/secondmate-home"
+  # No worktree directory: the absent-worktree source keeps the folded
+  # needs-decision open for the ship task instead of a pane read clearing it.
+  mkdir -p "$home/secondmate-home"
   {
     printf '## In flight\n'
     printf -- '- [ ] ship-task - Ship Task %s (repo: alpha) (kind: ship) (since 2026-07-07)\n' "$body"
@@ -164,9 +167,12 @@ test_oversized_payloads_travel_off_argv() {
     "home=$home/secondmate-home" \
     "projects=alpha,"
   printf 'needs-decision: %s\n' "$body" > "$home/state/ship-task.status"
+  # Needs-decision stays under FM_SNAPSHOT_PARENT_ACTIVITY_BYTES only as the
+  # activity window's dropped partial line; the smaller keyed working line is
+  # the last line, so it alone survives into the activity window.
   {
-    printf 'working [key=phase-a]: %s\n' "$body"
     printf 'needs-decision: %s\n' "$body"
+    printf 'working [key=phase-a]: ACTIVITY-SENTINEL-%s\n' "$small"
   } > "$home/state/secondmate-task.status"
   fakebin=$(make_fakebin "$home")
   out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --contribution-input)
@@ -175,10 +181,14 @@ test_oversized_payloads_travel_off_argv() {
   printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
     (.backlog.records | length) == 1
       and (.tasks | length) == 2
-      and .backlog.records[0].raw | contains($s)
+      and (.backlog.records[0].raw | contains($s))
   ' >/dev/null \
     || fail "oversized backlog content was lost from the contribution input"
-  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_SNAPSHOT_NOW_EPOCH=1700000100 "$SNAPSHOT" --json)
+  # Generous read bounds: this test pins argv transport, not the fleet-read
+  # timing guards, and a 400KiB line legitimately costs seconds to classify.
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_SNAPSHOT_NOW_EPOCH=1700000100 \
+    FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT=30 FM_SNAPSHOT_CREW_STATE_TIMEOUT=30 \
+    "$SNAPSHOT" --json)
   printf '%s' "$out" | jq -e . >/dev/null \
     || fail "oversized fleet snapshot must still emit JSON"
   printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
@@ -188,12 +198,13 @@ test_oversized_payloads_travel_off_argv() {
       and ([.tasks[] | select(.id == "ship-task")][0].hints.open_decisions[0].summary | contains($s))
   ' >/dev/null \
     || fail "oversized task event and decision content was lost from the snapshot"
-  printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL '
-    .secondmate_current.records[] | select(.id == "secondmate-task")
-    | .parent_event.raw | contains($s)
-      and (.parent_event.note | contains($s))
+  printf '%s' "$out" | jq -e --arg s OVERSIZE-SENTINEL --arg a ACTIVITY-SENTINEL '
+    .secondmate_current.records[]
+    | select(.id == "secondmate-task")
+    | (.parent_event.raw | contains($a))
+      and (.parent_event.note | contains($a))
       and (.parent_event.open_decisions[0].summary | contains($s))
-      and (.parent_event.activity_scan.records[0].summary | contains($s))
+      and (.parent_event.activity_scan.records[0].summary | contains($a))
   ' >/dev/null \
     || fail "oversized secondmate parent-event content was lost from the snapshot"
   pass "snapshot preserves payloads larger than the argv argument limit"
