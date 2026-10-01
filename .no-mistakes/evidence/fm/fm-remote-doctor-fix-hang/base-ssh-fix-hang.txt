@@ -1,0 +1,31 @@
+$ timeout 45 ssh 127.0.0.1 run-remote.sh <base b8dfb4f7 tree> base   # same command before the fix
+mode=fix
+path=/home/cti/.local/bin:/usr/local/bin:/usr/bin:/bin
+entrypoint=no
+platform=linux
+note: not launched through the fixed remote entrypoint; the reported PATH is this caller environment.
+fix herdr-server=applied: started the herdr server for session fm-remote
+required git=/usr/bin/git
+required jq=/usr/bin/jq
+required herdr=/home/cti/.local/bin/herdr
+required tasks-axi=/home/cti/.local/bin/tasks-axi
+required treehouse=/home/cti/.local/bin/treehouse
+required harness=claude:/home/cti/.local/bin/claude
+optional tmux=/usr/bin/tmux
+optional no-mistakes=/home/cti/.local/bin/no-mistakes
+optional gh=/home/cti/.local/bin/gh
+check herdr=ok: /home/cti/.local/bin/herdr
+check gui-session=skip: no Aqua login session applies on linux
+check remote-job-worker=ok: the Linux remote job worker is running
+check remote-job-worker-loaded=skip: Aqua launch agents do not apply on linux
+check remote-job-probe=ok: the remote job worker published a fresh heartbeat
+check launchagent=skip: launch agents apply only on darwin
+check launchagent-scope=skip: launch agents apply only on darwin
+check launchagent-loaded=skip: launch agents apply only on darwin
+check herdr-server=ok: session fm-remote is running
+check entrypoint-link=skip: this run did not come through the fixed remote entrypoint
+ok: remote second-mate readiness confirmed on this host
+ssh exit=124 (124 means hung and killed by timeout) elapsed=45.005043116s
+base server:
+    PID    PPID     SID COMMAND
+4111796 4111793 4111651 herdr server --session fm-remote

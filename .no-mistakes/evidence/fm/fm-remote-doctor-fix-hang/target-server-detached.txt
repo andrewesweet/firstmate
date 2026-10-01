@@ -1,0 +1,20 @@
+# after ssh returned: isolated fm-remote server state
+{"running":true,"status":"running","socket":"/tmp/fmdoc.S4Zg/home-target/.config/herdr/sessions/fm-remote/herdr.sock"}
+server pid=4098963
+    PID    PPID     SID COMMAND
+4098963    1640 4098963 herdr server --session fm-remote
+open fds:
+  
+0 -> /dev/null
+1 -> /dev/null
+10 -> socket:[21430759]
+18 -> socket:[21429995]
+2 -> /dev/null
+3 -> /tmp/fmdoc.S4Zg/home-target/.config/herdr/sessions/fm-remote/herdr-server.log
+4 -> socket:[21430756]
+5 -> anon_inode:[eventpoll]
+6 -> anon_inode:[eventfd]
+7 -> anon_inode:[eventpoll]
+8 -> socket:[21430759]
+9 -> socket:[21430760]
+sshd sid processes:
