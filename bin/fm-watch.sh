@@ -2355,6 +2355,34 @@ event_wait_or_sleep() {
   esac
 }
 
+# Display-only Herdr pane metadata projection (docs/herdr-backend.md "Endpoint
+# metadata projection"): bounded-cadence reconcile of every local Herdr task's
+# pane labels against its durable records, so wait markers stay current between
+# the event-driven publishes (spawn, PR registration, teardown clear) and a
+# stale marker self-heals instead of outliving the state it described. Each
+# task's publish is stamped before dispatch, so a slow or failed publish waits
+# for the next interval rather than piling up; the child inherits this watcher's
+# FM_HOME and detaches with its output discarded, exactly like the other
+# best-effort helpers here.
+HERDR_METADATA_REFRESH_SECS=${FM_BACKEND_HERDR_METADATA_REFRESH_SECS:-300}
+case "$HERDR_METADATA_REFRESH_SECS" in
+  ''|*[!0-9]*|0) HERDR_METADATA_REFRESH_SECS=300 ;;
+esac
+herdr_metadata_refresh_detached() {
+  local meta id stamp
+  for meta in "$STATE"/*.meta; do
+    [ -e "$meta" ] || continue
+    [ "$(fm_backend_of_meta "$meta")" = herdr ] || continue
+    [ -z "$(fm_meta_get "$meta" remote_host)" ] || continue
+    id=${meta##*/}; id=${id%.meta}
+    stamp="$STATE/.$id.meta-proj"
+    [ "$(age_of "$stamp")" -ge "$HERDR_METADATA_REFRESH_SECS" ] || continue
+    : > "$stamp" 2>/dev/null || continue
+    FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE \
+      "$SCRIPT_DIR/fm-herdr-metadata.sh" publish "$id" </dev/null >/dev/null 2>&1 &
+  done
+}
+
 # --- Main entry: the runtime below runs only when this file is executed as a
 # script. When sourced (unit tests loading the functions above), return here
 # before acquiring the singleton lock or entering the blocking loop.
@@ -2477,35 +2505,6 @@ home_summary_refresh_detached() {
   FM_HOME_SUMMARY_IF_IDLE=1 \
     "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort </dev/null >/dev/null 2>&1 &
   HOME_SUMMARY_PID=$!
-}
-
-# Display-only Herdr pane metadata projection (docs/herdr-backend.md "Endpoint
-# metadata projection"): bounded-cadence reconcile of every local Herdr task's
-# pane labels against its durable records, so wait markers stay current between
-# the event-driven publishes (spawn, PR registration, teardown clear) and a
-# stale marker self-heals instead of outliving the state it described. Each
-# task's publish is stamped before dispatch, so a slow or failed publish waits
-# for the next interval rather than piling up; the child inherits this watcher's
-# FM_HOME and detaches with its output discarded, exactly like the other
-# best-effort helpers here.
-HERDR_METADATA_REFRESH_SECS=${FM_BACKEND_HERDR_METADATA_REFRESH_SECS:-300}
-case "$HERDR_METADATA_REFRESH_SECS" in
-  ''|*[!0-9]*|0) HERDR_METADATA_REFRESH_SECS=300 ;;
-esac
-herdr_metadata_refresh_detached() {
-  local meta id stamp age
-  for meta in "$STATE"/*.meta; do
-    [ -e "$meta" ] || continue
-    [ "$(fm_backend_of_meta "$meta")" = herdr ] || continue
-    [ -z "$(fm_meta_get "$meta" remote_host)" ] || continue
-    id=${meta##*/}; id=${id%.meta}
-    stamp="$STATE/.$id.meta-proj"
-    age=$(( $(date +%s) - $(stat -f %m "$stamp" 2>/dev/null || stat -c %Y "$stamp" 2>/dev/null || echo 0) ))
-    [ "$age" -ge "$HERDR_METADATA_REFRESH_SECS" ] || continue
-    : > "$stamp" 2>/dev/null || continue
-    FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE \
-      "$SCRIPT_DIR/fm-herdr-metadata.sh" publish "$id" </dev/null >/dev/null 2>&1 &
-  done
 }
 
 RECONCILE_REQUEST_PID=

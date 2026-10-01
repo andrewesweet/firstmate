@@ -169,7 +169,7 @@ fm_backend_herdr_metadata_binding_ok() {  # <meta-file> <session> <pane-id>
 # its recorded pane. Nonzero on refusal or write failure; callers decide the
 # non-fatal policy (spawn/supervision detach it, teardown's clear is separate).
 fm_backend_herdr_metadata_publish() {  # <task-id>
-  local id=$1 state meta session pane window kind pr line now ttl src intent wait_value
+  local id=$1 state meta session pane window kind pr line now ttl src intent wait_value report tag
   local -a args=()
   state=${FM_STATE_OVERRIDE:-${FM_HOME:-$PWD}/state}
   meta=$state/$id.meta
@@ -192,6 +192,8 @@ fm_backend_herdr_metadata_publish() {  # <task-id>
   pr=$(fm_meta_get "$meta" pr)
   line=$(fm_backend_herdr_metadata_state_line "$id")
   intent=$(fm_backend_herdr_metadata_intent "$meta")
+  report=${FM_DATA_OVERRIDE:-${FM_HOME:-$PWD}/data}/$id/report.md
+  wait_value=$(fm_backend_herdr_metadata_wait "$line" "$meta" "$report")
 
   src=$(fm_backend_herdr_metadata_source_id)
   now=$(fm_backend_herdr_metadata_now)
@@ -204,16 +206,21 @@ fm_backend_herdr_metadata_publish() {  # <task-id>
     '') args+=(--clear-token fm_pr) ;;
     *) args+=(--token "fm_pr=$pr") ;;
   esac
-  if [ "$kind" = scout ] && [ -e "${FM_DATA_OVERRIDE:-${FM_HOME:-$PWD}/data}/$id/report.md" ]; then
+  if [ "$kind" = scout ] && [ -e "$report" ]; then
     args+=(--token "fm_report=data/$id/report.md")
   else
     args+=(--clear-token fm_report)
   fi
   # The title leads with the task id and closes with the intent; the wait
   # marker sits between them so the tab bar reads fm-<id>: [marker] <intent>.
-  args+=(--title "$(fm_backend_herdr_metadata_clip \
-    "fm-$id: $(fm_backend_herdr_metadata_wait_title_tag "$line" "$meta" "${FM_DATA_OVERRIDE:-${FM_HOME:-$PWD}/data}/$id/report.md")$intent" 80)")
-  wait_value=$(fm_backend_herdr_metadata_wait "$line" "$meta" "${FM_DATA_OVERRIDE:-${FM_HOME:-$PWD}/data}/$id/report.md")
+  case $wait_value in
+    decision:*) tag='[decision] ' ;;
+    wait:*) tag='[wait] ' ;;
+    'review ready') tag='[review] ' ;;
+    'report ready') tag='[report] ' ;;
+    *) tag= ;;
+  esac
+  args+=(--title "$(fm_backend_herdr_metadata_clip "fm-$id: $tag$intent" 80)")
   case $wait_value in
     '') args+=(--clear-token fm_wait) ;;
     *) args+=(--token "fm_wait=$wait_value") ;;
@@ -225,19 +232,6 @@ fm_backend_herdr_metadata_publish() {  # <task-id>
     printf 'metadata: publish for %s failed (non-fatal)\n' "$id" >&2
     return 1
   fi
-}
-
-# fm_backend_herdr_metadata_wait_title_tag <state-line> <meta-file> <report>:
-# the short bracket tag that prefixes the title, or empty.
-fm_backend_herdr_metadata_wait_title_tag() {  # <state-line> <meta-file> <report>
-  local tag
-  tag=$(fm_backend_herdr_metadata_wait "$1" "$2" "$3")
-  case $tag in
-    decision:*) printf '[decision] ' ;;
-    wait:*) printf '[wait] ' ;;
-    'review ready') printf '[review] ' ;;
-    'report ready') printf '[report] ' ;;
-  esac
 }
 
 # fm_backend_herdr_metadata_clear <task-id>: erase every Firstmate-owned

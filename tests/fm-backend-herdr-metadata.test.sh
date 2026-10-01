@@ -493,6 +493,47 @@ test_publish_names_crew_state_only_for_its_own_task() {
   pass "each publish reads current state once, for the projected task only"
 }
 
+# --- watcher reconcile cadence ----------------------------------------------
+
+# The watcher's bounded-cadence reconcile (herdr_metadata_refresh_detached in
+# bin/fm-watch.sh) dispatches one publish per local Herdr task when its stamp is
+# missing or older than the interval, and skips a fresh stamp without aborting
+# the set -u watcher, across repeated ticks.
+test_watcher_refresh_dispatches_on_stamp_expiry_only() {
+  local dir="$TMP_ROOT/watch-refresh" home fakedir log out rc
+  mkdir -p "$dir"
+  home=$(make_metadata_task "$dir" t1)
+  printf '%s\n' window=x:1 backend=tmux > "$home/state/t2.meta"
+  printf '%s\n' window=hs:w1:p3 backend=herdr herdr_pane_id=w1:p3 remote_host=box \
+    > "$home/state/t3.meta"
+  fakedir="$dir/scripts"
+  log="$dir/publishes"
+  mkdir -p "$fakedir"
+  printf '%s\n' '#!/usr/bin/env bash' "printf '%s\\n' \"\$*\" >> '$log'" \
+    > "$fakedir/fm-herdr-metadata.sh"
+  chmod +x "$fakedir/fm-herdr-metadata.sh"
+  out=$(
+    # shellcheck disable=SC2030,SC2031
+    export FM_HOME="$home"
+    unset FM_STATE_OVERRIDE
+    # shellcheck source=/dev/null
+    . "$ROOT/bin/fm-watch.sh"
+    # shellcheck disable=SC2034 # read by the sourced watcher function
+    SCRIPT_DIR=$fakedir
+    herdr_metadata_refresh_detached; wait
+    herdr_metadata_refresh_detached; wait
+    touch -t 200001010000 "$home/state/.t1.meta-proj"
+    herdr_metadata_refresh_detached; wait
+    echo survived
+  ) 2>&1
+  rc=$?
+  [ "$rc" -eq 0 ] && [ "$out" = survived ] \
+    || fail "watcher refresh: repeated ticks must not abort the watcher (rc=$rc): $out"
+  assert_equals $'publish t1\npublish t1' "$(cat "$log")" \
+    "watcher refresh: publish once per expired stamp, local Herdr tasks only"
+  pass "watcher reconcile publishes only on stamp expiry and survives a fresh stamp"
+}
+
 # --- runner ------------------------------------------------------------------
 
 test_publish_projects_exact_fields_from_records
@@ -507,5 +548,6 @@ test_clear_erases_only_firstmate_owned_values
 test_clear_skips_non_herdr_remote_and_absent_records
 test_entry_rejects_bad_usage
 test_publish_names_crew_state_only_for_its_own_task
+test_watcher_refresh_dispatches_on_stamp_expiry_only
 
 echo "ok - fm-backend-herdr-metadata: all tests passed"
