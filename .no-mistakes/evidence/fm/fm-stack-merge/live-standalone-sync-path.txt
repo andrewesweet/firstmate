@@ -1,0 +1,16 @@
+### standalone PR 8 (no stack): {"has_stack_key":false,"number":8,"stack":null}
+$ fm-pr-merge.sh solo https://github.com/andrewesweet/stacked-pr-lab/pull/8
+armed: state/solo.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/8 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 788e08207180849f88912226f17cdde9077dd48e
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/8 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+rc=0
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/8
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/8 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/8 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+pr merge 8 --repo andrewesweet/stacked-pr-lab --match-head-commit 788e08207180849f88912226f17cdde9077dd48e --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=8 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+--- result
+{"mergeCommit":{"oid":"c04a6668c6d375dbfcfe4ea0f976f89375e126d5"},"mergedAt":"2026-10-01T03:16:33Z","state":"MERGED"}

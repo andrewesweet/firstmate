@@ -1,0 +1,8 @@
+$ gh api repos/andrewesweet/firstmate/pulls/88 --jq "{number, stack: (.stack // null), has_stack_key: has(\"stack\")}"
+{"has_stack_key":false,"number":88,"stack":null}
+
+# classify the live record with the helper's own github_stack_membership_class
+class=standalone
+
+$ gh api repos/andrewesweet/firstmate/stacks/1 (read-only probe of the stacks endpoint)
+{"message":"Not Found","documentation_url":"https://docs.github.com/rest/pulls/stacks#get-a-pull-request-stack","status":"404"}gh: Not Found (HTTP 404)

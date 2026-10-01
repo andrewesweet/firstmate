@@ -1,0 +1,94 @@
+### PR 5 before: {"baseRefName":"main","headRefOid":"30c12fc5822fd151be476ea1f75329f7185f6e38","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":5}
+$ fm-pr-merge.sh s5 https://github.com/andrewesweet/stacked-pr-lab/pull/5
+armed: state/s5.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/5 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 30c12fc5822fd151be476ea1f75329f7185f6e38
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/5 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+rc=0
+count of 'is merged' landing lines: 1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/5
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/7
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/5/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=30c12fc5822fd151be476ea1f75329f7185f6e38
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/5/merge-async/3d2ccf28-e080-49cf-a298-af7ad32b720c
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/5/merge-async/3d2ccf28-e080-49cf-a298-af7ad32b720c
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/5/merge-async/3d2ccf28-e080-49cf-a298-af7ad32b720c
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=5 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+--- merged result
+{"head":"30c12fc5822fd151be476ea1f75329f7185f6e38","merge_commit_sha":"d8826668f1a1e5c90d9dc5acc29180ab5edd219e","merged":true,"state":"closed"}
+{"message":"Merge pull request #5 from andrewesweet/t1790824167-l2\n\nlayer 2 t1790824167","parents":["7b96bea6091f2efe3ca3b9f221ed1092dbe0192b","30c12fc5822fd151be476ea1f75329f7185f6e38"],"sha":"d8826668f1a1e5c90d9dc5acc29180ab5edd219e"}
+--- s5 state files: s5.check.sh s5.merge-authority s5.meta s5.pr-poll s5.pr-poll-merge-notified s5.pr-poll-registration 
+
+### PR 6 before: {"baseRefName":"main","headRefOid":"a12fbd00a2a6893f7e8f1991bdfd564104c5818e","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":6}
+$ fm-pr-merge.sh s6 https://github.com/andrewesweet/stacked-pr-lab/pull/6
+error: named head a3115d527ca984b7aef58ddcf7871c890b6fe5be is unreachable outside the worker copy
+rc=1
+count of 'is merged' landing lines: 0
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/6
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/6 --json headRefOid -q .headRefOid
+--- merged result
+{"head":"a12fbd00a2a6893f7e8f1991bdfd564104c5818e","merge_commit_sha":"ce6a02d22b34bb4c79fe667c148fbc4506d7bbc9","merged":false,"state":"open"}
+{"message":"Merge a12fbd00a2a6893f7e8f1991bdfd564104c5818e into d8826668f1a1e5c90d9dc5acc29180ab5edd219e","parents":["d8826668f1a1e5c90d9dc5acc29180ab5edd219e","a12fbd00a2a6893f7e8f1991bdfd564104c5818e"],"sha":"ce6a02d22b34bb4c79fe667c148fbc4506d7bbc9"}
+--- s6 state files: s6.check.sh s6.meta s6.pr-poll s6.pr-poll-registration 
+
+### stack 7 after all layers
+{"layers":[{"merged_at":"2026-10-01T03:11:15Z","number":4,"state":"closed"},{"merged_at":"2026-10-01T03:13:03Z","number":5,"state":"closed"},{"merged_at":null,"number":6,"state":"open"}],"open":true}
+### main history
+d882666 Merge pull request #5 from andrewesweet/t1790824167-l2  parents=7b96bea,30c12fc
+30c12fc layer 2 rewritten (race)  parents=7b96bea
+7b96bea Merge pull request #4 from andrewesweet/t1790824167-l1  parents=27fc415,f0cd64e
+f0cd64e layer 1 t1790824167  parents=27fc415
+27fc415 Merge pull request #2 from andrewesweet/nm1790823709-l2  parents=3c431e4,3408e35
+3408e35 layer 2 nm1790823709  parents=3c431e4
+3c431e4 Merge pull request #1 from andrewesweet/nm1790823709-l1  parents=4e2a00c,7aa81ef
+
+### setup note: GitHub restacked layer 3 after layer 2 landed (a3115d5 -> a12fbd0); the existing fm-pr-check named-head guard refused until the worker copy was synced to origin/t1790824167-l3 (git reset --hard), as a worker syncing its branch would
+### PR 6 before: {"baseRefName":"main","headRefOid":"a12fbd00a2a6893f7e8f1991bdfd564104c5818e","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":6}
+$ fm-pr-merge.sh s6 https://github.com/andrewesweet/stacked-pr-lab/pull/6
+armed: state/s6.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/6 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a12fbd00a2a6893f7e8f1991bdfd564104c5818e
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/6 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+rc=0
+count of 'is merged' landing lines: 1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/6
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/6 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/6 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/7
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/6/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=a12fbd00a2a6893f7e8f1991bdfd564104c5818e
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/6/merge-async/4fc6babd-87d2-43bc-96fd-6d97d2dfb97e
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/6/merge-async/4fc6babd-87d2-43bc-96fd-6d97d2dfb97e
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/6/merge-async/4fc6babd-87d2-43bc-96fd-6d97d2dfb97e
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=6 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+--- merged result
+{"head":"a12fbd00a2a6893f7e8f1991bdfd564104c5818e","merge_commit_sha":"eaa55f49b72e765c7159f10c2c1f298332c3b20c","merged":true,"state":"closed"}
+{"message":"Merge pull request #6 from andrewesweet/t1790824167-l3\n\nlayer 3 t1790824167","parents":["d8826668f1a1e5c90d9dc5acc29180ab5edd219e","a12fbd00a2a6893f7e8f1991bdfd564104c5818e"],"sha":"eaa55f49b72e765c7159f10c2c1f298332c3b20c"}
+--- s6 state files: s6.check.sh s6.merge-authority s6.meta s6.pr-poll s6.pr-poll-merge-notified s6.pr-poll-registration 
+--- s6.meta
+window=fm-task-s6
+worktree=/tmp/stacklab.97Wt/r
+project=/tmp/stacklab.97Wt/r
+kind=ship
+mode=direct-PR
+pr=https://github.com/andrewesweet/stacked-pr-lab/pull/6
+pr_head=a12fbd00a2a6893f7e8f1991bdfd564104c5818e
+
+### stack 7 after all layers
+{"layers":[{"merged_at":"2026-10-01T03:11:15Z","number":4,"state":"closed"},{"merged_at":"2026-10-01T03:13:03Z","number":5,"state":"closed"},{"merged_at":"2026-10-01T03:13:51Z","number":6,"state":"closed"}],"open":false}
+### main history (non-linear: one two-parent merge commit per layer)
+eaa55f4 Merge pull request #6 from andrewesweet/t1790824167-l3  parents=d882666,a12fbd0
+a12fbd0 layer 3 t1790824167  parents=d882666
+d882666 Merge pull request #5 from andrewesweet/t1790824167-l2  parents=7b96bea,30c12fc
+30c12fc layer 2 rewritten (race)  parents=7b96bea
+7b96bea Merge pull request #4 from andrewesweet/t1790824167-l1  parents=27fc415,f0cd64e
+f0cd64e layer 1 t1790824167  parents=27fc415
+27fc415 Merge pull request #2 from andrewesweet/nm1790823709-l2  parents=3c431e4,3408e35
+3408e35 layer 2 nm1790823709  parents=3c431e4

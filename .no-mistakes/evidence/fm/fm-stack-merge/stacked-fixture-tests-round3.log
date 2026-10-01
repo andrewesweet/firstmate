@@ -1,0 +1,16 @@
+ok - a stacked lowest layer merges through the asynchronous API with the verified head bound and the outcome published once
+ok - a stacked pull request accepts no method, --merge or --method merge and refuses every other method
+ok - a stacked pull request refuses auto-merge, admin, deletion and unknown flags even attended
+ok - undeterminable stack membership refuses before anything is recorded
+ok - the stacked path refuses until the pull request is the lowest unmerged layer with the stack base retargeted
+ok - a stacked pull request is refused with exit 2 while the away-posture record exists
+ok - a stacked pull request refuses a merge-queue base or unreadable rules before the submit
+ok - a failed stacked result quotes GitHub's text, records nothing landed, and retires the authority
+ok - an unreadable, vanished or still-pending stacked result keeps the authority and reports nothing landed
+ok - submit answers other than 202 pending never report a landing
+ok - a merged answer with a conflicting read-back is a disagreement, never a landing
+ok - a stacked merge whose pull request head moved past the bound head is a disagreement, never a landing
+ok - a stacked merge refuses a head the pipeline has not validated with a running ci step
+ok - the stacked path keeps the red, pending and unreported-required check gates
+ok - a direct-PR task merges through the stacked request without the pipeline validated-head rule
+ok - --allow-red on a stacked pull request reaches the submit with the verified head bound

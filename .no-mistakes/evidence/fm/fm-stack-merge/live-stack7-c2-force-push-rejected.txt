@@ -1,0 +1,27 @@
+### t1790824167-l2 is force-pushed to a rewritten commit after the script verified the head and before its merge-async submit
+$ fm-pr-merge.sh s5 https://github.com/andrewesweet/stacked-pr-lab/pull/5
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/s5.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/5 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 8aff45638a4b4e21479cc0cd8773f5757522f5fe
+error: GitHub's own report follows, not this script's verdict:
+error: > Pull request head branch was modified.
+error: GitHub rejected the asynchronous merge request for pull request 5, and nothing was merged
+rc=1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/5
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/7
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/5/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=8aff45638a4b4e21479cc0cd8773f5757522f5fe
+[race] force-pushed 30c12fc5822fd151be476ea1f75329f7185f6e38 (not a descendant of the bound head) to t1790824167-l2 just before the submit
+
+--- live state of PR 5 afterwards
+{"headRefOid":"30c12fc5822fd151be476ea1f75329f7185f6e38","mergedAt":null,"number":5,"state":"OPEN"}
+--- s5 state files
+s5.check.sh
+s5.meta
+s5.pr-poll
+s5.pr-poll-registration

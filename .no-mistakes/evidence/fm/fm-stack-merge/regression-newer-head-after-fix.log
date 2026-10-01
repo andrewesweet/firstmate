@@ -1,0 +1,1 @@
+ok - a stacked merge whose pull request head moved past the bound head is a disagreement, never a landing

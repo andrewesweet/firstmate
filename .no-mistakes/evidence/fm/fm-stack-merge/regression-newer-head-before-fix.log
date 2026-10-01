@@ -1,0 +1,1 @@
+not ok - stacked-merged-newer-head: a merge that left a newer pushed head off the base must exit non-zero

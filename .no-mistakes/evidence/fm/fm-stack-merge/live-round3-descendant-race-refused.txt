@@ -1,0 +1,35 @@
+### Round 3 (target 40c22470): descendant commit pushed onto r31790825820-l1 after verify, before merge-async submit
+### PR 9 before: {"baseRefName":"main","headRefOid":"906d412c9a67f2043b09736408c710492344924d","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":9}
+$ fm-pr-merge.sh r1 https://github.com/andrewesweet/stacked-pr-lab/pull/9
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+armed: state/r1.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/9 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 906d412c9a67f2043b09736408c710492344924d
+error: GitHub reports the asynchronous merge request 714f222f-66ef-4c7e-96f5-ef4b005ac744 for https://github.com/andrewesweet/stacked-pr-lab/pull/9 merged, but the pull request's head reads back as 3451da2ffc131ac11503f1de4e925ae7a504d9ad, not the bound verified head 906d412c9a67f2043b09736408c710492344924d; the bound head landed but the newer pushed commit 3451da2ffc131ac11503f1de4e925ae7a504d9ad is not on the base; this is a disagreement, the merge authority stays, and the merge poll remains armed
+rc=1
+count of 'is merged' landing lines: see above
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/9
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/9 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/9 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/11
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/9/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=906d412c9a67f2043b09736408c710492344924d
+[race] pushed 3451da2ffc131ac11503f1de4e925ae7a504d9ad to r31790825820-l1 just before the submit
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/9/merge-async/714f222f-66ef-4c7e-96f5-ef4b005ac744
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/9/merge-async/714f222f-66ef-4c7e-96f5-ef4b005ac744
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/9/merge-async/714f222f-66ef-4c7e-96f5-ef4b005ac744
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=9 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/9 --json headRefOid --jq .headRefOid
+--- live PR 9 afterwards
+{"head":"3451da2ffc131ac11503f1de4e925ae7a504d9ad","merge_commit_sha":"64ce460cd08047d012f9799eaa403e00d112f21a","merged":true,"state":"closed"}
+{"parents":["c04a6668c6d375dbfcfe4ea0f976f89375e126d5","906d412c9a67f2043b09736408c710492344924d"],"sha":"64ce460cd08047d012f9799eaa403e00d112f21a"}
+newer pushed commit 3451da2ffc131ac11503f1de4e925ae7a504d9ad vs main: diverged
+--- r1 state files: r1.check.sh r1.merge-authority r1.meta r1.pr-poll r1.pr-poll-registration 

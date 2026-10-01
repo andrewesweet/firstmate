@@ -1,0 +1,59 @@
+$ fm-pr-merge.sh s6 https://github.com/andrewesweet/stacked-pr-lab/pull/6   # top layer (position 3) first
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  3 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+armed: state/s6.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/6 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a3115d527ca984b7aef58ddcf7871c890b6fe5be
+error: pull request 4 in stack 7 has not merged, so pull request 6 (position 3) is not the lowest unmerged layer; merge the lower layers first
+rc=1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/6
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/6 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/6 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/t1790824167-l2
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/t1790824167-l2
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/t1790824167-l2 --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/7
+
+$ fm-pr-merge.sh s5 https://github.com/andrewesweet/stacked-pr-lab/pull/5   # middle layer (position 2) first
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/s5.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/5 is open and mergeable, with every unwaived required check reported and every unwaived check green at head fcab40da3f1f370c47725f0bd19b25a0e18b12e5
+error: pull request 4 in stack 7 has not merged, so pull request 5 (position 2) is not the lowest unmerged layer; merge the lower layers first
+rc=1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/5
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/5 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/t1790824167-l1
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/t1790824167-l1
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/t1790824167-l1 --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/7
+
+--- live state after refusals
+{"mergedAt":null,"number":5,"state":"OPEN"}
+{"mergedAt":null,"number":6,"state":"OPEN"}
+--- s5.meta
+window=fm-task-s5
+worktree=/tmp/stacklab.97Wt/w2
+project=/tmp/stacklab.97Wt/r
+kind=ship
+mode=direct-PR
+pr=https://github.com/andrewesweet/stacked-pr-lab/pull/5
+pr_head=fcab40da3f1f370c47725f0bd19b25a0e18b12e5
+--- state dir
+contributions.check.sh
+contributions.check-trust
+s4.meta
+s5.check.sh
+s5.meta
+s5.pr-poll
+s5.pr-poll-registration
+s6.check.sh
+s6.meta
+s6.pr-poll
+s6.pr-poll-registration

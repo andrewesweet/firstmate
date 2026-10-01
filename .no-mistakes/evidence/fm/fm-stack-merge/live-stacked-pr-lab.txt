@@ -1,0 +1,55 @@
+Scratch repo: andrewesweet/stacked-pr-lab (private, kept). Native stack #3: PR #1 (layer 1, base main), PR #2 (layer 2, base nm1790823709-l1).
+PR resource .stack: {"base":{"ref":"main",...},"number":3,"position":1|2,"size":2}. /stacks/3 pull_requests entries carry NO position field (array order is bottom-up).
+Lowest layer PR #1 before merge: mergeable=MERGEABLE mergeStateStatus=CLEAN (REST mergeable_state=clean). Higher layer PR #2 also MERGEABLE/CLEAN.
+(b) fm-pr-merge.sh on PR #2 first: rc=1 "pull request 1 in stack 3 has not merged ... merge the lower layers first"; PR #2 stayed OPEN.
+(c) PUT merge-async on PR #1 with sha=<main sha, not head>: HTTP 400 {"status":"failed","details":{"message":"Pull request head branch was modified."}}; PR stayed OPEN.
+(a) fm-pr-merge.sh on PR #1 at c44b572f: GitHub answered 202 {"status":"pending","details":{"uuid":...,"expected_head_sha":...}}; script read top-level .uuid/.expected_head_sha -> "null" -> false disagreement, rc=1 though the merge landed (merge commit 3c431e47, parents main+head). DEFECT, fixed: read .details.*.
+After landing GitHub retargeted PR #2 to main and rebased its head (f7b21453 -> 3408e35d); mergeable read UNKNOWN briefly (retry loop absorbed it).
+(a) fixed script on PR #2: 202 -> poll pending ("Merge request is in progress.") x2 -> {"status":"merged","details":{"sha":"27fc4150..."}}; read-back merged; "verified: ... is merged" printed once; rc=0; pr-poll-merge-notified written. Merge commit 27fc4150 parents [3c431e47, 3408e35d]. Stack 3 open=false.
+Non-linear merge: each layer lands as a two-parent merge commit on main.
+Fixture-only: red/pending/unreported required checks, merge-queue base, protected flags, away posture, 409 conflict, unreadable membership.
+
+--- gh call log of fixed run ---
+api repos/andrewesweet/stacked-pr-lab/pulls/2
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/2 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/2 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/3
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/2/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=3408e35d0dbb4059c8c17149d970d17bf73a40db
+--- answer rc=0
+HTTP/2.0 202 Accepted
+Content-Length: 251
+Content-Type: application/json; charset=utf-8
+Date: Thu, 01 Oct 2026 03:05:43 GMT
+
+{"status":"pending","details":{"message":"Merge request enqueued.","uuid":"bed1d0c1-6ef3-44f4-9589-e9c171b9b571","merge_method":"merge","merge_action":"direct_merge","expected_head_sha":"3408e35d0dbb4059c8c17149d970d17bf73a40db","bypass_rules":false}}
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/2/merge-async/bed1d0c1-6ef3-44f4-9589-e9c171b9b571
+--- answer rc=0
+HTTP/2.0 200 OK
+Cache-Control: private, max-age=60, s-maxage=60
+Content-Type: application/json; charset=utf-8
+Date: Thu, 01 Oct 2026 03:05:44 GMT
+Etag: W/"dd5201b2b9e11af9d5da8b85cfd45b1bf3a961d7fe63bd0873e9a49377f36cf0"
+
+{"status":"pending","details":{"message":"Merge request is in progress.","uuid":"bed1d0c1-6ef3-44f4-9589-e9c171b9b571","merge_method":"merge","merge_action":"direct_merge","expected_head_sha":"3408e35d0dbb4059c8c17149d970d17bf73a40db","bypass_rules":false}}
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/2/merge-async/bed1d0c1-6ef3-44f4-9589-e9c171b9b571
+--- answer rc=0
+HTTP/2.0 200 OK
+Cache-Control: private, max-age=60, s-maxage=60
+Content-Type: application/json; charset=utf-8
+Date: Thu, 01 Oct 2026 03:05:46 GMT
+Etag: W/"dd5201b2b9e11af9d5da8b85cfd45b1bf3a961d7fe63bd0873e9a49377f36cf0"
+
+{"status":"pending","details":{"message":"Merge request is in progress.","uuid":"bed1d0c1-6ef3-44f4-9589-e9c171b9b571","merge_method":"merge","merge_action":"direct_merge","expected_head_sha":"3408e35d0dbb4059c8c17149d970d17bf73a40db","bypass_rules":false}}
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/2/merge-async/bed1d0c1-6ef3-44f4-9589-e9c171b9b571
+--- answer rc=0
+HTTP/2.0 200 OK
+Cache-Control: private, max-age=60, s-maxage=60
+Content-Type: application/json; charset=utf-8
+Date: Thu, 01 Oct 2026 03:05:47 GMT
+Etag: W/"b6900f89b421b963bb93065dfc82d1de9fcf4e8b5317f22731ebff4c50176d43"
+
+{"status":"merged","details":{"message":"Pull request was merged.","sha":"27fc415080cc457b8543f85e57317916c1e6162a"}}
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=2 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")

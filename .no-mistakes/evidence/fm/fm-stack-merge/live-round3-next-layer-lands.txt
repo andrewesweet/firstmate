@@ -1,0 +1,28 @@
+### Round 3 (target 40c22470): next layer PR 10 after GitHub restacked it onto main; no race
+### PR 10 before: {"baseRefName":"main","headRefOid":"f8eaa7e23c06f0caf7cd942213f59c977d7011ca","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":10}
+$ fm-pr-merge.sh r2 https://github.com/andrewesweet/stacked-pr-lab/pull/10
+rc=0
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/r2.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/10 is open and mergeable, with every unwaived required check reported and every unwaived check green at head f8eaa7e23c06f0caf7cd942213f59c977d7011ca
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/10 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+count of 'is merged' landing lines: 1
+--- gh calls
+api repos/andrewesweet/stacked-pr-lab/pulls/10
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/10 --json headRefOid -q .headRefOid
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/10 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/andrewesweet/stacked-pr-lab/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main
+api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")
+api repos/andrewesweet/stacked-pr-lab/stacks/11
+api --include -X PUT repos/andrewesweet/stacked-pr-lab/pulls/10/merge-async -f merge_method=merge -f merge_action=direct_merge -f sha=f8eaa7e23c06f0caf7cd942213f59c977d7011ca
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/10/merge-async/2da6e369-1cc6-4575-859f-cdca3e8b327d
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/10/merge-async/2da6e369-1cc6-4575-859f-cdca3e8b327d
+api --include -X GET repos/andrewesweet/stacked-pr-lab/pulls/10/merge-async/2da6e369-1cc6-4575-859f-cdca3e8b327d
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=andrewesweet -F repo=stacked-pr-lab -F number=10 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+pr view https://github.com/andrewesweet/stacked-pr-lab/pull/10 --json headRefOid --jq .headRefOid
+--- live PR 10 afterwards
+{"head":"f8eaa7e23c06f0caf7cd942213f59c977d7011ca","merge_commit_sha":"55685cad990278899e259cf414bdaaec606554ca","merged":true,"state":"closed"}
+{"parents":["64ce460cd08047d012f9799eaa403e00d112f21a","f8eaa7e23c06f0caf7cd942213f59c977d7011ca"],"sha":"55685cad990278899e259cf414bdaaec606554ca"}
+--- stack 11: {"layers":[{"merged_at":"2026-10-01T03:37:50Z","number":9},{"merged_at":"2026-10-01T03:38:54Z","number":10}],"open":false}
+--- r2 state files: r2.check.sh r2.merge-authority r2.meta r2.pr-poll r2.pr-poll-merge-notified r2.pr-poll-registration 

@@ -1,0 +1,7 @@
+Round 3, target 40c22470. Scratch repo andrewesweet/stacked-pr-lab (private, KEPT). New native stack #11 = PR #9 (layer 1, base main), PR #10 (layer 2).
+Descendant race (fix under test): a commit 3451da2 was pushed onto layer 1 after fm-pr-merge.sh verified head 906d412 and just before the merge-async submit.
+  GitHub 202 -> merged exactly the bound head 906d412 (merge commit 64ce460, parents c04a666 + 906d412); 3451da2 diverged from main.
+  Script now: rc=1, "error: ... head reads back as 3451da2..., not the bound verified head 906d412...; the bound head landed but the newer pushed commit ... is not on the base; this is a disagreement, the merge authority stays, and the merge poll remains armed".
+  No "verified: ... is merged" line; r1.merge-authority kept; no r1.pr-poll-merge-notified. (Round 2 at 8ef21411 reported rc=0 and a landing for the same race.)
+Next layer PR #10 (restacked by GitHub onto main, head f8eaa7e) with no race: merge-async sha=f8eaa7e -> pending -> merged -> read-back head f8eaa7e == bound -> exactly one "is merged" line, rc=0, r2.pr-poll-merge-notified written. Merge commit 55685ca parents 64ce460 + f8eaa7e. Stack #11 closed.
+Fixture: 16 test_stacked_* ok (stacked-fixture-tests-round3.log). New regression test fails against 8ef21411's script and passes at 40c22470 (regression-newer-head-{before,after}-fix.log).

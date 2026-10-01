@@ -1,0 +1,47 @@
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 -- --squash
+error: a stacked pull request merges only with a merge commit: --squash and --rebase have no counterpart in the asynchronous merge API
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 -- --rebase
+error: a stacked pull request merges only with a merge commit: --squash and --rebase have no counterpart in the asynchronous merge API
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 --attended-override -- --admin
+error: a stacked pull request merges only through the asynchronous merge API: --auto, --admin and branch deletion have no place on it, attended or not
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 --attended-override -- --auto
+error: a stacked pull request merges only through the asynchronous merge API: --auto, --admin and branch deletion have no place on it, attended or not
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 --attended-override -- --delete-branch
+error: a stacked pull request merges only through the asynchronous merge API: --auto, --admin and branch deletion have no place on it, attended or not
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4 -- --method squash
+error: a stacked pull request merges only with a merge commit: --method accepts only merge on the asynchronous merge path
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;
+s4.meta pr= recorded? 0
+
+### no-mistakes task (mode=no-mistakes) whose local copy has no pipeline run validating the head
+no-mistakes on PATH: /home/cti/.local/bin/no-mistakes
+$ fm-pr-merge.sh s4 https://github.com/andrewesweet/stacked-pr-lab/pull/4
+armed: state/s4.check.sh
+verified: https://github.com/andrewesweet/stacked-pr-lab/pull/4 is open and mergeable, with every unwaived required check reported and every unwaived check green at head f0cd64eac21b8710d21db57f34370284d5116d2a
+error: the pipeline for task s4 has not validated the live head f0cd64eac21b8710d21db57f34370284d5116d2a: its status document names no validated head, so the stacked merge refuses until the pipeline re-validates it
+rc=1
+gh calls: api repos/andrewesweet/stacked-pr-lab/pulls/4;pr view https://github.com/andrewesweet/stacked-pr-lab/pull/4 --json headRefOid -q .headRefOid;pr view https://github.com/andrewesweet/stacked-pr-lab/pull/4 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup;api repos/andrewesweet/stacked-pr-lab/branches/main;api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main;api --paginate repos/andrewesweet/stacked-pr-lab/rules/branches/main --jq .[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "");api repos/andrewesweet/stacked-pr-lab/stacks/7;
+
+--- live state of PR 4 afterwards
+{"headRefOid":"f0cd64eac21b8710d21db57f34370284d5116d2a","mergedAt":null,"number":4,"state":"OPEN"}

@@ -1,0 +1,14 @@
+### Record GitHub reports before any merge (stack 7: PRs 4,5,6)
+{"base":"main","head":"f0cd64eac21b8710d21db57f34370284d5116d2a","mergeable":true,"mergeable_state":"clean","number":4,"stack":{"base":{"ref":"main","sha":"27fc415080cc457b8543f85e57317916c1e6162a"},"id":1628728,"number":7,"position":1,"size":3}}
+{"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":4}
+{"base":"t1790824167-l1","head":"fcab40da3f1f370c47725f0bd19b25a0e18b12e5","mergeable":true,"mergeable_state":"clean","number":5,"stack":{"base":{"ref":"main","sha":"27fc415080cc457b8543f85e57317916c1e6162a"},"id":1628728,"number":7,"position":2,"size":3}}
+{"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":5}
+{"base":"t1790824167-l2","head":"a3115d527ca984b7aef58ddcf7871c890b6fe5be","mergeable":true,"mergeable_state":"clean","number":6,"stack":{"base":{"ref":"main","sha":"27fc415080cc457b8543f85e57317916c1e6162a"},"id":1628728,"number":7,"position":3,"size":3}}
+{"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":6}
+{"base":{"ref":"main"},"layers":[{"merged_at":null,"number":4,"position":null},{"merged_at":null,"number":5,"position":null},{"merged_at":null,"number":6,"position":null}],"number":7,"open":true}
+### after layer 1 landed
+{"base":"main","head":"8aff45638a4b4e21479cc0cd8773f5757522f5fe","mergeable":null,"mergeable_state":"unknown","number":5,"stack":{"base":{"ref":"main","sha":"7b96bea6091f2efe3ca3b9f221ed1092dbe0192b"},"id":1628728,"number":7,"position":2,"size":3}}
+{"mergeStateStatus":"UNKNOWN","mergeable":"UNKNOWN","number":5}
+{"base":"t1790824167-l2","head":"bd6919411dad5bd5d0fd143683eea77c208ac080","mergeable":null,"mergeable_state":"unknown","number":6,"stack":{"base":{"ref":"main","sha":"7b96bea6091f2efe3ca3b9f221ed1092dbe0192b"},"id":1628728,"number":7,"position":3,"size":3}}
+{"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":6}
+{"layers":[{"merged_at":"2026-10-01T03:11:15Z","number":4},{"merged_at":null,"number":5},{"merged_at":null,"number":6}],"open":true}
