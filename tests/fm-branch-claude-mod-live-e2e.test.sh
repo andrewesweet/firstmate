@@ -196,12 +196,14 @@ pause_dummy() { : > "$STATE/dummy.pause"; }
 resume_dummy() { rm -f "$STATE/dummy.pause"; }
 
 # Claude Code refuses to nest inside another Claude session, and the home's
-# scripts must not inherit this shell's firstmate environment.
+# scripts must not inherit this shell's firstmate environment. The ambient
+# DISABLE_AUTOUPDATER goes too, so only the launch's embedded assignment can
+# turn the autoupdater off and assert_autoupdater_off tests that embed.
 unset_inherited() {
   local name
   while IFS= read -r name; do
     printf -- '-u %s ' "$name"
-  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | sort -u)
+  done < <(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_CONFIG_DIR|DISABLE_AUTOUPDATER|FM_[A-Z_]+|HERDR_[A-Z_]+|TMUX|TMUX_PANE)=' | cut -d= -f1 | sort -u)
 }
 
 # Launch Claude Code exactly as the docs page prescribes, in a fresh tmux
