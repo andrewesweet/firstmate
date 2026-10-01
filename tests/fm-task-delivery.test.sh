@@ -398,6 +398,9 @@ STUB
   payload="$TMP_ROOT/promote-dod/payload-promote-dod-no-mistakes"
   assert_grep "pass \`--intent\` as only this brief's \`## Published intent\`" "$payload" \
     "promoted no-mistakes worker did not receive the published-intent --intent contract"
+  # shellcheck disable=SC2016  # Backticks in the generated contract are literal.
+  assert_grep 'Keep `--intent` text in a worker-private file (created with `mktemp` or inside the task worktree), never in a fixed shared path.' "$payload" \
+    "promoted no-mistakes worker did not receive the private --intent file rule"
   assert_grep "If the brief has no \`## Published intent\` subsection, stop and ask firstmate to migrate the brief" "$payload" \
     "promoted no-mistakes worker did not receive the migration stop"
   assert_grep "ask-user findings are never yours to answer: escalate to firstmate" "$payload" \

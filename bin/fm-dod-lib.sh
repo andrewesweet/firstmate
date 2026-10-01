@@ -345,6 +345,7 @@ You drive no-mistakes by responding to its gates, not by implementing fixes.
 Follow the guidance no-mistakes itself provides for the mechanics: it loads when you invoke /no-mistakes, and \`no-mistakes axi run --help\` plus the \`help\` lines in each \`axi\` response are authoritative and version-matched to the installed binary.
 When starting no-mistakes, pass \`--intent\` as only this brief's \`## Published intent\` subsection body, not its heading, plus any later captain ask restated into that subsection.
 That subsection is firstmate-authored at dispatch and is the only authorized source: pass it exactly as written, without speaker labels or direct address.
+Keep \`--intent\` text in a worker-private file (created with \`mktemp\` or inside the task worktree), never in a fixed shared path.
 Never include \`## Captain's intent\`, \`## Firstmate spec\`, later Firstmate build constraints, or your own decisions and tradeoffs.
 If the brief has no \`## Published intent\` subsection, stop and ask firstmate to migrate the brief instead of starting no-mistakes; never substitute the captain's own words.
 The \`--intent\` string you pass must be self-sufficient: that string plus the codebase must let a reader reconstruct roughly the same specification, without depending on a separate report, a PR, or context that lives only in this conversation.
