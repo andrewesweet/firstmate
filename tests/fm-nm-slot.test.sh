@@ -42,6 +42,7 @@ export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 #   parked     live run waiting on its agent at a gate           holds no slot
 #   ci         live run whose only executing step is the ci monitor holds no slot
 #   cifix      live run whose ci step has moved on to a fix round   counts
+#   fixing     live run running ci while a non-ci step is in a fix round   counts
 #   terminal   finished run                                      holds no slot
 #   unknown    live run carrying a status word this repo does not classify  counts
 seed_db() {
@@ -79,6 +80,10 @@ seed_db() {
         cifix)
           runs+="${runs:+,}('cifix-$i','running',NULL)"
           steps+="${steps:+,}('cifix-$i','review','completed'),('cifix-$i','ci','fixing')"
+          ;;
+        fixing)
+          runs+="${runs:+,}('fixing-$i','running',NULL)"
+          steps+="${steps:+,}('fixing-$i','ci','running'),('fixing-$i','review','fixing')"
           ;;
         terminal)
           runs+="${runs:+,}('done-$i','completed',NULL)"
@@ -168,6 +173,18 @@ run_slot "$FAKE_START"
   || fail "runs whose ci step is fixing must count toward the cap, got $RUN_STATUS: $RUN_ERR"
 printf '%s' "$RUN_ERR" | grep -q 'cifix-1' \
   || fail "the wait reason must name the counted ci fix rounds, got: $RUN_ERR"
+
+# --- a live non-ci fix round is work, not a wait, and holds its slot ----------
+# `axi respond --action fix` at a review gate moves the review step to
+# `fixing` while the run stays live: a fixer agent works, so the slot holds
+# even when a ci monitor step is also running and would otherwise free it.
+
+seed_db fixing:3
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq "$WAIT_CODE" ] \
+  || fail "a live run whose non-ci step is fixing must count toward the cap, got $RUN_STATUS: $RUN_ERR"
+printf '%s' "$RUN_ERR" | grep -q 'fixing-1' \
+  || fail "the wait reason must name the counted non-ci fix rounds, got: $RUN_ERR"
 
 # --- a queued run counts, so a just-registered start is not double-admitted --
 
@@ -428,6 +445,7 @@ done
 run_slot --help
 [ "$RUN_STATUS" -eq 0 ] || fail "--help should exit 0, got $RUN_STATUS"
 printf '%s' "$RUN_OUT" | grep -q 'no-mistakes' || fail "--help should name the subject, got: $RUN_OUT"
-printf '%s' "$RUN_OUT" | grep -q '3' || fail "--help should name the default limit, got: $RUN_OUT"
+printf '%s' "$RUN_OUT" | grep -qF 'default of 3' \
+  || fail "--help should state the exact default limit of 3, got: $RUN_OUT"
 
 pass "fm-nm-slot admits, waits, refuses, and serializes starts per contract"
