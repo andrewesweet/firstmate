@@ -369,21 +369,6 @@ fm_backend_herdr_workspace_label() {
   printf 'firstmate'
 }
 
-# fm_backend_herdr_cli: run `herdr <args...>` scoped to <session>, setting
-# BOTH the HERDR_SESSION env var AND appending a trailing `--session <name>`
-# CLI flag. Verified empirically (docs/herdr-backend.md "Session targeting: the
-# --session flag, not HERDR_SESSION alone"): on the installed herdr 0.7.1
-# client, the HERDR_SESSION env var is NOT reliably honored by CLI subcommands
-# once ANY other herdr server is already bound on the machine - queries
-# silently fall back to whatever server IS running (the wrong one) instead of
-# routing to the requested session or refusing. The `--session <name>` global
-# flag (verified in both leading and trailing position; trailing used here to
-# keep every call site a minimal, append-only diff) always routes correctly,
-# including starting a genuinely separate, isolated server process. The env
-# var is kept alongside it - harmless, self-documenting, and forward-
-# compatible if a future herdr build honors it. Never used by
-# fm_backend_herdr_version_check, which is intentionally session-independent
-# (reads only .client.* fields).
 # Shared by every herdr client invocation below, including the detached
 # server launch: the server outlives its launcher and passes its startup
 # environment to every later pane, where an inherited FM_CREW_STATE_*_OVERRIDE
@@ -399,6 +384,21 @@ FM_BACKEND_HERDR_ENV_SCRUB=(
   -u FM_HOME_SUMMARY_WORKER_BEST_EFFORT
 )
 
+# fm_backend_herdr_cli: run `herdr <args...>` scoped to <session>, setting
+# BOTH the HERDR_SESSION env var AND appending a trailing `--session <name>`
+# CLI flag. Verified empirically (docs/herdr-backend.md "Session targeting: the
+# --session flag, not HERDR_SESSION alone"): on the installed herdr 0.7.1
+# client, the HERDR_SESSION env var is NOT reliably honored by CLI subcommands
+# once ANY other herdr server is already bound on the machine - queries
+# silently fall back to whatever server IS running (the wrong one) instead of
+# routing to the requested session or refusing. The `--session <name>` global
+# flag (verified in both leading and trailing position; trailing used here to
+# keep every call site a minimal, append-only diff) always routes correctly,
+# including starting a genuinely separate, isolated server process. The env
+# var is kept alongside it - harmless, self-documenting, and forward-
+# compatible if a future herdr build honors it. Never used by
+# fm_backend_herdr_version_check, which is intentionally session-independent
+# (reads only .client.* fields).
 fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   local session=$1 rc=0 err failed_bin selected_bin client_bin=herdr
   shift
