@@ -1,0 +1,50 @@
+=== [base] $ FM_HOME=$LAB bin/fm-bearings-snapshot.sh   (session-bootstrap bearings)
+exit=0  stdout_bytes=1109  stderr:
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+=== [base] $ FM_HOME=$LAB bin/fm-fleet-snapshot.sh --json | jq summary
+exit=0 bytes=2405399
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+{"tasks":0,"backlog_records":3,"raw_lens":[400082,400082,400082],"decision_summary_lens":[]}
+=== [base] $ FM_HOME=$LAB bin/fm-fleet-view.sh (head)
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 369: /usr/bin/jq: Argument list too long
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 855: /usr/bin/jq: Argument list too long
+# Fleet View
+
+Schema: fm-fleet-snapshot.v1
+Home: /tmp/fm-lab.LWHQMy
+
+## Under Way
+exit=0
+=== [head] $ FM_HOME=$LAB bin/fm-bearings-snapshot.sh   (session-bootstrap bearings)
+exit=0  stdout_bytes=1494  stderr:
+=== [head] $ FM_HOME=$LAB bin/fm-fleet-snapshot.sh --json | jq summary
+exit=0 bytes=9615457
+{"tasks":3,"backlog_records":3,"raw_lens":[400082,400082,400082],"decision_summary_lens":[400014,400014,400014]}
+=== [head] $ FM_HOME=$LAB bin/fm-fleet-view.sh (head)
+# Fleet View
+
+Schema: fm-fleet-snapshot.v1
+Home: /tmp/fm-lab.LWHQMy
+
+## Under Way
+| ID | Current | Kind | Repo/Project | Backend | Endpoint | Artifact | Path | Watch / return channel |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| task-1 | unknown / none | ship | alpha | tmux | absent | - | /tmp/fm-lab.LWHQMy/projects/none-1 (absent) | bin/fm-peek
+| task-2 | unknown / none | ship | alpha | tmux | absent | - | /tmp/fm-lab.LWHQMy/projects/none-2 (absent) | bin/fm-peek
+| task-3 | unknown / none | ship | alpha | tmux | absent | - | /tmp/fm-lab.LWHQMy/projects/none-3 (absent) | bin/fm-peek
+
+exit=0

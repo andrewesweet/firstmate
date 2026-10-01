@@ -1,0 +1,2 @@
+/tmp/tmp.b3YQWmyjYd/bin/fm-fleet-snapshot.sh: line 1994: /usr/bin/jq: Argument list too long
+not ok - oversized contribution input must still emit JSON: 
