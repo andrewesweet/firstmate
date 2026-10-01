@@ -530,6 +530,29 @@ A Herdr pane id contains a colon, so the adapter splits `window=` on the first c
 The recorded pane is the operational fast path.
 Workspace and tab ids support verification and cleanup but are not inferred from mutable labels during normal operation.
 
+### Endpoint metadata projection
+
+Firstmate projects a bounded, display-only set of task fields onto the task's own Herdr pane through Herdr's metadata API, so the sidebar shows what a task is and why it is waiting without opening the pane.
+The projection lives in `bin/backends/herdr-metadata.sh`, is entered through `bin/fm-herdr-metadata.sh publish|clear <task-id>`, and reads only the task's durable records: the `.meta` endpoint and PR fields, `bin/fm-crew-state.sh`'s current-state line, and the brief's `## Captain's intent`.
+It never reads Herdr metadata back into Firstmate logic.
+
+The projected fields are `title` (`fm-<id>: [marker] <intent>`), `display_agent` (`firstmate <kind>`), and per-pane tokens `fm_task`, `fm_wait`, `fm_pr`, and `fm_report`.
+The `fm_wait` marker is derived only from states Herdr cannot already see: a held decision, an external wait, a ready review, and a finished scout report.
+Native agent turns (busy, blocked, idle) stay Herdr's own semantic state, and Firstmate sets no `state_labels`.
+Every write names this home's own sequenced source id (`firstmate:<home>-<hash>`), so Herdr's per-source scoping keeps Firstmate from overwriting metadata it did not set.
+Set tokens carry a 24-hour TTL backstop; teardown's explicit clear and pane death are the primary erasure.
+
+Every publish is binding-validated first: the record's `window=` session and `herdr_pane_id` must agree, and a live `pane get` must confirm the same pane id plus the recorded workspace and tab ids.
+A mismatch, a vanished pane, or a record without binding fields refuses the write, so a relaunched or foreign pane never receives the task's labels.
+Non-Herdr and remote-hosted records are silent no-ops.
+A failed write is a one-line diagnostic and a nonzero exit that callers discard; it never blocks spawn, supervision, PR registration, or teardown.
+
+The call sites are the points that already observe state change: spawn publishes detached right after launch delivery, PR registration publishes detached where `pr=` lands in the record, supervision's watcher re-publishes each Herdr task at most once per interval (default 300 seconds, per-task stamp-gated) so markers self-heal, and teardown clears the pane's Firstmate-owned values just before the pane close.
+The projection is pane-only by design: Herdr's token maps are per-resource and unnamespaced across sources, so per-task tokens on the shared home workspace would collide across tasks, and the workspace row already aggregates pane state natively.
+
+`tests/fm-backend-herdr-metadata.test.sh` pins the field projection, binding-mismatch refusal, clear semantics, non-fatal failure containment, namespace discipline, and skip paths against a canned CLI.
+`tests/fm-teardown.test.sh`'s `test_herdr_teardown_projects_metadata_clear` pins the teardown clear and its ordering before the pane close.
+
 ## Current transport behavior
 
 ### Named server and session routing
@@ -860,6 +883,7 @@ Tests use thin compatibility wrappers in `tests/herdr-test-safety.sh` and never 
 
 ```sh
 tests/fm-backend-herdr.test.sh
+tests/fm-backend-herdr-metadata.test.sh
 tests/fm-composer-lib.test.sh
 tests/fm-herdr-submit-confirm-live-e2e.test.sh
 tests/fm-backend-herdr-smoke.test.sh

@@ -2504,6 +2504,37 @@ SH
   pass "herdr teardown removes pane-owned escalation dedupe state"
 }
 
+test_herdr_teardown_projects_metadata_clear() {
+  local case_dir log closed clear_line clear_at close_line
+  case_dir=$(make_case herdr-metadata-clear)
+  write_meta "$case_dir" local-only ship
+  configure_flat_herdr_teardown_case "$case_dir"
+  log="$case_dir/herdr.log"; : > "$log"
+  closed="$case_dir/closed"
+  : > "$case_dir/state/task-x1.status"
+  : > "$case_dir/state/task-x1.turn-ended"
+
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_BACKEND_HERDR_IDLE_SHELL_PROOF_POLLS=1 \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "herdr-metadata-clear: teardown failed: $(cat "$case_dir/stderr")"
+  [ -e "$closed" ] || fail "herdr-metadata-clear: teardown never closed the pane"
+
+  clear_line=$(grep -F 'report-metadata' "$log" | grep -F 'clear-title' | head -n 1)
+  [ -n "$clear_line" ] || fail "herdr-metadata-clear: teardown issued no metadata clear, log: $(cat "$log")"
+  assert_contains "$clear_line" '--clear-token fm_report' \
+    "herdr-metadata-clear: the clear must erase the fm_ token namespace"
+  assert_not_contains "$clear_line" ' --token ' \
+    "herdr-metadata-clear: the clear must never set any token value"
+  assert_contains "$clear_line" '--session default' \
+    "herdr-metadata-clear: the clear must target the recorded session"
+  close_line=$(grep -n 'pane close' "$log" | head -n 1 | cut -d: -f1)
+  [ -n "$close_line" ] || fail "herdr-metadata-clear: teardown never logged a pane close"
+  clear_at=$(grep -n -F 'report-metadata' "$log" | head -n 1 | cut -d: -f1)
+  [ "$clear_at" -lt "$close_line" ] \
+    || fail "herdr-metadata-clear: the clear must run while the pane still exists (before its close)"
+  pass "herdr teardown clears the projected metadata before closing the pane"
+}
+
 # Flat (non-projected) Herdr endpoint whose fake pane exists until a locked
 # close removes it. The socket path is case-local so the derived presentation
 # lock never collides with another test or a real fleet session.
@@ -4871,3 +4902,4 @@ test_teardown_survives_a_broken_spend_query
 test_teardown_records_a_scout_report_outcome
 test_teardown_rerun_does_not_duplicate_the_spend_ledger_line
 test_run_abort_precedes_process_reap_precedes_worktree_removal
+test_herdr_teardown_projects_metadata_clear
