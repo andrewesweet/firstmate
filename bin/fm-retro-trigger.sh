@@ -51,15 +51,17 @@
 #       fm-wake-lib.sh presentation hook when it presents such a status
 #       line; evidence is the line's [key=...] decision key, else the first
 #       80 bytes. done-unseen is recorded only when the hook can bind the
-#       presented done: line to a queued wake row epoch - when the drain's
-#       unread span holds that one line and a direct signal row carries the
-#       key; the bound epoch is that key's latest collapsed row epoch, which
-#       is never earlier than the row that surfaced the line, so the wait is
-#       under-estimated, never over-estimated - and only when presentation
-#       time is at least done_unseen_minutes past that epoch; the evidence
-#       then names the epoch ("epoch=<epoch> <line>") and this script, not
-#       the hook, applies the threshold. A done: line with no bindable epoch
-#       is never approximated: the producer stays silent.
+#       presented done line (by the canonical status verb, so stamped and
+#       correlation-marked completions count) to a queued wake row epoch
+#       - when the drain's unread span holds that one line and a direct
+#       signal row carries the key; the bound epoch is that key's latest
+#       collapsed row epoch, which is never earlier than the row that
+#       surfaced the line, so the wait is under-estimated, never
+#       over-estimated - and only when presentation time is at least
+#       done_unseen_minutes past that epoch; the evidence then names the
+#       epoch ("epoch=<epoch> <line>") and this script, not the hook,
+#       applies the threshold. A done line with no bindable epoch is never
+#       approximated: the producer stays silent.
 #       The other kinds are wired by producers (fm-wake-lib.sh's
 #       presentation hook; fm-teardown.sh's closure hook).
 #   status
@@ -419,8 +421,9 @@ rt_observe_anomaly() {  # <kind> <task-id> <evidence> (kind validated by main)
     now=$(date +%s)
     [ "$((now - epoch))" -ge "$((RT_DONE_UNSEEN_MINUTES * 60))" ] || return 0
   fi
-  hash=$(printf '%s\n' "$kind" "$task" "$evidence" | sha256sum | LC_ALL=C cut -c1-8) \
-    || rt_fail "cannot hash the evidence" 1
+  hash=$(printf '%s\n' "$kind" "$task" "$evidence" | rt_sha256_stdin) \
+    || rt_fail "cannot hash the evidence (shasum -a 256 or sha256sum required)" 1
+  hash=${hash:0:8}
   name="anomaly-$kind-$hash.receipt"
 
   rt_lock_or_fail
@@ -511,6 +514,30 @@ rt_lock_release() {
     fm_lock_release "$RT_LOCK" || :
   fi
   return 0
+}
+
+# The repository's portable SHA-256 selection, shasum first then GNU
+# sha256sum, prints the bare hex digest of stdin. A hasher is selected by
+# presence, and the digest is printed only when the selected hasher ran and
+# produced exactly that shape: absence or failure of the selected hasher is
+# a refusal. The receipt filename dedupes observations, so an empty or
+# malformed digest would collapse distinct evidence into one receipt, and
+# no non-cryptographic fallback is added.
+rt_sha256_stdin() {
+  local digest
+  if command -v shasum >/dev/null 2>&1; then
+    digest=$(shasum -a 256 2>/dev/null) || return 1
+  elif command -v sha256sum >/dev/null 2>&1; then
+    digest=$(sha256sum 2>/dev/null) || return 1
+  else
+    return 1
+  fi
+  digest=${digest%% *}
+  [ "${#digest}" -eq 64 ] || return 1
+  case $digest in
+    *[!0-9a-f]*) return 1 ;;
+  esac
+  printf '%s\n' "$digest"
 }
 
 main() {

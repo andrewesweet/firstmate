@@ -127,10 +127,15 @@ rt_export_alias_shasum() {
 # broken tool, simulating failure without touching the host's real binaries.
 rt_export_broken_hasher() {
   case $1 in
-    shasum) shasum() { printf 'shasum unavailable (simulated)\n' >&2; return 127; } ;;
-    sha256sum) sha256sum() { printf 'sha256sum unavailable (simulated)\n' >&2; return 127; } ;;
+    shasum)
+      shasum() { printf 'shasum unavailable (simulated)\n' >&2; return 127; }
+      export -f shasum
+      ;;
+    sha256sum)
+      sha256sum() { printf 'sha256sum unavailable (simulated)\n' >&2; return 127; }
+      export -f sha256sum
+      ;;
   esac
-  export -f "$1"
 }
 
 # rt_portable_bin <name> <with-shasum 0|1> <with-sha256sum 0|1>: a PATH-
