@@ -1,0 +1,24 @@
+## no config files
+  primary=claude -> host ON engine=claude model=sonnet problem=
+  primary=cursor -> host OFF
+  primary=codex -> host OFF
+## empty config/supervision-host
+  primary=claude -> host ON engine=claude model=sonnet problem=
+  primary=cursor -> host ON engine=none model= problem=the primary harness 'cursor' has no verified supervision engine
+  primary=codex -> host ON engine=none model= problem=the primary harness 'codex' has no verified supervision engine
+## config/supervision-host = claude
+  primary=claude -> host ON engine=claude model=sonnet problem=
+  primary=cursor -> host ON engine=claude model=sonnet problem=
+  primary=codex -> host ON engine=claude model=sonnet problem=
+## both supervision-host=claude and supervision-host-off
+  primary=claude -> host OFF
+  primary=cursor -> host OFF
+  primary=codex -> host OFF
+## only config/supervision-host-off
+  primary=claude -> host OFF
+  primary=cursor -> host OFF
+  primary=codex -> host OFF
+## legacy fork opt-out: config/supervision-host = off (no longer an opt-out)
+  primary=claude -> host ON engine=none model= problem=config/supervision-host names 'off', which is not a verified supervision engine (verified: claude)
+  primary=cursor -> host ON engine=none model= problem=config/supervision-host names 'off', which is not a verified supervision engine (verified: claude)
+  primary=codex -> host ON engine=none model= problem=config/supervision-host names 'off', which is not a verified supervision engine (verified: claude)

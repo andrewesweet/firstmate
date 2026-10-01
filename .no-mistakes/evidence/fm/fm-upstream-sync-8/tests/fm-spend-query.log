@@ -1,0 +1,28 @@
+ok - claude logs measure api-equiv spend with id dedupe and mandatory window bounding
+ok - pi logs record the runtime's own cost in the recorded lane
+ok - a runtime without a verified parser records an explicit unmeasured reason
+ok - pi-signed routes to Pi's session-log location
+ok - missing session logs record an explicit unmeasured line with the window
+ok - the query answers unmeasured when no epoch-shaped spawn_gen bounds the window
+ok - a relaunched task measures every incarnation from spawn_epoch_first
+ok - a record without spawn_epoch_first bounds the window at its spawn_gen epoch
+ok - the measured window ends at the task's own activity bound, not at teardown time
+ok - the end bound covers its whole second, so the turn's last call is not dropped
+ok - a record with no activity sidecar records an explicit unmeasured line
+ok - either activity sidecar can bound the window
+ok - the --unmeasured flag emits the schema shape without measuring
+ok - the wrapper refuses malformed invocations without reading logs
+ok - without python3 the wrapper answers with the schema's unmeasured shape
+ok - the composition measure splits the filled brief into scaffold and task tokens
+ok - the scaffold path map makes the probe home's baked paths count as scaffold
+ok - the composition measure refuses unreadable inputs
+ok - the parser honors explicitly bounded windows and refuses an unbounded measurement
+ok - pipeline columns count tokenless invocations with duration instead of pricing them zero
+ok - pipeline runs recorded against the task worktree are attributed to the task
+ok - a task with no branch records an empty pipeline
+ok - an unresolvable pipeline scope records unmeasured with a reason
+ok - invocations killed with a cancelled or error exit status are unmeasured despite their tokens
+ok - an inventory without exit_status falls back to the reported-token test
+ok - a pipeline where no invocation could be priced records unmeasured, not partial
+ok - old-schema ledger lines still parse into the current schema
+OK: fm-spend-query

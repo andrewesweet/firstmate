@@ -1,0 +1,12 @@
+ok - fm_branch_outcomes and fm_branch_processed call headers match stock on Pi before and from 0.99
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+not ok - branch dispatch, prefix contract, and two-stage filter must hold: <anonymous_script>:217
+  throw new Error(`timed out waiting for ${label}`);
+        ^
+
+Error: timed out waiting for branch wake prompt
+    at settle (eval at <anonymous> (file:///home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3W5051Y51E6JETPFEVM7RS4/[eval1]:2:7), <anonymous>:217:9)
+    at async file:///home/cti/.no-mistakes/worktrees/f9a83591f83e/01M3W5051Y51E6JETPFEVM7RS4/[eval1]:16:1
+
+Node.js v24.21.0: expected exit 0, got 1
