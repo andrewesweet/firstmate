@@ -283,6 +283,76 @@ test_spawn_home_layout() {
   pass "spawn-home layout writes harness pin, beat, and brief"
 }
 
+test_branch_mod_lab_watcher_isolation() (
+  command -v tmux >/dev/null 2>&1 || { echo 'skip: branch-mod lab isolation: tmux absent'; return; }
+  local REAL_TMUX SESSION SOCKET LAB HOME_DIR STATE EVENTS SHIM LAB_TMUX_DIR hook hook_path hook_bin
+  local seed i rc out owner peer source previous_home='' previous_tmux=''
+  REAL_TMUX=$(command -v tmux)
+  SESSION=fm-branch-fixture
+  # shellcheck source=tests/branch-mod-lab-helpers.sh
+  . "$ROOT/tests/branch-mod-lab-helpers.sh"
+  # This subshell owns its lab server; the parent still owns shared temp-root
+  # removal. Close the lab even when an assertion exits before normal cleanup.
+  trap 'teardown_lab "${SOCKET:-}" "${LAB:-}" || exit 1' EXIT
+  for source in mod stop; do
+    make_lab "fm-branch-fixture-$$-$source" || fail 'could not create branch-mod lab'
+    assert_not_equals "$previous_home" "$HOME_DIR" 'branch-mod reused the previous lab home'
+    assert_not_equals "$previous_tmux" "$LAB_TMUX_DIR" 'branch-mod reused the previous tmux directory'
+    previous_home=$HOME_DIR
+    previous_tmux=$LAB_TMUX_DIR
+    "$SHIM/tmux" new-session -d -s "$SESSION" -n probe 'sleep 120' \
+      || fail 'could not start branch-mod private tmux server'
+    "$SHIM/tmux" has-session -t "$SESSION" \
+      || fail 'branch-mod tmux shim did not address its own server'
+    assert_absent "$STATE/.watch.lock" 'new branch-mod lab inherited a watcher lock'
+    assert_absent "$STATE/.last-watcher-beat" 'new branch-mod lab inherited a beacon'
+    # This case exercises watcher ownership, not a stand-in pane's liveness.
+    rm "$STATE/dummy.meta"
+    fm_test_track_watcher_state "$STATE"
+    # Execute the generated Stop command with only exec intercepted, so the
+    # shell parses its quoting and returns the executable the real hook runs.
+    hook=$(jq -er '.hooks.Stop[0].hooks[0].command' "$LAB/settings.json") \
+      || fail 'branch-mod fixture emitted no Stop hook command'
+    hook_path=$(bash -c 'exec() { printf "%s\n" "$1"; }; eval "$1"' _ "$hook") \
+      || fail 'branch-mod fixture emitted an invalid Stop hook command'
+    hook_bin=$(dirname "$hook_path")
+    owner="$ROOT/bin" peer="$hook_bin"
+    [ "$source" != stop ] || { owner="$hook_bin"; peer="$ROOT/bin"; }
+    FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$STATE" FM_POLL=1 \
+      FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+      "$owner/fm-watch.sh" > "$LAB/seed.log" 2>&1 &
+    seed=$!
+    i=0
+    while [ "$i" -lt 300 ]; do
+      [ "$(cat "$STATE/.watch.lock/pid" 2>/dev/null || true)" = "$seed" ] \
+        && [ -e "$STATE/.last-watcher-beat" ] && break
+      sleep 0.1
+      i=$((i + 1))
+    done
+    [ "$(cat "$STATE/.watch.lock/pid" 2>/dev/null || true)" = "$seed" ] \
+      || fail "branch-mod fixture watcher did not take its own home lock: $(cat "$LAB/seed.log")"
+    rc=0
+    out=$(FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$STATE" FM_POLL=1 \
+      FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 FM_ARM_CONFIRM_TIMEOUT=10 \
+      "$peer/fm-watch-arm.sh" --follow-budget 2 2>&1) || rc=$?
+    expect_code 0 "$rc" "Stop hook and mod must recognize the same lab watcher: $out"
+    assert_contains "$out" "watcher: attached pid=$seed" 'lab peer did not attach to the existing watcher'
+    assert_equals "$seed" "$(cat "$STATE/.watch.lock/pid")" 'lab peer replaced rather than followed the watcher'
+    # The mod-owned watcher has no lab path in its argv. Teardown must stop
+    # it through the home's identity-checked lock, not a process-name match.
+    teardown_lab "$SOCKET" "$LAB" || fail 'branch-mod teardown failed'
+    FM_STATE_OVERRIDE="$STATE" bash -c '. "$1"; ! fm_pid_alive "$2"' \
+      _ "$ROOT/bin/fm-wake-lib.sh" "$seed" \
+      || fail 'branch-mod teardown left the lab watcher running'
+    wait "$seed" 2>/dev/null || true
+    assert_absent "$LAB_TMUX_DIR" 'branch-mod teardown left its private tmux directory'
+    teardown_lab "$SOCKET" "$LAB" || fail 'repeated branch-mod teardown failed'
+  done
+  pass 'branch-mod labs share watcher identity between Stop and mod, and teardown stops their exact watcher'
+)
+
+test_branch_mod_lab_watcher_isolation || fail 'branch-mod lab watcher isolation'
+
 test_git_config_isolation || fail "Git fixture config isolation"
 test_touch_epoch_preserves_repeated_dst_hour
 test_no_mistakes_version_constant

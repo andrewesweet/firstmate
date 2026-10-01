@@ -29,7 +29,8 @@
 # The project and FM_HOME are isolated; Claude keeps using its existing managed
 # authentication and one trusted temporary folder. A few Sonnet turns are
 # submitted (about six minutes across the two labs). FM_BRANCH_MOD_LIVE_KEEP=1
-# copies each lab's logs (module events, Claude debug, watcher triage, status)
+# copies each lab's logs (module events, Claude debug, watcher triage, cycle
+# exits, delivery records, beacon, status)
 # to a fresh temporary directory named on stdout, for a post-mortem.
 # shellcheck disable=SC2016 # prompt text is read by the model, not this test shell, and settle conditions are re-evaluated, not expanded
 set -u
@@ -48,141 +49,38 @@ SESSION="fm-branch-e2e"
 SOCKET1="fm-branch-claude-$$"
 SOCKET2="fm-branch-claude-child-$$"
 LAB1='' LAB2='' # every lab root, so cleanup reaches both
-SOCKET='' LAB='' HOME_DIR='' STATE='' EVENTS='' SHIM='' # the lab under setup
+SOCKET='' LAB='' HOME_DIR='' STATE='' EVENTS='' SHIM='' LAB_TMUX_DIR='' # the lab under setup
 GAP_BASELINE=0 SENDS_BEFORE_GAP=0 # where the production gap left the branch
 
-teardown_lab() { # <socket> <lab>
-  local socket=$1 lab=$2 i=0
-  [ -n "$lab" ] || return 0
-  "$REAL_TMUX" -L "$socket" kill-server 2>/dev/null || true
-  # The watcher and Claude's debug logger may still be winding down in the lab.
-  while [ "$i" -lt 20 ] && pgrep -f "$lab/" >/dev/null 2>&1; do
-    sleep 0.25
-    i=$((i + 1))
-  done
-  pkill -f "$lab/" 2>/dev/null || true
-}
+# shellcheck source=tests/branch-mod-lab-helpers.sh
+. "$ROOT/tests/branch-mod-lab-helpers.sh"
 
 cleanup() {
-  local lab st keep
-  teardown_lab "$SOCKET1" "$LAB1"
-  teardown_lab "$SOCKET2" "$LAB2"
+  local lab st keep cleanup_failed=0
+  teardown_lab "$SOCKET1" "$LAB1" || cleanup_failed=1
+  teardown_lab "$SOCKET2" "$LAB2" || cleanup_failed=1
   if [ "${FM_BRANCH_MOD_LIVE_KEEP:-}" = 1 ]; then
     for lab in "$LAB1" "$LAB2"; do
       [ -n "$lab" ] || continue
       st="$lab/home/state"
       keep=$(mktemp -d "${TMPDIR:-/tmp}/fm-branch-claude-live-logs.XXXXXX") || continue
-      cp "$st/branch-mod-events.jsonl" "$lab/debug.log" "$st/.watch-triage.log" "$st/dummy.status" "$st/.wake-queue" "$keep/" 2>/dev/null || true
+      cp "$st/branch-mod-events.jsonl" "$lab/debug.log" "$st/.watch-triage.log" "$st/.watch-cycle-exits.log" "$st/.watch-deliveries.log" "$st/.last-watcher-beat" "$st/dummy.status" "$st/.wake-queue" "$keep/" 2>/dev/null || true
       echo "# lab logs kept at $keep (lab $lab)"
     done
+  fi
+  if [ "$cleanup_failed" -ne 0 ]; then
+    echo "not ok - lab cleanup could not confirm watcher/server shutdown; preserving $LAB1 $LAB2" >&2
+    exit 1
   fi
   rm -rf "$LAB1" "$LAB2" 2>/dev/null || true
   fm_test_cleanup
 }
 trap cleanup EXIT
-
-# --- scratch homes -----------------------------------------------------------
-# Each scenario runs in its own throwaway home, so the child-session launch
-# starts a genuinely fresh Claude session instead of adopting the first lab's
-# lock, counters, and agent. Scripts come from the tracked bin/ through a
-# symlink overlay so the home is a genuine primary checkout for the Stop
-# hook's scope check; the mod resolves them from its own plugin root either
-# way.
-make_lab() { # <socket>: build a fresh scratch home; sets the lab globals
-  SOCKET=$1
-  LAB=$(fm_test_tmproot fm-branch-claude-live)
-  HOME_DIR="$LAB/home"
-  STATE="$HOME_DIR/state"
-  EVENTS="$STATE/branch-mod-events.jsonl"
-  SHIM="$LAB/shim"
-  mkdir -p "$STATE" "$HOME_DIR/data" "$HOME_DIR/config" "$HOME_DIR/projects/dummy" "$HOME_DIR/bin" "$SHIM"
-for f in "$ROOT"/bin/*; do ln -s "$f" "$HOME_DIR/bin/$(basename "$f")"; done
-for d in .agents docs .tasks.toml; do ln -s "$ROOT/$d" "$HOME_DIR/$d"; done
-git -C "$HOME_DIR" init -q
-printf 'tmux\n' > "$HOME_DIR/config/backend"
-: > "$STATE/.branch-mod-mode"
-cat > "$HOME_DIR/AGENTS.md" <<'MD'
-# Scratch primary for the fm-branch-mod live regression
-
-You are the MAIN conversation of a scratch firstmate home used by a regression test. Do exactly what a prompt asks and nothing more.
-
-- First prompt of a session: run `bin/fm-lock.sh` (it takes this home's session lock), then reply `ready` and idle.
-- A watcher wake reaches you only when the plugin routed it to you. Handle it: run `bin/fm-wake-drain.sh`, read what it prints, then reply to the captain in one or two plain sentences with the outcome, and finally run the exact `--ack-through` command the drain printed as `WAKE_ACK_REQUIRED`. Do not run `bin/fm-watch-arm.sh`.
-- A `STATUS OUTCOME BACKSTOP` section in the drain names a captain-facing status line the supervision branch had marked routine: tell the captain about it in one sentence.
-- A supervision processing request (`[seq N] task: summary`) asks you to tell the captain the outcome in one sentence, then call `fm_branch_processed` with `through=N`.
-- Otherwise, if a routine operational update needs a reply, answer exactly `Captain, shipshape.`
-- Never spawn agents, never edit files, never run anything outside `bin/`.
-MD
-printf '@AGENTS.md\n' > "$HOME_DIR/CLAUDE.md"
-cat > "$STATE/dummy.meta" <<EOF
-window=$SESSION:dummy
-worktree=$HOME_DIR/projects/dummy
-project=$HOME_DIR/projects/dummy
-harness=claude
-kind=scout
-backend=tmux
-EOF
-: > "$STATE/dummy.status"
-
-# The stand-in crewmate: a routine `working:` line every <period> seconds, a
-# tick so its pane is never idle, and one captain-class `done:` line when the
-# test drops the request file.
-cat > "$LAB/dummy.sh" <<'DUMMY'
-#!/usr/bin/env bash
-set -u
-STATUS=$1; PERIOD=$2; D=$(dirname "$STATUS")
-n=0; last=$(date +%s)
-while :; do
-  now=$(date +%s)
-  if [ -e "$D/dummy.pause" ]; then
-    last=$now
-    echo "$(date +%T) paused"
-  elif [ -e "$D/dummy.done-request" ]; then
-    rm -f "$D/dummy.done-request"; n=$((n + 1))
-    echo "done: dummy finished step $n; report at data/dummy/report.md" >> "$STATUS"
-    echo "$(date +%T) appended done"
-  elif [ $((now - last)) -ge "$PERIOD" ]; then
-    n=$((n + 1)); last=$now
-    echo "working: step $n of the dummy loop, $(date +%T)" >> "$STATUS"
-    echo "$(date +%T) appended working step $n"
-  else
-    echo "$(date +%T) tick"
-  fi
-  sleep 2
-done
-DUMMY
-
-# Every bare `tmux` the home's scripts run (watcher, backend reads, the Stop
-# hook) lands on this test's private server.
-cat > "$SHIM/tmux" <<EOF
-#!/usr/bin/env bash
-exec '$REAL_TMUX' -L '$SOCKET' "\$@"
-EOF
-chmod +x "$SHIM/tmux" "$LAB/dummy.sh"
-
-# The launch settings the docs page prescribes: the Stop-owned watcher auto-arm,
-# prompt suggestion off, and no autoCompactWindow.
-cat > "$LAB/settings.json" <<EOF
-{
-  "promptSuggestionEnabled": false,
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FM_HOME='$HOME_DIR' FM_ROOT_OVERRIDE='$HOME_DIR' exec '$HOME_DIR/bin/fm-claude-stop-autoarm.sh'",
-            "asyncRewake": true,
-            "timeout": 28800
-          }
-        ]
-      }
-    ]
-  }
-}
-EOF
-
-}
+# Let the combined EXIT cleanup stop the lab's owners before removing state.
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+trap 'exit 131' QUIT
 
 # Start the stand-in crewmate window running the lab's dummy script.
 start_dummy() {
@@ -295,6 +193,11 @@ settle() { # <attempts> <shell condition, evaluated fresh on each try>
 # Successful sends, counted through the escaped-JSON success marker.
 success_sends() { count agent.send '\"success\":true'; }
 
+assert_watcher_continuity() {
+  [ "$(count monitor.event 'watcher: FAILED')" = 0 ] \
+    || fail "the lab reported a watcher continuity failure: $(events monitor.event)"
+}
+
 # The composer is up once the trust dialog is gone and the prompt glyph shows.
 wait_composer() {
   local i=0 shot
@@ -361,7 +264,10 @@ production_gap() {
 }
 
 # --- 1. load and lock (lab 1: the scrubbed launch, transcript persistence on)
-make_lab "$SOCKET1"
+if ! make_lab "$SOCKET1"; then
+  LAB1=$LAB
+  fail 'could not create the first isolated lab'
+fi
 LAB1=$LAB
 start_claude_session
 wait_event session.start '"enabled":true' 'the module loading enabled'
@@ -418,7 +324,8 @@ settle 10 '[ "$(count agent.send)" = "$(success_sends)" ]' || fail "a send was r
 pass "one spawn, every send successful, no dropped hand-back, no backstop delivery across the run"
 
 # Lab 1 is proven; free its server and panes before the second lab launches.
-teardown_lab "$SOCKET" "$LAB"
+assert_watcher_continuity
+teardown_lab "$SOCKET" "$LAB" || fail 'could not stop the first lab before starting the second'
 
 # --- 6. inherited CLAUDE_CODE_CHILD_SESSION: the unresumable rotation ----------
 # The production defect's launch shape: the primary inherited
@@ -426,7 +333,10 @@ teardown_lab "$SOCKET" "$LAB"
 # session), so background-agent transcripts are never written to disk. The
 # same minutes-later gap then finds no transcript and no in-memory agent: the
 # mod must rotate to a fresh agent and keep the wake, never pass it to main.
-make_lab "$SOCKET2"
+if ! make_lab "$SOCKET2"; then
+  LAB2=$LAB
+  fail 'could not create the second isolated lab'
+fi
 LAB2=$LAB
 start_claude_session CLAUDE_CODE_CHILD_SESSION=1
 wait_event session.start '"enabled":true' 'the module loading enabled in the child-session lab'
@@ -474,4 +384,5 @@ done
   || fail "the rotation chain stalled: $(events wake.delivered)"
 [ "$(count wake.passed)" = 0 ] || fail "a later wake was passed to main: $(events wake.passed)"
 [ "$(count handback.dropped)" = 0 ] || fail "a later hand-back was dropped: $(events handback.dropped)"
+assert_watcher_continuity
 pass "a minutes-later wake on an inherited CLAUDE_CODE_CHILD_SESSION rotates to a fresh agent (why=unresumable) and keeps the wake"
