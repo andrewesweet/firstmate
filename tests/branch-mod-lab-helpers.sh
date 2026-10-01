@@ -45,7 +45,7 @@ for f in "$ROOT"/bin/*; do ln -s "$f" "$HOME_DIR/bin/$(basename "$f")"; done
 for d in .agents docs .tasks.toml; do ln -s "$ROOT/$d" "$HOME_DIR/$d"; done
 git -C "$HOME_DIR" init -q
 printf 'tmux\n' > "$HOME_DIR/config/backend"
-printf 'off\n' > "$HOME_DIR/config/supervision-host"
+: > "$HOME_DIR/config/supervision-host-off"
 : > "$STATE/.branch-mod-mode"
 cat > "$HOME_DIR/AGENTS.md" <<'MD'
 # Scratch primary for the fm-branch-mod live regression

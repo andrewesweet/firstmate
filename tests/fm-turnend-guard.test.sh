@@ -1486,28 +1486,6 @@ test_hook_claude_mode_blocks_on_stuck_arming_claim() {
   pass "fm-turnend-guard --claude: a hung owner frozen at arming with no watcher beat no longer allows a blind stop"
 }
 
-test_hook_claude_mode_blocks_on_stuck_arming_claim() {
-  local dir out status pid identity
-  dir=$(make_primary_dir "$TMP_ROOT/hook-claude-stuck-arming-claim")
-  : > "$dir/state/task1.meta"
-  : > "$dir/state/task2.meta"
-  sleep 60 &
-  pid=$!
-  record_autoarm_owner "$dir" "$pid"
-  identity=$(fm_test_pid_identity "$pid") || fail "could not compute a claim pid-identity"
-  printf '%s\n' "$identity" > "$dir/state/.claude-autoarm.lock/pid-identity"
-  printf 'epoch=464 owner_pid=%s outcome=arming updated_at=1\n' "$pid" > "$dir/state/.claude-autoarm-epoch"
-  touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
-  touch -t 202001010000 "$dir/state/.last-watcher-beat"
-  out=$(FM_CLAUDE_AUTOARM_SYNC_WAIT_MS=200 run_hook_claude "$dir" true); status=$?
-  kill "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
-  expect_code 2 "$status" "a live owner stuck arming past grace with a stale beacon must not pass for recovery under way"
-  assert_contains "$out" "TURN WOULD END BLIND" "stuck-arming claim block must carry the blind-turn banner"
-  assert_contains "$out" "2 task(s) in flight" "stuck-arming claim block must name the unsupervised work"
-  pass "fm-turnend-guard --claude: a hung owner frozen at arming with no watcher beat no longer allows a blind stop"
-}
-
 # The generation model's ownership proof: a live open ledger claim (two-line
 # entry, identity-matched owner descending from the session-lock pid, watcher
 # still beating) owns recovery with no owner lock held at all.

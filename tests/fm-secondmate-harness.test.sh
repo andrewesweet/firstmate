@@ -1487,11 +1487,8 @@ test_spawn_secondmate_claude_permission_mode_auto() {
   pass "C2b spawn: config/claude-permission-mode=auto reaches a Claude secondmate launch"
 }
 
-# A second mate's steering inbox lives in the PARENT home's
-# state/<id>.inbox - outside the mate's own working directory - so an
-# auto-mode Claude Code (2.1.257+) parks on its one-time "Allow reads outside
-# the working directories?" question the first time the mate file-tool reads
-# a steer, and a "Block" answer recorded anywhere on the machine would refuse
+# config/claude-function-hooks presence reaches a Claude SECONDMATE launch too:
+# the same environment-prefix substitution as a crewmate, model/effort untouched.
 test_spawn_secondmate_claude_function_hooks_flag() {
   local w sm meta launch out status
   w="$TMP_ROOT/spawn-claude-hooksflag"
@@ -1514,6 +1511,11 @@ test_spawn_secondmate_claude_function_hooks_flag() {
   pass "C2c spawn: config/claude-function-hooks presence reaches a Claude secondmate launch"
 }
 
+# A second mate's steering inbox lives in the PARENT home's
+# state/<id>.inbox - outside the mate's own working directory - so an
+# auto-mode Claude Code (2.1.257+) parks on its one-time "Allow reads outside
+# the working directories?" question the first time the mate file-tool reads
+# a steer, and a "Block" answer recorded anywhere on the machine would refuse
 # the same read even under bypass. Drive the real emitted launch through a
 # claude stub that models that working-directory gate, under both permission
 # modes: the parent inbox must resolve inside the pane cwd or an --add-dir.

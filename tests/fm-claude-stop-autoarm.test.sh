@@ -1330,6 +1330,10 @@ test_orphaned_claim_from_dead_session_is_superseded_by_replacement() {
   pass "auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake"
 }
 
+# A claim with no numeric session-lock pid is never open: nothing can receive
+# its rewake (the hook itself goes silent on a missing or malformed lock), so
+# deferring to it would leave the home deaf. Same live, identity-matched,
+# fresh-beacon owner, three lock states, one predicate.
 test_claim_without_numeric_session_lock_is_not_open() {
   local dir rc
   dir=$(make_primary_dir "$TMP_ROOT/v2-lockless-claim")
@@ -1361,8 +1365,6 @@ test_claim_without_numeric_session_lock_is_not_open() {
   expect_code 1 "$rc" "a claim under a malformed state/.lock must not be open"
   pass "auto-arm: a claim is open only under a numeric session lock its owner descends from"
 }
-
-
 
 # Identity is mandatory at read time: a bare identityless one-line arming
 # ledger naming an unrelated live pid is NOT an open claim - it must neither
@@ -1584,7 +1586,6 @@ test_branch_mod_alone_keeps_the_arm() {
   assert_contains "$out" "stale: fixture-win actionable" "the arm's reason must still reach the rewake"
   pass "auto-arm: with only the branch mod opt-in the hook runs the arm exactly as before"
 }
-
 
 test_host_absent_flag_runs_the_host() {
   local dir out status

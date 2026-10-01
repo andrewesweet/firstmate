@@ -338,7 +338,6 @@ Grok's arm command is rendered at session start, so a change to its host mode ta
 
 `config/supervision-host` may be empty or hold one line `<engine> [<model>]`:
 
-- `off` opts the home out of the host;
 - empty or `default` selects the primary harness's own engine at that engine's default model (`sonnet` for the Claude engine);
 - `<engine> [<model>]` names a verified engine, currently only `claude`, and optionally the engine's own model name or alias; `default <model>` selects the primary harness's engine with that model.
 
@@ -1104,8 +1103,6 @@ Regression coverage executes emitted launch commands with synthetic nonsecret va
 Every claude launch's inline `--settings` JSON also trims the worker's startup context: it disables claude.ai connectors, the `claude-in-chrome` MCP server, auto memory, workflows, and bundled skills, and denies `Artifact`, `ReportFindings`, `ScheduleWakeup`, and `AskUserQuestion`; the [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) "Startup context" owns why each key is there.
 The same JSON also sets `autoCompactWindow` to 220000, so a Claude worker on a 1M-context model still auto-compacts near 187k tokens instead of never compacting under the default `auto` window; the same reference owns the rationale.
 Pi crewmate launches carry `--exclude-tools` for the primary extension tools; the [Pi adapter reference](../.agents/skills/harness-adapters/references/harness/pi.md) owns that flag.
-
-### Commit attribution
 
 ### Commit attribution
 
