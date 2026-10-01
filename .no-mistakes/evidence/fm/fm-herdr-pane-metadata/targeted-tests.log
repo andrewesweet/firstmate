@@ -1,0 +1,38 @@
+FM_TEST_BEGIN 2026-10-01T23:32:02Z tests/fm-backend-herdr-metadata.test.sh family=unclassified expected_gate_skip=none
+ok - publish projects task/role, intent, wait marker, and PR pointer from the records
+ok - a working task with no PR clears its marker and pointer instead of leaving them stale
+ok - done states project review-ready and report-ready markers with their pointers
+ok - titles clip to the API cap and secondmate charters project their intent
+ok - a pane whose live workspace disagrees with the record refuses the write
+ok - vanished panes and records without binding fields refuse instead of writing
+ok - non-Herdr and remote-hosted records are silent no-ops
+ok - a failed metadata write is a one-line diagnostic the caller can discard
+ok - clear erases exactly Firstmate-owned values on the validated pane and refuses otherwise
+ok - clear treats non-Herdr and absent records as silent no-ops
+ok - the entry rejects bad usage with exit 2 and a usage line
+ok - each publish reads current state once, for the projected task only
+ok - watcher reconcile publishes only on stamp expiry and survives a fresh stamp
+ok - fm-backend-herdr-metadata: all tests passed
+FM_TEST_END 2026-10-01T23:32:03Z tests/fm-backend-herdr-metadata.test.sh exit=0 duration_ms=1624 gate_skip=false
+FM_TEST_BEGIN 2026-10-01T23:32:03Z tests/fm-calm-pi-extension.test.sh family=pure-contract-unit expected_gate_skip=none
+skip: node or npm not found for Pi calm home-resolution test
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: node or npm not found for Pi calm degraded-adapter test
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: node or npm not found for Pi Calm queued-row test
+skip: node or npm not found for Pi calm gate test
+skip: node or npm not found for Pi calm activation test
+skip: node or npm not found for Pi calm renderer test
+skip: node or npm not found for Pi calm mid-turn renderer test
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 0.99.1 with Calm on hides and retains queued Firstmate input through Escape, delivers it once, and leaves Calm off stock
+ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+skip: node or npm not found for Pi Calm working-ship test
+ok - the rendered-export-DOM guard renders in one pass, retries a bounded number of Chrome start-up failures, and reports the Chrome binary, Chrome version, Pi version, exit status, and Chrome diagnostic when every attempt fails
+not ok - Chrome or Chromium is required for rendered export DOM assertions; set FM_CHROME_BIN to one
+FM_TEST_END 2026-10-01T23:32:28Z tests/fm-calm-pi-extension.test.sh exit=1 duration_ms=24159 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=25894
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=24159 failed=1
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=1624 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-calm-pi-extension.test.sh duration_ms=24159
+FM_TEST_SLOWEST rank=2 script=tests/fm-backend-herdr-metadata.test.sh duration_ms=1624
