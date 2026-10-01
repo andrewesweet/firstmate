@@ -535,7 +535,7 @@ Workspace and tab ids support verification and cleanup but are not inferred from
 ### Named server and session routing
 
 The adapter starts and polls a named server before workspace, tab, pane, or agent calls.
-Every Herdr invocation goes through `fm_backend_herdr_cli`, which sets the environment and passes an explicit trailing `--session <name>`.
+Every Herdr client call goes through `fm_backend_herdr_cli`, which sets the environment and passes an explicit trailing `--session <name>`; the adapter's own server start goes through `fm_backend_herdr_server_launch` with the same routing.
 An environment variable alone is not reliable when another Herdr server is running.
 
 When the selected named server is not running, the adapter launches it without these inherited values:
@@ -545,10 +545,12 @@ When the selected named server is not running, the adapter launches it without t
 - The supervision-model override.
 
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
+The launch detaches the server from its caller: its own session when `setsid(1)` exists, standard streams on `/dev/null`, and inherited descriptors 3-20 closed.
+Otherwise a server holding the caller's output pipe keeps a plain-SSH `bin/fm-remote-doctor.sh --fix` from ever returning; `tests/fm-remote-doctor.test.sh` pins this.
 An already-running server is reused without restart or environment changes.
 Explicit named-session routing and unrelated launch environment remain intact.
 A server started by the CLI from inside a fleet-snapshot child once inherited that child's per-call `FM_CREW_STATE_META_OVERRIDE` and `FM_CREW_STATE_STATUS_OVERRIDE` and passed them to every later pane, so `bin/fm-crew-state.sh` read the snapshot's captured metadata for every task.
-Two guards close that leak: `fm_backend_herdr_cli` runs every client invocation with those two overrides and the session-start-scoped `FM_SESSION_START_STAGE_FILE`, `FM_HOME_SUMMARY_IF_IDLE`, and `FM_HOME_SUMMARY_WORKER_BEST_EFFORT` unset, and `bin/fm-crew-state.sh` honours an override only when its basename is the asked task's own `.meta` or `.status` file name.
+Two guards close that leak: `fm_backend_herdr_cli` and the server launch run every client invocation with those two overrides and the session-start-scoped `FM_SESSION_START_STAGE_FILE`, `FM_HOME_SUMMARY_IF_IDLE`, and `FM_HOME_SUMMARY_WORKER_BEST_EFFORT` unset, and `bin/fm-crew-state.sh` honours an override only when its basename is the asked task's own `.meta` or `.status` file name.
 
 ### Sending text and keys
 
