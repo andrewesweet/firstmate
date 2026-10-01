@@ -116,8 +116,8 @@
 # check; feedback that lands while no gate is parked is a keyed
 # `needs-decision [key=pr-<n>-<comment-id>]` line pointing at
 # fm_dod_feedback_dir's `<task-id>/pr-<n>-<comment-id>.txt` snapshot that the
-# worker keeps polling
-# behind until firstmate answers dismiss (reply on the PR) or fix, which is
+# worker keeps polling behind until firstmate answers dismiss (reply on the
+# PR) or fix, which is
 # applied only at the run's next stopping point (a parked gate, or a follow-up
 # commit plus a new run on the same branch after the final outcome), and
 # `done:` waits until no such decision is open and the PR holds no unactioned

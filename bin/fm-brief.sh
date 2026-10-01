@@ -656,6 +656,8 @@ case "$MODE" in
     ;;
 esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE") || exit 1
+# Hand the already-resolved absolute $DATA to the feedback-dir resolution so a
+# relative FM_DATA_OVERRIDE cannot render a worktree-relative snapshot path.
 DOD=$(FM_DATA_OVERRIDE="$DATA" fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE") || exit 1
 
 cat > "$BRIEF" <<EOF
