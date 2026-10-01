@@ -1,0 +1,12 @@
+=== FM_HOME=<lab> bin/fm-brief.sh lab-no-mistakes some-proj --mode no-mistakes
+exit=0
+--- worker-private --intent rule lines in rendered brief:
+126:Keep `--intent` text in a worker-private file (created with `mktemp` or inside the task worktree), never in a fixed shared path.
+=== FM_HOME=<lab> bin/fm-brief.sh lab-direct-PR some-proj --mode direct-PR
+exit=0
+--- worker-private --intent rule lines in rendered brief:
+(none)
+=== FM_HOME=<lab> bin/fm-brief.sh lab-local-only some-proj --mode local-only
+exit=0
+--- worker-private --intent rule lines in rendered brief:
+(none)
