@@ -212,6 +212,13 @@ META_LOCK_HELD=0
 PR_READY_SPAN_ATTRS=("firstmate.pr.url=$URL")
 [ -z "$PR_HEAD" ] || PR_READY_SPAN_ATTRS+=("firstmate.pr.head=$PR_HEAD")
 fm_trace_span_emit "$META" firstmate.pr.ready - - "${PR_READY_SPAN_ATTRS[@]}"
+# Display-only Herdr pane metadata projection (docs/herdr-backend.md "Endpoint
+# metadata projection"): the PR pointer and ready marker reach the pane from
+# the same record that now names the PR. Detached and best effort like every
+# other publish: a failure is a one-line diagnostic, never a PR-registration
+# failure.
+FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE \
+  "$SCRIPT_DIR/fm-herdr-metadata.sh" publish "$ID" </dev/null >/dev/null 2>&1 &
 
 PR_POLL_PUBLISH_LOCK="$STATE/.pr-poll-publish-$ID.lock"
 fm_lock_acquire_wait "$PR_POLL_PUBLISH_LOCK"

@@ -3614,6 +3614,13 @@ if [ "$BACKEND" = herdr ]; then
   fm_backend_herdr_parse_target "$T" || exit 1
   TEARDOWN_HERDR_SESSION=$FM_BACKEND_HERDR_SESSION
   TEARDOWN_HERDR_PANE=$FM_BACKEND_HERDR_PANE
+  # Display-only Herdr pane metadata projection (docs/herdr-backend.md
+  # "Endpoint metadata projection"): erase this task's labels while its pane
+  # still exists to receive the clear; the pane close then removes anything a
+  # racing publish re-set. Binding-validated inside, best effort, never a
+  # teardown failure - pane death is the guaranteed erasure.
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE \
+    "$SCRIPT_DIR/fm-herdr-metadata.sh" clear "$ID" </dev/null >/dev/null 2>&1 || true
 fi
 
 BACKLOG_CLOSED=0
@@ -4076,7 +4083,7 @@ rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
   "$STATE/$ID.control-relaunch" "$STATE/$ID.control-relaunch.meta-prior" \
   "$STATE/$ID.control-relaunch.brief-prior" "$STATE/$ID.control-relaunch.note" \
   "$STATE/$ID.reconcile-nudged" "$STATE/$ID.gemini-settings.json" "$STATE/$ID.devin-config.json" \
-  "$STATE/.$ID.branch-outcome-index" "$STATE/.$ID.classifier-offset" \
+  "$STATE/.$ID.branch-outcome-index" "$STATE/.$ID.classifier-offset" "$STATE/.$ID.meta-proj" \
   "$STATE/.secondmate-relaunch-$ID" "$STATE/.secondmate-relaunch-bound-$ID"
 # The steering inbox (bin/fm-task-inbox-lib.sh) is runtime state for the
 # retired endpoint; teardown only runs after landing is confirmed, so any
