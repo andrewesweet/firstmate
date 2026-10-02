@@ -16,6 +16,7 @@ Herdr provides the terminal session while Treehouse continues to provide task wo
 | What you want to know | Start here |
 | --- | --- |
 | Install Herdr and select it | [Setup](#setup) |
+| Why bootstrap prints `HERDR_INTEGRATION` | [Native integration readiness](#native-integration-readiness) |
 | Why a command ran on a different `herdr` client | [Client selection](#client-selection) |
 | Where task tabs appear and how to watch them | [Watching and task containers](#watching-and-task-containers) |
 | The one-task workspaces, their setting, and their cleanup | [Presentation spaces](#presentation-spaces) |
@@ -61,6 +62,14 @@ An auto-detected Herdr spawn stays silent, matching the verified tmux default pa
 Spawn stops before creating a Herdr container or acquiring a task worktree when `herdr`, `jq`, or the protocol floor is unavailable.
 No separate first-run provisioning is required.
 
+### Native integration readiness
+
+Herdr's native per-pane status comes from its own integration hooks in each harness account root; without a current integration a pane falls back to screen detection and a relaunch cannot resume the native session reference ([Agent status authority and relaunch](#agent-status-authority-and-relaunch)).
+On the Herdr backend, `bin/fm-bootstrap.sh` reads `herdr integration status` for the Claude and Pi account roots this home launches workers under, honoring `config/claude-account` and `config/pi-account` pins, and prints one `HERDR_INTEGRATION` line per missing or outdated integration.
+`fm-remote-doctor.sh` reports the same verdicts as its `herdr-integration` check on a remote account.
+Both are read-only: each gap names the `herdr integration install` command to run deliberately, and nothing installs or updates the integration automatically.
+`fm_backend_herdr_integration_check` in `bin/backends/herdr.sh` owns the root resolution and verdict mapping.
+
 The required Herdr lane uses the pinned installers in `bin/fm-install-herdr.sh` and `bin/fm-install-treehouse.sh`, and the required portable-serial lane also installs that Treehouse pin for the real-treehouse slot-lease live guard.
 Those script headers own release assets, checksums, download bounds, and post-install gates.
 Real harness credential tests remain opt-in rather than part of default CI.
@@ -88,6 +97,7 @@ Do not restart a server that has live work without the operator's word: killing 
 ## Client selection
 
 Each operation routed through the adapter's session-scoped CLI helper starts with the first `herdr` on `PATH`, unless that session has already selected another client.
+When no `herdr` resolves on `PATH` at all, it starts instead from `HERDR_BIN_PATH`, Herdr's own pointer to the binary that launched the pane, which the worker launch floor passes through; that fallback never displaces a live `PATH` client.
 
 A host can carry more than one client, such as a self-updated copy in `~/.local/bin` beside a package-managed one.
 A client older than the running server can receive error code `protocol_mismatch` on operational commands.

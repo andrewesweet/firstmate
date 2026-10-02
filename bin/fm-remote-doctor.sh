@@ -580,6 +580,34 @@ check_herdr() {
     "install herdr from https://herdr.dev on that account, or add a ~/.local/bin wrapper for it; a remote second mate always runs on the Herdr backend"
 }
 
+# The remote second mate runs on the Herdr backend, so the account roots its
+# worker launches under need a current native integration or pane status falls
+# back to screen detection. Read Herdr's own per-root verdicts through the
+# shared probe; installing stays a deliberate operator command on that account,
+# so every gap is human, never fixable.
+check_herdr_integration() {
+  local config out n commands first
+  if ! herdr_adapter_load; then
+    record herdr-integration "skip: herdr and jq must resolve before Herdr's integration verdicts can be read"
+    return 0
+  fi
+  if ! command -v fm_backend_herdr_integration_check >/dev/null 2>&1; then
+    record herdr-integration "skip: this runtime's staged Firstmate predates the herdr integration probe"
+    return 0
+  fi
+  config="${FM_HOME:-$HOME}/config"
+  out=$(fm_backend_herdr_integration_check "$config") || out=
+  if [ -z "$out" ]; then
+    record herdr-integration "ok: Herdr reports no actionable integration gap for the account roots this home launches workers under"
+    return 0
+  fi
+  n=$(printf '%s\n' "$out" | grep -c '^HERDR_INTEGRATION:') || n=0
+  first=$(printf '%s\n' "$out" | sed -n 's/^HERDR_INTEGRATION: //p' | head -n 1)
+  commands=$(printf '%s\n' "$out" | sed -nE 's/.*\((install|update) deliberately: (.*)\)$/\2/p' | awk 'NR>1{printf "; "}{printf "%s", $0}')
+  record herdr-integration "human: $n actionable herdr integration gap(s) on this account; first: $first" \
+    "run each prescribed command on that account exactly as printed (they only point the env and install or update Herdr's integration; nothing is automatic): ${commands:-see the reported gap}"
+}
+
 check_gui_session() {
   if [ "$PLATFORM" != darwin ]; then
     record gui-session "skip: no Aqua login session applies on $PLATFORM"
@@ -724,6 +752,7 @@ run_checks() { # <resolved-login-shell>
   CHECK_VALUES=()
   CHECK_ACTIONS=()
   check_herdr
+  check_herdr_integration
   check_gui_session
   check_remote_job_worker
   check_launch_agent "$shell"

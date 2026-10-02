@@ -1440,6 +1440,91 @@ test_git_is_required_with_supported_install_instruction
 test_orca_backend_gates_orca_tool_only_when_selected
 test_session_provider_backends_do_not_require_tmux
 test_session_provider_backends_gate_own_cli_not_tmux
+# --- Herdr native-integration readiness (herdr backend only) ------------------
+
+# A fake herdr whose `integration status` prints $FM_TEST_IC_STATUS verbatim
+# (empty when unset), so bootstrap tests can script Herdr's own per-root
+# verdicts. Everything else exits 0 silently like fm_fake_exit0 tools.
+make_fake_herdr_with_integration_status() {  # <case-dir>
+  local dir=$1 fakebin
+  fakebin=$(make_fake_toolchain_no_tmux "$dir" herdr)
+  rm -f "$fakebin/herdr"
+  cat > "$fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = integration ] && [ "${2:-}" = status ]; then
+  [ -n "${FM_TEST_IC_STATUS:-}" ] && cat "$FM_TEST_IC_STATUS"
+  exit "${FM_TEST_IC_STATUS_RC:-0}"
+fi
+exit 0
+SH
+  chmod +x "$fakebin/herdr"
+  printf '%s\n' "$fakebin"
+}
+
+test_herdr_integration_gap_prints_the_diagnostic_line() {
+  local case_dir fakebin out
+  case_dir="$TMP_ROOT/herdr-integration-gap"
+  mkdir -p "$case_dir/home/config" "$case_dir/home/.pi/agent"
+  printf '%s\n' manual > "$case_dir/home/config/backlog-backend"
+  printf '%s\n' herdr > "$case_dir/home/config/backend"
+  printf '%s\n' "pi: not installed ($case_dir/home/.pi/agent)" > "$case_dir/status"
+  fakebin=$(make_fake_herdr_with_integration_status "$case_dir")
+  out=$(PATH="$fakebin:$BASE_PATH" HOME="$case_dir/home" FM_TEST_IC_STATUS="$case_dir/status" \
+    FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_FAKE_TREEHOUSE_LEASE_HELP=1 "$ROOT/bin/fm-bootstrap.sh")
+  assert_contains "$out" "HERDR_INTEGRATION: pi root $case_dir/home/.pi/agent" \
+    "a herdr home with a missing pi integration must print the readiness line"
+  assert_contains "$out" "integration install pi" \
+    "the readiness line must offer the deliberate install command"
+  pass "bootstrap: a herdr-backend integration gap prints HERDR_INTEGRATION with the deliberate remedy"
+}
+
+test_herdr_integration_healthy_and_empty_status_stay_silent() {
+  local case_dir fakebin out
+  # Healthy verdicts for both harness roots, and (separately) a client whose
+  # status call succeeds with no output at all: neither may print anything.
+  for shape in healthy empty; do
+    case_dir="$TMP_ROOT/herdr-integration-$shape"
+    mkdir -p "$case_dir/home/config" "$case_dir/home/.claude" "$case_dir/home/.pi/agent"
+    printf '%s\n' manual > "$case_dir/home/config/backlog-backend"
+    printf '%s\n' herdr > "$case_dir/home/config/backend"
+    if [ "$shape" = healthy ]; then
+      printf 'claude: current (v10) (%s/home/.claude)\npi: current (v9) (%s/home/.pi/agent)\n' \
+        "$case_dir" "$case_dir" > "$case_dir/status"
+    fi
+    fakebin=$(make_fake_herdr_with_integration_status "$case_dir")
+    out=$(PATH="$fakebin:$BASE_PATH" HOME="$case_dir/home" FM_TEST_IC_STATUS="$case_dir/status" \
+      FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+      FM_FAKE_TREEHOUSE_LEASE_HELP=1 "$ROOT/bin/fm-bootstrap.sh")
+    [ -z "$out" ] || fail "herdr integration shape=$shape must stay silent, got: $out"
+  done
+  pass "bootstrap: healthy verdicts and an empty successful status stay silent (no false alarms)"
+}
+
+test_herdr_integration_check_gated_on_backend_and_cli() {
+  local case_dir fakebin out
+  # A tmux home must never run the herdr probe, and a herdr home without the
+  # CLI must hear only the MISSING_MANUAL line, never an integration verdict.
+  case_dir="$TMP_ROOT/herdr-integration-gates"
+  mkdir -p "$case_dir/home/config" "$case_dir/home/.pi/agent"
+  printf '%s\n' manual > "$case_dir/home/config/backlog-backend"
+  fakebin=$(make_fake_herdr_with_integration_status "$case_dir")
+  printf '%s\n' tmux > "$case_dir/home/config/backend"
+  out=$(PATH="$fakebin:$BASE_PATH" HOME="$case_dir/home" FM_TEST_IC_STATUS="$case_dir/status" \
+    FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_FAKE_TREEHOUSE_LEASE_HELP=1 "$ROOT/bin/fm-bootstrap.sh")
+  assert_not_contains "$out" "HERDR_INTEGRATION:" \
+    "a tmux home must not run the herdr integration probe"
+  printf '%s\n' herdr > "$case_dir/home/config/backend"
+  out=$(PATH="$(fm_test_base_path_sans "$fakebin:$BASE_PATH" herdr)" HOME="$case_dir/home" \
+    FM_HOME="$case_dir/home" FM_ROOT_OVERRIDE="$case_dir/home" \
+    FM_FAKE_TREEHOUSE_LEASE_HELP=1 "$ROOT/bin/fm-bootstrap.sh")
+  assert_contains "$out" "MISSING_MANUAL: herdr" "the missing CLI must own the report"
+  assert_not_contains "$out" "HERDR_INTEGRATION:" \
+    "a missing herdr CLI must not produce integration verdicts"
+  pass "bootstrap: the integration probe is gated on backend=herdr with a resolvable client"
+}
+
 test_herdr_install_requires_manual_action
 test_cmux_bundled_cli_satisfies_dependency
 test_unknown_backend_reports_invalid_configuration
@@ -1459,3 +1544,6 @@ test_tasks_axi_verdict_handoff_is_consumed_once
 test_crew_dispatch_active_rules_are_verbose_bootstrap_info
 test_crew_dispatch_validation
 test_primary_transcript_suppression
+test_herdr_integration_gap_prints_the_diagnostic_line
+test_herdr_integration_healthy_and_empty_status_stay_silent
+test_herdr_integration_check_gated_on_backend_and_cli

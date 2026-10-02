@@ -21,9 +21,11 @@ HERDR_TEST_SAFETY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # inherited from whatever terminal it was started in.
 #
 # Herdr injects HERDR_ENV, HERDR_PANE_ID, HERDR_TAB_ID, HERDR_WORKSPACE_ID,
-# HERDR_SOCKET_PATH, and HERDR_SESSION into every process it manages a pane for
-# (verified 0.7.5 - docs/verification/runtime-backends.md), and a test run from
-# inside a Herdr pane inherits all of them. Spawn now treats that pane as the
+# HERDR_SOCKET_PATH, HERDR_SESSION, and HERDR_BIN_PATH (the binary that launched
+# the pane, possibly a stale "... (deleted)" path) into every process it manages
+# a pane for (verified 0.7.5 - docs/verification/runtime-backends.md), and a
+# test run from inside a Herdr pane inherits all of them. Spawn now treats that
+# pane as the
 # authoritative parent to place workers next to, so a leaked identity from the
 # developer's own session would follow the test into its isolated lab session
 # and be refused there as a cross-session parent - a result that depends on
@@ -33,7 +35,7 @@ HERDR_TEST_SAFETY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # the per-home container path. A suite that means to exercise a launcher-bound
 # spawn sets HERDR_PANE_ID itself, to a pane it created in its own lab session.
 herdr_forget_inherited_pane() {
-  unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH HERDR_SESSION
+  unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH HERDR_SESSION HERDR_BIN_PATH
 }
 
 herdr_refuse_if_default() { # <session>

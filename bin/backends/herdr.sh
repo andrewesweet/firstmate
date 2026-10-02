@@ -94,6 +94,8 @@ FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 . "$FM_BACKEND_HERDR_ROOT/bin/fm-agent-process-lib.sh"
 # shellcheck source=bin/backends/herdr-metadata.sh
 . "$FM_BACKEND_HERDR_ROOT/bin/backends/herdr-metadata.sh"
+# shellcheck source=bin/fm-worker-account-lib.sh
+. "$FM_BACKEND_HERDR_ROOT/bin/fm-worker-account-lib.sh"
 
 FM_BACKEND_HERDR_MIN_PROTOCOL=14
 # events.subscribe (the native pane.agent_status_changed push stream) and its
@@ -385,6 +387,10 @@ FM_BACKEND_HERDR_ENV_SCRUB=(
   -u FM_HOME_SUMMARY_IF_IDLE
   -u FM_HOME_SUMMARY_WORKER_BEST_EFFORT
 )
+# HERDR_BIN_PATH deliberately passes through this scrub: it is Herdr's own
+# pane pointer to the binary that launched the pane (not a Firstmate
+# selection), the herdr client owner falls back to it only when herdr is off
+# PATH, and the spawn launch floor passes it to workers for the same reason.
 
 # fm_backend_herdr_cli: run `herdr <args...>` scoped to <session>, setting
 # BOTH the HERDR_SESSION env var AND appending a trailing `--session <name>`
@@ -406,6 +412,13 @@ fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
   shift
   if [ "${FM_BACKEND_HERDR_CLIENT_SESSION:-}" = "$session" ]; then
     client_bin=$(fm_backend_herdr_bin)
+  elif [ -z "${FM_BACKEND_HERDR_BIN:-}" ] && [ -n "${HERDR_BIN_PATH:-}" ] \
+    && ! command -v herdr >/dev/null 2>&1; then
+    # A session with no selected client starts from the PATH-first herdr, or
+    # from HERDR_BIN_PATH when herdr resolves nowhere on PATH (see
+    # fm_backend_herdr_bin). The FM_BACKEND_HERDR_BIN guard keeps a binary
+    # selected for a DIFFERENT session from leaking into this one.
+    client_bin=$HERDR_BIN_PATH
   fi
   # stderr is buffered (stdout streams untouched) so a protocol_mismatch
   # refusal can be recognized and retried once on a compatible client; see
@@ -460,8 +473,23 @@ fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
 # PATH-first client. An unknown verdict (status supplies neither
 # .server.compatible nor both client and server protocols) always keeps the
 # PATH-first client.
+# When no client has been selected, HERDR_BIN_PATH also feeds
+# fm_backend_herdr_bin. HERDR_BIN_PATH is Herdr's own pointer to the binary
+# that launched the current pane (herdr exports it into every pane environment,
+# and Firstmate's launch floor passes it to workers); it fills the gap of a
+# host whose PATH cannot see the installed herdr client at all. It only ever
+# applies when NO herdr resolves on PATH: the PATH-first client is what the
+# client-selection contract trusts on a host that has one, and a stale
+# HERDR_BIN_PATH (its target may have been replaced or deleted since the pane
+# started) must never displace a live PATH client.
 fm_backend_herdr_bin() {
-  printf '%s' "${FM_BACKEND_HERDR_BIN:-herdr}"
+  if [ -n "${FM_BACKEND_HERDR_BIN:-}" ]; then
+    printf '%s' "$FM_BACKEND_HERDR_BIN"
+  elif [ -n "${HERDR_BIN_PATH:-}" ] && ! command -v herdr >/dev/null 2>&1; then
+    printf '%s' "$HERDR_BIN_PATH"
+  else
+    printf 'herdr'
+  fi
 }
 
 # fm_backend_herdr_client_candidates: every distinct executable named herdr on
@@ -524,9 +552,20 @@ fm_backend_herdr_client_select() {  # <session> [force]
   return 0
 }
 
-# fm_backend_herdr_tool_check: refuse loudly if herdr or jq is missing.
+# fm_backend_herdr_tool_check: refuse loudly if herdr or jq is missing. herdr
+# resolves through fm_backend_herdr_bin, so a host whose PATH lacks herdr still
+# passes when HERDR_BIN_PATH names an executable client.
 fm_backend_herdr_tool_check() {
-  command -v herdr >/dev/null 2>&1 || { echo "error: backend=herdr selected but the 'herdr' CLI is not installed (https://herdr.dev) (dual-licensed AGPL-3.0-or-later/commercial)" >&2; return 1; }
+  local herdr_bin
+  herdr_bin=$(fm_backend_herdr_bin)
+  if ! command -v "$herdr_bin" >/dev/null 2>&1; then
+    if [ "$herdr_bin" = herdr ]; then
+      echo "error: backend=herdr selected but the 'herdr' CLI is not installed (https://herdr.dev) (dual-licensed AGPL-3.0-or-later/commercial)" >&2
+    else
+      echo "error: backend=herdr selected but the resolved herdr client '$herdr_bin' is not an executable" >&2
+    fi
+    return 1
+  fi
   command -v jq >/dev/null 2>&1 || { echo "error: backend=herdr selected but 'jq' is not installed (required to parse herdr's JSON output)" >&2; return 1; }
   return 0
 }
@@ -536,8 +575,9 @@ fm_backend_herdr_tool_check() {
 # .client.protocol; client info is session-independent, unlike .server).
 fm_backend_herdr_version_check() {
   fm_backend_herdr_tool_check || return 1
-  local status protocol version
-  status=$(herdr status --json 2>/dev/null) || { echo "error: 'herdr status --json' failed; is herdr installed correctly?" >&2; return 1; }
+  local client_bin status protocol version
+  client_bin=$(fm_backend_herdr_bin)
+  status=$("$client_bin" status --json 2>/dev/null) || { echo "error: 'herdr status --json' failed; is herdr installed correctly?" >&2; return 1; }
   protocol=$(printf '%s' "$status" | jq -r '.client.protocol // empty' 2>/dev/null)
   version=$(printf '%s' "$status" | jq -r '.client.version // empty' 2>/dev/null)
   case "$protocol" in
@@ -550,6 +590,91 @@ fm_backend_herdr_version_check() {
     echo "error: herdr protocol $protocol (version ${version:-unknown}) is older than the verified minimum $FM_BACKEND_HERDR_MIN_PROTOCOL; update herdr (herdr update) before using backend=herdr" >&2
     return 1
   fi
+  return 0
+}
+
+# --- integration readiness ----------------------------------------------------
+#
+# The native Herdr integration is what gives a pane's hook or extension the
+# status authority docs/herdr-backend.md describes: without a current
+# integration in the account root a worker launch uses, Herdr falls back to
+# screen detection and a relaunch cannot resume the native session reference.
+# This check is the read-only, account-scoped readiness probe for exactly that
+# surface: for each harness this repo launches on the Herdr backend (claude and
+# pi), it resolves the account root the same launch resolution does - the pin
+# in config/claude-account or config/pi-account, else the ambient root the
+# launch floor passes through - and reads Herdr's own per-root verdict from
+# `herdr integration status`, run with that root pointed. Herdr owns the file
+# locations, the expected hook version, and the verdict wording, so the verdict
+# is computed by the same client this home would drive against files Herdr
+# itself installed; a client/server skew inside one protocol cannot produce a
+# false alarm because the probe is purely client-side and never touches the
+# server or socket.
+#
+# One HERDR_INTEGRATION line per actionable gap, in bin/fm-bootstrap.sh's
+# diagnostic style; a healthy selected root prints nothing, and a harness whose
+# unpinned root does not exist is a home that never ran that harness - silent.
+# The install remedy is always a printed command the operator chooses to run
+# deliberately: this check never installs, edits, or repairs anything.
+fm_backend_herdr_integration_check() {  # <config-dir>
+  local config=$1 client_bin harness resolved declared root env_name probe probe_err err_first verdict
+  client_bin=$(fm_backend_herdr_bin)
+  command -v "$client_bin" >/dev/null 2>&1 || return 0
+  for harness in claude pi; do
+    if ! resolved=$(fm_worker_account_resolve "$harness" "$config" 2>&1); then
+      printf 'HERDR_INTEGRATION: %s account pin: %s\n' "$harness" "${resolved#*error: }"
+      continue
+    fi
+    declared=${resolved%%$'\t'*}
+    root=
+    [ -n "$resolved" ] && IFS=$'\t' read -r _ root _ <<< "$resolved"
+    case "$harness,$declared" in
+      claude,) root=${CLAUDE_CONFIG_DIR:-$HOME/.claude} ;;
+      claude,ordinary) root=$HOME/.claude ;;
+      pi,) root=$HOME/.pi/agent ;;
+    esac
+    # A pin names the root explicitly, so resolve already proved it usable; an
+    # ordinary root that does not exist just means the harness never ran here.
+    [ -n "$declared" ] || [ -d "$root" ] || continue
+    case "$harness" in claude) env_name=CLAUDE_CONFIG_DIR ;; *) env_name=PI_CODING_AGENT_DIR ;; esac
+    # Stdout and stderr are split so a stray client warning on a successful
+    # status call cannot turn into a phantom report: verdicts are read from
+    # stdout only, and the failure branch reports the client's own error text.
+    probe_err=$(mktemp "${TMPDIR:-/tmp}/fm-herdr-integration-err.XXXXXX") || return 0
+    if ! probe=$(env -u CLAUDE_CONFIG_DIR -u PI_CODING_AGENT_DIR "$env_name=$root" \
+      "$client_bin" integration status 2>"$probe_err"); then
+      err_first=
+      [ -s "$probe_err" ] && err_first=$(head -n 1 "$probe_err")
+      [ -n "$err_first" ] || err_first=$(printf '%s' "$probe" | head -n 1)
+      printf 'HERDR_INTEGRATION: herdr integration status failed for the %s root %s: %s\n' \
+        "$harness" "$root" "$err_first"
+    fi
+    rm -f "$probe_err"
+    verdict=
+    [ -n "$probe" ] && verdict=$(printf '%s\n' "$probe" | sed -n "s/^$harness: //p" | head -n 1)
+    case "$verdict" in
+      current*) : ;;
+      '')
+        # An empty successful report is a client with nothing to say about the
+        # target (for example a stub or an unknown target list): nothing to
+        # verify, so nothing to alarm about. A client that names the target
+        # without a verdict line still reports below.
+        [ -n "$probe" ] || continue
+        printf 'HERDR_INTEGRATION: the herdr client reports no %s integration for root %s; update herdr (herdr update) so it can check that root\n' "$harness" "$root"
+        ;;
+      'not installed'*)
+        printf 'HERDR_INTEGRATION: %s root %s: herdr native integration not installed; Herdr pane status falls back to screen detection and relaunch loses the native session reference (install deliberately: %s=%s "%s" integration install %s)\n' \
+          "$harness" "$root" "$env_name" "$root" "$client_bin" "$harness"
+        ;;
+      'outdated'*)
+        printf 'HERDR_INTEGRATION: %s root %s: herdr integration %s; the pane hooks may lose Herdr status authority (update deliberately: %s=%s "%s" integration install %s)\n' \
+          "$harness" "$root" "$verdict" "$env_name" "$root" "$client_bin" "$harness"
+        ;;
+      *)
+        printf 'HERDR_INTEGRATION: %s root %s: herdr reports: %s\n' "$harness" "$root" "$verdict"
+        ;;
+    esac
+  done
   return 0
 }
 
@@ -1719,6 +1844,11 @@ fm_backend_herdr_server_launch() {  # <session>
   local session=$1 client_bin=herdr
   if [ "${FM_BACKEND_HERDR_CLIENT_SESSION:-}" = "$session" ]; then
     client_bin=$(fm_backend_herdr_bin)
+  elif [ -z "${FM_BACKEND_HERDR_BIN:-}" ] && [ -n "${HERDR_BIN_PATH:-}" ] \
+    && ! command -v herdr >/dev/null 2>&1; then
+    # Same first-call rule as fm_backend_herdr_cli: HERDR_BIN_PATH only fills
+    # the off-PATH gap, and never a binary another session selected.
+    client_bin=$HERDR_BIN_PATH
   fi
   (
     # exec replaces this subshell with the server launch; the plain-env
