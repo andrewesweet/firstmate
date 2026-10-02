@@ -31,7 +31,10 @@
 set -eu
 
 PROTOCOL=1
-DOCTOR_SHA256=78efccd6cb7a0123400e49fa323292a64c8e3c7ebd3717151be69f87735302fb
+# The trusted bootstrap identity is the vetted default-branch doctor: any
+# change to bin/fm-remote-doctor.sh must re-pin this hash in the same change,
+# because a git-less remote can verify the bootstrap program no other way.
+DOCTOR_SHA256=c8fb397538c7bbbe12bf72462f05cb417f926e95cac9b8b5748f60b9d17ba3b8
 REAL_SOURCE=$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "${BASH_SOURCE[0]}" 2>/dev/null) ||
   REAL_SOURCE=$(realpath "${BASH_SOURCE[0]}" 2>/dev/null) ||
   REAL_SOURCE=${BASH_SOURCE[0]}

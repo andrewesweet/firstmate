@@ -262,6 +262,11 @@ case "${1:-} ${2:-}" in
     fi
     printf '{"client":{"version":"0.7.5","protocol":16},"server":{"running":%s,"socket":"%s"}}\n' "$running" "$FM_FAKE_HERDR_SOCKET"
     ;;
+  "integration status")
+    # Scripted Herdr per-root verdicts: the fixture writes the state file when
+    # a case needs a gap; absent means this client has nothing to say.
+    [ -f "$FM_FAKE_STATE/integration-status" ] && cat "$FM_FAKE_STATE/integration-status"
+    ;;
   "server "*|"server ")
     printf 'true\n' > "$FM_FAKE_HERDR_RUNNING"
     # A herdr server stays alive in the foreground on whatever descriptors it
@@ -412,12 +417,38 @@ doctor
 expect_code 1 "$DOCTOR_RC" "a host without herdr was reported ready"
 assert_contains "$DOCTOR_OUT" 'check herdr=human:' "a missing herdr CLI was not tagged as a human gap"
 assert_contains "$DOCTOR_OUT" 'action: herdr:' "a missing herdr CLI came with no operator action"
+assert_contains "$DOCTOR_OUT" 'check herdr-integration=skip:' "integration readiness must skip when the CLI itself is missing"
 doctor --fix
 expect_code 1 "$DOCTOR_RC" "--fix reported a host without herdr as ready"
 assert_contains "$DOCTOR_OUT" 'check herdr=human:' "--fix stopped reporting the missing herdr CLI"
 assert_not_contains "$DOCTOR_OUT" 'fix herdr=applied' "--fix claimed to have installed herdr"
 assert_no_dangerous_calls "the doctor reached for auto-login, FileVault, or the keychain"
 pass "a missing herdr CLI is a human gap that --fix never claims to close"
+
+# --- herdr native-integration readiness is a human gap, never a --fix install
+
+new_case Darwin with-herdr gui
+doctor
+assert_contains "$DOCTOR_OUT" 'check herdr-integration=ok:' \
+  "a silent herdr integration report on a ready fixture must read as ok"
+pass "herdr integration readiness is ok when Herdr reports nothing actionable"
+
+new_case Darwin with-herdr gui
+mkdir -p "$CASE_HOME/.pi/agent"
+printf 'pi: not installed (%s/.pi/agent)\n' "$CASE_HOME" > "$CASE_STATE/integration-status"
+doctor
+expect_code 1 "$DOCTOR_RC" "an integration gap must not count the account as ready"
+assert_contains "$DOCTOR_OUT" 'check herdr-integration=human:' \
+  "a not-installed integration verdict must be a human gap"
+assert_contains "$DOCTOR_OUT" 'integration install pi' \
+  "the operator action must carry Herdr's own prescribed install command"
+doctor --fix
+assert_contains "$DOCTOR_OUT" 'check herdr-integration=human:' \
+  "--fix must leave the integration gap for the operator"
+assert_not_contains "$DOCTOR_OUT" 'fix herdr-integration' \
+  "--fix must never claim to have installed a herdr integration"
+assert_no_dangerous_calls "the doctor reached for auto-login, FileVault, or the keychain"
+pass "a herdr integration gap is a human remedy --fix never installs"
 
 # --- an absent launch agent is a fixable gap that --fix installs -------------
 

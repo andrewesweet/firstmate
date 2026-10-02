@@ -21,6 +21,7 @@
 #                 "NUDGE_SECONDMATES: secondmate <id>: send failed: <reason>",
 #                 "BOOTSTRAP_INFO: nudged fm-<id> with '<message>'",
 #                 "SECONDMATE_LIVENESS: secondmate <id>: skipped: <reason>|respawn failed after <cause>: <reason>",
+#                 "HERDR_INTEGRATION: <what Herdr's own per-root verdict reports missing or outdated for the claude/pi account roots this home launches workers under, plus the deliberate install or update command>",
 #                 "SECONDMATE_HANDOFF: secondmate <id>: pending delivery: <n> item(s)",
 #                 "TRANSCRIPT_SUPPRESSION: <cause> suppresses this primary session's transcript and the MLflow traces read from it; <remediation>",
 #                 "FMX: X mode on ..." or "FMX: X mode off ...".
@@ -1459,6 +1460,17 @@ detect_local_tools() {
   fi
   if command -v tasks-axi >/dev/null 2>&1 && ! fm_tasks_axi_compatible; then
     echo "MISSING: tasks-axi (install: $(install_cmd tasks-axi))"
+  fi
+  # The Herdr native-integration readiness probe is a herdr-backend-only,
+  # strictly read-only check (bin/backends/herdr.sh owns it): it reads Herdr's
+  # own per-root verdicts for the account roots this home launches workers
+  # under and emits one HERDR_INTEGRATION line per actionable gap. Gated on the
+  # resolved backend and a resolvable client so the MISSING diagnostics above
+  # stay the single voice for an absent CLI, and never a second false alarm.
+  if [ "$BACKEND_VALID" -eq 1 ] && [ "$BACKEND" = herdr ] \
+    && fm_backend_source herdr 2>/dev/null \
+    && fm_backend_herdr_tool_check >/dev/null 2>&1; then
+    fm_backend_herdr_integration_check "$CONFIG"
   fi
 }
 

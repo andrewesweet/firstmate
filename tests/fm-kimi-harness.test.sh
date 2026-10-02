@@ -261,6 +261,10 @@ EOF
 run_spawn() {
   local case_dir=$1 home=$2 proj=$3 wt=$4 fakebin=$5 id=$6
   shift 6
+  # The live-harness gate exports DISABLE_AUTOUPDATER into its own panes, and
+  # fm-spawn embeds that value into the launch text; pin it empty so exact
+  # launch assertions never depend on where the suite runs.
+  DISABLE_AUTOUPDATER="${FM_TEST_DISABLE_AUTOUPDATER:-}" \
   HOME="$home" FM_ROOT_OVERRIDE='' FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \

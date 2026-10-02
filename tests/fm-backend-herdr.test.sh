@@ -6051,3 +6051,325 @@ test_wait_transition_stream_absorb_clears_then_timeout
 test_wait_transition_reader_failure_returns_2
 test_wait_transition_bad_ack_returns_2_and_cleans_up
 test_wait_transition_clean_timeout_returns_1
+
+# --- client resolution and the read-only Herdr integration readiness check ----
+
+# A fake herdr whose `integration status` prints $FM_TEST_IC_STATUS verbatim,
+# exits $FM_TEST_IC_STATUS_RC, and logs the pointed root env plus argv it was
+# invoked with, so tests can prove account scoping. `status --json` answers
+# like a current client so version checks stay out of these cases' way.
+make_herdr_integration_fakebin() {  # <dir> -> fakebin dir
+  local dir=$1 fb="$1/fakebin"
+  mkdir -p "$fb"
+  cat > "$fb/herdr" <<'SH'
+#!/usr/bin/env bash
+{
+  printf 'CLAUDE_CONFIG_DIR=%s\n' "${CLAUDE_CONFIG_DIR-<unset>}"
+  printf 'PI_CODING_AGENT_DIR=%s\n' "${PI_CODING_AGENT_DIR-<unset>}"
+  printf 'argv=%s\n' "$*"
+} >> "${FM_TEST_IC_ENVLOG:?}"
+if [ "${1:-}" = integration ] && [ "${2:-}" = status ]; then
+  cat "${FM_TEST_IC_STATUS:?}"
+  exit "${FM_TEST_IC_STATUS_RC:-0}"
+fi
+if [ "${1:-}" = status ] && [ "${2:-}" = --json ]; then
+  printf '{"client":{"version":"0.9.3","protocol":22},"server":{"running":true}}\n'
+  exit 0
+fi
+exit 0
+SH
+  chmod +x "$fb/herdr"
+  printf '%s\n' "$fb"
+}
+
+run_integration_check() {  # <dir-with-fakebin> [extra env assignments pass through env]
+  PATH="$1:$PATH" bash -c '
+    . "$0/bin/backends/herdr.sh"
+    fm_backend_herdr_integration_check "$1"
+    printf "rc=%s" "$?"
+  ' "$ROOT" "${2:-$TMP_ROOT/no-such-home-config}" 2>&1
+}
+
+test_bin_prefers_the_selected_client_over_every_fallback() {
+  local out
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" bash -c '
+    . "$0/bin/backends/herdr.sh"
+    FM_BACKEND_HERDR_BIN=/selected/herdr HERDR_BIN_PATH=/pointed/herdr fm_backend_herdr_bin
+  ' "$ROOT")
+  [ "$out" = /selected/herdr ] || fail "selected client must keep top precedence, got: $out"
+  pass "herdr client resolution: FM_BACKEND_HERDR_BIN keeps top precedence over HERDR_BIN_PATH"
+}
+
+test_bin_falls_back_to_herdr_bin_path_only_when_herdr_is_off_path() {
+  local fb out
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/binpath-fallback")
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" bash -c '
+    . "$0/bin/backends/herdr.sh"
+    HERDR_BIN_PATH='"$fb"'/herdr fm_backend_herdr_bin
+  ' "$ROOT")
+  [ "$out" = "$fb/herdr" ] || fail "off-PATH herdr must resolve through HERDR_BIN_PATH, got: $out"
+  pass "herdr client resolution: an off-PATH client resolves through HERDR_BIN_PATH"
+}
+
+test_bin_ignores_herdr_bin_path_when_herdr_is_already_on_path() {
+  local fb out
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/binpath-onpath")
+  out=$(PATH="$fb:$PATH" bash -c '
+    . "$0/bin/backends/herdr.sh"
+    HERDR_BIN_PATH=/elsewhere/herdr fm_backend_herdr_bin
+  ' "$ROOT")
+  [ "$out" = herdr ] || fail "PATH herdr must win over HERDR_BIN_PATH, got: $out"
+  pass "herdr client resolution: HERDR_BIN_PATH never displaces a herdr already on PATH"
+}
+
+test_bin_defaults_to_bare_herdr_without_any_pointer() {
+  local out
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" bash -c '
+    . "$0/bin/backends/herdr.sh"
+    unset HERDR_BIN_PATH
+    fm_backend_herdr_bin
+  ' "$ROOT")
+  [ "$out" = herdr ] || fail "no pointer must keep the bare default, got: $out"
+  pass "herdr client resolution: the bare default stands without any pointer"
+}
+
+test_tool_check_names_a_stale_herdr_bin_path_pointer() {
+  local out status
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" HERDR_BIN_PATH="/deleted/inode/herdr (deleted)" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_tool_check' "$ROOT" 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a stale HERDR_BIN_PATH pointer must still refuse"
+  assert_contains "$out" '/deleted/inode/herdr (deleted)' \
+    "the refusal must name the pointer so the operator can see what is stale"
+  pass "herdr tool check: a stale HERDR_BIN_PATH pointer refuses with the pointer named"
+}
+
+test_cli_first_call_uses_herdr_bin_path_when_herdr_is_off_path() {
+  local fb log out
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/cli-first-offpath")
+  log="$TMP_ROOT/cli-first-offpath/log"; : > "$log"
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" HERDR_BIN_PATH="$fb/herdr" FM_TEST_IC_ENVLOG="$log" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_cli sess pane get' "$ROOT" 2>&1)
+  [ "$out" = "" ] || fail "first off-PATH call must run through HERDR_BIN_PATH, got: $out"
+  grep -q '^argv=pane get --session sess$' "$log" 2>/dev/null \
+    || fail "first off-PATH call did not reach the HERDR_BIN_PATH binary (log: $(cat "$log" 2>/dev/null))"
+  pass "herdr client resolution: fm_backend_herdr_cli's first call resolves HERDR_BIN_PATH when herdr is off PATH"
+}
+
+test_cli_first_call_keeps_the_path_client_when_herdr_is_on_path() {
+  local fb log out
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/cli-first-onpath")
+  log="$TMP_ROOT/cli-first-onpath/log"
+  : > "$log"
+  out=$(PATH="$fb:$PATH" HERDR_BIN_PATH=/elsewhere/herdr FM_TEST_IC_ENVLOG="$log" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_cli sess pane get' "$ROOT" 2>&1)
+  [ "$out" = "" ] || fail "first on-PATH call must stay on the PATH client, got: $out"
+  grep -q '^argv=pane get --session sess$' "$log" \
+    || fail "first on-PATH call did not reach the PATH herdr"
+  pass "herdr client resolution: fm_backend_herdr_cli's first call keeps the PATH client over HERDR_BIN_PATH"
+}
+
+test_cli_first_call_does_not_leak_another_sessions_selected_binary() {
+  local fb log out
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/cli-first-leak")
+  log="$TMP_ROOT/cli-first-leak/log"
+  : > "$log"
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" HERDR_BIN_PATH="$fb/herdr" FM_TEST_IC_ENVLOG="$log" \
+    bash -c '
+      . "$0/bin/backends/herdr.sh"
+      FM_BACKEND_HERDR_BIN=/other-session/herdr FM_BACKEND_HERDR_CLIENT_SESSION=other
+      set +e
+      fm_backend_herdr_cli sess pane get
+    ' "$ROOT" 2>&1)
+  [ ! -s "$log" ] || fail "a foreign session's selected binary must not run for another session (log: $(cat "$log"))"
+  assert_not_contains "$out" "/other-session/herdr" \
+    "the foreign session's binary path must never be executed"
+  assert_contains "$out" "herdr" "the fallback attempt must stay the bare PATH name"
+  pass "herdr client resolution: a foreign session's selected binary never runs for another session"
+}
+
+test_tool_check_accepts_an_off_path_client_via_herdr_bin_path() {
+  local fb out status
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/toolcheck-offpath")
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" HERDR_BIN_PATH="$fb/herdr" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_tool_check' "$ROOT" 2>&1)
+  status=$?
+  [ "$status" -eq 0 ] || fail "tool check must accept an off-PATH client named by HERDR_BIN_PATH: $out"
+  pass "herdr tool check: HERDR_BIN_PATH satisfies the herdr requirement when herdr is off PATH"
+}
+
+test_version_check_reads_an_off_path_client_via_herdr_bin_path() {
+  local fb out status
+  fb=$(make_herdr_integration_fakebin "$TMP_ROOT/vercheck-offpath")
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" HERDR_BIN_PATH="$fb/herdr" \
+    FM_TEST_IC_ENVLOG="$TMP_ROOT/vercheck-offpath/log" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_version_check' "$ROOT" 2>&1)
+  status=$?
+  [ "$status" -eq 0 ] || fail "version check must read the HERDR_BIN_PATH client: $out"
+  pass "herdr version check: an off-PATH client named by HERDR_BIN_PATH is read for the protocol gate"
+}
+
+test_integration_check_silent_when_selected_roots_are_current() {
+  local dir fb out status
+  dir="$TMP_ROOT/ic-current"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: current (v10) (%s/home/.claude)\npi: current (v9) (%s/home/.pi/agent)\n' "$dir" "$dir" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  status=${out##*rc=}
+  out=${out%rc=*}
+  [ "$status" = 0 ] || fail "a current integration must exit 0, got: $status ($out)"
+  [ -z "$out" ] || fail "a current integration must stay silent, got: $out"
+  [ ! -s "$dir/envlog" ] || true   # both harness roots existed, so both were probed
+  pass "herdr integration check: current selected roots stay silent"
+}
+
+test_integration_check_reports_missing_install_with_the_deliberate_command() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-missing"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: current (v10) (%s/home/.claude)\npi: not installed (%s/home/.pi/agent)\n' "$dir" "$dir" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION: pi root $dir/home/.pi/agent" \
+    "a missing pi integration must be reported with its selected root"
+  assert_contains "$out" 'integration install pi' \
+    "a missing pi integration must offer the deliberate install command"
+  assert_contains "$out" "not installed" "herdr's own verdict should appear in the report"
+  pass "herdr integration check: a missing install reports the deliberate install command"
+}
+
+test_integration_check_reports_outdated_with_herdr_verdict() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-outdated"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: outdated (v7 < v10) (%s/home/.claude)\npi: current (v9) (%s/home/.pi/agent)\n' "$dir" "$dir" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION: claude root $dir/home/.claude" \
+    "an outdated claude integration must be reported with its selected root"
+  assert_contains "$out" "v7 < v10" "herdr's verdict must be relayed"
+  assert_contains "$out" 'integration install claude' \
+    "an outdated integration must offer the deliberate update command"
+  pass "herdr integration check: an outdated hook version relays herdr's verdict"
+}
+
+test_integration_check_probes_the_pinned_root_not_the_ambient_one() {
+  local dir fb out root_a root_b
+  dir="$TMP_ROOT/ic-pinned"
+  root_a="$dir/roots/claude-a"; root_b="$dir/roots/claude-b"
+  mkdir -p "$root_a" "$root_b" "$dir/config" "$dir/home"
+  printf '%s\n' "$root_a" > "$dir/config/claude-account"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: current (v10) (%s)\n' "$root_a" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" CLAUDE_CONFIG_DIR="$root_b" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  out=${out%rc=*}
+  [ -z "$out" ] || fail "a pinned current root must stay silent, got: $out"
+  assert_contains "$(cat "$dir/envlog")" "CLAUDE_CONFIG_DIR=$root_a" \
+    "the probe must target the pinned root"
+  assert_not_contains "$(cat "$dir/envlog")" "CLAUDE_CONFIG_DIR=$root_b" \
+    "the ambient root must never be probed while a pin selects another"
+  pass "herdr integration check: the pinned root is probed, not the ambient one"
+}
+
+test_integration_check_skips_a_missing_unpinned_root_silently() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-absent"; mkdir -p "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  out=${out%rc=*}
+  [ -z "$out" ] || fail "a home with no harness roots must stay silent, got: $out"
+  [ ! -s "$dir/envlog" ] || fail "no probe should run for a missing unpinned root"
+  pass "herdr integration check: a missing unpinned root is skipped silently"
+}
+
+test_integration_check_probes_the_ambient_root_when_unpinned() {
+  local dir fb out root
+  dir="$TMP_ROOT/ic-ambient"; root="$dir/ambient-claude"; mkdir -p "$root" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: not installed (%s)\n' "$root" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(CLAUDE_CONFIG_DIR="$root" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION: claude root $root" \
+    "an unpinned home must check its ambient CLAUDE_CONFIG_DIR root"
+  assert_contains "$(cat "$dir/envlog")" "CLAUDE_CONFIG_DIR=$root" \
+    "the probe must target the ambient root"
+  pass "herdr integration check: the ambient CLAUDE_CONFIG_DIR root is the selected root when unpinned"
+}
+
+test_integration_check_reports_an_unreadable_pin() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-badpin"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  printf 'not-a-path\n' > "$dir/config/claude-account"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION:" "a malformed pin must surface through the readiness line"
+  assert_contains "$out" "claude-account" "the malformed pin report must name the pin file"
+  pass "herdr integration check: a malformed account pin is reported"
+}
+
+test_integration_check_reports_a_failed_status_call() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-fail"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'herdr: status exploded\n' > "$dir/status"
+  printf '2' > "$dir/rc"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" FM_TEST_IC_STATUS_RC=2 \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION:" "a failed status call must be reported"
+  assert_contains "$out" "claude" "the failed status report must name the harness"
+  pass "herdr integration check: a failed status call is reported, never swallowed"
+}
+
+test_integration_check_reports_a_client_without_the_target_line() {
+  local dir fb out
+  dir="$TMP_ROOT/ic-notarget"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'zellij (experimental): current (v1) (/tmp/z)\n' > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION:" "a client with no target verdict must be reported"
+  pass "herdr integration check: a client without the target verdict is reported"
+}
+
+test_integration_check_is_silent_when_no_client_resolves() {
+  local dir out
+  dir="$TMP_ROOT/ic-noclient"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
+  out=$(PATH="$(fm_test_base_path_sans "$PATH" herdr)" \
+    run_integration_check "$dir" "$dir/config")
+  out=${out%rc=*}
+  [ -z "$out" ] || fail "no client must stay silent (the tool check owns that gap), got: $out"
+  pass "herdr integration check: a missing client stays silent for the caller's tool check to own"
+}
+test_bin_prefers_the_selected_client_over_every_fallback
+test_bin_falls_back_to_herdr_bin_path_only_when_herdr_is_off_path
+test_bin_ignores_herdr_bin_path_when_herdr_is_already_on_path
+test_bin_defaults_to_bare_herdr_without_any_pointer
+test_tool_check_names_a_stale_herdr_bin_path_pointer
+test_cli_first_call_uses_herdr_bin_path_when_herdr_is_off_path
+test_cli_first_call_keeps_the_path_client_when_herdr_is_on_path
+test_cli_first_call_does_not_leak_another_sessions_selected_binary
+test_tool_check_accepts_an_off_path_client_via_herdr_bin_path
+test_version_check_reads_an_off_path_client_via_herdr_bin_path
+test_integration_check_silent_when_selected_roots_are_current
+test_integration_check_reports_missing_install_with_the_deliberate_command
+test_integration_check_reports_outdated_with_herdr_verdict
+test_integration_check_probes_the_pinned_root_not_the_ambient_one
+test_integration_check_skips_a_missing_unpinned_root_silently
+test_integration_check_probes_the_ambient_root_when_unpinned
+test_integration_check_reports_an_unreadable_pin
+test_integration_check_reports_a_failed_status_call
+test_integration_check_reports_a_client_without_the_target_line
+test_integration_check_is_silent_when_no_client_resolves
