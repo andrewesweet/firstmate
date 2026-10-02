@@ -1,0 +1,2 @@
+=== S7: doctor, claude root current (temp, installed) and pi ambient current ===
+16:check herdr-integration=ok: Herdr reports no actionable integration gap for the account roots this home launches workers under

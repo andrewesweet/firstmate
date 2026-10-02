@@ -1,0 +1,16 @@
+=== S9a: herdr off PATH + HERDR_BIN_PATH=~/.local/bin/herdr ===
+bin=/home/cti/.local/bin/herdr
+tool_check=ok
+version_check=ok
+=== S9b: herdr off PATH, no HERDR_BIN_PATH ===
+bin=herdr
+error: backend=herdr selected but the 'herdr' CLI is not installed (https://herdr.dev) (dual-licensed AGPL-3.0-or-later/commercial)
+error: backend=herdr selected but the 'herdr' CLI is not installed (https://herdr.dev) (dual-licensed AGPL-3.0-or-later/commercial)
+=== S9c: herdr off PATH, HERDR_BIN_PATH points at a deleted binary ===
+bin=/tmp/gone/herdr
+error: backend=herdr selected but the resolved herdr client '/tmp/gone/herdr' is not an executable
+error: backend=herdr selected but the resolved herdr client '/tmp/gone/herdr' is not an executable
+=== S9d: herdr on PATH, stale HERDR_BIN_PATH ignored ===
+bin=herdr
+tool_check=ok
+version_check=ok

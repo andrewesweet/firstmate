@@ -1,0 +1,14 @@
+=== S4: herdr off PATH, HERDR_BIN_PATH=/home/cti/.local/bin/herdr ===
+herdr not on PATH
+HERDR_INTEGRATION: claude root /tmp/fm-croot-empty2: herdr native integration not installed; Herdr pane status falls back to screen detection and relaunch loses the native session reference (install deliberately: CLAUDE_CONFIG_DIR=/tmp/fm-croot-empty2 "/home/cti/.local/bin/herdr" integration install claude)
+=== S4b: herdr off PATH, no HERDR_BIN_PATH ===
+MISSING_MANUAL: herdr (instructions: https://herdr.dev)
+MISSING: treehouse (install: curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh)
+MISSING: node (install: brew install node  # or the platform's package manager)
+MISSING: no-mistakes (install: curl -fsSL https://raw.githubusercontent.com/kunchenguid/no-mistakes/main/docs/install.sh | sh)
+MISSING: gh-axi (install: npm install -g gh-axi && gh-axi setup hooks)
+MISSING: chrome-devtools-axi (install: npm install -g chrome-devtools-axi && chrome-devtools-axi setup hooks)
+MISSING: tasks-axi (install: npm install -g tasks-axi)
+MISSING: quota-axi (install: npm install -g quota-axi)
+=== S5: stale HERDR_BIN_PATH with herdr on PATH ===
+HERDR_INTEGRATION: claude root /tmp/fm-croot-empty2: herdr native integration not installed; Herdr pane status falls back to screen detection and relaunch loses the native session reference (install deliberately: CLAUDE_CONFIG_DIR=/tmp/fm-croot-empty2 "herdr" integration install claude)

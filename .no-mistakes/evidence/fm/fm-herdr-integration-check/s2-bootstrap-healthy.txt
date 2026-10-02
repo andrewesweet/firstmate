@@ -1,0 +1,7 @@
+$ CLAUDE_CONFIG_DIR=/tmp/fm-croot.bEhq9O herdr integration install claude
+installed claude integration hook to /tmp/fm-croot.bEhq9O/hooks/herdr-agent-state.sh
+ensured claude settings at /tmp/fm-croot.bEhq9O/settings.json
+$ CLAUDE_CONFIG_DIR=/tmp/fm-croot.bEhq9O herdr integration status | grep ^claude
+claude: current (v10) (/tmp/fm-croot.bEhq9O/hooks/herdr-agent-state.sh)
+=== S2: bootstrap after install into temp root ===
+0

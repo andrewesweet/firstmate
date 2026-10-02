@@ -1,0 +1,2 @@
+PRESENTATION_UNAVAILABLE: lavish-axi (requires >=0.1.77; install: npm install -g lavish-axi && lavish-axi setup hooks) - nonvisual work may proceed with plain-text decisions and reports; install or upgrade before using Lavish
+HERDR_INTEGRATION: claude root /tmp/fm-croot.bEhq9O: herdr native integration not installed; Herdr pane status falls back to screen detection and relaunch loses the native session reference (install deliberately: CLAUDE_CONFIG_DIR=/tmp/fm-croot.bEhq9O "herdr" integration install claude)

@@ -1,0 +1,8 @@
+=== S6: doctor, claude (empty CLAUDE_CONFIG_DIR) + pi (pinned empty root) both not installed ===
+8:required herdr=/home/cti/.local/bin/herdr
+15:check herdr=ok: /home/cti/.local/bin/herdr
+16:check herdr-integration=human: 2 actionable herdr integration gap(s) on this account; first: claude root /tmp/fm-croot-empty2: herdr native integration not installed; Herdr pane status falls back to screen detection and relaunch loses the native session reference (install deliberately: CLAUDE_CONFIG_DIR=/tmp/fm-croot-empty2 "herdr" integration install claude)
+24:check herdr-server=ok: session fm-remote is running
+26:action: herdr-integration: run each prescribed command on that account exactly as printed (they only point the env and install or update Herdr's integration; nothing is automatic): CLAUDE_CONFIG_DIR=/tmp/fm-croot-empty2 "herdr" integration install claude; PI_CODING_AGENT_DIR=/tmp/fm-piroot-empty "herdr" integration install pi
+29:error: this host is not ready for a remote second mate; unresolved: herdr-integration remote-job-worker remote-job-probe
+30:exit=1
