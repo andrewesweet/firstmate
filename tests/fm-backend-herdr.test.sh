@@ -6305,6 +6305,25 @@ test_integration_check_probes_the_ambient_root_when_unpinned() {
   pass "herdr integration check: the ambient CLAUDE_CONFIG_DIR root is the selected root when unpinned"
 }
 
+test_integration_check_probes_home_claude_for_an_ordinary_pin() {
+  local dir fb out ambient
+  dir="$TMP_ROOT/ic-ordinary"; ambient="$dir/ambient-claude"
+  mkdir -p "$dir/home/.claude" "$ambient" "$dir/config"
+  printf 'ordinary\n' > "$dir/config/claude-account"
+  fb=$(make_herdr_integration_fakebin "$dir")
+  printf 'claude: not installed (%s/home/.claude)\n' "$dir" > "$dir/status"
+  : > "$dir/envlog"
+  out=$(HOME="$dir/home" CLAUDE_CONFIG_DIR="$ambient" FM_TEST_IC_STATUS="$dir/status" FM_TEST_IC_ENVLOG="$dir/envlog" \
+    run_integration_check "$fb" "$dir/config")
+  assert_contains "$out" "HERDR_INTEGRATION: claude root $dir/home/.claude" \
+    "an ordinary pin must check the ~/.claude root its workers launch under"
+  assert_contains "$(cat "$dir/envlog")" "CLAUDE_CONFIG_DIR=$dir/home/.claude" \
+    "the probe must target ~/.claude for an ordinary pin"
+  assert_not_contains "$(cat "$dir/envlog")" "CLAUDE_CONFIG_DIR=$ambient" \
+    "an ordinary pin must never probe the ambient CLAUDE_CONFIG_DIR root"
+  pass "herdr integration check: an ordinary Claude pin probes ~/.claude, not the ambient root"
+}
+
 test_integration_check_reports_an_unreadable_pin() {
   local dir fb out
   dir="$TMP_ROOT/ic-badpin"; mkdir -p "$dir/home/.claude" "$dir/home/.pi/agent" "$dir/config"
@@ -6369,6 +6388,7 @@ test_integration_check_reports_outdated_with_herdr_verdict
 test_integration_check_probes_the_pinned_root_not_the_ambient_one
 test_integration_check_skips_a_missing_unpinned_root_silently
 test_integration_check_probes_the_ambient_root_when_unpinned
+test_integration_check_probes_home_claude_for_an_ordinary_pin
 test_integration_check_reports_an_unreadable_pin
 test_integration_check_reports_a_failed_status_call
 test_integration_check_reports_a_client_without_the_target_line

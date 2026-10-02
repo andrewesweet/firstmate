@@ -473,7 +473,7 @@ fm_backend_herdr_cli() {  # <session> <herdr-subcommand-and-args...>
 # PATH-first client. An unknown verdict (status supplies neither
 # .server.compatible nor both client and server protocols) always keeps the
 # PATH-first client.
-# reaches
+# When no client has been selected, HERDR_BIN_PATH also feeds
 # fm_backend_herdr_bin. HERDR_BIN_PATH is Herdr's own pointer to the binary
 # that launched the current pane (herdr exports it into every pane environment,
 # and Firstmate's launch floor passes it to workers); it fills the gap of a
@@ -629,7 +629,8 @@ fm_backend_herdr_integration_check() {  # <config-dir>
     root=
     [ -n "$resolved" ] && IFS=$'\t' read -r _ root _ <<< "$resolved"
     case "$harness,$declared" in
-      claude, | claude,ordinary) root=${CLAUDE_CONFIG_DIR:-$HOME/.claude} ;;
+      claude,) root=${CLAUDE_CONFIG_DIR:-$HOME/.claude} ;;
+      claude,ordinary) root=$HOME/.claude ;;
       pi,) root=$HOME/.pi/agent ;;
     esac
     # A pin names the root explicitly, so resolve already proved it usable; an

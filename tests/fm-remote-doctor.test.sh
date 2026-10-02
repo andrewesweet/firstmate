@@ -450,6 +450,18 @@ assert_not_contains "$DOCTOR_OUT" 'fix herdr-integration' \
 assert_no_dangerous_calls "the doctor reached for auto-login, FileVault, or the keychain"
 pass "a herdr integration gap is a human remedy --fix never installs"
 
+new_case Darwin with-herdr gui
+mkdir -p "$CASE_HOME/.claude" "$CASE_HOME/.pi/agent"
+printf 'claude: not installed (%s/.claude)\npi: not installed (%s/.pi/agent)\n' "$CASE_HOME" "$CASE_HOME" \
+  > "$CASE_STATE/integration-status"
+doctor
+action_line=$(printf '%s\n' "$DOCTOR_OUT" | grep '^action: herdr-integration:')
+assert_contains "$action_line" 'integration install claude' \
+  "the single action line must carry the claude install command"
+assert_contains "$action_line" 'integration install pi' \
+  "the single action line must also carry the pi install command"
+pass "two herdr integration gaps share one action line"
+
 # --- an absent launch agent is a fixable gap that --fix installs -------------
 
 new_case Darwin with-herdr gui

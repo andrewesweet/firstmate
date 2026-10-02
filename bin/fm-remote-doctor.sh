@@ -603,7 +603,7 @@ check_herdr_integration() {
   fi
   n=$(printf '%s\n' "$out" | grep -c '^HERDR_INTEGRATION:') || n=0
   first=$(printf '%s\n' "$out" | sed -n 's/^HERDR_INTEGRATION: //p' | head -n 1)
-  commands=$(printf '%s\n' "$out" | sed -nE 's/.*\((install|update) deliberately: (.*)\)$/\2/p')
+  commands=$(printf '%s\n' "$out" | sed -nE 's/.*\((install|update) deliberately: (.*)\)$/\2/p' | awk 'NR>1{printf "; "}{printf "%s", $0}')
   record herdr-integration "human: $n actionable herdr integration gap(s) on this account; first: $first" \
     "run each prescribed command on that account exactly as printed (they only point the env and install or update Herdr's integration; nothing is automatic): ${commands:-see the reported gap}"
 }
