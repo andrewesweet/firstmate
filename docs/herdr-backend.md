@@ -693,7 +693,7 @@ Identity stays a lazy second read, consulted only when a separator pair could ch
 ### Placeholder and ghost text
 
 ANSI capture preserves de-emphasized placeholder style.
-`bin/fm-composer-lib.sh` is the fleet-wide owner that strips dim or faint runs and dark truecolor placeholders while retaining bright typed input.
+[`bin/fm-composer-lib.sh`](../bin/fm-composer-lib.sh) owns the fleet-wide placeholder and ghost recognition rules; the [Herdr adapter's Claude payload proof](../bin/backends/herdr.sh) owns the exception that preserves muted slash commands.
 
 If the ANSI capture ever fails, the plain fallback declares itself unstyled.
 The classifier then degrades a glyph row carrying trailing text to `unknown` instead of misreading ghost suggestions as typed input.

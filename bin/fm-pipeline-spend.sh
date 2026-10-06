@@ -9,7 +9,7 @@
 # data/pipeline-spend.jsonl, at most once per task incarnation (task id plus
 # the record's spawn_gen): repeating it for an incarnation already in the
 # ledger appends nothing, so a retried cleanup never counts a task twice.
-# Recording is disabled unless config/pipeline-spend is present; in that case
+# Recording is disabled unless config/pipeline-spend is present; while disabled,
 # this command exits before reading task metadata, no-mistakes state, or ledger.
 # When enabled, bin/fm-teardown.sh calls record for every ship task whose
 # local copy it cleans up, before it deletes the task branch this script
@@ -32,7 +32,9 @@
 #   - repository: the `repo:` line `no-mistakes axi` prints from the task copy,
 #     which is the CLI's own resolution (a pooled worker copy resolves to the
 #     registered primary clone), matched exactly against repos.working_path;
-#   - branch: the supplied task branch, or the task copy's current branch;
+#   - branch: the supplied task branch, or the task copy's current branch.
+#     Teardown supplies the original branch after an ownership-verified legacy
+#     pool return, because that return can detach HEAD before recording;
 #   - since: the oldest surviving reflog entry of that branch. spawn_gen cannot
 #     bound the task, because a relaunch mints a new one while the same branch
 #     keeps validating. Teardown deletes the branch, so a later task that

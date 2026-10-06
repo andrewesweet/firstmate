@@ -69,7 +69,7 @@ For a recurring mid-task quota check, arm the quota adapter:
 bin/fm-procevent-quota.sh arm [--interval <secs>] [--threshold <percent>] [--provider <provider>]
 ```
 
-It keeps polling through unknown quota and wakes when known quota drops below the configured threshold, runway becomes `exhausted_now`, or polling fails.
+It keeps polling through unknown quota and wakes when known quota drops below the configured threshold, runway becomes `exhausted_now`, or polling reaches a terminal error; the [adapter header](../../../bin/fm-procevent-quota.sh) owns read-failure retries.
 
 For a "do X as soon as Y is true" request whose condition AND action are both genuinely exact and deterministic, register a condition->action watch instead of re-checking in conversational turns:
 
