@@ -1,0 +1,6 @@
+{"input":"search","schema":{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}},"piAiExports":68,"agentSession":"function"}
+resolved and executed real installed Pi dependencies using bundled layout
+{"input":"search","schema":{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}},"piAiExports":68,"agentSession":"function"}
+resolved and executed real installed Pi dependencies using hoisted layout
+not ok - installed Pi package carries no absent-dependency in either dependency layout (FM_PI_PACKAGE_DIR to override)
+missing dependency refused before a fixture link was created

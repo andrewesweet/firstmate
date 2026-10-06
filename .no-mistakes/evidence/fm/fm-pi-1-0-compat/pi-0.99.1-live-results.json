@@ -1,0 +1,23 @@
+{
+  "calm_toggle": {
+    "result": "pass",
+    "live": true,
+    "preference": "on"
+  },
+  "picker_search_cancel": {
+    "result": "pass",
+    "live": true,
+    "persisted_pins_after": {}
+  },
+  "picker_effort": {
+    "result": "pass",
+    "live": true
+  },
+  "calm_tools_resume_export": {
+    "result": "pass",
+    "live": true,
+    "export": "/home/cti/.no-mistakes/evidence/01M49EWFTMM2MVDWSZA9MX8GGD/pi-0.99.1-live-export.html",
+    "actual_bash_tool_results": 1
+  },
+  "cleanup": "private tmux server stopped and disposable lab removed"
+}

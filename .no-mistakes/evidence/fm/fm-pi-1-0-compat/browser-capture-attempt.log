@@ -1,0 +1,3 @@
+error: "Bridge for session \"pi-validation-01m49ew\" exited with code 1 before becoming ready on port 9819"
+code: BRIDGE_NOT_READY
+help[4]: "Check that chrome-devtools-mcp can start: npx chrome-devtools-mcp@latest --help","`npx -y chrome-devtools-mcp@latest` may have failed to resolve/download the package (offline, or a slow cold first run); install it globally and set:","  export CHROME_DEVTOOLS_AXI_MCP_PATH=\"$(npm prefix -g)/lib/node_modules/chrome-devtools-mcp/build/src/bin/chrome-devtools-mcp.js\"",Or Chrome failed to launch; confirm a usable Chrome is installed.

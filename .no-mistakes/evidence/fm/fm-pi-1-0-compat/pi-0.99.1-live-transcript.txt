@@ -1,0 +1,439 @@
+=== startup ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== calm-on ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== model-picker ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Supervision branch model (now: follows main)
+>
+→ Follow main (zai/glm-5.3)       current
+  openai/gpt-4
+  openai/gpt-4-turbo
+  openai/gpt-4.1
+  openai/gpt-4.1-mini
+  openai/gpt-4.1-nano
+  openai/gpt-4o
+  openai/gpt-4o-2024-05-13
+  openai/gpt-4o-2024-08-06
+  openai/gpt-4o-2024-11-20
+  (1/91)
+ type to search - up/down navigate - enter select - esc cancel
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+=== model-no-match ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Supervision branch model (now: follows main)
+> impossible-catalog-match-98437
+  No matching commands
+ type to search - up/down navigate - enter select - esc cancel
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== model-cancelled ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== effort-picker ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ Supervision branch effort (now: follows main)
+
+ → Follow main (high)
+   low
+   high
+   max
+
+ ↑↓ navigate  enter select  escape/ctrl+c cancel
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+=== effort-selected ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+0.0%/1.0M (auto)                                                                                                        (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== tool-calm-on ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Supervision branch follows main's model (zai/glm-5.3). Effort follows main (high).
+
+
+ Run bash exactly once with printf 'PI_CALM_LIVE_MARKER\n' and then reply exactly 'Calm compatibility verified.'
+
+
+ The user wants me to run a specific bash command exactly once and then reply with an exact phrase. Simple enough.
+
+ Calm compatibility verified.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+↑1.8k ↓56 R1.9k CH94.2% $0.003 0.2%/1.0M (auto)                                                                         (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== tool-calm-off ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Supervision branch follows main's model (zai/glm-5.3). Effort follows main (high).
+
+
+ Run bash exactly once with printf 'PI_CALM_LIVE_MARKER\n' and then reply exactly 'Calm compatibility verified.'
+
+
+ The user wants me to run a specific bash command exactly once and then reply with an exact phrase. Simple enough.
+
+
+ $ printf 'PI_CALM_LIVE_MARKER\n' (timeout 30s)
+
+ PI_CALM_LIVE_MARKER
+
+ Took 0.0s
+
+
+ Calm compatibility verified.
+
+ Tool output: collapsed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+↑1.8k ↓56 R1.9k CH94.2% $0.003 0.2%/1.0M (auto)                                                                         (zai) glm-5.3 • high
+
+
+
+=== export-confirmed ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Supervision branch follows main's model (zai/glm-5.3). Effort follows main (high).
+
+
+ Run bash exactly once with printf 'PI_CALM_LIVE_MARKER\n' and then reply exactly 'Calm compatibility verified.'
+
+
+ The user wants me to run a specific bash command exactly once and then reply with an exact phrase. Simple enough.
+
+
+ $ printf 'PI_CALM_LIVE_MARKER\n' (timeout 30s)
+
+ PI_CALM_LIVE_MARKER
+
+ Took 0.0s
+
+
+ Calm compatibility verified.
+
+ Session exported to: /home/cti/.no-mistakes/evidence/01M49EWFTMM2MVDWSZA9MX8GGD/pi-0.99.1-live-export.html
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+↑1.8k ↓56 R1.9k CH94.2% $0.003 0.2%/1.0M (auto)                                                                         (zai) glm-5.3 • high
+
+
+
+=== resumed-calm-on ===
+
+ ▀▀█  v0.99.1
+ █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  fm-branch-supervision.ts, fm-calm.ts
+
+
+ Run bash exactly once with printf 'PI_CALM_LIVE_MARKER\n' and then reply exactly 'Calm compatibility verified.'
+
+
+ The user wants me to run a specific bash command exactly once and then reply with an exact phrase. Simple enough.
+
+ Calm compatibility verified.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/f9a83591f83e/01M49EWFTMM2MVDWSZA9MX8GGD (detached)
+↑1.8k ↓56 R1.9k CH94.2% $0.003 0.2%/1.0M (auto)                                                                         (zai) glm-5.3 • high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
