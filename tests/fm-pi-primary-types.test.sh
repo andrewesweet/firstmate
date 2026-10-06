@@ -25,6 +25,7 @@ done
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-pi-primary-types.XXXXXX")
 cleanup() {
   rm -rf "$TMP_ROOT"
+  fm_test_cleanup
 }
 trap cleanup EXIT
 
