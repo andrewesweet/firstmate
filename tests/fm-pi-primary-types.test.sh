@@ -2,6 +2,9 @@
 # Strict no-emit contract check for the tracked Firstmate Pi extensions.
 set -u
 
+# shellcheck source=tests/lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 command -v npm >/dev/null 2>&1 || { echo "skip: Pi extension typecheck prerequisite not found: npm"; exit 0; }
@@ -12,17 +15,17 @@ if [ ! -f "$PI_PACKAGE_DIR/package.json" ]; then
   echo "skip: Pi extension typecheck prerequisite not found: installed @earendil-works/pi-coding-agent package"
   exit 0
 fi
-if [ ! -d "$PI_PACKAGE_DIR/node_modules/typebox" ] || \
-   [ ! -d "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-tui" ] || \
-   [ ! -d "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-ai" ] || \
-   [ ! -d "$PI_PACKAGE_DIR/node_modules/@types/node" ]; then
-  echo "not ok - installed Pi package is missing pi-tui, pi-ai, typebox, or Node declarations" >&2
-  exit 1
-fi
+for dep in typebox @earendil-works/pi-tui @earendil-works/pi-ai @types/node; do
+  fm_pi_dependency_dir "$dep" >/dev/null || {
+    echo "not ok - installed Pi package is missing pi-tui, pi-ai, typebox, or Node declarations in both dependency layouts" >&2
+    exit 1
+  }
+done
 
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-pi-primary-types.XXXXXX")
 cleanup() {
   rm -rf "$TMP_ROOT"
+  fm_test_cleanup
 }
 trap cleanup EXIT
 
@@ -54,10 +57,10 @@ cp "$ROOT/lib/fm-branch-shadow.ts" "$TMP_ROOT/lib/fm-branch-shadow.ts"
 cp "$ROOT/lib/fm-branch-report-sequence.ts" "$TMP_ROOT/lib/fm-branch-report-sequence.ts"
 cp "$ROOT/lib/fm-branch-provider-latch.ts" "$TMP_ROOT/lib/fm-branch-provider-latch.ts"
 ln -s "$PI_PACKAGE_DIR" "$TMP_ROOT/node_modules/@earendil-works/pi-coding-agent"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-tui" "$TMP_ROOT/node_modules/@earendil-works/pi-tui"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-ai" "$TMP_ROOT/node_modules/@earendil-works/pi-ai"
-ln -s "$PI_PACKAGE_DIR/node_modules/typebox" "$TMP_ROOT/node_modules/typebox"
-ln -s "$PI_PACKAGE_DIR/node_modules/@types/node" "$TMP_ROOT/node_modules/@types/node"
+fm_pi_link_dependency @earendil-works/pi-tui "$TMP_ROOT/node_modules/@earendil-works/pi-tui"
+fm_pi_link_dependency @earendil-works/pi-ai "$TMP_ROOT/node_modules/@earendil-works/pi-ai"
+fm_pi_link_dependency typebox "$TMP_ROOT/node_modules/typebox"
+fm_pi_link_dependency @types/node "$TMP_ROOT/node_modules/@types/node"
 
 cat > "$TMP_ROOT/package.json" <<'JSON'
 {"type":"module"}

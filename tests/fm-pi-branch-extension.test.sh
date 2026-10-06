@@ -5703,7 +5703,7 @@ test_real_pi_picker_primitives_stay_bounded_and_searchable() {
   mkdir -p "$fixture/lib" "$fixture/node_modules/@earendil-works"
   cp "$ROOT/.pi/extensions/lib/fm-branch-model-picker.ts" "$fixture/lib/fm-branch-model-picker.ts"
   ln -s "$package_dir" "$fixture/node_modules/@earendil-works/pi-coding-agent"
-  ln -s "$package_dir/node_modules/@earendil-works/pi-tui" "$fixture/node_modules/@earendil-works/pi-tui"
+  fm_pi_link_dependency @earendil-works/pi-tui "$fixture/node_modules/@earendil-works/pi-tui" "$package_dir"
   original_dir=$PWD
   cd "$fixture" || fail "could not enter the Pi picker primitives fixture"
   LIB="$fixture/lib/fm-branch-model-picker.ts" PI_VERSION_FILE="$package_dir/package.json" \
@@ -5876,9 +5876,9 @@ test_outcomes_tool_uses_stock_execution_and_export_consumers() {
   cp "$ROOT/.pi/extensions/lib/fm-calm-visibility.ts" "$fixture/.pi/extensions/lib/fm-calm-visibility.ts"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" "$fixture/.pi/extensions/lib/fm-operational-input.ts"
   ln -s "$package_dir" "$fixture/node_modules/@earendil-works/pi-coding-agent"
-  ln -s "$package_dir/node_modules/@earendil-works/pi-tui" "$fixture/node_modules/@earendil-works/pi-tui"
-  ln -s "$package_dir/node_modules/@earendil-works/pi-ai" "$fixture/node_modules/@earendil-works/pi-ai"
-  ln -s "$package_dir/node_modules/typebox" "$fixture/node_modules/typebox"
+  fm_pi_link_dependency @earendil-works/pi-tui "$fixture/node_modules/@earendil-works/pi-tui" "$package_dir"
+  fm_pi_link_dependency @earendil-works/pi-ai "$fixture/node_modules/@earendil-works/pi-ai" "$package_dir"
+  fm_pi_link_dependency typebox "$fixture/node_modules/typebox" "$package_dir"
 
   # Stock macOS Bash 3.2 mis-scans a here-document nested in a command
   # substitution, so keep this body in a plain subshell and read its output

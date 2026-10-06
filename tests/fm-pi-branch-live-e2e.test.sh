@@ -85,9 +85,9 @@ done
 SH
 chmod +x "$repo/bin/fm-operational-input.sh" "$repo/bin/fm-watch-arm.sh"
 ln -s "$PI_PACKAGE_DIR" "$repo/node_modules/@earendil-works/pi-coding-agent"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-tui" "$repo/node_modules/@earendil-works/pi-tui"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-ai" "$repo/node_modules/@earendil-works/pi-ai"
-ln -s "$PI_PACKAGE_DIR/node_modules/typebox" "$repo/node_modules/typebox"
+fm_pi_link_dependency @earendil-works/pi-tui "$repo/node_modules/@earendil-works/pi-tui"
+fm_pi_link_dependency @earendil-works/pi-ai "$repo/node_modules/@earendil-works/pi-ai"
+fm_pi_link_dependency typebox "$repo/node_modules/typebox"
 
 # Stock macOS Bash 3.2 cannot reliably parse JavaScript template literals in a
 # heredoc nested inside command substitution, so capture through a file.
@@ -581,6 +581,7 @@ cat > "$effortdir/models.json" <<'JSON'
 }
 JSON
 PI_PACKAGE_DIR="$PI_PACKAGE_DIR" PI_CODING_AGENT_DIR="$effortdir" FM_LIVE_SESSIONS="$TMP_ROOT/effort-sessions" \
+  PI_AI_DIR="$(fm_pi_dependency_dir @earendil-works/pi-ai)" \
   node --input-type=module > "$TMP_ROOT/effort-output" 2>&1 <<'EOF'
 import { pathToFileURL } from "node:url";
 
@@ -588,9 +589,9 @@ const packageRoot = process.env.PI_PACKAGE_DIR;
 const pkg = pathToFileURL(`${packageRoot}/dist/index.js`).href;
 const { ModelRegistry, ModelRuntime, SessionManager, createAgentSession } = await import(pkg);
 // The same specifier the extension imports; Pi's extension loader aliases it
-// to this package's own bundled copy.
+// to this package's installed dependency, whether bundled or hoisted.
 const { clampThinkingLevel, getSupportedThinkingLevels } = await import(
-  pathToFileURL(`${packageRoot}/node_modules/@earendil-works/pi-ai/dist/compat.js`).href
+  pathToFileURL(`${process.env.PI_AI_DIR}/dist/compat.js`).href
 );
 const runtime = await ModelRuntime.create({
   authPath: `${process.env.PI_CODING_AGENT_DIR}/auth.json`,

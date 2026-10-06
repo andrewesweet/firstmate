@@ -324,6 +324,35 @@ if [ "${FM_TEST_SKIP_ORPHAN_REAP:-0}" != 1 ]; then
   fm_test_reap_orphans
 fi
 
+# --- installed Pi package dependency resolution -----------------------------
+#
+# Plain-node fixture imports bypass Pi's extension-loader aliases, so resolve
+# dependencies from the selected installed package in either supported layout:
+# bundled inside its own node_modules or hoisted beside it under the install
+# root's node_modules. Scope directories are preserved on both sides, so the
+# hoisted root of a package nested at
+# <install-root>/@scope/pi-coding-agent is <install-root>, two levels up.
+# Feature-detect the directories; never sniff versions.
+
+fm_pi_dependency_dir() {
+  local name=$1 package_dir=${2:-${PI_PACKAGE_DIR:-}}
+  [ -n "$package_dir" ] || return 1
+  if [ -e "$package_dir/node_modules/$name" ]; then
+    printf '%s\n' "$package_dir/node_modules/$name"
+  elif [ -e "$package_dir/../../$name" ]; then
+    printf '%s\n' "$package_dir/../../$name"
+  else
+    return 1
+  fi
+}
+
+fm_pi_link_dependency() {
+  local name=$1 destination=$2 dir
+  dir=$(fm_pi_dependency_dir "$name" "${3:-}")
+  [ -n "$dir" ] || fail "installed Pi package carries no $name in either dependency layout (FM_PI_PACKAGE_DIR to override)"
+  ln -s "$dir" "$destination"
+}
+
 # --- live-capability gate ---------------------------------------------------
 #
 # fm_live_gate <policy> <vars> [tool ...]
