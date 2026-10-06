@@ -131,6 +131,9 @@ SH
   # plain text with no run id and no quoting - see the ledger fixtures below),
   # and `runs` appends its own invocation to FM_FAKE_NM_RUNS_LOG when set, so
   # a test can prove whether the ledger fallback ever engaged.
+  # The bare `axi` overview answers FM_FAKE_AXI_OVERVIEW verbatim (empty by
+  # default, so no repository resolves and the pipeline-spend record is
+  # written as unavailable).
   # This keeps every case hermetic - without it, `command -v no-mistakes`
   # would fall through to whatever real binary happens to be on the test
   # runner's own PATH. Tests exercising the run-abort path override
@@ -142,6 +145,8 @@ case "${1:-}" in
   axi)
     shift
     case "${1:-}" in
+      '')
+        printf '%s\n' "${FM_FAKE_AXI_OVERVIEW:-}" ;;
       status)
         shift
         run_id=""
@@ -635,12 +640,13 @@ run_teardown() {
   # home's backlog item itself; without it $DATA would resolve to the real
   # repo's own home and a test could mutate live records.
   # NM_HOME is pinned to the case dir so the spend line's pipeline columns are
-  # read from an empty fixture inventory, never the developer's real one.
+  # read from a fixture inventory, never the developer's real one. A case
+  # measuring a populated inventory selects it through FM_TEARDOWN_TEST_NM_HOME.
   FM_ROOT_OVERRIDE="$ROOT" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
-  NM_HOME="$case_dir/nm-empty" \
+  NM_HOME="${FM_TEARDOWN_TEST_NM_HOME:-$case_dir/nm-empty}" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 "$@"
 }
@@ -1408,6 +1414,52 @@ SH
   pass "worktree whose content already landed in the default branch is torn down (content fallback)"
 }
 
+# A task recording base_branch= landed when its content reached that branch, not
+# the default branch: a squash merge into the base branch is the landing.
+test_content_fallback_uses_recorded_base_branch() {
+  local case_dir rc landed tmp
+  for landed in base default; do
+    case_dir=$(make_case "content-base-$landed")
+    write_meta "$case_dir" direct-PR ship
+    printf 'base_branch=feature/hub\n' >> "$case_dir/state/task-x1.meta"
+    tmp="$case_dir/_hub"
+    git clone -q "$case_dir/origin.git" "$tmp"
+    git -C "$tmp" push -q origin HEAD:refs/heads/feature/hub
+    rm -rf "$tmp"
+    wt_commit_file "$case_dir" feature.txt hello "add feature"
+    if [ "$landed" = base ]; then
+      tmp="$case_dir/_land"
+      git clone -q "$case_dir/origin.git" "$tmp"
+      git -C "$tmp" checkout -q feature/hub
+      printf 'hello\n' > "$tmp/feature.txt"
+      git -C "$tmp" add feature.txt
+      git -C "$tmp" -c user.email=t@t -c user.name=t commit -q -m "squash feature.txt"
+      git -C "$tmp" push -q origin HEAD:feature/hub
+      rm -rf "$tmp"
+    else
+      land_on_origin_main "$case_dir" feature.txt hello
+    fi
+    cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+    chmod +x "$case_dir/fakebin/treehouse"
+
+    set +e
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+    if [ "$landed" = base ]; then
+      expect_code 0 "$rc" "content-base: content squashed into the recorded base branch should count as landed"
+      assert_absent "$case_dir/state/task-x1.meta" "content-base: teardown kept the record of landed work"
+    else
+      [ "$rc" -ne 0 ] || fail "content-base: content only on the default branch passed for a task based on feature/hub"
+      assert_present "$case_dir/state/task-x1.meta" "content-base: a refused teardown removed the task record"
+    fi
+  done
+  pass "the content-landed fallback checks a task's recorded base branch, not the default branch"
+}
+
 test_content_fallback_refreshes_stale_origin_ref() {
   local case_dir rc
   case_dir=$(make_case content-stale-ref)
@@ -1450,6 +1502,76 @@ test_dirty_worktree_refuses() {
   grep -q REFUSED "$case_dir/stderr" || fail "dirty-wt: no REFUSED line in stderr"
   grep -q "uncommitted changes" "$case_dir/stderr" || fail "dirty-wt: refusal did not cite uncommitted changes"
   pass "dirty worktree is refused even when its committed work has landed (dirty always wins)"
+}
+
+assert_dirty_diagnostic() {
+  local kind=$1 mode=$2 case_dir rc before n
+  case_dir=$(make_case "dirty-$kind-$mode")
+  write_meta "$case_dir" "$mode" ship
+  wt_commit_file "$case_dir" feature.txt hello
+  # Exercise both dirty refusal sites: remote-reachable work and local-only
+  # work merged into local main but absent from every remote.
+  if [ "$mode" = local-only ]; then
+    git -C "$case_dir/project" merge -q --ff-only fm/task-x1
+  else
+    git -C "$case_dir/wt" push -q origin fm/task-x1
+  fi
+  if [ "$kind" != untracked ]; then
+    printf '%s\n' 'uncommitted edit' > "$case_dir/wt/feature.txt"
+    # Cover index edits as well as unstaged edits.
+    [ "$mode" != local-only ] || git -C "$case_dir/wt" add feature.txt
+  fi
+  if [ "$kind" != tracked ]; then
+    mkdir "$case_dir/wt/00 proof scratch"
+    printf '%s\n' 'manual server log' > "$case_dir/wt/00 proof scratch/server.log"
+    for n in 01 02 03 04 05 06 07 08 09 10 11; do
+      touch "$case_dir/wt/$n-scratch.txt"
+    done
+    # Preserve the existing exemptions without counting them as leftovers.
+    mkdir "$case_dir/wt/.claude"
+    touch "$case_dir/wt/.claude/settings.local.json" "$case_dir/wt/.fm-grok-turnend"
+  fi
+  before=$(git -C "$case_dir/wt" status --porcelain)
+  rc=0
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 1 "$rc" "$kind/$mode: dirty teardown must still refuse"
+  grep -q REFUSED "$case_dir/stderr" || fail "$kind/$mode: no refusal"
+  if [ "$kind" = untracked ]; then
+    grep -Fq 'uncommitted changes present (untracked-only leftovers)' "$case_dir/stderr" \
+      || fail "$kind/$mode: missing untracked-only classification"
+    ! grep -q 'includes tracked edits' "$case_dir/stderr" || fail "$kind/$mode: misclassified as tracked"
+  else
+    grep -Fq 'uncommitted changes present (includes tracked edits)' "$case_dir/stderr" \
+      || fail "$kind/$mode: missing tracked-edit classification"
+    ! grep -q 'untracked-only' "$case_dir/stderr" || fail "$kind/$mode: misclassified as untracked-only"
+  fi
+  if [ "$kind" != tracked ]; then
+    grep -Fq '00 proof scratch/' "$case_dir/stderr" || fail "$kind/$mode: scratch folder not named"
+    grep -Fxq '  09-scratch.txt' "$case_dir/stderr" || fail "$kind/$mode: tenth path missing"
+    ! grep -q '10-scratch.txt\|11-scratch.txt\|\.claude/\|\.fm-grok-turnend' "$case_dir/stderr" \
+      || fail "$kind/$mode: path list exceeded its bound or included exempt files"
+    grep -Fq 'additional untracked paths omitted' "$case_dir/stderr" || fail "$kind/$mode: no truncation notice"
+  else
+    ! grep -q 'untracked paths' "$case_dir/stderr" || fail "$kind/$mode: invented untracked paths"
+  fi
+  [ -f "$case_dir/state/task-x1.meta" ] || fail "$kind/$mode: task metadata removed"
+  [ "$before" = "$(git -C "$case_dir/wt" status --porcelain)" ] || fail "$kind/$mode: worktree changed"
+  pass "$kind/$mode: dirty refusal classifies leftovers and preserves work"
+}
+
+test_untracked_only_refusal_diagnostic() {
+  assert_dirty_diagnostic untracked no-mistakes
+  assert_dirty_diagnostic untracked local-only
+}
+
+test_tracked_edit_refusal_diagnostic() {
+  assert_dirty_diagnostic tracked no-mistakes
+  assert_dirty_diagnostic tracked local-only
+}
+
+test_mixed_refusal_diagnostic() {
+  assert_dirty_diagnostic mixed no-mistakes
+  assert_dirty_diagnostic mixed local-only
 }
 
 test_gh_error_and_content_absent_refuses() {
@@ -3440,6 +3562,162 @@ land_shippable_commit() {
   git -C "$case_dir/project" fetch -q origin
 }
 
+# Cleanup keeps the task's no-mistakes pipeline spend in this home's records
+# (bin/fm-pipeline-spend.sh) while the task branch that attributes its runs and
+# the task record still exist, then removes both as before.
+test_teardown_records_the_task_pipeline_spend() {
+  local variant=${1:-linked} case_dir rc=0 ledger branch_epoch since
+  branch_epoch=$(( $(date +%s) - 1000 ))
+  since=$(python3 -c 'import sys, time; print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(sys.argv[1]))))' "$branch_epoch")
+  case_dir=$(GIT_COMMITTER_DATE="@$branch_epoch +0000" make_case "pipeline-spend-$variant")
+  write_meta "$case_dir" no-mistakes ship
+  : > "$case_dir/config/pipeline-spend"
+  land_shippable_commit "$case_dir"
+  if [ "$variant" != linked ]; then
+    mkdir -p "$case_dir/pool/1"
+    git -C "$case_dir/project" worktree move "$case_dir/wt" "$case_dir/pool/1/project"
+    ln -s pool/1/project "$case_dir/wt"
+    printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' \
+      "$case_dir/pool/1/project" > "$case_dir/pool/treehouse-state.json"
+    if [ "$variant" = claimed ]; then
+      printf 'task=task-x1\nhome=%s\n' "$case_dir" > "$case_dir/pool/1/.fm-slot-owner"
+    elif [ "$variant" = reassigned ]; then
+      printf 'task=other-task\nhome=%s\n' "$case_dir" > "$case_dir/pool/1/.fm-slot-owner"
+    fi
+    cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_TEST_TREEHOUSE_LOG:?}"
+[ "$#" -eq 5 ] && [ "$1" = return ] && [ "$2" = --force ] \
+  && [ "$3" = --if-lease-holder ] && [ "$4" = task-x1 ] \
+  && [ "$5" = "${FM_TEST_WORKTREE:?}" ] || exit 1
+if [ "${FM_TEST_POOL_VARIANT:?}" = refused ]; then
+  printf 'slot leased by other-task\n' >&2
+  exit 1
+fi
+if [ -e "${FM_TEST_PIPELINE_LEDGER:?}" ]; then
+  printf 'recorded\n' > "${FM_TEST_RETURN_PHASE:?}"
+else
+  printf 'pending\n' > "${FM_TEST_RETURN_PHASE:?}"
+fi
+git -C "$5" checkout -q --detach main
+SH
+    chmod +x "$case_dir/fakebin/treehouse"
+  fi
+  mkdir -p "$case_dir/nm"
+  python3 - "$case_dir/nm/state.sqlite" "$case_dir/project" "$(date +%s)" "$branch_epoch" <<'PY'
+import sqlite3
+import sys
+
+database, project, created = sys.argv[1], sys.argv[2], int(sys.argv[3])
+branch_epoch = int(sys.argv[4])
+db = sqlite3.connect(database)
+db.executescript("""
+    CREATE TABLE repos (id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE);
+    CREATE TABLE runs (id TEXT PRIMARY KEY, repo_id TEXT NOT NULL, branch TEXT NOT NULL,
+                       status TEXT NOT NULL, created_at INTEGER NOT NULL);
+    CREATE TABLE agent_invocations (id TEXT, run_id TEXT, purpose TEXT, session_mode TEXT,
+        started_at INTEGER, exit_status TEXT, duration_ms INTEGER, input_tokens INTEGER,
+        output_tokens INTEGER, cache_read_tokens INTEGER, cache_creation_tokens INTEGER,
+        delta_input_tokens INTEGER, delta_output_tokens INTEGER, delta_cache_read_tokens INTEGER);
+""")
+db.execute("INSERT INTO repos VALUES ('r1', ?)", (project,))
+db.execute("INSERT INTO runs VALUES ('01RUN', 'r1', 'fm/task-x1', 'completed', ?)", (created,))
+db.execute("INSERT INTO agent_invocations VALUES ('i1', '01RUN', 'review', 'cold', ?, 'ok', 100, 7, 8, 9, 10, 7, 8, 9)",
+           (created,))
+db.execute("INSERT INTO agent_invocations VALUES ('i2', '01RUN', 'review', 'cold', ?, 'cancelled', 50, "
+           "NULL, NULL, NULL, NULL, NULL, NULL, NULL)", (created + 1,))
+for run, branch, epoch in (("01OLD", "fm/task-x1", branch_epoch - 1), ("01OTHER", "main", created)):
+    db.execute("INSERT INTO runs VALUES (?, 'r1', ?, 'completed', ?)", (run, branch, epoch))
+    db.execute("INSERT INTO agent_invocations VALUES (?, ?, 'review', 'cold', ?, 'ok', 100, "
+               "999, 999, 999, 999, 999, 999, 999)", (run, run, epoch))
+db.commit()
+PY
+  (
+    export FM_HOME="$case_dir" FM_TEARDOWN_TEST_NM_HOME="$case_dir/nm" FM_FAKE_AXI_OVERVIEW="repo: $case_dir/project"
+    export FM_TEST_POOL_VARIANT="$variant" FM_TEST_WORKTREE="$case_dir/wt"
+    export FM_TEST_TREEHOUSE_LOG="$case_dir/treehouse.log" FM_TEST_RETURN_PHASE="$case_dir/return-phase"
+    export FM_TEST_PIPELINE_LEDGER="$case_dir/data/pipeline-spend.jsonl"
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  ) || rc=$?
+
+  ledger=$case_dir/data/pipeline-spend.jsonl
+  if [ "$variant" = refused ] || [ "$variant" = reassigned ]; then
+    assert_absent "$ledger" "pipeline-spend-$variant: teardown read spend from an unowned slot"
+    assert_equals fm/task-x1 "$(git -C "$case_dir/wt" symbolic-ref --short HEAD)" \
+      "pipeline-spend-$variant: teardown detached an unowned slot"
+    if [ "$variant" = refused ]; then
+      [ "$rc" -ne 0 ] || fail 'pipeline-spend-refused: teardown ignored a lease refusal'
+      assert_present "$case_dir/state/task-x1.meta" 'pipeline-spend-refused: teardown removed the task record'
+      assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
+        'pipeline-spend-refused: teardown bypassed the lease check'
+    else
+      expect_code 0 "$rc" 'pipeline-spend-reassigned: teardown should clean only its own record'
+      assert_absent "$case_dir/state/task-x1.meta" 'pipeline-spend-reassigned: teardown kept its task record'
+      assert_absent "$case_dir/treehouse.log" 'pipeline-spend-reassigned: teardown returned another task slot'
+      assert_present "$case_dir/pool/1/.fm-slot-owner" 'pipeline-spend-reassigned: teardown removed another task claim'
+    fi
+    pass "teardown skips pipeline spend for a $variant slot"
+    return
+  fi
+  expect_code 0 "$rc" "pipeline-spend-$variant: teardown should succeed"
+  assert_present "$ledger" "pipeline-spend: teardown left no pipeline spend record"
+  jq -e --arg since "$since" '
+    .task == "task-x1" and .spawn_gen == "teardown-test-task-x1"
+    and .source == "no-mistakes-state" and .branch == "fm/task-x1"
+    and .since == $since
+    and [.runs[].id] == ["01RUN"]
+    and .total.invocations == 2 and .total.exit == {"ok": 1, "cancelled": 1}
+    and .total.input_tokens == {"total": 7, "unknown": 1}
+  ' "$ledger" >/dev/null || fail "pipeline-spend: the recorded spend is wrong: $(cat "$ledger")"
+  assert_absent "$case_dir/state/task-x1.meta" "pipeline-spend: teardown kept the task record"
+  ! git -C "$case_dir/project" show-ref --verify --quiet refs/heads/fm/task-x1 \
+    || fail "pipeline-spend: teardown kept the task branch"
+  if [ "$variant" != linked ]; then
+    assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
+      "pipeline-spend-$variant: teardown did not verify the lease exactly once"
+    if [ "$variant" = legacy ]; then
+      assert_equals pending "$(cat "$case_dir/return-phase")" 'legacy pipeline spend waits for ownership verification'
+    else
+      assert_equals recorded "$(cat "$case_dir/return-phase")" 'claimed pipeline spend is recorded before return'
+      assert_absent "$case_dir/pool/1/.fm-slot-owner" 'claimed cleanup kept the spent slot claim'
+    fi
+  fi
+  pass "teardown records $variant task spend before removing its branch and record"
+}
+
+test_teardown_skips_pipeline_spend_when_disabled() {
+  local case_dir rc=0
+  case_dir=$(make_case pipeline-spend-disabled)
+  write_meta "$case_dir" no-mistakes ship
+  land_shippable_commit "$case_dir"
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 0 "$rc" "pipeline-spend-disabled: teardown should succeed"
+  assert_absent "$case_dir/data/pipeline-spend.jsonl" \
+    "pipeline-spend-disabled: teardown created a spend ledger without opt-in"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "pipeline-spend-disabled: teardown kept the task record"
+  pass 'teardown skips all pipeline-spend recording when the home has not opted in'
+}
+
+# An owned ship task whose local copy is already gone still leaves a durable
+# account: the recorder writes an unavailable-source line before the record goes.
+test_teardown_records_unavailable_spend_for_a_gone_worktree() {
+  local case_dir rc=0 ledger
+  case_dir=$(make_case pipeline-spend-gone)
+  write_windowless_legacy_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
+  : > "$case_dir/config/pipeline-spend"
+  seed_backlog_in_flight "$case_dir"
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 0 "$rc" "pipeline-spend-gone: teardown should succeed"
+  ledger=$case_dir/data/pipeline-spend.jsonl
+  assert_present "$ledger" "pipeline-spend-gone: teardown left no pipeline spend record"
+  jq -e '.task == "task-x1" and .source == "unavailable" and .total == null
+    and (.reason | contains("is gone"))' "$ledger" >/dev/null \
+    || fail "pipeline-spend-gone: the recorded spend is wrong: $(cat "$ledger")"
+  assert_absent "$case_dir/state/task-x1.meta" "pipeline-spend-gone: teardown kept the task record"
+  pass "teardown records unavailable pipeline spend for an owned ship task whose copy is gone"
+}
+
 test_parked_own_run_is_aborted_before_teardown() {
   local case_dir rc head
   case_dir=$(make_case parked-run-abort)
@@ -4666,8 +4944,12 @@ test_squash_merged_stale_local_refuses_when_forge_unreachable
 test_pr_check_does_not_refresh_stale_pr_head
 test_pr_check_records_remote_head_when_local_lags
 test_content_in_default_fallback_allows
+test_content_fallback_uses_recorded_base_branch
 test_content_fallback_refreshes_stale_origin_ref
 test_dirty_worktree_refuses
+test_untracked_only_refusal_diagnostic
+test_tracked_edit_refusal_diagnostic
+test_mixed_refusal_diagnostic
 test_gh_error_and_content_absent_refuses
 test_legacy_record_without_the_flag_refuses
 test_windowless_legacy_record_with_gone_worktree_tears_down
@@ -4692,6 +4974,13 @@ test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error
+test_teardown_records_the_task_pipeline_spend
+test_teardown_records_the_task_pipeline_spend legacy
+test_teardown_records_the_task_pipeline_spend claimed
+test_teardown_records_the_task_pipeline_spend refused
+test_teardown_records_the_task_pipeline_spend reassigned
+test_teardown_skips_pipeline_spend_when_disabled
+test_teardown_records_unavailable_spend_for_a_gone_worktree
 test_parked_own_run_is_aborted_before_teardown
 test_parked_own_run_concludes_on_passed_with_override_after_abort
 test_parked_own_run_concludes_on_passed_with_skips_after_abort
