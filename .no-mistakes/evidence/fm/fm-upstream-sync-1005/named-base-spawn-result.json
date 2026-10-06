@@ -1,0 +1,8 @@
+{
+  "result": "pass",
+  "head": "d32583b8690cad94aa6e155087ab67e14d0da655",
+  "base_branch": "release/next",
+  "lease_holder": "named-live",
+  "real_harness": "pi",
+  "report_written": true
+}

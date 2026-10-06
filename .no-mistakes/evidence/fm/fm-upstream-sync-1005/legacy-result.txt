@@ -1,0 +1,1 @@
+pass: real legacy return preserves original task branch and reflog; foreign lease retains metadata, branch, and ledger.

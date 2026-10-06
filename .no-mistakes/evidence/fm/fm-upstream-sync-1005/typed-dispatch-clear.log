@@ -1,0 +1,15 @@
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 427   tokens: 434/35
+  rule: rule_1 (A simple bug fix with a stated root cause.)   confidence: 0.87
+  probabilities: rule_1=0.94 default=0.06
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=80%  spendPriority=-30.6684  runway=projected_exhaustion  -> eligible
+  profile: --harness 'claude' --model 'sonnet' --effort 'high'
+
+exit=0
+
+Never-send attempt:
+dispatch-resolve: off (brief text matches /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/typed-home/config/dispatch-never-send line 1; nothing sent)
+
+exit=0

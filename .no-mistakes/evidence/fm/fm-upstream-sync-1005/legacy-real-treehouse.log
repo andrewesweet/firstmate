@@ -1,0 +1,83 @@
+$ bin/fm-lab-home.sh create /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062
+
+exit=0
+$ git init -q -b main
+
+exit=0
+$ git add .
+
+exit=0
+$ git commit -qm initial
+
+exit=0
+$ treehouse get --lease --lease-holder legacy-proof
+🌳 Setting up worktree...
+🌳 Leased worktree at /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project. Run 'treehouse return /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project' to release it.
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project
+
+exit=0
+$ git checkout -qb fm/legacy-proof
+
+exit=0
+POOL BEFORE
+{"worktrees": [{"name": "1", "path": "/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project", "created_at": "2026-10-06T03:55:33.760902559+01:00", "leased": true, "lease_id": "647f099430f1563d58c2a5dd8143abef", "lease_holder": "legacy-proof", "leased_at": "2026-10-06T03:55:33.76092266+01:00"}]}
+$ bin/fm-teardown.sh legacy-proof
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Terminated lingering processes: no-mistakes (3066893)
+🌳 Worktree returned to pool.
+teardown legacy-proof complete (window private:fm-legacy-proof, worktree /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project)
+Backlog: legacy-proof just finished (this home keeps no markdown backlog at /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/data/backlog.md). Update /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/data/backlog.md - move legacy-proof to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+
+exit=0
+PIPELINE LEDGER
+{"task": "legacy-proof", "spawn_gen": "legacy-live-gen", "recorded_at": "2026-10-06T02:55:36Z", "source": "unavailable", "reason": "no-mistakes resolved no repository for the task copy: error: repo not initialized (run 'no-mistakes init' first)", "repo": null, "branch": "fm/legacy-proof", "since": "2026-10-06T02:38:53Z", "total": null, "runs": [], "purposes": []}
+$ git symbolic-ref --quiet HEAD
+
+exit=1
+Verified original branch/reflog attribution survives real ownership-verified return and branch deletion.
+$ treehouse get --lease --lease-holder foreign-task
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project. Run 'treehouse return /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project' to release it.
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project
+
+exit=0
+$ git checkout -qb fm/lease-refusal
+
+exit=0
+$ bin/fm-teardown.sh lease-refusal
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062
+WARNING: watcher still down (same stale episode; last beat: 5s ago, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+failed to return worktree: lease precondition failed: lease holder does not match worktree /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project
+error: treehouse return failed for task lease-refusal's worktree /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task lease-refusal's record is kept for a rerun
+
+exit=1
+$ git symbolic-ref --short HEAD
+fm/lease-refusal
+
+exit=0
+Verified foreign lease refuses before recording spend, detaching HEAD, or removing task metadata.
+$ treehouse return --force --if-lease-holder foreign-task /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/lab3058062/pool/.treehouse/project-7119f7/1/project
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Terminated lingering processes: no-mistakes (3078894)
+🌳 Worktree returned to pool.
+
+exit=0

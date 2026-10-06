@@ -1,0 +1,14 @@
+dispatch-resolve:
+  status: escalate
+  model: jev-1.13.0   latency_ms: 386   tokens: 434/35
+  rule: rule_1 (A simple bug fix with a stated root cause.)   confidence: 0.85
+  probabilities: default=0.08 rule_1=0.92
+  reason: rule requires the captain's explicit approval before dispatch
+  candidate: claude:sonnet  provider=claude  -> eligible, unranked: no applicable quota row for provider claude: disclosed uncertainty
+
+exit=0
+
+Never-send attempt:
+dispatch-resolve: off (brief text matches /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/typed-home/config/dispatch-never-send line 1; nothing sent)
+
+exit=0

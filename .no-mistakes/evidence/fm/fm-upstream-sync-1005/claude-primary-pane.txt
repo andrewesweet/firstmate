@@ -1,0 +1,1 @@
+Claude launcher reached its session dashboard on the disposable lab socket. Stopped without selecting any existing session or changing fleet state. Dashboard session data omitted from retained evidence.

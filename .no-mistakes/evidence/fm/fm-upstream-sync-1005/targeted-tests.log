@@ -1,0 +1,293 @@
+FM_TEST_BEGIN 2026-10-06T02:48:06Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-06T02:48:06Z tests/fm-captain-hold-lifecycle.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: bash -n succeeds
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/.t/fm-test-run.XnUAtN/w1/tmp/fm-brief.WQR44N/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - fm-brief.sh: every ship DOD carries the implement discipline, ordering only on no-mistakes
+ok - fm-brief.sh: --help teaches the spec-shaped Firstmate-spec rules
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
+ok - fm-brief.sh: no-mistakes ask-user findings use one event plus a verbatim snapshot
+ok - fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} and {FIRSTMATE_SPEC} fills cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: ship and scout scaffolds declare a validation-round pause once, then hold it
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+ok - fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor
+ok - fm-brief.sh: scout brief routes reading legwork and design questions to their disciplines
+ok - fm-brief: workers end the turn on a decision, wait in one bounded shell command, and never poll
+ok - fm-brief: without config/wait-no-turns the brief and drive text stay as they were
+ok - fm-brief.sh: the home brief include lands last on ship and scout, verbatim, and fails closed
+ok - fm-brief.sh: --base-branch records the base, targets the PR at it, and is refused where no PR carries it
+ok - fm-brief.sh: --branch-prefix omitted defaults every ship mode to fm/<task-id>
+ok - fm-brief.sh: a --branch-prefix override renders identically across every generated section
+ok - fm-brief.sh: an empty --branch-prefix override resolves to a bare <task-id> branch
+ok - fm-brief.sh: --branch-prefix is refused on scout and secondmate scaffolds
+ok - fm-brief.sh: --branch-prefix value is validated against embedded spaces and a leading dash
+not ok - a ref-format-valid metacharacter prefix should scaffold safely
+FM_TEST_END 2026-10-06T02:48:18Z tests/fm-brief.test.sh exit=1 duration_ms=11595 gate_skip=false
+ok - marked hold reasons round-trip through public reads, fleet, startup, and return without changing other fields
+ok - new, active, and released holds require the origin first with and without deferral
+ok - historical self-inventories name a workable repair that preserves sibling entries
+ok - completion and verification compare backend identities for entries and current or stored origins
+ok - complete refuses the origin as its own captain-call inventory
+ok - complete refuses an entry held for another origin and flags one with none recorded
+ok - report-only unresolved captain call is reproduced and completion refuses before loss
+ok - both body-decoding paths work without the allow_nonref default
+ok - cleanup preserves every byte of a retained body's non-ASCII characters
+ok - the completion gate attests captain-held inventory and transfers open status decisions
+ok - answer records the captain's words, closes idempotently, and releases routed work
+ok - release frees held work with the captain's words recorded and the body preserved
+ok - captain holds become visible only after their hold-set timestamp is durable
+ok - an interrupted answer preserves its hold age until close retry
+ok - a deferred captain call leaves the live Captain's Call until its date and stays answerable
+ok - an out-of-band close is recordable with the captain's word and nothing else
+ok - ended visual review follows the same captain-hold completion owner
+ok - resolved findings and decision-like prose do not create captain-held tasks
+ok - terminal single-owner stale status decisions do not block empty inventory
+not ok - secondmate captain call did not surface with authoritative owner: {
+  "schema": "fm-bearings.v1",
+  "home": "fm-captain-hold.7bCFs9/main-routing",
+  "generated": "2026-07-14T12:00:00Z",
+  "prs": "not_requested (run: /bearings include PRs)",
+  "contributions": {
+    "scope": "owned contributions per home",
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "complete": false,
+    "proven_clear": false,
+    "unmeasured_homes": 1,
+    "unreadable_records": 0,
+    "unmeasured": 0,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "captain_omitted": 0,
+    "captain": []
+  },
+  "in_flight": [],
+  "secondmates": [
+    {
+      "id": "sample-mate",
+      "state": "unknown",
+      "doing": "invalid home: secondmate home cannot be inside the firstmate repo",
+      "provenance": "parent-event-fallback",
+      "freshness": "historical-event",
+      "age_seconds": 0,
+      "contradiction": false,
+      "reason": "invalid home: secondmate home cannot be inside the firstmate repo"
+    }
+  ],
+  "secondmate_reconcile": [],
+  "decisions_open": [],
+  "landed": [],
+  "gates": [],
+  "reports": [],
+  "recorded_prs": [],
+  "unhealthy_endpoints": [
+    {
+      "id": "sample-mate",
+      "backend": "tmux",
+      "target": "firstmate:fm-sample-mate",
+      "exists": true,
+      "agent": "dead"
+    }
+  ],
+  "omitted": [
+    {
+      "surface": "backlog item bodies",
+      "reveal": "--fields bodies"
+    },
+    {
+      "surface": "task paths",
+      "reveal": "--fields paths"
+    },
+    {
+      "surface": "watch/steer actions",
+      "reveal": "--fields actions"
+    },
+    {
+      "surface": "healthy endpoint detail",
+      "reveal": "--fields endpoints"
+    },
+    {
+      "surface": "full scout-report inventory",
+      "reveal": "--all-reports"
+    },
+    {
+      "surface": "secondmate home(s) with unreadable structured state: 1",
+      "reveal": "inspect the listed secondmate home ledgers"
+    },
+    {
+      "surface": "live PR discovery + checks",
+      "reveal": "--include-prs"
+    }
+  ]
+}
+FM_TEST_END 2026-10-06T02:52:04Z tests/fm-captain-hold-lifecycle.test.sh exit=1 duration_ms=237832 gate_skip=false
+FM_TEST_BEGIN 2026-10-06T02:52:04Z tests/fm-watch-arm.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - watch-arm: an attached arm reports the wake its cycle delivered instead of a false failure
+ok - watch-arm: a delivered wake consumed by the handling turn still closes the attached arm cleanly
+ok - watch-arm: a follow-budget arm returns at its deadline leaving the attached watcher running for the next arm
+ok - watch-arm: a follow-budget arm returns at its deadline leaving the watcher it started running for the next arm
+ok - watch-arm: an unusable launch confirm window refuses to arm by name
+ok - watch-arm: a disposable validation checkout refuses to arm
+ok - watch-arm: a watcher exits when its state directory is removed
+ok - watch-arm: a watcher exits when its home is removed
+ok - watch-arm: the test reaper stops a watcher armed for a tracked temporary home
+ok - watch-arm: a plain nonzero watcher exit is not relabelled as a teardown
+ok - watch-arm: a cycle that delivered no wake of its own still fails loudly
+ok - watch-arm: an attached arm keeps following a slow live holder and reports its wake
+ok - watch-arm: an attached arm hands a holder stalled past the bound to its owner's replacement
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/bin/fm-watch-arm.sh: line 771: 2555838 Killed                  "$WATCH" > "$child_out" 2>> "${child_err:-/dev/null}" < /dev/null
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 2557951.1791255185.lyXxcM
+ok - watch-arm: re-arm surfaces every queued wake and an open remote decision after downtime
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/bin/fm-watch-arm.sh: line 771: 2584488 Killed                  "$WATCH" > "$child_out" 2>> "${child_err:-/dev/null}" < /dev/null
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2586445.1791255194.KFvbFX
+ok - watch-arm: a re-arm whose recovery cycle runs slowly still surfaces it
+ok - watch-arm: marker publication failure retains stale-lock recovery evidence
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 2633731.1791255212.pnm9jm
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 2644398.1791255215.LVRLIH
+ok - watch-arm: a wake queued after handling drain is recovered once at successor arm
+ok - watch-arm: interrupted handling leaves its wake durable for successor re-drain
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 2678224.1791255225.m1QOIL
+ok - watch-arm: malformed recovery state is quarantined without a successor loop
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 2689278.1791255228.7vL63v
+ok - watch-arm: publication after recovery handoff is surfaced
+ok - watch-arm: restart publishes recovery before clearing a reused-pid watcher lock
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 7 --recovery-generation 2703980.1791255233.TKPZ3z
+ok - watch-arm: markerless legacy queues are adopted and recovered
+ok - watch-arm: an idle Lavish source stays quiet and its real result wakes promptly
+ok - watch-arm: appending work reopens an announced empty recovery
+ok - watch-arm: a watcher close during handling keeps the printed acknowledgement valid
+ok - watch-arm: a moved recovery generation consumes handled rows and names its remedy
+ok - watch-arm: downtime marker publication does not follow symlinks
+ok - watch-arm: --stop ends only this home's watcher, publishes downtime, and reports when none runs
+ok - watch-arm: an already-acknowledged handling confirmation succeeds as a no-op
+ok - watch-arm: a churned generation's handling confirmation reports a mismatch and an arm check keeps it
+ok - watch-arm: --take-over attaches to a cycle the named arm does not own and leaves it running
+ok - watch-arm: --take-over owns a fresh cycle without a recovery wake and still surfaces queued work
+ok - watch-arm: takeover preserves self-exit downtime and surfaces a recovery wake
+FM_TEST_END 2026-10-06T02:54:51Z tests/fm-watch-arm.test.sh exit=0 duration_ms=167037 gate_skip=false
+FM_TEST_BEGIN 2026-10-06T02:54:51Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-06T02:54:51Z tests/fm-pipeline-spend.test.sh family=pr-forge expected_gate_skip=none
+ok - known spend, including failed and cancelled invocations, is attributed to the task that ran it
+ok - repeated review rounds in a resumed session are counted once
+ok - absent spend reads as zero only when no run exists, and as unavailable when it cannot be read
+ok - older state without delta columns counts only rounds it can prove
+ok - record uses the captured task branch and its reflog after checkout
+ok - record appends one line per task incarnation
+ok - an absent opt-in flag bypasses task, pipeline, and ledger reads and writes
+ok - the state database resolves under the account home when NM_HOME and HOME are unset
+ok - missing tasks, secondmates, and unsafe ids are refused
+FM_TEST_END 2026-10-06T02:54:55Z tests/fm-pipeline-spend.test.sh exit=0 duration_ms=3502 gate_skip=false
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+not ok - missing-child-source: the refusal did not name the missing source
+FM_TEST_END 2026-10-06T02:54:59Z tests/fm-teardown.test.sh exit=1 duration_ms=7244 gate_skip=false
+FM_TEST_BEGIN 2026-10-06T02:54:59Z tests/fm-remote-job.test.sh family=secondmate expected_gate_skip=none
+ok - default: result and command samples use 0.25 seconds; dispatcher uses four 0.05-second waits then one second
+ok - legacy: result and command samples use 0.07 seconds; dispatcher uses four 0.07-second waits then one second
+ok - active: result and command samples use 0.12 seconds; dispatcher uses four 0.07-second waits then one second
+ok - default queue and execution bounds independently cover long polls
+ok - operator PATH excludes a symlinked local bin
+ok - operator PATH honors nvm defaults with a deterministic fallback
+ok - operator PATH resolves the authorized Nix profile bin link
+ok - operator PATH orders discovered tool installs deterministically
+ok - the worker preserves bounded argv and stdin in an empty environment
+ok - active jobs keep the worker ready for concurrent requests
+ok - ensure replaces a live worker after its code changes
+ok - worker identity binds the canonical configured code root
+ok - stale ownership is reclaimed without signaling a reused pid
+ok - the worker enforces the job timeout and publishes its result
+ok - the worker expires queued jobs before they can mutate
+ok - queued jobs receive a fresh bounded execution window
+ok - a queued short command preempts a running long poll instead of waiting its window
+ok - a poll re-armed after preemption reads the same cursor with nothing lost
+ok - sibling polls never preempt each other into a re-arm churn loop
+ok - worker shutdown terminates the active command tree before replacement
+ok - Linux supervision recovers crashes and stops orphaned commands
+ok - pre-execution validation obeys the job timeout
+ok - the worker drains bounded output without changing command results
+ok - the worker refuses symlinked job fields before command execution
+ok - failed shutdown quarantines ownership against replacement workers
+ok - quarantine recovery refuses unverifiable supervisors and ignores reused pids
+ok - a repeatedly signalled shutdown still releases ownership for the next worker
+ok - TERM after ownership loss stops the serving worker
+ok - TERM after ownership loss still stops the active command tree
+ok - a lost owner terminates without stopping the replacement owner's work
+ok - an ousted worker in shutdown leaves the replacement quarantine untouched
+ok - an idle worker sleeps out a second between passes instead of busy-polling
+ok - an idle worker keeps its readiness heartbeat fresh between passes
+ok - an idle worker claims and publishes a staged job within a few seconds
+ok - an idle worker still repairs queue permissions and stops promptly on TERM
+ok - the fork-free state read keeps every malformed-record rejection
+ok - the builtin record reads bound bytes, not characters, in a UTF-8 locale
+ok - the lane scan reads staged records without execs and honors home isolation
+ok - a same-home queued command still preempts the poll through the builtin scan
+ok - the lane scan bounds argv in bytes, not characters, in a UTF-8 locale
+ok - barely healthy worker failures remain bounded by the restart guard
+ALL TESTS PASSED
+FM_TEST_END 2026-10-06T02:57:27Z tests/fm-remote-job.test.sh exit=0 duration_ms=148202 gate_skip=false
+FM_TEST_BEGIN 2026-10-06T02:57:27Z tests/fm-remote-delta-read.test.sh family=unclassified expected_gate_skip=none
+ok - an appended line produces a delta with exact offsets, hashes, and payload
+ok - an unchanged log costs one stat per poll and exits 75 at the window
+ok - the capture and hashing path runs exactly once a real change lands
+ok - a shrunk log breaks continuity as truncated with the remaining hash
+ok - a same-size in-place rewrite breaks continuity as prefix-changed
+ok - a same-second same-size rewrite of the same inode breaks continuity
+ok - a removed log breaks continuity as missing
+ok - a missing log at the origin cursor keeps waiting until the window closes
+ok - an unterminated tail is withheld until the newline completes it
+ok - the reader refuses traversal, symlinks, and oversized tail lines
+delta-read contract tests complete
+FM_TEST_END 2026-10-06T02:57:34Z tests/fm-remote-delta-read.test.sh exit=0 duration_ms=6535 gate_skip=false
+FM_TEST_BEGIN 2026-10-06T02:57:34Z tests/fm-spawn-dispatch-profile.test.sh family=backend-dispatch expected_gate_skip=none
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+not ok - secondmate with an allowlist should spawn: error: secondmate home cannot be inside the firstmate repo: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/.t/fm-spawn-dispatch-profile.Nzs2RX/env-secondmate/secondmate-home: expected exit 0, got 1
+FM_TEST_END 2026-10-06T02:57:45Z tests/fm-spawn-dispatch-profile.test.sh exit=1 duration_ms=11363 gate_skip=false
+FM_TEST_SUMMARY total=8 failed=4 skipped_gate=0 duration_ms=578754
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=11363 failed=1
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=10746 failed=1
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=249427 failed=2
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=148202 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=6535 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=167037 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-captain-hold-lifecycle.test.sh duration_ms=237832
+FM_TEST_SLOWEST rank=2 script=tests/fm-watch-arm.test.sh duration_ms=167037
+FM_TEST_SLOWEST rank=3 script=tests/fm-remote-job.test.sh duration_ms=148202
+FM_TEST_SLOWEST rank=4 script=tests/fm-brief.test.sh duration_ms=11595
+FM_TEST_SLOWEST rank=5 script=tests/fm-spawn-dispatch-profile.test.sh duration_ms=11363
+FM_TEST_SLOWEST rank=6 script=tests/fm-teardown.test.sh duration_ms=7244
+FM_TEST_SLOWEST rank=7 script=tests/fm-remote-delta-read.test.sh duration_ms=6535
+FM_TEST_SLOWEST rank=8 script=tests/fm-pipeline-spend.test.sh duration_ms=3502

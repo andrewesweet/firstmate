@@ -1,0 +1,1 @@
+not ok - pipeline-spend: the recorded spend is wrong: {"task":"task-x1","spawn_gen":"teardown-test-task-x1","recorded_at":"2026-10-06T03:01:11Z","source":"unavailable","reason":"the task copy is not on a branch","repo":null,"branch":null,"since":null,"total":null,"runs":[],"purposes":[]}

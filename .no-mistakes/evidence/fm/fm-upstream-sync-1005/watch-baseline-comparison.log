@@ -1,0 +1,14 @@
+base-65a0e674 exit=0
+watcher: started pid=3428290 (beacon fresh)
+signal: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-base-65a0e674/state/demo.status
+QUEUE
+1791255434	1	signal	demo.status	needs-decision: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-base-65a0e674/state/demo.status
+1791255435	2	signal	demo.status	needs-decision: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-base-65a0e674/state/demo.status
+
+target-5223f111 exit=0
+watcher: started pid=3440688 (beacon fresh)
+signal: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-target-5223f111/state/demo.status
+QUEUE
+1791255438	1	signal	demo.status	needs-decision: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-target-5223f111/state/demo.status
+1791255439	2	signal	demo.status	needs-decision: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/t/compare-target-5223f111/state/demo.status
+

@@ -1,0 +1,91 @@
+$ bin/fm-lab-home.sh create /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321
+/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321
+
+exit=0
+$ git init -q -b main
+
+exit=0
+$ git add .
+
+exit=0
+$ git commit -qm default
+
+exit=0
+$ git checkout -qb release/next
+
+exit=0
+$ git commit -qam "named release sentinel"
+
+exit=0
+$ git rev-parse HEAD
+d32583b8690cad94aa6e155087ab67e14d0da655
+
+exit=0
+$ git checkout -q main
+
+exit=0
+$ git clone -q --bare /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/project /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/origin.git
+
+exit=0
+$ git remote add origin /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/origin.git
+
+exit=0
+$ bin/fm-brief.sh named-live sandbox --scout --base-branch release/next --herdr-lab
+scaffolded: /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/data/named-live/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+exit=0
+$ bin/fm-herdr-lab.sh name named-base
+fm-lab-named-base-1535454-7060
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-named-base-1535454-7060
+
+exit=0
+$ bin/fm-spawn.sh named-live /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/project --scout --harness pi --effort low --backend herdr --base-branch release/next
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321
+warn: no registry at /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/data/projects.md; defaulting project to no-mistakes off
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/pool/.treehouse/project-ec8b07/1/project. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/pool/.treehouse/project-ec8b07/1/project' to release it.
+spawned named-live harness=pi kind=scout window=fm-lab-named-base-1535454-7060:w1:p2 worktree=/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/pool/.treehouse/project-ec8b07/1/project
+
+exit=0
+$ git rev-parse HEAD
+d32583b8690cad94aa6e155087ab67e14d0da655
+
+exit=0
+OBSERVED START: {"actual_head": "d32583b8690cad94aa6e155087ab67e14d0da655", "named_base_head": "d32583b8690cad94aa6e155087ab67e14d0da655", "sentinel": "named branch sentinel\n", "lease_holder": "named-live", "harness": "pi", "session": "fm-lab-named-base-1535454-7060"}
+$ bin/fm-herdr-lab.sh run fm-lab-named-base-1535454-7060 pane list
+{"id":"cli:pane:list","result":{"panes":[{"agent_status":"unknown","cwd":"/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/project","focused":true,"foreground_cwd":"/home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/pool/.treehouse/project-ec8b07/1/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65d237b2c8e112","workspace_id":"w1"}],"type":"pane_list"}}
+
+exit=0
+SCOUT REPORT
+# Spawn verification report (scout, disposable)
+
+## What I did
+Per the brief: read `base.txt` and ran `git rev-parse HEAD` in the disposable worktree. No source edits, installs, network access, pushes, PRs, or pipeline actions were performed. No Herdr lifecycle commands were needed or run.
+
+## Observed values
+- `base.txt` contents (exact sentinel text):
+  `named branch sentinel`
+- `git rev-parse HEAD`:
+  `d32583b8690cad94aa6e155087ab67e14d0da655`
+- Base branch (per brief): `release/next`, detached HEAD, clean copy.
+
+## Verdict
+Starting commit and sentinel text observed and recorded. Worktree left untouched beyond this report (report lives outside the worktree). No follow-up work identified.
+
+$ bin/fm-herdr-lab.sh teardown fm-lab-named-base-1535454-7060
+
+exit=0
+$ treehouse return --force --if-lease-holder named-live /home/andre/.no-mistakes/worktrees/feb37d45d9da/01M47GDMMHP9GND9V4JZHAAQ9G/ns1535321/pool/.treehouse/project-ec8b07/1/project
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+
+exit=0
+Cleanup: enabled owner write on this disposable lab only to remove protected git-hooks; lab removed.

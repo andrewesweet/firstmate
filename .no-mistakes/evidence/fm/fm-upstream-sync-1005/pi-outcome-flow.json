@@ -1,0 +1,130 @@
+{
+  "runtime_alive": true,
+  "old_watcher_pid": null,
+  "new_watcher_pid": null,
+  "finals": [
+    {
+      "text": "",
+      "toolCalls": [
+        "bash"
+      ],
+      "stopReason": "toolUse",
+      "usage": {
+        "input": 80,
+        "output": 113,
+        "cacheRead": 22720,
+        "cacheWrite": 0,
+        "reasoning": 91,
+        "totalTokens": 22913,
+        "cost": {
+          "input": 1.2e-05,
+          "output": 5.65e-05,
+          "cacheRead": 0.0006816,
+          "cacheWrite": 0,
+          "total": 0.0007501
+        }
+      }
+    },
+    {
+      "text": "Captain, READY.",
+      "toolCalls": [],
+      "stopReason": "stop",
+      "usage": {
+        "input": 2765,
+        "output": 153,
+        "cacheRead": 22784,
+        "cacheWrite": 0,
+        "reasoning": 147,
+        "totalTokens": 25702,
+        "cost": {
+          "input": 0.00041474999999999997,
+          "output": 7.65e-05,
+          "cacheRead": 0.00068352,
+          "cacheWrite": 0,
+          "total": 0.00117477
+        }
+      }
+    },
+    {
+      "text": "Captain, NATIVE_REPEAT",
+      "toolCalls": [],
+      "stopReason": "stop",
+      "usage": {
+        "input": 215,
+        "output": 84,
+        "cacheRead": 25536,
+        "cacheWrite": 0,
+        "reasoning": 77,
+        "totalTokens": 25835,
+        "cost": {
+          "input": 3.225e-05,
+          "output": 4.2e-05,
+          "cacheRead": 0.0007660799999999999,
+          "cacheWrite": 0,
+          "total": 0.0008403299999999999
+        }
+      }
+    },
+    {
+      "text": "Captain, NATIVE_REPEAT",
+      "toolCalls": [],
+      "stopReason": "stop",
+      "usage": {
+        "input": 439,
+        "output": 214,
+        "cacheRead": 25728,
+        "cacheWrite": 0,
+        "reasoning": 207,
+        "totalTokens": 26381,
+        "cost": {
+          "input": 6.585e-05,
+          "output": 0.000107,
+          "cacheRead": 0.00077184,
+          "cacheWrite": 0,
+          "total": 0.00094469
+        }
+      }
+    },
+    {
+      "text": "",
+      "toolCalls": [],
+      "stopReason": "stop",
+      "usage": {
+        "input": 601,
+        "output": 88,
+        "cacheRead": 26112,
+        "cacheWrite": 0,
+        "reasoning": 81,
+        "totalTokens": 26801,
+        "cost": {
+          "input": 9.015e-05,
+          "output": 4.4e-05,
+          "cacheRead": 0.00078336,
+          "cacheWrite": 0,
+          "total": 0.00091751
+        }
+      }
+    },
+    {
+      "text": "Captain, HUMAN_VISIBLE",
+      "toolCalls": [],
+      "stopReason": "stop",
+      "usage": {
+        "input": 378,
+        "output": 775,
+        "cacheRead": 26688,
+        "cacheWrite": 0,
+        "reasoning": 768,
+        "totalTokens": 27841,
+        "cost": {
+          "input": 5.6699999999999996e-05,
+          "output": 0.0003875,
+          "cacheRead": 0.0008006399999999999,
+          "cacheWrite": 0,
+          "total": 0.0012448399999999999
+        }
+      }
+    }
+  ],
+  "processed_marker": null
+}

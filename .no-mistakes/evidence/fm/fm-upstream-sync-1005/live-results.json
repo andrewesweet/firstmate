@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Named base brief preserves private/published sections and rejects an unsupported delivery",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Hold with parentheses and newline survives answer-close and exact retry",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Opt-in spend records missing inventory truthfully once, preserving independent worker ledger",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Host cap blocks an executing run, admits a parked gate, and refuses malformed cap",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Remote delta returns complete appended line and detects prefix replacement and traversal",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Real remote worker stages and publishes an isolated delta job without turning over",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Two watcher arms return the same status wake without a false empty-cycle failure",
+    "result": "pass",
+    "reason": ""
+  },
+  {
+    "name": "Enabling branch mod makes supervision host step aside into one ordinary watcher",
+    "result": "pass",
+    "reason": ""
+  }
+]
