@@ -113,7 +113,7 @@ spend() {
   local d=$1
   env -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE FM_HOME="$d/home" NM_HOME="$d/nm" \
     FAKE_NM_REPO="${FAKE_NM_REPO-$d/project}" FAKE_NM_LOG="$d/nm-invocations" PATH="$d/fakebin:$PATH" \
-    "$SPEND" "$2" "${3:-task}"
+    "$SPEND" "$2" "${3:-task}" "${@:4}"
 }
 
 # recorded <case-dir>: record the case's task and print the ledger line it
@@ -271,6 +271,35 @@ EOF
   pass 'older state without delta columns counts only rounds it can prove'
 }
 
+test_record_uses_the_captured_branch_after_checkout() {
+  local d checkout out
+  for checkout in detached returned; do
+    d=$(make_case "captured-$checkout")
+    seed_db "$d" current <<EOF
+repo r1 $d/project
+run early r1 fm/task completed -1
+run own r1 fm/task completed 100
+run other r1 returned completed 100
+inv early review cold ok 10 999 999 999 999 999 999 999
+inv own review cold ok 10 1 2 3 4 1 2 3
+inv other review cold ok 10 999 999 999 999 999 999 999
+EOF
+    if [ "$checkout" = detached ]; then
+      git -C "$d/wt" checkout -q --detach
+    else
+      git -C "$d/wt" checkout -q -b returned
+    fi
+    spend "$d" record task fm/task >/dev/null || fail "record failed after checkout to $checkout"
+    out=$(tail -1 "$d/home/data/pipeline-spend.jsonl")
+    assert_equals '"no-mistakes-state"' "$(field "$out" .source)" 'captured branch retains readable spend'
+    assert_equals '"fm/task"' "$(field "$out" .branch)" 'captured branch attributes task runs'
+    assert_equals "\"$BRANCH_ISO\"" "$(field "$out" .since)" 'captured branch supplies the reflog cutoff'
+    assert_equals '["own"]' "$(field "$out" '[.runs[].id]')" 'other branches and earlier tasks are excluded'
+    assert_equals '{"total":1,"unknown":0}' "$(field "$out" .total.input_tokens)" 'only task spend counts'
+  done
+  pass 'record uses the captured task branch and its reflog after checkout'
+}
+
 test_record_appends_once_per_task_incarnation() {
   local d out ledger
   d=$(make_case record)
@@ -349,6 +378,7 @@ test_known_spend_including_failed_and_cancelled_is_attributed_to_the_task
 test_repeated_review_rounds_in_a_resumed_session_are_not_double_counted
 test_absent_spend_is_zero_or_unavailable_never_invented
 test_older_state_without_delta_columns_counts_only_provable_rounds
+test_record_uses_the_captured_branch_after_checkout
 test_record_appends_once_per_task_incarnation
 test_disabled_record_does_not_read_or_create_spend_data
 test_state_db_without_nm_home_or_home_uses_the_account_home

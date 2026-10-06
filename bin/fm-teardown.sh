@@ -3852,7 +3852,7 @@ elif [ "$KIND" != secondmate ]; then
 fi
 if [ "$KIND" = ship ] && teardown_owns_worktree && [ -e "$CONFIG/pipeline-spend" ]; then
   FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" FM_CONFIG_OVERRIDE="$CONFIG" \
-    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" >/dev/null \
+    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null \
     || echo "warning: could not record $ID's no-mistakes pipeline spend; cleanup continues" >&2
 fi
 

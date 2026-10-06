@@ -3566,17 +3566,50 @@ land_shippable_commit() {
 # (bin/fm-pipeline-spend.sh) while the task branch that attributes its runs and
 # the task record still exist, then removes both as before.
 test_teardown_records_the_task_pipeline_spend() {
-  local case_dir rc=0 ledger
-  case_dir=$(make_case pipeline-spend)
+  local variant=${1:-linked} case_dir rc=0 ledger branch_epoch since
+  branch_epoch=$(( $(date +%s) - 1000 ))
+  since=$(python3 -c 'import sys, time; print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(sys.argv[1]))))' "$branch_epoch")
+  case_dir=$(GIT_COMMITTER_DATE="@$branch_epoch +0000" make_case "pipeline-spend-$variant")
   write_meta "$case_dir" no-mistakes ship
   : > "$case_dir/config/pipeline-spend"
   land_shippable_commit "$case_dir"
+  if [ "$variant" != linked ]; then
+    mkdir -p "$case_dir/pool/1"
+    git -C "$case_dir/project" worktree move "$case_dir/wt" "$case_dir/pool/1/project"
+    ln -s pool/1/project "$case_dir/wt"
+    printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' \
+      "$case_dir/pool/1/project" > "$case_dir/pool/treehouse-state.json"
+    if [ "$variant" = claimed ]; then
+      printf 'task=task-x1\nhome=%s\n' "$case_dir" > "$case_dir/pool/1/.fm-slot-owner"
+    elif [ "$variant" = reassigned ]; then
+      printf 'task=other-task\nhome=%s\n' "$case_dir" > "$case_dir/pool/1/.fm-slot-owner"
+    fi
+    cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_TEST_TREEHOUSE_LOG:?}"
+[ "$#" -eq 5 ] && [ "$1" = return ] && [ "$2" = --force ] \
+  && [ "$3" = --if-lease-holder ] && [ "$4" = task-x1 ] \
+  && [ "$5" = "${FM_TEST_WORKTREE:?}" ] || exit 1
+if [ "${FM_TEST_POOL_VARIANT:?}" = refused ]; then
+  printf 'slot leased by other-task\n' >&2
+  exit 1
+fi
+if [ -e "${FM_TEST_PIPELINE_LEDGER:?}" ]; then
+  printf 'recorded\n' > "${FM_TEST_RETURN_PHASE:?}"
+else
+  printf 'pending\n' > "${FM_TEST_RETURN_PHASE:?}"
+fi
+git -C "$5" checkout -q --detach main
+SH
+    chmod +x "$case_dir/fakebin/treehouse"
+  fi
   mkdir -p "$case_dir/nm"
-  python3 - "$case_dir/nm/state.sqlite" "$case_dir/project" "$(date +%s)" <<'PY'
+  python3 - "$case_dir/nm/state.sqlite" "$case_dir/project" "$(date +%s)" "$branch_epoch" <<'PY'
 import sqlite3
 import sys
 
 database, project, created = sys.argv[1], sys.argv[2], int(sys.argv[3])
+branch_epoch = int(sys.argv[4])
 db = sqlite3.connect(database)
 db.executescript("""
     CREATE TABLE repos (id TEXT PRIMARY KEY, working_path TEXT NOT NULL UNIQUE);
@@ -3593,19 +3626,45 @@ db.execute("INSERT INTO agent_invocations VALUES ('i1', '01RUN', 'review', 'cold
            (created,))
 db.execute("INSERT INTO agent_invocations VALUES ('i2', '01RUN', 'review', 'cold', ?, 'cancelled', 50, "
            "NULL, NULL, NULL, NULL, NULL, NULL, NULL)", (created + 1,))
+for run, branch, epoch in (("01OLD", "fm/task-x1", branch_epoch - 1), ("01OTHER", "main", created)):
+    db.execute("INSERT INTO runs VALUES (?, 'r1', ?, 'completed', ?)", (run, branch, epoch))
+    db.execute("INSERT INTO agent_invocations VALUES (?, ?, 'review', 'cold', ?, 'ok', 100, "
+               "999, 999, 999, 999, 999, 999, 999)", (run, run, epoch))
 db.commit()
 PY
   (
-    export FM_TEARDOWN_TEST_NM_HOME="$case_dir/nm" FM_FAKE_AXI_OVERVIEW="repo: $case_dir/project"
+    export FM_HOME="$case_dir" FM_TEARDOWN_TEST_NM_HOME="$case_dir/nm" FM_FAKE_AXI_OVERVIEW="repo: $case_dir/project"
+    export FM_TEST_POOL_VARIANT="$variant" FM_TEST_WORKTREE="$case_dir/wt"
+    export FM_TEST_TREEHOUSE_LOG="$case_dir/treehouse.log" FM_TEST_RETURN_PHASE="$case_dir/return-phase"
+    export FM_TEST_PIPELINE_LEDGER="$case_dir/data/pipeline-spend.jsonl"
     run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
   ) || rc=$?
 
-  expect_code 0 "$rc" "pipeline-spend: teardown should succeed"
   ledger=$case_dir/data/pipeline-spend.jsonl
+  if [ "$variant" = refused ] || [ "$variant" = reassigned ]; then
+    assert_absent "$ledger" "pipeline-spend-$variant: teardown read spend from an unowned slot"
+    assert_equals fm/task-x1 "$(git -C "$case_dir/wt" symbolic-ref --short HEAD)" \
+      "pipeline-spend-$variant: teardown detached an unowned slot"
+    if [ "$variant" = refused ]; then
+      [ "$rc" -ne 0 ] || fail 'pipeline-spend-refused: teardown ignored a lease refusal'
+      assert_present "$case_dir/state/task-x1.meta" 'pipeline-spend-refused: teardown removed the task record'
+      assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
+        'pipeline-spend-refused: teardown bypassed the lease check'
+    else
+      expect_code 0 "$rc" 'pipeline-spend-reassigned: teardown should clean only its own record'
+      assert_absent "$case_dir/state/task-x1.meta" 'pipeline-spend-reassigned: teardown kept its task record'
+      assert_absent "$case_dir/treehouse.log" 'pipeline-spend-reassigned: teardown returned another task slot'
+      assert_present "$case_dir/pool/1/.fm-slot-owner" 'pipeline-spend-reassigned: teardown removed another task claim'
+    fi
+    pass "teardown skips pipeline spend for a $variant slot"
+    return
+  fi
+  expect_code 0 "$rc" "pipeline-spend-$variant: teardown should succeed"
   assert_present "$ledger" "pipeline-spend: teardown left no pipeline spend record"
-  jq -e '
+  jq -e --arg since "$since" '
     .task == "task-x1" and .spawn_gen == "teardown-test-task-x1"
     and .source == "no-mistakes-state" and .branch == "fm/task-x1"
+    and .since == $since
     and [.runs[].id] == ["01RUN"]
     and .total.invocations == 2 and .total.exit == {"ok": 1, "cancelled": 1}
     and .total.input_tokens == {"total": 7, "unknown": 1}
@@ -3613,7 +3672,17 @@ PY
   assert_absent "$case_dir/state/task-x1.meta" "pipeline-spend: teardown kept the task record"
   ! git -C "$case_dir/project" show-ref --verify --quiet refs/heads/fm/task-x1 \
     || fail "pipeline-spend: teardown kept the task branch"
-  pass "teardown records the task's pipeline spend before removing its branch and record"
+  if [ "$variant" != linked ]; then
+    assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
+      "pipeline-spend-$variant: teardown did not verify the lease exactly once"
+    if [ "$variant" = legacy ]; then
+      assert_equals pending "$(cat "$case_dir/return-phase")" 'legacy pipeline spend waits for ownership verification'
+    else
+      assert_equals recorded "$(cat "$case_dir/return-phase")" 'claimed pipeline spend is recorded before return'
+      assert_absent "$case_dir/pool/1/.fm-slot-owner" 'claimed cleanup kept the spent slot claim'
+    fi
+  fi
+  pass "teardown records $variant task spend before removing its branch and record"
 }
 
 test_teardown_skips_pipeline_spend_when_disabled() {
@@ -4906,6 +4975,10 @@ test_persistent_index_lock_exhausts_retries_and_refuses_loudly
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error
 test_teardown_records_the_task_pipeline_spend
+test_teardown_records_the_task_pipeline_spend legacy
+test_teardown_records_the_task_pipeline_spend claimed
+test_teardown_records_the_task_pipeline_spend refused
+test_teardown_records_the_task_pipeline_spend reassigned
 test_teardown_skips_pipeline_spend_when_disabled
 test_teardown_records_unavailable_spend_for_a_gone_worktree
 test_parked_own_run_is_aborted_before_teardown

@@ -3,7 +3,7 @@
 # task and keep it in Firstmate's own records.
 #
 # Usage:
-#   fm-pipeline-spend.sh record <task-id>
+#   fm-pipeline-spend.sh record <task-id> [<task-branch>]
 #
 # record appends the task's pipeline spend as one JSON object on one line of
 # data/pipeline-spend.jsonl, at most once per task incarnation (task id plus
@@ -28,12 +28,11 @@
 # no-mistakes or database call.
 #
 # Attribution. A task's runs are the runs no-mistakes recorded for the task
-# copy's repository and current branch since that branch was created:
+# copy's repository and task branch since that branch was created:
 #   - repository: the `repo:` line `no-mistakes axi` prints from the task copy,
 #     which is the CLI's own resolution (a pooled worker copy resolves to the
 #     registered primary clone), matched exactly against repos.working_path;
-#   - branch: the task copy's current branch, the one bin/fm-crew-state.sh
-#     reads;
+#   - branch: the supplied task branch, or the task copy's current branch;
 #   - since: the oldest surviving reflog entry of that branch. spawn_gen cannot
 #     bound the task, because a relaunch mints a new one while the same branch
 #     keeps validating. Teardown deletes the branch, so a later task that
@@ -103,7 +102,7 @@ case "${1:-}" in
   record) ;;
   *) usage >&2; exit 2 ;;
 esac
-[ "$#" -eq 2 ] || { usage >&2; exit 2; }
+[ "$#" -eq 2 ] || [ "$#" -eq 3 ] || { usage >&2; exit 2; }
 ID=$2
 fm_task_id_path_safe "$ID" || { echo "fm-pipeline-spend: invalid task id" >&2; exit 2; }
 [ -e "$CONFIG/pipeline-spend" ] || exit 0
@@ -119,14 +118,15 @@ command -v python3 >/dev/null 2>&1 || fail "python3 is required to read no-mista
 
 WT=$(meta_value worktree)
 SPAWN_GEN=$(meta_value spawn_gen)
-BRANCH=
+BRANCH=${3:-}
 SINCE=
 REPO=
 DB=
 REASON=
 if [ -z "$WT" ] || [ ! -d "$WT" ]; then
   REASON="the task copy ${WT:-<unrecorded>} is gone"
-elif ! BRANCH=$(git -C "$WT" symbolic-ref --quiet --short HEAD 2>/dev/null) || [ -z "$BRANCH" ]; then
+elif ! { [ -n "$BRANCH" ] || BRANCH=$(git -C "$WT" symbolic-ref --quiet --short HEAD 2>/dev/null); } \
+    || [ -z "$BRANCH" ] || [ "$BRANCH" = HEAD ]; then
   BRANCH=
   REASON="the task copy is not on a branch"
 elif ! command -v no-mistakes >/dev/null 2>&1; then
