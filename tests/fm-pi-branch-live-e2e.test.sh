@@ -85,9 +85,9 @@ done
 SH
 chmod +x "$repo/bin/fm-operational-input.sh" "$repo/bin/fm-watch-arm.sh"
 ln -s "$PI_PACKAGE_DIR" "$repo/node_modules/@earendil-works/pi-coding-agent"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-tui" "$repo/node_modules/@earendil-works/pi-tui"
-ln -s "$PI_PACKAGE_DIR/node_modules/@earendil-works/pi-ai" "$repo/node_modules/@earendil-works/pi-ai"
-ln -s "$PI_PACKAGE_DIR/node_modules/typebox" "$repo/node_modules/typebox"
+fm_pi_link_dependency @earendil-works/pi-tui "$repo/node_modules/@earendil-works/pi-tui"
+fm_pi_link_dependency @earendil-works/pi-ai "$repo/node_modules/@earendil-works/pi-ai"
+fm_pi_link_dependency typebox "$repo/node_modules/typebox"
 
 # Stock macOS Bash 3.2 cannot reliably parse JavaScript template literals in a
 # heredoc nested inside command substitution, so capture through a file.
@@ -296,7 +296,7 @@ BRANCH_PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" \
   WATCH_PLUGIN="$repo/.pi/extensions/fm-primary-pi-watch.ts" \
   FM_HOME="$errorhome" FM_REAL_ROOT="$ROOT" FM_WATCH_ROOT="$repo" \
   FM_LIVE_WATCH_LOG="$TMP_ROOT/error-watch.log" FM_LIVE_WATCH_TRIGGER="$TMP_ROOT/error-watch.trigger" \
-  PI_CODING_AGENT_DIR="$erroragentdir" PI_PACKAGE_DIR="$PI_PACKAGE_DIR" \
+  PI_CODING_AGENT_DIR="$erroragentdir" PI_PACKAGE_DIR="$PI_PACKAGE_DIR" PI_AI_DIR="$(fm_pi_dependency_dir @earendil-works/pi-ai)" \
   node --input-type=module > "$TMP_ROOT/error-output" 2>&1 <<'EOF'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -590,7 +590,7 @@ const { ModelRegistry, ModelRuntime, SessionManager, createAgentSession } = awai
 // The same specifier the extension imports; Pi's extension loader aliases it
 // to this package's own bundled copy.
 const { clampThinkingLevel, getSupportedThinkingLevels } = await import(
-  pathToFileURL(`${packageRoot}/node_modules/@earendil-works/pi-ai/dist/compat.js`).href
+  pathToFileURL(`${process.env.PI_AI_DIR}/dist/compat.js`).href
 );
 const runtime = await ModelRuntime.create({
   authPath: `${process.env.PI_CODING_AGENT_DIR}/auth.json`,

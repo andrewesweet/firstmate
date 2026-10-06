@@ -2382,6 +2382,35 @@ Every record read in those regressions ultimately goes through the real `bin/fm-
 Against the installed 0.81.1 package the typecheck reports a pre-existing `ModelsRefreshOptions.providers` mismatch in the branch's provider-registration path that this change does not touch; the option exists from the 0.84 line on, which is why the typecheck evidence uses the newer package as the earlier entries do.
 The real Pi/Herdr return guard (`FM_AFK_PI_HERDR_E2E=1 tests/fm-afk-pi-herdr-return-e2e.test.sh`) remains the owner of the live return-brief proof; it loads no supervision extension into its synthetic primary and does not yet exercise the parked-main scenario, which is a follow-up for a Herdr-lab-guarded task.
 
+### 2026-10-06 Pi 1.0.x compatibility with 0.99.x retained
+
+Pi 1.0.0 made the fullscreen TUI the default (the test suites already pass `--tui-mode regular`), and Pi 1.0.1 stopped publishing `npm-shrinkwrap.json`, so a global or prefix install hoists `pi-tui`, `pi-ai`, `typebox`, and `@types/node` from inside the package's own `node_modules` to the install root's `node_modules`.
+The test fixtures symlink those dependencies so plain-`node` extension imports resolve them without Pi's own loader aliases, and the old fixtures resolved only the bundled layout, so every fixture that launched an extension under plain `node` failed with `ERR_MODULE_NOT_FOUND` on Pi 1.0.1+.
+`tests/lib.sh` now owns `fm_pi_dependency_dir` / `fm_pi_link_dependency`, which feature-detect the bundled (`$PKG/node_modules/<name>`) and hoisted (`$PKG/../../<name>`) layouts; version sniffing stays out.
+The strict typecheck's prerequisite check uses the same resolver, and the CI Pi install pin moved from 0.99.2 to 1.0.4 with the interim-pin comment removed.
+
+Verified 2026-10-06 on Ubuntu (x86_64), Node v24.21.0, against prefix-installed `@earendil-works/pi-coding-agent` 0.99.2 and 1.0.4 selected with `FM_PI_PACKAGE_DIR`, with Chrome for Testing 155.0.8059.39 for the export-DOM guard.
+No model token was spent: the token-submitting live guards (`FM_PI_LIVE_E2E`, `FM_PI_BRANCH_LIVE_E2E`, `FM_AFK_PI_HERDR_E2E`) stayed off, and the calm, watch, branch-extension, seeded-trust, queue-retention, and responsiveness suites make no provider calls.
+
+```sh
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-calm-pi-extension.test.sh        # pass
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-pi-branch-extension.test.sh      # pass
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-pi-primary-types.test.sh         # pass (typecheck against 0.99.2)
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-pi-watch-extension.test.sh       # pass
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-calm-pi-queue-retention-live-e2e.test.sh   # pass
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-pi-branch-responsiveness-live-e2e.test.sh  # pass
+FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-pi-seeded-home-trust-live-e2e.test.sh      # pass
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-calm-pi-extension.test.sh        # pass (failed before the fixture fix)
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-branch-extension.test.sh      # pass
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-primary-types.test.sh         # pass (typecheck against 1.0.4)
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-watch-extension.test.sh       # pass
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-calm-pi-queue-retention-live-e2e.test.sh   # pass
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-branch-responsiveness-live-e2e.test.sh  # pass
+FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-seeded-home-trust-live-e2e.test.sh      # pass
+```
+
+Two environment notes from that run, neither caused by the fixture change: `tests/fm-herdr-pi-stale-registration-live-e2e.test.sh` fails identically with and without the change on both Pi versions because this host's Herdr fleet state does not present the single running default session the Herdr lab helper requires (a host precondition, not a Pi compatibility result), and `tests/fm-pi-branch-live-e2e.test.sh` keeps its opt-in gate; its retargeted fixture lines were validated by syntax, ShellCheck, and the resolver probes, and its full run belongs to the next token-spending refresh.
+
 ## Claude Code supervision branch
 
 The supervision-branch mod (`.claude/mods/fm-branch-mod`, [docs/claude-supervision-branch.md](../claude-supervision-branch.md)) is a Claude Code function-hooks module that loads on whichever Claude Code release hosts the session.
