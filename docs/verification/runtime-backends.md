@@ -2384,13 +2384,11 @@ The real Pi/Herdr return guard (`FM_AFK_PI_HERDR_E2E=1 tests/fm-afk-pi-herdr-ret
 
 ### 2026-10-06 Pi 1.0.x compatibility with 0.99.x retained
 
-Pi 1.0.0 made the fullscreen TUI the default (the test suites already pass `--tui-mode regular`), and Pi 1.0.1 stopped publishing `npm-shrinkwrap.json`, so a global or prefix install hoists `pi-tui`, `pi-ai`, `typebox`, and `@types/node` from inside the package's own `node_modules` to the install root's `node_modules`.
-The test fixtures symlink those dependencies so plain-`node` extension imports resolve them without Pi's own loader aliases, and the old fixtures resolved only the bundled layout, so every fixture that launched an extension under plain `node` failed with `ERR_MODULE_NOT_FOUND` on Pi 1.0.1+.
-`tests/lib.sh` now owns `fm_pi_dependency_dir` / `fm_pi_link_dependency`, which feature-detect the bundled (`$PKG/node_modules/<name>`) and hoisted (`$PKG/../../<name>`) layouts; version sniffing stays out.
-The strict typecheck's prerequisite check uses the same resolver, and the CI Pi install pin moved from 0.99.2 to 1.0.4 with the interim-pin comment removed.
+The suites below exercise bundled dependencies on Pi 0.99.2 and hoisted dependencies on Pi 1.0.4.
+[`tests/lib.sh`](../../tests/lib.sh) owns the fixture dependency-resolution contract used by these suites and the strict typecheck; [the CI workflow](../../.github/workflows/ci.yml) owns the current Pi install pin.
 
 Verified 2026-10-06 on Ubuntu (x86_64), Node v24.21.0, against prefix-installed `@earendil-works/pi-coding-agent` 0.99.2 and 1.0.4 selected with `FM_PI_PACKAGE_DIR`, with Chrome for Testing 155.0.8059.39 for the export-DOM guard.
-No model token was spent: the token-submitting live guards (`FM_PI_LIVE_E2E`, `FM_PI_BRANCH_LIVE_E2E`, `FM_AFK_PI_HERDR_E2E`) stayed off, and the calm, watch, branch-extension, seeded-trust, queue-retention, and responsiveness suites make no provider calls.
+No model token was spent: the provider-backed guards (`FM_PI_LIVE_E2E`, `FM_AFK_PI_HERDR_E2E`) and the credential-free SDK guard (`FM_PI_BRANCH_LIVE_E2E`) stayed off, and the calm, watch, branch-extension, seeded-trust, queue-retention, and responsiveness suites make no provider calls.
 
 ```sh
 FM_PI_PACKAGE_DIR=<pi-0.99.2 package> bash tests/fm-calm-pi-extension.test.sh        # pass
@@ -2409,7 +2407,8 @@ FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-branch-responsiveness-liv
 FM_PI_PACKAGE_DIR=<pi-1.0.4 package>  bash tests/fm-pi-seeded-home-trust-live-e2e.test.sh      # pass
 ```
 
-Two environment notes from that run, neither caused by the fixture change: `tests/fm-herdr-pi-stale-registration-live-e2e.test.sh` fails identically with and without the change on both Pi versions because this host's Herdr fleet state does not present the single running default session the Herdr lab helper requires (a host precondition, not a Pi compatibility result), and `tests/fm-pi-branch-live-e2e.test.sh` keeps its opt-in gate; its retargeted fixture lines were validated by syntax, ShellCheck, and the resolver probes, and its full run belongs to the next token-spending refresh.
+`tests/fm-herdr-pi-stale-registration-live-e2e.test.sh` fails identically with and without the change on both Pi versions because this host's Herdr fleet state does not present the single running default session the Herdr lab helper requires, so that result does not establish Pi compatibility.
+`tests/fm-pi-branch-live-e2e.test.sh` remains opt-in and was not run in this refresh; its dependency-resolution changes were checked only by syntax, ShellCheck, and resolver probes.
 
 ## Claude Code supervision branch
 

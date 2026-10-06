@@ -326,17 +326,13 @@ fi
 
 # --- installed Pi package dependency resolution -----------------------------
 #
-# The installed @earendil-works/pi-coding-agent package ships in two layouts:
-# through Pi 1.0.0 its published npm-shrinkwrap.json bundles every dependency
-# inside the package's own node_modules, and from Pi 1.0.1 the package no
-# longer pins dependencies, so a global or prefix install hoists them beside
-# the package under the install root's node_modules. Scope directories are
-# preserved on both sides, so the hoisted root of a package nested at
+# Plain-node fixture imports bypass Pi's extension-loader aliases, so resolve
+# dependencies from the selected installed package in either supported layout:
+# bundled inside its own node_modules or hoisted beside it under the install
+# root's node_modules. Scope directories are preserved on both sides, so the
+# hoisted root of a package nested at
 # <install-root>/@scope/pi-coding-agent is <install-root>, two levels up.
-# Fixture extensions that
-# a plain node import executes bypass Pi's own extension-loader aliases, so
-# every fixture dependency resolves through fm_pi_dependency_dir instead of
-# assuming one layout. Feature-detect the directories; never sniff versions.
+# Feature-detect the directories; never sniff versions.
 
 fm_pi_dependency_dir() {
   local name=$1 package_dir=${2:-${PI_PACKAGE_DIR:-}}

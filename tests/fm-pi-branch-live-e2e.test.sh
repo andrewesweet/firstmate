@@ -589,7 +589,7 @@ const packageRoot = process.env.PI_PACKAGE_DIR;
 const pkg = pathToFileURL(`${packageRoot}/dist/index.js`).href;
 const { ModelRegistry, ModelRuntime, SessionManager, createAgentSession } = await import(pkg);
 // The same specifier the extension imports; Pi's extension loader aliases it
-// to this package's own bundled copy.
+// to this package's installed dependency, whether bundled or hoisted.
 const { clampThinkingLevel, getSupportedThinkingLevels } = await import(
   pathToFileURL(`${process.env.PI_AI_DIR}/dist/compat.js`).href
 );
