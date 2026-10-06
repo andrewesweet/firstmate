@@ -112,11 +112,11 @@ Portable shards, each portable serial shard, and the Herdr lane upload runner-ge
 
 ## Lint partitions and end-to-end latency
 
-`bin/fm-lint.sh` owns two canonical CI partitions, each running the same full source-aware ShellCheck analysis with one worker in CI (`--jobs 1`; local runs default to two bounded workers), pinned versions, workflow validation, and backend-purity checks.
-CI requires its per-root bounds, so an unenforceable deadline or address-space limit refuses lint rather than running uncapped; the script header owns the envelope and per-root execution contract.
-Its `--list-files` interface exposes partition membership; `tests/fm-lint.test.sh` verifies complete/disjoint executed roots and unchanged analysis flags.
+`bin/fm-lint.sh` owns two canonical CI partitions, each attempting full source-aware ShellCheck analysis with one worker in CI (`--jobs 1`; local runs default to two bounded workers), pinned versions, workflow validation, and backend-purity checks.
+CI requires its per-root bounds, so an unenforceable deadline or address-space limit refuses lint rather than running uncapped; the script header owns the envelope, per-root execution contract, and memory fallback.
+Its `--list-files` interface exposes partition membership; `tests/fm-lint.test.sh` verifies complete/disjoint executed roots, initial analysis flags, and fallback reporting.
 The workflow uploads each partition's quiet telemetry plus its per-root lifecycle sidecar to distinguish analysis cost, memory use, and host contention.
-No fast mode, path skips, reduced checks, or paid runner provisioning is part of this layout.
+No fast mode, path skips, or paid runner provisioning is part of this layout.
 
 The longest path is the slowest portable serial shard: the refreshed measurements above put it at about 20 minutes of script time and about 22 minutes of job wall once job setup is counted, and a complete green run is bounded by that path plus at most two minutes of runner delay. A complete run under fifteen minutes therefore needs the heavyweight scripts to get faster or be split, which packing cannot do.
 The candidate uses fourteen long-lived Linux jobs (nine serial, two parallel, Herdr, two lint), plus short checks and macOS; insufficient shared account capacity can erase the packing gain.
