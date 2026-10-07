@@ -1,0 +1,11 @@
+ok - a treehouse 3.x --force return exits 0 and teardown completes unchanged
+ok - a treehouse 3.x exit-3 dirty refusal aborts teardown loudly without retry and leaves the slot as-is
+ok - a dirty-not-returned wording with a generic exit code still aborts teardown as unreturned
+ok - zero-wording/initial preserves dirty work and the task record without retry
+ok - declined-wording/initial preserves dirty work and the task record without retry
+ok - code-only/retry preserves dirty work and the task record without retry
+ok - code-and-lock/retry preserves dirty work and the task record without retry
+ok - zero-wording/unleased preserves dirty work and the task record without retry
+ok - code-only/stale preserves dirty work and the task record without retry
+ok - transient index.lock cleared after first failed return is retried successfully without force-remove
+ok - provably-stale worktree index.lock (old, no live holder) is cleared and teardown succeeds

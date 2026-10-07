@@ -1,0 +1,49 @@
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/treehouse --version
+v2.3.0
+[exit 0]
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/treehouse get --lease --lease-holder vendor-v2-dirty
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00", "leased": true, "lease_id": "25e5c124785d717c6a9a9e004470cf43", "lease_holder": "vendor-v2-dirty", "leased_at": "2026-10-07T04:19:12.010218781+01:00"}]}
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/treehouse return --if-lease-holder vendor-v2-dirty /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+Worktree has uncommitted changes. Clean and return? [Y/n] 🌳 Aborted.
+[exit 0]
+OBSERVED dirty file, lease identity, holder and pool state are unchanged
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/treehouse return --force --if-lease-holder vendor-v2-dirty /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+POOL AFTER FORCE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00"}]}
+OBSERVED --force cleaned and released the lease
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse --version
+v3.1.2
+[exit 0]
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse get --lease --lease-holder vendor-v3-dirty
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "leased": true, "lease_id": "ac8e13b048cd38037ece5ac11d06825e", "lease_holder": "vendor-v3-dirty", "leased_at": "2026-10-07T04:19:12.206486362+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse return --if-lease-holder vendor-v3-dirty /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+Worktree has uncommitted changes. Clean and return? [Y/n] 🌳 worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF); prune will not reclaim this slot. Use treehouse return --force '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to clean and return it
+[exit 3]
+OBSERVED dirty file, lease identity, holder and pool state are unchanged
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse return --if-lease-holder vendor-v3-dirty /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+Worktree has uncommitted changes. Clean and return? [Y/n] 🌳 worktree not returned: cleaning declined, so its uncommitted changes remain and prune will not reclaim this slot. Use treehouse return --force '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to clean and return it
+[exit 3]
+OBSERVED explicitly declining cleaning also preserves the lease and dirty copy
+$ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse return --force --if-lease-holder vendor-v3-dirty /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+POOL AFTER FORCE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+OBSERVED --force cleaned and released the lease

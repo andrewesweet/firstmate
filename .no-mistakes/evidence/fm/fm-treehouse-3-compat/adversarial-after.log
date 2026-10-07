@@ -1,0 +1,45 @@
+
+CASE retry-dirty
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fatal: Unable to create '/isolated/index.lock': File exists.
+teardown: worktree return failed with transient git lock (/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/retry-dirty/project/.git/worktrees/wt/index.lock); waiting 0s and retrying (1/3)
+error: treehouse return left worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/retry-dirty/wt in place: it has uncommitted changes and was not returned (treehouse 3.x exit 3); that slot, its copy and its lease are left exactly as they are and teardown aborts for a rerun once the worktree is known to be idle
+fatal: Unable to create '/isolated/index.lock': File exists.
+worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF)
+error: treehouse return failed for task task-x1's worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/retry-dirty/wt; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task task-x1's record is kept for a rerun
+OBSERVED exit=1 attempts=2 metadata_preserved=true
+ok - retry-dirty aborts as dirty without another return
+
+CASE zero-wording
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 0s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: treehouse return left worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/zero-wording/wt in place: it has uncommitted changes and was not returned (treehouse 3.x exit 3); that slot, its copy and its lease are left exactly as they are and teardown aborts for a rerun once the worktree is known to be idle
+worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF)
+error: treehouse return failed for task task-x1's worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/zero-wording/wt; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task task-x1's record is kept for a rerun
+OBSERVED exit=1 attempts=1 metadata_preserved=true
+ok - zero-wording aborts as dirty without another return
+
+CASE declined-wording
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: treehouse return left worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/declined-wording/wt in place: it has uncommitted changes and was not returned (treehouse 3.x exit 3); that slot, its copy and its lease are left exactly as they are and teardown aborts for a rerun once the worktree is known to be idle
+worktree not returned: cleaning declined, so its uncommitted changes remain and prune will not reclaim this slot
+error: treehouse return failed for task task-x1's worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/tmp/fm-teardown-tests.erUdJF/declined-wording/wt; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task task-x1's record is kept for a rerun
+OBSERVED exit=1 attempts=1 metadata_preserved=true
+ok - declined-wording aborts as dirty without another return

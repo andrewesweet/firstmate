@@ -1,0 +1,3 @@
+Private tmux socket reported no server; all lab pools had no remaining leases.
+Disposable homes, installed v3 binary, caches and temporary drivers removed from the worktree.
+Intentional changes retained: bin/fm-teardown.sh and tests/fm-teardown.test.sh.

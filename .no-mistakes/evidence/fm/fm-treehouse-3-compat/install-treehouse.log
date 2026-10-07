@@ -1,0 +1,3 @@
+fm-install-treehouse.sh: downloading treehouse-v3.1.2-linux-amd64.tar.gz from https://github.com/kunchenguid/treehouse/releases/download/v3.1.2/treehouse-v3.1.2-linux-amd64.tar.gz
+fm-install-treehouse.sh: installed treehouse v3.1.2 to /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/treehouse
+v3.1.2

@@ -1,0 +1,316 @@
+$ tmux -S /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/s new-session -d -s fm-lab-cleanup "sleep 300"
+[exit 0]
+$ treehouse --version
+v2.3.0
+[exit 0]
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+[exit 0]
+$ git init -q -b main /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/projects/sample
+[exit 0]
+$ git add .
+[exit 0]
+$ git commit -qm seed
+[exit 0]
+$ treehouse get --lease --lease-holder live-v2-leased-clean
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00", "leased": true, "lease_id": "f9c1130e3456c40acc1d3c7ee85377bf", "lease_holder": "live-v2-leased-clean", "leased_at": "2026-10-07T04:18:51.294588184+01:00"}]}
+$ bin/fm-teardown.sh live-v2-leased-clean
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-v2-leased-clean complete (window fm-lab-cleanup:fm-live-v2-leased-clean, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample)
+Backlog: live-v2-leased-clean just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/data/backlog.md - move live-v2-leased-clean to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00"}]}
+META PRESENT False
+OBSERVED v2 leased-clean satisfied
+$ treehouse get --lease --lease-holder live-v2-unleased-dirty
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+$ git checkout -qb live-v2-unleased-dirty
+[exit 0]
+$ bin/fm-captain-hold.sh complete live-v2-unleased-dirty --none
+complete: live-v2-unleased-dirty captain-call inventory reviewed
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00"}]}
+$ bin/fm-teardown.sh live-v2-unleased-dirty
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-v2-unleased-dirty complete (window fm-lab-cleanup:fm-live-v2-unleased-dirty, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample)
+Backlog: live-v2-unleased-dirty just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/data/backlog.md - move live-v2-unleased-dirty to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00"}]}
+META PRESENT False
+$ git rev-parse --abbrev-ref HEAD
+HEAD
+[exit 0]
+OBSERVED v2 unleased-dirty satisfied
+$ treehouse get --lease --lease-holder live-v2-absent-copy
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00", "leased": true, "lease_id": "114daeb029e070ad3c7599bb456ac67e", "lease_holder": "live-v2-absent-copy", "leased_at": "2026-10-07T04:18:56.839128541+01:00"}]}
+$ bin/fm-teardown.sh live-v2-absent-copy
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-v2-absent-copy complete (window fm-lab-cleanup:fm-live-v2-absent-copy, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample)
+Backlog: live-v2-absent-copy just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/data/backlog.md - move live-v2-absent-copy to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:51.29454537+01:00"}]}
+META PRESENT False
+$ treehouse get --lease --lease-holder reuse-live-v2-absent-copy
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v2 absent-copy satisfied
+$ treehouse get --lease --lease-holder live-v2-foreign-lease
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+$ treehouse get --lease --lease-holder different-task
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00", "leased": true, "lease_id": "a8ee61e9154489068b77d44aec25e50a", "lease_holder": "different-task", "leased_at": "2026-10-07T04:18:58.960096518+01:00"}]}
+$ bin/fm-teardown.sh live-v2-foreign-lease
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+failed to return worktree: lease precondition failed: lease holder does not match worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+error: treehouse return failed for task live-v2-foreign-lease's worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task live-v2-foreign-lease's record is kept for a rerun
+[exit 1]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00", "leased": true, "lease_id": "a8ee61e9154489068b77d44aec25e50a", "lease_holder": "different-task", "leased_at": "2026-10-07T04:18:58.960096518+01:00"}]}
+META PRESENT True
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v2 foreign-lease satisfied
+$ treehouse get --lease --lease-holder live-v2-dirty-ship
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+POOL BEFORE {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00", "leased": true, "lease_id": "c59005dc9813524e7e23a0e63e549610", "lease_holder": "live-v2-dirty-ship", "leased_at": "2026-10-07T04:19:00.220590502+01:00"}]}
+$ bin/fm-teardown.sh live-v2-dirty-ship
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: local-only worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample has work not yet merged into main and not on any remote.
+uncommitted changes present (untracked-only leftovers)
+untracked paths (up to 10):
+  untracked.txt
+Merge the branch into local main first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+[exit 1]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00", "leased": true, "lease_id": "c59005dc9813524e7e23a0e63e549610", "lease_holder": "live-v2-dirty-ship", "leased_at": "2026-10-07T04:19:00.220590502+01:00"}]}
+META PRESENT True
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v2 dirty-ship satisfied
+$ treehouse --version
+v3.1.2
+[exit 0]
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+[exit 0]
+$ git init -q -b main /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/projects/sample
+[exit 0]
+$ git add .
+[exit 0]
+$ git commit -qm seed
+[exit 0]
+$ treehouse get --lease --lease-holder live-v3-leased-clean
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "leased": true, "lease_id": "d115ccd11a5f516ce2b9c78e2e6f37f4", "lease_holder": "live-v3-leased-clean", "leased_at": "2026-10-07T04:19:01.461628058+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ bin/fm-teardown.sh live-v3-leased-clean
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌳 Worktree returned to pool.
+teardown live-v3-leased-clean complete (window fm-lab-cleanup:fm-live-v3-leased-clean, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample)
+Backlog: live-v3-leased-clean just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/data/backlog.md - move live-v3-leased-clean to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+META PRESENT False
+OBSERVED v3 leased-clean satisfied
+$ treehouse get --lease --lease-holder live-v3-unleased-dirty
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+$ git checkout -qb live-v3-unleased-dirty
+[exit 0]
+$ bin/fm-captain-hold.sh complete live-v3-unleased-dirty --none
+complete: live-v3-unleased-dirty captain-call inventory reviewed
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ bin/fm-teardown.sh live-v3-unleased-dirty
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown live-v3-unleased-dirty complete (window fm-lab-cleanup:fm-live-v3-unleased-dirty, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample)
+Backlog: live-v3-unleased-dirty just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/data/backlog.md - move live-v3-unleased-dirty to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+META PRESENT False
+$ git rev-parse --abbrev-ref HEAD
+HEAD
+[exit 0]
+OBSERVED v3 unleased-dirty satisfied
+$ treehouse get --lease --lease-holder live-v3-absent-copy
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "leased": true, "lease_id": "eb65980f329883a15776b3a62b9d4283", "lease_holder": "live-v3-absent-copy", "leased_at": "2026-10-07T04:19:07.057748014+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ bin/fm-teardown.sh live-v3-absent-copy
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown live-v3-absent-copy complete (window fm-lab-cleanup:fm-live-v3-absent-copy, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample)
+Backlog: live-v3-absent-copy just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/data/backlog.md - move live-v3-absent-copy to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:01.449281534+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+META PRESENT False
+$ treehouse get --lease --lease-holder reuse-live-v3-absent-copy
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v3 absent-copy satisfied
+$ treehouse get --lease --lease-holder live-v3-foreign-lease
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+$ treehouse get --lease --lease-holder different-task
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "leased": true, "lease_id": "6f94abdad532e9d841a63fdf4b9f596f", "lease_holder": "different-task", "leased_at": "2026-10-07T04:19:09.375851875+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ bin/fm-teardown.sh live-v3-foreign-lease
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+failed to return worktree: lease precondition failed: lease holder does not match worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+error: treehouse return failed for task live-v3-foreign-lease's worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task live-v3-foreign-lease's record is kept for a rerun
+[exit 1]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "leased": true, "lease_id": "6f94abdad532e9d841a63fdf4b9f596f", "lease_holder": "different-task", "leased_at": "2026-10-07T04:19:09.375851875+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+META PRESENT True
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v3 foreign-lease satisfied
+$ treehouse get --lease --lease-holder live-v3-dirty-ship
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+POOL BEFORE {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "leased": true, "lease_id": "5d0804cc72c95f093c9163176ecac071", "lease_holder": "live-v3-dirty-ship", "leased_at": "2026-10-07T04:19:10.695386564+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+$ bin/fm-teardown.sh live-v3-dirty-ship
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: local-only worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample has work not yet merged into main and not on any remote.
+uncommitted changes present (untracked-only leftovers)
+untracked paths (up to 10):
+  untracked.txt
+Merge the branch into local main first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+[exit 1]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "leased": true, "lease_id": "5d0804cc72c95f093c9163176ecac071", "lease_holder": "live-v3-dirty-ship", "leased_at": "2026-10-07T04:19:10.695386564+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+META PRESENT True
+$ treehouse return --force /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+🌳 Worktree returned to pool.
+[exit 0]
+OBSERVED v3 dirty-ship satisfied
+$ tmux -S /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/s kill-server
+[exit 0]

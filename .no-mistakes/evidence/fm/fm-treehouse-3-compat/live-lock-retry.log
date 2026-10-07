@@ -1,0 +1,73 @@
+$ tmux -S /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/s new-session -d -s fm-lab-cleanup "sleep 300"
+[exit 0]
+$ treehouse --version
+v2.3.0
+[exit 0]
+$ treehouse get --lease --lease-holder live-v2-lock
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample
+[exit 0]
+$ git rev-parse --git-path index.lock
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/projects/sample/.git/worktrees/sample/index.lock
+[exit 0]
+$ bin/fm-teardown.sh live-v2-lock
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+failed to return worktree: git read-tree --reset -u a2e6e3be975dc3ee1d4b0d93af84aff50957d291: fatal: Unable to create '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/projects/sample/.git/worktrees/sample/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+teardown: worktree return failed with transient git lock (/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/projects/sample/.git/worktrees/sample/index.lock); waiting 1s and retrying (1/3)
+LAB: released our transient index.lock after the real return failed
+A new version of treehouse is available: v2.3.0 → v3.1.2
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown: worktree return succeeded on retry; lock cleared on its own
+teardown live-v2-lock complete (window fm-lab-cleanup:fm-live-v2-lock, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample)
+Backlog: live-v2-lock just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/data/backlog.md - move live-v2-lock to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v2/lab/pool/.treehouse/sample-c9e6e5/1/sample", "created_at": "2026-10-07T04:18:58.620567381+01:00"}]}
+OBSERVED real lock failure retried successfully; lease released and metadata removed
+$ treehouse --version
+v3.1.2
+[exit 0]
+$ treehouse get --lease --lease-holder live-v3-lock
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample' to release it.
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample
+[exit 0]
+$ git rev-parse --git-path index.lock
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/projects/sample/.git/worktrees/sample/index.lock
+[exit 0]
+$ bin/fm-teardown.sh live-v3-lock
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+failed to return worktree: git read-tree --reset -u be8a4997c16e61a20d1f7def979c5058cb125aae: fatal: Unable to create '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/projects/sample/.git/worktrees/sample/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+teardown: worktree return failed with transient git lock (/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/projects/sample/.git/worktrees/sample/index.lock); waiting 1s and retrying (1/3)
+LAB: released our transient index.lock after the real return failed
+🌳 Worktree returned to pool.
+teardown: worktree return succeeded on retry; lock cleared on its own
+teardown live-v3-lock complete (window fm-lab-cleanup:fm-live-v3-lock, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample)
+Backlog: live-v3-lock just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/data/backlog.md - move live-v3-lock to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit 0]
+POOL AFTER {"version": 4, "worktrees": [{"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/v3/lab/pool/.treehouse/sample-02ac74/1/sample", "created_at": "2026-10-07T04:19:08.966466753+01:00", "seed_inventory_known": true, "seed_inventory_digest": "07cc5254a8dea7edf99893d8bc133a12386dbf59a3ea2a4a7b9d0bd0371142bb"}]}
+OBSERVED real lock failure retried successfully; lease released and metadata removed
+$ tmux -S /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4A57VKWXAXVVTYZ7H6SP6T0/.v/s kill-server
+[exit 0]
