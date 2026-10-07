@@ -46,7 +46,11 @@ SH
 # to FM_FAKE_TREEHOUSE_LEASE_FILE; `return` honours --if-lease-holder against
 # that recorded holder, refusing with treehouse's own `is not leased` text when
 # no holder is recorded, and otherwise removes the target and lease unless
-# FM_FAKE_TREEHOUSE_RETURN_FAIL is set). Echoes the fakebin dir.
+# FM_FAKE_TREEHOUSE_RETURN_FAIL is set). The return contract mirrors the v2.3.0
+# and v3.1.2 release lines, which measure identically for the --force returns
+# every seed/teardown caller passes (the 3.x-only plain-return dirty refusal is
+# modelled by tests/fm-spawn-slot-lease.test.sh and tests/fm-teardown.test.sh).
+# Echoes the fakebin dir.
 make_fake_tmux() {
   local dir=$1 fakebin capture
   fakebin=$(fm_fakebin "$dir")

@@ -26,8 +26,9 @@
 # leases at all.
 #
 # `--if-lease-holder` is what bin/fm-teardown.sh releases every slot through, and
-# the pin bin/fm-install-treehouse.sh carries (v2.3.0) has it. A treehouse older
-# than that cannot run this guard's subject at all, so the guard probes the flag
+# the pin bin/fm-install-treehouse.sh carries (v3.1.2) has it, as does the 2.3.x
+# line hosts run today. A treehouse older than the first release with that flag
+# cannot run this guard's subject at all, so the guard probes the flag
 # through `return --help` - the way bin/fm-bootstrap.sh probes `get --help` for
 # --lease - and skips naming the version and the missing flag.
 #

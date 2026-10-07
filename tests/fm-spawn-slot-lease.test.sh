@@ -29,10 +29,16 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-slot-lease)
 # fails. `return --force <path>` drops that slot's lease, and
 # `--if-lease-holder <holder>` makes that release conditional on the recorded
 # holder - the precondition every teardown return proves ownership with. It
-# mirrors treehouse v2.3.0's own two refusals: `lease holder does not match`
+# mirrors treehouse's own two refusals - identical on the v2.3.0 and v3.1.2
+# lines Firstmate supports: `lease holder does not match`
 # when another holder has it, `is not leased` when nothing does - and, like the
 # vendor, refuses before doing any work, while a return that goes ahead cleans
 # and resets the checkout the way `--force` documents.
+# With FM_FAKE_TREEHOUSE_V3=1 it also models the treehouse 3.x dirty-return
+# contract (measured against v3.1.2): a `return` WITHOUT --force of a dirty
+# checkout refuses with exit 3 and the vendor's own wording, leaving the
+# checkout and its lease untouched, while a --force return still cleans and
+# frees the slot as on 2.3.x.
 # tests/fm-spawn-slot-lease-live-e2e.test.sh exercises both against the real
 # binary.
 # Anything else exits 0.
@@ -92,16 +98,26 @@ fi
 if [ "${1:-}" = return ]; then
   target=""
   want_holder=""
+  force=0
   prev=""
   shift
   for a in "$@"; do
     if [ "$prev" = --if-lease-holder ]; then
       want_holder=$a
     else
-      case "$a" in -*) ;; *) target=$a ;; esac
+      case "$a" in
+        --force) force=1 ;;
+        -*) ;;
+        *) target=$a ;;
+      esac
     fi
     prev=$a
   done
+  if [ "${FM_FAKE_TREEHOUSE_V3:-0}" = 1 ] && [ "$force" = 0 ] && [ -n "$target" ] && [ -d "$target" ] \
+    && [ -n "$(git -C "$target" status --porcelain 2>/dev/null)" ]; then
+    echo "worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF); prune will not reclaim this slot. Use treehouse return --force '$target' to clean and return it" >&2
+    exit 3
+  fi
   slot=$(basename "$(dirname "$target")")
   holder=$(awk -v s="$slot" '$1 == s { print $2; exit }' "$leases")
   if [ -n "$want_holder" ] && [ -z "$holder" ]; then
@@ -725,6 +741,65 @@ test_a_failing_silent_get_warns_that_the_lease_may_be_held() {
   pass "a failing silent get leaves its lease with a may-still-be-held warning"
 }
 
+# Under a treehouse-3.x-shaped fake, every return the abort trap and teardown
+# issue is still a --force return, which is exactly the form 3.x needs to clean
+# and return instead of refusing with exit 3 - so leases still free and slots
+# still reuse with no caller change.
+test_v3_shaped_treehouse_still_frees_leases_through_force_returns() {
+  local rec out status
+  rec=$(make_pool_case v3force 1 2)
+  read_pool_record "$rec"
+
+  # The model itself first: a plain return of a dirty checkout refuses with
+  # exit 3 and the vendor's wording, leaving the checkout and lease untouched.
+  printf 'uncommitted\n' > "$POOL_DIR/1/project/leftover.txt"
+  out=$(FM_FAKE_TREEHOUSE_POOL="$POOL_DIR" FM_FAKE_TREEHOUSE_V3=1 \
+    "$FAKEBIN_DIR/treehouse" return "$POOL_DIR/1/project" 2>&1)
+  [ $? -eq 3 ] \
+    || fail "the v3-shaped fake did not model the 3.x dirty refusal: $out"
+  assert_contains "$out" "worktree not returned: it has uncommitted changes" \
+    "the v3-shaped fake refused without the vendor's dirty wording"
+  rm "$POOL_DIR/1/project/leftover.txt"
+
+  # The abort-path rollback: a get that leases then fails is returned through
+  # the trap's `treehouse return --force`, which a 3.x treehouse accepts.
+  out=$(FM_FAKE_TREEHOUSE_V3=1 FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE=1 \
+    run_pool_spawn lease-v3-getfail-r1 "$POOL_DIR/1/project" --scout)
+  [ $? -ne 0 ] || fail "spawn launched although its lease get failed"
+  [ ! -s "$POOL_DIR/.fake-leases" ] \
+    || fail "the v3-shaped rollback stranded a lease: $(cat "$POOL_DIR/.fake-leases")"
+  grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
+    || fail "the v3-shaped abort path did not return through --force: $(tail -3 "$POOL_DIR/.fake-calls")"
+
+  # Teardown of a clean task: the leased copy goes back through
+  # `return --force --if-lease-holder` and the next spawn reuses the slot.
+  out=$(FM_FAKE_TREEHOUSE_V3=1 run_pool_spawn lease-v3-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "the v3-shaped pool spawn should launch"$'\n'"$out"
+  grep -Fxq "1 lease-v3-r1" "$POOL_DIR/.fake-leases" \
+    || fail "the v3-shaped spawn did not lease its slot: $(cat "$POOL_DIR/.fake-leases")"
+  printf '# Scout findings\n\nNo changes needed.\n' > "$HOME_DIR/data/lease-v3-r1/report.md"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
+    FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
+    "$ROOT/bin/fm-captain-hold.sh" complete lease-v3-r1 --none >/dev/null
+
+  out=$(FM_FAKE_TREEHOUSE_V3=1 run_pool_teardown lease-v3-r1)
+  status=$?
+  expect_code 0 "$status" "v3-shaped teardown of a clean scout should succeed"$'\n'"$out"
+  grep -q "^1 " "$POOL_DIR/.fake-leases" \
+    && fail "the v3-shaped teardown left the task's slot leased: $(cat "$POOL_DIR/.fake-leases")"
+  grep -Fq "return --force --if-lease-holder lease-v3-r1 $POOL_DIR/1/project" \
+    "$POOL_DIR/.fake-calls" \
+    || fail "the v3-shaped teardown did not return through --force --if-lease-holder: $(tail -3 "$POOL_DIR/.fake-calls")"
+
+  out=$(run_pool_spawn lease-v3-reuse-r1 "$POOL_DIR/1/project" --scout)
+  status=$?
+  expect_code 0 "$status" "a spawn after a v3-shaped teardown should launch"$'\n'"$out"
+  assert_grep "worktree=$POOL_DIR/1/project" "$HOME_DIR/state/lease-v3-reuse-r1.meta" \
+    "the next spawn was not handed the copy the v3-shaped teardown freed"
+  pass "a treehouse-3.x-shaped dirty refusal never reaches firstmate's --force returns"
+}
+
 test_leased_slot_is_not_reissued_while_task_exists
 test_teardown_frees_the_lease_for_reuse
 test_a_failing_get_that_recorded_its_lease_returns_it
@@ -741,5 +816,6 @@ test_child_cleanup_refuses_a_preclaim_present_copy_leased_to_another_task
 test_aborted_spawn_keeps_a_dirty_copys_work
 test_failed_send_returns_its_lease
 test_settle_timeout_returns_its_lease
+test_v3_shaped_treehouse_still_frees_leases_through_force_returns
 
 echo "# all fm-spawn-slot-lease tests passed"

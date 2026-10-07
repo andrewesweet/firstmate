@@ -240,6 +240,19 @@
 # (the dying process finishes or exits within seconds) and must never be force-deleted
 # while a live git process might still own it - the fix is patience, not rm.
 #
+# Dirty-not-returned (treehouse 3.x exit 3): treehouse 3.0.0 changed `treehouse
+# return` to exit 3, not 0, when it leaves a dirty worktree in place - the
+# worktree, its uncommitted changes and any lease are left exactly as they were
+# and the slot is not reusable (2.3.0 exited 0 in that situation while ALSO not
+# returning the worktree, the silent no-op 3.0.0 fixed). Every return this
+# script makes passes --force, which cleans and returns on both release lines
+# (measured against v2.3.0 and v3.1.2), so exit 3 here means dirt appeared after
+# the landed-work checks passed or the forced clean itself was refused. Either
+# way the outcome is the same and must never be read as a returned slot:
+# teardown_treehouse_return classifies it (by the exit code or treehouse's own
+# "worktree not returned" wording), fails loudly naming it, and never retries it
+# - a retry cannot clear dirt.
+#
 # On that failure signature only, teardown_treehouse_return:
 #   1. Retries up to FM_TREEHOUSE_RETURN_LOCK_RETRIES times (default 3), waiting
 #      FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS (default 1s; falls back to the older
@@ -1782,13 +1795,26 @@ treehouse_return_is_index_lock_error() {
 # from before task slots were leased - and is raised BEFORE treehouse does any
 # of the work the return asks for, so it means the precondition did not apply,
 # never that the slot was cleaned, reset and returned. Measured against
-# treehouse v2.3.0 (the pin bin/fm-install-treehouse.sh installs), whose
-# refusal carries exactly this text. The other refusal, a lease that is some
-# other task's, needs no signature of its own: every caller treats it like any
-# return failure it cannot name and refuses, leaving that task's slot alone.
+# treehouse v2.3.0 and v3.1.2 (the pins bin/fm-install-treehouse.sh installs
+# across the 2.x and 3.x release lines), whose refusal carries exactly this
+# text on both. The other refusal, a lease that is some other task's, needs no
+# signature of its own: every caller treats it like any return failure it
+# cannot name and refuses, leaving that task's slot alone.
 treehouse_return_is_unleased_refusal() {
   local text=$1
   printf '%s\n' "$text" | grep -Eq 'lease precondition failed: worktree .* is not leased'
+}
+
+# True when a return's outcome is treehouse 3.x's dirty-not-returned abort:
+# the worktree was NOT returned, its uncommitted changes and any lease are
+# intact, and the slot is not reusable. Exit code 3 is the versioned contract
+# (treehouse 3.0.0 release notes); the wording is the human-readable surface,
+# matched too so a text-only signal still classifies. Never a success: the
+# caller must treat this slot as unreturned.
+treehouse_return_is_dirty_refusal() {  # <exit-code> <output>
+  local rc=$1 text=$2
+  [ "$rc" -eq 3 ] && return 0
+  printf '%s\n' "$text" | grep -Eq 'worktree not returned: it has uncommitted changes'
 }
 
 # Absolute path to the git index lock for a worktree/repo dir, or empty when it
@@ -1899,12 +1925,14 @@ teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
 # - the pre-lease behaviour - and a copy already gone counts as returned.
 teardown_treehouse_return() {
   local dir=$1 cd_dir=$2 label=$3 lease_holder=$4 post_cleanup_check=${5:-}
-  local out lock attempt=0 max_retries lock_desc
+  local out rc lock attempt=0 max_retries lock_desc
   local -a return_cmd=(treehouse return --force --if-lease-holder "$lease_holder" "$dir")
 
-  # Capture stdout+stderr so non-lock failures stay visible and lock failures can
-  # be matched by signature even when the lock file is already gone mid-check.
-  if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+  # Capture stdout+stderr and the exit code so non-lock failures stay visible,
+  # lock failures can be matched by signature even when the lock file is already
+  # gone mid-check, and the 3.x dirty exit code (3) survives the capture.
+  out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+  if [ "$rc" -eq 0 ]; then
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
   fi
@@ -1918,10 +1946,21 @@ teardown_treehouse_return() {
       return 0
     fi
     return_cmd=(treehouse return --force "$dir")
-    if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+    out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+    if [ "$rc" -eq 0 ]; then
       [ -n "$out" ] && printf '%s\n' "$out"
       return 0
     fi
+  fi
+  if treehouse_return_is_dirty_refusal "$rc" "$out"; then
+    # treehouse 3.x left the worktree in place: uncommitted changes and any
+    # lease intact, slot not reusable. The landed-work checks passed moments
+    # ago, so dirt here appeared after them or the forced clean was refused -
+    # either way this is never a returned slot. Retry cannot clear dirt, so
+    # abort loudly naming the outcome instead of entering the lock-retry path.
+    echo "error: treehouse return left $label $dir in place: it has uncommitted changes and was not returned (treehouse 3.x exit 3); that slot, its copy and its lease are left exactly as they are and teardown aborts for a rerun once the worktree is known to be idle" >&2
+    [ -n "$out" ] && printf '%s\n' "$out" >&2
+    return 1
   fi
   [ -n "$out" ] && printf '%s\n' "$out" >&2
 
