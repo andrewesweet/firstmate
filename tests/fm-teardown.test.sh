@@ -53,6 +53,13 @@
 #   (w) index.lock mtime read failure                         -> lock kept, REFUSE
 #   (x) transient lock cleared after first failed return      -> retry ALLOW
 #   (y) persistent lock (never clears, not provably stale)    -> REFUSE loudly
+#
+# And the treehouse 3.x dirty-return contract (exit 3 = worktree NOT returned,
+# measured against v3.1.2; every return passes --force, which cleans and
+# returns on both release lines):
+#   (z1) 3.x --force return exit 0                            -> ALLOW (unchanged)
+#   (z2) 3.x exit-3 dirty refusal at the return               -> REFUSE loudly, no retry
+#   (z3) dirty refusal wording with a generic exit code       -> REFUSE loudly
 set -u
 
 # shellcheck source=tests/lib.sh disable=SC1091
@@ -533,6 +540,53 @@ if [ "${1:-}" = return ]; then
   fi
   echo "fatal: Unable to create '$lock': File exists." >&2
   exit 128
+fi
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+}
+
+# Override fakebin/treehouse with the treehouse 3.x dirty-return contract as
+# measured against v3.1.2: a `return` WITHOUT --force of a dirty worktree exits
+# 3 with the vendor's "worktree not returned" wording, leaving the worktree,
+# its changes and any lease untouched, while a --force return cleans and
+# returns with exit 0 - the form every bin/fm-teardown.sh return passes. When
+# FM_FAKE_TREEHOUSE_V3_FORCE_REFUSES is set to an exit code, even the --force
+# return exits that code with the dirty signature: the racy case where dirt
+# appears after teardown's landed-work checks already passed. Every attempt is
+# counted in TREEHOUSE_ATTEMPT_FILE so tests can prove no retry loop ran.
+add_v3_dirty_refusal_treehouse() {
+  local case_dir=$1
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = return ]; then
+  shift
+  force=0
+  wt=""
+  for a in "$@"; do
+    case "$a" in
+      --force) force=1 ;;
+      --if-lease-holder) ;;
+      *) wt=$a ;;
+    esac
+  done
+  count_file="${TREEHOUSE_ATTEMPT_FILE:?}"
+  count=0
+  [ -f "$count_file" ] && count=$(cat "$count_file")
+  count=$(( count + 1 ))
+  printf '%s\n' "$count" > "$count_file"
+  refuse_rc=""
+  if [ "$force" = 0 ] && [ -n "$wt" ] && [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
+    refuse_rc=3
+  fi
+  if [ -n "${FM_FAKE_TREEHOUSE_V3_FORCE_REFUSES:-}" ] && [ "$force" = 1 ]; then
+    refuse_rc=$FM_FAKE_TREEHOUSE_V3_FORCE_REFUSES
+  fi
+  if [ -n "$refuse_rc" ]; then
+    echo "worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF); prune will not reclaim this slot. Use treehouse return --force '$wt' to clean and return it" >&2
+    exit "$refuse_rc"
+  fi
+  exit 0
 fi
 exit 0
 SH
@@ -2315,6 +2369,190 @@ test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds() {
     || fail "transient-index-lock: expected exactly 2 treehouse return attempts, got $(cat "$attempt_file")"
   assert_absent "$lock" "transient-index-lock: lock should remain cleared after success"
   pass "transient index.lock cleared after first failed return is retried successfully without force-remove"
+}
+
+# The treehouse 3.x normal path: a --force return of a landed task exits 0
+# (measured against v3.1.2), so teardown completes unchanged.
+test_v3_force_return_still_completes_teardown() {
+  local case_dir rc attempt_file
+  case_dir=$(make_case v3-force-return)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit "$case_dir" "shippable work"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+
+  add_v3_dirty_refusal_treehouse "$case_dir"
+  attempt_file="$case_dir/treehouse-attempts"
+  : > "$attempt_file"
+
+  set +e
+  TREEHOUSE_ATTEMPT_FILE="$attempt_file" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "v3-force-return: teardown should succeed when the 3.x --force return exits 0"
+  [ ! -e "$case_dir/state/task-x1.meta" ] \
+    || fail "v3-force-return: teardown did not complete"
+  [ "$(cat "$attempt_file")" = 1 ] \
+    || fail "v3-force-return: expected exactly 1 treehouse return attempt, got $(cat "$attempt_file")"
+  pass "a treehouse 3.x --force return exits 0 and teardown completes unchanged"
+}
+
+# treehouse 3.x's dirty-not-returned abort (exit 3) reaching teardown's return
+# means dirt appeared after the landed-work checks passed or the forced clean
+# was refused: the outcome is an unreturned slot, never a success, and no
+# retry can clear it - teardown must abort loudly naming the dirty refusal.
+test_v3_dirty_exit3_refusal_aborts_loudly_without_retry() {
+  local case_dir rc attempt_file
+  case_dir=$(make_case v3-exit3-refusal)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit "$case_dir" "shippable work"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+
+  add_v3_dirty_refusal_treehouse "$case_dir"
+  attempt_file="$case_dir/treehouse-attempts"
+  : > "$attempt_file"
+
+  set +e
+  FM_FAKE_TREEHOUSE_V3_FORCE_REFUSES=3 \
+  TREEHOUSE_ATTEMPT_FILE="$attempt_file" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "v3-exit3-refusal: teardown must fail when the return leaves a dirty worktree"
+  assert_grep "uncommitted changes and was not returned (treehouse 3.x exit 3)" "$case_dir/stderr" \
+    "v3-exit3-refusal: teardown did not name the dirty-not-returned outcome"
+  assert_not_contains "$(cat "$case_dir/stderr")" "transient git lock" \
+    "v3-exit3-refusal: the dirty refusal entered the lock-retry path"
+  [ -e "$case_dir/wt" ] \
+    || fail "v3-exit3-refusal: teardown removed the worktree it failed to return"
+  [ -e "$case_dir/state/task-x1.meta" ] \
+    || fail "v3-exit3-refusal: teardown completed despite the unreturned slot"
+  [ "$(cat "$attempt_file")" = 1 ] \
+    || fail "v3-exit3-refusal: expected exactly 1 treehouse return attempt with no retry, got $(cat "$attempt_file")"
+  pass "a treehouse 3.x exit-3 dirty refusal aborts teardown loudly without retry and leaves the slot as-is"
+}
+
+# The dirty-refusal classification keys off treehouse's wording too, so an
+# unknown exit code carrying the vendor's "worktree not returned" text is
+# still never read as a returned slot.
+test_v3_dirty_wording_with_generic_exit_still_classified() {
+  local case_dir rc attempt_file
+  case_dir=$(make_case v3-wording-refusal)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit "$case_dir" "shippable work"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+
+  add_v3_dirty_refusal_treehouse "$case_dir"
+  attempt_file="$case_dir/treehouse-attempts"
+  : > "$attempt_file"
+
+  set +e
+  FM_FAKE_TREEHOUSE_V3_FORCE_REFUSES=1 \
+  TREEHOUSE_ATTEMPT_FILE="$attempt_file" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "v3-wording-refusal: teardown must fail when the return names a dirty worktree"
+  assert_grep "uncommitted changes and was not returned (treehouse 3.x exit 3)" "$case_dir/stderr" \
+    "v3-wording-refusal: teardown did not name the dirty-not-returned outcome"
+  [ -e "$case_dir/state/task-x1.meta" ] \
+    || fail "v3-wording-refusal: teardown completed despite the unreturned slot"
+  pass "a dirty-not-returned wording with a generic exit code still aborts teardown as unreturned"
+}
+
+assert_v3_dirty_return_refusal() {  # <signal> <return-path>
+  local signal=$1 return_path=$2 case_dir rc=0 lock expected_attempts=1 retries=3
+  case_dir=$(make_case "v3-dirty-$signal-$return_path")
+  write_meta "$case_dir" local-only ship
+  wt_commit "$case_dir" "landed work"
+  git -C "$case_dir/project" update-ref refs/heads/main "$(git -C "$case_dir/wt" rev-parse HEAD)"
+  case "$return_path" in
+    retry|unleased) expected_attempts=2 ;;
+    stale)
+      expected_attempts=2
+      retries=0
+      add_lsof_no_holder "$case_dir"
+      lock=$(git_index_lock_path "$case_dir/wt")
+      : > "$lock"
+      touch -t 200001010000 "$lock"
+      ;;
+  esac
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = return ] || exit 0
+case " $* " in *" --force "*) ;; *) echo 'missing --force' >&2; exit 2 ;; esac
+count=0
+[ ! -f "$TREEHOUSE_ATTEMPT_FILE" ] || count=$(cat "$TREEHOUSE_ATTEMPT_FILE")
+count=$((count + 1))
+printf '%s\n' "$count" > "$TREEHOUSE_ATTEMPT_FILE"
+if [ "$count" -lt "$FM_FAKE_DIRTY_ATTEMPT" ]; then
+  if [ "$FM_FAKE_RETURN_PATH" = unleased ]; then
+    echo "lease precondition failed: worktree 1 is not leased" >&2
+    exit 1
+  fi
+  echo "fatal: Unable to create 'index.lock': File exists." >&2
+  exit 128
+fi
+[ "$count" -eq "$FM_FAKE_DIRTY_ATTEMPT" ] || exit 0
+wt=${*: -1}
+printf 'preserve this race-created work\n' > "$wt/dirty-file"
+case "$FM_FAKE_DIRTY_SIGNAL" in
+  zero-wording)
+    echo 'worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF)' >&2
+    exit 0 ;;
+  declined-wording)
+    echo 'worktree not returned: cleaning declined, so its uncommitted changes remain and prune will not reclaim this slot' >&2
+    exit 1 ;;
+  code-only) echo 'return refused' >&2; exit 3 ;;
+  code-and-lock)
+    echo "fatal: Unable to create 'index.lock': File exists." >&2
+    echo 'worktree not returned: it has uncommitted changes' >&2
+    exit 3 ;;
+esac
+exit 2
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+  TREEHOUSE_ATTEMPT_FILE="$case_dir/attempts" FM_FAKE_DIRTY_ATTEMPT="$expected_attempts" \
+  FM_FAKE_RETURN_PATH="$return_path" FM_FAKE_DIRTY_SIGNAL="$signal" \
+  FM_TREEHOUSE_RETURN_LOCK_RETRIES="$retries" FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS=0 \
+  FM_STALE_WORKTREE_LOCK_AGE_SECS=1 \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 1 "$rc" "$signal/$return_path: dirty refusal must abort teardown"
+  assert_grep 'uncommitted changes and was not returned' "$case_dir/stderr" \
+    "$signal/$return_path: dirty refusal was not named"
+  assert_present "$case_dir/state/task-x1.meta" "$signal/$return_path: task record was removed"
+  assert_grep 'preserve this race-created work' "$case_dir/wt/dirty-file" \
+    "$signal/$return_path: dirty copy was not preserved"
+  [ "$(cat "$case_dir/attempts")" = "$expected_attempts" ] \
+    || fail "$signal/$return_path: return was retried after the dirty refusal"
+  pass "$signal/$return_path preserves dirty work and the task record without retry"
+}
+
+test_v3_dirty_wording_overrides_zero_exit() {
+  assert_v3_dirty_return_refusal zero-wording initial
+}
+
+test_v3_declined_wording_with_generic_exit_is_dirty() {
+  assert_v3_dirty_return_refusal declined-wording initial
+}
+
+test_v3_dirty_exit_during_retry_aborts_without_another_return() {
+  assert_v3_dirty_return_refusal code-only retry
+  assert_v3_dirty_return_refusal code-and-lock retry
+}
+
+test_v3_dirty_refusal_after_unleased_fallback_aborts() {
+  assert_v3_dirty_return_refusal zero-wording unleased
+}
+
+test_v3_dirty_refusal_after_stale_lock_cleanup_aborts() {
+  assert_v3_dirty_return_refusal code-only stale
 }
 
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly() {
@@ -4971,6 +5209,14 @@ test_stale_index_lock_cleanup_rechecks_dirty_worktree
 test_non_linked_index_lock_path_is_checked_from_worktree
 test_index_lock_mtime_read_failure_refuses
 test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds
+test_v3_force_return_still_completes_teardown
+test_v3_dirty_exit3_refusal_aborts_loudly_without_retry
+test_v3_dirty_wording_with_generic_exit_still_classified
+test_v3_dirty_wording_overrides_zero_exit
+test_v3_declined_wording_with_generic_exit_is_dirty
+test_v3_dirty_exit_during_retry_aborts_without_another_return
+test_v3_dirty_refusal_after_unleased_fallback_aborts
+test_v3_dirty_refusal_after_stale_lock_cleanup_aborts
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error

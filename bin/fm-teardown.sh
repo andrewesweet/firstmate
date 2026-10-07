@@ -233,6 +233,17 @@
 #   spawn_gen, a non-tmux backend, or an ambiguous field, still faces the
 #   validator and refuses.
 #
+# Treehouse return compatibility (2.3.x and 3.x): every return this script
+# makes passes --force, which cleans and returns on both release lines.
+# Since Treehouse 3.0.0, a dirty worktree left in place is reported by exit 3;
+# 2.3.0 reports the same refusal with exit 0. After every return attempt,
+# teardown_treehouse_return checks for exit 3 or Treehouse's "worktree not
+# returned" wording about uncommitted changes before accepting success,
+# falling back from an unleased slot, or handling git locks. A dirty refusal
+# aborts loudly without another return, preserving the copy, changes, lease
+# and task record; the slot is never counted as returned. The return-path
+# regressions are in tests/fm-teardown.test.sh.
+#
 # Transient / stale worktree git lock recovery (teardown-lock-race): a crew process
 # killed mid-git-operation can leave a .git/worktrees/<wt>/index.lock (or, for a
 # non-linked worktree, .git/index.lock) that makes `treehouse return` fail
@@ -1782,13 +1793,29 @@ treehouse_return_is_index_lock_error() {
 # from before task slots were leased - and is raised BEFORE treehouse does any
 # of the work the return asks for, so it means the precondition did not apply,
 # never that the slot was cleaned, reset and returned. Measured against
-# treehouse v2.3.0 (the pin bin/fm-install-treehouse.sh installs), whose
-# refusal carries exactly this text. The other refusal, a lease that is some
-# other task's, needs no signature of its own: every caller treats it like any
-# return failure it cannot name and refuses, leaving that task's slot alone.
+# treehouse v2.3.0 and v3.1.2, whose refusal carries exactly this text on both.
+# bin/fm-install-treehouse.sh owns the current CI pin. The other refusal, a
+# lease that is some other task's, needs no
+# signature of its own: every caller treats it like any return failure it
+# cannot name and refuses, leaving that task's slot alone.
 treehouse_return_is_unleased_refusal() {
   local text=$1
   printf '%s\n' "$text" | grep -Eq 'lease precondition failed: worktree .* is not leased'
+}
+
+# See the script header for the dirty-return compatibility contract.
+treehouse_return_is_dirty_refusal() {  # <exit-code> <output>
+  local rc=$1 text=$2
+  [ "$rc" -eq 3 ] && return 0
+  printf '%s\n' "$text" | grep -Eq 'worktree not returned:.*uncommitted changes'
+}
+
+teardown_treehouse_report_dirty_refusal() {  # <exit-code> <output> <dir> <label>
+  local rc=$1 out=$2 dir=$3 label=$4
+  treehouse_return_is_dirty_refusal "$rc" "$out" || return 1
+  echo "error: treehouse return left $label $dir in place: it has uncommitted changes and was not returned (treehouse 3.x exit 3); that slot, its copy and its lease are left exactly as they are and teardown aborts for a rerun once the worktree is known to be idle" >&2
+  [ -z "$out" ] || printf '%s\n' "$out" >&2
+  return 0
 }
 
 # Absolute path to the git index lock for a worktree/repo dir, or empty when it
@@ -1899,12 +1926,17 @@ teardown_return_absent_copy_lease() {  # <task-id> <worktree> <project> <label>
 # - the pre-lease behaviour - and a copy already gone counts as returned.
 teardown_treehouse_return() {
   local dir=$1 cd_dir=$2 label=$3 lease_holder=$4 post_cleanup_check=${5:-}
-  local out lock attempt=0 max_retries lock_desc
+  local out rc lock attempt=0 max_retries lock_desc
   local -a return_cmd=(treehouse return --force --if-lease-holder "$lease_holder" "$dir")
 
-  # Capture stdout+stderr so non-lock failures stay visible and lock failures can
-  # be matched by signature even when the lock file is already gone mid-check.
-  if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+  # Capture stdout+stderr and the exit code so non-lock failures stay visible,
+  # lock failures can be matched by signature even when the lock file is already
+  # gone mid-check, and the 3.x dirty exit code (3) survives the capture.
+  out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+  if teardown_treehouse_report_dirty_refusal "$rc" "$out" "$dir" "$label"; then
+    return 1
+  fi
+  if [ "$rc" -eq 0 ]; then
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
   fi
@@ -1918,7 +1950,11 @@ teardown_treehouse_return() {
       return 0
     fi
     return_cmd=(treehouse return --force "$dir")
-    if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+    out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+    if teardown_treehouse_report_dirty_refusal "$rc" "$out" "$dir" "$label"; then
+      return 1
+    fi
+    if [ "$rc" -eq 0 ]; then
       [ -n "$out" ] && printf '%s\n' "$out"
       return 0
     fi
@@ -1944,7 +1980,11 @@ teardown_treehouse_return() {
     echo "teardown: $label return failed with transient git lock ($lock_desc); waiting ${TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS}s and retrying ($attempt/${max_retries})" >&2
     sleep "$TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS"
 
-    if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+    out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+    if teardown_treehouse_report_dirty_refusal "$rc" "$out" "$dir" "$label"; then
+      return 1
+    fi
+    if [ "$rc" -eq 0 ]; then
       [ -n "$out" ] && printf '%s\n' "$out"
       echo "teardown: $label return succeeded on retry; lock cleared on its own" >&2
       return 0
@@ -1971,7 +2011,11 @@ teardown_treehouse_return() {
           return 1
         fi
       fi
-      if out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); then
+      out=$( ( cd "$cd_dir" && "${return_cmd[@]}" ) 2>&1 ); rc=$?
+      if teardown_treehouse_report_dirty_refusal "$rc" "$out" "$dir" "$label"; then
+        return 1
+      fi
+      if [ "$rc" -eq 0 ]; then
         [ -n "$out" ] && printf '%s\n' "$out"
         echo "teardown: $label return succeeded after stale-lock cleanup" >&2
         return 0

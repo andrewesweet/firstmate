@@ -84,6 +84,12 @@ SH
 if [ "${1:-}" = get ] && [ "${2:-}" = --help ]; then
   if [ "${FM_FAKE_TREEHOUSE_LEASE_HELP:-}" = 1 ]; then
     printf '%s\n' 'Usage: treehouse get [--lease] [--lease-holder <holder>]'
+  elif [ "${FM_FAKE_TREEHOUSE_LEASE_HELP:-}" = v3 ]; then
+    # The flag block `treehouse get --help` printed on v3.1.2, measured.
+    printf '%s\n' \
+      '      --json                   Print lease allocation as JSON (requires --lease)' \
+      '      --lease                  Durably lease a worktree without opening a subshell; print only its path to stdout' \
+      '      --lease-holder string    Optional label recorded as the lease holder (defaults to $TREEHOUSE_LEASE_HOLDER)'
   else
     printf '%s\n' 'Usage: treehouse get'
   fi
@@ -321,6 +327,7 @@ test_bootstrap_reporting() {
     esac
   done <<'ROWS'
 treehouse --lease support is accepted silently^1^0.2.6^1^manual^empty^^
+treehouse 3.x-shaped get --help is accepted silently^v3^0.2.6^1^manual^empty^^
 treehouse without --lease reports an upgrade, gh auth is fine^0^0.2.6^1^-^grep^MISSING: treehouse (install: curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh)^NEEDS_GH_AUTH
 compatible tasks-axi is silent by default^1^0.2.6^1^-^empty^^
 missing tasks-axi is required by default^1^-^1^-^exact^MISSING: tasks-axi (install: npm install -g tasks-axi)^

@@ -13,15 +13,18 @@
 # Usage:
 #   fm-install-treehouse.sh <destination-directory>
 #
-# Pins Treehouse v2.3.0: it carries `return --if-lease-holder`, which
-# bin/fm-teardown.sh requires to prove a slot's lease is the task's own
-# before returning it, and its `status` supports --json (the
-# portable-serial lane asserts that after installing).
+# Pins Treehouse v3.1.2, the 3.x release Firstmate's 2.x/3.x compatibility work
+# was validated against: like the 2.3.x line, it carries `return
+# --if-lease-holder`, which bin/fm-teardown.sh requires to prove a slot's lease
+# is the task's own before returning it, and its `status` supports --json (the
+# portable-serial lane asserts that after installing). CI pins the newer line
+# because both are supported at runtime: hosts still run 2.3.x, and every
+# treehouse caller in bin/ works on either.
 set -eu
 
-FM_TREEHOUSE_CI_VERSION=2.3.0
+FM_TREEHOUSE_CI_VERSION=3.1.2
 FM_TREEHOUSE_CI_TAG="v${FM_TREEHOUSE_CI_VERSION}"
-# Bounded download ceiling (bytes). Official 2.3.0 archives are under 8 MiB.
+# Bounded download ceiling (bytes). Official 3.1.2 archives are under 8 MiB.
 FM_TREEHOUSE_CI_MAX_BYTES=15000000
 FM_TREEHOUSE_CI_REPO=kunchenguid/treehouse
 
@@ -37,19 +40,19 @@ arch=$(uname -m)
 case "${os}-${arch}" in
   Linux-x86_64)
     ARCHIVE=treehouse-v${FM_TREEHOUSE_CI_VERSION}-linux-amd64.tar.gz
-    SHA256=94fd2b2c20c35aac1ddc2941317890ad82c9916f5ccecbac4a50cda783eed10f
+    SHA256=bc059c6dbbcf6b11a741e92aed1d845d5b4a96f1d9c5e6f78c1aa2502669962d
     ;;
   Linux-aarch64|Linux-arm64)
     ARCHIVE=treehouse-v${FM_TREEHOUSE_CI_VERSION}-linux-arm64.tar.gz
-    SHA256=408589ba72b58d5e942071ed863a83fd96566cfd1e514945daa59defde528bbb
+    SHA256=999e6f4888cfd4e6c0b97d49a4857355208bcba080aa2c59902f7fa77b940c0a
     ;;
   Darwin-arm64)
     ARCHIVE=treehouse-v${FM_TREEHOUSE_CI_VERSION}-darwin-arm64.tar.gz
-    SHA256=1cb09bcfa830b4eec5e54beeaa71589adb9c5d828573dda0f5150e2d80cf13d5
+    SHA256=24666ddec346b5fd1f0467f475c647d8e2ce45e80e8a84548eade97b353cbe4b
     ;;
   Darwin-x86_64)
     ARCHIVE=treehouse-v${FM_TREEHOUSE_CI_VERSION}-darwin-amd64.tar.gz
-    SHA256=349afcc13c2beb20d846eb560a11b30e1a5cab8e2dfb22988a36aa7f213b5881
+    SHA256=19a3a79c792139e36c1f5c3e9e0f9fdebe9127f1168b1debb40b4513ffed1319
     ;;
   *)
     die "unsupported platform ${os}-${arch}; official Treehouse assets are linux/darwin amd64 and arm64"
@@ -75,7 +78,7 @@ fi
 [ "$ACTUAL_SHA256" = "$SHA256" ] || die "checksum mismatch for $ARCHIVE (expected $SHA256, got $ACTUAL_SHA256)"
 
 tar -xzf "$TMP/$ARCHIVE" -C "$TMP"
-# Archive layout: a single `treehouse` binary at the archive root (verified for v2.3.0).
+# Archive layout: a single `treehouse` binary at the archive root (verified for v2.3.0 and v3.1.2).
 if [ -f "$TMP/treehouse" ]; then
   BIN="$TMP/treehouse"
 elif [ -f "$TMP/treehouse-v${FM_TREEHOUSE_CI_VERSION}/treehouse" ]; then
@@ -89,7 +92,7 @@ mkdir -p "$DESTINATION"
 install -m 0755 "$BIN" "$DESTINATION/treehouse"
 
 installed_version=$("$DESTINATION/treehouse" --version 2>/dev/null | tr -d '[:space:]')
-# treehouse prints "v2.3.0" (leading v) on --version.
+# treehouse prints "v3.1.2" (leading v) on --version.
 case "$installed_version" in
   "v${FM_TREEHOUSE_CI_VERSION}"|"${FM_TREEHOUSE_CI_VERSION}") ;;
   *)
