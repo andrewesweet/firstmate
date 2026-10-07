@@ -763,9 +763,10 @@ test_v3_shaped_treehouse_still_frees_leases_through_force_returns() {
 
   # The abort-path rollback: a get that leases then fails is returned through
   # the trap's `treehouse return --force`, which a 3.x treehouse accepts.
-  out=$(FM_FAKE_TREEHOUSE_V3=1 FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE=1 \
-    run_pool_spawn lease-v3-getfail-r1 "$POOL_DIR/1/project" --scout)
-  [ $? -ne 0 ] || fail "spawn launched although its lease get failed"
+  if out=$(FM_FAKE_TREEHOUSE_V3=1 FM_FAKE_TREEHOUSE_GET_FAIL_AFTER_LEASE=1 \
+    run_pool_spawn lease-v3-getfail-r1 "$POOL_DIR/1/project" --scout); then
+    fail "spawn launched although its lease get failed"
+  fi
   [ ! -s "$POOL_DIR/.fake-leases" ] \
     || fail "the v3-shaped rollback stranded a lease: $(cat "$POOL_DIR/.fake-leases")"
   grep -Fq "return --force $POOL_DIR/1/project" "$POOL_DIR/.fake-calls" \
