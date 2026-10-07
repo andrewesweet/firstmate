@@ -2466,6 +2466,95 @@ test_v3_dirty_wording_with_generic_exit_still_classified() {
   pass "a dirty-not-returned wording with a generic exit code still aborts teardown as unreturned"
 }
 
+assert_v3_dirty_return_refusal() {  # <signal> <return-path>
+  local signal=$1 return_path=$2 case_dir rc=0 lock expected_attempts=1 retries=3
+  case_dir=$(make_case "v3-dirty-$signal-$return_path")
+  write_meta "$case_dir" local-only ship
+  wt_commit "$case_dir" "landed work"
+  git -C "$case_dir/project" update-ref refs/heads/main "$(git -C "$case_dir/wt" rev-parse HEAD)"
+  case "$return_path" in
+    retry|unleased) expected_attempts=2 ;;
+    stale)
+      expected_attempts=2
+      retries=0
+      add_lsof_no_holder "$case_dir"
+      lock=$(git_index_lock_path "$case_dir/wt")
+      : > "$lock"
+      touch -t 200001010000 "$lock"
+      ;;
+  esac
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = return ] || exit 0
+case " $* " in *" --force "*) ;; *) echo 'missing --force' >&2; exit 2 ;; esac
+count=0
+[ ! -f "$TREEHOUSE_ATTEMPT_FILE" ] || count=$(cat "$TREEHOUSE_ATTEMPT_FILE")
+count=$((count + 1))
+printf '%s\n' "$count" > "$TREEHOUSE_ATTEMPT_FILE"
+if [ "$count" -lt "$FM_FAKE_DIRTY_ATTEMPT" ]; then
+  if [ "$FM_FAKE_RETURN_PATH" = unleased ]; then
+    echo "lease precondition failed: worktree 1 is not leased" >&2
+    exit 1
+  fi
+  echo "fatal: Unable to create 'index.lock': File exists." >&2
+  exit 128
+fi
+[ "$count" -eq "$FM_FAKE_DIRTY_ATTEMPT" ] || exit 0
+wt=${*: -1}
+printf 'preserve this race-created work\n' > "$wt/dirty-file"
+case "$FM_FAKE_DIRTY_SIGNAL" in
+  zero-wording)
+    echo 'worktree not returned: it has uncommitted changes and the confirmation could not be answered (stdin reached EOF)' >&2
+    exit 0 ;;
+  declined-wording)
+    echo 'worktree not returned: cleaning declined, so its uncommitted changes remain and prune will not reclaim this slot' >&2
+    exit 1 ;;
+  code-only) echo 'return refused' >&2; exit 3 ;;
+  code-and-lock)
+    echo "fatal: Unable to create 'index.lock': File exists." >&2
+    echo 'worktree not returned: it has uncommitted changes' >&2
+    exit 3 ;;
+esac
+exit 2
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+  TREEHOUSE_ATTEMPT_FILE="$case_dir/attempts" FM_FAKE_DIRTY_ATTEMPT="$expected_attempts" \
+  FM_FAKE_RETURN_PATH="$return_path" FM_FAKE_DIRTY_SIGNAL="$signal" \
+  FM_TREEHOUSE_RETURN_LOCK_RETRIES="$retries" FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS=0 \
+  FM_STALE_WORKTREE_LOCK_AGE_SECS=1 \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 1 "$rc" "$signal/$return_path: dirty refusal must abort teardown"
+  assert_grep 'uncommitted changes and was not returned' "$case_dir/stderr" \
+    "$signal/$return_path: dirty refusal was not named"
+  assert_present "$case_dir/state/task-x1.meta" "$signal/$return_path: task record was removed"
+  assert_grep 'preserve this race-created work' "$case_dir/wt/dirty-file" \
+    "$signal/$return_path: dirty copy was not preserved"
+  [ "$(cat "$case_dir/attempts")" = "$expected_attempts" ] \
+    || fail "$signal/$return_path: return was retried after the dirty refusal"
+  pass "$signal/$return_path preserves dirty work and the task record without retry"
+}
+
+test_v3_dirty_wording_overrides_zero_exit() {
+  assert_v3_dirty_return_refusal zero-wording initial
+}
+
+test_v3_declined_wording_with_generic_exit_is_dirty() {
+  assert_v3_dirty_return_refusal declined-wording initial
+}
+
+test_v3_dirty_exit_during_retry_aborts_without_another_return() {
+  assert_v3_dirty_return_refusal code-only retry
+  assert_v3_dirty_return_refusal code-and-lock retry
+}
+
+test_v3_dirty_refusal_after_unleased_fallback_aborts() {
+  assert_v3_dirty_return_refusal zero-wording unleased
+}
+
+test_v3_dirty_refusal_after_stale_lock_cleanup_aborts() {
+  assert_v3_dirty_return_refusal code-only stale
+}
+
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly() {
   local case_dir rc lock
   case_dir=$(make_case persistent-index-lock)
@@ -5123,6 +5212,11 @@ test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds
 test_v3_force_return_still_completes_teardown
 test_v3_dirty_exit3_refusal_aborts_loudly_without_retry
 test_v3_dirty_wording_with_generic_exit_still_classified
+test_v3_dirty_wording_overrides_zero_exit
+test_v3_declined_wording_with_generic_exit_is_dirty
+test_v3_dirty_exit_during_retry_aborts_without_another_return
+test_v3_dirty_refusal_after_unleased_fallback_aborts
+test_v3_dirty_refusal_after_stale_lock_cleanup_aborts
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error

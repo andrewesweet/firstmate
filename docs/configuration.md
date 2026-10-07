@@ -2577,7 +2577,7 @@ FM_INBOX_ASK_MODEL=     # overrides config/inbox-ask-model for fm-inbox.sh ask
 FM_INBOX_PROFILE=       # overrides config/inbox-profile; explicitly empty forces ambient credentials
 ```
 
-`fm-teardown.sh` retries only Git's `Unable to create '...index.lock': File exists` return failure up to `FM_TREEHOUSE_RETURN_LOCK_RETRIES` times.
+`fm-teardown.sh` applies `FM_TREEHOUSE_RETURN_LOCK_RETRIES` only to retryable Git lock failures; its [header](../bin/fm-teardown.sh) owns return-failure classification and recovery, including the precedence of dirty-worktree refusals over success and retries.
 `FM_TREEHOUSE_RETURN_LOCK_RETRIES` accepts a nonnegative integer, and an unset, blank, or invalid value uses the default of 3.
 
 `FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS` accepts nonnegative whole or fractional seconds between attempts.
