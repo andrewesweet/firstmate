@@ -999,7 +999,7 @@ The file is a captain-wide preference, so it is inherited into secondmate homes 
 
 The optional local, gitignored `config/crew-exclude-tools` hides named tools from this home's ship and scout workers, for example to keep an MCP server's write tools out of reach while its read tools stay available.
 The contract is runtime-neutral: a runtime must support hiding the listed tool names or refuse the launch, and a non-empty list is never silently ignored.
-With no file, or a file with no entries, every launch on every runtime is unchanged.
+With no file, or a file with no entries, every launch on every runtime is unchanged, except the pi and pi-signed ship and scout launches described below, which always exclude the three tracked primary-extension tool names.
 
 Create the file with one tool name per line, such as `mcp__<server>__<tool>` for an MCP tool.
 Blank lines and lines beginning with `#` are allowed, and surrounding whitespace on a line is trimmed; a trailing comment on an entry line is not allowed.
@@ -1011,7 +1011,7 @@ It does not apply to a secondmate's own agent, which neither reads nor refuses o
 
 | Runtime | With a non-empty list |
 | --- | --- |
-| `pi`, `pi-signed` | Hides listed tool names, MCP tools included, on every ship and scout spawn and relaunch. |
+| `pi`, `pi-signed` | Hides listed tool names, MCP tools included, on every ship and scout spawn and relaunch. These launches also always hide `fm_branch_outcomes`, `fm_branch_processed`, and `fm_watch_arm_pi` — the tools the tracked primary extensions register (.pi/extensions/, auto-discovered in a trusted firstmate-repo worktree) — unioned with the file's entries in one flag, because Pi's parser keeps only the last `--exclude-tools`. A secondmate keeps them: it is a primary. |
 | Every other runtime, and a raw launch command | The launch refuses with an error naming `config/crew-exclude-tools`, because that runtime has no verified way to hide tools. |
 
 A relaunch validates the list and the replacement runtime's support before stopping the running worker, so an exclusion-list refusal preserves the running agent.
