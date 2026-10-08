@@ -886,15 +886,17 @@ test_pi_exclude_tools_follow_the_relaunch() {
   printf '%s\n' '# hide writes' 'mcp__srv__writeTool' 'mcp__srv__adminTool' > "$dir/home/config/crew-exclude-tools"
   out=$(run_control "$dir" "$id" relaunch --note "keep exclusions"); rc=$?
   expect_code 0 "$rc" "a Pi relaunch with exclusions should succeed"$'\n'"$out"
-  assert_contains "$(cat "$dir/fake/literal")" "--exclude-tools 'mcp__srv__writeTool,mcp__srv__adminTool'" \
+  assert_contains "$(cat "$dir/fake/literal")" "--exclude-tools 'mcp__srv__writeTool,mcp__srv__adminTool,fm_branch_outcomes,fm_branch_processed,fm_watch_arm_pi'" \
     "the relaunched Pi worker must keep the home's tool exclusions"
   rm "$dir/home/config/crew-exclude-tools"
   : > "$dir/fake/literal"
   printf pi > "$dir/fake/command"
   out=$(run_control "$dir" "$id" relaunch --note "exclusions removed"); rc=$?
   expect_code 0 "$rc" "a Pi relaunch after the file is removed should succeed"$'\n'"$out"
-  assert_not_contains "$(cat "$dir/fake/literal")" "--exclude-tools" \
-    "a relaunch without the file must launch with no exclusions"
+  assert_contains "$(cat "$dir/fake/literal")" "--exclude-tools 'fm_branch_outcomes,fm_branch_processed,fm_watch_arm_pi'" \
+    "a relaunch without the file keeps only the crewmate extension-tool exclusions"
+  assert_not_contains "$(cat "$dir/fake/literal")" "mcp__srv__" \
+    "a relaunch without the file must drop the home's configured exclusions"
   pass "fm-control relaunch: a Pi replacement keeps the home's tool exclusions"
 }
 
