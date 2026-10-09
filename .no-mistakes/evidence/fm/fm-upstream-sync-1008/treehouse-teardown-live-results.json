@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Clean up a landed local-only worker through fm-teardown, free its real Treehouse 3 lease, and record closure spend",
+    "result": "pass",
+    "live": true,
+    "evidence": "treehouse-teardown-live.log; treehouse-closure-spend.json",
+    "reason": ""
+  }
+]

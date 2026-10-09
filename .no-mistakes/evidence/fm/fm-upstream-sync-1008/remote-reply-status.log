@@ -1,0 +1,4 @@
+note: ordinary progress without correlation
+needs-decision [key=relay-choice]: pick a format
+blocked [key=remote-reply-continuity-relay] [at=1791518391]: remote reply continuity broke for relay (truncated) at offset 93 prefix cf0c6ebdae00 retirements 0
+blocked [key=remote-reply-continuity-relay] [at=1791518392]: remote reply continuity broke for relay (truncated) at offset 93 prefix cf0c6ebdae00 retirements 1

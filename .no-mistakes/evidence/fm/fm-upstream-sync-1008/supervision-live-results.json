@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Wake an idle Claude primary twice and keep its successor watcher alive",
+    "result": "untested",
+    "live": false,
+    "evidence": "supervision-live.log",
+    "reason": "The real Claude primary reached READY, but the existing primary-scope guard disables the tracked Stop hook in this linked gate worktree. The allowed lab-home marker permits lifecycle commands but does not change that hook scope. Provide authority and an isolated plain-checkout primary permitted by the live runbook to exercise native async hand-back."
+  }
+]

@@ -1,0 +1,85 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+[exit=0]
+$ bin/fm-lab-home.sh tmux-dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+/tmp/fml.YjkWmQ
+[exit=0]
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2 codex
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{socket_path},#{pid},0
+/tmp/fml.YjkWmQ/tmux-1001/fm-lab,1399723,0
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/origin init -q -b main
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/origin add README.md treehouse.toml
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/origin -c user.name=Firstmate Tests -c user.email=tests@example.invalid commit -qm lab project
+[exit=0]
+$ git clone --quiet /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/origin /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample
+[exit=0]
+$ bin/fm-spawn.sh missing-intent /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/data/missing-intent/brief.md records no ship branch; defaulting to legacy branch fm/missing-intent
+error: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/data/missing-intent/brief.md has no ## Published intent subsection (a brief from before the published-intent contract); stop for migration before spawn: firstmate adds it, filled per the repo's visibility, so no-mistakes --intent never falls back to the captain's private ## Captain's intent words
+[exit=1]
+$ bin/fm-spawn.sh mode-drift /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/data/mode-drift/brief.md records no ship branch; defaulting to legacy branch fm/mode-drift
+error: delivery mismatch for mode-drift: the brief says mode=direct-PR but this spawn passed --mode no-mistakes; correct the flag or re-scaffold the brief so the worker's instructions and the task record agree
+[exit=1]
+$ bin/fm-spawn.sh cannot-hide /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+error: config/crew-exclude-tools lists tools to hide, but the codex runtime cannot hide tools, so this launch is refused rather than running with them available; empty the file or launch a runtime that supports exclusion (pi, pi-signed)
+[exit=1]
+$ bin/fm-spawn.sh malformed-tools /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness pi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+error: config/crew-exclude-tools has a malformed entry 'invalid tool name'; expected one tool name per line using only letters, digits, _ . and - (blank lines and # comment lines are allowed)
+[exit=1]
+$ bin/fm-spawn.sh holder /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/data/holder/brief.md records no ship branch; defaulting to legacy branch fm/holder
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample' to release it.
+spawned holder harness=codex kind=ship mode=no-mistakes yolo=off window=primary:fm-holder worktree=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample
+[exit=0]
+Treehouse durable holder: {"name": "1", "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample", "created_at": "2026-10-09T05:02:40.954011875+01:00", "leased": true, "lease_id": "45d8e754242cd5ea0ad2b1bb675ad196", "lease_holder": "holder", "leased_at": "2026-10-09T05:02:40.973945546+01:00", "seed_inventory_known": true, "seed_inventory_digest": "b446507f9d65a2e5f198a7ad9e997ded4a023ef379407ad88c95a94bc497db7e"}
+$ tmux -L fm-lab list-windows -a -F #{window_id}:#{window_name}
+@0:codex
+@1:fm-holder
+[exit=0]
+$ bin/fm-spawn.sh queued /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+deferred: project sample admits 1 worker(s) at once on this machine (/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/config/project-capacity) and 1 already hold a place (holder); task queued was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+[exit=75]
+$ tmux -L fm-lab list-windows -a -F #{window_id}:#{window_name}
+@0:codex
+@1:fm-holder
+[exit=0]
+$ bin/fm-spawn.sh queued /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample --mode no-mistakes --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/data/queued/brief.md records no ship branch; defaulting to legacy branch fm/queued
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/2/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/2/sample' to release it.
+spawned queued harness=codex kind=ship mode=no-mistakes yolo=off window=primary:fm-queued worktree=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/2/sample
+[exit=0]
+Observed: one real Codex endpoint holds a leased slot; a second spawn exits 75 with no new endpoint, brief overlay, or record; recorded PR handoff permits the second real launch.
+$ treehouse return --force --if-lease-holder holder /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample
+🌳 Terminated lingering processes: bash (1405236), codex (1407694)
+🌳 Worktree returned to pool.
+[exit=0]
+$ treehouse return --force --if-lease-holder queued /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/2/sample
+🌳 Terminated lingering processes: bash (1411810), codex (1414634)
+🌳 Worktree returned to pool.
+[exit=0]
+$ tmux -L fm-lab kill-server
+[exit=0]
+$ bin/fm-lab-home.sh teardown /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2
+[exit=0]

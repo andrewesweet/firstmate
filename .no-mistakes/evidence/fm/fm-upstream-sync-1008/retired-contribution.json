@@ -1,0 +1,22 @@
+{
+  "schema": "fm-contributions.v1",
+  "task": "gone-pr",
+  "records": [
+    {
+      "url": "https://github.com/example/deleted-repo/pull/1",
+      "kind": "pr",
+      "checked_at": null,
+      "error": "permanently gone",
+      "pending": [],
+      "seen": [],
+      "notified": [],
+      "observation": null,
+      "verdict": null,
+      "retired": {
+        "actor": "captain",
+        "reason": "Repository was deleted; stop observing this saved contribution.",
+        "at": "2026-10-09T03:59:52Z"
+      }
+    }
+  ]
+}

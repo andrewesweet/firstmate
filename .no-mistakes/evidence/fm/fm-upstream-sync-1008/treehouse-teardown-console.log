@@ -1,0 +1,47 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+[exit=0]
+$ bin/fm-lab-home.sh tmux-dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+/tmp/fml.tW99y9
+[exit=0]
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq codex
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{socket_path},#{pid},0
+/tmp/fml.tW99y9/tmux-1001/fm-lab,2264075,0
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/origin init -q -b main
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/origin add README.md treehouse.toml
+[exit=0]
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/origin -c user.name=Firstmate Tests -c user.email=tests@example.invalid commit -qm lab project
+[exit=0]
+$ git clone --quiet /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/origin /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/projects/sample
+[exit=0]
+$ bin/fm-spawn.sh landed /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/projects/sample --mode local-only --yolo off --backend tmux --harness codex --no-alt-screen
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/data/landed/brief.md records no ship branch; defaulting to legacy branch fm/landed
+notice: landed ships mode=local-only while the standing posture for sample is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/pool/.treehouse/sample-8dc75c/1/sample. Run 'treehouse return ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/pool/.treehouse/sample-8dc75c/1/sample' to release it.
+spawned landed harness=codex kind=ship mode=local-only yolo=off window=primary:fm-landed worktree=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/pool/.treehouse/sample-8dc75c/1/sample
+[exit=0]
+$ bin/fm-teardown.sh landed
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+teardown: reaping leaked worktree process(es) for landed: 2264612 2265322 2266204
+teardown: force-killing leaked worktree process(es) for landed: 2264612
+🌳 Worktree returned to pool.
+teardown landed complete (window primary:fm-landed, worktree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/pool/.treehouse/sample-8dc75c/1/sample)
+Backlog: landed just finished (config/backlog-backend selects manual editing). Update /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/data/backlog.md - move landed to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[exit=0]
+Recorded closure spend: [{"schema": 2, "task": "landed", "kind": "ship", "harness": "codex", "model": "default", "effort": "default", "window": null, "calls": null, "mean_context_tokens": null, "cache_read_share": null, "usd_lane": "unmeasured", "usd": null, "models": [], "unmeasured_reason": "no task-owned activity bound available", "pipeline_runs": 0, "pipeline_invocations": 0, "pipeline_input_tokens": 0, "pipeline_output_tokens": 0, "pipeline_cache_read_tokens": 0, "pipeline_cache_creation_tokens": 0, "pipeline_agent_ms": 0, "pipeline_unmeasured_invocations": 0, "pipeline_unmeasured_ms": 0, "pipeline_usd": null, "pipeline_cost_lane": "unmeasured", "pipeline_note": "no-mistakes repo not resolved for /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/projects/sample or /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq/pool/.treehouse/sample-8dc75c/1/sample", "ts": "2026-10-09T04:21:22Z", "outcome": "local-main"}]
+$ tmux -L fm-lab kill-server
+[exit=0]
+$ bin/fm-lab-home.sh teardown /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-return._otqr3jq
+[exit=0]

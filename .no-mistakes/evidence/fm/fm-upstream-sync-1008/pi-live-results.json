@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Use Pi 1.1 with Calm, toggle during a live model turn, and finish a second turn without stale widgets",
+    "result": "pass",
+    "live": true,
+    "evidence": "pi-working-calm-on.html; pi-settled-calm-off.html; pi-second-settled-calm-on.html; pi-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Run Pi with a combined tool denylist and observe the configured tool missing from its active runtime registry",
+    "result": "pass",
+    "live": true,
+    "evidence": "pi-active-tools.json; pi-live.log",
+    "reason": ""
+  }
+]

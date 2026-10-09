@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Arm the daily startup check, grow memory, receive one due warning, and disarm it",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Mirror remote reply bytes, reject a broken prefix, and report a later break after retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Retire a permanently gone contribution with provenance and enforce retirement guards",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  }
+]

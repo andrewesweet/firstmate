@@ -1,0 +1,164 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-host.0ei1rvrw
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-host.0ei1rvrw
+[exit=0]
+$ bin/fm-lab-home.sh tmux-dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-host.0ei1rvrw
+/tmp/fml.BIArEX
+[exit=0]
+$ tmux -L fm-lab new-session -d -s primary -x 160 -y 45 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-host.0ei1rvrw -e FM_POLL=1 -e FM_SIGNAL_GRACE=0 -e FM_CHECK_INTERVAL=999999 -e FM_HEARTBEAT=999999 -e CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{pane_pid}
+1867071
+[exit=0]
+$ tmux -L fm-lab send-keys -t primary -l This is an isolated Firstmate validation lab. Reply with exactly READY now and use no tools. Later whenever Stop hook feedback wakes you, run bin/fm-wake-drain.sh once, then run the exact bin/fm-wake-drain.sh --ack-through command printed in WAKE_ACK_REQUIRED, then reply ACKED. Never run any other command and never arm a watcher yourself.
+[exit=0]
+$ tmux -L fm-lab send-keys -t primary Enter
+[exit=0]
+SCREEN host-not-started
+ ▐▛███▛█   Claude Code v2.1.295
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH
+
+
+❯ This is an isolated Firstmate validation lab. Reply with exactly READY now and use no tools. Later whenever Stop hook feedback wakes you, run
+  bin/fm-wake-drain.sh once, then run the exact bin/fm-wake-drain.sh --ack-through command printed in WAKE_ACK_REQUIRED, then reply ACKED. Never run any other
+  command and never arm a watcher yourself.
+
+● READY
+
+✻ Cogitated for 15s · done 5:07 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Traceback (most recent call last):
+  File "/home/cti/.no-mistakes/evidence/01M4FC0EXAEYKAXXQKZKTGBDFH/supervision-live.py", line 50, in <module>
+    if not wait(host_live,90):raise RuntimeError('The real Claude Stop hook did not park a supervision host: '+capture('host-not-started'))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: The real Claude Stop hook did not park a supervision host:  ▐▛███▛█   Claude Code v2.1.295
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH
+
+
+❯ This is an isolated Firstmate validation lab. Reply with exactly READY now and use no tools. Later whenever Stop hook feedback wakes you, run
+  bin/fm-wake-drain.sh once, then run the exact bin/fm-wake-drain.sh --ack-through command printed in WAKE_ACK_REQUIRED, then reply ACKED. Never run any other
+  command and never arm a watcher yourself.
+
+● READY
+
+✻ Cogitated for 15s · done 5:07 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCREEN diagnostic
+ ▐▛███▛█   Claude Code v2.1.295
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH
+
+
+❯ This is an isolated Firstmate validation lab. Reply with exactly READY now and use no tools. Later whenever Stop hook feedback wakes you, run
+  bin/fm-wake-drain.sh once, then run the exact bin/fm-wake-drain.sh --ack-through command printed in WAKE_ACK_REQUIRED, then reply ACKED. Never run any other
+  command and never arm a watcher yourself.
+
+● READY
+
+✻ Cogitated for 15s · done 5:07 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ tmux -L fm-lab kill-server
+[exit=0]
+$ bin/fm-lab-home.sh teardown /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-host.0ei1rvrw
+[exit=0]

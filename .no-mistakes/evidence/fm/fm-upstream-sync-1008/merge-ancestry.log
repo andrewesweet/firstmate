@@ -1,0 +1,12 @@
+$ git show --format=%H%nparents=%P%nsubject=%s --no-patch f0ff87ef
+f0ff87efbe98037d697b2e5aa27b34a012e48314
+parents=484dce4a5b09065b43aca2d1e6654399c050ea1e 19fcbbde12c4e916e0d5faa60c399d2fd2845740
+subject=Merge remote-tracking branch 'upstream/main' into fm/fm-upstream-sync-1008
+exit=0
+$ git rev-list --count e5b9dddc..19fcbbde
+25
+exit=0
+$ git merge-base --is-ancestor 19fcbbde fb984c64
+exit=0
+$ git merge-base --is-ancestor 484dce4a fb984c64
+exit=0

@@ -1,0 +1,79 @@
+[
+  {
+    "name": "Arm the daily startup check, grow memory, receive one due warning, and disarm it",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Mirror remote reply bytes, reject a broken prefix, and report a later break after retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Retire a permanently gone contribution with provenance and enforce retirement guards",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Reject missing published intent, delivery-mode drift, and unsupported or malformed tool exclusions before provisioning",
+    "result": "pass",
+    "live": true,
+    "evidence": "capacity-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Spawn a worker at capacity one, defer the next worker, and admit it after a PR handoff",
+    "result": "pass",
+    "live": true,
+    "evidence": "capacity-live.log; capacity-task-records.json",
+    "reason": ""
+  },
+  {
+    "name": "Use Pi 1.1 with Calm, toggle during a live model turn, and finish a second turn without stale widgets",
+    "result": "pass",
+    "live": true,
+    "evidence": "pi-working-calm-on.html; pi-settled-calm-off.html; pi-second-settled-calm-on.html; pi-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Run Pi with a combined tool denylist and observe the configured tool missing from its active runtime registry",
+    "result": "pass",
+    "live": true,
+    "evidence": "pi-active-tools.json; pi-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Stop a watcher during a real blocked tmux pane read and reap the read process promptly",
+    "result": "pass",
+    "live": true,
+    "evidence": "watcher-live.log; watcher-product.log",
+    "reason": ""
+  },
+  {
+    "name": "Deliver a pending secondmate request and resolve it only from its own log with an exact correlation token",
+    "result": "pass",
+    "live": true,
+    "evidence": "pending-live.log; pending-reply-state.json",
+    "reason": ""
+  },
+  {
+    "name": "Clean up a landed local-only worker through fm-teardown, free its real Treehouse 3 lease, and record closure spend",
+    "result": "pass",
+    "live": true,
+    "evidence": "treehouse-teardown-live.log; treehouse-closure-spend.json",
+    "reason": ""
+  },
+  {
+    "name": "Wake an idle Claude primary twice and keep its successor watcher alive",
+    "result": "untested",
+    "live": false,
+    "evidence": "supervision-live.log",
+    "reason": "The real Claude primary reached READY, but the existing primary-scope guard disables the tracked Stop hook in this linked gate worktree. The allowed lab-home marker permits lifecycle commands but does not change that hook scope. Provide authority and an isolated plain-checkout primary permitted by the live runbook to exercise native async hand-back."
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Reject missing published intent, delivery-mode drift, and unsupported or malformed tool exclusions before provisioning",
+    "result": "pass",
+    "live": true,
+    "evidence": "capacity-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Spawn a worker at capacity one, defer the next worker, and admit it after a PR handoff",
+    "result": "pass",
+    "live": true,
+    "evidence": "capacity-live.log; capacity-task-records.json",
+    "reason": ""
+  }
+]

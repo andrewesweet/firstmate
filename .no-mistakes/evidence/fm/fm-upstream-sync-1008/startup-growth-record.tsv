@@ -1,0 +1,14 @@
+schema	fm-startup-growth-check-v1
+last_eval	87401
+AGENTS.md	tracked	present	50637	50637
+CLAUDE.md	tracked	present	90	90
+bin/fm-session-start.sh	tracked	present	57141	57141
+bin/fm-bootstrap.sh	tracked	present	83715	83715
+bin/fm-supervision-instructions.sh	tracked	present	10437	10437
+data/projects.md	printed-memory	absent	0	-
+data/secondmates.md	printed-memory	absent	0	-
+data/captain.md	memory	absent	0	-
+data/captain-shared.md	memory	absent	0	-
+data/learnings.md	memory	present	909	909
+memory_budget	7500	303	within-budget	
+reported	memory growth data/learnings.md +300 estimated_tokens (+900 bytes, total 909 bytes)

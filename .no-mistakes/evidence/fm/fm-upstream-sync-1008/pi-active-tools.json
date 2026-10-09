@@ -1,0 +1,20 @@
+{
+  "stage": "start",
+  "all": [
+    "read",
+    "bash",
+    "powershell",
+    "edit",
+    "grep",
+    "find",
+    "ls"
+  ],
+  "active": [
+    "read",
+    "bash",
+    "edit",
+    "grep",
+    "find",
+    "ls"
+  ]
+}

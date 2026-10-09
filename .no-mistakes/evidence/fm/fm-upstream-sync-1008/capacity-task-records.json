@@ -1,0 +1,46 @@
+{
+  "holder": {
+    "window": "primary:fm-holder",
+    "endpoint_task_id": "holder",
+    "worktree": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample",
+    "project": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample",
+    "harness": "codex",
+    "kind": "ship",
+    "mode": "no-mistakes",
+    "yolo": "off",
+    "branch": "fm/holder",
+    "tasktmp": "/tmp/fm-holder",
+    "model": "default",
+    "effort": "default",
+    "spawn_gen": "s1791518561.1403875.10058",
+    "spawn_epoch_first": "1791518561",
+    "pr": "https://github.com/example/lab/pull/1"
+  },
+  "queued": {
+    "window": "primary:fm-queued",
+    "endpoint_task_id": "queued",
+    "worktree": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/2/sample",
+    "project": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/projects/sample",
+    "harness": "codex",
+    "kind": "ship",
+    "mode": "no-mistakes",
+    "yolo": "off",
+    "branch": "fm/queued",
+    "tasktmp": "/tmp/fm-queued",
+    "model": "default",
+    "effort": "default",
+    "spawn_gen": "s1791518565.1409802.31505",
+    "spawn_epoch_first": "1791518565"
+  },
+  "lease": {
+    "name": "1",
+    "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-capacity.xs577om2/pool/.treehouse/sample-c9cef9/1/sample",
+    "created_at": "2026-10-09T05:02:40.954011875+01:00",
+    "leased": true,
+    "lease_id": "45d8e754242cd5ea0ad2b1bb675ad196",
+    "lease_holder": "holder",
+    "leased_at": "2026-10-09T05:02:40.973945546+01:00",
+    "seed_inventory_known": true,
+    "seed_inventory_digest": "b446507f9d65a2e5f198a7ad9e997ded4a023ef379407ad88c95a94bc497db7e"
+  }
+}

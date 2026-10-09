@@ -1,0 +1,37 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98
+[exit=0]
+$ bin/fm-lab-home.sh tmux-dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98
+/tmp/fml.eV34Xs
+[exit=0]
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98 claude
+[exit=0]
+$ tmux -L fm-lab new-window -d -t primary: -n fm-probe -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98 -e FM_TASK_ID=probe claude
+[exit=0]
+$ tmux -L fm-lab set-option -w -t primary:fm-probe automatic-rename off
+[exit=0]
+$ tmux -L fm-lab set-option -w -t primary:fm-probe allow-rename off
+[exit=0]
+$ tmux -L fm-lab list-windows -a -F #{session_name}:#{window_name}
+primary:claude
+primary:fm-probe
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{pid}
+2213285
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{pane_pid}
+2213286
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{socket_path},#{pid},0
+/tmp/fml.eV34Xs/tmux-1001/fm-lab,2213285,0
+[exit=0]
+Paused only the lab tmux server at actual pane-capture staging .fm-capture-output.F1qpQr
+Blocked-read process evidence:
+2213677 2213259 2213677 bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/bin/fm-watch.sh
+2214347 2213677 2214347 bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/bin/fm-watch.sh
+Actual blocked capture client PID(s): [2214363]
+Observed watcher exit=-15 within 0.114s; blocked real capture clients were reaped or dead.
+$ tmux -L fm-lab kill-server
+[exit=0]
+$ bin/fm-lab-home.sh teardown /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-watch.9_dysh98
+[exit=0]

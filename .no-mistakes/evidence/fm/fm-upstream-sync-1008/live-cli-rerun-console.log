@@ -1,0 +1,176 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96
+[exit=0]
+$ bin/fm-startup-growth-check.sh arm
+armed: state/startup-growth.check.sh
+[exit=0]
+$ bin/fm-startup-growth-check.sh check
+[exit=0]
+$ bin/fm-startup-growth-check.sh check
+[exit=0]
+$ bin/fm-startup-growth-check.sh check
+startup-growth: memory growth data/learnings.md +300 estimated_tokens (+900 bytes, total 909 bytes)
+[exit=0]
+$ bin/fm-startup-growth-check.sh check
+[exit=0]
+$ bin/fm-startup-growth-check.sh disarm
+disarmed: state/startup-growth.check.sh
+[exit=0]
+Observed: trusted opt-in check; same-day silence; 900-byte growth reports once; unchanged next-day silence; disarm removes registration and state.
+$ bin/fm-remote-delta-read.sh state/parent-replies.status 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 1
+schema=fm-remote-delta.v1
+status=delta
+path=state/parent-replies.status
+from_offset=0
+to_offset=93
+from_prefix_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+to_prefix_sha256=cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b
+payload_sha256=cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b
+payload_bytes=93
+reason=
+
+note: ordinary progress without correlation
+needs-decision [key=relay-choice]: pick a format
+[exit=0]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/delta.result
+ingested: relay appended=2 offset=93
+[exit=0]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/delta.result
+ingested: relay appended=0 offset=93
+[exit=0]
+$ bin/fm-remote-delta-read.sh state/parent-replies.status 93 cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b 1
+schema=fm-remote-delta.v1
+status=continuity-broken
+path=state/parent-replies.status
+from_offset=93
+to_offset=6
+from_prefix_sha256=cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b
+to_prefix_sha256=c962fa1be311981f0f965857e89b000707f9cea07a069d073461308f3019200f
+payload_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+payload_bytes=0
+reason=truncated
+
+[exit=0]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/broken.result
+continuity-broken: relay (truncated)
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/bin/fm-procevent-remote-reply.sh: line 1: tmp: unbound variable
+[exit=3]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/broken.result
+continuity-broken: relay (truncated)
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/bin/fm-procevent-remote-reply.sh: line 1: tmp: unbound variable
+[exit=3]
+$ bin/fm-procevent-remote-reply.sh retire relay
+retired: remote-reply-relay
+[exit=0]
+$ bin/fm-remote-delta-read.sh state/parent-replies.status 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 1
+schema=fm-remote-delta.v1
+status=delta
+path=state/parent-replies.status
+from_offset=0
+to_offset=93
+from_prefix_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+to_prefix_sha256=cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b
+payload_sha256=cf0c6ebdae00e837ebbe1b5f62376739fcd57580abde75caffcc8bccc5fa828b
+payload_bytes=93
+reason=
+
+note: ordinary progress without correlation
+needs-decision [key=relay-choice]: pick a format
+[exit=0]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/delta.result
+ingested: relay appended=0 offset=93
+[exit=0]
+$ bin/fm-procevent-remote-reply.sh ingest relay /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/broken.result
+continuity-broken: relay (truncated)
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/bin/fm-procevent-remote-reply.sh: line 1: tmp: unbound variable
+[exit=3]
+Observed: real delta reader mirrors progress and decisions; replay adds no bytes; repeated break is deduped; retire-and-reconnect creates a distinct continuity event.
+$ bin/fm-contributions.sh retire gone-pr https://github.com/example/deleted-repo/pull/1 fleet deleted repository
+fm-contributions: invalid retire actor 'fleet'; expected: captain
+[exit=1]
+$ bin/fm-contributions.sh retire gone-pr https://github.com/example/deleted-repo/pull/1 captain   
+fm-contributions: retire needs a non-empty reason
+[exit=1]
+$ bin/fm-contributions.sh retire gone-pr https://github.com/example/deleted-repo/pull/1 captain deleted repository
+fm-contributions: acknowledge pending signals before retiring this contribution
+[exit=1]
+$ bin/fm-contributions.sh retire gone-pr https://github.com/example/deleted-repo/pull/1 captain Repository was deleted; stop observing this saved contribution.
+[exit=0]
+$ bin/fm-contributions.sh retire gone-pr https://github.com/example/deleted-repo/pull/1 captain replacement reason
+contributions: already retired https://github.com/example/deleted-repo/pull/1 for gone-pr
+[exit=0]
+$ bin/fm-fleet-snapshot.sh --contribution-input
+{
+  "backlog": {
+    "records": [
+      {
+        "done": null,
+        "hold_set": null,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "body_lines": [],
+        "blocked_reason": null,
+        "reported": null,
+        "order": 1,
+        "captain_actionable": false,
+        "hold_kind": null,
+        "blocked_by_ids": [],
+        "local_note": null,
+        "structured": true,
+        "since": null,
+        "current_role": "queued",
+        "checked": false,
+        "repo": "sample",
+        "hold_until": null,
+        "body_excerpt": null,
+        "raw": "- [ ] gone-pr - Deleted repository https://github.com/example/deleted-repo/pull/1 (repo: sample) (kind: ship)",
+        "hold_age_days": null,
+        "merged": null,
+        "links": [
+          "https://github.com/example/deleted-repo/pull/1"
+        ],
+        "priority": null,
+        "kind": "ship",
+        "state": "queued",
+        "report_path": null,
+        "hold_reason": null,
+        "id": "gone-pr",
+        "title": "Deleted repository",
+        "hold_bucket": null,
+        "blocked_by": null,
+        "requires_child_metadata": false,
+        "pr_url": "https://github.com/example/deleted-repo/pull/1",
+        "unresolved_blocker_ids": []
+      }
+    ],
+    "present": true,
+    "path": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/data/backlog.md"
+  },
+  "tasks": []
+}
+[exit=0]
+$ bin/fm-contributions.sh snapshot /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-cli.9q89eq96/input.json --all
+{
+  "known": 0,
+  "checked": 0,
+  "counts": {
+    "captain": 0,
+    "fleet": 0,
+    "maintainer": 0,
+    "nobody": 0
+  },
+  "unmeasured": 0,
+  "complete": true,
+  "proven_clear": true,
+  "stale_verdicts": 0,
+  "missing_verdicts": 0,
+  "unreadable_records": 0,
+  "valid_until": 900,
+  "captain": [],
+  "captain_omitted": 0,
+  "rows": []
+}
+[exit=0]
+Observed: non-captain, blank-reason, and pending-signal retirement refused; successful retirement preserves original provenance and removes coverage despite backlog link.

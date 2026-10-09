@@ -1,0 +1,14 @@
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - disabled: an inherited ambient TRACEPARENT is scrubbed from the launch, never forwarded to the worker
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+not ok - duplicate secondmate spawn should report the existing endpoint (missing: 'already exists')
+--- output ---
+error: secondmate home cannot be inside the firstmate repo: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-trace-context-spawn.XEMEVf/duplicate-secondmate/sm

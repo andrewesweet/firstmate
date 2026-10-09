@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Deliver a pending secondmate request and resolve it only from its own log with an exact correlation token",
+    "result": "pass",
+    "live": true,
+    "evidence": "pending-live.log; pending-reply-state.json",
+    "reason": ""
+  }
+]

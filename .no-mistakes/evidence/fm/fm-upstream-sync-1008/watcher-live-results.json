@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Stop a watcher during a real blocked tmux pane read and reap the read process promptly",
+    "result": "pass",
+    "live": true,
+    "evidence": "watcher-live.log; watcher-product.log",
+    "reason": ""
+  }
+]

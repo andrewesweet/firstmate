@@ -1,0 +1,36 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv
+[exit=0]
+$ bin/fm-lab-home.sh tmux-dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv
+/tmp/fml.1jkc7w
+[exit=0]
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv claude
+[exit=0]
+$ tmux -L fm-lab new-window -d -t primary: -n fm-mate -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH -e FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv -e FM_TASK_ID=mate claude
+[exit=0]
+$ tmux -L fm-lab set-option -w -t primary:fm-mate automatic-rename off
+[exit=0]
+$ tmux -L fm-lab set-option -w -t primary:fm-mate allow-rename off
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{socket_path},#{pid},0
+/tmp/fml.1jkc7w/tmux-1001/fm-lab,2233302,0
+[exit=0]
+$ tmux -L fm-lab display-message -p -t primary #{pane_pid}
+2233303
+[exit=0]
+$ bin/fm-send.sh mate This is a disposable correlation validation lab. Wait silently for the next instruction. Use no tools and write no status yet.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell skipped (composer visibly holds pending text); the steer is durably recorded at /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv/state/mate.inbox/001.msg and the watcher will re-ring
+[exit=0]
+Observed: real fm-send creates and delivers a pending request; the real watcher ignores a foreign log and a longer token, then resolves only the exact token on the asked task log.
+$ tmux -L fm-lab kill-server
+[exit=0]
+$ bin/fm-lab-home.sh teardown /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4FC0EXAEYKAXXQKZKTGBDFH/.validation-tmp/fm-pending.teol_1cv
+[exit=0]
