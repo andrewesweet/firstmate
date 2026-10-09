@@ -163,6 +163,10 @@ HOMES_FILE="$TMP_ROOT/homes"
 # Stop whatever a case left running, by the exact pids its home recorded.
 stop_home_processes() {  # <home>
   local home=$1 pid arms='' i=0
+  while IFS= read -r pid; do
+    kill -TERM "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  done < <(cat "$home/claude-pids" 2>/dev/null)
   if [ -f "$home/state/.supervision-host" ]; then
     arms=$(awk -F '\t' '$1 == "arm" { print $2 }' "$home/state/.supervision-host")
     pid=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
@@ -177,13 +181,6 @@ stop_home_processes() {  # <home>
   done
   pid=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
   [ -z "$pid" ] || kill -TERM "$pid" 2>/dev/null || true
-  while IFS= read -r pid; do
-    if [ -e "$home/session.stop" ]; then
-      wait "$pid" 2>/dev/null || true
-    else
-      kill -TERM "$pid" 2>/dev/null || true
-    fi
-  done < <(cat "$home/claude-pids" 2>/dev/null)
   while IFS= read -r pid; do
     kill -TERM "$pid" 2>/dev/null || true
   done < <(cat "$home/orphan-pid" 2>/dev/null)
