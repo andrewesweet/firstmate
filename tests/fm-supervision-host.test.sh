@@ -161,6 +161,8 @@ unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN FM_LEASE_HOLDER_PID PI_CODING_A
 # whose variables never reach this shell.
 HOMES_FILE="$TMP_ROOT/homes"
 # Stop whatever a case left running, by the exact pids its home recorded.
+# Quiesce fake sessions before reading host/watcher pids: a live Stop-hook
+# session can retry a stopped host and leave a replacement watcher behind.
 stop_home_processes() {  # <home>
   local home=$1 pid arms='' i=0
   while IFS= read -r pid; do
