@@ -1,0 +1,12 @@
+{
+  "sampling_interval_seconds": 1,
+  "sample_count": 675,
+  "registered_homes_observed": 73,
+  "longest_consecutive_active_span_after_registration_cleared_seconds": 0,
+  "homes_active_after_registration_cleared": [
+    {
+      "home": "/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M4HEBAYE6CFDB95S5V1EST5V/.nm-supervision-test-tmp/fm-supervision-host.MIwHi4/away-killed-mid-turn",
+      "longest_consecutive_span_seconds": 0
+    }
+  ]
+}

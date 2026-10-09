@@ -1,0 +1,15 @@
+{
+  "command": [
+    "bin/fm-test-run.sh",
+    "--jobs",
+    "1",
+    "--json",
+    "/home/cti/.no-mistakes/evidence/01M4HEBAYE6CFDB95S5V1EST5V/supervision-host-timing.json",
+    "tests/fm-supervision-host.test.sh"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 699.686,
+  "case_passes": 78,
+  "max_active_home_count": 2,
+  "remaining_active_processes_after_exit": []
+}

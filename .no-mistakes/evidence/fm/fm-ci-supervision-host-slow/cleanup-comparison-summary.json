@@ -1,0 +1,28 @@
+[
+  {
+    "version": "base",
+    "exit_code": 0,
+    "elapsed_seconds": 80.345,
+    "command": [
+      "bin/fm-test-run.sh",
+      "--jobs",
+      "1",
+      "--json",
+      "/home/cti/.no-mistakes/evidence/01M4HEBAYE6CFDB95S5V1EST5V/cleanup-base-timing.json",
+      "tests/.nm-cleanup-base.test.sh"
+    ]
+  },
+  {
+    "version": "target",
+    "exit_code": 0,
+    "elapsed_seconds": 72.128,
+    "command": [
+      "bin/fm-test-run.sh",
+      "--jobs",
+      "1",
+      "--json",
+      "/home/cti/.no-mistakes/evidence/01M4HEBAYE6CFDB95S5V1EST5V/cleanup-target-timing.json",
+      "tests/.nm-cleanup-target.test.sh"
+    ]
+  }
+]
