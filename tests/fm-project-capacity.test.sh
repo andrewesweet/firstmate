@@ -33,6 +33,9 @@ write_brief() {  # <home> <id>
 ## Captain's intent
 Run the project's heavy suite for $2.
 
+## Published intent
+Exercise the project capacity admission for $2.
+
 ## Firstmate spec
 Exercise project capacity admission.
 
@@ -97,12 +100,11 @@ esac
 case "${1:-}" in display-message) printf 'firstmate\n' ;; esac
 exit 0
 SH
-  cat > "$fakebin/treehouse" <<'SH'
-#!/usr/bin/env bash
-printf 'treehouse %s\n' "$*" >> "$FM_FAKE_CALL_LOG"
-exit 0
-SH
-  chmod +x "$fakebin/tmux" "$fakebin/treehouse"
+  # A real lease answers `treehouse get --lease` with the leased worktree
+  # path; the fork's spawn refuses a lease that reports no path, so the
+  # shared lease fake prints the case's worktree like the real CLI does.
+  fm_test_fake_treehouse_lease "$fakebin"
+  chmod +x "$fakebin/tmux"
   fm_fake_exit0 "$fakebin" gh gh-axi no-mistakes
   fm_git_init_commit "$case_dir/project"
   fm_git_add_origin "$case_dir/project" "$case_dir/project.origin.git"
