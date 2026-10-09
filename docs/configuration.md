@@ -748,7 +748,7 @@ The check does not run session-start, bootstrap, network checks, model calls, re
 
 Growth is measured against a per-file baseline retained in the check's own state record, so accumulation that stays under one day's threshold is still caught once it adds up; reporting a file rebases its baseline to the reported size, so accepted growth then stays silent.
 A surface observed for the first time is baselined silently, including the first content of an optional file that did not exist yet when the check was armed, and an established baseline survives that file disappearing and coming back.
-The fixed growth thresholds are inspectable in the script header: 2048 bytes for tracked startup/instruction files and 250 estimated tokens for the printed startup-memory files.
+The [script header](../bin/fm-startup-growth-check.sh) owns the fixed growth thresholds for tracked startup/instruction files and printed startup-memory files.
 Budget overrun, unsafe or unreadable inputs, missing required tracked owner files, or material growth are reported once and deduplicated until the finding changes or clears; the report line is delivered before the check advances its own record, so a state-publication failure can repeat a finding but never swallow one.
 That one line goes out through the shared per-line digest cut, so an over-long finding set carries the repo's `[truncated]` marker instead of ending mid-finding, while deduplication keeps comparing the full uncapped set.
 Older bulk learning files remain reference-only; this monitor neither loads nor merges them.
@@ -999,7 +999,7 @@ The file is a captain-wide preference, so it is inherited into secondmate homes 
 
 The optional local, gitignored `config/crew-exclude-tools` hides named tools from this home's ship and scout workers, for example to keep an MCP server's write tools out of reach while its read tools stay available.
 The contract is runtime-neutral: a runtime must support hiding the listed tool names or refuse the launch, and a non-empty list is never silently ignored.
-With no file, or a file with no entries, every launch on every runtime is unchanged, except the pi and pi-signed ship and scout launches described below, which always exclude the three tracked primary-extension tool names.
+An absent or empty file adds no home-specific exclusions.
 
 Create the file with one tool name per line, such as `mcp__<server>__<tool>` for an MCP tool.
 Blank lines and lines beginning with `#` are allowed, and surrounding whitespace on a line is trimmed; a trailing comment on an entry line is not allowed.
@@ -1011,7 +1011,7 @@ It does not apply to a secondmate's own agent, which neither reads nor refuses o
 
 | Runtime | With a non-empty list |
 | --- | --- |
-| `pi`, `pi-signed` | Hides listed tool names, MCP tools included, on every ship and scout spawn and relaunch. These launches also always hide `fm_branch_outcomes`, `fm_branch_processed`, and `fm_watch_arm_pi` — the tools the tracked primary extensions register (.pi/extensions/, auto-discovered in a trusted firstmate-repo worktree) — unioned with the file's entries in one flag, because Pi's parser keeps only the last `--exclude-tools`. A secondmate keeps them: it is a primary. |
+| `pi`, `pi-signed` | Hides listed tools, including MCP tools, and primary extension tools on ship and scout spawns and relaunches ([launch mechanics](../bin/fm-spawn.sh)). |
 | Every other runtime, and a raw launch command | The launch refuses with an error naming `config/crew-exclude-tools`, because that runtime has no verified way to hide tools. |
 
 A relaunch validates the list and the replacement runtime's support before stopping the running worker, so an exclusion-list refusal preserves the running agent.
@@ -1169,7 +1169,7 @@ Regression coverage executes emitted launch commands with synthetic nonsecret va
 
 Every claude launch's inline `--settings` JSON also trims the worker's startup context: it disables claude.ai connectors, the `claude-in-chrome` MCP server, auto memory, workflows, and bundled skills, and denies `Artifact`, `ReportFindings`, `ScheduleWakeup`, and `AskUserQuestion`; the [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) "Startup context" owns why each key is there.
 The same JSON also sets `autoCompactWindow` to 220000, so a Claude worker on a 1M-context model still auto-compacts near 187k tokens instead of never compacting under the default `auto` window; the same reference owns the rationale.
-Pi crewmate launches carry `--exclude-tools` for the primary extension tools; the [Pi adapter reference](../.agents/skills/harness-adapters/references/harness/pi.md) owns that flag.
+For Pi worker exclusions, see [Worker tool exclusions](#worker-tool-exclusions-configcrew-exclude-tools).
 
 ### Commit attribution
 
@@ -1185,7 +1185,7 @@ Per-machine Cursor `cli-config.json` attribution-off is not this contract: it do
 ## Project capacity (config/project-capacity)
 
 The optional local, gitignored `config/project-capacity` tells Firstmate how many workers a project can run at once on this machine, for a project whose machine-local resource - a heavy test suite, a local editor stack, a device - only serves a few workers at a time.
-Without it, dispatch stays uncapped as `AGENTS.md` section 7 describes, and a surplus worker is launched only to spend full-context turns waiting for the resource.
+Without it, dispatch stays uncapped as `AGENTS.md` section 7 describes.
 The file lives in the machine's root Firstmate home, so every local secondmate home reads the same limit, and it holds one line per project:
 
 ```text
@@ -1193,17 +1193,14 @@ The file lives in the machine's root Firstmate home, so every local secondmate h
 my-project 2
 ```
 
-The name is the project's registered name, which is its clone directory name and may contain spaces, and the number, the last field on the line, is a positive integer.
-A line that is only `#`, or that begins with `#` followed by whitespace, is a comment, as is a `#` line whose last field is not an integer.
-A project name may begin with `#` when that `#` is written immediately against the rest of the name and the line ends with the project's capacity.
-A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
-A place is held by every ship or scout on that project in the root home or any local secondmate home registered under it, including one working in a separate clone of the same origin, until its ready PR is recorded or it is cleaned up; a local-only ship or a scout holds its place until cleanup.
-The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
-A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
-When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
-A malformed or unreadable file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
-Firstmate cannot see which part of a worker's life uses the resource, so the number bounds whole workers from launch to handoff, and the tightest resource every worker needs should decide it.
-[`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the file format, what holds a place, and why concurrent spawns cannot both take the last one.
+Use the project's clone directory name, including spaces, as its name.
+The [capacity library](../bin/fm-project-capacity-lib.sh) owns declaration syntax, occupancy rules across local homes and clones, and admission safety.
+The limit covers whole workers until their ready PR is recorded or they are cleaned up.
+A local-only ship or scout holds its place until cleanup.
+When every place is held, a fresh ship or scout spawn stays queued and prints a `deferred:` line without launching.
+[`bin/fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns deferral exit codes and batch handling.
+Malformed or unreadable declarations stop fresh worker launches.
+Unreadable local state directories or task records stop admission for a capped project.
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
