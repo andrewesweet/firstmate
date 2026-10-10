@@ -5364,6 +5364,121 @@ test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused(
   pass "fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared"
 }
 
+# herdr_slash_popup_closing_rule_screen: the exact live 51-column pane the
+# captain relayed on 2026-10-10 (Claude Code on Herdr, pane read after typing
+# /exit) once https://github.com/andrewesweet/firstmate/pull/111 had landed:
+# the completion popup renders BELOW the composer's closing rule, its selected
+# row reuses the composer glyph '\xe2\x9d\xaf', and the narrow pane wraps popup
+# descriptions onto indented continuation lines. The composer read joined
+# every popup row into the content ('/exit Exit the CLI /copy-editing When
+# the user wants ...'), so the payload proof judged the typed command unsent,
+# cleared it, and reported send-failed - every Claude second-mate restart on
+# Herdr failed with 'the exit command could not be sent'. The composer region
+# ends at the closing rule: nothing after it is ever composer content.
+herdr_slash_popup_closing_rule_screen() {  # <composer-line-content>
+  local rule composer=$1
+  rule=$(printf '%0.s\xe2\x94\x80' $(seq 1 51))
+  {
+    printf '\n'
+    printf '  The reply went to the parent channel with\n'
+    printf '  corr=a879547e73cea116. The request is moved to\n'
+    printf '  handled/, the inbox is empty, and this session is\n'
+    printf '  ready for the restart.\n'
+    printf '\n'
+    printf '\xe2\x9c\xbb Worked for 15s \xc2\xb7 done 4:13 PM\n'
+    printf '\n'
+    printf '%s\n' "$rule"
+    printf '%s\n' "$composer"
+    printf '%s\n' "$rule"
+    printf '  \xe2\x9d\xaf /exit               Exit the CLI\n'
+    printf '    /copy-editing       When the user wants to\n'
+    printf '                        edit, review, or improve\xe2\x80\xa6\n'
+    printf '    /context            Visualize current context\n'
+    printf '                        usage as a colored grid\n'
+    printf '    /usage-credits      Configure usage credits\n'
+    printf '                        or request them from you\xe2\x80\xa6\n'
+    printf '    \xe2\x80\xa6marketing-context  When the user wants to\n'
+    printf '                        create or update their p\xe2\x80\xa6\n'
+    printf '    /quiet              Enter quiet supervision\n'
+    printf '                        mode when the captain in\xe2\x80\xa6\n'
+  }
+}
+
+# The composer content read on the exact live screen must be exactly the
+# typed command - never the popup rows below the closing rule - so the
+# payload proof succeeds. This is the seam the restart path failed on.
+test_composer_closing_rule_popup_read_is_exactly_the_typed_command() {
+  local dir log resp fb out text
+  dir="$TMP_ROOT/content-closing-rule-popup"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/exit'
+  herdr_slash_popup_closing_rule_screen "$(printf '\xe2\x9d\xaf %s' "$text")" > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '
+      . "$0/bin/backends/herdr.sh"
+      content=$(fm_backend_herdr_composer_content default:w1:p2) || exit 1
+      printf "%s" "$content"
+      fm_backend_herdr_composer_payload_shown "$1" "$content" && printf "|payload-ok"
+    ' "$ROOT" "$text" )
+  [ "$out" = "${text}|payload-ok" ] || fail "the composer read on the closing-rule screen must be exactly the typed command with a succeeding payload proof, got '$out'"
+  pass "fm_backend_herdr_composer_content: the closing rule ends the composer region, so the popup-below-closing-rule screen reads exactly the typed command"
+}
+
+# The state read shares the selection: the typed composer between the rules
+# stays pending - never empty, which would authorize typing onto the pane.
+test_composer_state_closing_rule_popup_screen_still_reads_pending() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-closing-rule-popup"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  herdr_slash_popup_closing_rule_screen "$(printf '\xe2\x9d\xaf /exit')" > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2' "$ROOT" )
+  [ "$out" = pending ] || fail "a typed composer above its closing-rule popup must read pending, got '$out'"
+  pass "fm_backend_herdr_composer_state: a closing-rule popup below the composer does not hide a typed composer"
+}
+
+# The restart path end to end: the typed /exit on the exact live screen is
+# proven, submitted with one Enter, and never cleared.
+test_send_text_submit_closing_rule_popup_screen_proves_and_submits() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-closing-rule-popup"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/exit'
+  herdr_submit_claude_prefix "$resp" "$text"
+  herdr_slash_popup_closing_rule_screen "$(printf '\xe2\x9d\xaf %s' "$text")" > "$resp/4.out"
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "a typed command above its closing-rule popup must be submitted, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "the proven typed command should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a proven composer must not be cleared"
+  pass "fm_backend_herdr_send_text_submit: popup rows below the composer closing rule are not composer text, so the typed /exit is proven and submitted"
+}
+
+# The refusal guard on the exact live screen: with only a tail of a longer
+# payload between the rules, the popup rows below the closing rule must not
+# rescue the proof - the leftover is refused and cleared.
+test_send_text_submit_closing_rule_popup_tail_only_is_refused() {
+  local dir log resp fb out enter_count text suffix
+  dir="$TMP_ROOT/submit-closing-rule-tail"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text=$(herdr_long_payload 1492)
+  suffix=${text: -480}
+  herdr_submit_claude_prefix "$resp" "$text"
+  herdr_slash_popup_closing_rule_screen "$(printf '\xe2\x9d\xaf %s' "$suffix")" > "$resp/4.out"
+  printf '  \xe2\x9d\xaf\n' > "$resp/6.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = send-failed ] || fail "a tail-only payload on the closing-rule screen must stay refused, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 0 ] || fail "a tail-only payload must not be submitted, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 1 ] || fail "the refused tail should be cleared with one Ctrl+U, sent $(herdr_ctrl_u_count "$log")"
+  pass "fm_backend_herdr_send_text_submit: a tail-only payload above a closing-rule popup stays refused and is cleared"
+}
+
 # Live Claude Code 2.1.283 draws a recognized typed slash command in muted
 # truecolor grey (38;2;112;112;112, luminance 112), below the grok-tuned
 # dark-foreground ghost threshold. Claude's own ghost suggestion is SGR-2 dim,
@@ -6314,6 +6429,10 @@ test_send_text_submit_titled_slash_popup_is_proven_and_submitted
 test_send_text_submit_slash_leading_wrapped_literal_is_submitted
 test_send_text_submit_slash_tail_above_popup_statusline_is_refused
 test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused
+test_composer_closing_rule_popup_read_is_exactly_the_typed_command
+test_composer_state_closing_rule_popup_screen_still_reads_pending
+test_send_text_submit_closing_rule_popup_screen_proves_and_submits
+test_send_text_submit_closing_rule_popup_tail_only_is_refused
 test_send_text_submit_claude_grey_slash_command_is_proven_and_submitted
 test_send_text_submit_lone_paste_placeholder_submits_the_long_payload
 test_send_text_submit_multiline_paste_placeholder_submits_the_long_payload

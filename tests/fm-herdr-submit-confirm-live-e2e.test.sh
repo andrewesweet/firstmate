@@ -26,7 +26,7 @@ LAB_HELPER=${HERDR_LAB_HELPER:-$ROOT/bin/fm-herdr-lab.sh}
 fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
 pass() { printf 'ok - %s\n' "$1"; }
 
-fm_live_gate opt-in FM_HERDR_SUBMIT_CONFIRM_LIVE herdr jq claude
+fm_live_gate opt-in FM_HERDR_SUBMIT_CONFIRM_LIVE herdr jq claude stty
 
 [ -x "$LAB_HELPER" ] || fail "FM_HERDR_SUBMIT_CONFIRM_LIVE=1 but the Herdr lab helper is not executable at $LAB_HELPER"
 
@@ -83,7 +83,7 @@ TARGET="$SESSION:$PANE"
 VERSION=$(PATH="$ORIGINAL_PATH" claude --version 2>/dev/null | head -1 || printf 'version-unknown')
 HERDR_VER=$(PATH="$ORIGINAL_PATH" herdr --version 2>/dev/null | head -1 || printf 'herdr-unknown')
 
-lab pane run "$PANE" "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\"}'" >/dev/null \
+lab pane run "$PANE" "stty cols 51 && CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\"}'" >/dev/null \
   || fail "could not launch Claude Code ($VERSION) in the isolated Herdr pane"
 
 idle=0
@@ -198,6 +198,41 @@ while [ "$i" -lt 45 ]; do
   i=$((i + 1))
   sleep 1
 done
+fm_backend_herdr_send_literal "$TARGET" '/exit' \
+  || fail "Claude Code ($VERSION) on $HERDR_VER: could not stage the narrow /exit popup"
+rule=$(printf '%0.s─' {1..51})
+popup_shown=0
+i=0
+while [ "$i" -lt 15 ]; do
+  screen=$(lab pane read "$PANE" --source visible 2>/dev/null || true)
+  fm_composer_normalize_spaces_var screen
+  if printf '%s\n' "$screen" | fm_composer_strip_ansi | awk -v rule="$rule" '
+    { sub(/[[:space:]]+$/, "") }
+    stage == 0 && $0 == rule { stage=1; next }
+    stage == 1 && /^❯[[:space:]]+\/exit$/ { stage=2; next }
+    stage == 2 && $0 == rule { stage=3; next }
+    stage < 3 { stage=($0 == rule); next }
+    stage == 3 && /^  ❯[[:space:]]+\/exit[[:blank:]][[:blank:]]+[^[:space:]]/ { selected=1; popup_row=1; stage=4; next }
+    stage == 3 { stage=0; next }
+    stage == 4 && /^    \/[[:alnum:]_.:-]+[[:blank:]][[:blank:]]+[^[:space:]]/ { popup_row=1; next }
+    stage == 4 && popup_row && /^        +[^[:space:]]/ { wrapped=1; next }
+    stage == 4 { popup_row=0 }
+    END { exit !(selected && wrapped) }
+  '; then
+    popup_shown=1
+    break
+  fi
+  i=$((i + 1))
+  sleep 1
+done
+[ "$popup_shown" = 1 ] \
+  || fail "Claude Code ($VERSION) on $HERDR_VER: never rendered /exit between 51-column rules with an indented selected glyph and wrapped popup descriptions"
+content=$(fm_backend_herdr_composer_content "$TARGET") \
+  || fail "Claude Code ($VERSION) on $HERDR_VER: could not read the narrow closing-rule composer"
+[ "$content" = /exit ] \
+  || fail "Claude Code ($VERSION) on $HERDR_VER: the narrow closing-rule popup changed /exit to '$content'"
+fm_backend_herdr_composer_clear "$TARGET" '/exit' \
+  || fail "Claude Code ($VERSION) on $HERDR_VER: could not clear the staged /exit before the submit guard"
 verdict=$(fm_backend_herdr_send_text_submit "$TARGET" '/exit' 3 0.4 1.2) \
   || fail "send_text_submit failed to run the /exit submission against Claude Code ($VERSION) on $HERDR_VER"
 [ "$verdict" != send-failed ] \
@@ -211,6 +246,6 @@ while [ "$i" -lt 30 ]; do
 done
 [ "$exited" = 1 ] \
   || fail "Claude Code ($VERSION) on $HERDR_VER: the /exit submission reported '$verdict' but the agent never exited"
-pass "live Herdr submit confirm: Claude Code ($VERSION) on $HERDR_VER proves and submits a typed /exit behind its command popup"
+pass "live Herdr submit confirm: Claude Code ($VERSION) on $HERDR_VER proves and submits /exit above a closing rule and a glyph-selected wrapped popup at 51 columns"
 
 [ "$CHECKED" -gt 0 ] || fail "FM_HERDR_SUBMIT_CONFIRM_LIVE=1 checked no harness"

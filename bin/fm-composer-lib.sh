@@ -103,14 +103,16 @@
 # message; a false `empty` overwrites a visible draft or types into a working
 # agent. So the zone counts only when EVERY row in it is demonstrably furniture
 # (_fm_composer_row_is_composer_furniture or
-# _fm_composer_row_is_slash_popup_row): one unclaimed activity row
-# (`Working on request...`) makes the whole run activity and the envelope above
-# it stale, and a row leading with the SAME glyph the envelope was proven by
-# (`❯ my typed draft`) is a live composer that keeps winning. Where a shape
-# cannot demonstrate which it is, the refusal is the answer. The zone is
-# bounded further by a blank row, and an envelope that closed over no glyph row
-# (codex's `permissions: YOLO mode` startup banner) proves nothing and demotes
-# nothing.
+# _fm_composer_row_is_slash_popup_row, or a popup row's wrapped description
+# continuation proven by _fm_composer_row_is_popup_wrap_row): one unclaimed
+# activity row (`Working on request...`) makes the whole run activity and the
+# envelope above it stale. A row leading with the SAME glyph the envelope was
+# proven by (`❯ my typed draft`) is a live composer that keeps winning, except
+# for a selected popup row proven by _fm_composer_row_is_slash_popup_row.
+# Where a shape cannot demonstrate which it is, the refusal is the answer. The zone
+# is bounded further by a blank row, and an envelope that closed over no glyph
+# row (codex's `permissions: YOLO mode` startup banner) proves nothing and
+# demotes nothing.
 #
 # COVERAGE: tests/fm-composer-lib.test.sh pins footer and popup selection.
 # docs/verification/runtime-backends.md owns the measured shapes, coverage
@@ -1375,15 +1377,49 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # simple command name matching the typed prefix and a separate description
 # column. Heads containing another slash or arguments, and rows without that
 # column, remain literal input.
-_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
+# Preserve raw indentation: stripping a prompt glyph first can turn a live
+# lower draft such as `❯ /exit  now` into apparent menu furniture.
+# <allow-selected> defaults to 0; the footer caller enables it only for the
+# first row immediately after a closing boundary proven by a `❯` composer.
+# Only there can the exact `  ❯ ` prefix denote the popup's selected row.
+_fm_composer_row_is_slash_popup_row() {  # <raw-row> <typed-head> [allow-selected]
   local row=$1 head=$2
   local head_re='^/[[:alnum:]_.:-]*$'
   local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
+  fm_composer_normalize_spaces_var row
+  case "$row" in
+    '  ❯ '*)
+      [ "${3:-0}" = 1 ] || return 1
+      row=${row#'  ❯ '}
+      ;;
+  esac
+  fm_composer_normalize_trim_var row
   [[ $head =~ $head_re && $row =~ $popup_re ]] || return 1
   case "$row" in
     "$head"*) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+# _fm_composer_row_is_popup_wrap_row: 0 when <raw-row> (whitespace-trimmed
+# into <trimmed-row>) is a WRAPPED DESCRIPTION line of the popup row above
+# it: on a narrow pane claude wraps a popup description onto continuation
+# rows indented to the description column. Proven only inside a footer run
+# that already holds positive popup evidence (the caller checks that), and
+# only for rows that lead with blanks and carry no prompt glyph of either
+# family - a live composer or shell row is never a wrapped description, and
+# an unindented row is unclaimed text the asymmetry refuses on.
+_fm_composer_row_is_popup_wrap_row() {  # <raw-row> <trimmed-row>
+  local raw=$1 trimmed=$2 glyph=''
+  case "$raw" in
+    '  '*) ;;
+    *) return 1 ;;
+  esac
+  if fm_composer_leading_agent_glyph_var glyph "$trimmed" \
+     || fm_composer_leading_shell_glyph_var glyph "$trimmed"; then
+    return 1
+  fi
+  [ -n "$trimmed" ]
 }
 
 # _fm_composer_row_is_composer_furniture: 0 when <trimmed-row> is DEMONSTRABLY
@@ -1419,7 +1455,7 @@ _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
 # FM_COMPOSER_FOOTER_SLASH_POPUP records positive popup evidence in that run.
 # Returns 1 when the boundary or the complete footer run cannot be proved.
 _fm_composer_locate_footer_zone() {  # <plain>
-  local plain=$1 close next trimmed proof='' raw head glyph
+  local plain=$1 close next trimmed proof='' raw head glyph allow_selected=0
   FM_COMPOSER_FOOTER_AFTER=-1
   FM_COMPOSER_FOOTER_GLYPH=-1
   FM_COMPOSER_FOOTER_LAST=-1
@@ -1452,11 +1488,12 @@ _fm_composer_locate_footer_zone() {  # <plain>
   fi
   next=0
   head=''
-  while IFS= read -r trimmed; do
+  while IFS= read -r raw; do
     [ "$next" -le "$FM_COMPOSER_SCAN_BARE_ROW" ] || break
+    trimmed=$raw
     fm_composer_normalize_trim_var trimmed
     if [ "$((next - 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
-       && _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+       && _fm_composer_row_is_slash_popup_row "$raw" "$head"; then
       FM_COMPOSER_FOOTER_AFTER=$((next - 1))
       FM_COMPOSER_FOOTER_GLYPH=$((next - 1))
       proof=$glyph
@@ -1481,25 +1518,33 @@ EOF
   head=$(_fm_composer_row_content "$raw" 0)
   head=${head#*"$proof"}
   fm_composer_normalize_trim_var head
+  if [ "$FM_COMPOSER_FOOTER_GLYPH" -lt "$FM_COMPOSER_FOOTER_AFTER" ] \
+     && [ "$proof" = '❯' ]; then
+    allow_selected=1
+  fi
   next=$((FM_COMPOSER_FOOTER_AFTER + 1))
-  trimmed=$(_fm_composer_screen_row "$next" "$plain")
-  fm_composer_normalize_trim_var trimmed
+  raw=$(_fm_composer_screen_row "$next" "$plain")
   if [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_AFTER" ] \
-     && ! _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+     && ! _fm_composer_row_is_slash_popup_row "$raw" "$head" "$allow_selected"; then
     return 1
   fi
   FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
   while :; do
-    trimmed=$(_fm_composer_screen_row "$next" "$plain")
+    raw=$(_fm_composer_screen_row "$next" "$plain")
+    trimmed=$raw
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
-    if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+    if _fm_composer_row_is_slash_popup_row "$raw" "$head" "$allow_selected"; then
       FM_COMPOSER_FOOTER_SLASH_POPUP=1
       head='/'
+    elif [ "$FM_COMPOSER_FOOTER_SLASH_POPUP" = 1 ] \
+         && _fm_composer_row_is_popup_wrap_row "$raw" "$trimmed"; then
+      : # a wrapped description line of the open popup above; head stays '/'
     else
       head=''
       _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
     fi
+    allow_selected=0
     FM_COMPOSER_FOOTER_LAST=$next
     next=$((next + 1))
   done
@@ -1609,7 +1654,7 @@ _fm_composer_select_cursorless() {
       fm_composer_row_has_edge "$trimmed" && break
       _fm_composer_row_is_omp_status "$trimmed" && break
       _fm_composer_row_is_braille_furniture "$trimmed" && break
-      if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      if _fm_composer_row_is_slash_popup_row "$raw" "$head"; then
         FM_COMPOSER_SELECTED_SLASH_POPUP=1
         break
       fi
