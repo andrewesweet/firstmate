@@ -1,0 +1,90 @@
+{
+  "contract": "GitHub Actions CI workflow YAML semantic configuration",
+  "scope": "Offline normalized configuration check; no GitHub event was delivered or run observed",
+  "base_commit": "cccc756f28cf67396963143a5aadc07e4559a4de",
+  "target_commit": "75450f8675d06f98ec589a5f564ead57a7d2323c",
+  "events_before": {
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pull_request": {
+      "branches": [
+        "main"
+      ]
+    }
+  },
+  "events_after": {
+    "pull_request": {
+      "branches": [
+        "main"
+      ]
+    }
+  },
+  "counterfactual": {
+    "base_satisfies_pull_request_only": false,
+    "target_satisfies_pull_request_only": true
+  },
+  "pull_request_branch_filter_preserved": true,
+  "all_other_workflow_settings_and_jobs_unchanged": true,
+  "concurrency": {
+    "group": "ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}",
+    "cancel-in-progress": "${{ github.event_name == 'pull_request' }}"
+  },
+  "retained_jobs": {
+    "lint": {
+      "timeout_minutes": 30,
+      "matrix": {
+        "partition": [
+          1,
+          2
+        ]
+      }
+    },
+    "test-coverage": {
+      "timeout_minutes": 5,
+      "matrix": null
+    },
+    "tests-portable-parallel-1": {
+      "timeout_minutes": 30,
+      "matrix": null
+    },
+    "tests-portable-parallel-2": {
+      "timeout_minutes": 30,
+      "matrix": null
+    },
+    "tests-portable-serial": {
+      "timeout_minutes": 30,
+      "matrix": {
+        "shard": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    "tests-herdr": {
+      "timeout_minutes": 75,
+      "matrix": null
+    },
+    "tests-timing-aggregate": {
+      "timeout_minutes": 5,
+      "matrix": null
+    },
+    "macos-stock-bash": {
+      "timeout_minutes": 30,
+      "matrix": null
+    },
+    "invariants": {
+      "timeout_minutes": 5,
+      "matrix": null
+    }
+  }
+}
