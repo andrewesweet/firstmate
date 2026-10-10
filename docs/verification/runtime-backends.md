@@ -1239,7 +1239,8 @@ The pre-Enter payload proof then judged the typed command unsent, pressed Ctrl+U
 
 The fix captures the FULL VISIBLE VIEWPORT for every herdr adapter composer read (`pane read --source visible [--format ansi]`, `fm_backend_herdr_composer_state` and `fm_backend_herdr_composer_content`): the composer is by definition inside the viewport, and the viewport is the one bound that always contains it.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend, herdr included; its payloads are task lines, not slash commands, so the popup shape does not arise there.
-The popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+On Claude Code 2.1.283 the popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+Recorded 2026-10-09 on Claude Code 2.1.295 (read-back relayed from the fleet laptop) the popup rows render DIRECTLY BELOW the composer line, with no closing rule between them, and the shared classifier swallowed them as wrapped input; see the 2026-10-09 entry below.
 Verified live in the lab: with the popup up the state read answers `pending` (previously `empty`) and the payload proof returns `/exit` (previously empty), the submit presses Enter, and the Claude process exits, leaving the shell prompt.
 Growing the window only adds rows above the composer, so the bottom-most-shape selection, the footer zone, and every previously passing verdict are unchanged.
 
@@ -1263,6 +1264,30 @@ FM_HERDR_SUBMIT_CONFIRM_LIVE=1 tests/fm-herdr-submit-confirm-live-e2e.test.sh
 ```text
 ok - live Herdr submit confirm: Claude Code (2.1.283 (Claude Code)) on herdr 0.9.0 proves and submits a typed /exit behind its command popup
 ```
+
+### 2026-10-09: the popup rows moved directly below the composer line
+
+Recorded 2026-10-09 on Claude Code 2.1.295 over Herdr 0.9.x (read-back relayed from the fleet laptop): with a slash command typed, the completion popup rows render DIRECTLY BELOW the composer line, with no closing rule between them, unlike the 2.1.283 shape above.
+The shared bare selection then swallowed the popup rows as wrapped input, the payload proof judged every typed slash command unsent, cleared it, and reported `send-failed`, so `bin/fm-secondmate-restart.sh` could not restart any Claude second mate on Herdr (`the exit command could not be sent`).
+The trigger is upstream commit 050a4464's full-viewport composer reads, not the fork sync cccc756f: the composer read path is byte-identical across the fork range, and the same code is present on kunchenguid/firstmate main.
+
+The shared bare selection (`_fm_composer_select_cursorless` in `bin/fm-composer-lib.sh`) now ends the composer's content block at a slash-command completion row: a row shaped like a slash command that repeats the composer row's own text with its prompt glyph stripped.
+A wrapped-input row is a tail slice of the draft and never repeats the head, so the upstream half-sent and tail-only guards are intact; only the first popup row is examined, because the selection stops there and every row below it is popup menu by the same overlay fact.
+
+Portable regressions (the payload test fails against the selection before the fix; the state test pins the pending read; the tail-only test pins the refusal the fix must not weaken):
+
+```sh
+tests/fm-backend-herdr.test.sh
+```
+
+```text
+ok - fm_backend_herdr_send_text_submit: popup rows directly below the composer line are not composer text, so a typed /exit is proven and submitted
+ok - fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer
+ok - fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared
+```
+
+Live guard: the third scenario of the opt-in guard above remains the command that refreshes the live claim, and it has not yet been re-run for the 2.1.295 shape.
+On 2026-10-10 the default Herdr session on the fleet laptop was down, so the lab provisioning refused and the 2.1.295 shape is covered by the portable regressions only.
 
 ### Claude background-task exit picker
 

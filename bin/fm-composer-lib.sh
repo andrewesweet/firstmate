@@ -1384,6 +1384,38 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # a row leading with the SAME glyph the envelope was proven by (`❯ my typed
 # draft`, which is a live composer) - is NOT furniture, so the envelope above
 # it stays stale and the verdict stays a refusal.
+# _fm_composer_row_is_slash_popup_row: 0 when <trimmed-row> is a slash-command
+# completion popup row rendered below the composer it completes, given
+# <typed-head>, the composer row's own text with its prompt glyph stripped.
+# Recorded 2026-10-09 on Claude Code 2.1.295 over Herdr 0.9.x: with a slash
+# command typed, the popup rows render DIRECTLY below the composer line, with
+# no closing rule between them - unlike the 2.1.283 shape whose closing rule
+# is a structural edge row the selection already stops at. The bare selection
+# then swallowed the popup rows as wrapped input, the Herdr payload proof
+# judged every typed slash command unsent, cleared it, and reported
+# send-failed, so no Claude second mate on Herdr could be restarted.
+# Both signals must hold. A popup row completes the typed text: the first menu
+# row is the best match for the typed prefix, so it starts with the composer
+# row's own content. A wrapped-input row is a tail slice of the draft and
+# never repeats that head, which is what keeps a long draft's continuation
+# rows inside the content block and the half-sent guard intact. Only the
+# first popup row is ever examined: the selection stops there, and every row
+# below it is popup menu by the same overlay fact.
+_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
+  local row=$1 head=$2
+  [ -n "$row" ] || return 1
+  case "$row" in
+    '/'*) ;;
+    *) return 1 ;;
+  esac
+  [ -n "$head" ] || return 1
+  case "$row" in
+    "$head") return 0 ;;
+    "$head"[$' \t']*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
   local row=$1 proof=$2 glyph=''
   [ -n "$row" ] || return 1
@@ -1482,7 +1514,7 @@ _fm_composer_bare_rule_sandwich() {  # <plain-screen> <row>
 }
 
 _fm_composer_select_cursorless() {
-  local plain=$1 generic=-1 next boundary raw trimmed glyph bare footer=0
+  local plain=$1 generic=-1 next boundary raw trimmed glyph bare footer=0 head
   FM_COMPOSER_SELECTED_KIND=
   FM_COMPOSER_SELECTED_FIRST=-1
   FM_COMPOSER_SELECTED_LAST=-1
@@ -1550,6 +1582,12 @@ _fm_composer_select_cursorless() {
     return 1
   fi
   if [ "$FM_COMPOSER_SELECTED_KIND" = bare ]; then
+    raw=$(_fm_composer_screen_row "$FM_COMPOSER_SELECTED_FIRST" "$plain")
+    head=$(_fm_composer_row_content "$raw" 0)
+    if fm_composer_leading_agent_glyph_var glyph "$head"; then
+      head=${head#*"$glyph"}
+    fi
+    fm_composer_normalize_trim_var head
     next=$((FM_COMPOSER_SELECTED_LAST + 1))
     while :; do
       raw=$(_fm_composer_screen_row "$next" "$plain")
@@ -1559,6 +1597,7 @@ _fm_composer_select_cursorless() {
       fm_composer_row_has_edge "$trimmed" && break
       _fm_composer_row_is_omp_status "$trimmed" && break
       _fm_composer_row_is_braille_furniture "$trimmed" && break
+      _fm_composer_row_is_slash_popup_row "$trimmed" "$head" && break
       FM_COMPOSER_SELECTED_LAST=$next
       next=$((next + 1))
     done
