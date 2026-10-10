@@ -21,6 +21,8 @@ set -u
 CI_WORKFLOW="$ROOT/.github/workflows/ci.yml"
 
 assert_present "$CI_WORKFLOW" ".github/workflows/ci.yml is missing"
+command -v ruby >/dev/null 2>&1 \
+  || fail "ruby is required to parse .github/workflows/ci.yml as YAML"
 
 # Resolve the workflow's concurrency contract under one simulated event and
 # print "<group><TAB><cancel-in-progress>". Only the two expression constructs
@@ -127,17 +129,9 @@ test_separate_prs_do_not_cancel_each_other() {
 # back silently.
 test_ci_triggers_on_pull_request_only() {
   local triggers
-  command -v python3 >/dev/null 2>&1 \
-    || { echo "skip: python3 absent; the trigger assertion cannot parse ci.yml"; return 0; }
-  python3 -c 'import yaml' 2>/dev/null \
-    || { echo "skip: PyYAML absent; the trigger assertion cannot parse ci.yml"; return 0; }
-  triggers=$(python3 -c '
-import sys, yaml
-with open(sys.argv[1]) as f:
-    doc = yaml.safe_load(f)
-# YAML 1.1 parses a bare on: key as the boolean True, so accept both spellings.
-triggers = doc.get("on") or doc.get(True) or {}
-print("\n".join(sorted(triggers)))
+  triggers=$(ruby -ryaml -e '
+doc = YAML.load_file(ARGV[0])
+puts doc.fetch("on") { doc.fetch(true) }.keys.sort
 ' "$CI_WORKFLOW") || fail "could not parse .github/workflows/ci.yml triggers"
   [ "$triggers" = "pull_request" ] \
     || fail "ci.yml must trigger on pull_request events only, got: $(printf '%s' "$triggers" | tr '\n' ' ')"
@@ -260,15 +254,10 @@ RUBY
   pass "CI matrices cover every executable serial lane and canonical lint root exactly once"
 }
 
-# The trigger assertion runs first and needs only python3, so the contract
-# that keeps duplicate main-push runs off the fork holds on hosts without
-# ruby; the ruby-resolved suites follow behind one capability gate.
-test_ci_triggers_on_pull_request_only
-command -v ruby >/dev/null 2>&1 \
-  || { echo "skip: ruby absent; concurrency and timeout assertions need it"; exit 0; }
 test_ci_matrices_match_executable_partitions
 test_pr_pushes_supersede_within_one_pr
 test_separate_prs_do_not_cancel_each_other
+test_ci_triggers_on_pull_request_only
 test_every_job_has_a_finite_timeout
 test_every_job_belongs_to_exactly_one_timeout_tier
 test_fast_tier_shares_one_short_tripwire
