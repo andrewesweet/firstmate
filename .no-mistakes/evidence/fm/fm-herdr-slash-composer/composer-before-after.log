@@ -1,0 +1,12 @@
+Recorded-shape executable replay; this is fixture evidence, not live validation.
+Baseline c7976a2:
+direct-popup: content=/exit\ /exit\ Exit\ the\ CLI\ /context\ Show\ context; state=pending
+arrow-footer: content=repo\ git:\(main\)\ ⏵⏵\ bypass\ permissions\ on; state=pending
+grey-command: content=repo\ git:\(main\)\ ⏵⏵\ bypass\ permissions\ on; state=pending
+wrapped-literal: content=/repo/file\ /repo/file\ needs\ changes; state=pending
+
+Target fd939e7:
+direct-popup: content=/exit; state=pending
+arrow-footer: content=/exit; state=pending
+grey-command: content=/exit; state=pending
+wrapped-literal: content=/repo/file\ /repo/file\ needs\ changes; state=pending
