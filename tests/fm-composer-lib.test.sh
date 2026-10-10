@@ -1081,6 +1081,44 @@ test_slash_popup_selection_ignores_arrow_statusline() {
   pass "fm_composer_extract_selected_content: popup menus and arrow statusLines preserve the slash composer"
 }
 
+test_closing_rule_bounds_the_composer_region() {
+  local rule screen lower out claude_idle
+  claude_idle=$(printf 'claude\tidle')
+  rule=$(printf '%0.s─' {1..51})
+  # The exact live 51-column claude pane (2026-10-10, herdr): the completion
+  # popup renders BELOW the composer's closing rule, its selected row reuses
+  # the composer glyph '❯', and the narrow pane wraps popup descriptions onto
+  # indented continuation lines (one truncated with a leading ellipsis).
+  # Nothing after the closing rule is ever composer content.
+  screen="$(
+    printf '  corr=a879547e73cea116. The request is moved to\n'
+    printf '%s\n❯ /exit\n%s\n' "$rule" "$rule"
+    printf '  ❯ /exit               Exit the CLI\n'
+    printf '    /copy-editing       When the user wants to\n'
+    printf '                        edit, review, or improve…\n'
+    printf '    /context            Visualize current context\n'
+    printf '                        usage as a colored grid\n'
+    printf '    /usage-credits      Configure usage credits\n'
+    printf '                        or request them from you…\n'
+    printf '    …marketing-context  When the user wants to\n'
+    printf '                        create or update their p…\n'
+    printf '    /quiet              Enter quiet supervision\n'
+    printf '                        mode when the captain in…\n'
+  )"
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ "$out" = /exit ] || fail "rows after the composer's closing rule are never composer content, got '$out'"
+  out=$(fm_composer_extract_selected_content "$CAPS_PLAIN" "$screen")
+  [ "$out" = /exit ] || fail "the closing-rule bound must hold on a plain capture too, got '$out'"
+  assert_screen "typed composer above its closing-rule popup" pending "$CAPS_STYLED_NOID" "$screen"
+  assert_screen "typed composer above its closing-rule popup on herdr" pending "$CAPS_STYLED" "$screen" '' "$claude_idle"
+  # The bound must not swallow a live lower composer: a same-glyph draft at
+  # the left margin below the popup is a live composer, not popup furniture.
+  lower="$screen"$'\n❯ another draft'
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$lower")
+  [ "$out" = 'another draft' ] || fail "a live same-glyph composer below the popup must still win, got '$out'"
+  pass "fm_composer_extract_selected_content: the closing rule bounds the composer region against glyph-led and wrapped popup rows"
+}
+
 test_grey_slash_popup_preserves_typed_input() {
   local command menu footer composer screen out cursor rule claude_idle
   claude_idle=$(printf 'claude\tidle')
@@ -1162,6 +1200,7 @@ test_matrix_claude_bare_nbsp_row
 test_matrix_claude_arrow_statusline_footer
 test_slash_popup_selection_preserves_wrapped_literals
 test_slash_popup_selection_ignores_arrow_statusline
+test_closing_rule_bounds_the_composer_region
 test_grey_slash_popup_preserves_typed_input
 test_titled_slash_popup_retains_staleness_guards
 test_slash_popup_selection_keeps_lower_activity_authoritative
