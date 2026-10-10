@@ -1273,7 +1273,10 @@ The trigger is upstream commit 050a4464's full-viewport composer reads, not the 
 
 The shared bare selection (`_fm_composer_select_cursorless` in `bin/fm-composer-lib.sh`) ends the composer's content block at a completion row whose command name matches the typed slash prefix and whose description occupies a separate column, separated by at least two spaces or a tab.
 Repeated slash-leading continuation text remains part of the payload; a slash prefix alone is insufficient popup evidence.
-The shared footer boundary recognizes the popup before choosing the bottommost glyph, so an arrow-led statusLine and permission footer below the menu cannot displace the composer, with or without its closing rule.
+The shared footer boundary recognizes the popup before choosing the bottommost glyph, so an arrow-led statusLine and permission footer below the menu cannot displace the composer, with or without its closing rule, including a named session's titled-rule sandwich.
+The titled-rule width and staleness proof applies to the selected composer after footer demotion.
+Positive popup evidence preserves the selected command's dark truecolor text in both state classification and extraction, including Claude's `38;2;112;112;112` grey `/exit`, while dim suggestions still strip normally.
+With native status still idle after a swallowed Enter, that grey command reads `pending` and receives a retry instead of falsely confirming delivery.
 Lower live composers, unclaimed activity, shell-prompt staleness checks, and the upstream half-sent and tail-only guards retain their existing authority.
 
 Portable regressions (the payload test fails against the selection before the fix; the state test pins the pending read; the tail-only test pins the refusal the fix must not weaken):
@@ -1292,6 +1295,10 @@ ok - fm_composer_extract_selected_content: popup menus and arrow statusLines pre
 ok - fm_composer_extract_selected_content: popup recognition preserves lower activity and shell guards
 ok - fm_backend_herdr_send_text_submit: a slash-leading wrapped literal is proven and submitted intact
 ok - fm_backend_herdr_send_text_submit: a slash tail above popup and statusLine furniture stays refused
+ok - fm_composer_classify_screen: proven grey slash input stays pending across composer shapes and capabilities
+ok - fm_composer_extract_selected_content: titled popup selection retains width and staleness guards
+ok - fm_backend_herdr_send_text_submit: a grey slash popup retries a swallowed Enter before confirming delivery
+ok - fm_backend_herdr_send_text_submit: a titled slash composer above popup and statusLine furniture is submitted
 ```
 
 Live guard: the third scenario of the opt-in guard above remains the command that refreshes the live claim, and it has not yet been re-run for the 2.1.295 shape.

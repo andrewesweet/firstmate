@@ -1425,6 +1425,7 @@ _fm_composer_locate_footer_zone() {  # <plain>
   FM_COMPOSER_FOOTER_AFTER=-1
   FM_COMPOSER_FOOTER_GLYPH=-1
   FM_COMPOSER_FOOTER_LAST=-1
+  FM_COMPOSER_FOOTER_SLASH_POPUP=0
   if [ "$FM_COMPOSER_SCAN_BOX_BOTTOM" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
      && [ "$FM_COMPOSER_SCAN_BOX_GLYPH_ROW" -ge 0 ]; then
     FM_COMPOSER_FOOTER_AFTER=$FM_COMPOSER_SCAN_BOX_BOTTOM
@@ -1466,6 +1467,12 @@ _fm_composer_locate_footer_zone() {  # <plain>
     if fm_composer_leading_agent_glyph_var glyph "$trimmed"; then
       head=${trimmed#*"$glyph"}
       fm_composer_normalize_trim_var head
+      if [ "$((next + 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
+         && _fm_composer_bare_rule_sandwich "$plain" "$next"; then
+        FM_COMPOSER_FOOTER_AFTER=$((next + 1))
+        FM_COMPOSER_FOOTER_GLYPH=$next
+        proof=$glyph
+      fi
     fi
     next=$((next + 1))
   done <<EOF
@@ -1489,6 +1496,7 @@ EOF
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
     if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      FM_COMPOSER_FOOTER_SLASH_POPUP=1
       head='/'
     else
       head=''
@@ -1528,6 +1536,7 @@ _fm_composer_select_cursorless() {
   FM_COMPOSER_SELECTED_FIRST=-1
   FM_COMPOSER_SELECTED_LAST=-1
   FM_COMPOSER_SELECTED_AMBIG=0
+  FM_COMPOSER_SELECTED_SLASH_POPUP=0
   if _fm_composer_locate_footer_zone "$plain"; then footer=1; fi
   if [ "$FM_COMPOSER_SCAN_BOX_BOTTOM" -ge 0 ]; then
     generic=$FM_COMPOSER_SCAN_BOX_BOTTOM
@@ -1580,8 +1589,7 @@ _fm_composer_select_cursorless() {
     # Spare only a bare glyph inside its own titled composer rules; see
     # _fm_composer_bare_rule_sandwich for why that shape is not scrollback.
     if ! { [ "$FM_COMPOSER_SELECTED_KIND" = bare ] \
-           && [ "$generic" = "$FM_COMPOSER_SCAN_BARE_ROW" ] \
-           && _fm_composer_bare_rule_sandwich "$plain" "$FM_COMPOSER_SCAN_BARE_ROW"; }; then
+           && _fm_composer_bare_rule_sandwich "$plain" "$generic"; }; then
       FM_COMPOSER_SELECTED_KIND=
       return 1
     fi
@@ -1606,7 +1614,10 @@ _fm_composer_select_cursorless() {
       fm_composer_row_has_edge "$trimmed" && break
       _fm_composer_row_is_omp_status "$trimmed" && break
       _fm_composer_row_is_braille_furniture "$trimmed" && break
-      _fm_composer_row_is_slash_popup_row "$trimmed" "$head" && break
+      if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+        FM_COMPOSER_SELECTED_SLASH_POPUP=1
+        break
+      fi
       FM_COMPOSER_SELECTED_LAST=$next
       next=$((next + 1))
     done
@@ -1640,11 +1651,18 @@ _fm_composer_select_cursorless() {
       return 1
     fi
   fi
+  if [ "$footer" = 1 ] \
+     && [ "$FM_COMPOSER_FOOTER_SLASH_POPUP" = 1 ] \
+     && [ "$FM_COMPOSER_FOOTER_GLYPH" -ge "$FM_COMPOSER_SELECTED_FIRST" ] \
+     && [ "$FM_COMPOSER_FOOTER_GLYPH" -le "$FM_COMPOSER_SELECTED_LAST" ]; then
+    FM_COMPOSER_SELECTED_SLASH_POPUP=1
+  fi
   [ -n "$FM_COMPOSER_SELECTED_KIND" ]
 }
 
 fm_composer_extract_selected_content() {  # <caps> <screen>
   local caps=$1 screen=$2 styled=0 kv plain row raw content glyph joined='' footer_re prompt_row=-1
+  local FM_COMPOSER_GHOST_LUMA_MAX=${FM_COMPOSER_GHOST_LUMA_MAX:-128}
   local leading_blank=1 placeholder_position=0 prompt_is_shell=0
   footer_re=${FM_COMPOSER_LEFTBAR_FOOTER_RE:-$FM_COMPOSER_LEFTBAR_FOOTER_RE_DEFAULT}
   while IFS= read -r kv; do
@@ -1655,6 +1673,7 @@ EOF
   plain=$(printf '%s\n' "$screen" | fm_composer_strip_ansi)
   _fm_composer_scan_screen "$plain" '' 1
   _fm_composer_select_cursorless "$plain" || return 1
+  if [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ]; then FM_COMPOSER_GHOST_LUMA_MAX=0; fi
   row=$FM_COMPOSER_SELECTED_FIRST
   while [ "$row" -le "$FM_COMPOSER_SELECTED_LAST" ]; do
     raw=$(_fm_composer_screen_row "$row" "$screen")
@@ -1791,6 +1810,7 @@ fm_composer_dialog_sink_release() {
 fm_composer_classify_screen() {  # <caps> <screen> [cursor_row] [identity]
   local caps=$1 screen=$2 cy=${3:-} identity=${4:-}
   local styled=0 cursor=0 has_identity=0 kv plain
+  local FM_COMPOSER_GHOST_LUMA_MAX=${FM_COMPOSER_GHOST_LUMA_MAX:-128}
   # Note the dialog before any early return so a pending picker is still named.
   fm_composer_note_blocking_dialog "$screen" || true
   while IFS= read -r kv; do
@@ -1809,6 +1829,15 @@ EOF
   plain=$(printf '%s\n' "$screen" | fm_composer_strip_ansi)
   _fm_composer_scan_screen "$plain" "$cy"
   if [ -n "$cy" ]; then
+    if _fm_composer_select_cursorless "$plain" \
+       && [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ] \
+       && [ "$cy" -ge "$FM_COMPOSER_SELECTED_FIRST" ] \
+       && [ "$cy" -le "$FM_COMPOSER_SELECTED_LAST" ]; then
+      FM_COMPOSER_GHOST_LUMA_MAX=0
+      if [ "$FM_COMPOSER_SELECTED_KIND" = bare ]; then
+        FM_COMPOSER_SCAN_BARE_ROW=$FM_COMPOSER_SELECTED_FIRST
+      fi
+    fi
     # Cursor mode (tmux): the shape CONTAINING the cursor is the composer.
     if [ "$FM_COMPOSER_SCAN_UNSAFE" = 1 ]; then
       printf 'unknown'; return 0
@@ -1869,6 +1898,7 @@ EOF
     printf 'unknown'
     return 0
   fi
+  if [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ]; then FM_COMPOSER_GHOST_LUMA_MAX=0; fi
   case "$FM_COMPOSER_SELECTED_KIND" in
     pi)
       _fm_composer_pi_verdict "$screen" "$styled" "$has_identity" "$identity"

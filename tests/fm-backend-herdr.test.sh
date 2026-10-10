@@ -5257,6 +5257,51 @@ test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending(
   pass "fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer"
 }
 
+test_send_text_submit_grey_slash_popup_retries_a_swallowed_enter() {
+  local dir log resp fb out enter_count text screen
+  dir="$TMP_ROOT/submit-grey-slash-popup-retry"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/exit'
+  herdr_submit_claude_prefix "$resp" "$text"
+  screen=$(herdr_slash_popup_open_screen $'\033[38;2;112;112;112m/exit\033[0m')
+  screen=${screen/$'\033[38;2;112;112;112m/exit\033[0m    Exit the CLI'/'/exit    Exit the CLI'}
+  printf '%s\n' "$screen" > "$resp/4.out"
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"idle"}}}\n' > "$resp/7.out"
+  printf '%s\n' "$screen" > "$resp/8.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/10.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 2 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "the grey slash command must be confirmed after the retry starts a turn, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 2 ] || fail "a grey command above its popup must retry the swallowed Enter, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a proven grey command must not be cleared"
+  pass "fm_backend_herdr_send_text_submit: a grey slash popup retries a swallowed Enter before confirming delivery"
+}
+
+test_send_text_submit_titled_slash_popup_is_proven_and_submitted() {
+  local dir log resp fb out enter_count text bottom
+  dir="$TMP_ROOT/submit-titled-slash-popup"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/exit'
+  herdr_submit_claude_prefix "$resp" "$text"
+  bottom=$(printf '%0.s─' {1..24})
+  {
+    printf '──────── named session ─\n❯ /exit\n%s\n' "$bottom"
+    printf '/exit    Exit the CLI\n/context    Show context\n'
+    printf '→ repo git:(main)\n⏵⏵ bypass permissions on\n'
+  } > "$resp/4.out"
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 2 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "a titled slash composer above its popup must be submitted, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "the titled slash command should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a titled slash composer must not be cleared"
+  pass "fm_backend_herdr_send_text_submit: a titled slash composer above popup and statusLine furniture is submitted"
+}
+
 test_send_text_submit_slash_leading_wrapped_literal_is_submitted() {
   local dir log resp fb out enter_count text
   dir="$TMP_ROOT/submit-slash-wrapped-literal"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -6264,6 +6309,8 @@ test_composer_state_claude_slash_popup_pushes_composer_above_tail_window
 test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted
 test_send_text_submit_slash_popup_rows_below_the_composer_line_are_not_composer_text
 test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending
+test_send_text_submit_grey_slash_popup_retries_a_swallowed_enter
+test_send_text_submit_titled_slash_popup_is_proven_and_submitted
 test_send_text_submit_slash_leading_wrapped_literal_is_submitted
 test_send_text_submit_slash_tail_above_popup_statusline_is_refused
 test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused

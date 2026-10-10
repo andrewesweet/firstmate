@@ -1054,6 +1054,7 @@ test_slash_popup_selection_ignores_arrow_statusline() {
   for composer in \
     $'❯ /exit' \
     $'───────────────────────────\n❯ /exit\n───────────────────────────' \
+    $'──────── named session ─\n❯ /exit\n────────────────────────' \
     "$(printf '╭%s╮\n│ ❯ /exit%19s│\n╰%s╯' "$rule" '' "$rule")"
   do
     for footer in '' $'\n→ repo git:(main)\n⏵⏵ bypass permissions on'; do
@@ -1078,6 +1079,54 @@ test_slash_popup_selection_ignores_arrow_statusline() {
   out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
   [ "$out" = /ex ] || fail "a tab-separated completion must preserve its typed prefix, got '$out'"
   pass "fm_composer_extract_selected_content: popup menus and arrow statusLines preserve the slash composer"
+}
+
+test_grey_slash_popup_preserves_typed_input() {
+  local command menu footer composer screen out cursor rule claude_idle
+  claude_idle=$(printf 'claude\tidle')
+  command=$'❯ \033[38;2;112;112;112m/exit\033[0m'
+  rule=$(printf '%0.s─' {1..27})
+  menu=$'\n/exit    Exit the CLI\n/context    Show context'
+  for composer in \
+    "$command" \
+    $'───────────────────────────\n'"$command"$'\n───────────────────────────' \
+    $'──────── named session ─\n'"$command"$'\n────────────────────────' \
+    "$(printf '╭%s╮\n│ %s%19s│\n╰%s╯' "$rule" "$command" '' "$rule")"
+  do
+    cursor=1
+    [ "$composer" != "$command" ] || cursor=0
+    for footer in '' $'\n→ repo git:(main)\n⏵⏵ bypass permissions on'; do
+      screen="$composer$menu$footer"
+      assert_screen "grey slash command on herdr" pending "$CAPS_STYLED" "$screen" '' "$claude_idle"
+      assert_screen "grey slash command on zellij" pending "$CAPS_STYLED_NOID" "$screen"
+      assert_screen "grey slash command with a cursor" pending "$CAPS_TMUX" "$screen" "$cursor" "$claude_idle"
+      out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+      [ "$out" = /exit ] || fail "proven grey slash input must survive extraction, got '$out'"
+    done
+  done
+  screen=$'❯ \033[2mType a message...\033[0m'
+  assert_screen "dim suggestion after a proven slash popup" empty "$CAPS_STYLED_NOID" "$screen"
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ -z "$out" ] || fail "popup proof must not survive into a subsequent ghost suggestion, got '$out'"
+  screen=$'❯ \033[38;2;112;112;112mType a message...\033[0m'
+  assert_screen "dark suggestion after a proven slash popup" empty "$CAPS_STYLED_NOID" "$screen"
+  pass "fm_composer_classify_screen: proven grey slash input stays pending across composer shapes and capabilities"
+}
+
+test_titled_slash_popup_retains_staleness_guards() {
+  local top bottom menu screen out
+  top='──────── named session ─'
+  bottom=$(printf '%0.s─' {1..24})
+  menu=$'\n/exit    Exit the CLI\n/context    Show context\n→ repo git:(main)\n⏵⏵ bypass permissions on'
+  for screen in \
+    "$top"$'\n❯ /exit\n'"$bottom─$menu" \
+    "$top"$'\n❯ /exit\n'"$bottom"$'\nlater transcript output\n'"$bottom$menu"
+  do
+    if out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen"); then
+      [ "$out" != /exit ] || fail "an unproven or stale titled composer must not displace lower activity"
+    fi
+  done
+  pass "fm_composer_extract_selected_content: titled popup selection retains width and staleness guards"
 }
 
 test_slash_popup_selection_keeps_lower_activity_authoritative() {
@@ -1113,6 +1162,8 @@ test_matrix_claude_bare_nbsp_row
 test_matrix_claude_arrow_statusline_footer
 test_slash_popup_selection_preserves_wrapped_literals
 test_slash_popup_selection_ignores_arrow_statusline
+test_grey_slash_popup_preserves_typed_input
+test_titled_slash_popup_retains_staleness_guards
 test_slash_popup_selection_keeps_lower_activity_authoritative
 test_composer_footer_demotion_needs_a_proven_pair
 test_composer_footer_zone_is_shape_independent
