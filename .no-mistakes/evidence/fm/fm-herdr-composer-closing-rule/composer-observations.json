@@ -1,0 +1,45 @@
+{
+  "evidence_type": "Executable composer interface on recorded regression fixture; not a live Herdr screen",
+  "base_commit": "56aeb213c3122adc8491780c5495ef344af41034",
+  "target_commit": "6738ebfc4e46a062fb0049f4dec8d4ba69287f13",
+  "observations": [
+    {
+      "screen": "51-column regression fixture",
+      "base_content": "/exit Exit the CLI /copy-editing When the user wants to edit, review, or improve… /context Visualize current context usage as a colored grid /usage-credits Configure usage credits or request them from you… …marketing-context When the user wants to create or update their p… /quiet Enter quiet supervision mode when the captain in…",
+      "target_content": "/exit",
+      "expected": "/exit",
+      "target_payload_proven": true,
+      "base_payload_proven": false
+    },
+    {
+      "screen": "regression fixture with appended lower composer",
+      "appended_row": "❯ another draft",
+      "target_content": "another draft",
+      "expected": "another draft"
+    },
+    {
+      "screen": "regression fixture with appended lower composer",
+      "appended_row": "❯ /exit now",
+      "target_content": "/exit now",
+      "expected": "/exit now"
+    },
+    {
+      "screen": "regression fixture with appended lower composer",
+      "appended_row": "❯ /exit  now",
+      "target_content": "/exit now",
+      "expected": "/exit now"
+    },
+    {
+      "screen": "regression fixture with appended lower composer",
+      "appended_row": "❯ /exit\tnow",
+      "target_content": "/exit now",
+      "expected": "/exit now"
+    },
+    {
+      "screen": "regression fixture with appended lower composer",
+      "appended_row": "  ❯ /exit               Exit the CLI",
+      "target_content": "/exit Exit the CLI",
+      "expected": "/exit Exit the CLI"
+    }
+  ]
+}

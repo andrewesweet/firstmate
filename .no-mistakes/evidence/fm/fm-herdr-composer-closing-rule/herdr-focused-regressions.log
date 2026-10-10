@@ -1,0 +1,27 @@
+ok - fm_backend_herdr_composer_content: the closing rule ends the composer region, so the popup-below-closing-rule screen reads exactly the typed command
+ok - fm_backend_herdr_composer_state: a closing-rule popup below the composer does not hide a typed composer
+ok - fm_backend_herdr_send_text_submit: popup rows below the composer closing rule are not composer text, so the typed /exit is proven and submitted
+ok - fm_backend_herdr_send_text_submit: a tail-only payload above a closing-rule popup stays refused and is cleared
+ok - fm_backend_herdr_send_text_submit: a 1500-character payload a Claude composer still holds is submitted whole
+ok - fm_backend_herdr_send_text_submit: a long payload whose Claude composer kept only the tail is not submitted, is cleared, and reports send-failed
+ok - fm_backend_herdr_send_text_submit: a refused suffix whose clear cannot be verified reports unknown, not send-failed
+ok - fm_backend_herdr_send_text_submit: a refused 480-character suffix wrapped over five rows is cleared one row per Ctrl+U and reports send-failed
+ok - fm_backend_herdr_send_text_submit: after a refused suffix is cleared, a resend starts from an empty Claude composer and submits only the message
+ok - fm_backend_herdr_send_text_submit: a Claude composer holding leftover text is refused before anything is typed
+ok - fm_backend_herdr_send_text_submit: a matching head in the transcript does not prove the current composer
+ok - fm_backend_herdr_send_text_submit: an away-mode digest and a marked steer are submitted when Claude's read-back only drops U+2063
+ok - fm_backend_herdr_send_text_submit: dropping U+2063 does not let a marked digest missing its head be submitted
+ok - fm_backend_herdr_composer_state: a slash-command popup cannot hide a typed composer
+ok - fm_backend_herdr_send_text_submit: a typed slash command hidden behind its popup is still proven and submitted
+ok - fm_backend_herdr_send_text_submit: popup rows directly below the composer line are not composer text, so a typed /exit is proven and submitted
+ok - fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer
+ok - fm_backend_herdr_send_text_submit: a grey slash popup retries a swallowed Enter before confirming delivery
+ok - fm_backend_herdr_send_text_submit: a titled slash composer above popup and statusLine furniture is submitted
+ok - fm_backend_herdr_send_text_submit: a slash-leading wrapped literal is proven and submitted intact
+ok - fm_backend_herdr_send_text_submit: a slash tail above popup and statusLine furniture stays refused
+ok - fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared
+ok - fm_backend_herdr_send_text_submit: a typed slash command Claude draws in muted truecolor grey is proven and submitted
+ok - fm_backend_herdr_send_text_submit: a lone paste placeholder still submits the full long payload
+ok - fm_backend_herdr_send_text_submit: a lone multi-line paste placeholder still submits the long multi-line payload
+ok - fm_backend_herdr_send_text_submit: a paste placeholder followed by a literal remainder is not submitted and is cleared
+ok - fm_backend_herdr_send_text_submit: three paste placeholders with no literal remainder submit the long payload

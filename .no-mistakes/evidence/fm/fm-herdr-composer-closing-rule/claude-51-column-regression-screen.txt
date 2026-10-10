@@ -1,0 +1,22 @@
+
+  The reply went to the parent channel with
+  corr=a879547e73cea116. The request is moved to
+  handled/, the inbox is empty, and this session is
+  ready for the restart.
+
+✻ Worked for 15s · done 4:13 PM
+
+───────────────────────────────────────────────────
+❯ /exit
+───────────────────────────────────────────────────
+  ❯ /exit               Exit the CLI
+    /copy-editing       When the user wants to
+                        edit, review, or improve…
+    /context            Visualize current context
+                        usage as a colored grid
+    /usage-credits      Configure usage credits
+                        or request them from you…
+    …marketing-context  When the user wants to
+                        create or update their p…
+    /quiet              Enter quiet supervision
+                        mode when the captain in…

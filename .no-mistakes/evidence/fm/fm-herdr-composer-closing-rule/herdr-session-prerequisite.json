@@ -1,0 +1,1 @@
+{"sessions":[{"default":true,"name":"default","running":false,"session_dir":"/home/cti/.config/herdr","socket_path":"/home/cti/.config/herdr/herdr.sock"},{"default":false,"name":"fm-remote","running":true,"session_dir":"/home/cti/.config/herdr/sessions/fm-remote","socket_path":"/home/cti/.config/herdr/sessions/fm-remote/herdr.sock"}]}
