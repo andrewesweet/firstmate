@@ -5198,6 +5198,91 @@ test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted(
   pass "fm_backend_herdr_send_text_submit: a typed slash command hidden behind its popup is still proven and submitted"
 }
 
+# herdr_slash_popup_open_screen: the rendered Claude Code shape observed on
+# 2026-10-09 (read-back relayed from the fleet laptop, Claude Code 2.1.295,
+# Herdr 0.9.x): with a slash command typed, the completion popup rows render
+# DIRECTLY BELOW the composer line - no closing rule between them, unlike the
+# 2.1.283 shape herdr_popup_composer_screen records. The composer read then
+# returned the composer line plus the popup rows ('/exit Exit the CLI
+# /copy-editing When the user wants ... /context Visualize ...'), so the
+# payload proof judged the typed command unsent, cleared it, and reported
+# send-failed: every Claude second-mate restart on Herdr failed with 'the exit
+# command could not be sent'. The popup rows are menu furniture, never typed
+# text, so the shared selection must end the composer's content block at them.
+herdr_slash_popup_open_screen() {  # <typed-text>
+  local rule
+  rule=$(printf '%0.s\xe2\x94\x80' $(seq 1 60))
+  printf ' \xe2\x95\xad\xe2\x94\x80\xe2\x94\x80 Claude Code v2.1.295 \xe2\x94\x80\xe2\x94\x80\xe2\x95\xae\n'
+  printf '  %s\n' "$rule"
+  printf '  \xe2\x9d\xaf %s\n' "$1"
+  printf '  %s    Exit the CLI\n' "$1"
+  printf '  /copy-editing    When the user wants prose rewritten for copy editing\n'
+  printf '  /context    Visualize the current context window as a colored grid\n'
+  printf '  \xe2\x8f\xb5\xe2\x8f\xb5 bypass permissions on\n'
+}
+
+# The payload regression the brief requires: with the popup open directly
+# below the composer line, the payload proof must see exactly the typed
+# command and submit it - the fm-control exit and second-mate restart path.
+test_send_text_submit_slash_popup_rows_below_the_composer_line_are_not_composer_text() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-slash-popup-open"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/exit'
+  herdr_submit_claude_prefix "$resp" "$text"
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  herdr_slash_popup_open_screen "$text" > "$resp/4.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "popup rows below the composer line must not read as composer text; the typed command should be submitted, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "the proven typed command should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a proven composer must not be cleared"
+  pass "fm_backend_herdr_send_text_submit: popup rows directly below the composer line are not composer text, so a typed /exit is proven and submitted"
+}
+
+# The state read shares the selection, so the same shape must keep reading the
+# typed composer row as pending - never empty, which would authorize typing
+# onto a screen whose popup is up.
+test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-slash-popup-open"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  herdr_slash_popup_open_screen '/exit' > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2' "$ROOT" )
+  [ "$out" = pending ] || fail "a typed composer with popup rows directly below must read pending, got '$out'"
+  pass "fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer"
+}
+
+# The refusal guard the fix must not weaken: a composer holding only a
+# tail of the payload, with popup rows below, is still unsent - the popup
+# rows must not rescue it, and the leftover must be cleared.
+test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused() {
+  local dir log resp fb out enter_count text suffix
+  dir="$TMP_ROOT/submit-popup-tail-only"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text=$(herdr_long_payload 1492)
+  suffix=${text: -480}
+  herdr_submit_claude_prefix "$resp" "$text"
+  {
+    printf '  \xe2\x9d\xaf %s\n' "$suffix"
+    printf '  /exit    Exit the CLI\n'
+    printf '  /copy-editing    When the user wants prose rewritten for copy editing\n'
+    printf '  /context    Visualize the current context window as a colored grid\n'
+  } > "$resp/4.out"
+  printf '  \xe2\x9d\xaf\n' > "$resp/6.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = send-failed ] || fail "a tail-only payload with popup rows below must stay refused, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 0 ] || fail "a tail-only payload must not be submitted, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 1 ] || fail "the refused tail should be cleared with one Ctrl+U, sent $(herdr_ctrl_u_count "$log")"
+  pass "fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared"
+}
+
 # Live Claude Code 2.1.283 draws a recognized typed slash command in muted
 # truecolor grey (38;2;112;112;112, luminance 112), below the grok-tuned
 # dark-foreground ghost threshold. Claude's own ghost suggestion is SGR-2 dim,
@@ -6141,6 +6226,9 @@ test_send_text_submit_accepts_marked_payloads_whose_read_back_drops_u2063
 test_send_text_submit_refuses_marked_digest_missing_its_head
 test_composer_state_claude_slash_popup_pushes_composer_above_tail_window
 test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted
+test_send_text_submit_slash_popup_rows_below_the_composer_line_are_not_composer_text
+test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending
+test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused
 test_send_text_submit_claude_grey_slash_command_is_proven_and_submitted
 test_send_text_submit_lone_paste_placeholder_submits_the_long_payload
 test_send_text_submit_multiline_paste_placeholder_submits_the_long_payload
