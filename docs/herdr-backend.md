@@ -607,8 +607,9 @@ Typed-plane text is typed once; only Enter is retried.
 When native `agent get` identity is Claude, the adapter types only into an empty composer.
 A Claude composer that already holds text, or cannot be read, before the send is refused with nothing typed.
 Before that Enter, the adapter continues only when the selected composer shows the typed payload, or only Claude paste placeholders with no literal remainder.
+The [shared composer selector](../bin/fm-composer-lib.sh) supplies the command text without proven completion rows or footer furniture.
 Every herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the full visible viewport, never a bounded tail, while the shared inbox pending-line confirmation read (bin/fm-task-inbox-lib.sh) stays a bounded tail on every backend: an overlay Claude renders between the composer and the pane bottom - the slash-command popup is the verified shape - pushes the composer outside a tail window, and the composer is by definition inside the viewport.
-Dated measurement: docs/verification/runtime-backends.md "Claude exit behind the slash-command popup".
+The [verification record](verification/runtime-backends.md#claude-exit-behind-the-slash-command-popup) owns the captured popup shapes and their regression and live evidence.
 
 That comparison ignores whitespace and U+2063, the invisible mark that starts operational inputs and ends the from-firstmate label.
 It ignores U+2063 because Claude's Herdr read-back never shows it.
@@ -700,7 +701,8 @@ Identity stays a lazy second read, consulted only when a separator pair could ch
 ### Placeholder and ghost text
 
 ANSI capture preserves de-emphasized placeholder style.
-[`bin/fm-composer-lib.sh`](../bin/fm-composer-lib.sh) owns the fleet-wide placeholder and ghost recognition rules; the [Herdr adapter's Claude payload proof](../bin/backends/herdr.sh) owns the exception that preserves muted slash commands.
+The [shared classifier](../bin/fm-composer-lib.sh) owns placeholder recognition, ghost stripping, and popup-backed preservation of muted commands.
+The [Herdr adapter](../bin/backends/herdr.sh) also preserves muted foreground text for its Claude-only payload read.
 
 If the ANSI capture ever fails, the plain fallback declares itself unstyled.
 The classifier then degrades a glyph row carrying trailing text to `unknown` instead of misreading ghost suggestions as typed input.
