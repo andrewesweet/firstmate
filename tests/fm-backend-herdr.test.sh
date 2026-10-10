@@ -5218,6 +5218,7 @@ herdr_slash_popup_open_screen() {  # <typed-text>
   printf '  %s    Exit the CLI\n' "$1"
   printf '  /copy-editing    When the user wants prose rewritten for copy editing\n'
   printf '  /context    Visualize the current context window as a colored grid\n'
+  printf '  → repo git:(main)\n'
   printf '  \xe2\x8f\xb5\xe2\x8f\xb5 bypass permissions on\n'
 }
 
@@ -5254,6 +5255,41 @@ test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending(
     bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2' "$ROOT" )
   [ "$out" = pending ] || fail "a typed composer with popup rows directly below must read pending, got '$out'"
   pass "fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer"
+}
+
+test_send_text_submit_slash_leading_wrapped_literal_is_submitted() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-slash-wrapped-literal"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/repo/file /repo/file needs changes'
+  herdr_submit_claude_prefix "$resp" "$text"
+  printf '❯ /repo/file\n/repo/file needs changes\n' > "$resp/4.out"
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "a wrapped slash-leading literal must be submitted intact, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "the wrapped literal should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a complete wrapped literal must not be cleared"
+  pass "fm_backend_herdr_send_text_submit: a slash-leading wrapped literal is proven and submitted intact"
+}
+
+test_send_text_submit_slash_tail_above_popup_statusline_is_refused() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-slash-popup-statusline-tail"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text='/review /exit'
+  herdr_submit_claude_prefix "$resp" "$text"
+  herdr_slash_popup_open_screen /exit > "$resp/4.out"
+  printf '❯\n' > "$resp/6.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = send-failed ] || fail "a slash tail above a popup and statusLine must stay refused, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 0 ] || fail "a slash tail must not be submitted, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 1 ] || fail "the refused slash tail should be cleared once"
+  pass "fm_backend_herdr_send_text_submit: a slash tail above popup and statusLine furniture stays refused"
 }
 
 # The refusal guard the fix must not weaken: a composer holding only a
@@ -6228,6 +6264,8 @@ test_composer_state_claude_slash_popup_pushes_composer_above_tail_window
 test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted
 test_send_text_submit_slash_popup_rows_below_the_composer_line_are_not_composer_text
 test_composer_state_slash_popup_rows_below_the_composer_line_still_read_pending
+test_send_text_submit_slash_leading_wrapped_literal_is_submitted
+test_send_text_submit_slash_tail_above_popup_statusline_is_refused
 test_send_text_submit_tail_only_payload_above_slash_popup_rows_is_still_refused
 test_send_text_submit_claude_grey_slash_command_is_proven_and_submitted
 test_send_text_submit_lone_paste_placeholder_submits_the_long_payload

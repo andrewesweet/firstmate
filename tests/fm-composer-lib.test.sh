@@ -1011,6 +1011,95 @@ test_selected_content_is_composer_scoped_and_wrap_normalized() {
   pass "fm_composer_extract_selected_content: scopes user content and excludes furniture"
 }
 
+test_slash_popup_selection_preserves_wrapped_literals() {
+  local screen caps out style locale i
+  local -a screens=(
+    $'❯ /repo/file\n/repo/file needs changes' \
+    $'❯ /repo/file\n/repo/file    needs changes' \
+    $'❯ /exit\n/exit needs changes' \
+    $'❯ /exit\n/exit' \
+    $'❯ /exit with arguments\n/exit    needs changes' \
+    $'❯ /exit\n/exit    ' \
+    $'❯ /exit\n/context    Show context'
+  )
+  local -a expected=(
+    '/repo/file /repo/file needs changes'
+    '/repo/file /repo/file needs changes'
+    '/exit /exit needs changes'
+    '/exit /exit'
+    '/exit with arguments /exit needs changes'
+    '/exit /exit'
+    '/exit /context Show context'
+  )
+  for i in "${!screens[@]}"; do
+    screen=${screens[$i]}
+    for caps in "$CAPS_TMUX" "$CAPS_STYLED" "$CAPS_STYLED_NOID" "$CAPS_PLAIN"; do
+      for style in '' "${ESC}[1m"; do
+        for locale in "${LC_ALL:-${LANG:-C}}" C; do
+          out=$(LC_ALL="$locale" fm_composer_extract_selected_content "$caps" "$style$screen${ESC}[0m")
+          [ "$out" = "${expected[$i]}" ] \
+            || fail "slash-leading continuation must remain literal content, expected '${expected[$i]}', got '$out'"
+        done
+      done
+    done
+  done
+  pass "fm_composer_extract_selected_content: slash-leading wrapped literals remain intact"
+}
+
+test_slash_popup_selection_ignores_arrow_statusline() {
+  local composer menu footer screen caps out rule style locale claude_idle
+  claude_idle=$(printf 'claude\tidle')
+  rule=$(printf '%0.s─' {1..27})
+  menu=$'\n/exit    Exit the CLI\n/context    Show context'
+  for composer in \
+    $'❯ /exit' \
+    $'───────────────────────────\n❯ /exit\n───────────────────────────' \
+    "$(printf '╭%s╮\n│ ❯ /exit%19s│\n╰%s╯' "$rule" '' "$rule")"
+  do
+    for footer in '' $'\n→ repo git:(main)\n⏵⏵ bypass permissions on'; do
+      screen="$composer$menu$footer"
+      for caps in "$CAPS_STYLED" "$CAPS_STYLED_NOID" "$CAPS_PLAIN"; do
+        for style in '' "${ESC}[1m"; do
+          for locale in "${LC_ALL:-${LANG:-C}}" C; do
+            out=$(LC_ALL="$locale" fm_composer_extract_selected_content "$caps" "$style$screen${ESC}[0m")
+            [ "$out" = /exit ] \
+              || fail "popup and statusLine must be excluded from the composer, got '$out'"
+          done
+          if [ "$caps" = "$CAPS_PLAIN" ] && [[ $composer != '╭'* ]]; then
+            assert_screen "plain slash composer above its popup" unknown "$caps" "$style$screen${ESC}[0m"
+          else
+            assert_screen "typed slash composer above its popup" pending "$caps" "$style$screen${ESC}[0m" '' "$claude_idle"
+          fi
+        done
+      done
+    done
+  done
+  screen=$'❯ /ex\n/exit\tExit the CLI'"$footer"
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ "$out" = /ex ] || fail "a tab-separated completion must preserve its typed prefix, got '$out'"
+  pass "fm_composer_extract_selected_content: popup menus and arrow statusLines preserve the slash composer"
+}
+
+test_slash_popup_selection_keeps_lower_activity_authoritative() {
+  local menu lower screen out
+  menu=$'❯ /exit\n/exit    Exit the CLI\n/context    Show context'
+  screen=$menu$'\n❯ another draft'
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ "$out" = 'another draft' ] || fail "a lower live composer must still win, got '$out'"
+  for lower in \
+    $'\nWorking on request...\n→ repo git:(main)' \
+    $'\n→ repo git:(main)\nWorking on request...' \
+    $'\n\n→ repo git:(main)'
+  do
+    out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$menu$lower")
+    [ "$out" != /exit ] || fail "unclaimed lower activity must not restore the popup composer"
+  done
+  if out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$menu"$'\n$ live shell'); then
+    fail "a lower shell must invalidate popup composer extraction, got '$out'"
+  fi
+  pass "fm_composer_extract_selected_content: popup recognition preserves lower activity and shell guards"
+}
+
 test_bare_shell_glyphs_are_unknown
 test_stripped_unbordered_content_uses_plain_content
 test_bare_shell_prompt_with_command_is_not_empty
@@ -1022,6 +1111,9 @@ test_idle_placeholder_case_mode_is_explicit
 test_real_text_is_pending
 test_matrix_claude_bare_nbsp_row
 test_matrix_claude_arrow_statusline_footer
+test_slash_popup_selection_preserves_wrapped_literals
+test_slash_popup_selection_ignores_arrow_statusline
+test_slash_popup_selection_keeps_lower_activity_authoritative
 test_composer_footer_demotion_needs_a_proven_pair
 test_composer_footer_zone_is_shape_independent
 test_composer_footer_zone_refuses_rather_than_allows

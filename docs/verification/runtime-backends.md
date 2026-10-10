@@ -1271,19 +1271,27 @@ Recorded 2026-10-09 on Claude Code 2.1.295 over Herdr 0.9.x (read-back relayed f
 The shared bare selection then swallowed the popup rows as wrapped input, the payload proof judged every typed slash command unsent, cleared it, and reported `send-failed`, so `bin/fm-secondmate-restart.sh` could not restart any Claude second mate on Herdr (`the exit command could not be sent`).
 The trigger is upstream commit 050a4464's full-viewport composer reads, not the fork sync cccc756f: the composer read path is byte-identical across the fork range, and the same code is present on kunchenguid/firstmate main.
 
-The shared bare selection (`_fm_composer_select_cursorless` in `bin/fm-composer-lib.sh`) now ends the composer's content block at a slash-command completion row: a row shaped like a slash command that repeats the composer row's own text with its prompt glyph stripped.
-A wrapped-input row is a tail slice of the draft and never repeats the head, so the upstream half-sent and tail-only guards are intact; only the first popup row is examined, because the selection stops there and every row below it is popup menu by the same overlay fact.
+The shared bare selection (`_fm_composer_select_cursorless` in `bin/fm-composer-lib.sh`) ends the composer's content block at a completion row whose command name matches the typed slash prefix and whose description occupies a separate column, separated by at least two spaces or a tab.
+Repeated slash-leading continuation text remains part of the payload; a slash prefix alone is insufficient popup evidence.
+The shared footer boundary recognizes the popup before choosing the bottommost glyph, so an arrow-led statusLine and permission footer below the menu cannot displace the composer, with or without its closing rule.
+Lower live composers, unclaimed activity, shell-prompt staleness checks, and the upstream half-sent and tail-only guards retain their existing authority.
 
 Portable regressions (the payload test fails against the selection before the fix; the state test pins the pending read; the tail-only test pins the refusal the fix must not weaken):
 
 ```sh
-tests/fm-backend-herdr.test.sh
+bash tests/fm-composer-lib.test.sh
+bash tests/fm-backend-herdr.test.sh
 ```
 
 ```text
 ok - fm_backend_herdr_send_text_submit: popup rows directly below the composer line are not composer text, so a typed /exit is proven and submitted
 ok - fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer
 ok - fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared
+ok - fm_composer_extract_selected_content: slash-leading wrapped literals remain intact
+ok - fm_composer_extract_selected_content: popup menus and arrow statusLines preserve the slash composer
+ok - fm_composer_extract_selected_content: popup recognition preserves lower activity and shell guards
+ok - fm_backend_herdr_send_text_submit: a slash-leading wrapped literal is proven and submitted intact
+ok - fm_backend_herdr_send_text_submit: a slash tail above popup and statusLine furniture stays refused
 ```
 
 Live guard: the third scenario of the opt-in guard above remains the command that refreshes the live claim, and it has not yet been re-run for the 2.1.295 shape.

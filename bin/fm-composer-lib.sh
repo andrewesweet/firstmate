@@ -1369,6 +1369,17 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
   [ -z "${blocks//▀/}" ]
 }
 
+_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
+  local row=$1 head=$2
+  local head_re='^/[[:alnum:]_.:-]*$'
+  local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
+  [[ $head =~ $head_re && $row =~ $popup_re ]] || return 1
+  case "$row" in
+    "$head"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # _fm_composer_row_is_composer_furniture: 0 when <trimmed-row> is DEMONSTRABLY
 # a harness's own furniture drawn below its composer, given <proof-glyph> - the
 # agent glyph that proved the envelope above it. Exactly four things qualify,
@@ -1384,38 +1395,6 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # a row leading with the SAME glyph the envelope was proven by (`❯ my typed
 # draft`, which is a live composer) - is NOT furniture, so the envelope above
 # it stays stale and the verdict stays a refusal.
-# _fm_composer_row_is_slash_popup_row: 0 when <trimmed-row> is a slash-command
-# completion popup row rendered below the composer it completes, given
-# <typed-head>, the composer row's own text with its prompt glyph stripped.
-# Recorded 2026-10-09 on Claude Code 2.1.295 over Herdr 0.9.x: with a slash
-# command typed, the popup rows render DIRECTLY below the composer line, with
-# no closing rule between them - unlike the 2.1.283 shape whose closing rule
-# is a structural edge row the selection already stops at. The bare selection
-# then swallowed the popup rows as wrapped input, the Herdr payload proof
-# judged every typed slash command unsent, cleared it, and reported
-# send-failed, so no Claude second mate on Herdr could be restarted.
-# Both signals must hold. A popup row completes the typed text: the first menu
-# row is the best match for the typed prefix, so it starts with the composer
-# row's own content. A wrapped-input row is a tail slice of the draft and
-# never repeats that head, which is what keeps a long draft's continuation
-# rows inside the content block and the half-sent guard intact. Only the
-# first popup row is ever examined: the selection stops there, and every row
-# below it is popup menu by the same overlay fact.
-_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
-  local row=$1 head=$2
-  [ -n "$row" ] || return 1
-  case "$row" in
-    '/'*) ;;
-    *) return 1 ;;
-  esac
-  [ -n "$head" ] || return 1
-  case "$row" in
-    "$head") return 0 ;;
-    "$head"[$' \t']*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
   local row=$1 proof=$2 glyph=''
   [ -n "$row" ] || return 1
@@ -1440,10 +1419,9 @@ _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
 # function return 1. That is the asymmetry this rule is held to - it may only
 # ever move a verdict toward refusing, never toward `empty`, because `empty` is
 # the one verdict that authorizes fm-send to type into the pane. Returns 1 too
-# when no envelope is glyph-proven, when a blank row sits directly beneath it,
-# or when the run holds no bare candidate at all (nothing to demote).
+# when no envelope is glyph-proven or a blank row sits directly beneath it.
 _fm_composer_locate_footer_zone() {  # <plain>
-  local plain=$1 close next trimmed proof=''
+  local plain=$1 close next trimmed proof='' raw head glyph
   FM_COMPOSER_FOOTER_AFTER=-1
   FM_COMPOSER_FOOTER_GLYPH=-1
   FM_COMPOSER_FOOTER_LAST=-1
@@ -1473,22 +1451,53 @@ _fm_composer_locate_footer_zone() {  # <plain>
     FM_COMPOSER_FOOTER_GLYPH=$FM_COMPOSER_SCAN_PI_GLYPH_ROW
     proof=$FM_COMPOSER_SCAN_PI_GLYPH
   fi
+  next=0
+  head=''
+  while IFS= read -r trimmed; do
+    [ "$next" -le "$FM_COMPOSER_SCAN_BARE_ROW" ] || break
+    fm_composer_normalize_trim_var trimmed
+    if [ "$((next - 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
+       && _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      FM_COMPOSER_FOOTER_AFTER=$((next - 1))
+      FM_COMPOSER_FOOTER_GLYPH=$((next - 1))
+      proof=$glyph
+    fi
+    head=''
+    if fm_composer_leading_agent_glyph_var glyph "$trimmed"; then
+      head=${trimmed#*"$glyph"}
+      fm_composer_normalize_trim_var head
+    fi
+    next=$((next + 1))
+  done <<EOF
+$plain
+EOF
   [ "$FM_COMPOSER_FOOTER_AFTER" -ge 0 ] || return 1
-  # Nothing below the envelope can be demoted unless a bare candidate sits
-  # there, so settle that from the scan's own record before walking any rows.
-  [ "$FM_COMPOSER_SCAN_BARE_ROW" -gt "$FM_COMPOSER_FOOTER_AFTER" ] || return 1
-  FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
+  raw=$(_fm_composer_screen_row "$FM_COMPOSER_FOOTER_GLYPH" "$plain")
+  head=$(_fm_composer_row_content "$raw" 0)
+  head=${head#*"$proof"}
+  fm_composer_normalize_trim_var head
   next=$((FM_COMPOSER_FOOTER_AFTER + 1))
+  trimmed=$(_fm_composer_screen_row "$next" "$plain")
+  fm_composer_normalize_trim_var trimmed
+  if [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_AFTER" ] \
+     && ! _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+    return 1
+  fi
+  FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
   while :; do
     trimmed=$(_fm_composer_screen_row "$next" "$plain")
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
-    _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
+    if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      head='/'
+    else
+      head=''
+      _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
+    fi
     FM_COMPOSER_FOOTER_LAST=$next
     next=$((next + 1))
   done
-  [ "$FM_COMPOSER_SCAN_BARE_ROW" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
-    && [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_LAST" ]
+  [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_LAST" ]
 }
 
 # _fm_composer_bare_rule_sandwich: 0 when bare agent-glyph <row> sits in its
