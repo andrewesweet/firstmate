@@ -772,7 +772,8 @@ It also covers a glyph-free Codex startup banner that yields to the live bare co
 `test_composer_footer_zone_refuses_rather_than_allows` covers unclaimed activity and a lower live draft on the bordered-box and separator-pair shapes.
 
 This 2026-09-20 verification covers the bordered box and the separator pair.
-The [completion-popup regressions](#claude-completion-rows-without-a-closing-rule) extend that coverage to bare and titled composers and to the popup below a composer's closing rule.
+The [completion-popup regressions](#claude-completion-rows-without-a-closing-rule) extend that coverage to bare and titled composers.
+The [narrow-popup regressions](#claude-completion-popup-below-the-composer-closing-rule) cover a selected glyph and wrapped descriptions below the closing rule.
 The opencode left bar is wired into the same rule but is **unexercised**: every left-bar row this repo records leads with plain text, and opencode's own prompt character is `>`, a shell glyph deliberately outside the agent set, so no opencode shape recorded here can prove a left-bar envelope or open a footer zone beneath one.
 
 The live refresh for this entry is the cursorless arm added to the composer-matrix guard, which re-reads each harness's already-proven-idle pane the way every non-tmux backend reads it and fails naming the harness and version when that read is `pending`:
@@ -1306,15 +1307,19 @@ The 2.1.295 shape has portable regression coverage and no refreshed live deliver
 
 ### Claude completion popup below the composer closing rule
 
-Recorded 2026-10-10 on Claude Code 2.1.295 over Herdr, on a 51-column pane, with the pane read relayed from the fleet laptop after [the closing-rule fix above](#claude-completion-rows-without-a-closing-rule) had landed.
-With a slash command typed, the completion popup renders BELOW the composer's closing rule, its selected row reuses the composer glyph `❯`, and the narrow pane wraps popup descriptions onto indented continuation lines, one command name truncated with a leading ellipsis.
-The selection treated that glyph-led selected row as a second bare composer below the closed rule pair and joined every popup row into the payload read, so `/exit` was judged unsent, cleared, and never submitted; every Claude second-mate restart on Herdr failed with `the exit command could not be sent`.
+Recorded 2026-10-10 on Claude Code 2.1.295 over Herdr, on a 51-column pane, from a pane read relayed from the fleet laptop.
+That screen places the `❯ /exit` composer between two horizontal rules.
+The popup below the closing rule has an indented `❯`-selected row and wrapped descriptions.
+One command name is truncated with a leading ellipsis.
 
-The [shared selector](../../bin/fm-composer-lib.sh) now bounds the composer region at the closing rule.
-A popup row may carry the envelope's own glyph only in the indented selected-row shape (the typed head plus a description column) immediately after the proven closing rule, and a wrapped description continuation is proven only under positive popup evidence, in a run of rows that lead with blanks and no prompt glyph.
-A live same-glyph composer below the popup still wins, unclaimed activity still refuses, and tail-only payloads stay refused.
+The [shared selector](../../bin/fm-composer-lib.sh) owns popup recognition and footer selection.
+`test_closing_rule_bounds_the_composer_region` covers content extraction and `pending` classification for this screen.
+It also covers newer lower drafts, including `/exit now`, with spaces or tabs between command and argument, across separated, titled, and boxed composers.
+The existing footer refusal cases still cover unclaimed activity.
+Backend regressions require one Enter for a complete payload and no Enter for a tail-only payload.
+They also require the adapter to clear the refused remainder.
 
-Portable regressions (the content test fails against the selection before the fix; the state, submit, and tail-only tests pin the same screen end to end):
+Portable regressions for content, state, submission, and tail-only refusal:
 
 ```sh
 bash tests/fm-composer-lib.test.sh
@@ -1329,10 +1334,12 @@ ok - fm_backend_herdr_send_text_submit: popup rows below the composer closing ru
 ok - fm_backend_herdr_send_text_submit: a tail-only payload above a closing-rule popup stays refused and is cleared
 ```
 
-The exact relayed 51-column screen is pinned byte for byte by `herdr_slash_popup_closing_rule_screen` in tests/fm-backend-herdr.test.sh.
-The live guard sets Claude's terminal width to 51 columns and requires `/exit` between two rules, followed by the indented glyph-selected row and a wrapped description, before checking the composer read and submitting the command.
+`herdr_slash_popup_closing_rule_screen` in [tests/fm-backend-herdr.test.sh](../../tests/fm-backend-herdr.test.sh) preserves the exact relayed 51-column screen.
+The live guard sets the terminal width to 51 columns.
+It requires `/exit` between two rules, followed by the indented selected row and a wrapped description, before reading the composer and submitting the command.
 Refresh with `FM_HERDR_SUBMIT_CONFIRM_LIVE=1 bash tests/fm-herdr-submit-confirm-live-e2e.test.sh`.
-No refreshed live delivery proof: the 2026-10-10 lab attempt for this shape stopped at the same fleet-state tripwire recorded above, so this entry ships on fixture evidence.
+This shape has fixture coverage and no refreshed live delivery proof.
+The [lab refusal above](#claude-completion-rows-without-a-closing-rule) records why the 2026-10-10 attempt stopped.
 
 ### Claude background-task exit picker
 

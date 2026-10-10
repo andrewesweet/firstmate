@@ -107,10 +107,9 @@
 # continuation proven by _fm_composer_row_is_popup_wrap_row): one unclaimed
 # activity row (`Working on request...`) makes the whole run activity and the
 # envelope above it stale. A row leading with the SAME glyph the envelope was
-# proven by (`❯ my typed draft`) is a live composer that keeps winning - only
-# the popup's own selected-row shape (the typed head plus a description
-# column) may carry that glyph, and only below a proven envelope close. Where
-# a shape cannot demonstrate which it is, the refusal is the answer. The zone
+# proven by (`❯ my typed draft`) is a live composer that keeps winning, except
+# for a selected popup row proven by _fm_composer_row_is_slash_popup_row.
+# Where a shape cannot demonstrate which it is, the refusal is the answer. The zone
 # is bounded further by a blank row, and an envelope that closed over no glyph
 # row (codex's `permissions: YOLO mode` startup banner) proves nothing and
 # demotes nothing.
@@ -1378,7 +1377,12 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # simple command name matching the typed prefix and a separate description
 # column. Heads containing another slash or arguments, and rows without that
 # column, remain literal input.
-_fm_composer_row_is_slash_popup_row() {
+# Preserve raw indentation: stripping a prompt glyph first can turn a live
+# lower draft such as `❯ /exit  now` into apparent menu furniture.
+# <allow-selected> defaults to 0; the footer caller enables it only for the
+# first row immediately after a closing boundary proven by a `❯` composer.
+# Only there can the exact `  ❯ ` prefix denote the popup's selected row.
+_fm_composer_row_is_slash_popup_row() {  # <raw-row> <typed-head> [allow-selected]
   local row=$1 head=$2
   local head_re='^/[[:alnum:]_.:-]*$'
   local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
