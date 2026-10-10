@@ -1082,7 +1082,7 @@ test_slash_popup_selection_ignores_arrow_statusline() {
 }
 
 test_closing_rule_bounds_the_composer_region() {
-  local rule screen lower out claude_idle
+  local rule screen lower out claude_idle draft caps expected lower_row composer popup
   claude_idle=$(printf 'claude\tidle')
   rule=$(printf '%0.s─' {1..51})
   # The exact live 51-column claude pane (2026-10-10, herdr): the completion
@@ -1113,9 +1113,34 @@ test_closing_rule_bounds_the_composer_region() {
   assert_screen "typed composer above its closing-rule popup on herdr" pending "$CAPS_STYLED" "$screen" '' "$claude_idle"
   # The bound must not swallow a live lower composer: a same-glyph draft at
   # the left margin below the popup is a live composer, not popup furniture.
-  lower="$screen"$'\n❯ another draft'
-  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$lower")
-  [ "$out" = 'another draft' ] || fail "a live same-glyph composer below the popup must still win, got '$out'"
+  popup=${screen#*"$rule"$'\n❯ /exit\n'"$rule"}
+  for composer in \
+    "$screen" \
+    $'──────── named session ─\n❯ /exit\n────────────────────────'"$popup" \
+    "$(printf '╭%s╮\n│ ❯ /exit%43s│\n╰%s╯' "$rule" '' "$rule")$popup"
+  do
+    out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$composer")
+    [ "$out" = /exit ] || fail "a selected popup below a closed composer must preserve /exit, got '$out'"
+    lower_row=$(printf '%s\n' "$composer" | awk 'END {print NR}')
+    for draft in \
+      '❯ another draft' \
+      '❯ /exit now' \
+      '❯ /exit  now' \
+      $'❯ /exit\tnow' \
+      '  ❯ /exit               Exit the CLI'
+    do
+      lower="$composer"$'\n'"$draft"
+      expected=$(printf '%s\n' "${draft#*❯}" | awk '{$1=$1; printf "%s", $0}')
+      for caps in "$CAPS_TMUX" "$CAPS_STYLED" "$CAPS_STYLED_NOID" "$CAPS_PLAIN"; do
+        out=$(fm_composer_extract_selected_content "$caps" "$lower")
+        [ "$out" = "$expected" ] || fail "a live lower composer must win over the closing-rule popup, expected '$expected', got '$out'"
+      done
+      assert_screen "live lower draft below a closing-rule popup" pending "$CAPS_STYLED_NOID" "$lower"
+      assert_screen "live lower draft below a closing-rule popup on herdr" pending "$CAPS_STYLED" "$lower" '' "$claude_idle"
+      assert_screen "cursor on the live lower draft below a closing-rule popup" pending "$CAPS_TMUX" "$lower" "$lower_row" "$claude_idle"
+      assert_screen "plain live lower draft below a closing-rule popup" unknown "$CAPS_PLAIN" "$lower"
+    done
+  done
   pass "fm_composer_extract_selected_content: the closing rule bounds the composer region against glyph-led and wrapped popup rows"
 }
 
@@ -1168,11 +1193,21 @@ test_titled_slash_popup_retains_staleness_guards() {
 }
 
 test_slash_popup_selection_keeps_lower_activity_authoritative() {
-  local menu lower screen out
+  local menu lower screen out draft caps expected
   menu=$'❯ /exit\n/exit    Exit the CLI\n/context    Show context'
-  screen=$menu$'\n❯ another draft'
-  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
-  [ "$out" = 'another draft' ] || fail "a lower live composer must still win, got '$out'"
+  for draft in \
+    '❯ another draft' \
+    '❯ /exit now' \
+    '❯ /exit  now' \
+    '  ❯ /exit               Exit the CLI'
+  do
+    screen=$menu$'\n'"$draft"
+    expected=$(printf '%s\n' "${draft#*❯}" | awk '{$1=$1; printf "%s", $0}')
+    for caps in "$CAPS_STYLED" "$CAPS_STYLED_NOID" "$CAPS_PLAIN"; do
+      out=$(fm_composer_extract_selected_content "$caps" "$screen")
+      [ "$out" = "$expected" ] || fail "a lower live composer must still win, expected '$expected', got '$out'"
+    done
+  done
   for lower in \
     $'\nWorking on request...\n→ repo git:(main)' \
     $'\n→ repo git:(main)\nWorking on request...' \

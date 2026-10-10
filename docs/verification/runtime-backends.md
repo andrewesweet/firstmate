@@ -1311,7 +1311,7 @@ With a slash command typed, the completion popup renders BELOW the composer's cl
 The selection treated that glyph-led selected row as a second bare composer below the closed rule pair and joined every popup row into the payload read, so `/exit` was judged unsent, cleared, and never submitted; every Claude second-mate restart on Herdr failed with `the exit command could not be sent`.
 
 The [shared selector](../../bin/fm-composer-lib.sh) now bounds the composer region at the closing rule.
-A popup row may carry the envelope's own glyph only in the selected-row shape (the typed head plus a description column), and a wrapped description continuation is proven only under positive popup evidence, in a run of rows that lead with blanks and no prompt glyph.
+A popup row may carry the envelope's own glyph only in the indented selected-row shape (the typed head plus a description column) immediately after the proven closing rule, and a wrapped description continuation is proven only under positive popup evidence, in a run of rows that lead with blanks and no prompt glyph.
 A live same-glyph composer below the popup still wins, unclaimed activity still refuses, and tail-only payloads stay refused.
 
 Portable regressions (the content test fails against the selection before the fix; the state, submit, and tail-only tests pin the same screen end to end):
@@ -1330,6 +1330,8 @@ ok - fm_backend_herdr_send_text_submit: a tail-only payload above a closing-rule
 ```
 
 The exact relayed 51-column screen is pinned byte for byte by `herdr_slash_popup_closing_rule_screen` in tests/fm-backend-herdr.test.sh.
+The live guard sets Claude's terminal width to 51 columns and requires `/exit` between two rules, followed by the indented glyph-selected row and a wrapped description, before checking the composer read and submitting the command.
+Refresh with `FM_HERDR_SUBMIT_CONFIRM_LIVE=1 bash tests/fm-herdr-submit-confirm-live-e2e.test.sh`.
 No refreshed live delivery proof: the 2026-10-10 lab attempt for this shape stopped at the same fleet-state tripwire recorded above, so this entry ships on fixture evidence.
 
 ### Claude background-task exit picker

@@ -1377,19 +1377,19 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # A slash prefix alone cannot prove that a row is menu furniture. Require a
 # simple command name matching the typed prefix and a separate description
 # column. Heads containing another slash or arguments, and rows without that
-# column, remain literal input. The popup's SELECTED row reuses the composer
-# glyph (live claude on a 51-column herdr pane draws `❯ /exit    Exit the
-# CLI`), so one leading AGENT glyph is stripped before matching; a shell
-# glyph is never stripped, and the full typed head is still required, so a
-# real draft (spaces in the head) can never match.
-_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
-  local row=$1 head=$2 glyph=''
+# column, remain literal input.
+_fm_composer_row_is_slash_popup_row() {
+  local row=$1 head=$2
   local head_re='^/[[:alnum:]_.:-]*$'
   local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
-  if fm_composer_leading_agent_glyph_var glyph "$row"; then
-    row=${row#*"$glyph"}
-    fm_composer_normalize_trim_var row
-  fi
+  fm_composer_normalize_spaces_var row
+  case "$row" in
+    '  ❯ '*)
+      [ "${3:-0}" = 1 ] || return 1
+      row=${row#'  ❯ '}
+      ;;
+  esac
+  fm_composer_normalize_trim_var row
   [[ $head =~ $head_re && $row =~ $popup_re ]] || return 1
   case "$row" in
     "$head"*) return 0 ;;
@@ -1451,7 +1451,7 @@ _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
 # FM_COMPOSER_FOOTER_SLASH_POPUP records positive popup evidence in that run.
 # Returns 1 when the boundary or the complete footer run cannot be proved.
 _fm_composer_locate_footer_zone() {  # <plain>
-  local plain=$1 close next trimmed proof='' raw head glyph
+  local plain=$1 close next trimmed proof='' raw head glyph allow_selected=0
   FM_COMPOSER_FOOTER_AFTER=-1
   FM_COMPOSER_FOOTER_GLYPH=-1
   FM_COMPOSER_FOOTER_LAST=-1
@@ -1484,11 +1484,12 @@ _fm_composer_locate_footer_zone() {  # <plain>
   fi
   next=0
   head=''
-  while IFS= read -r trimmed; do
+  while IFS= read -r raw; do
     [ "$next" -le "$FM_COMPOSER_SCAN_BARE_ROW" ] || break
+    trimmed=$raw
     fm_composer_normalize_trim_var trimmed
     if [ "$((next - 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
-       && _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+       && _fm_composer_row_is_slash_popup_row "$raw" "$head"; then
       FM_COMPOSER_FOOTER_AFTER=$((next - 1))
       FM_COMPOSER_FOOTER_GLYPH=$((next - 1))
       proof=$glyph
@@ -1513,11 +1514,14 @@ EOF
   head=$(_fm_composer_row_content "$raw" 0)
   head=${head#*"$proof"}
   fm_composer_normalize_trim_var head
+  if [ "$FM_COMPOSER_FOOTER_GLYPH" -lt "$FM_COMPOSER_FOOTER_AFTER" ] \
+     && [ "$proof" = '❯' ]; then
+    allow_selected=1
+  fi
   next=$((FM_COMPOSER_FOOTER_AFTER + 1))
-  trimmed=$(_fm_composer_screen_row "$next" "$plain")
-  fm_composer_normalize_trim_var trimmed
+  raw=$(_fm_composer_screen_row "$next" "$plain")
   if [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_AFTER" ] \
-     && ! _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+     && ! _fm_composer_row_is_slash_popup_row "$raw" "$head" "$allow_selected"; then
     return 1
   fi
   FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
@@ -1526,7 +1530,7 @@ EOF
     trimmed=$raw
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
-    if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+    if _fm_composer_row_is_slash_popup_row "$raw" "$head" "$allow_selected"; then
       FM_COMPOSER_FOOTER_SLASH_POPUP=1
       head='/'
     elif [ "$FM_COMPOSER_FOOTER_SLASH_POPUP" = 1 ] \
@@ -1536,6 +1540,7 @@ EOF
       head=''
       _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
     fi
+    allow_selected=0
     FM_COMPOSER_FOOTER_LAST=$next
     next=$((next + 1))
   done
@@ -1645,7 +1650,7 @@ _fm_composer_select_cursorless() {
       fm_composer_row_has_edge "$trimmed" && break
       _fm_composer_row_is_omp_status "$trimmed" && break
       _fm_composer_row_is_braille_furniture "$trimmed" && break
-      if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      if _fm_composer_row_is_slash_popup_row "$raw" "$head"; then
         FM_COMPOSER_SELECTED_SLASH_POPUP=1
         break
       fi
