@@ -772,7 +772,7 @@ It also covers a glyph-free Codex startup banner that yields to the live bare co
 `test_composer_footer_zone_refuses_rather_than_allows` covers unclaimed activity and a lower live draft on the bordered-box and separator-pair shapes.
 
 This 2026-09-20 verification covers the bordered box and the separator pair.
-The [completion-popup regressions](#claude-completion-rows-without-a-closing-rule) extend that coverage to bare and titled composers.
+The [completion-popup regressions](#claude-completion-rows-without-a-closing-rule) extend that coverage to bare and titled composers and to the popup below a composer's closing rule.
 The opencode left bar is wired into the same rule but is **unexercised**: every left-bar row this repo records leads with plain text, and opencode's own prompt character is `>`, a shell glyph deliberately outside the agent set, so no opencode shape recorded here can prove a left-bar envelope or open a footer zone beneath one.
 
 The live refresh for this entry is the cursorless arm added to the composer-matrix guard, which re-reads each harness's already-proven-idle pane the way every non-tmux backend reads it and fails naming the harness and version when that read is `pending`:
@@ -1303,6 +1303,34 @@ ok - fm_backend_herdr_send_text_submit: a titled slash composer above popup and 
 The third scenario of the opt-in guard above refreshes live delivery evidence.
 The 2026-10-10 live attempt stopped because the lab guard could not verify exactly one running default session.
 The 2.1.295 shape has portable regression coverage and no refreshed live delivery proof.
+
+### Claude completion popup below the composer closing rule
+
+Recorded 2026-10-10 on Claude Code 2.1.295 over Herdr, on a 51-column pane, with the pane read relayed from the fleet laptop after [the closing-rule fix above](#claude-completion-rows-without-a-closing-rule) had landed.
+With a slash command typed, the completion popup renders BELOW the composer's closing rule, its selected row reuses the composer glyph `❯`, and the narrow pane wraps popup descriptions onto indented continuation lines, one command name truncated with a leading ellipsis.
+The selection treated that glyph-led selected row as a second bare composer below the closed rule pair and joined every popup row into the payload read, so `/exit` was judged unsent, cleared, and never submitted; every Claude second-mate restart on Herdr failed with `the exit command could not be sent`.
+
+The [shared selector](../../bin/fm-composer-lib.sh) now bounds the composer region at the closing rule.
+A popup row may carry the envelope's own glyph only in the selected-row shape (the typed head plus a description column), and a wrapped description continuation is proven only under positive popup evidence, in a run of rows that lead with blanks and no prompt glyph.
+A live same-glyph composer below the popup still wins, unclaimed activity still refuses, and tail-only payloads stay refused.
+
+Portable regressions (the content test fails against the selection before the fix; the state, submit, and tail-only tests pin the same screen end to end):
+
+```sh
+bash tests/fm-composer-lib.test.sh
+bash tests/fm-backend-herdr.test.sh
+```
+
+```text
+ok - fm_composer_extract_selected_content: the closing rule bounds the composer region against glyph-led and wrapped popup rows
+ok - fm_backend_herdr_composer_content: the closing rule ends the composer region, so the popup-below-closing-rule screen reads exactly the typed command
+ok - fm_backend_herdr_composer_state: a closing-rule popup below the composer does not hide a typed composer
+ok - fm_backend_herdr_send_text_submit: popup rows below the composer closing rule are not composer text, so the typed /exit is proven and submitted
+ok - fm_backend_herdr_send_text_submit: a tail-only payload above a closing-rule popup stays refused and is cleared
+```
+
+The exact relayed 51-column screen is pinned byte for byte by `herdr_slash_popup_closing_rule_screen` in tests/fm-backend-herdr.test.sh.
+No refreshed live delivery proof: the 2026-10-10 lab attempt for this shape stopped at the same fleet-state tripwire recorded above, so this entry ships on fixture evidence.
 
 ### Claude background-task exit picker
 

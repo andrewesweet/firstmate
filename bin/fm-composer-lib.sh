@@ -103,14 +103,17 @@
 # message; a false `empty` overwrites a visible draft or types into a working
 # agent. So the zone counts only when EVERY row in it is demonstrably furniture
 # (_fm_composer_row_is_composer_furniture or
-# _fm_composer_row_is_slash_popup_row): one unclaimed activity row
-# (`Working on request...`) makes the whole run activity and the envelope above
-# it stale, and a row leading with the SAME glyph the envelope was proven by
-# (`❯ my typed draft`) is a live composer that keeps winning. Where a shape
-# cannot demonstrate which it is, the refusal is the answer. The zone is
-# bounded further by a blank row, and an envelope that closed over no glyph row
-# (codex's `permissions: YOLO mode` startup banner) proves nothing and demotes
-# nothing.
+# _fm_composer_row_is_slash_popup_row, or a popup row's wrapped description
+# continuation proven by _fm_composer_row_is_popup_wrap_row): one unclaimed
+# activity row (`Working on request...`) makes the whole run activity and the
+# envelope above it stale. A row leading with the SAME glyph the envelope was
+# proven by (`❯ my typed draft`) is a live composer that keeps winning - only
+# the popup's own selected-row shape (the typed head plus a description
+# column) may carry that glyph, and only below a proven envelope close. Where
+# a shape cannot demonstrate which it is, the refusal is the answer. The zone
+# is bounded further by a blank row, and an envelope that closed over no glyph
+# row (codex's `permissions: YOLO mode` startup banner) proves nothing and
+# demotes nothing.
 #
 # COVERAGE: tests/fm-composer-lib.test.sh pins footer and popup selection.
 # docs/verification/runtime-backends.md owns the measured shapes, coverage
@@ -1374,16 +1377,45 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
 # A slash prefix alone cannot prove that a row is menu furniture. Require a
 # simple command name matching the typed prefix and a separate description
 # column. Heads containing another slash or arguments, and rows without that
-# column, remain literal input.
+# column, remain literal input. The popup's SELECTED row reuses the composer
+# glyph (live claude on a 51-column herdr pane draws `❯ /exit    Exit the
+# CLI`), so one leading AGENT glyph is stripped before matching; a shell
+# glyph is never stripped, and the full typed head is still required, so a
+# real draft (spaces in the head) can never match.
 _fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
-  local row=$1 head=$2
+  local row=$1 head=$2 glyph=''
   local head_re='^/[[:alnum:]_.:-]*$'
   local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
+  if fm_composer_leading_agent_glyph_var glyph "$row"; then
+    row=${row#*"$glyph"}
+    fm_composer_normalize_trim_var row
+  fi
   [[ $head =~ $head_re && $row =~ $popup_re ]] || return 1
   case "$row" in
     "$head"*) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+# _fm_composer_row_is_popup_wrap_row: 0 when <raw-row> (whitespace-trimmed
+# into <trimmed-row>) is a WRAPPED DESCRIPTION line of the popup row above
+# it: on a narrow pane claude wraps a popup description onto continuation
+# rows indented to the description column. Proven only inside a footer run
+# that already holds positive popup evidence (the caller checks that), and
+# only for rows that lead with blanks and carry no prompt glyph of either
+# family - a live composer or shell row is never a wrapped description, and
+# an unindented row is unclaimed text the asymmetry refuses on.
+_fm_composer_row_is_popup_wrap_row() {  # <raw-row> <trimmed-row>
+  local raw=$1 trimmed=$2 glyph=''
+  case "$raw" in
+    '  '*) ;;
+    *) return 1 ;;
+  esac
+  if fm_composer_leading_agent_glyph_var glyph "$trimmed" \
+     || fm_composer_leading_shell_glyph_var glyph "$trimmed"; then
+    return 1
+  fi
+  [ -n "$trimmed" ]
 }
 
 # _fm_composer_row_is_composer_furniture: 0 when <trimmed-row> is DEMONSTRABLY
@@ -1490,12 +1522,16 @@ EOF
   fi
   FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
   while :; do
-    trimmed=$(_fm_composer_screen_row "$next" "$plain")
+    raw=$(_fm_composer_screen_row "$next" "$plain")
+    trimmed=$raw
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
     if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
       FM_COMPOSER_FOOTER_SLASH_POPUP=1
       head='/'
+    elif [ "$FM_COMPOSER_FOOTER_SLASH_POPUP" = 1 ] \
+         && _fm_composer_row_is_popup_wrap_row "$raw" "$trimmed"; then
+      : # a wrapped description line of the open popup above; head stays '/'
     else
       head=''
       _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
