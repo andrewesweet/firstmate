@@ -3,15 +3,16 @@
 #
 # Origin: the 2026-09-12 GitHub Actions starvation incident. firstmate CI had no
 # concurrency deduplication, so every superseded PR head kept its full job
-# fan-out, and four jobs carried no timeout at all. These tests hold both
-# safeguards: PR runs supersede within one PR while main pushes are never
-# cancelled, and every CI job carries a finite hang tripwire drawn from the
-# three-tier timeout policy that docs/fm-test-portable-shards.md "Timeouts"
-# owns (fast, normal, heavy), so no job drifts back to a one-off number.
+# fan-out, and four jobs carried no timeout at all. These tests hold the
+# safeguards: the workflow triggers on pull_request events only, PR runs
+# supersede within one PR, and every CI job carries a finite hang tripwire
+# drawn from the three-tier timeout policy that
+# docs/fm-test-portable-shards.md "Timeouts" owns (fast, normal, heavy), so no
+# job drifts back to a one-off number.
 #
 # The workflow is parsed as YAML and its concurrency expressions are resolved
-# against simulated pull_request and push contexts, so the assertions describe
-# what GitHub would do, not how the file happens to be spelled.
+# against simulated pull_request contexts, so the assertions describe what
+# GitHub would do, not how the file happens to be spelled.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -122,15 +123,19 @@ test_separate_prs_do_not_cancel_each_other() {
   pass "distinct PRs get distinct concurrency groups"
 }
 
-test_main_pushes_are_never_cancelled() {
-  local first second
-  first=$(resolve_concurrency push '' 900010) || fail "could not resolve push concurrency"
-  second=$(resolve_concurrency push '' 900011) || fail "could not resolve push concurrency"
-  [ "$(group_of "$first")" != "$(group_of "$second")" ] \
-    || fail "each main push must get its own concurrency group, got $(group_of "$first") twice"
-  [ "$(cancel_of "$first")" = false ] \
-    || fail "push runs must never cancel an in-progress run, got $(cancel_of "$first")"
-  pass "every main push keeps its own group and is never cancelled"
+# Pushes to main do not run this workflow: the full suite already gates every
+# merge through a pull request, so a main-push run repeats the same suite.
+# Pinning the parsed trigger shape keeps a stray `push:` trigger from coming
+# back silently.
+test_ci_triggers_on_pull_request_only() {
+  local triggers
+  triggers=$(ruby -ryaml -e '
+doc = YAML.load_file(ARGV[0])
+puts doc.fetch("on") { doc.fetch(true) }.keys.sort
+' "$CI_WORKFLOW") || fail "could not parse .github/workflows/ci.yml triggers"
+  [ "$triggers" = "pull_request" ] \
+    || fail "ci.yml must trigger on pull_request events only, got: $(printf '%s' "$triggers" | tr '\n' ' ')"
+  pass "ci.yml triggers on pull_request events only"
 }
 
 test_every_job_has_a_finite_timeout() {
@@ -252,7 +257,7 @@ RUBY
 test_ci_matrices_match_executable_partitions
 test_pr_pushes_supersede_within_one_pr
 test_separate_prs_do_not_cancel_each_other
-test_main_pushes_are_never_cancelled
+test_ci_triggers_on_pull_request_only
 test_every_job_has_a_finite_timeout
 test_every_job_belongs_to_exactly_one_timeout_tier
 test_fast_tier_shares_one_short_tripwire
