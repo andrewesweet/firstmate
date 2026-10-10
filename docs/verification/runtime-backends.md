@@ -765,14 +765,15 @@ The same panes accepted `fm_backend_send_text_submit` at the same moment because
 
 `test_matrix_claude_arrow_statusline_footer` in `tests/fm-composer-lib.test.sh` carries the shape with its statusLine and hint rows, and pins the two protections the fix must not remove: real unsubmitted text in that same composer under that same statusLine still reads `pending`, and so does the stray mouse report.
 `test_composer_footer_demotion_needs_a_proven_pair` pins the three bounds of the demotion - a blank row ends the footer zone, a separator pair that closed over no agent-glyph row demotes nothing, and Cursor's half-block-bounded `→` composer is untouched - plus the strict posture that an unanchored statusLine row alone never proves an empty composer.
-The footer zone is a property of any envelope a glyph row inside it proves, not of the separator pair specifically, so the same statusLine footer under claude's BORDERED composer (the shape a wide pane renders) is demoted identically; `test_composer_footer_zone_is_shape_independent` carries that box shape, asserts the statusLine is never the extracted composer content, and pins both counterweights - typed text inside that same box under that same footer still reads `pending`, and codex's startup banner, which holds no glyph row and therefore proves nothing, still yields to the live bare row drawn contiguously below it.
+`test_composer_footer_zone_is_shape_independent` covers the bordered Claude composer under the same footer, including a typed draft that still reads `pending`.
+It also covers a glyph-free Codex startup banner that yields to the live bare composer below it.
 
-The demotion is deliberately ASYMMETRIC: `empty` is the only verdict that authorizes `fm-send` to type into a pane, so the rule may move a verdict toward refusing but never toward `empty`.
-It therefore counts a footer zone only when every row in it is demonstrably furniture - omp's status row, a braille animation row, claude's permission-mode hint row (`⏵⏵ bypass permissions on`), or a row leading with an agent glyph OTHER than the one that proved the envelope, which is what the `→` statusLine is on a `❯` claude pane.
-A run containing unclaimed activity (`Working on request...`, `→ ran npm test (3 failures)`) is not furniture in either row order and keeps invalidating the envelope above it, and a row leading with the SAME glyph the envelope was proven by (`❯ my typed draft`) is a live composer that keeps winning, so a visible draft is never overwritten.
-`test_composer_footer_zone_refuses_rather_than_allows` pins both directions on the bordered-box and separator-pair shapes.
+[`bin/fm-composer-lib.sh`](../../bin/fm-composer-lib.sh) owns the footer proof and injection safety boundary.
+`test_composer_footer_zone_refuses_rather_than_allows` covers unclaimed activity and a lower live draft on the bordered-box and separator-pair shapes.
 
-Coverage is the bordered box and the separator pair, the two shapes claude 2.x renders. The opencode left bar is wired into the same rule but is **unexercised**: every left-bar row this repo records leads with plain text, and opencode's own prompt character is `>`, a shell glyph deliberately outside the agent set, so no opencode shape recorded here can prove a left-bar envelope or open a footer zone beneath one.
+This 2026-09-20 verification covers the bordered box and the separator pair.
+The [completion-popup regressions](#claude-completion-rows-without-a-closing-rule) extend that coverage to bare and titled composers.
+The opencode left bar is wired into the same rule but is **unexercised**: every left-bar row this repo records leads with plain text, and opencode's own prompt character is `>`, a shell glyph deliberately outside the agent set, so no opencode shape recorded here can prove a left-bar envelope or open a footer zone beneath one.
 
 The live refresh for this entry is the cursorless arm added to the composer-matrix guard, which re-reads each harness's already-proven-idle pane the way every non-tmux backend reads it and fails naming the harness and version when that read is `pending`:
 
@@ -1239,7 +1240,8 @@ The pre-Enter payload proof then judged the typed command unsent, pressed Ctrl+U
 
 The fix captures the FULL VISIBLE VIEWPORT for every herdr adapter composer read (`pane read --source visible [--format ansi]`, `fm_backend_herdr_composer_state` and `fm_backend_herdr_composer_content`): the composer is by definition inside the viewport, and the viewport is the one bound that always contains it.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend, herdr included; its payloads are task lines, not slash commands, so the popup shape does not arise there.
-The popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+On Claude Code 2.1.283 the popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+For completion rows without a closing rule, see [Claude completion rows without a closing rule](#claude-completion-rows-without-a-closing-rule).
 Verified live in the lab: with the popup up the state read answers `pending` (previously `empty`) and the payload proof returns `/exit` (previously empty), the submit presses Enter, and the Claude process exits, leaving the shell prompt.
 Growing the window only adds rows above the composer, so the bottom-most-shape selection, the footer zone, and every previously passing verdict are unchanged.
 
@@ -1263,6 +1265,44 @@ FM_HERDR_SUBMIT_CONFIRM_LIVE=1 tests/fm-herdr-submit-confirm-live-e2e.test.sh
 ```text
 ok - live Herdr submit confirm: Claude Code (2.1.283 (Claude Code)) on herdr 0.9.0 proves and submits a typed /exit behind its command popup
 ```
+
+### Claude completion rows without a closing rule
+
+Recorded 2026-10-09 on Claude Code 2.1.295 over Herdr 0.9.x, with the read-back relayed from the fleet laptop.
+With a slash command typed, completion rows render directly below the composer line, without the closing rule seen in the 2.1.283 capture above.
+The former shared selection included those menu rows in the payload read, so Herdr rejected `/exit` before Enter.
+
+The [shared composer library](../../bin/fm-composer-lib.sh) owns popup recognition, footer selection, and typed-text classification.
+The portable cases retain `/exit` above completion rows and an arrow-led statusLine, with and without closing rules.
+They include boxed and titled composers, repeated slash-leading literal continuations, and grey `38;2;112;112;112` command text.
+The grey retry case keeps the popup visible after the first Enter and checks that idle native status permits a second Enter.
+Refusal cases cover lower live composers, unclaimed activity, shell prompts, mismatched titled-rule widths, and tail-only payloads.
+
+Portable regressions (the payload test fails against the selection before the fix; the state test pins the pending read; the tail-only test pins the refusal the fix must not weaken):
+
+```sh
+bash tests/fm-composer-lib.test.sh
+bash tests/fm-backend-herdr.test.sh
+```
+
+```text
+ok - fm_backend_herdr_send_text_submit: popup rows directly below the composer line are not composer text, so a typed /exit is proven and submitted
+ok - fm_backend_herdr_composer_state: popup rows directly below the composer line do not hide a typed composer
+ok - fm_backend_herdr_send_text_submit: a tail-only payload above popup rows is not rescued by their absence from the read and is cleared
+ok - fm_composer_extract_selected_content: slash-leading wrapped literals remain intact
+ok - fm_composer_extract_selected_content: popup menus and arrow statusLines preserve the slash composer
+ok - fm_composer_extract_selected_content: popup recognition preserves lower activity and shell guards
+ok - fm_backend_herdr_send_text_submit: a slash-leading wrapped literal is proven and submitted intact
+ok - fm_backend_herdr_send_text_submit: a slash tail above popup and statusLine furniture stays refused
+ok - fm_composer_classify_screen: proven grey slash input stays pending across composer shapes and capabilities
+ok - fm_composer_extract_selected_content: titled popup selection retains width and staleness guards
+ok - fm_backend_herdr_send_text_submit: a grey slash popup retries a swallowed Enter before confirming delivery
+ok - fm_backend_herdr_send_text_submit: a titled slash composer above popup and statusLine furniture is submitted
+```
+
+The third scenario of the opt-in guard above refreshes live delivery evidence.
+The 2026-10-10 live attempt stopped because the lab guard could not verify exactly one running default session.
+The 2.1.295 shape has portable regression coverage and no refreshed live delivery proof.
 
 ### Claude background-task exit picker
 

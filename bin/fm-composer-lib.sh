@@ -30,7 +30,8 @@
 #               suggestion, and a false `pending` blocks every safe caller.
 #   cursor=1    a cursor row is supplied (tmux #{cursor_y} only). The cursor
 #               anchors shape selection: the shape containing the cursor is the
-#               composer. Without it, the bottom-most shape wins.
+#               composer. Without it, cursorless selection resolves the footer
+#               zone below before choosing the bottom-most live shape.
 #   identity=1  a native agent identity/state probe exists (herdr `agent get`;
 #               the tmux pi foreground-process probe). Identity is what makes
 #               Pi's blank separated composer provable; with identity=0 that
@@ -63,7 +64,8 @@
 #                structural edges, and by the FURNITURE rows a harness draws
 #                directly below its composer - omp's status row and
 #                braille-only animation rows (declared once below, next to
-#                the idle placeholders) - none of which is ever typed input.
+#                the idle placeholders), plus completion rows proven by
+#                _fm_composer_row_is_slash_popup_row.
 #   left-bar   - opencode: rows prefixed by a heavy left bar `┃` with no
 #                closing border, holding the idle hint, blank rows, and a
 #                mode/model footer line.
@@ -87,20 +89,21 @@
 # `pending` on a visibly empty pane; `fm_task_inbox_ring` defers on exactly
 # that verdict, so every steer to a claude worker on herdr was skipped
 # (measured live 2026-09-20, claude 2.1.236 on herdr 0.8.0, three of five
-# panes). The rule is owned once, by the cursorless selection boundary: an
-# ENVELOPE that CLOSED over an agent prompt glyph is a proven composer
-# container, so a BARE candidate among the contiguous non-blank rows below its
-# closing row is that composer's own footer furniture and not a composer. The
-# proven envelope is selected instead; when its proving glyph row is itself
-# borderless, that row is the bare candidate it stood for, and the envelope's
-# staleness probe resumes past the zone.
+# panes). The cursorless selection boundary owns the rule: a glyph-proven
+# closed ENVELOPE supplies a footer boundary, as does a bare glyph row directly
+# followed by a completion row proven by _fm_composer_row_is_slash_popup_row.
+# Titled composers use _fm_composer_bare_rule_sandwich's width and adjacency
+# proof at that same boundary. A lower BARE candidate inside the proven footer
+# run is furniture. Selection retains the proven envelope or its borderless
+# glyph row, and the envelope's staleness probe resumes past the zone.
 #
 # THE ASYMMETRY that bounds it: `empty` is the one verdict that authorizes
 # fm-send to type into a pane, so this rule may move a verdict only toward
 # REFUSING, never toward `empty`. A false refusal costs one undelivered
 # message; a false `empty` overwrites a visible draft or types into a working
 # agent. So the zone counts only when EVERY row in it is demonstrably furniture
-# (_fm_composer_row_is_composer_furniture): one unclaimed activity row
+# (_fm_composer_row_is_composer_furniture or
+# _fm_composer_row_is_slash_popup_row): one unclaimed activity row
 # (`Working on request...`) makes the whole run activity and the envelope above
 # it stale, and a row leading with the SAME glyph the envelope was proven by
 # (`❯ my typed draft`) is a live composer that keeps winning. Where a shape
@@ -109,12 +112,9 @@
 # (codex's `permissions: YOLO mode` startup banner) proves nothing and demotes
 # nothing.
 #
-# COVERAGE: this is exercised for the bordered box and the pi separator pair,
-# the two shapes claude 2.x renders. The opencode left bar is wired in for the
-# same treatment but is UNEXERCISED - every left-bar row this repo records
-# leads with plain text, and opencode's own prompt character is `>`, a SHELL
-# glyph deliberately outside the agent set, so no opencode shape recorded here
-# can prove a left-bar envelope and open a zone under it.
+# COVERAGE: tests/fm-composer-lib.test.sh pins footer and popup selection.
+# docs/verification/runtime-backends.md owns the measured shapes, coverage
+# limits, and live refresh commands.
 #
 # THE SAFETY RULE for glyphs: a bare shell prompt glyph (`>` `$` `%` `#`) -
 # what a pane shows once its agent has exited to a plain login shell - is a
@@ -135,10 +135,12 @@
 # plain capture cannot tell apart from text a human typed. codex-cli 0.154.0
 # draws its `Ask Codex to do anything` placeholder as SGR-2 dim text after the
 # bare `›` glyph, which fm_composer_strip_ghost removes.
-# fm_composer_strip_ghost is the ONE ANSI-aware extractor of "real typed
-# content": it drops every de-emphasized run - dim/faint (SGR 2) AND a
-# dark/muted TRUECOLOR foreground - and keeps only normal-intensity,
-# normally-coloured text.
+# fm_composer_strip_ghost owns ANSI-aware extraction below. Positive popup
+# evidence proves that the selected slash input is typed text, so classification
+# and extraction locally set FM_COMPOSER_GHOST_LUMA_MAX=0 for that read.
+# Dim/faint suggestions still strip, and a later read without popup proof uses
+# the caller's normal threshold. Herdr's Claude-only payload read additionally
+# disables dark-foreground stripping in bin/backends/herdr.sh.
 # Ghost stripping is a STYLE test, so it cannot see furniture a harness draws
 # at normal intensity: codex-cli 0.154.0 animates a braille "starfield" around
 # its idle composer in greys on both sides of the ghost luminance ceiling, so
@@ -821,8 +823,8 @@ _fm_composer_scan_screen() {  # <plain-screen> <cursor-or-empty> [extract-wrap]
   # The glyph PROOF of each envelope: the first row strictly inside it whose
   # content leads with an agent prompt glyph once its side borders are
   # stripped, and that glyph. This is what tells a composer container from a
-  # decorative banner; it is recorded here, on the one pass that already walks
-  # and trims every row, so the footer zone never re-reads the screen.
+  # decorative banner. The footer boundary reuses this envelope proof and
+  # separately checks bare popup heads and titled-rule sandwiches.
   FM_COMPOSER_SCAN_BOX_GLYPH_ROW=-1
   FM_COMPOSER_SCAN_BOX_GLYPH=
   FM_COMPOSER_SCAN_PI_GLYPH_ROW=-1
@@ -1369,6 +1371,21 @@ _fm_composer_leftbar_floor_row() {  # <trimmed-row>
   [ -z "${blocks//▀/}" ]
 }
 
+# A slash prefix alone cannot prove that a row is menu furniture. Require a
+# simple command name matching the typed prefix and a separate description
+# column. Heads containing another slash or arguments, and rows without that
+# column, remain literal input.
+_fm_composer_row_is_slash_popup_row() {  # <trimmed-row> <typed-head>
+  local row=$1 head=$2
+  local head_re='^/[[:alnum:]_.:-]*$'
+  local popup_re=$'^/[[:alnum:]_.:-]+([[:blank:]]{2,}|\t)[^[:space:]]'
+  [[ $head =~ $head_re && $row =~ $popup_re ]] || return 1
+  case "$row" in
+    "$head"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # _fm_composer_row_is_composer_furniture: 0 when <trimmed-row> is DEMONSTRABLY
 # a harness's own furniture drawn below its composer, given <proof-glyph> - the
 # agent glyph that proved the envelope above it. Exactly four things qualify,
@@ -1395,26 +1412,18 @@ _fm_composer_row_is_composer_furniture() {  # <trimmed-row> <proof-glyph>
   [ -n "$proof" ] && [ "$glyph" != "$proof" ]
 }
 
-# _fm_composer_locate_footer_zone: THE composer footer zone of <plain> (see THE
-# COMPOSER FOOTER ZONE in this file's header). Records the bottom-most
-# glyph-PROVEN envelope in FM_COMPOSER_FOOTER_AFTER (its closing row, including
-# the opencode left bar's half-block floor), FM_COMPOSER_FOOTER_GLYPH (the
-# proving row) and FM_COMPOSER_FOOTER_LAST (the contiguous non-blank run below
-# the closing row). The proof itself is read from the row scan, which already
-# recorded it on its single pass.
-#
-# The zone is furniture only if EVERY row in it is: one non-furniture row makes
-# the whole run unclaimed activity, the envelope above it stale, and this
-# function return 1. That is the asymmetry this rule is held to - it may only
-# ever move a verdict toward refusing, never toward `empty`, because `empty` is
-# the one verdict that authorizes fm-send to type into the pane. Returns 1 too
-# when no envelope is glyph-proven, when a blank row sits directly beneath it,
-# or when the run holds no bare candidate at all (nothing to demote).
+# _fm_composer_locate_footer_zone: apply THE COMPOSER FOOTER ZONE above.
+# FM_COMPOSER_FOOTER_AFTER records the boundary row (an envelope close or a
+# bare popup head), FM_COMPOSER_FOOTER_GLYPH the proving row, and
+# FM_COMPOSER_FOOTER_LAST the contiguous footer's last row.
+# FM_COMPOSER_FOOTER_SLASH_POPUP records positive popup evidence in that run.
+# Returns 1 when the boundary or the complete footer run cannot be proved.
 _fm_composer_locate_footer_zone() {  # <plain>
-  local plain=$1 close next trimmed proof=''
+  local plain=$1 close next trimmed proof='' raw head glyph
   FM_COMPOSER_FOOTER_AFTER=-1
   FM_COMPOSER_FOOTER_GLYPH=-1
   FM_COMPOSER_FOOTER_LAST=-1
+  FM_COMPOSER_FOOTER_SLASH_POPUP=0
   if [ "$FM_COMPOSER_SCAN_BOX_BOTTOM" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
      && [ "$FM_COMPOSER_SCAN_BOX_GLYPH_ROW" -ge 0 ]; then
     FM_COMPOSER_FOOTER_AFTER=$FM_COMPOSER_SCAN_BOX_BOTTOM
@@ -1441,22 +1450,60 @@ _fm_composer_locate_footer_zone() {  # <plain>
     FM_COMPOSER_FOOTER_GLYPH=$FM_COMPOSER_SCAN_PI_GLYPH_ROW
     proof=$FM_COMPOSER_SCAN_PI_GLYPH
   fi
+  next=0
+  head=''
+  while IFS= read -r trimmed; do
+    [ "$next" -le "$FM_COMPOSER_SCAN_BARE_ROW" ] || break
+    fm_composer_normalize_trim_var trimmed
+    if [ "$((next - 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
+       && _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      FM_COMPOSER_FOOTER_AFTER=$((next - 1))
+      FM_COMPOSER_FOOTER_GLYPH=$((next - 1))
+      proof=$glyph
+    fi
+    head=''
+    if fm_composer_leading_agent_glyph_var glyph "$trimmed"; then
+      head=${trimmed#*"$glyph"}
+      fm_composer_normalize_trim_var head
+      if [ "$((next + 1))" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
+         && _fm_composer_bare_rule_sandwich "$plain" "$next"; then
+        FM_COMPOSER_FOOTER_AFTER=$((next + 1))
+        FM_COMPOSER_FOOTER_GLYPH=$next
+        proof=$glyph
+      fi
+    fi
+    next=$((next + 1))
+  done <<EOF
+$plain
+EOF
   [ "$FM_COMPOSER_FOOTER_AFTER" -ge 0 ] || return 1
-  # Nothing below the envelope can be demoted unless a bare candidate sits
-  # there, so settle that from the scan's own record before walking any rows.
-  [ "$FM_COMPOSER_SCAN_BARE_ROW" -gt "$FM_COMPOSER_FOOTER_AFTER" ] || return 1
-  FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
+  raw=$(_fm_composer_screen_row "$FM_COMPOSER_FOOTER_GLYPH" "$plain")
+  head=$(_fm_composer_row_content "$raw" 0)
+  head=${head#*"$proof"}
+  fm_composer_normalize_trim_var head
   next=$((FM_COMPOSER_FOOTER_AFTER + 1))
+  trimmed=$(_fm_composer_screen_row "$next" "$plain")
+  fm_composer_normalize_trim_var trimmed
+  if [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_AFTER" ] \
+     && ! _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+    return 1
+  fi
+  FM_COMPOSER_FOOTER_LAST=$FM_COMPOSER_FOOTER_AFTER
   while :; do
     trimmed=$(_fm_composer_screen_row "$next" "$plain")
     fm_composer_normalize_trim_var trimmed
     [ -n "$trimmed" ] || break
-    _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
+    if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+      FM_COMPOSER_FOOTER_SLASH_POPUP=1
+      head='/'
+    else
+      head=''
+      _fm_composer_row_is_composer_furniture "$trimmed" "$proof" || return 1
+    fi
     FM_COMPOSER_FOOTER_LAST=$next
     next=$((next + 1))
   done
-  [ "$FM_COMPOSER_SCAN_BARE_ROW" -gt "$FM_COMPOSER_FOOTER_AFTER" ] \
-    && [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_LAST" ]
+  [ "$FM_COMPOSER_SCAN_BARE_ROW" -le "$FM_COMPOSER_FOOTER_LAST" ]
 }
 
 # _fm_composer_bare_rule_sandwich: 0 when bare agent-glyph <row> sits in its
@@ -1482,11 +1529,12 @@ _fm_composer_bare_rule_sandwich() {  # <plain-screen> <row>
 }
 
 _fm_composer_select_cursorless() {
-  local plain=$1 generic=-1 next boundary raw trimmed glyph bare footer=0
+  local plain=$1 generic=-1 next boundary raw trimmed glyph bare footer=0 head
   FM_COMPOSER_SELECTED_KIND=
   FM_COMPOSER_SELECTED_FIRST=-1
   FM_COMPOSER_SELECTED_LAST=-1
   FM_COMPOSER_SELECTED_AMBIG=0
+  FM_COMPOSER_SELECTED_SLASH_POPUP=0
   if _fm_composer_locate_footer_zone "$plain"; then footer=1; fi
   if [ "$FM_COMPOSER_SCAN_BOX_BOTTOM" -ge 0 ]; then
     generic=$FM_COMPOSER_SCAN_BOX_BOTTOM
@@ -1495,11 +1543,8 @@ _fm_composer_select_cursorless() {
     FM_COMPOSER_SELECTED_LAST=$((FM_COMPOSER_SCAN_BOX_BOTTOM - 1))
     FM_COMPOSER_SELECTED_AMBIG=$FM_COMPOSER_SCAN_BOX_AMBIG
   fi
-  # A bare candidate standing in a proven envelope's footer zone is that
-  # harness's own furniture, never a composer. The envelope it sits under is
-  # what the screen actually shows, so when that envelope's proving glyph row
-  # is itself borderless, the bare candidate moves UP to it; otherwise the
-  # envelope (box, left bar) stays selected on its own.
+  # Resolve the proven footer before comparing candidates, as specified in
+  # THE COMPOSER FOOTER ZONE above; a statusLine must not become the composer.
   bare=$FM_COMPOSER_SCAN_BARE_ROW
   if [ "$footer" = 1 ]; then
     trimmed=$(_fm_composer_screen_row "$FM_COMPOSER_FOOTER_GLYPH" "$plain")
@@ -1539,8 +1584,7 @@ _fm_composer_select_cursorless() {
     # Spare only a bare glyph inside its own titled composer rules; see
     # _fm_composer_bare_rule_sandwich for why that shape is not scrollback.
     if ! { [ "$FM_COMPOSER_SELECTED_KIND" = bare ] \
-           && [ "$generic" = "$FM_COMPOSER_SCAN_BARE_ROW" ] \
-           && _fm_composer_bare_rule_sandwich "$plain" "$FM_COMPOSER_SCAN_BARE_ROW"; }; then
+           && _fm_composer_bare_rule_sandwich "$plain" "$generic"; }; then
       FM_COMPOSER_SELECTED_KIND=
       return 1
     fi
@@ -1550,6 +1594,12 @@ _fm_composer_select_cursorless() {
     return 1
   fi
   if [ "$FM_COMPOSER_SELECTED_KIND" = bare ]; then
+    raw=$(_fm_composer_screen_row "$FM_COMPOSER_SELECTED_FIRST" "$plain")
+    head=$(_fm_composer_row_content "$raw" 0)
+    if fm_composer_leading_agent_glyph_var glyph "$head"; then
+      head=${head#*"$glyph"}
+    fi
+    fm_composer_normalize_trim_var head
     next=$((FM_COMPOSER_SELECTED_LAST + 1))
     while :; do
       raw=$(_fm_composer_screen_row "$next" "$plain")
@@ -1559,6 +1609,10 @@ _fm_composer_select_cursorless() {
       fm_composer_row_has_edge "$trimmed" && break
       _fm_composer_row_is_omp_status "$trimmed" && break
       _fm_composer_row_is_braille_furniture "$trimmed" && break
+      if _fm_composer_row_is_slash_popup_row "$trimmed" "$head"; then
+        FM_COMPOSER_SELECTED_SLASH_POPUP=1
+        break
+      fi
       FM_COMPOSER_SELECTED_LAST=$next
       next=$((next + 1))
     done
@@ -1592,11 +1646,18 @@ _fm_composer_select_cursorless() {
       return 1
     fi
   fi
+  if [ "$footer" = 1 ] \
+     && [ "$FM_COMPOSER_FOOTER_SLASH_POPUP" = 1 ] \
+     && [ "$FM_COMPOSER_FOOTER_GLYPH" -ge "$FM_COMPOSER_SELECTED_FIRST" ] \
+     && [ "$FM_COMPOSER_FOOTER_GLYPH" -le "$FM_COMPOSER_SELECTED_LAST" ]; then
+    FM_COMPOSER_SELECTED_SLASH_POPUP=1
+  fi
   [ -n "$FM_COMPOSER_SELECTED_KIND" ]
 }
 
 fm_composer_extract_selected_content() {  # <caps> <screen>
   local caps=$1 screen=$2 styled=0 kv plain row raw content glyph joined='' footer_re prompt_row=-1
+  local FM_COMPOSER_GHOST_LUMA_MAX=${FM_COMPOSER_GHOST_LUMA_MAX:-128}
   local leading_blank=1 placeholder_position=0 prompt_is_shell=0
   footer_re=${FM_COMPOSER_LEFTBAR_FOOTER_RE:-$FM_COMPOSER_LEFTBAR_FOOTER_RE_DEFAULT}
   while IFS= read -r kv; do
@@ -1607,6 +1668,7 @@ EOF
   plain=$(printf '%s\n' "$screen" | fm_composer_strip_ansi)
   _fm_composer_scan_screen "$plain" '' 1
   _fm_composer_select_cursorless "$plain" || return 1
+  if [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ]; then FM_COMPOSER_GHOST_LUMA_MAX=0; fi
   row=$FM_COMPOSER_SELECTED_FIRST
   while [ "$row" -le "$FM_COMPOSER_SELECTED_LAST" ]; do
     raw=$(_fm_composer_screen_row "$row" "$screen")
@@ -1743,6 +1805,7 @@ fm_composer_dialog_sink_release() {
 fm_composer_classify_screen() {  # <caps> <screen> [cursor_row] [identity]
   local caps=$1 screen=$2 cy=${3:-} identity=${4:-}
   local styled=0 cursor=0 has_identity=0 kv plain
+  local FM_COMPOSER_GHOST_LUMA_MAX=${FM_COMPOSER_GHOST_LUMA_MAX:-128}
   # Note the dialog before any early return so a pending picker is still named.
   fm_composer_note_blocking_dialog "$screen" || true
   while IFS= read -r kv; do
@@ -1761,6 +1824,15 @@ EOF
   plain=$(printf '%s\n' "$screen" | fm_composer_strip_ansi)
   _fm_composer_scan_screen "$plain" "$cy"
   if [ -n "$cy" ]; then
+    if _fm_composer_select_cursorless "$plain" \
+       && [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ] \
+       && [ "$cy" -ge "$FM_COMPOSER_SELECTED_FIRST" ] \
+       && [ "$cy" -le "$FM_COMPOSER_SELECTED_LAST" ]; then
+      FM_COMPOSER_GHOST_LUMA_MAX=0
+      if [ "$FM_COMPOSER_SELECTED_KIND" = bare ]; then
+        FM_COMPOSER_SCAN_BARE_ROW=$FM_COMPOSER_SELECTED_FIRST
+      fi
+    fi
     # Cursor mode (tmux): the shape CONTAINING the cursor is the composer.
     if [ "$FM_COMPOSER_SCAN_UNSAFE" = 1 ]; then
       printf 'unknown'; return 0
@@ -1814,13 +1886,13 @@ EOF
     printf 'unknown'
     return 0
   fi
-  # No cursor: the bottom-most shape wins, with the pi-separator staleness
-  # rules layered on (a live pi composer pair below the generic candidate
-  # proves that candidate stale).
+  # No cursor: use the shared selection boundary, including footer demotion
+  # and the separator staleness proofs.
   if ! _fm_composer_select_cursorless "$plain"; then
     printf 'unknown'
     return 0
   fi
+  if [ "$FM_COMPOSER_SELECTED_SLASH_POPUP" = 1 ]; then FM_COMPOSER_GHOST_LUMA_MAX=0; fi
   case "$FM_COMPOSER_SELECTED_KIND" in
     pi)
       _fm_composer_pi_verdict "$screen" "$styled" "$has_identity" "$identity"
