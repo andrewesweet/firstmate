@@ -21,8 +21,7 @@ A failed script's duration is excluded even when its lane uploaded an artifact.
 In particular, run 36664663190's serial 5 finished in 22m15s with an assertion failure, not a timeout; treating that as a healthy whole-lane sample would hide the failure.
 Collect successful per-script measurements for every member before calculating a split.
 
-`tests/fm-supervision-host.test.sh` uses 789123 ms from run 36669175457, after the merged [host runtime fix](https://github.com/kunchenguid/firstmate/pull/6179), rather than its pre-fix maximum of 1065298 ms.
-That post-fix value has only one sample in this baseline, so further green runs must establish its variance.
+For the supervision-host suite's later serial timing samples and retained hint, see [Portable serial CI shards](#portable-serial-ci-shards).
 The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains its separate 5121 ms measurement from 2026-09-06T21:02Z instead of a portable capability skip.
 The session-start hint retains its pre-optimization maximum until CI measures the shorter fixture-only home-summary bound; do not discount a local speedup from CI packing weights.
 
@@ -76,7 +75,7 @@ Refresh the hints whenever a serial member grows materially or the lane gains sc
 Nine serial runners pack the refreshed measurements into modeled script sums between 1072423 ms and 1196951 ms (17m52s-19m57s).
 The slowest shard is `tests/fm-supervision-host.test.sh` alone at its 1196951 ms slowest sample and the second is `tests/fm-watch-triage.test.sh` alone at 1122548 ms; each heavyweight's volatile duration exposes only its own shard, and the other seven shards model 17m52s.
 The 30-minute bound is a job timeout, so it covers the job's setup as well as the shard: the full-history checkout, the pinned ShellCheck and actionlint installs, and the two `npm install -g` steps together already cost more than `fm-test-run.sh`'s own inter-script overhead inside a shard.
-With that setup the slowest shard's 1196951 ms script sum lands near 22 minutes of job wall, about 8 minutes of margin under the 30-minute job timeout, so every shard still finishes with clear headroom.
+With that setup, the slowest shard's retained hint models about 22 minutes of job wall and 8 minutes of margin under the 30-minute job timeout.
 This is a packing estimate, not measured new-workflow execution or an end-to-end latency guarantee.
 Job timeouts remain hang tripwires under the policy in [Timeouts](#timeouts) below; they are not the desired healthy duration.
 `tests/fm-ci-workflow.test.sh` compares the parsed CI matrix to the executable runner lanes, and the runner rejects parallel `--jobs` on a serial lane even when that shard has only one member.
@@ -118,7 +117,9 @@ Its `--list-files` interface exposes partition membership; `tests/fm-lint.test.s
 The workflow uploads each partition's quiet telemetry plus its per-root lifecycle sidecar to distinguish analysis cost, memory use, and host contention.
 No fast mode, path skips, or paid runner provisioning is part of this layout.
 
-The longest path is the slowest portable serial shard: the refreshed measurements above put it at about 20 minutes of script time and about 22 minutes of job wall once job setup is counted, and a complete green run is bounded by that path plus at most two minutes of runner delay. A complete run under fifteen minutes therefore needs the heavyweight scripts to get faster or be split, which packing cannot do.
+The slowest portable serial shard sets the modeled longest path described in [Portable serial CI shards](#portable-serial-ci-shards).
+Actual end-to-end latency also includes job setup and runner queue time, which these packing estimates do not bound.
+A complete run under fifteen minutes therefore needs the heavyweight scripts to get faster or be split, which packing cannot do.
 The candidate uses fourteen long-lived Linux jobs (nine serial, two parallel, Herdr, two lint), plus short checks and macOS; insufficient shared account capacity can erase the packing gain.
 The immediate packing target is the runner's modeled script budget, not a claim that more shards alone can make an indivisible script faster.
 Compare complete before/after runs, preserve cancelled and partial-run evidence, and measure a representative normal-run sample before claiming a P95 improvement.
