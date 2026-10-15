@@ -630,10 +630,12 @@ test_refused_spawn_leaves_no_task_state() {
 # switch's clear form.
 claude_launch_doorbell() {  # <launch command>
   local command=$1
-  # Leading statement prefixes vary by spawn path: export statements (inbox,
-  # kill switch, git config) plus the trace scrub's and kill switch's unset
-  # forms on relaunches and the function-hooks path.
-  while [[ "$command" == "export "*\;* || "$command" == "unset "*\;* ]]; do
+  command=$(fm_test_launch_command "$command")
+  # Strip every remaining leading pane-scoped prefix statement, including the
+  # trace scrub's and kill switch's unset forms on relaunches and the
+  # function-hooks path: eval below would otherwise execute the launch past
+  # the first surviving semicolon instead of only splitting it.
+  while [[ "$command" == export\ *\;* || "$command" == unset\ *\;* ]]; do
     command=${command#*; }
   done
   (
