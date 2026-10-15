@@ -2105,6 +2105,22 @@ teardown_scrub_scratch_copy() {
 
 # Callers run this only for a copy that was a Treehouse pool slot before the
 # return; a return removes any other copy, and the pool cannot lose it.
+# True when <worktree> holds residue a plain `git clean -fd` would leave
+# behind (nested repositories) or cannot be read at all: the only dirt a
+# real treehouse return can leave, so the only dirt worth flagging where no
+# scrub ran first. Plain untracked files are a real return's own cleaning
+# job (and a fake return's laziness), never evidence of a lost slot.
+teardown_worktree_has_uncleanable_residue() {  # <worktree>
+  local wt=$1 entry path
+  git -C "$wt" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  while IFS= read -r -d '' entry; do
+    path=${entry#???}
+    path=${path%/}
+    [ -e "$wt/$path/.git" ] && return 0
+  done < <(git -C "$wt" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)
+  return 1
+}
+
 teardown_note_dirty_return() {
   local wt=$1 residue_rc=0 residue slot_dir slot_label
   if git -C "$wt" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -3510,10 +3526,11 @@ cleanup_firstmate_home_children() {
         # a refusal for a busy lock re-raises its own rc so the teardown can
         # retry once the lock clears.
         if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree" "$child_id"; then
-          # Surface residue the return left behind exactly as the ordinary
-          # child return path does (a read-only check: no scrub runs before
-          # ownership is proven on this path).
-          teardown_note_dirty_return "$child_wt"
+          # No scrub runs before ownership is proven on this path, so only
+          # residue a real return cannot clean evidences a lost slot.
+          if teardown_worktree_has_uncleanable_residue "$child_wt"; then
+            teardown_note_dirty_return "$child_wt"
+          fi
           fm_treehouse_slot_owner_release "$child_wt" "$child_id"
         else
           child_return_rc=$?
@@ -3922,10 +3939,11 @@ if [ "$KIND" != secondmate ] && teardown_owns_worktree \
     fi
     if teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check"; then
       TEARDOWN_ABSENT_CLAIM_RETURNED=1
-      # The copy is back in the pool, so surface residue the return left
-      # behind exactly as the ordinary return path does (a read-only check:
-      # no scrub runs before ownership is proven on this path).
-      teardown_note_dirty_return "$WT"
+      # No scrub runs before ownership is proven on this path, so only
+      # residue a real return cannot clean evidences a lost slot.
+      if teardown_worktree_has_uncleanable_residue "$WT"; then
+        teardown_note_dirty_return "$WT"
+      fi
     else
       echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
       exit 1
