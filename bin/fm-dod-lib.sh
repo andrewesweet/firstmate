@@ -689,6 +689,25 @@ EOF
       ;;
     no-mistakes:*)
       data=$(fm_dod_feedback_dir) || return 1
+      local ci_checks='gh pr checks <n>' ci_pr_read='' ci_read_details=''
+      local ci_reviews='gh api repos/<owner>/<repo>/pulls/<n>/reviews'
+      local ci_review_comments='.../pulls/<n>/comments' ci_issue_comments='.../issues/<n>/comments'
+      local ci_ready="\`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design)"
+      local ci_approval_wait="GitHub's fork-workflow approval (\`action_required\` with no job run)"
+      if [ "$forge" = forgejo ]; then
+        ci_checks="tea api --login <login> --repo <owner>/<repo> '/repos/{owner}/{repo}/commits/<head-sha>/status?limit=50&page=<page>'"
+        ci_pr_read="\`tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>\` to read the current \`head.sha\` as \`<head-sha>\`, then "
+        ci_reviews="tea api --login <login> --repo <owner>/<repo> '/repos/{owner}/{repo}/pulls/<n>/reviews?limit=50&page=<page>'"
+        ci_review_comments='tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews/<review-id>/comments'
+        ci_issue_comments='tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/issues/<n>/comments'
+        ci_read_details="Take \`<owner>/<repo>\` and \`<n>\` from the PR URL; select the unique \`<login>\` whose URL hostname matches the PR host using \`tea login list --output json\` and pass it on every read.
+Read combined-status pages from page 1 until an empty page; validate that every page has a \`statuses\` array and a string \`state\`, including the final empty page, and require \`state: success\` on every non-empty page.
+Follow pagination for the reviews, and read inline comments for every returned \`<review-id>\`; read the issue comments too.
+An HTTP error body or malformed response is unreadable CI; a head with no statuses is unconfigured CI, never a green result.
+\`tea api\` returning zero alone proves nothing."
+        ci_ready="every non-empty combined-status page for the current PR head reports \`state: success\`, at least one status exists, and every page is readable"
+        ci_approval_wait='approval for a fork-triggered workflow'
+      fi
       cat <<EOF
 # Definition of done
 Delivery contract: mode=no-mistakes$contract_forge$contract_consent
@@ -711,17 +730,18 @@ EOF
       fm_nm_driving_block "$forge"
       cat <<EOF
 
-At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; gh pr checks <n>\` is one blocking hold, not a poll.
-Every poll reads the PR itself, not only its checks: \`gh pr checks <n>\`, then the PR's reviews, review comments, and issue comments (\`gh api repos/<owner>/<repo>/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\`).
+At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; $ci_checks\` is one blocking hold, not a poll.
+Every poll reads the PR itself, not only its checks: $ci_pr_read\`$ci_checks\`, then the PR's reviews, review comments, and issue comments (\`$ci_reviews\`, \`$ci_review_comments\`, and \`$ci_issue_comments\`).
+$ci_read_details
 A failing review-bot check, a review-bot finding, or a maintainer comment asking for a change is work for the gate, never a non-required check to dismiss: when \`no-mistakes axi status\` shows a parked gate, feed each item to it with \`no-mistakes axi respond --action fix\`, adding any finding the gate does not list yet as \`no-mistakes axi respond --help\` describes, and let the fix round commit and push.
 When review feedback arrives and \`no-mistakes axi status\` shows no parked gate, write the comment's text and URL to \`$data/$id/pr-<n>-<comment-id>.txt\` and append \`needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$data/$id/pr-<n>-<comment-id>.txt\`, then keep polling every 60 seconds and wait for firstmate's reply instead of stopping; on dismiss, reply on the PR.
 A firstmate fix answer is applied at the run's next stopping point, never mid-run: at a parked gate, through \`no-mistakes axi respond --action fix --add-finding\`; after the run's final outcome, as a follow-up commit on your existing branch plus a new /no-mistakes run on that same branch with the same \`--intent\`, started through the validation-slot wrapper like any other run start and driven to its outcome before \`done:\`.
 Never hand-commit while a run is active and never start a second run while one is active.
 Before appending \`done:\`, re-read the PR's reviews and comments and route any unactioned feedback through those paths first; never append \`done:\` while a \`pr-<n>-<comment-id>\` decision you opened is still unanswered.
-A wait only a maintainer can clear - GitHub's fork-workflow approval (\`action_required\` with no job run) or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [at=<epoch>] [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [at=<epoch>] [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
+A wait only a maintainer can clear - $ci_approval_wait or a rerun of a flaky job - is an external wait under rule 4, not a blocker: append \`$paused [at=<epoch>] [key=nm-<run>-ci-wait]: <what must happen>\` once, keep polling, and when it clears append \`resolved [at=<epoch>] [key=nm-<run>-ci-wait]: <how it cleared>\` yourself and continue; never report it as \`blocked:\` and never stop on it.
 Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
 
-When \`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design), validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
+When $ci_ready, validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
 Before that done report, read the PR back from the forge and confirm it is not a draft $draft_check
 Before that done report, read the PR back from the forge and confirm it is not a draft $draft_check
 A draft cannot be merged, so a done report on one leaves the merge unasked.

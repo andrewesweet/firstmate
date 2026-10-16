@@ -317,6 +317,83 @@ ROWS
   pass "fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else"
 }
 
+# shellcheck disable=SC2016
+test_ci_polling_contract_follows_forge_for_both_consumers() {
+  local forge task_home project fresh_id promoted_id forge_token output contract task_id
+  for forge in none forgejo; do
+    task_home="$TMP_ROOT/ci-contract-$forge"
+    project="$task_home/projects/proj"
+    fresh_id="ci-fresh-$forge"
+    promoted_id="ci-promoted-$forge"
+    mkdir -p "$project" "$task_home/config" "$task_home/state" "$task_home/data/$promoted_id"
+    git -C "$project" init -q || fail "could not initialize $forge project fixture"
+    forge_token=
+    set --
+    if [ "$forge" = forgejo ]; then
+      forge_token=' forge=forgejo'
+      set -- --forge forgejo
+    fi
+    printf '%s\n' "- proj [no-mistakes +yolo$forge_token] - fixture (added 2026-01-01)" > "$task_home/data/projects.md"
+    FM_ROOT_OVERRIDE='' FM_HOME="$task_home" "$ROOT/bin/fm-brief.sh" "$fresh_id" proj --mode no-mistakes "$@" >/dev/null 2>&1 \
+      || fail "$forge fresh no-mistakes brief failed"
+    printf 'window=fm-%s\nkind=scout\nworktree=%s/wt\nproject=%s\n' "$promoted_id" "$task_home" "$project" \
+      > "$task_home/state/$promoted_id.meta"
+    cat > "$task_home/data/$promoted_id/brief.md" <<'EOF'
+# Task
+## Captain's intent
+Ship the investigated fix.
+
+## Published intent
+Preserve the registered forge and delivery contract.
+
+## Firstmate spec
+Carry over the fix and validate it.
+EOF
+    output=$(FM_ROOT_OVERRIDE='' FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" \
+      FM_DATA_OVERRIDE="$task_home/data" FM_CONFIG_OVERRIDE="$task_home/config" \
+      "$ROOT/bin/fm-promote.sh" "$promoted_id" --mode no-mistakes --yolo off 2>&1) \
+      || fail "$forge no-mistakes promotion failed: $output"
+
+    for contract in "$task_home/data/$fresh_id/brief.md" \
+      "$task_home/data/$promoted_id/ship-instructions.md" "$task_home/data/$promoted_id/brief.md"; do
+      task_id=$promoted_id
+      [ "$contract" != "$task_home/data/$fresh_id/brief.md" ] || task_id=$fresh_id
+      assert_grep 'poll every 60 seconds with one poll per command' "$contract" "$forge omitted the poll cadence"
+      assert_grep 'Every poll reads the PR itself, not only its checks' "$contract" "$forge omitted review reads"
+      assert_grep "needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$task_home/data/$task_id/pr-<n>-<comment-id>.txt" \
+        "$contract" "$forge changed the emitted review-feedback protocol"
+      assert_grep 'never append `done:` while a `pr-<n>-<comment-id>` decision you opened is still unanswered' \
+        "$contract" "$forge lost the pending-feedback completion hold"
+      assert_grep 'append `paused [at=<epoch>] [key=nm-<run>-ci-wait]' "$contract" "$forge lost keyed CI waits"
+      assert_grep 'append `resolved [at=<epoch>] [key=nm-<run>-ci-wait]' "$contract" "$forge lost CI wait resolution"
+      assert_grep 'that is the CI-ready return point' "$contract" "$forge lost the CI-ready return point"
+      assert_grep 'done [at=<epoch>]: PR {url} checks green' "$contract" "$forge changed the completion event"
+      if [ "$forge" = forgejo ]; then
+        assert_no_grep 'gh pr checks' "$contract" "Forgejo received GitHub CI commands"
+        assert_no_grep 'gh api repos/' "$contract" "Forgejo received GitHub review commands"
+        assert_grep 'tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>' \
+          "$contract" "Forgejo must read the live PR head"
+        assert_grep '/repos/{owner}/{repo}/commits/<head-sha>/status?limit=50&page=<page>' \
+          "$contract" "Forgejo must read paginated combined statuses"
+        assert_grep '/repos/{owner}/{repo}/pulls/<n>/reviews?limit=50&page=<page>' \
+          "$contract" "Forgejo must list reviews"
+        assert_grep '/repos/{owner}/{repo}/pulls/<n>/reviews/<review-id>/comments' \
+          "$contract" "Forgejo must read comments for each review"
+        assert_grep '/repos/{owner}/{repo}/issues/<n>/comments' "$contract" "Forgejo must read issue comments"
+        assert_grep 'including the final empty page' "$contract" "Forgejo must validate pagination completion"
+        assert_grep 'at least one status exists, and every page is readable' "$contract" "Forgejo cannot finish on absent or unreadable CI"
+        assert_grep 'When every non-empty combined-status page for the current PR head reports `state: success`' \
+          "$contract" "Forgejo must derive readiness from the current head's statuses"
+      else
+        assert_grep 'When `gh pr checks <n>` shows every check passing or skipping' "$contract" "GitHub readiness changed"
+        assert_grep '`gh api repos/<owner>/<repo>/pulls/<n>/reviews`, `.../pulls/<n>/comments`, and `.../issues/<n>/comments`' \
+          "$contract" "GitHub review reads changed"
+      fi
+    done
+  done
+  pass "fresh, promoted and relaunched no-mistakes prompts use the registered forge and preserve the feedback protocol"
+}
+
 # A ship task's delivery mode is firstmate's per-task decision, so a missing or
 # unusable value must stop the scaffold instead of silently defaulting. The
 # no-mistakes-prod-only row is the conditional registry policy: it is never a task
@@ -1761,6 +1838,7 @@ test_ship_dod_implement_discipline
 test_help_teaches_spec_shaped_firstmate_spec
 test_ship_modes_generate_clean_briefs
 test_forge_selection_renders_correct_cli
+test_ci_polling_contract_follows_forge_for_both_consumers
 test_ship_mode_is_required_and_closed_set
 test_ship_mode_is_explicit_not_registry
 test_delivery_flags_are_refused_where_they_do_not_apply
