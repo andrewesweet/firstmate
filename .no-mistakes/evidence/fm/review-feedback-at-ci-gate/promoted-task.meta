@@ -1,0 +1,6 @@
+window=fm-promote-ci-feedback
+worktree=~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab/projects/disposable-worktree
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/promote-ci-feedback

@@ -1,0 +1,23 @@
+$ bash bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab
+~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab
+[exit 0]
+
+$ bash bin/fm-brief.sh promote-ci-feedback isolated-project --scout
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab/data/promote-ci-feedback/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+$ bash bin/fm-promote.sh promote-ci-feedback --mode no-mistakes --yolo off
+promoted promote-ci-feedback to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: ~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab/data/promote-ci-feedback/ship-instructions.md
+next: FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab bin/fm-send.sh fm-promote-ci-feedback "$(cat ~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab/data/promote-ci-feedback/ship-instructions.md)"
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[exit 0]
+
+$ bash bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/promotion-lab
+[exit 0]

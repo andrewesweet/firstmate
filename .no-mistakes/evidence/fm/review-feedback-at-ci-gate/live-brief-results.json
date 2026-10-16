@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Generate a GitHub no-mistakes brief: each bounded CI poll reads checks and all review feedback, routing changes through a parked gate",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate a gateless-feedback contract: keyed escalation keeps polling and reading the inbox, handles post-outcome fixes, and prevents premature done",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate default, overridden, and standalone CI waits: use the configured pause verb, a distinct wait key, and explicit self-resolution",
+    "result": "pass",
+    "live": true,
+    "evidence": "custom-pause-brief.md; standalone-default.md; standalone-six-args.md; github-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate a Forgejo no-mistakes brief: use tea for statuses, every review, inline comments, and issue comments with pagination",
+    "result": "pass",
+    "live": true,
+    "evidence": "forgejo-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate direct-PR, local-only, and scout briefs: CI-gate instructions remain confined to no-mistakes ships",
+    "result": "pass",
+    "live": true,
+    "evidence": "direct-brief.md; local-brief.md; scout-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Promote a scout to a no-mistakes ship: the emitted ship instructions and durable brief carry CI feedback guidance and the custom pause verb",
+    "result": "pass",
+    "live": true,
+    "evidence": "promoted-ship-instructions.md; promoted-task.meta; promotion-transcript.txt",
+    "reason": ""
+  }
+]

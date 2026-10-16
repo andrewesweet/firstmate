@@ -1,0 +1,32 @@
+usage: gh-axi pr <subcommand> [flags]
+subcommands[15]:
+  list, view <number>, create, edit <number>, close <number>, merge <number>, review <number>, checks <number>, diff <number>, checkout <number>, ready <number>, reopen <number>, comment <number>, update-branch <number>, revert <number>
+flags{list}:
+  --state <open|closed|all>, --label (repeatable), --assignee, --author, --base, --head, --draft, --limit <n> (default 30), --fields <a,b,c>
+flags{view}:
+  --comments, --reviews (show review submissions and inline review comments), --checks (show the detailed check rollup), --full (show complete body without truncation)
+flags{create}:
+  --title <text> (required), --body <text> or --body-file <path>, --attach <path[#alt]> (repeatable; image/video; requires gh >= 2.99.0), --base, --head, --draft, --assignee <login> (repeatable), --reviewer <login> (repeatable), --label <name> (repeatable), --milestone, --project <name> (repeatable)
+flags{edit}:
+  --title <text>, --body <text> or --body-file <path>, --attach <path[#alt]> (repeatable; image/video; requires gh >= 2.99.0), --add-label <name> (repeatable), --remove-label <name> (repeatable), --add-assignee <login> (repeatable), --remove-assignee <login> (repeatable), --add-reviewer <login> (repeatable), --remove-reviewer <login> (repeatable), --milestone, --base <branch> (retarget the PR)
+flags{close}:
+  --comment <text>
+flags{merge}:
+  --method <merge|squash|rebase>, --merge, --squash, --rebase, --auto, --admin (use administrator privileges to bypass merge requirements; cannot combine with --auto), --delete-branch, --body <text> or --body-file <path>, --subject, --match-head-commit <SHA> (require the PR head to match before merging)
+flags{review}:
+  --approve, --request-changes, --comment, --body <text> or --body-file <path>, --match-head-commit <SHA> (require the PR head to match before reviewing; the review is recorded on that commit; give exactly one of --approve, --request-changes, --comment)
+flags{comment}:
+  --body <text> or --body-file <path> (required unless --attach), --attach <path[#alt]> (repeatable; image/video; requires gh >= 2.99.0)
+flags{checks}:
+  --failed (show only failing checks), --watch (wait until no check is pending), --interval <seconds> (poll interval for --watch, default 10), --fail-fast (with --watch, stop at the first failing check); exits 1 when a check failed or none are reported, 8 when a check is still pending (like gh pr checks)
+flags{diff}:
+  --full (show complete diff without truncation), --patch (accepted for gh compatibility; output is already patch format)
+examples:
+  gh-axi pr list --state open --label bug
+  gh-axi pr view 42 --comments
+  gh-axi pr view 42 --reviews
+  gh-axi pr checks 42 --watch --fail-fast
+  gh-axi pr create --title "Fix login" --attach './before.png#Before'
+  gh-axi pr comment 42 --body-file review.md
+  gh-axi pr comment 42 --attach ./after.png
+  gh-axi pr merge 42 --squash --delete-branch
