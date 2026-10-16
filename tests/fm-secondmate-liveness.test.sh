@@ -273,6 +273,9 @@ make_liveness_tmux() {
 #!/usr/bin/env bash
 set -u
 mode=${FM_TEST_PANE_CMD:-zsh}
+if [ -n "${FM_TEST_PANE_CMD_FILE:-}" ]; then
+  mode=$(cat "$FM_TEST_PANE_CMD_FILE")
+fi
 case "${1:-}" in
   display-message)
     for a in "$@"; do
@@ -469,6 +472,81 @@ test_relaunch_waits_for_other_mates_relaunch_lock() {
     || fail "a relaunch blocked on another mate was counted as an attempt"
   [ ! -s "$log" ] || fail "a blocked relaunch touched the endpoint: $(cat "$log")"
   pass "relaunch: the spawn timeout bounds the lock wait before touching the endpoint"
+}
+
+test_relaunch_rechecks_after_wait_and_respects_lifecycle_lock() {
+  local w fb tmuxfb log out mode state pane
+  for mode in full poll; do
+    for state in alive ambiguous unreadable lifecycle-busy; do
+      w=$(new_world "recheck-$mode-$state")
+      add_sm_home "$w" sm1 firstmate:fm-sm1
+      fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+      log="$w/calls.log"; : >"$log"
+      pane="$w/pane-command"
+      printf 'zsh\n' >"$pane"
+      out=$(PATH="$tmuxfb:$fb:$BASE_PATH" FM_HOME="$w/home" FM_BACKEND=tmux \
+        FM_ROOT="$ROOT" STATE="$w/home/state" FM_TMUX_CALL_LOG="$log" \
+        FM_TEST_PANE_CMD_FILE="$pane" bash -c '
+          . "$1/bin/fm-secondmate-liveness-lib.sh"
+          fm_sm_live_require_locks || exit 1
+          meta=$2/home/state/sm1.meta
+          home_lock=$STATE/.secondmate-relaunch.lock
+          control_lock=$STATE/.control-sm1.lock
+          fm_lock_try_acquire "$home_lock" || exit 2
+          trap '\''fm_lock_release "$control_lock"; fm_lock_release "$home_lock"'\'' EXIT
+          (
+            fm_secondmate_liveness_lock sm1 || exit 3
+            fm_secondmate_liveness_probe "$meta" sm1 "$3"
+            [ "$FM_SM_LIVE_STATUS" = relaunchable ] && [ "$FM_SM_LIVE_KILL" = 1 ] || exit 4
+            touch "$2/probed"
+            rc=0
+            fm_secondmate_liveness_relaunch "$meta" sm1 5 || rc=$?
+            printf "rc=%s status=%s state=%s reason=%s\n" \
+              "$rc" "$FM_SM_LIVE_STATUS" "$FM_SM_LIVE_STATE" "$FM_SM_LIVE_REASON"
+            fm_secondmate_liveness_unlock sm1
+          ) >"$2/result" 2>&1 &
+          worker=$!
+          i=0
+          while [ ! -f "$2/probed" ] && [ "$i" -lt 100 ]; do
+            sleep 0.05
+            i=$((i + 1))
+          done
+          if [ ! -f "$2/probed" ]; then
+            kill "$worker" 2>/dev/null || true
+            wait "$worker" 2>/dev/null || true
+            cat "$2/result"
+            exit 5
+          fi
+          fm_lock_try_acquire "$control_lock" || exit 6
+          case "$4" in
+            alive|lifecycle-busy) printf "claude\n" >"$FM_TEST_PANE_CMD_FILE" ;;
+            ambiguous) printf "node\n" >"$FM_TEST_PANE_CMD_FILE" ;;
+            unreadable) printf "unreadable\n" >"$FM_TEST_PANE_CMD_FILE" ;;
+          esac
+          [ "$4" = lifecycle-busy ] || fm_lock_release "$control_lock"
+          fm_lock_release "$home_lock"
+          wait "$worker" || { cat "$2/result"; exit 8; }
+          fm_lock_release "$control_lock"
+          fm_lock_try_acquire "$control_lock" || exit 9
+          fm_lock_release "$control_lock"
+          fm_lock_try_acquire "$home_lock" || exit 10
+          fm_lock_release "$home_lock"
+          [ "$(fm_meta_get "$meta" window)" = firstmate:fm-sm1 ] || exit 11
+          cat "$2/result"
+        ' _ "$ROOT" "$w" "$mode" "$state") || fail "the $mode/$state race fixture failed: $out"
+      assert_contains "$out" 'rc=1 status=skipped' "$mode/$state must skip recovery after the wait"
+      if [ "$state" = lifecycle-busy ]; then
+        assert_contains "$out" 'another lifecycle action is already running' \
+          "recovery must respect the manual lifecycle transaction"
+      else
+        assert_contains "$out" "state=$state" "recovery must re-probe the replacement endpoint"
+      fi
+      [ ! -s "$log" ] || fail "$mode/$state killed or respawned the replacement: $(cat "$log")"
+      [ ! -e "$w/home/state/.secondmate-relaunch-sm1" ] \
+        || fail "$mode/$state recorded an attempt without fresh proof of death"
+    done
+  done
+  pass "relaunch: live or inconclusive replacements and active lifecycle transactions survive the home-lock wait"
 }
 
 test_sweep_refuses_relaunch_on_ledger_errors() {
@@ -786,6 +864,7 @@ test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta
 test_sweep_skips_mate_whose_liveness_lock_is_held
 test_relaunch_waits_for_other_mates_relaunch_lock
+test_relaunch_rechecks_after_wait_and_respects_lifecycle_lock
 test_sweep_refuses_relaunch_on_ledger_errors
 test_remote_poll_probe_maps_states
 test_remote_poll_probe_unreachable_preserves_route
