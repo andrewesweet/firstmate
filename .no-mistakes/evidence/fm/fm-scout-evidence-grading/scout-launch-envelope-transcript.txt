@@ -1,0 +1,22 @@
+$ bash bin/fm-brief.sh envelope-scout sample --scout
+exit=0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-envelope-live-rtyqtjer/data/envelope-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+$ bash -c . "$1"; fm_brief_worker_role "$2" "$3" "$4" _ ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/bin/fm-dod-lib.sh ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-envelope-live-rtyqtjer/state envelope-scout ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB
+exit=0
+$ bash bin/fm-operational-input.sh encode launch-brief
+exit=0
+$ bash bin/fm-operational-input.sh kind
+exit=0
+$ bash bin/fm-operational-input.sh body
+exit=0
+$ bash bin/fm-operational-input.sh record launch-brief
+exit=0
+$ bash bin/fm-operational-input.sh doorbell-kind
+exit=0
+$ bash bin/fm-operational-input.sh open ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-envelope-live-rtyqtjer/state/operational-inbox/1792191195-44a7168a316158d5.msg
+exit=0
+Inline envelope kind: launch-brief
+Record-backed envelope kind: launch-brief
+Opened worker prompt includes:
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+Both real protocol consumers returned the complete generated prompt unchanged.

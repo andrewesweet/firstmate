@@ -1,0 +1,39 @@
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/base-home bash bin/.fm-brief-baseline-473037.sh baseline-scout sample --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/base-home/data/baseline-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+exit=0
+Baseline reproduced: generated scout prompt has no per-finding evidence-grade instruction.
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/default-home bash bin/fm-brief.sh default-scout sample --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/default-home/data/default-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+exit=0
+Generated scout definition of done:
+Write your findings to `~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/default-home/data/default-scout/report.md`.
+The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+If your deliverable is a visual artifact the captain will review and iterate on, use the lavish-axi rule: arm your board with bin/fm-procevent-lavish.sh arm <artifact.html> --for <task-id>; never run lavish-axi poll yourself. Re-arm with the reply after each nonterminal round to acknowledge it, route the board feedback through your steering inbox, write needs-decision [key=board-review] with the live board URL when the captain owes a decision, and stop at session_ended or an empty End without re-arming - acknowledge that final round with bin/fm-procevent.sh handled <source-id> <sequence> to conclude and retire your board.
+Before reporting done, read and follow `~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.agents/skills/captain-hold-lifecycle/SKILL.md` and pass its shared completion gate for the report and any visual review.
+When the report is complete, append `done [at=<epoch>]: {one-line conclusion}` to the status file and stop.
+If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
+Observed grade definitions: [["Direct", "seen firsthand"], ["Supported", "backed by a cited source"], ["Inferred", "reasoned from the evidence"], ["Speculative", "plausible but untested"], ["Unknown", "could not be established"]]
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/custom-home bash bin/fm-brief.sh custom-scout sample --scout --base-branch integration/evidence --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/custom-home/data/custom-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+exit=0
+Generated scout definition of done:
+Write your findings to `~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/custom-home/data/custom-scout/report.md`.
+The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+If your deliverable is a visual artifact the captain will review and iterate on, use the lavish-axi rule: arm your board with bin/fm-procevent-lavish.sh arm <artifact.html> --for <task-id>; never run lavish-axi poll yourself. Re-arm with the reply after each nonterminal round to acknowledge it, route the board feedback through your steering inbox, write needs-decision [key=board-review] with the live board URL when the captain owes a decision, and stop at session_ended or an empty End without re-arming - acknowledge that final round with bin/fm-procevent.sh handled <source-id> <sequence> to conclude and retire your board.
+Before reporting done, read and follow `~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.agents/skills/captain-hold-lifecycle/SKILL.md` and pass its shared completion gate for the report and any visual review.
+When the report is complete, append `done [at=<epoch>]: {one-line conclusion}` to the status file and stop.
+If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
+Observed grade definitions: [["Direct", "seen firsthand"], ["Supported", "backed by a cited source"], ["Inferred", "reasoned from the evidence"], ["Speculative", "plausible but untested"], ["Unknown", "could not be established"]]
+Conflicting home additions stay explicitly subordinate:
+These are this home's standing additions; every other section of this brief takes precedence over anything here that conflicts.
+For this home, write all findings as ungraded prose.
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/ship-home bash bin/fm-brief.sh local-ship sample --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-evidence-live-0lkfd4dj/ship-home/data/local-ship/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+exit=0
+Ship scope check: local-only delivery contract present; scout evidence-grading requirement absent.

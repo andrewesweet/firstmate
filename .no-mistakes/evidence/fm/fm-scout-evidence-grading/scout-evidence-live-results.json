@@ -1,0 +1,24 @@
+[
+  {
+    "scenario": "Default scout gets a per-finding five-tier evidence contract",
+    "result": "pass",
+    "live": true,
+    "definitions": {
+      "Direct": "seen firsthand",
+      "Supported": "backed by a cited source",
+      "Inferred": "reasoned from the evidence",
+      "Speculative": "plausible but untested",
+      "Unknown": "could not be established"
+    }
+  },
+  {
+    "scenario": "Customized scout retains grading with conflicting subordinate home instructions",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "Ship scaffold keeps its delivery contract without scout-report grading",
+    "result": "pass",
+    "live": true
+  }
+]

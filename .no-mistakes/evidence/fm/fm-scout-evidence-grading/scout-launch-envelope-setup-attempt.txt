@@ -1,0 +1,15 @@
+$ bash bin/fm-brief.sh envelope-scout sample --scout
+exit=0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-envelope-live-j7fct7oo/data/envelope-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+$ bash -c . "$1"; fm_brief_worker_role "$2" "$3" "$4" _ ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/bin/fm-dod-lib.sh ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB/.scout-envelope-live-j7fct7oo/state envelope-scout ~/.no-mistakes/worktrees/feb37d45d9da/01M53EDY8NJGBMCPFMXQN281EB
+exit=0
+$ bash bin/fm-operational-input.sh encode launch-brief
+exit=0
+$ bash bin/fm-operational-input.sh kind
+exit=0
+$ bash bin/fm-operational-input.sh body
+exit=0
+$ bash bin/fm-operational-input.sh record launch-brief
+exit=0
+$ bash bin/fm-operational-input.sh doorbell-kind
+exit=1
