@@ -383,6 +383,7 @@ fi
 # Self-repository pre-gate for a publishing ship brief: detectable only when
 # --project was passed, so the check runs here only then. bin/fm-spawn.sh
 # repeats it at launch with the resolved project path.
+PUBLICATION_TARGET=
 if [ "$KIND" = ship ] && [ "$MODE" != local-only ] && [ "$PROJECT_DIR_SET" -eq 1 ]; then
   [ -n "$PROJECT_DIR" ] || {
     echo "error: --project requires a non-empty directory" >&2
@@ -391,7 +392,8 @@ if [ "$KIND" = ship ] && [ "$MODE" != local-only ] && [ "$PROJECT_DIR_SET" -eq 1
   gate_rc=0
   fm_role_gate_self_publish "$FM_HOME" "$CONFIG" "$PROJECT_DIR" "$FM_ROOT" "$UPSTREAM_CONSENT" || gate_rc=$?
   case $gate_rc in
-    0 | 2) ;;
+    0) PUBLICATION_TARGET=$FM_ROLE_PUB_TARGET ;;
+    2) ;;
     *)
       echo "error: $FM_ROLE_PUB_DENIAL" >&2
       echo "error: to let this home publish to ${FM_ROLE_PUB_TARGET:-that repository}, write 'maintainer ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>}' into $CONFIG/firstmate-role (docs/configuration.md \"Firstmate role\"), or pass --upstream-consent ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>} for this one task with the captain's explicit approval" >&2
@@ -790,7 +792,7 @@ esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
 # Hand the already-resolved absolute $DATA to the feedback-dir resolution so a
 # relative FM_DATA_OVERRIDE cannot render a worktree-relative snapshot path.
-DOD=$(FM_DATA_OVERRIDE="$DATA" fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT") || exit 1
+DOD=$(FM_DATA_OVERRIDE="$DATA" fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET") || exit 1
 
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.

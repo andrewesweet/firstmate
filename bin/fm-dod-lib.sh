@@ -6,7 +6,7 @@
 # receives. Both paths must hand the worker the same contract: a promoted
 # no-mistakes worker that never received the ask-user escalation rule or the
 # `--yes` ban is the exact delivery hole this single owner exists to close.
-# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>]
+# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>]
 # prints the block on stdout with no trailing blank line. The caller validates the
 # mode; an unknown mode is refused rather than silently rendered as the pipeline
 # contract.
@@ -161,6 +161,8 @@ _FM_DOD_LIB_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=
 . "$_FM_DOD_LIB_DIR/fm-nm-run-lib.sh"
 # shellcheck source=bin/fm-brief-heading-lib.sh
 . "$_FM_DOD_LIB_DIR/fm-brief-heading-lib.sh"
+# shellcheck source=bin/fm-role-lib.sh
+. "$_FM_DOD_LIB_DIR/fm-role-lib.sh"
 
 fm_brief_worker_role() {  # <state-dir> <task-id> <code-root>
   local state=$1 task_id=$2 root=$3
@@ -545,8 +547,8 @@ fm_dod_feedback_dir() {  # -> <data-dir>
   printf '%s\n' "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 }
 
-fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>]
-  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
+fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>]
+  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} publication_target=${7:-} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id} data pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check rebase_target='the current default branch'
   fm_forge_valid_for_mode "$forge" "$mode" fm_dod_block || return 1
   fm_base_branch_valid "$base" "$mode" "$forge" fm_dod_block || return 1
@@ -569,6 +571,20 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>]
     rebase_target="the base branch \`$base\`"
     nm_base="This task's base branch is \`$base\`, not the repository default: pass \`--base-branch $base_q\` on every \`no-mistakes axi run\` that starts a run, so the pipeline rebases onto, opens its PR against, and watches CI for that branch.
 "
+  fi
+  if [ -n "$publication_target" ]; then
+    local publication_pin
+    publication_pin=$(fm_role_publication_pin "$publication_target") || return 1
+    cat <<EOF
+# Publication destination
+This task is authorized to publish to \`$publication_target\`.
+Before any publication command, including starting no-mistakes, run:
+\`\`\`sh
+$publication_pin
+\`\`\`
+Keep these values for every publication command and pass \`--repo $publication_target\` on every \`gh-axi\` repository command.
+
+EOF
   fi
   case "$mode:$forge" in
     direct-PR:gerrit)

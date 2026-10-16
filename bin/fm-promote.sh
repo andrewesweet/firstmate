@@ -234,11 +234,13 @@ fm_base_branch_valid "$BASE_BRANCH" "$MODE" "$FORGE" "fm-promote.sh $ID" || exit
 # The same self-repository publication gate bin/fm-spawn.sh applies to a fresh
 # ship spawn runs here on the recorded project: a promoted scout reaches no
 # greater upstream authority than the spawn path would grant.
+PUBLICATION_TARGET=
 if [ "$MODE" != local-only ] && [ -n "$PROMOTE_PROJECT" ]; then
   gate_rc=0
   fm_role_gate_self_publish "$FM_HOME" "$CONFIG" "$PROMOTE_PROJECT" "$FM_ROOT" "$UPSTREAM_CONSENT" || gate_rc=$?
   case $gate_rc in
-  0 | 2) ;;
+  0) PUBLICATION_TARGET=$FM_ROLE_PUB_TARGET ;;
+  2) ;;
   *)
     echo "error: promotion refused for $ID: $FM_ROLE_PUB_DENIAL" >&2
     echo "error: to let this home publish to ${FM_ROLE_PUB_TARGET:-that repository}, write 'maintainer ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>}' into $CONFIG/firstmate-role (docs/configuration.md \"Firstmate role\"), or pass --upstream-consent ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>} for this one task with the captain's explicit approval" >&2
@@ -339,7 +341,7 @@ EOF
     printf '%s\n' "$PROMOTION_ASK_USER_BLOCK"
   fi
   printf '\n'
-  fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT"
+  fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET"
 }
 mkdir -p "$DATA/$ID"
 [ ! -d "$INSTRUCTIONS" ] || { echo "error: ship instructions path is a directory: $INSTRUCTIONS" >&2; exit 1; }

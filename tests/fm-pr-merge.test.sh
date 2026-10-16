@@ -2633,6 +2633,29 @@ test_forgejo_combined_status_reads_every_page() {
   expect_code 0 "$rc" "forgejo-status-page2-green: every green page should merge"
   assert_grep 'page=2' "$case_dir/tea.log" \
     "forgejo-status-page2-green: the second status page was never read"
+
+  local page payload n=0 status_file
+  for page in 1 2; do
+    for payload in '{"message":"rate limit exceeded"}' \
+      '{"state":"success"}' '{"state":"success","statuses":null}' \
+      '{"state":"success","statuses":{}}' '{"statuses":[]}' \
+      '{"state":null,"statuses":[]}' '{"state":{},"statuses":[]}' \
+      '{"state":"unknown","statuses":[]}'; do
+      n=$((n + 1))
+      case_dir=$(make_forgejo_case "forgejo-status-malformed-$n")
+      status_file="$case_dir/tea-status.json"
+      [ "$page" = 1 ] || status_file="$case_dir/tea-status-page2.json"
+      printf '%s\n' "$payload" > "$status_file"
+      rc=0
+      run_pr_merge "$case_dir" task-x1 "$FJ_URL" \
+        > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+      expect_code 1 "$rc" "malformed combined-status page $page must refuse: $payload"
+      assert_grep 'the combined commit status is "unreadable", not success' "$case_dir/stderr" \
+        "malformed page $page must be reported as unreadable: $payload"
+      [ -z "$(tea_merge_line "$case_dir/tea.log")" ] \
+        || fail "merge submitted after malformed combined-status page $page: $payload"
+    done
+  done
   pass "fm-pr-merge reads every Forgejo combined-status page before merging"
 }
 

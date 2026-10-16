@@ -315,6 +315,88 @@ test_check_task_consent_authorizes_one_task() {
   pass "fm-role.sh check: recorded one-task consent authorizes its named repository only"
 }
 
+publication_environment() {
+  GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
+    bash -c "$1; printf '%s\\n%s\\n' \"\$GH_HOST\" \"\$GH_REPO\""
+}
+
+test_publication_commands_pin_the_authorized_fork() {
+  local root role_home out rc pin brief id mode expected
+  root=$(make_lineage_root pin-root https://github.com/fork-owner/firstmate)
+  git -C "$root" remote add default-repo https://github.com/kunchenguid/firstmate
+  git -C "$root" config remote.default-repo.gh-resolved base
+  role_home=$(make_role_home pin-home 'maintainer github.com/fork-owner/firstmate')
+  expected=$(printf 'github.com\ngithub.com/fork-owner/firstmate')
+  out=$(GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
+    check_as "$root" "$role_home" "$root"); rc=$?
+  expect_code 0 "$rc" "a fork grant must authorize an explicitly pinned fork destination: $out"
+  pin=$(printf '%s\n' "$out" | sed -n 's/^publication pin: //p')
+  assert_equals "$expected" "$(publication_environment "$pin")" \
+    "check must return executable exports that override inherited destination inputs"
+
+  # shellcheck source=/dev/null
+  . "$ROOT/bin/fm-dod-lib.sh"
+  for mode in direct-PR no-mistakes; do
+    out=$(FM_HOME="$role_home" fm_dod_block "$mode" pin-dod fm/pin-dod none '' '' github.com/fork-owner/firstmate)
+    pin=$(printf '%s\n' "$out" | awk '/^```sh$/ { copy=1; next } copy && /^```$/ { exit } copy')
+    assert_equals "$expected" "$(publication_environment "$pin")" \
+      "$mode generated publication commands must pin the authorized fork"
+
+    id="pin-brief-$mode"
+    out=$(GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
+      FM_ROOT_OVERRIDE="$root" FM_HOME="$role_home" FM_CONFIG_OVERRIDE="$role_home/config" \
+      FM_DATA_OVERRIDE="$role_home/data" "$BRIEF" "$id" firstmate --mode "$mode" --project "$root" 2>&1); rc=$?
+    expect_code 0 "$rc" "fork brief must scaffold with a pinned destination: $out"
+    brief="$role_home/data/$id/brief.md"
+    pin=$(awk '/^```sh$/ { copy=1; next } copy && /^```$/ { exit } copy' "$brief")
+    assert_equals "$expected" "$(publication_environment "$pin")" \
+      "$mode scaffold must carry executable publication exports"
+  done
+  pass "authorized fork commands override GH_REPO, GH_HOST and gh default-repo inputs"
+}
+
+test_ship_launch_pins_destination_after_environment_filtering() {
+  local setting case_dir worker_home proj wt fakebin log id out rc launch result
+  for setting in ambient filtered; do
+    case_dir="$TMP_ROOT/pin-launch-$setting"
+    worker_home="$case_dir/home"
+    proj="$case_dir/project"
+    wt="$case_dir/wt"
+    log="$case_dir/launch.log"
+    id="pin-launch-$setting"
+    fakebin=$(fm_test_make_spawn_fakebin "$case_dir/fake")
+    fm_test_spawn_home "$worker_home" claude
+    git clone -q --shared "$ROOT" "$proj" || fail "could not clone the firstmate fixture"
+    git clone -q --shared "$ROOT" "$case_dir/published" || fail "could not clone the publication fixture"
+    git -C "$case_dir/published" remote set-url origin https://github.com/fork-owner/firstmate
+    git -C "$proj" remote set-url origin "$case_dir/published"
+    git -C "$proj" remote add default-repo https://github.com/kunchenguid/firstmate
+    git -C "$proj" config remote.default-repo.gh-resolved base
+    git -C "$proj" worktree add -q --detach "$wt" HEAD || fail "could not create the isolated worker copy"
+    printf 'maintainer github.com/fork-owner/firstmate\n' > "$worker_home/config/firstmate-role"
+    fm_test_spawn_brief "$worker_home" "$id"
+    printf '\nDelivery contract: mode=no-mistakes\nShip branch: fm/%s\n' "$id" >> "$worker_home/data/$id/brief.md"
+    [ "$setting" != filtered ] || printf 'GH_REPO\nGH_HOST\n' > "$worker_home/config/launch-env-allowlist"
+    cat > "$case_dir/probe" <<'SH'
+#!/bin/sh
+printf '%s\n%s\n' "$GH_HOST" "$GH_REPO"
+SH
+    chmod +x "$case_dir/probe"
+    : > "$log"
+    out=$(GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
+      FM_FAKE_LAUNCH_LOG="$log" fm_test_run_spawn "$worker_home" "$wt" "$fakebin" \
+      "$id" "$proj" "$case_dir/probe --capture" --mode no-mistakes --yolo off); rc=$?
+    expect_code 0 "$rc" "$setting launch must succeed: $out"
+    launch=$(cat "$log")
+    result=$(GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
+      HOME="$worker_home/user-home" bash -c "$launch"); rc=$?
+    expect_code 0 "$rc" "$setting emitted launch must execute"
+    assert_equals "$(printf 'github.com\ngithub.com/fork-owner/firstmate')" "$result" \
+      "$setting worker must receive the authorized fork after all environment filters"
+  done
+  pass "ship processes receive the authorized fork with and without environment filtering"
+}
+
 # --- secondmate homes: receipt-proven grants only ---------------------------
 
 # In a secondmate home (its .fm-secondmate-home marker) a role file without a
@@ -653,6 +735,14 @@ test_promote_gate_on_self_repo() {
     assert_grep 'upstream_consent=' "$meta" "the promoted task record must carry the consent"
     assert_grep "upstream-consent=$PUB_TARGET" "$home/data/promote-r1/ship-instructions.md" \
       "the promoted ship instructions must render the consent token"
+    local pin expected
+    pin=$(awk '/^```sh$/ { copy=1; next } copy && /^```$/ { exit } copy' "$home/data/promote-r1/ship-instructions.md")
+    expected=$(printf '%s\n%s' "${PUB_TARGET%%/*}" "$PUB_TARGET")
+    assert_equals "$expected" "$(publication_environment "$pin")" \
+      "promoted publication commands must override the running scout's inherited destination"
+    pin=$(awk '/^```sh$/ { copy=1; next } copy && /^```$/ { exit } copy' "$home/data/promote-r1/brief.md")
+    assert_equals "$expected" "$(publication_environment "$pin")" \
+      "the relaunch brief must retain the promotion's publication destination"
   fi
   pass "fm-promote.sh: the self-repository gate governs promotion identically to spawn"
 }
@@ -682,6 +772,8 @@ test_check_equivalent_remote_spellings_are_one_repo
 test_check_fork_lineage_reaches_the_gate
 test_check_undeterminable_lineage_and_target_refuse
 test_check_task_consent_authorizes_one_task
+test_publication_commands_pin_the_authorized_fork
+test_ship_launch_pins_destination_after_environment_filtering
 test_secondmate_cannot_self_grant
 test_secondmate_inheritance_receipt_lifecycle
 test_secondmate_inherits_only_resolved_primary_role

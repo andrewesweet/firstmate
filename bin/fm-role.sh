@@ -13,7 +13,7 @@
 #
 #   check    evaluates the self-repository publication gate for a task whose
 #            project is <project-dir>: exits 0 and prints
-#            "authorized: <authority>" when this home may run a publication
+#            "authorized: <authority>" and "publication pin: <exports>" when this home may run a publication
 #            contract there, exits 1 and prints "refused: <reason>" when it may
 #            not, and exits 2 with "not a self-repository task" when the task
 #            project is not firstmate's own repository (the boundary does not
@@ -61,6 +61,7 @@ check)
   fi
   if fm_role_gate_self_publish "$FM_HOME" "$CONFIG" "$proj" "$FM_ROOT" "$consent"; then
     printf 'authorized: %s\n' "$FM_ROLE_PUB_AUTHORITY"
+    printf 'publication pin: %s\n' "$(fm_role_publication_pin "$FM_ROLE_PUB_TARGET")"
     exit 0
   else
     rc=$?

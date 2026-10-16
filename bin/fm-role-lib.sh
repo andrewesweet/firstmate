@@ -38,8 +38,8 @@
 # either. Lineage that cannot be determined (no code root history, or a shallow
 # side sharing no root) refuses rather than permits. The publication target is
 # compared only against a maintainer scope or task consent: the first remote
-# named upstream, github, or origin (the order gh prefers when resolving a
-# default repository), reduced to lowercase host/owner/repo; a local-path remote
+# named upstream, github, or origin under Firstmate's explicit target policy,
+# reduced to lowercase host/owner/repo; a local-path remote
 # is resolved one hop through that repository's own origin, and left as
 # path:<abs> when unreadable. An unknown target never permits.
 #
@@ -48,7 +48,7 @@
 #   fm_role_scope_valid <scope>          - host/owner/repo[/subgroup] shape check
 #   fm_role_scope_norm <scope>           - canonical comparison form
 #   fm_role_remote_identity <url> [<dir>]- host/owner/repo or path:<abs> or empty
-#   fm_role_publication_target <git-dir> - identity a default publication reaches
+#   fm_role_publication_target <git-dir> - Firstmate's selected publication identity
 #   fm_role_self_repo <project> <root>   - 0 firstmate lineage, 1 not, 2 unknown
 #   fm_role_parse_file <file>            - sets FM_ROLE/FM_ROLE_SCOPE/FM_ROLE_DIAG
 #   fm_role_resolve <home> <config-dir>  - effective role; adds FM_ROLE_SOURCE
@@ -221,9 +221,8 @@ fm_role_git_common_dir() {
   (CDPATH='' cd -- "$common" 2>/dev/null && pwd -P) || printf '%s\n' "$common"
 }
 
-# fm_role_publication_target <git-dir> - the repository a default publication
-# (gh pr/issue, a no-mistakes PR) would reach: the first of upstream, github,
-# origin that is configured, in the order gh prefers, normalized to
+# fm_role_publication_target <git-dir> - the repository Firstmate selects for
+# publication: the first of upstream, github, origin that is configured, normalized to
 # host/owner/repo or path:<abs>. Empty when the repo has no such remote.
 fm_role_publication_target() {
   local dir=$1 remote url=
@@ -235,6 +234,11 @@ fm_role_publication_target() {
   done
   [ -n "$url" ] || return 0
   fm_role_remote_identity "$url" "$dir"
+}
+
+fm_role_publication_pin() {
+  fm_role_scope_valid "$1" || return 1
+  printf "export GH_HOST='%s' GH_REPO='%s'\n" "${1%%/*}" "$1"
 }
 
 # fm_role_shallow <dir> - 0 when <dir> is a shallow git repository.

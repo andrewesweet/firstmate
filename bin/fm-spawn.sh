@@ -3610,6 +3610,7 @@ delivery_rigor_rank() { # <mode> -> 3 (most rigor) .. 1 (least); 0 = not a task 
 # line, with " forge=<forge>" appended on a bound forge. A spawn that disagrees
 # would launch a worker whose instructions and whose recorded task delivery
 # differ, which is the exact drift this contract prevents.
+PUBLICATION_TARGET=
 if [ "$KIND" = ship ]; then
   PROJ_NAME=$(basename "$PROJ_ABS")
   # The parser's own refusal reaches the operator here rather than being
@@ -3692,7 +3693,8 @@ if [ "$KIND" = ship ]; then
     gate_rc=0
     fm_role_gate_self_publish "$FM_HOME" "$CONFIG" "$PROJ_ABS" "$FM_ROOT" "$UPSTREAM_CONSENT" || gate_rc=$?
     case $gate_rc in
-    0 | 2) ;;
+    0) PUBLICATION_TARGET=$FM_ROLE_PUB_TARGET ;;
+    2) ;;
     *)
       echo "error: spawn refused for $ID: $FM_ROLE_PUB_DENIAL" >&2
       echo "error: to let this home publish to ${FM_ROLE_PUB_TARGET:-that repository}, write 'maintainer ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>}' into $CONFIG/firstmate-role (docs/configuration.md \"Firstmate role\"), or pass --upstream-consent ${FM_ROLE_PUB_TARGET:-<host>/<owner>/<repo>} for this one task with the captain's explicit approval" >&2
@@ -6224,6 +6226,10 @@ if [ -n "$SPAWN_TRACEPARENT" ]; then
   fi
 else
   LAUNCH="unset TRACEPARENT; $LAUNCH"
+fi
+if [ -n "$PUBLICATION_TARGET" ]; then
+  PUBLICATION_PIN=$(fm_role_publication_pin "$PUBLICATION_TARGET") || exit 1
+  LAUNCH="$PUBLICATION_PIN; $LAUNCH"
 fi
 if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   LAUNCH_ENV_PREFIX='/usr/bin/env -i'

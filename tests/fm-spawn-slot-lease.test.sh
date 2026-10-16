@@ -600,9 +600,6 @@ test_aborted_spawn_keeps_a_dirty_copys_work() {
 # A child slot still on disk whose lease treehouse reports for another task is
 # that task's copy: the refusal must stop the retirement with that copy, its
 # lease and the child record all still in place, never delete the copy.
-# The record carries no slot claim (pre-claim era), so the pre-claim refusal
-# path proves the lease through treehouse's own return: nothing - neither the
-# hook sweep nor the scratch scrub - may touch the copy before that refusal.
 test_child_cleanup_refuses_a_present_copy_leased_to_another_task() {
   local out status
   make_child_pool_case childpresent lease-child-r3 >/dev/null
@@ -610,6 +607,9 @@ test_child_cleanup_refuses_a_present_copy_leased_to_another_task() {
   git -C "$PROJECT_DIR" worktree add --quiet --detach "$POOL_DIR/1/project" HEAD
   printf 'another live task is working here\n' > "$POOL_DIR/1/project/other-task-work.txt"
   printf '1 lease-otherowner-r3\n' > "$POOL_DIR/.fake-leases"
+  # The child still claims the slot, so only treehouse's own refusal on the
+  # return can reveal that the lease has moved on.
+  printf 'task=lease-child-r3\nhome=%s\n' "$CASE_DIR/subhome" > "$POOL_DIR/1/.fm-slot-owner"
 
   out=$(run_pool_teardown domain --force)
   status=$?

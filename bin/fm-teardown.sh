@@ -3546,7 +3546,9 @@ cleanup_firstmate_home_children() {
           "$child_wt/.opencode/plugins/fm-busy-state.js" \
           "$child_wt/.fm-grok-turnend" "$child_wt/.fm-kimi-turnend"
         if [ -n "$child_proj" ] && [ -d "$child_proj" ] && command -v treehouse >/dev/null 2>&1; then
-          teardown_scrub_scratch_copy "$child_wt" || return 1
+          if [ "$child_is_pool_slot" = 0 ]; then
+            teardown_scrub_scratch_copy "$child_wt" || return 1
+          fi
           child_pool_slot=0
           fm_treehouse_pool_slot "$child_proj" "$child_wt" && child_pool_slot=1
           if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree" "$child_id"; then
