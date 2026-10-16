@@ -710,7 +710,7 @@ case "$endpoint" in
     elif [ -e "$log_dir/tea-status-page$page.json" ]; then
       cat "$log_dir/tea-status-page$page.json"
     else
-      printf '{"state":"","total_count":0,"statuses":[]}\n'
+      printf '{"state":"","total_count":0,"statuses":null}\n'
     fi
     ;;
   "/repos/{owner}/{repo}")
@@ -797,7 +797,7 @@ write_forgejo_status_json() {
     esac
   done
   if [ "$total" = 0 ]; then
-    printf '{"state":"","total_count":0,"statuses":[]}\n' > "$file"
+    printf '{"state":"","total_count":0,"statuses":null}\n' > "$file"
   else
     printf '{"state":"%s","total_count":%s,"statuses":[%s]}\n' "$state" "$total" \
       "$(seq "$total" | sed "s/.*/{\"context\":\"ci-&\",\"status\":\"$state\"}/" | paste -sd, -)" \
@@ -2621,23 +2621,26 @@ test_forgejo_combined_status_reads_every_page() {
   [ -z "$(tea_merge_line "$case_dir/tea.log")" ] \
     || fail "forgejo-status-page2-red: a merge was attempted past a failing later page"
 
-  case_dir=$(make_forgejo_case forgejo-status-page2-green)
-  write_forgejo_status_json "$case_dir/tea-status-page2.json"
-
-  set +e
-  run_pr_merge "$case_dir" task-x1 "$FJ_URL" \
-    > "$case_dir/stdout" 2> "$case_dir/stderr"
-  rc=$?
-  set -e
-
-  expect_code 0 "$rc" "forgejo-status-page2-green: every green page should merge"
-  assert_grep 'page=2' "$case_dir/tea.log" \
-    "forgejo-status-page2-green: the second status page was never read"
+  local terminator
+  for terminator in null '[]'; do
+    case_dir=$(make_forgejo_case "forgejo-status-page2-green-$terminator")
+    write_forgejo_status_json "$case_dir/tea-status-page2.json"
+    printf '{"state":"","total_count":0,"statuses":%s}\n' "$terminator" > "$case_dir/tea-status-page3.json"
+    rc=0
+    run_pr_merge "$case_dir" task-x1 "$FJ_URL" \
+      > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+    expect_code 0 "$rc" "populated successful pages followed by $terminator must merge"
+    assert_grep 'page=2' "$case_dir/tea.log" "the second populated page was never read"
+    assert_grep 'page=3' "$case_dir/tea.log" "the $terminator terminator was never read"
+    [ -n "$(tea_merge_line "$case_dir/tea.log")" ] \
+      || fail "successful pages plus the $terminator terminator submitted no merge"
+  done
 
   local page payload n=0 status_file
   for page in 1 2; do
     for payload in '{"message":"rate limit exceeded"}' \
-      '{"state":"success"}' '{"state":"success","statuses":null}' \
+      '{"state":"success"}' '{"state":""}' '{"statuses":null}' \
+      '{"state":"success","statuses":null}' \
       '{"state":"success","statuses":{}}' '{"statuses":[]}' \
       '{"state":null,"statuses":[]}' '{"state":{},"statuses":[]}' \
       '{"state":"unknown","statuses":[]}'; do

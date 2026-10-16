@@ -701,7 +701,9 @@ EOF
         ci_review_comments='tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews/<review-id>/comments'
         ci_issue_comments='tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/issues/<n>/comments'
         ci_read_details="Take \`<owner>/<repo>\` and \`<n>\` from the PR URL; select the unique \`<login>\` whose URL hostname matches the PR host using \`tea login list --output json\` and pass it on every read.
-Read combined-status pages from page 1 until an empty page; validate that every page has a \`statuses\` array and a string \`state\`, including the final empty page, and require \`state: success\` on every non-empty page.
+Read combined-status pages from page 1 until an empty page, including the final empty page.
+Every page must contain both \`statuses\` and \`state\`; \`state\` must be a string with a recognized combined-status value, and \`statuses\` must be an array or \`null\` paired with \`state: \"\"\`.
+Require \`state: success\` on every non-empty page.
 Follow pagination for the reviews, and read inline comments for every returned \`<review-id>\`; read the issue comments too.
 An HTTP error body or malformed response is unreadable CI; a head with no statuses is unconfigured CI, never a green result.
 \`tea api\` returning zero alone proves nothing."

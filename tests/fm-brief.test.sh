@@ -381,6 +381,10 @@ EOF
           "$contract" "Forgejo must read comments for each review"
         assert_grep '/repos/{owner}/{repo}/issues/<n>/comments' "$contract" "Forgejo must read issue comments"
         assert_grep 'including the final empty page' "$contract" "Forgejo must validate pagination completion"
+        assert_grep 'Every page must contain both `statuses` and `state`' \
+          "$contract" "Forgejo must reject missing combined-status fields"
+        assert_grep '`statuses` must be an array or `null` paired with `state: ""`' \
+          "$contract" "Forgejo must accept the valid null terminator and reject malformed null pages"
         assert_grep 'at least one status exists, and every page is readable' "$contract" "Forgejo cannot finish on absent or unreadable CI"
         assert_grep 'When every non-empty combined-status page for the current PR head reports `state: success`' \
           "$contract" "Forgejo must derive readiness from the current head's statuses"
