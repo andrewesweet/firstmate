@@ -103,6 +103,14 @@ run_role() {
     "$ROLE" "$@" 2>&1
 }
 
+remote_role_transfer() {
+  local home=$1 payload=$2 generation=$3 command=${4:-put} bytes hash
+  bytes=$(wc -c <"$payload" | tr -d '[:space:]')
+  hash=$(fm_inherit_sha256 "$payload") || fail "could not hash role payload"
+  FM_HOME="$home" "$ROOT/bin/fm-remote-inherit.sh" \
+    "$command" config/firstmate-role "$bytes" "$hash" "$generation" <"$payload" 2>&1
+}
+
 # --- report -----------------------------------------------------------------
 
 test_report_default_and_local_grants() {
@@ -452,7 +460,7 @@ test_secondmate_inheritance_receipt_lifecycle() {
   # local record is out of scope. Rewriting the receipt here only exercises
   # how an inherited file with a second directive parses: it is malformed as
   # a whole even when its receipt matches the exact bytes.
-  gen=$(sed -n '1p' "$receipt")
+  gen=$(sed -n '2p' "$receipt")
   printf 'maintainer %s\nuser\n' "${PUB_TARGET:-github.com/kunchenguid/firstmate}" > "$dst_config/firstmate-role"
   {
     printf '%s\n' "$((gen + 1))"
@@ -472,7 +480,7 @@ test_secondmate_inheritance_receipt_lifecycle() {
     || fail "revocation propagation of firstmate-role failed"
   assert_absent "$dst_config/firstmate-role" "revocation did not remove the inherited role file"
   assert_present "$receipt" "revocation dropped the receipt that proves absence"
-  [ "$(sed -n '4p' "$receipt")" = absent ] || fail "revocation did not record an absent receipt"
+  [ "$(sed -n '5p' "$receipt")" = absent ] || fail "revocation did not record an absent receipt"
   out=$(run_role "$sm_home" report)
   assert_equals "fm-role: user (inherited)" "$out" "a revoked grant must resolve to user"
 
@@ -521,11 +529,119 @@ test_secondmate_inherits_only_resolved_primary_role() {
     FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$src" "$dst_config" \
       || fail "propagation of a rejected $bad primary role failed"
     assert_absent "$dst_config/firstmate-role" "a rejected $bad primary role must not be copied downstream"
-    [ "$(sed -n '4p' "$receipt")" = absent ] || fail "a rejected $bad primary role must record an absent receipt"
+    [ "$(sed -n '5p' "$receipt")" = absent ] || fail "a rejected $bad primary role must record an absent receipt"
     out=$(run_role "$sm_home" report)
     assert_equals "fm-role: user (inherited)" "$out" "a rejected $bad primary role must revoke the secondmate grant"
   done
   pass "secondmate home: a primary role its own resolver rejects propagates as revocation"
+}
+
+test_remote_role_receipts_authorize_and_propagate() {
+  local primary home child scope payload empty receipt out rc
+  scope=${PUB_TARGET:-github.com/kunchenguid/firstmate}
+  primary=$(make_role_home remote-role-primary "maintainer $scope")
+  home=$(make_role_home remote-role-home)
+  child=$(make_role_home remote-role-child)
+  : >"$home/.fm-secondmate-home"
+  : >"$child/.fm-secondmate-home"
+  payload="$primary/config/firstmate-role"
+  empty="$TMP_ROOT/remote-role-empty"
+  : >"$empty"
+  receipt="$home/config/.fm-inherit-firstmate-role.generation"
+
+  out=$(remote_role_transfer "$home" "$payload" 41) || fail "remote role put failed: $out"
+  out=$(run_role "$home" report)
+  assert_equals "fm-role: maintainer $scope (inherited)" "$out" \
+    "the receiver's applied receipt must authorize the inherited role"
+  if [ -n "$PUB_TARGET" ]; then
+    out=$(run_role "$home" check "$ROOT"); rc=$?
+    expect_code 0 "$rc" "the receiver's applied grant must authorize publication (got: $out)"
+  fi
+  FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$home/config" "$child/config" "$home" \
+    || fail "a remotely inherited grant did not propagate downstream"
+  assert_equals "fm-role: maintainer $scope (inherited)" "$(run_role "$child" report)" \
+    "downstream propagation must retain a verified remote grant"
+
+  FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$primary/config" "$home/config" "$primary" \
+    || fail "local convergence after a remote grant failed"
+  assert_equals applied "$(sed -n '1p' "$receipt")" "local convergence must write the receiver's applied record"
+  assert_equals 42 "$(sed -n '2p' "$receipt")" "local convergence must advance the remote generation"
+  out=$(remote_role_transfer "$home" "$payload" 43) || fail "remote convergence after a local receipt failed: $out"
+  assert_equals "fm-role: maintainer $scope (inherited)" "$(run_role "$home" report)" \
+    "the receiver must accept the local writer's receipt"
+
+  out=$(remote_role_transfer "$home" "$empty" 44 absent) || fail "remote role revocation failed: $out"
+  assert_equals "fm-role: user (inherited)" "$(run_role "$home" report)" \
+    "an applied remote absence must revoke the role"
+  FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$home/config" "$child/config" "$home" \
+    || fail "remote revocation did not propagate downstream"
+  assert_absent "$child/config/firstmate-role" "downstream propagation must remove the revoked role"
+  assert_equals "fm-role: user (inherited)" "$(run_role "$child" report)" \
+    "downstream propagation must retain the proven revocation"
+  pass "remote applied role receipts authorize, advance locally, and propagate grants and revocations"
+}
+
+test_role_receipts_preserve_legacy_and_refuse_pending_grants() {
+  local primary home child scope payload pending receipt bytes hash applied shape out rc
+  scope=${PUB_TARGET:-github.com/kunchenguid/firstmate}
+  primary=$(make_role_home pending-role-primary "maintainer $scope")
+  home=$(make_role_home pending-role-home "maintainer $scope")
+  child=$(make_role_home pending-role-child)
+  : >"$home/.fm-secondmate-home"
+  : >"$child/.fm-secondmate-home"
+  payload="$primary/config/firstmate-role"
+  pending="$TMP_ROOT/pending-role-payload"
+  printf 'maintainer github.com/pending/firstmate\n' >"$pending"
+  receipt="$home/config/.fm-inherit-firstmate-role.generation"
+  bytes=$(wc -c <"$payload" | tr -d '[:space:]')
+  hash=$(fm_inherit_sha256 "$payload")
+  printf '08\n%s\n%s\nput\n' "$bytes" "$hash" >"$receipt"
+  assert_equals "fm-role: maintainer $scope (inherited)" "$(run_role "$home" report)" \
+    "a legacy applied receipt must still prove the role"
+  FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$primary/config" "$home/config" "$primary" \
+    || fail "local convergence of a legacy receipt failed"
+  assert_equals applied "$(sed -n '1p' "$receipt")" "local convergence must upgrade the legacy receipt"
+  assert_equals 9 "$(sed -n '2p' "$receipt")" "legacy generations must advance as decimal integers"
+  out=$(remote_role_transfer "$home" "$payload" 10) || fail "receiver rejected the upgraded legacy receipt: $out"
+  applied=$(cat "$receipt")
+  bytes=$(wc -c <"$pending" | tr -d '[:space:]')
+  hash=$(fm_inherit_sha256 "$pending")
+
+  for shape in applied-pending pending-only; do
+    cp "$payload" "$home/config/firstmate-role"
+    : >"$receipt"
+    if [ "$shape" = applied-pending ]; then
+      printf '%s\n' "$applied" >"$receipt"
+    fi
+    printf 'pending\n15\n%s\n%s\nput\n' "$bytes" "$hash" >>"$receipt"
+    if [ "$shape" = applied-pending ]; then
+      assert_equals "fm-role: maintainer $scope (inherited)" "$(run_role "$home" report)" \
+        "a pending transfer must not invalidate unchanged applied bytes"
+    fi
+    cp "$pending" "$home/config/firstmate-role"
+    out=$(run_role "$home" report)
+    assert_contains "$out" "fm-role: user" "$shape must not grant authority for pending bytes"
+    assert_contains "$out" "unverified inherited grant" "$shape must identify the missing applied proof"
+    if [ -n "$PUB_TARGET" ]; then
+      out=$(run_role "$home" check "$ROOT"); rc=$?
+      expect_code 1 "$rc" "$shape must refuse publication"
+    fi
+    FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$primary/config" "$child/config" "$primary" \
+      || fail "could not seed the downstream grant before $shape revocation"
+    FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$home/config" "$child/config" "$home" \
+      || fail "propagation from a pending-only role failed"
+    assert_absent "$child/config/firstmate-role" "$shape must not forward a pending grant"
+    assert_equals "fm-role: user (inherited)" "$(run_role "$child" report)" \
+      "$shape must propagate revocation rather than unproven authority"
+
+    FM_INHERITABLE_CONFIG=firstmate-role propagate_inheritable_config "$primary/config" "$home/config" "$primary" \
+      || fail "trusted local convergence after $shape failed"
+    assert_equals 16 "$(sed -n '2p' "$receipt")" "local convergence must advance past the pending generation"
+    assert_equals "fm-role: maintainer $scope (inherited)" "$(run_role "$home" report)" \
+      "a completed local transfer must restore the proven grant after $shape"
+    out=$(remote_role_transfer "$home" "$payload" 17) || fail "receiver rejected convergence after $shape: $out"
+  done
+  pass "legacy role receipts remain valid; pending payloads never authorize or propagate grants"
 }
 
 # --- delivery contract rendering --------------------------------------------
@@ -777,6 +893,8 @@ test_ship_launch_pins_destination_after_environment_filtering
 test_secondmate_cannot_self_grant
 test_secondmate_inheritance_receipt_lifecycle
 test_secondmate_inherits_only_resolved_primary_role
+test_remote_role_receipts_authorize_and_propagate
+test_role_receipts_preserve_legacy_and_refuse_pending_grants
 test_dod_block_renders_and_bounds_consent
 test_brief_consent_flag_bounds
 test_brief_self_repo_pre_gate

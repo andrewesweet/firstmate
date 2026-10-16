@@ -347,45 +347,93 @@ fm_role_sha256_stdin() {
   fi
 }
 
+fm_inherit_receipt_record_valid() {
+  case "$1" in applied|pending) ;; *) return 1 ;; esac
+  case "$2" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#2}" -le 18 ] || return 1
+  case "$3" in ''|*[!0-9]*) return 1 ;; esac
+  case "$4" in ''|*[!A-Fa-f0-9]*) return 1 ;; esac
+  [ "${#4}" -eq 64 ] || return 1
+  case "$5" in put|absent) ;; *) return 1 ;; esac
+}
+
+# Parse the receipt into APPLIED_* (APPLIED_PRESENT=1 when an applied record
+# exists) and PENDING_* (PENDING_GEN empty when none) globals.
+# shellcheck disable=SC2034
+fm_inherit_receipt_read() {
+  local receipt=$1 line= lines=0
+  FM_INHERIT_RECEIPT_DIAG="inheritance generation record is malformed"
+  APPLIED_PRESENT=0
+  APPLIED_GEN=
+  APPLIED_BYTES=
+  APPLIED_HASH=
+  APPLIED_CMD=
+  PENDING_GEN=
+  PENDING_BYTES=
+  PENDING_HASH=
+  PENDING_CMD=
+  if [ ! -e "$receipt" ] && [ ! -L "$receipt" ]; then
+    FM_INHERIT_RECEIPT_DIAG=
+    return 0
+  fi
+  if [ ! -f "$receipt" ] || [ -L "$receipt" ]; then
+    FM_INHERIT_RECEIPT_DIAG="inheritance generation record is unsafe"
+    return 1
+  fi
+  set --
+  while IFS= read -r line; do
+    lines=$((lines + 1))
+    [ "$lines" -le 10 ] || return 1
+    set -- "$@" "$line"
+  done < "$receipt" || return 1
+  [ -z "$line" ] && [ "$lines" -ge 1 ] || return 1
+  if [ "$1" = applied ] || [ "$1" = pending ]; then
+    case "$1:$lines" in applied:5|applied:10|pending:5) ;; *) return 1 ;; esac
+    fm_inherit_receipt_record_valid "$1" "$2" "$3" "$4" "$5" || return 1
+    if [ "$1" = applied ]; then
+      APPLIED_PRESENT=1
+      APPLIED_GEN=$2 APPLIED_BYTES=$3 APPLIED_HASH=$4 APPLIED_CMD=$5
+      if [ "$lines" -eq 10 ]; then
+        [ "$6" = pending ] || return 1
+        fm_inherit_receipt_record_valid "$6" "$7" "$8" "$9" "${10}" || return 1
+        PENDING_GEN=$7 PENDING_BYTES=$8 PENDING_HASH=$9 PENDING_CMD=${10}
+      fi
+    else
+      PENDING_GEN=$2 PENDING_BYTES=$3 PENDING_HASH=$4 PENDING_CMD=$5
+    fi
+  else
+    [ "$lines" -eq 4 ] || return 1
+    fm_inherit_receipt_record_valid applied "$1" "$2" "$3" "$4" || return 1
+    APPLIED_PRESENT=1
+    APPLIED_GEN=$1 APPLIED_BYTES=$2 APPLIED_HASH=$3 APPLIED_CMD=$4
+  fi
+  APPLIED_HASH=$(printf '%s' "$APPLIED_HASH" | tr 'A-F' 'a-f')
+  if [ -n "$PENDING_HASH" ]; then
+    PENDING_HASH=$(printf '%s' "$PENDING_HASH" | tr 'A-F' 'a-f')
+  fi
+  FM_INHERIT_RECEIPT_DIAG=
+  return 0
+}
+
 # fm_role_inherit_check <role-file> <receipt> - 0 when the receipt is well
 # formed and proves the destination's current state (a put whose bytes hash to
 # the recorded payload, or a recorded absent with no destination file).
 # FM_ROLE_DIAG names the narrow failure.
 fm_role_inherit_check() {
-  local role_file=$1 receipt=$2 gen bytes sha cmd have
+  local role_file=$1 receipt=$2 bytes sha cmd have
   if [ -L "$receipt" ] || [ ! -f "$receipt" ]; then
     FM_ROLE_DIAG="inheritance receipt is missing or unsafe"
     return 1
   fi
-  {
-    IFS= read -r gen
-    IFS= read -r bytes
-    IFS= read -r sha
-    IFS= read -r cmd
-  } <"$receipt" || {
-    FM_ROLE_DIAG="inheritance receipt is unreadable"
+  fm_inherit_receipt_read "$receipt" || {
+    FM_ROLE_DIAG=$FM_INHERIT_RECEIPT_DIAG
     return 1
   }
-  case $gen in
-  '' | *[!0-9]*) FM_ROLE_DIAG="inheritance receipt generation is malformed"; return 1 ;;
-  esac
-  case $bytes in
-  '' | *[!0-9]*) FM_ROLE_DIAG="inheritance receipt byte count is malformed"; return 1 ;;
-  esac
-  case $sha in
-  *[!0-9a-f]*) FM_ROLE_DIAG="inheritance receipt hash is malformed"; return 1 ;;
-  esac
-  [ "${#sha}" -eq 64 ] || {
-    FM_ROLE_DIAG="inheritance receipt hash is malformed"
+  [ "$APPLIED_PRESENT" = 1 ] || {
+    FM_ROLE_DIAG="inheritance receipt has no applied record"
     return 1
   }
-  case $cmd in
-  put | absent) ;;
-  *)
-    FM_ROLE_DIAG="inheritance receipt records an unknown operation '$cmd'"
-    return 1
-    ;;
-  esac
+  bytes=$APPLIED_BYTES sha=$APPLIED_HASH cmd=$APPLIED_CMD
   if [ "$cmd" = absent ]; then
     if [ "$bytes" != 0 ]; then
       FM_ROLE_DIAG="inheritance receipt records an absent payload with a nonzero byte count"
@@ -424,7 +472,7 @@ fm_role_inherit_check() {
 # FM_ROLE_DIAG. A secondmate home (its .fm-secondmate-home marker) requires the
 # inheritance receipt for any grant; a file it cannot prove is dead on arrival.
 fm_role_resolve() {
-  local home=$1 config=$2 role_file receipt cmd
+  local home=$1 config=$2 role_file receipt
   FM_ROLE=user
   FM_ROLE_SCOPE=
   # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
@@ -438,10 +486,9 @@ fm_role_resolve() {
         FM_ROLE_DIAG="unverified inherited grant: $FM_ROLE_DIAG"
         return 0
       fi
-      cmd=$(sed -n '4p' "$receipt" 2>/dev/null)
       # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
       FM_ROLE_SOURCE=inherited
-      if [ "$cmd" = absent ]; then
+      if [ "$APPLIED_CMD" = absent ]; then
         return 0
       fi
       if ! fm_role_parse_file "$role_file"; then

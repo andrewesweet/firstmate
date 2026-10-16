@@ -281,26 +281,29 @@ record_inheritable_config_result() {
 }
 
 # fm_inherit_role_receipt_commit <dest-config-dir> - commit the post-propagation
-# proof of the role item's destination state in the same 4-line record the
-# remote receiver's generation file carries: <generation> <bytes> <sha256>
-# <put|absent>. The generation continues the receipt's own sequence (prior
-# value + 1, or 1), so a local commit never outpaces the remote route's
+# proof of the role item's destination state in the same applied record the
+# remote receiver's generation file carries: <applied> <generation> <bytes>
+# <sha256> <put|absent>. The generation continues the receipt's own sequence
+# (highest recorded value + 1, or 1), so a local commit never outpaces the remote route's
 # monotonic counter with an unrelated clock value and later remote pushes are
 # not refused as superseded. Written atomically at mode 0600 like the
 # receiver's own commit_generation, so a torn or world-readable proof can
 # never land.
 fm_inherit_role_receipt_commit() {
-  local dest_config=$1 dest receipt gen bytes sha cmd tmp prior_gen
+  local dest_config=$1 dest receipt gen bytes sha cmd tmp
   dest=$dest_config/firstmate-role
   receipt=$dest_config/.fm-inherit-firstmate-role.generation
   [ -d "$dest_config" ] && [ ! -L "$dest_config" ] || return 1
   gen=1
   if [ -f "$receipt" ] && [ ! -L "$receipt" ]; then
-    IFS= read -r prior_gen <"$receipt" 2>/dev/null || prior_gen=
-    case $prior_gen in
-    '' | *[!0-9]*) ;;
-    *) gen=$((prior_gen + 1)) ;;
-    esac
+    fm_inherit_receipt_read "$receipt" || return 1
+    if [ "$APPLIED_PRESENT" = 1 ]; then
+      gen=$((10#$APPLIED_GEN + 1))
+    fi
+    if [ -n "$PENDING_GEN" ] && [ "$PENDING_GEN" -ge "$gen" ]; then
+      gen=$((10#$PENDING_GEN + 1))
+    fi
+    [ "${#gen}" -le 18 ] || return 1
   fi
   tmp=$(umask 077 && mktemp "$dest_config/.inherit-role-receipt.XXXXXX" 2>/dev/null) || return 1
   if [ -f "$dest" ] && [ ! -L "$dest" ]; then
@@ -323,7 +326,7 @@ fm_inherit_role_receipt_commit() {
       return 1
     }
   fi
-  printf '%s\n%s\n%s\n%s\n' "$gen" "$bytes" "$sha" "$cmd" >"$tmp" || {
+  printf 'applied\n%s\n%s\n%s\n%s\n' "$gen" "$bytes" "$sha" "$cmd" >"$tmp" || {
     rm -f "$tmp" 2>/dev/null
     return 1
   }
