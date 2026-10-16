@@ -1145,6 +1145,26 @@ test_scout_disciplines_point_at_research_and_prototype() {
   pass "fm-brief.sh: scout brief routes reading legwork and design questions to their disciplines"
 }
 
+# The scout definition of done asks every report to grade each finding on a
+# five-tier evidence scale, so a reader can tell observed facts from
+# inference and speculation.
+test_scout_contract_grades_each_finding() {
+  local home brief grade
+  home="$TMP_ROOT/evidence-grade-home"
+  mkdir -p "$home/data"
+  FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    "$ROOT/bin/fm-brief.sh" sample-evidence sample --scout >/dev/null 2>&1 \
+    || fail "fm-brief.sh scout scaffold exited non-zero"
+  brief="$home/data/sample-evidence/brief.md"
+  assert_grep "Grade every finding with one evidence grade" "$brief" \
+    "scout brief did not ask each finding to carry an evidence grade"
+  for grade in Direct Supported Inferred Speculative Unknown; do
+    assert_grep "$grade" "$brief" \
+      "scout brief evidence scale is missing the $grade grade"
+  done
+  pass "fm-brief.sh: scout contract grades every finding on the five-tier evidence scale"
+}
+
 # Scout and secondmate paths still scaffold well-formed briefs.
 test_scout_and_secondmate_scaffold() {
   local brief
@@ -1706,6 +1726,7 @@ test_scout_and_secondmate_load_decision_hold_policy
 test_scout_and_secondmate_scaffold
 test_scout_lavish_line_follows_presentation_floor
 test_scout_disciplines_point_at_research_and_prototype
+test_scout_contract_grades_each_finding
 test_workers_wait_without_spending_turns
 test_wait_no_turns_absent_keeps_the_previous_brief
 test_home_brief_include_is_appended_last

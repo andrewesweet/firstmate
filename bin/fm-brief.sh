@@ -685,6 +685,7 @@ For a design question, follow the prototype discipline: read \`~/.agents/skills/
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
 $LAVISH_LINE
 Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\` and pass its shared completion gate for the report and any visual review.
 When the report is complete, append \`done [at=<epoch>]: {one-line conclusion}\` to the status file and stop.
