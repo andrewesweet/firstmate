@@ -1,0 +1,25 @@
+[
+  {
+    "lab": ".l",
+    "private_tmux_stop_exit": 0,
+    "signaled_owned_processes": [],
+    "remaining_live_processes": []
+  },
+  {
+    "lab": ".r",
+    "private_tmux_stop_exit": 1,
+    "signaled_owned_processes": [
+      2284269
+    ],
+    "remaining_live_processes": []
+  },
+  {
+    "lab": ".b",
+    "private_tmux_stop_exit": 1,
+    "signaled_owned_processes": [
+      2476998,
+      2476387
+    ],
+    "remaining_live_processes": []
+  }
+]

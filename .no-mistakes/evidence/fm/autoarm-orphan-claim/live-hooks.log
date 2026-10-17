@@ -1,0 +1,13 @@
+kind=start pid=1795709 ppid=1795706 CLAUDE_PID=1794609 session=d255fc18-af26-468e-bfd3-ecb625f9c469
+kind=stop pid=1801539 ppid=1801536 CLAUDE_PID=1794609 session=d255fc18-af26-468e-bfd3-ecb625f9c469
+stop_rc=0
+kind=stop pid=1857684 ppid=1857682 CLAUDE_PID=1794609 session=d255fc18-af26-468e-bfd3-ecb625f9c469
+kind=stop pid=1987286 ppid=1987283 CLAUDE_PID=1794609 session=d255fc18-af26-468e-bfd3-ecb625f9c469
+stop_rc=0
+kind=start pid=2094672 ppid=2094671 CLAUDE_PID=2094426 session=50cbc609-a3b4-4b6d-b8f0-2655035cab41
+kind=stop pid=2099344 ppid=2099343 CLAUDE_PID=2094426 session=50cbc609-a3b4-4b6d-b8f0-2655035cab41
+stop_rc=0
+kind=stop pid=2101664 ppid=2101663 CLAUDE_PID=2094426 session=50cbc609-a3b4-4b6d-b8f0-2655035cab41
+stop_rc=0
+stop_rc=2
+kind=stop pid=2125648 ppid=2125647 CLAUDE_PID=2094426 session=50cbc609-a3b4-4b6d-b8f0-2655035cab41

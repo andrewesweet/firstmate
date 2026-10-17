@@ -1,0 +1,1 @@
+not ok - the replacement session's first Stop must supersede the dead session's orphaned claim and rewake, not defer to it: expected exit 2, got 0

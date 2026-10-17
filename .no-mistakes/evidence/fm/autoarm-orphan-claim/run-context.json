@@ -1,0 +1,18 @@
+{
+  "base": "ce697402e662cd7f9d6ef5c367041dd51516eb49",
+  "target": "adb65707b8ca4386bb7d2ffc80880a48d697dbff",
+  "live_product": "Claude Code 2.1.301; real Stop hook, watcher, turn-end guard",
+  "isolation": "Disposable marked FM_HOME directories inside worktree; private tmux sockets; 110x32 terminals",
+  "oracle": "Authoritative intent and recorded decisions: orphan takeover; same-id resume; dual reachability signals pinned to holder identity; legacy ancestry and pid 1 preserved",
+  "adversaries": "Primary killed during arming; intermediate shell killed while primary remained live; missing/malformed locks; mismatched/missing session sidecar or holder identity; pre-change claim records",
+  "base_counterfactual": "New orphan regression failed on base: expected exit 2, got 0",
+  "source_changes": false,
+  "targeted_test_exits": {
+    "target_autoarm": 0,
+    "target_turnend_guard": 0,
+    "target_watch_triage": 0,
+    "base_watch_triage": 0,
+    "base_new_orphan_regression": 1
+  },
+  "counterfactual_exit_1_is_expected": true
+}

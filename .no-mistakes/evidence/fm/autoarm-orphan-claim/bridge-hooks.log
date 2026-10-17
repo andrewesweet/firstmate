@@ -1,0 +1,7 @@
+kind=start pid=2472706 ppid=2472702 CLAUDE_PID=2472079 session=9bf3ec4a-8f3a-4ae5-a6bf-f8371036fb24
+kind=stop pid=2476370 ppid=2476369 CLAUDE_PID=2472079 session=9bf3ec4a-8f3a-4ae5-a6bf-f8371036fb24
+kind=stop pid=2481690 ppid=2481686 CLAUDE_PID=2472079 session=9bf3ec4a-8f3a-4ae5-a6bf-f8371036fb24
+probe_rc=0
+stop_rc=0
+kind=stop pid=2485478 ppid=2485476 CLAUDE_PID=2472079 session=9bf3ec4a-8f3a-4ae5-a6bf-f8371036fb24
+probe_rc=0
