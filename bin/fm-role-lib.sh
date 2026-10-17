@@ -37,18 +37,25 @@
 # of the code root's history covers any fork, the parent, and any clone of
 # either. Lineage that cannot be determined (no code root history, or a shallow
 # side sharing no root) refuses rather than permits. The publication target is
-# compared only against a maintainer scope or task consent: the first remote
-# named upstream, github, or origin under Firstmate's explicit target policy,
-# reduced to lowercase host/owner/repo; a local-path remote
+# compared only against a maintainer scope or task consent. It is selected
+# from the home's optional declaration file config/firstmate-pub-target (one
+# <host>/<owner>/<repo> line; blank lines and full-line # comments ignored;
+# symlinked, unreadable, or malformed files ignored) when that file holds a
+# usable target, and otherwise from the first remote named upstream, github,
+# or origin under Firstmate's explicit target policy, reduced to lowercase
+# host/owner/repo; a local-path remote
 # is resolved one hop through that repository's own origin, and left as
-# path:<abs> when unreadable. An unknown target never permits.
+# path:<abs> when unreadable. A declaration only selects the target; it never
+# grants authority. An unknown target never permits.
 #
 # Public functions:
 #   fm_role_file <config-dir>            - the role file path
+#   fm_role_pub_target_file <config-dir> - the publication-target declaration path
 #   fm_role_scope_valid <scope>          - host/owner/repo[/subgroup] shape check
 #   fm_role_scope_norm <scope>           - canonical comparison form
 #   fm_role_remote_identity <url> [<dir>]- host/owner/repo or path:<abs> or empty
-#   fm_role_publication_target <git-dir> - Firstmate's selected publication identity
+#   fm_role_publication_target <git-dir> [<config-dir>]
+#                                        - Firstmate's selected publication identity
 #   fm_role_self_repo <project> <root>   - 0 firstmate lineage, 1 not, 2 unknown
 #   fm_role_parse_file <file>            - sets FM_ROLE/FM_ROLE_SCOPE/FM_ROLE_DIAG
 #   fm_role_resolve <home> <config-dir>  - effective role; adds FM_ROLE_SOURCE
@@ -67,6 +74,14 @@ fm_role_file() {
   printf '%s/firstmate-role\n' "${1%/}"
 }
 
+# fm_role_pub_target_file <config-dir> - the home-local publication-target
+# declaration path. Deliberately outside config/firstmate-role and outside the
+# inherited set (bin/fm-config-inherit-lib.sh propagates only the role file),
+# so every home, secondmate homes included, declares its own target.
+fm_role_pub_target_file() {
+  printf '%s/firstmate-pub-target\n' "${1%/}"
+}
+
 # fm_role_inherit_receipt <config-dir> - receipt written by the inheritance
 # machinery (remote receiver, or the local route's own bookkeeping).
 fm_role_inherit_receipt() {
@@ -81,7 +96,7 @@ fm_role_scope_valid() {
   *) return 1 ;;
   esac
   case $1 in
-  *[!A-Za-z0-9._/-]* | .* | */ | *//* | *..*) return 1 ;;
+  *[!A-Za-z0-9._/-]* | /* | .* | */ | *//* | *..*) return 1 ;;
   esac
   return 0
 }
@@ -221,11 +236,17 @@ fm_role_git_common_dir() {
   (CDPATH='' cd -- "$common" 2>/dev/null && pwd -P) || printf '%s\n' "$common"
 }
 
-# fm_role_publication_target <git-dir> - the repository Firstmate selects for
-# publication: the first of upstream, github, origin that is configured, normalized to
-# host/owner/repo or path:<abs>. Empty when the repo has no such remote.
+# fm_role_publication_target <git-dir> [<config-dir>] - the repository
+# Firstmate selects for publication: the home's declared target in
+# <config-dir>/firstmate-pub-target when that file holds a usable target, and
+# otherwise the first of upstream, github, origin that is configured,
+# normalized to host/owner/repo or path:<abs>. Empty when nothing determines a
+# target.
 fm_role_publication_target() {
-  local dir=$1 remote url=
+  local dir=$1 config=${2:-} remote url=
+  if [ -n "$config" ] && fm_role_declared_target "$config"; then
+    return 0
+  fi
   for remote in upstream github origin; do
     if url=$(git -C "$dir" remote get-url "$remote" 2>/dev/null) && [ -n "$url" ]; then
       break
@@ -234,6 +255,32 @@ fm_role_publication_target() {
   done
   [ -n "$url" ] || return 0
   fm_role_remote_identity "$url" "$dir"
+}
+
+# fm_role_declared_target <config-dir> - read the optional publication-target
+# declaration. Prints the normalized scope and returns 0 when usable;
+# returns 1 when absent, symlinked, unreadable, or malformed. Unlike the role
+# file, every unusable state here
+# falls back to the remote order instead of failing closed: a declaration can
+# only ever select a target, never grant authority.
+fm_role_declared_target() {
+  local file line target=
+  file=$(fm_role_pub_target_file "$1")
+  if [ -L "$file" ] || [ ! -f "$file" ] || [ ! -r "$file" ]; then
+    return 1
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    line=${line#"${line%%[![:space:]]*}"}
+    case $line in
+    '' | '#'*) continue ;;
+    esac
+    if [ -n "$target" ]; then
+      return 1
+    fi
+    target=$line
+  done <"$file"
+  fm_role_scope_valid "$target" || return 1
+  fm_role_scope_norm "$target"
 }
 
 fm_role_publication_pin() {
@@ -548,7 +595,7 @@ fm_role_gate_self_publish() {
   if [ "$lineage" -eq 1 ]; then
     return 2
   fi
-  FM_ROLE_PUB_TARGET=$(fm_role_publication_target "$proj")
+  FM_ROLE_PUB_TARGET=$(fm_role_publication_target "$proj" "$config")
   if [ "$lineage" -eq 2 ]; then
     # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
     FM_ROLE_PUB_DENIAL="cannot determine whether $proj shares firstmate's history (the code root $root has no readable history, or a shallow clone shares no root commit); fetch full history (git fetch --unshallow) before dispatching publishing work"
