@@ -1,0 +1,7 @@
+.test-phase/base-strip.sh: exit=1
+fatal: failed to expand user dir in: '~fm-no-such-user-6171/hooks'
+error: not a git worktree: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/hook-baseline/repo
+
+bin/fm-git-strip-ai-trailers.sh: exit=1
+fatal: failed to expand user dir in: '~fm-no-such-user-6171/hooks'
+error: not a git worktree: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/hook-baseline/repo

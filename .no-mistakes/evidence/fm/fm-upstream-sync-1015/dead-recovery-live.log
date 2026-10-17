@@ -1,0 +1,9 @@
+Initial endpoint: dead
+Timed recovery exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.r.N4cF
+warning: secondmate mate sync skipped before launch: 94316c334fa297a2b794ec5da961e0e2982f2120 does not exist
+fm-config-inherit: warning: skipped crew-harness for ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.m.Vo39/config: destination does not allow inherited item (not gitignored or guard failed)
+spawned mate harness=codex kind=secondmate mode=secondmate yolo=off window=firstmate:fm-mate worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.m.Vo39
+After recovery target=firstmate:fm-mate state=alive
+1792194913	attempt
+1792194916	relaunched

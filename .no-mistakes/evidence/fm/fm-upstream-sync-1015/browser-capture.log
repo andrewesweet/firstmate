@@ -1,0 +1,179 @@
+page:
+  title: Real OpenCode terminal validation
+  url: "file://~/.no-mistakes/evidence/01M53B38FDHJXTH85M0A6Y55A8/opencode-terminal.html"
+  refs: 9
+snapshot:
+uid=g3:3_0 RootWebArea "Real OpenCode terminal validation" url="file://~/.no-mistakes/evidence/01M53B38FDHJXTH85M0A6Y55A8/opencode-terminal.html"
+  uid=g3:3_1 heading "Real OpenCode 1.18.31 terminal captures" level="1"
+  uid=g3:3_2 "Disposable tmux session, 300 × 60 grid. Read-only captures of the running CLI; terminal text is unchanged."
+  uid=g3:3_3 heading "Empty composer after interrupt" level="2"
+  uid=g3:3_4 "  ┃                                                                                                                                                                                                                                                                 New session - 2026-10-17T00:07:34.
+  ┃  Reply with exactly DONE.                                                                                                                                                                                                                                       236Z
+  ┃
+                                                                                                                                                                                                                                                                    Context
+     ▣  Build · Big Pickle · interrupted                                                                                                                                                                                                                            0 tokens
+                                                                                                                                                                                                                                                                    0% used
+                                                                                                                                                                                                                                                                    $0.00 spent
+
+                                                                                                                                                                                                                                                                    LSP
+                                                                                                                                                                                                                                                                    LSPs are disabled
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                      ⬖ Getting started                ✕
+
+                                                                                                                                                                                                                                                                        OpenCode includes free models
+                                                                                                                                                                                                                                                                        so you can start immediately.
+
+                                                                                                                                                                                                                                                                        Connect from 75+ providers to
+                                                                                                                                                                                                                                                                        use other models, including
+                                                                                                                                                                                                                                                                        Claude, GPT, Gemini etc
+
+                                                                                                                                                                                                                                                                        Connect provider        /connect
+
+
+  ┃                                                                                                                                                                                                                                                                 ~/.no-mistakes/worktrees/
+  ┃                                                                                                                                                                                                                                                                 feb37d45d9da/
+  ┃                                                                                                                                                                                                                                                                 01M53B38FDHJXTH85M0A6Y55A8/.o.dak7/
+  ┃  Build · Big Pickle OpenCode Zen                                                                                                                                                                                                                                slot-0123456789/project-test:master
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+   ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.o.dak7/slot-0123456789/project-test                                                                                                                   tab agents  ctrl+p commands    • OpenCode 1.18.31
+
+"
+  uid=g3:3_5 heading "Unsent message preserved" level="2"
+  uid=g3:3_6 "  ┃                                                                                                                                                                                                                                                                 New session - 2026-10-17T00:07:34.
+  ┃  Reply with exactly DONE.                                                                                                                                                                                                                                       236Z
+  ┃
+                                                                                                                                                                                                                                                                    Context
+     ▣  Build · Big Pickle · interrupted                                                                                                                                                                                                                            0 tokens
+                                                                                                                                                                                                                                                                    0% used
+                                                                                                                                                                                                                                                                    $0.00 spent
+
+                                                                                                                                                                                                                                                                    LSP
+                                                                                                                                                                                                                                                                    LSPs are disabled
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                      ⬖ Getting started                ✕
+
+                                                                                                                                                                                                                                                                        OpenCode includes free models
+                                                                                                                                                                                                                                                                        so you can start immediately.
+
+                                                                                                                                                                                                                                                                        Connect from 75+ providers to
+                                                                                                                                                                                                                                                                        use other models, including
+                                                                                                                                                                                                                                                                        Claude, GPT, Gemini etc
+
+                                                                                                                                                                                                                                                                        Connect provider        /connect
+
+
+  ┃                                                                                                                                                                                                                                                                 ~/.no-mistakes/worktrees/
+  ┃  preserve this unsent message                                                                                                                                                                                                                                   feb37d45d9da/
+  ┃                                                                                                                                                                                                                                                                 01M53B38FDHJXTH85M0A6Y55A8/.o.dak7/
+  ┃  Build · Big Pickle OpenCode Zen                                                                                                                                                                                                                                slot-0123456789/project-test:master
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+   ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.o.dak7/slot-0123456789/project-test                                                                                                                   tab agents  ctrl+p commands    • OpenCode 1.18.31
+
+"
+  uid=g3:3_7 heading "Truncated rail deliberately defers" level="2"
+  uid=g3:3_8 "  ┃                                                                                                                                                                                                                                                                 New session - 2026-10-17T00:06:30.
+  ┃  Reply with exactly DONE.                                                                                                                                                                                                                                       202Z
+  ┃
+                                                                                                                                                                                                                                                                    Context
+     ▣  Build · Big Pickle                                                                                                                                                                                                                                          0 tokens
+                                                                                                                                                                                                                                                                    0% used
+                                                                                                                                                                                                                                                                    $0.00 spent
+
+                                                                                                                                                                                                                                                                    LSP
+                                                                                                                                                                                                                                                                    LSPs are disabled
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                      ⬖ Getting started                ✕
+
+                                                                                                                                                                                                                                                                        OpenCode includes free models
+                                                                                                                                                                                                                                                                        so you can start immediately.
+
+                                                                                                                                                                                                                                                                        Connect from 75+ providers to
+    ... (truncated, 19075 chars total)
+help[2]:
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+  Run `chrome-devtools-axi open file://~/.no-mistakes/evidence/01M53B38FDHJXTH85M0A6Y55A8/opencode-terminal.html --full` to see complete snapshot

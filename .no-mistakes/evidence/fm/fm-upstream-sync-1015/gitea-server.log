@@ -1,0 +1,9 @@
+2026/10/17 00:49:25 cmd/web.go:242:runWeb() [I] Starting Gitea on PID: 1038660
+2026/10/17 00:49:25 cmd/web.go:111:showWebStartupMessage() [I] Gitea version: 1.21.11 built with GNU Make 4.3, go1.21.8 : bindata, sqlite, sqlite_unlock_notify
+2026/10/17 00:49:25 cmd/web.go:112:showWebStartupMessage() [I] * RunMode: prod
+2026/10/17 00:49:25 cmd/web.go:113:showWebStartupMessage() [I] * AppPath: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/tools/gitea
+2026/10/17 00:49:25 cmd/web.go:114:showWebStartupMessage() [I] * WorkPath: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/gitea-lab
+2026/10/17 00:49:25 cmd/web.go:115:showWebStartupMessage() [I] * CustomPath: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/gitea-lab/custom
+2026/10/17 00:49:25 cmd/web.go:116:showWebStartupMessage() [I] * ConfigFile: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/gitea-lab/app.ini
+2026/10/17 00:49:25 cmd/web.go:117:showWebStartupMessage() [I] Prepare to run web server
+2026/10/17 00:49:25 routers/init.go:112:InitWebInstalled() [I] Git version: 2.43.0, Wire Protocol Version 2 Enabled (home: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/gitea-lab/data/home)

@@ -1,0 +1,40 @@
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/fresh-none/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-none/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+promoted scout-none to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-none/ship-instructions.md
+next: FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home bin/fm-send.sh fm-scout-none "$(cat ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-none/ship-instructions.md)"
+
+none fresh: provider-correct polling and review-feedback contract emitted.
+none promoted: provider-correct polling and review-feedback contract emitted.
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/fresh-forgejo/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-forgejo/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+promoted scout-forgejo to ship mode=no-mistakes yolo=off forge=forgejo (teardown protection restored)
+wrote ship instructions for mode=no-mistakes forge=forgejo: ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-forgejo/ship-instructions.md
+next: FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home bin/fm-send.sh fm-scout-forgejo "$(cat ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/contracts-home/data/scout-forgejo/ship-instructions.md)"
+
+forgejo fresh: provider-correct polling and review-feedback contract emitted.
+forgejo promoted: provider-correct polling and review-feedback contract emitted.
+[master (root-commit) c63fea7] Preserve inherited Git settings
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+
+Repository hook observed inherited credential.helper=disposable-helper.
+Commit object:
+Preserve inherited Git settings
+
+Co-authored-by: Jane Doe <jane@example.invalid>
+
+
+Large summary result: {"ledger_bytes": 153305, "summary_source": "local-ledger", "invalidity": "orphan_in_flight", "preserved_child_records": 600}

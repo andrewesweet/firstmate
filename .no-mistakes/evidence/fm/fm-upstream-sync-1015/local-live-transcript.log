@@ -1,0 +1,87 @@
+
+Recovery race: mode=full replacement=alive pid-preserved=2234701
+initial=dead kill=1
+result=1 status=skipped state=alive reason=endpoint is now alive; relaunch no longer authorized
+
+Recovery race: mode=full replacement=ambiguous pid-preserved=2236134
+initial=dead kill=1
+result=1 status=skipped state=ambiguous reason=existing endpoint has ambiguous agent process (backend=tmux)
+
+Recovery race: mode=full replacement=lifecycle-busy pid-preserved=2237434
+initial=dead kill=1
+result=1 status=skipped state=dead reason=another lifecycle action is already running for task mate; endpoint left untouched
+
+Recovery race: mode=poll replacement=alive pid-preserved=2239508
+initial=dead kill=1
+result=1 status=skipped state=alive reason=endpoint is now alive; relaunch no longer authorized
+
+Recovery race: mode=poll replacement=ambiguous pid-preserved=2240753
+initial=dead kill=1
+result=1 status=skipped state=ambiguous reason=existing endpoint has ambiguous agent process (backend=tmux)
+
+Recovery race: mode=poll replacement=lifecycle-busy pid-preserved=2241814
+initial=dead kill=1
+result=1 status=skipped state=dead reason=another lifecycle action is already running for task mate; endpoint left untouched
+
+Publication authority: real role CLI and receiver
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+authorized: maintainer scope github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+Effective destination: github.com github.com/fork-owner/firstmate
+pushed: config/firstmate-role
+fm-role: maintainer github.com/fork-owner/firstmate (inherited)
+fm-role: maintainer github.com/fork-owner/firstmate (inherited)
+Unproven pending grant: fm-role: user - unverified inherited grant: inheritance receipt has no applied record
+
+Away spend cap follows live ordinary workers
+Away posture recorded at 2026-10-17T00:00:10Z: hold-for-return only. No phone channel is configured; anything that needs you waits for your return. Your away instructions are recorded verbatim; the away session will carry them out where it can, and anything it is unsure of, or that needs you, waits for your return. Destructive, irreversible, and security-sensitive actions are never pre-authorizable, whatever the words say. Expected return: not given. Spend cap: 4 concurrent workers.
+Away posture (recorded):
+  entered: 2026-10-17T00:00:10Z
+  expected return: not given
+  spend cap: 4 concurrent workers
+  reach: hold-for-return only. No phone channel is configured; anything that needs you waits for your return.
+  your words (verbatim):
+    Keep existing work moving.
+~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/state/afk-contracts/1792195210.afk-contract
+
+Real Treehouse: forced child cleanup checks moved lease before scrubbing
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/1/tree-project. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/1/tree-project' to release it.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: unsafe child worktree removal target ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/1/tree-project is inside the active firstmate home
+{
+  "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/1/tree-project",
+  "leased": true,
+  "lease_holder": "new-holder"
+}
+Refusal exit=1; child record, lease, untracked file and nested repository preserved.
+
+Real Treehouse: scratch nested repositories scrub; unforced ship dirt survives
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project' to release it.
+complete: nested-scout captain-call inventory reviewed
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown nested-scout complete (window primary:fm-nested-scout, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project)
+Backlog: nested-scout just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/data/backlog.md). Update ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/data/backlog.md - move nested-scout to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Scratch cleanup returned a clean slot and removed its nested repository.
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project' to release it.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: local-only worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.l.3Vpx/pool/.treehouse/tree-project-9e455c/2/tree-project has work not yet merged into master and not on any remote.
+uncommitted changes present (untracked-only leftovers)
+untracked paths (up to 10):
+  nested/
+Merge the branch into local master first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+Ship cleanup refused; nested repository bytes and task record remain.
+
+All isolated local product scenarios completed.

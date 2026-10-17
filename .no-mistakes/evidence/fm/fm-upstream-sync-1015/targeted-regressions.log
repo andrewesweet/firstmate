@@ -1,0 +1,242 @@
+FM_TEST_BEGIN 2026-10-16T23:46:00Z tests/fm-self-repo-role.test.sh family=unclassified expected_gate_skip=none
+ok - fm-role.sh report: default, user, and maintainer directives resolve
+ok - fm-role.sh report: malformed, unknown, and unsafe input fails closed
+ok - fm-role.sh check: the default user/operator home cannot publish to firstmate upstream
+ok - fm-role.sh check: a task on an ordinary project is untouched by the boundary
+ok - fm-role.sh check: a matching maintainer scope authorizes the self-repository publication
+ok - fm-role.sh check: scope mismatch and mere upstream remote presence never authorize
+ok - fm-role.sh check: equivalent remote spellings resolve to one publication target
+ok - fm-role.sh check: repository lineage, not remotes, identifies firstmate across forks
+ok - fm-role.sh check: undeterminable lineage or publication target refuses
+ok - fm-role.sh check: recorded one-task consent authorizes its named repository only
+ok - authorized fork commands override GH_REPO, GH_HOST and gh default-repo inputs
+Note: switching to '86436b2773f716d1ea6126ce6cf37bf03ce13d2a'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Note: switching to '86436b2773f716d1ea6126ce6cf37bf03ce13d2a'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+not ok - ambient launch must succeed: error: could not resolve origin's current default branch for pooled worktree '~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/tmp/fm-self-repo-role.Dl0J4l/pin-launch-ambient/wt'; refusing to launch from a potentially stale base: expected exit 0, got 1
+FM_TEST_END 2026-10-16T23:46:02Z tests/fm-self-repo-role.test.sh exit=1 duration_ms=2457 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:46:02Z tests/fm-pr-merge.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-pr-merge reports exact queue retry flags after a zero-exit false success
+ok - fm-pr-merge omits merge-queue retry guidance for a closed GitHub PR
+ok - fm-pr-merge aggregates agreeing merge-queue rules
+ok - fm-pr-merge reports ambiguity for conflicting merge-queue rules
+ok - fm-pr-merge records pr= and pr_head= for a verified GitHub merge
+ok - fm-pr-merge records pr= before the forge call can land the merge
+ok - fm-pr-merge propagates a real merge failure without silently succeeding
+ok - fm-pr-merge refuses a GitHub merge call that leaves the PR open and unqueued
+ok - fm-pr-merge retries a bounded number of times when mergeable is UNKNOWN and merges once it resolves
+ok - fm-pr-merge reports mergeability still pending after its bounded UNKNOWN retry is spent
+ok - fm-pr-merge refuses on the UNKNOWN re-check when a check turned red between reads
+ok - fm-pr-merge refuses a genuine mergeable conflict immediately, without retrying
+ok - fm-pr-merge keeps PR bookkeeping when it cannot read a successful merge call's outcome
+ok - fm-pr-merge refuses with the forge's own output quoted apart from its verdict
+ok - fm-pr-merge quotes the forge output when it cannot read the outcome either
+ok - fm-pr-merge does not echo back queue flags the caller already used
+ok - fm-pr-merge still names retry flags when the caller used a different method
+ok - fm-pr-merge names the queue requirement even when its method is unrecognised
+ok - fm-pr-merge distinguishes unreadable branch rules from a base with no merge queue
+ok - fm-pr-merge reads a plan-gated 403 on branch rules as no merge queue, not unreadable
+ok - fm-pr-merge says nothing about a merge queue when the base branch has no queue rule
+ok - fm-pr-merge accepts only a proved merge from the gh-axi fallback
+ok - fm-pr-merge explains an armed auto-merge that landed nothing on a queue-less base
+ok - fm-pr-merge never reports auto-merge as armed when the merge command failed
+ok - fm-pr-merge claims no acceptance for a failed merge command carrying queue flags
+ok - fm-pr-merge falls back to the gh-axi view when gh's read fails
+ok - fm-pr-merge names a landed state hiding behind a failed GitHub merge command
+ok - fm-pr-merge refuses a GitHub merge when gh is missing, before recording
+ok - fm-pr-merge refuses a GitHub merge when gh is missing rather than merging blind
+ok - fm-pr-merge verifies a genuinely merged GitHub pull request
+ok - fm-pr-merge refuses to claim a merge when poll recording fails
+ok - fm-pr-merge accepts and accurately reports a GitHub merge-queue entry
+ok - fm-pr-merge explains how to retry with the required GitHub merge queue method
+ok - fm-pr-merge refuses branch deletion unless --attended-override is passed
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and refuses -d unless attended
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge refuses GitLab source-branch deletion unless --attended-override is passed
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge merges a Forgejo pull request through tea api instead of refusing it
+ok - fm-pr-merge resolves the tea login by matching the PR's host against every registered login
+ok - fm-pr-merge refuses when zero or more than one tea login matches the pull request's host
+ok - fm-pr-merge refuses on each Forgejo pre-merge condition independently
+ok - fm-pr-merge treats an unconfigured Forgejo combined status as none, refusing rather than skipping the check
+ok - fm-pr-merge reads every Forgejo combined-status page before merging
+ok - fm-pr-merge reports a stale recorded head and binds the merge to the live one instead
+ok - fm-pr-merge refuses a Forgejo head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when tea or jq is absent
+ok - fm-pr-merge never trusts tea api's exit status alone; a rejected merge is caught by the confirm read
+ok - fm-pr-merge retries a failed Forgejo confirmation read and persists the merge authority
+ok - fm-pr-merge maps --squash/--rebase to Forgejo's Do field, defaults to the repository's default merge style, and refuses any other extra argument
+ok - fm-pr-merge refuses a GitLab head override before recording state
+ok - a merge a secondmate home performs itself is reported upward exactly once
+ok - a locally routed secondmate home reports the landed PR into its parent's own channel
+ok - a landed GitLab merge request is reported upward on the same channel
+ok - a queued GitLab merge stays silent and leaves confirmation to the armed poll
+ok - a refused or failed merge reports no outcome
+ok - a GitLab merge refused before the forge call reports no outcome
+ok - a merge a main home performs itself leaves one durable wake naming the PR
+ok - a queued GitHub merge stays silent and leaves confirmation to the armed poll
+ok - distinct merged PRs for one task retain distinct captain-facing wakes
+ok - an uncommitted marker retry preserves at least one durable outcome
+ok - a secondmate home that cannot report upward says so instead of merging in silence
+ok - fm-pr-merge proceeds when the home carries no backlog at all
+ok - fm-pr-merge refuses when the backlog exists but cannot be read
+ok - fm-pr-merge refuses when its configured backend cannot be read
+ok - fm-pr-merge refuses when its user backend configuration cannot be read
+ok - fm-pr-merge refuses when its user backend configuration directory cannot be traversed
+ok - fm-pr-merge proceeds once when its user configuration directory and backlog are genuinely absent
+ok - fm-pr-merge honors a backend override over an unreadable user configuration
+ok - fm-pr-merge refuses red GitHub checks and waives only a named --allow-red check
+ok - fm-pr-merge refuses a draft pull request and one with no boolean draft state
+ok - fm-pr-merge merges when a failed check run was replaced by a passing re-run
+ok - fm-pr-merge never lets a check run supersede a legacy status context
+ok - fm-pr-merge still refuses when a check's current run failed after an earlier pass
+ok - fm-pr-merge uses start order when the old success finishes last
+not ok - tests/fm-pr-merge.test.sh exceeded the per-script bound of 240s and was terminated
+FM_TEST_END 2026-10-16T23:50:02Z tests/fm-pr-merge.test.sh exit=124 duration_ms=240018 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:50:02Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+not ok - a confirmed-dead secondmate should actually be relaunched (missing: 'new-window')
+--- output ---
+kill-window -t =firstmate:=fm-sm1
+FM_TEST_END 2026-10-16T23:50:04Z tests/fm-secondmate-liveness.test.sh exit=1 duration_ms=1774 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:50:04Z tests/fm-spawn-slot-lease.test.sh family=unclassified expected_gate_skip=none
+ok - a leased task slot is not reissued while its task exists, and an exhausted pool refuses cleanly
+ok - teardown frees the lease, and the next spawn reuses the freed copy
+ok - a failing get that recorded its lease returns it through the abort path
+ok - a failing silent get leaves its lease with a may-still-be-held warning
+ok - teardown completes for a record whose slot carries no lease
+ok - teardown frees the lease even when the slot's copy was removed before it ran
+ok - teardown leaves an absent copy whose lease belongs to another task alone
+ok - teardown warns for an absent copy whose path the state file no longer lists
+ok - teardown refuses a slot leased to another task, keeping its copy, lease and record
+not ok - forced teardown of the secondmate home should succeed
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 0s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: unsafe secondmate home removal target ~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/tmp/fm-spawn-slot-lease.tXoDrx/childpruned/subhome is inside the firstmate repo: expected exit 0, got 1
+FM_TEST_END 2026-10-16T23:50:45Z tests/fm-spawn-slot-lease.test.sh exit=1 duration_ms=40705 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:50:45Z tests/fm-spawn-slot-lease-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - a real treehouse lease is recorded for its own task and released by teardown (treehouse v3.1.4)
+ok - a record whose slot carries no lease is cleaned, reset and returned (treehouse v3.1.4)
+ok - teardown releases a real treehouse reservation whose copy was pruned (treehouse v3.1.4)
+# all fm-spawn-slot-lease-live-e2e tests passed
+FM_TEST_END 2026-10-16T23:50:59Z tests/fm-spawn-slot-lease-live-e2e.test.sh exit=0 duration_ms=13737 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:50:59Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+not ok - missing-child-source: the refusal did not name the missing source
+FM_TEST_END 2026-10-16T23:51:04Z tests/fm-teardown.test.sh exit=1 duration_ms=4862 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T23:51:04Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: bash -n succeeds
+~/.no-mistakes/worktrees/feb37d45d9da/01M53B38FDHJXTH85M0A6Y55A8/.test-phase/tmp/fm-brief.Zhf844/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - fm-brief.sh: every ship DOD carries the implement discipline, ordering only on no-mistakes
+ok - fm-brief.sh: --help teaches the spec-shaped Firstmate-spec rules
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else
+ok - fresh, promoted and relaunched no-mistakes prompts use the registered forge and preserve the feedback protocol
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
+ok - fm-brief.sh: no-mistakes ask-user findings use one event plus a verbatim snapshot
+ok - fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} and {FIRSTMATE_SPEC} fills cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: ship and scout scaffolds declare a validation-round pause once, then hold it
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+ok - fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor
+ok - fm-brief.sh: scout brief routes reading legwork and design questions to their disciplines
+ok - fm-brief: workers end the turn on a decision, wait in one bounded shell command, and never poll
+ok - fm-brief: without config/wait-no-turns the brief and drive text stay as they were
+ok - fm-brief.sh: the home brief include lands last on ship and scout, verbatim, and fails closed
+ok - fm-brief.sh: --base-branch records the base, targets the PR at it, and is refused where no PR carries it
+ok - fm-brief.sh: --branch-prefix omitted defaults every ship mode to fm/<task-id>
+ok - fm-brief.sh: a --branch-prefix override renders identically across every generated section
+ok - fm-brief.sh: an empty --branch-prefix override resolves to a bare <task-id> branch
+ok - fm-brief.sh: --branch-prefix is refused on scout and secondmate scaffolds
+ok - fm-brief.sh: --branch-prefix value is validated against embedded spaces and a leading dash
+not ok - a ref-format-valid metacharacter prefix should scaffold safely
+FM_TEST_END 2026-10-16T23:51:25Z tests/fm-brief.test.sh exit=1 duration_ms=21431 gate_skip=false
+FM_TEST_SUMMARY total=7 failed=6 skipped_gate=0 duration_ms=325169
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=13737 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=244880 failed=2
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=21431 failed=1
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=1774 failed=1
+FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=43162 failed=2
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-merge.test.sh duration_ms=240018
+FM_TEST_SLOWEST rank=2 script=tests/fm-spawn-slot-lease.test.sh duration_ms=40705
+FM_TEST_SLOWEST rank=3 script=tests/fm-brief.test.sh duration_ms=21431
+FM_TEST_SLOWEST rank=4 script=tests/fm-spawn-slot-lease-live-e2e.test.sh duration_ms=13737
+FM_TEST_SLOWEST rank=5 script=tests/fm-teardown.test.sh duration_ms=4862
+FM_TEST_SLOWEST rank=6 script=tests/fm-self-repo-role.test.sh duration_ms=2457
+FM_TEST_SLOWEST rank=7 script=tests/fm-secondmate-liveness.test.sh duration_ms=1774
+fm-test-run: wrote timing artifact: ~/.no-mistakes/evidence/01M53B38FDHJXTH85M0A6Y55A8/targeted-regressions.json

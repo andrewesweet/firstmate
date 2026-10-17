@@ -1,0 +1,2 @@
+.test-phase/live-opencode.sh: line 24: syntax error near unexpected token `done'
+OpenCode 1.18.31, 300x60, wrapped absolute cwd, idle composer=pending
