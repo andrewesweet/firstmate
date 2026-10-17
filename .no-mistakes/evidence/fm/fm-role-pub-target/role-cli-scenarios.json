@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Fork declaration authorizes matching task consent and emits a fork publication pin",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Fork declaration authorizes matching task consent and emits a fork publication pin",
+    "reason": ""
+  },
+  {
+    "name": "Declaration alone, parent consent, and parent maintainer scope cannot authorize the fork",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Declaration alone, parent consent, and parent maintainer scope cannot authorize the fork",
+    "reason": ""
+  },
+  {
+    "name": "Ship brief generation pins the declared fork in both publishing modes and refuses missing authority",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Ship brief generation pins the declared fork in both publishing modes and refuses missing authority",
+    "reason": ""
+  },
+  {
+    "name": "Absent, unreadable, symlinked, and malformed declarations retain upstream then github then origin fallback",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Absent, unreadable, symlinked, and malformed declarations retain upstream then github then origin fallback",
+    "reason": ""
+  },
+  {
+    "name": "Empty-host declarations fall back while empty-host grants and consent are rejected",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Empty-host declarations fall back while empty-host grants and consent are rejected",
+    "reason": ""
+  },
+  {
+    "name": "Matching declaration and consent cannot bypass unknown lineage or reclassify unrelated history",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Matching declaration and consent cannot bypass unknown lineage or reclassify unrelated history",
+    "reason": ""
+  },
+  {
+    "name": "Remote-free repository refuses an unknown target and accepts a declared target only with matching consent",
+    "result": "pass",
+    "live": true,
+    "evidence": "role-cli-transcript.txt: Remote-free repository refuses an unknown target and accepts a declared target only with matching consent",
+    "reason": ""
+  }
+]

@@ -1,0 +1,337 @@
+Real CLI from gate worktree; no mocked commands, external fetches, harness launches, or publication.
+Oracle: declared target selects the fork; only matching role/consent authorizes it; legacy remote order and lineage refusals persist.
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository remote -v
+github	https://github.com/mirror-owner/firstmate.git (fetch)
+github	https://github.com/mirror-owner/firstmate.git (push)
+origin	https://github.com/fork-owner/firstmate.git (fetch)
+origin	https://github.com/fork-owner/firstmate.git (push)
+upstream	https://github.com/kunchenguid/firstmate.git (fetch)
+upstream	https://github.com/kunchenguid/firstmate.git (push)
+[exit 0]
+
+CONFIG fork-home/config/firstmate-pub-target: '\n# publication belongs to this fork\n  GitHub.COM/Fork-Owner/Firstmate\n\n'
+=== Fork declaration authorizes matching task consent and emits a fork publication pin ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/baseline-bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/fork-owner/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/fork-owner/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh report
+fm-role: user (default)
+[exit 0]
+
+OBSERVED: scenario passed.
+
+=== Declaration alone, parent consent, and parent maintainer scope cannot authorize the fork ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+[exit 1]
+
+CONFIG parent-maintainer/config/firstmate-pub-target: 'github.com/fork-owner/firstmate\n'
+CONFIG parent-maintainer/config/firstmate-role: 'maintainer github.com/kunchenguid/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/parent-maintainer bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+[exit 1]
+
+CONFIG fork-maintainer/config/firstmate-pub-target: 'github.com/fork-owner/firstmate\n'
+CONFIG fork-maintainer/config/firstmate-role: 'maintainer github.com/fork-owner/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-maintainer bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+authorized: maintainer scope github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+[exit 0]
+
+OBSERVED: scenario passed.
+
+=== Ship brief generation pins the declared fork in both publishing modes and refuses missing authority ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh declared-direct-pr firstmate --mode direct-PR --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository --upstream-consent github.com/fork-owner/firstmate
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/data/declared-direct-pr/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/fork-owner/firstmate'"'"'
+
+printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/fork-owner/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh declared-no-mistakes firstmate --mode no-mistakes --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository --upstream-consent github.com/fork-owner/firstmate
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/data/declared-no-mistakes/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/fork-owner/firstmate'"'"'
+
+printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/fork-owner/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh refused-no-consent firstmate --mode direct-PR --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+
+error: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+error: to let this home publish to github.com/fork-owner/firstmate, write 'maintainer github.com/fork-owner/firstmate' into /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/fork-owner/firstmate for this one task with the captain's explicit approval
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh refused-parent-consent firstmate --mode no-mistakes --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository --upstream-consent github.com/kunchenguid/firstmate
+
+error: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+error: to let this home publish to github.com/fork-owner/firstmate, write 'maintainer github.com/fork-owner/firstmate' into /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/fork-owner/firstmate for this one task with the captain's explicit approval
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh local-repair firstmate --mode local-only --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/data/local-repair/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+[exit 0]
+
+OBSERVED: scenario passed.
+
+=== Absent, unreadable, symlinked, and malformed declarations retain upstream then github then origin fallback ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+CONFIG plain-home/config/firstmate-pub-target: 'not-a-scope\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: '../escape\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: '/fork-owner/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: 'github.com/fork-owner/firstmate\ngithub.com/mirror-owner/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: '# comments only\n\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: ''
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+CONFIG plain-home/config/firstmate-pub-target: 'github.com/fork-owner/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/mirror-owner/firstmate
+authorized: task consent for github.com/mirror-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/mirror-owner/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/mirror-owner/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/mirror-owner/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/fork-owner/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/fork-owner/firstmate
+[exit 0]
+
+OBSERVED: scenario passed.
+
+=== Empty-host declarations fall back while empty-host grants and consent are rejected ===
+CONFIG empty-host-home/config/firstmate-pub-target: '/fork-owner/firstmate\n'
+CONFIG empty-host-home/config/firstmate-role: 'maintainer /fork-owner/firstmate\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/empty-host-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent github.com/kunchenguid/firstmate
+authorized: task consent for github.com/kunchenguid/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/kunchenguid/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/kunchenguid/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/kunchenguid/firstmate
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/empty-host-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository upstream-consent /fork-owner/firstmate
+refused: upstream consent '/fork-owner/firstmate' is not a valid <host>/<owner>/<repo> scope
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/empty-host-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh report
+fm-role: user (local) - malformed role file: invalid repository scope '/fork-owner/firstmate'
+[exit 0]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/empty-host-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh bad-host-consent firstmate --mode direct-PR --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-repository --upstream-consent /fork-owner/firstmate
+
+error: --upstream-consent must be <host>/<owner>/<repo> (got '/fork-owner/firstmate')
+[exit 1]
+
+OBSERVED: scenario passed.
+
+=== Matching declaration and consent cannot bypass unknown lineage or reclassify unrelated history ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/shallow-repository upstream-consent github.com/fork-owner/firstmate
+refused: cannot determine whether /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/shallow-repository shares firstmate's history (the code root /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70 has no readable history, or a shallow clone shares no root commit); fetch full history (git fetch --unshallow) before dispatching publishing work
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-brief.sh unknown-lineage firstmate --mode direct-PR --project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/shallow-repository --upstream-consent github.com/fork-owner/firstmate
+
+error: cannot determine whether /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/shallow-repository shares firstmate's history (the code root /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70 has no readable history, or a shallow clone shares no root commit); fetch full history (git fetch --unshallow) before dispatching publishing work
+error: to let this home publish to github.com/fork-owner/firstmate, write 'maintainer github.com/fork-owner/firstmate' into /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/fork-owner/firstmate for this one task with the captain's explicit approval
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/unrelated-repository upstream-consent github.com/fork-owner/firstmate
+not a self-repository task
+[exit 2]
+
+OBSERVED: scenario passed.
+
+=== Remote-free repository refuses an unknown target and accepts a declared target only with matching consent ===
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/remote-free-repository upstream-consent github.com/fork-owner/firstmate
+refused: this task targets firstmate's own repository but no publication target can be determined (no upstream, github, or origin remote on /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/remote-free-repository)
+[exit 1]
+
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/fork-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/remote-free-repository upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+[exit 0]
+
+$ bash -c 'export GH_HOST='"'"'github.com'"'"' GH_REPO='"'"'github.com/fork-owner/firstmate'"'"'; printf "%s\n%s\n" "$GH_HOST" "$GH_REPO"'
+github.com
+github.com/fork-owner/firstmate
+[exit 0]
+
+CONFIG plain-home/config/firstmate-pub-target: 'not-a-scope\n'
+$ FM_HOME=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/plain-home bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/remote-free-repository upstream-consent github.com/fork-owner/firstmate
+refused: this task targets firstmate's own repository but no publication target can be determined (no upstream, github, or origin remote on /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55HFG02TXH18QVHM4DFTY70/.test-role-tmp/live-role-bvsjjeyn/remote-free-repository)
+[exit 1]
+
+OBSERVED: scenario passed.
+
+All isolated repositories, home configuration, generated state, and baseline files removed by TemporaryDirectory cleanup.
