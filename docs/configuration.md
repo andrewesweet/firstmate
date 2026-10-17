@@ -855,7 +855,7 @@ The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_re
 
 ## Jev self-check record (data/jev-lint.jsonl)
 
-Ship workers run an advisory self-check after implementation and before no-mistakes validation.
+The advisory self-check is an optional hand-run tool, not part of any definition of done; a worker may run it after implementation when one wants its read on the diff.
 `bin/fm-jev-lint.sh check` diffs HEAD against its merge-base with `origin/main`, else `main`, so it reads committed work only.
 It extracts diff-scoped subjects (changed functions with their leading comments, touched test blocks, prose enumerations with their surrounding diff context, timeout or budget declarations in the diff), asks one frozen Jev yes/no question per subject (R1 comment-describes-body, R2 test-name-verifies-claim, R3 skill-registry-drift v2, R4 hook-budget-feasibility, each at its own frozen probability cutoff carried in `bin/fm-jev-lint-rules.json`), and appends one JSON line per subject with the exact subject text sent, the probability returned, input tokens, cost, and latency.
 Each finding is a candidate the worker fixes or dismisses with `bin/fm-jev-lint.sh resolve`, which appends the outcome; findings never gate, skip, prune, or approve validation.
@@ -1347,7 +1347,7 @@ The resolver supplies the fixed neutral Choice option `No listed rule applies to
 - `approval` accepts only `"captain"` and means a task the rule matches is never dispatched from the tool's answer alone.
 
 `min_confidence` is a number from 0 through 1.
-The rule's own probability in the answer must reach it, replacing the resolver's global 0.6 floor on the answer's confidence.
+The rule's own probability in the answer must reach it, replacing the resolver's global 0.5 floor on the answer's confidence.
 Set it high when a wrong pick is costly and low when the rule is a safe runner-up.
 
 **Rule quota floors**
@@ -1470,11 +1470,11 @@ The [shared quota library](../bin/fm-quota-axi-lib.sh) accepts schema 5 and sche
 **Confidence and fallback rules**
 
 - A rule that declares `min_confidence` is checked against that rule's own probability, whether it is the picked option or a runner-up, so a runner-up never needs weaker support than it would as the pick.
-- A picked rule without `min_confidence`, and the neutral option, keep the global 0.6 floor on the answer's confidence exactly as before, so a file with no declared floors behaves as it did.
+- A picked rule without `min_confidence`, and the neutral option, keep the global 0.5 floor on the answer's confidence exactly as before, so a file with no declared floors behaves as it did.
 
 When the picked rule declares its own floor but its probability falls below it, the tool checks the other options:
 
-1. Find the most probable other option that clears its own floor: the rule's `min_confidence`, or 0.6 otherwise.
+1. Find the most probable other option that clears its own floor: the rule's `min_confidence`, or 0.5 otherwise.
 2. Print a `fallback:` line naming both floors and resolve that rule as though it had been picked.
 
 No qualifying option, or two equally probable qualifying options, produces `ambiguous`.
@@ -1511,12 +1511,12 @@ Firstmate passes its profile line unless it states a reason to override, such as
 
 - The resolver and bootstrap copy an environment-provided key into a non-exported private variable and unset `TYPESAFE_API_KEY` before launching child processes, so the secret is absent from child environments.
 - The resolver sends the key to `curl` only as a header read from a file descriptor, never on argv, and nothing prints, logs, or writes it.
-- The resolver fixes the endpoint at `https://api.typesafe.ai`, model at `jev-latest`, default confidence floor at 0.6, and request timeout at 5 seconds; `TYPESAFE_API_KEY` is its only resolver-specific environment setting.
+- The resolver fixes the endpoint at `https://api.typesafe.ai`, model at `jev-latest`, default confidence floor at 0.5, and request timeout at 5 seconds; `TYPESAFE_API_KEY` is its only resolver-specific environment setting.
 
 Every resolved call also appends one JSON line to the home's gitignored `data/dispatch-resolve.jsonl` recording the UTC time, task id, project, outcome status, confidence, matched rule, chosen profile or non-clear reason, call latency and token counts, concrete response model, full probability vector keyed by the offered `rule_N` and `default` choice ids, selected option text and probability, selected-to-runner-up probability margin, policy version and confidence floor, a SHA-256 digest of the exact rules snapshot, and a SHA-256 digest of the exact brief file bytes as read, whichever part of them the request carried; response fields unavailable on an error are null, the API key, brief text, and request body are never recorded, and the off path and exit-2 configuration errors write nothing because they are not calls.
 A failed log write prints one stderr line and never blocks the intake or changes the outcome.
 Every successful fresh ship or scout spawn appends one JSON line to the home's gitignored `data/dispatch-spawns.jsonl` carrying the UTC time, task id, kind, the harness, model, and effort the task was actually dispatched on, resolved exactly as the task record records them, a SHA-256 digest of the exact task-brief bytes as they stand at spawn, and the brief's composition split - `scaffold_tokens`, `task_tokens`, and `fixed_share` from `bin/fm-brief-composition.py`, which compares the filled brief with a fresh same-shape `fm-brief.sh` scaffold so a retrospective can tell reusable scaffold weight from the intake's own words; a `--relaunch` never appends, a hashing failure omits the digest and a failed composition probe omits the three composition fields rather than failing the spawn, brief text is never recorded, and an unwritable log prints one stderr line and never fails the spawn.
-`bin/fm-dispatch-resolve-score.sh` replays the two logs offline, with an optional adjudicated labels file (one `<task><TAB><rule when text>` per line), reporting clear-only rule and profile agreement, override rate, coverage, and the precision-versus-abstention curve across confidence floors, so the fixed 0.6 floor can be judged from local evidence before it is changed; the script's header owns its exact join and metric definitions, and live selection is unchanged.
+`bin/fm-dispatch-resolve-score.sh` replays the two logs offline, with an optional adjudicated labels file (one `<task><TAB><rule when text>` per line), reporting clear-only rule and profile agreement, override rate, coverage, and the precision-versus-abstention curve across confidence floors, so the fixed 0.5 floor can be judged from local evidence before it is changed; the script's header owns its exact join and metric definitions, and live selection is unchanged.
 The live rule-match evidence is recorded in [`verification/dispatch-resolve.md`](verification/dispatch-resolve.md).
 
 ## Toolchain
