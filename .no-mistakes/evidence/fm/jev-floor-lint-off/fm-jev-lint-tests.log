@@ -1,0 +1,15 @@
+ok - extraction finds R1/R2/R4, excludes .env, and applies frozen cutoffs
+ok - diff lines carrying a key or a quoted or unquoted secret are dropped, not sent
+ok - probability equal to the cutoff flags, just below does not
+ok - r3 extracts enumerations and applies the frozen 0.20 cutoff
+ok - absent TYPESAFE_API_KEY skips silently with exit 0 and no record
+ok - record is replayable and never carries the key
+ok - resolve records outcomes and score reports fixed-versus-dismissed rates
+ok - flipping enabled to false removes a rule in one data line
+ok - a git-quoted non-ASCII path reaches the record as the real path
+ok - requests go through the call shim and its answers reach the record
+ok - an unavailable shim is recorded and never raises a finding
+ok - a key held only in the home .env still reaches the shim
+ok - a non-numeric answer field is recorded as unavailable, never flagged
+ok - parallel runs append whole record lines, never interleaved fragments
+ok - an interrupted run stops at once and records every finding it printed

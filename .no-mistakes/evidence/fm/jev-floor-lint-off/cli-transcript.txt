@@ -1,0 +1,66 @@
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-brief.sh check-no-mistakes-none disposable-example-project --mode no-mistakes --forge none
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-no-mistakes-none/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit: 0
+
+Generated public brief check-no-mistakes-none: correct delivery contract; no advisory Jev self-check instruction.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-brief.sh check-no-mistakes-gerrit disposable-example-project --mode no-mistakes --forge gerrit
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-no-mistakes-gerrit/brief.md (ship, mode=no-mistakes forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit: 0
+
+Generated public brief check-no-mistakes-gerrit: correct delivery contract; no advisory Jev self-check instruction.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-brief.sh check-no-mistakes-forgejo disposable-example-project --mode no-mistakes --forge forgejo
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-no-mistakes-forgejo/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit: 0
+
+Generated public brief check-no-mistakes-forgejo: correct delivery contract; no advisory Jev self-check instruction.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-brief.sh check-direct-pr-none disposable-example-project --mode direct-PR --forge none
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-direct-pr-none/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit: 0
+
+Generated public brief check-direct-pr-none: correct delivery contract; no advisory Jev self-check instruction.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-brief.sh check-local-only-none disposable-example-project --mode local-only --forge none
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-local-only-none/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit: 0
+
+Generated public brief check-local-only-none: correct delivery contract; no advisory Jev self-check instruction.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-dispatch-resolve.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/check-no-mistakes-none/brief.md
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/.env)
+exit: 0
+
+Resolver is off without TYPESAFE_API_KEY; no outcome record created. Real Jev confidence scenarios require that credential.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-dispatch-resolve-score.sh
+dispatch-resolve-score:
+  resolve_log: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/dispatch-resolve.jsonl records=0
+  spawns_log: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/dispatch-spawns.jsonl records=0
+  coverage: 0/0 = n/a
+  clear_joined: 0
+  profile_agreement: 0/0 = n/a
+  override_rate: 0/0 = n/a
+  floors:
+    floor=0.3 clear_frac=n/a (0/0) precision_vs_spawn=n/a
+    floor=0.4 clear_frac=n/a (0/0) precision_vs_spawn=n/a
+    floor=0.5 * clear_frac=n/a (0/0) precision_vs_spawn=n/a (0/0)
+    floor=0.6 clear_frac=n/a (0/0) precision_vs_spawn=n/a (0/0)
+    floor=0.7 clear_frac=n/a (0/0) precision_vs_spawn=n/a (0/0)
+    floor=0.8 clear_frac=n/a (0/0) precision_vs_spawn=n/a (0/0)
+    floor=0.9 clear_frac=n/a (0/0) precision_vs_spawn=n/a (0/0)
+exit: 0
+
+Replay report identifies 0.5 as the active floor on a new, empty home. Populated-log arithmetic is tested separately with fixtures.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-jev-lint.sh check
+exit: 0
+
+Optional self-check still executes and silently skips without a key, without creating or altering a record.
+
+$ FM_HOME=<isolated-worktree-home> bash bin/fm-jev-lint.sh score
+jev-lint score: no record at /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M55Z5RSNFD2ARHGKKBPWWGQ6/.test-phase-tmp/cli-home/data/jev-lint.jsonl
+exit: 0
+
+Retained record scorer is callable. Finding recording/resolution uses controlled-response tests; no live Jev request was possible.
