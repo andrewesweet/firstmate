@@ -1750,7 +1750,7 @@ fm_failure_episode_reset() {
 #     lock's current holder pid. The id signal is the second one
 #     the claiming hook's own admission accepts (fm_session_lock_owned_by_self),
 #     so a background session whose bridge is recycled mid-cycle keeps its live
-#     claim; pinning it to the holder pid recorded at claim time is what keeps a
+#     claim; pinning it to the recorded lock-holder identity is what keeps a
 #     resumed session - same conversation id, new process - from reading its own
 #     dead predecessor's orphan as open, even when that new process reuses the
 #     dead holder's pid number - and it is not STUCK - stuck meaning both the
@@ -1881,14 +1881,8 @@ fm_pid_descends_from() {  # <pid> <ancestor>
 }
 
 # True while the CURRENT ledger claim is open and healthy - the defer predicate
-# both Stop participants use. Open means: outcome "arming", a live owner whose
-# mandatory recorded identity recomputes and matches its pid, an owner that
-# descends from the numeric session-lock pid in state/.lock or whose recorded
-# owner_session_id matches the trusted session id in state/.lock-session while
-# its recorded lock-holder pid-identity still recomputes from that lock's holder
-# pid, and not stuck (the contract comment above owns the reachability and stuck
-# proofs). A home with no numeric lock pid has no session to deliver to, so its
-# claim is never open. fm_path_age reports an
+# both Stop participants use. The generation-claim contract above owns the full
+# predicate and its reachability and stuck proofs. fm_path_age reports an
 # absent beacon as ancient, which is exactly right: arming for a full grace
 # window without producing a first beat is the same hang. An identityless
 # entry is never open: real generation claims always record identity, a legacy
