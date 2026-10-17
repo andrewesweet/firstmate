@@ -448,32 +448,27 @@ test_feedback_snapshot_dir_resolves_from_the_home() {
   pass "the snapshot directory resolves from the home, refusing when none is selected"
 }
 
-# Every no-mistakes ship path reaches the moment the self-check is for -
-# implementation committed, validation about to start - so both arms must carry
-# it, and the paths that never run the pipeline must not.
-test_no_mistakes_dod_carries_the_self_check() {
+# The advisory self-check is no longer part of any definition of done: the
+# script stays in the repository as an optional hand-run tool, so no mode's DoD
+# may send the worker through it.
+test_dod_omits_the_self_check() {
   local out
   for forge in none gerrit; do
     out="$TMP_ROOT/dod-nm-$forge.md"
     FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block no-mistakes dod-jev-task fm/dod-jev-task "$forge" > "$out"
-    # shellcheck disable=SC2016  # backticks must stay literal in the brief
-    assert_grep 'fm-jev-lint.sh check` from your worktree root' "$out" \
-      "no-mistakes:$forge: DoD must tell the worker to run the self-check"
-    # shellcheck disable=SC2016
-    assert_grep 'fm-jev-lint.sh resolve --id <finding-id>' "$out" \
-      "no-mistakes:$forge: DoD must tell the worker how to resolve a finding"
-    assert_grep 'never gate, skip, prune, or approve validation' "$out" \
-      "no-mistakes:$forge: DoD must say findings never gate"
+    assert_grep 'Ship branch:' "$out" "no-mistakes:$forge: render sanity"
+    assert_no_grep 'fm-jev-lint' "$out" "no-mistakes:$forge: DoD must not send the worker through the self-check"
   done
   for mode in direct-PR local-only; do
     out="$TMP_ROOT/dod-$mode.md"
     fm_dod_block "$mode" dod-jev-task fm/dod-jev-task > "$out"
-    assert_no_grep 'fm-jev-lint.sh' "$out" "$mode: DoD must not mention the pipeline self-check"
+    assert_grep 'Ship branch:' "$out" "$mode: render sanity"
+    assert_no_grep 'fm-jev-lint' "$out" "$mode: DoD must not send the worker through the self-check"
   done
-  pass "both no-mistakes arms carry the advisory self-check, pipeline-free modes do not"
+  pass "no definition of done carries the advisory self-check"
 }
 
-test_no_mistakes_dod_carries_the_self_check
+test_dod_omits_the_self_check
 
 # A scout spawned on a named base keeps that base through promotion: the ship
 # instructions start from it and the PR targets it; local-only cannot carry it.
