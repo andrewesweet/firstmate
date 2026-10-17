@@ -1,0 +1,24 @@
+Changed only: bin/fm-install-pi.sh
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+
+Changed only: etc/ci-pi/package.json
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+
+Changed only: etc/ci-pi/package-lock.json
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+

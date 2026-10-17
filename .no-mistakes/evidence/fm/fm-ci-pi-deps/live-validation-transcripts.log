@@ -1,0 +1,459 @@
+
+===== pi-floating-reproduction.log =====
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 119 packages in 8s
+npm warn install-scripts 2 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+pi-coding-agent=1.0.4
+pi-codemode=1.3.0
+file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/floating/node_modules/@earendil-works/pi-coding-agent/dist/extensions/codemode/tool.js:24
+import { MCP_TYPESCRIPT_PREAMBLE, mcpStructuredContentSchema, renderToolOutputType, renderToolSample, toCodemodeIdentifier, } from "@earendil-works/pi-codemode/declarations";
+         ^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module '@earendil-works/pi-codemode/declarations' does not provide an export named 'MCP_TYPESCRIPT_PREAMBLE'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/[eval1]:9:3
+CONFIRMED: fresh top-level pin reproduces missing MCP_TYPESCRIPT_PREAMBLE export
+
+
+===== pi-install-a.log =====
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 121 packages in 6s
+npm warn install-scripts 3 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.0.4 with all 8 scope packages at 1.0.4
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/pinned-a/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/pinned-a/node_modules/@earendil-works/pi-coding-agent
+
+
+===== pi-install-b.log =====
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 121 packages in 11s
+npm warn install-scripts 3 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.0.4 with all 8 scope packages at 1.0.4
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/pinned-b/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/pinned-b/node_modules/@earendil-works/pi-coding-agent
+
+
+===== pi-install-state.log =====
+pinned-a: pi --version -> 1.0.4; 121 installed package versions inspected
+pinned-b: pi --version -> 1.0.4; 121 installed package versions inspected
+Two fresh destinations have identical installed dependency-version inventories.
+@earendil-works/chord=1.0.4
+@earendil-works/pi-agent-core=1.0.4
+@earendil-works/pi-ai=1.0.4
+@earendil-works/pi-codemode=1.0.4
+@earendil-works/pi-coding-agent=1.0.4
+@earendil-works/pi-mcp=1.0.4
+@earendil-works/pi-telemetry=1.0.4
+@earendil-works/pi-tui=1.0.4
+$ npm_config_prefix=<disposable-prefix> bin/fm-install-pi.sh "$(npm root -g)"
+fm-install-pi.sh: refusing to install into the global npm root (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/isolated-global/lib/node_modules)
+process_exit=1
+Refusal leaves destination free of manifests and installed dependencies.
+
+
+===== pi-global-alias-refusal.log =====
+$ npm_config_prefix=<disposable-prefix> bin/fm-install-pi.sh <symlink-to-global-root>
+fm-install-pi.sh: refusing to install into the global npm root (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/isolated-global/lib/node_modules)
+process_exit=1
+
+
+===== workflow-install-consumers.log =====
+job=tests-portable-parallel-1
+$ set -eu
+bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
+
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 121 packages in 6s
+npm warn install-scripts 3 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.0.4 with all 8 scope packages at 1.0.4
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-parallel-1/pi/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-parallel-1/pi/node_modules/@earendil-works/pi-coding-agent
+consumer=Run portable parallel shard 1
+$ set -eu
+command -v pi
+pi --version
+node --input-type=module <<'JS'
+import { pathToFileURL } from 'node:url';
+const pkg = process.env.FM_PI_PACKAGE_DIR;
+const loaded = await import(pathToFileURL(`${pkg}/dist/index.js`));
+console.log(`FM_PI_PACKAGE_DIR=${pkg}`);
+console.log(`runtime imported; ExtensionRunner=${typeof loaded.ExtensionRunner}`);
+if (typeof loaded.ExtensionRunner !== 'function') process.exit(1);
+JS
+
+~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-parallel-1/pi/node_modules/.bin/pi
+1.0.4
+FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-parallel-1/pi/node_modules/@earendil-works/pi-coding-agent
+runtime imported; ExtensionRunner=function
+Local execution of workflow install and consumer environment succeeded.
+
+job=tests-portable-serial
+$ set -eu
+bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
+
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 121 packages in 6s
+npm warn install-scripts 3 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.0.4 with all 8 scope packages at 1.0.4
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-serial/pi/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-serial/pi/node_modules/@earendil-works/pi-coding-agent
+consumer=Run portable serial shard ${{ matrix.shard }}
+$ set -eu
+command -v pi
+pi --version
+node --input-type=module <<'JS'
+import { pathToFileURL } from 'node:url';
+const pkg = process.env.FM_PI_PACKAGE_DIR;
+const loaded = await import(pathToFileURL(`${pkg}/dist/index.js`));
+console.log(`FM_PI_PACKAGE_DIR=${pkg}`);
+console.log(`runtime imported; ExtensionRunner=${typeof loaded.ExtensionRunner}`);
+if (typeof loaded.ExtensionRunner !== 'function') process.exit(1);
+JS
+
+~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-serial/pi/node_modules/.bin/pi
+1.0.4
+FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/workflow-tests-portable-serial/pi/node_modules/@earendil-works/pi-coding-agent
+runtime imported; ExtensionRunner=function
+Local execution of workflow install and consumer environment succeeded.
+
+
+
+===== runner-base-regression.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 1 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:15Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+PASSING_OUTPUT_MUST_NOT_REPLAY
+FM_TEST_END 2026-10-17T01:36:15Z tests/fm-brief.test.sh exit=0 duration_ms=24 gate_skip=false
+FM_TEST_BEGIN 2026-10-17T01:36:15Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+BASELINE_FAILURE_DIAGNOSTIC
+FM_TEST_END 2026-10-17T01:36:15Z tests/fm-composer-lib.test.sh exit=7 duration_ms=33 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=197
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=57 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=33
+FM_TEST_SLOWEST rank=2 script=tests/fm-brief.test.sh duration_ms=24
+
+process_exit=1
+
+
+===== runner-failure-jobs-1.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 1 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+PASSING_OUTPUT_MUST_NOT_REPLAY
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-brief.test.sh exit=0 duration_ms=14 gate_skip=false
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+failure evidence line 01 of 50
+failure evidence line 02 of 50
+failure evidence line 03 of 50
+failure evidence line 04 of 50
+failure evidence line 05 of 50
+failure evidence line 06 of 50
+failure evidence line 07 of 50
+failure evidence line 08 of 50
+failure evidence line 09 of 50
+failure evidence line 10 of 50
+failure evidence line 11 of 50
+failure evidence line 12 of 50
+failure evidence line 13 of 50
+failure evidence line 14 of 50
+failure evidence line 15 of 50
+failure evidence line 16 of 50
+failure evidence line 17 of 50
+failure evidence line 18 of 50
+failure evidence line 19 of 50
+failure evidence line 20 of 50
+failure evidence line 21 of 50
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+stderr diagnostic preserved
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh exit=7 duration_ms=16 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=96
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=30 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=16
+FM_TEST_SLOWEST rank=2 script=tests/fm-brief.test.sh duration_ms=14
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=7
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+stderr diagnostic preserved
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+
+process_exit=1
+
+
+===== runner-failure-jobs-2.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 2 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+PASSING_OUTPUT_MUST_NOT_REPLAY
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-brief.test.sh exit=0 duration_ms=14 gate_skip=false
+failure evidence line 01 of 50
+failure evidence line 02 of 50
+failure evidence line 03 of 50
+failure evidence line 04 of 50
+failure evidence line 05 of 50
+failure evidence line 06 of 50
+failure evidence line 07 of 50
+failure evidence line 08 of 50
+failure evidence line 09 of 50
+failure evidence line 10 of 50
+failure evidence line 11 of 50
+failure evidence line 12 of 50
+failure evidence line 13 of 50
+failure evidence line 14 of 50
+failure evidence line 15 of 50
+failure evidence line 16 of 50
+failure evidence line 17 of 50
+failure evidence line 18 of 50
+failure evidence line 19 of 50
+failure evidence line 20 of 50
+failure evidence line 21 of 50
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+stderr diagnostic preserved
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh exit=7 duration_ms=17 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=110
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=31 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=17
+FM_TEST_SLOWEST rank=2 script=tests/fm-brief.test.sh duration_ms=14
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=7
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+stderr diagnostic preserved
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+
+process_exit=1
+
+
+===== runner-multiple-failures.log =====
+$ bin/fm-test-run.sh --jobs 2 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh tests/fm-composer-ghost.test.sh
+FM_TEST_BEGIN 2026-10-17T01:42:08Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-17T01:42:08Z tests/fm-composer-ghost.test.sh family=pure-contract-unit expected_gate_skip=none
+PASSING_OUTPUT_MUST_NOT_REPLAY
+FM_TEST_END 2026-10-17T01:42:08Z tests/fm-brief.test.sh exit=0 duration_ms=15 gate_skip=false
+FM_TEST_BEGIN 2026-10-17T01:42:08Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+SECOND_PARALLEL_STDERR
+FM_TEST_END 2026-10-17T01:42:08Z tests/fm-composer-ghost.test.sh exit=3 duration_ms=14 gate_skip=false
+FIRST_PARALLEL_STDERR
+FM_TEST_END 2026-10-17T01:42:08Z tests/fm-composer-lib.test.sh exit=7 duration_ms=12 gate_skip=false
+FM_TEST_SUMMARY total=3 failed=2 skipped_gate=0 duration_ms=139
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=3 duration_ms=41 failed=2
+FM_TEST_SLOWEST rank=1 script=tests/fm-brief.test.sh duration_ms=15
+FM_TEST_SLOWEST rank=2 script=tests/fm-composer-ghost.test.sh duration_ms=14
+FM_TEST_SLOWEST rank=3 script=tests/fm-composer-lib.test.sh duration_ms=12
+FM_TEST_FAILED script=tests/fm-composer-ghost.test.sh exit=3
+SECOND_PARALLEL_STDERR
+FM_TEST_FAILURE_END script=tests/fm-composer-ghost.test.sh
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=7
+FIRST_PARALLEL_STDERR
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+process_exit=1
+
+
+===== runner-silent-failure.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 1 tests/fm-composer-lib.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh exit=9 duration_ms=16 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=68
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=16 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=16
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=9
+(no captured output)
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+
+process_exit=1
+
+
+===== runner-timeout.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 1 --per-script-timeout-secs 1 tests/fm-composer-lib.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+TIMEOUT_DIAGNOSTIC
+not ok - tests/fm-composer-lib.test.sh exceeded the per-script bound of 1s and was terminated
+FM_TEST_END 2026-10-17T01:36:15Z tests/fm-composer-lib.test.sh exit=124 duration_ms=1037 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=1104
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=1037 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=1037
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=124
+TIMEOUT_DIAGNOSTIC
+not ok - tests/fm-composer-lib.test.sh exceeded the per-script bound of 1s and was terminated
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+
+process_exit=1
+
+
+===== runner-pass-only.log =====
+$ FM_TEST_FAILURE_TAIL_LINES=100 ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/runner-world/bin/fm-test-run.sh --jobs 1 tests/fm-brief.test.sh
+FM_TEST_BEGIN 2026-10-17T01:36:14Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+PASSING_OUTPUT_MUST_NOT_REPLAY
+FM_TEST_END 2026-10-17T01:36:14Z tests/fm-brief.test.sh exit=0 duration_ms=16 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=68
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=16 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-brief.test.sh duration_ms=16
+
+process_exit=0
+
+
+===== changed-pi-consumers.log =====
+Changed only: bin/fm-install-pi.sh
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+
+Changed only: etc/ci-pi/package.json
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+
+Changed only: etc/ci-pi/package-lock.json
+$ bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-pi-branch-extension.test.sh
+tests/fm-pi-primary-types.test.sh
+process_exit=0
+
+

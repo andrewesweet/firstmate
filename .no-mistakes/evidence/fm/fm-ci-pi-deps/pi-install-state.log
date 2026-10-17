@@ -1,0 +1,15 @@
+pinned-a: pi --version -> 1.0.4; 121 installed package versions inspected
+pinned-b: pi --version -> 1.0.4; 121 installed package versions inspected
+Two fresh destinations have identical installed dependency-version inventories.
+@earendil-works/chord=1.0.4
+@earendil-works/pi-agent-core=1.0.4
+@earendil-works/pi-ai=1.0.4
+@earendil-works/pi-codemode=1.0.4
+@earendil-works/pi-coding-agent=1.0.4
+@earendil-works/pi-mcp=1.0.4
+@earendil-works/pi-telemetry=1.0.4
+@earendil-works/pi-tui=1.0.4
+$ npm_config_prefix=<disposable-prefix> bin/fm-install-pi.sh "$(npm root -g)"
+fm-install-pi.sh: refusing to install into the global npm root (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.test-live-ci-pi/isolated-global/lib/node_modules)
+process_exit=1
+Refusal leaves destination free of manifests and installed dependencies.

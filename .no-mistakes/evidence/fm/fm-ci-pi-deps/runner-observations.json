@@ -1,0 +1,34 @@
+[
+  {
+    "scenario": "runner-failure-jobs-1",
+    "exit": 1,
+    "replayed_lines": 30,
+    "failure_exit": 7
+  },
+  {
+    "scenario": "runner-failure-jobs-2",
+    "exit": 1,
+    "replayed_lines": 30,
+    "failure_exit": 7
+  },
+  {
+    "scenario": "runner-pass-only",
+    "exit": 0,
+    "failure_section": false
+  },
+  {
+    "scenario": "runner-silent-failure",
+    "exit": 1,
+    "fallback": "(no captured output)"
+  },
+  {
+    "scenario": "runner-timeout",
+    "exit": 1,
+    "failure_exit": 124
+  },
+  {
+    "scenario": "runner-base-regression",
+    "exit": 1,
+    "diagnostic_missing_after_summary": true
+  }
+]
