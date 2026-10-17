@@ -136,6 +136,7 @@ CI owns broad regression across required portable parallel shards, the portable 
 A fork can set the repository variable `FM_CI_SKIP_MACOS` to `1` to skip the stock macOS Bash job without a tracked edit.
 The inherited `FM_CI_SKIP_PUSH` job conditions have no effect while this fork's workflow has no push trigger.
 Use `bin/fm-test-run.sh --list-lanes` for exact lane names and `--help` for `--jobs` rules and required gate-skip flags when reproducing a lane locally.
+To reproduce CI's Pi dependency environment, follow the [Pi installer header](bin/fm-install-pi.sh), which owns isolated setup and pin refresh.
 Leave the `sleep 0.1` cadence in the suites' bounded condition waits alone.
 Those sleeps look like recoverable overhead - `fm-watch-triage.test.sh` alone issues about 1,900 of them, each paying a flat ~100ms scheduler wake-up penalty on macOS - but they are not overhead added to the clock; they are how a test waits for a subject that only moves on `fm-watch.sh`'s own one-second `FM_POLL` cadence.
 Sampling less often does not remove that wait, it only delays detection: raising the interval to 0.5s and charging each sample proportionally measured `fm-watch-triage.test.sh` at 435s and 440s against 390s and 393s for the unchanged script, back to back on 2026-09-03, because each of its ~40 poll-cycle waits and ~73 process-exit waits paid up to half a second more.

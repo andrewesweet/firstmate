@@ -2615,7 +2615,8 @@ The real Pi/Herdr return guard (`FM_AFK_PI_HERDR_E2E=1 tests/fm-afk-pi-herdr-ret
 ### 2026-10-06 Pi 1.0.x compatibility with 0.99.x retained
 
 The suites below exercise bundled dependencies on Pi 0.99.2 and hoisted dependencies on Pi 1.0.4.
-[`tests/lib.sh`](../../tests/lib.sh) owns the fixture dependency-resolution contract used by these suites and the strict typecheck; [the CI workflow](../../.github/workflows/ci.yml) owns the current Pi install pin.
+[`tests/lib.sh`](../../tests/lib.sh) owns the fixture dependency-resolution contract used by these suites and the strict typecheck.
+The [Pi installer header](../../bin/fm-install-pi.sh) owns CI package-set installation and pin-refresh steps.
 
 Verified 2026-10-06 on Ubuntu (x86_64), Node v24.21.0, against prefix-installed `@earendil-works/pi-coding-agent` 0.99.2 and 1.0.4 selected with `FM_PI_PACKAGE_DIR`, with Chrome for Testing 155.0.8059.39 for the export-DOM guard.
 No model token was spent: the provider-backed guards (`FM_PI_LIVE_E2E`, `FM_AFK_PI_HERDR_E2E`) and the credential-free SDK guard (`FM_PI_BRANCH_LIVE_E2E`) stayed off, and the calm, watch, branch-extension, seeded-trust, queue-retention, and responsiveness suites make no provider calls.

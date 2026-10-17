@@ -94,6 +94,10 @@
 #   FM_TEST_SUMMARY total=<n> failed=<n> skipped_gate=<n> duration_ms=<n>
 #   FM_TEST_SUMMARY_FAMILY family=<name> count=<n> duration_ms=<n> failed=<n>
 #   FM_TEST_SLOWEST rank=<k> script=<path> duration_ms=<n>
+#   FM_TEST_FAILED script=<path> exit=<code>   (once per failed script, only
+#     when at least one script failed; each marker is followed by that
+#     script's bounded output tail, at most 30 lines, and a
+#     closing FM_TEST_FAILURE_END script=<path> marker)
 #   FM_TEST_BUDGET max_wall_ms=<n> duration_ms=<n>   (only with --max-wall-ms)
 #
 # Placement refusal:
@@ -1474,6 +1478,13 @@ families_for_changed_path() {
       # through run_script_bounded, so it cannot regress fixture Git isolation.
       printf '%s\n' pure-contract-unit
       ;;
+    bin/fm-install-pi.sh|etc/ci-pi/package.json|etc/ci-pi/package-lock.json)
+      printf '%s\n' __script__:fm-install-pi.test.sh
+      printf '%s\n' __script__:fm-calm-pi-extension.test.sh
+      printf '%s\n' __script__:fm-pi-branch-extension.test.sh
+      printf '%s\n' __script__:fm-pi-primary-types.test.sh
+      printf '%s\n' live-harness-optin
+      ;;
     bin/backends/herdr*|bin/fm-herdr-lab.sh|tests/herdr-test-safety.sh|tests/herdr-client-pair-fixture.sh)
       printf '%s\n' real-herdr-gated
       printf '%s\n' backend-dispatch
@@ -2442,7 +2453,12 @@ fi
 RUN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run.XXXXXX")
 RECORDS="$RUN_TMP/records.tsv"
 FAMILIES_TSV="$RUN_TMP/families.tsv"
+# One line per failed script: script, exit, captured-output path. Read only by
+# the end-of-run failure section, so the summary can name each failure and
+# replay its bounded evidence beside it.
+FAILURES="$RUN_TMP/failures.tsv"
 : >"$RECORDS"
+: >"$FAILURES"
 declare -a WORKER_PIDS=()
 declare -a WORKER_IDX=()
 declare -a WORKER_SCRIPTS=()
@@ -2523,6 +2539,9 @@ record_script_result() {
     FAILED=$((FAILED + 1))
     fail_delta=1
     AGG_RC=1
+    # Remember where this failure's captured output lives so the end-of-run
+    # section can replay it beside the summary. Passing scripts stay quiet.
+    printf '%s\t%s\t%s\n' "$script" "$rc" "$out" >>"$FAILURES"
   fi
 
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
@@ -2764,6 +2783,24 @@ if [ -s "$RECORDS" ]; then
       "$rank" "$path" "$duration"
     rank=$((rank + 1))
   done
+fi
+
+# Failure evidence. The summary above carries only counts, so a red lane in a
+# long CI log forces a full-log search for the failing script and its output.
+# Name each failed script here and replay its bounded output tail, so the
+# failure and its evidence sit together at the end of the log where the
+# summary already points. Passing scripts stay quiet: only failures appear.
+if [ "$FAILED" -gt 0 ] && [ -s "$FAILURES" ]; then
+  while IFS=$'\t' read -r failed_script failed_rc failed_out; do
+    [ -n "$failed_script" ] || continue
+    printf 'FM_TEST_FAILED script=%s exit=%s\n' "$failed_script" "$failed_rc"
+    if [ -f "$failed_out" ] && [ -s "$failed_out" ]; then
+      tail -n 30 "$failed_out"
+    else
+      printf '(no captured output)\n'
+    fi
+    printf 'FM_TEST_FAILURE_END script=%s\n' "$failed_script"
+  done <"$FAILURES"
 fi
 
 if [ -n "$JSON_PATH" ]; then
