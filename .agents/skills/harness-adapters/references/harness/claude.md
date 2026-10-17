@@ -6,7 +6,7 @@ Busy hooks verified 2026-07-28 on Claude Code 2.1.220.
 
 | Fact | Value |
 |---|---|
-| Busy | Owned hooks: `UserPromptSubmit` opens while `Stop`, `StopFailure`, and `SessionEnd` close; manual interrupt emits no hook, so control reports delivered keys and live endpoint only, publishes no idle event or cancellation claim, and usually leaves `claude-hook` busy. |
+| Busy | Owned hooks: `UserPromptSubmit` opens while `Stop`, `StopFailure`, and `SessionEnd` close; a secondmate gets no `Stop` busy hook, because its home's tracked Stop guard is its only Stop writer, unless that guard predates `.fm-busy-stop` and the launch keeps the `Stop` idle hook (`../../../docs/turnend-guard.md` owns that); manual interrupt emits no hook, so control reports delivered keys and live endpoint only, publishes no idle event or cancellation claim, and usually leaves `claude-hook` busy. |
 | Exit | `/exit`. |
 | Interrupt | Single Escape. |
 | Skill | `/<skill>`, for example `/no-mistakes`. |
@@ -66,8 +66,8 @@ Tracked `.claude/settings.json` carries five documented any-file-scope keys besi
 Each removes a tool schema, system-prompt section, or skill listing that no Firstmate session uses: browser and GitHub work go through `chrome-devtools-axi` and `gh-axi`, memory lives in `data/`, and the three denied tools are claude.ai UI surfaces or the `/loop` self-wake.
 `disableWorkflows` travels with `disableBundledSkills` because an allowed `Workflow` tool inlines its 22k-character authoring reference once the bundled `workflow-authoring` skill is gone.
 None of them is a delegation tool, so a linked worktree that inherits the file keeps `Agent` and `Task`; `../../../docs/subagent-guard.md` owns that boundary.
-`launch_template()` in `../../../bin/fm-spawn.sh` repeats the same keys in every worker's inline `--settings` so a worker in another project gets them too, and adds `AskUserQuestion` to the deny because crewmates never address the captain.
-Every Claude worker also launches with `autoCompactWindow` 220000 in that inline `--settings` (effective 200k window, compaction at 187k), because the default `auto` window never threshold-compacts on 1M-context models; the value is scoped to the launch flag, so the captain's own Claude sessions are untouched.
+`bin/fm-spawn.sh` applies the same keys through session `--settings` to every Claude launch and adds `AskUserQuestion` to the deny because crewmates never address the captain; the [secondmate settings contract](../../../../../docs/configuration.md#installed-hooks-and-launch-details) owns the file-based form used for secondmates.
+Every Claude launch also sets `autoCompactWindow` 220000 in those session settings (effective 200k window, compaction at 187k), because the default `auto` window never threshold-compacts on 1M-context models; the value is scoped to the launch flag, so the captain's own Claude sessions are untouched.
 Captain-specific trims - plugin agent lists, user skills, the caveman hook - belong in an untracked home-local `.claude/settings.local.json`, never in the tracked file, because they name one user's installation.
 Claude reloads project settings live, so a fast-forward that changes the tracked file changes the running primary session without a restart.
 
@@ -81,6 +81,7 @@ A `--secondmate` launch omits the statement because a secondmate operates under 
 
 [`../../../../../docs/verification/supervision.md`](../../../../../docs/verification/supervision.md#turn-end-guard) records the current primary and Stop auto-arm live evidence.
 This differs from the worker hook, which only touches a task marker through `.claude/settings.local.json`.
+A Claude secondmate's busy hooks are not that file: `bin/fm-spawn.sh` passes the parent home's `state/<id>.claude-settings.json` through `--settings` and does not edit the mate home's `settings.local.json`.
 
 Primary `.claude/settings.json` registers `../../../bin/fm-turnend-guard.sh --claude` and `../../../bin/fm-claude-stop-autoarm.sh` with `asyncRewake: true` and `timeout: 28800`.
 Guard exit 2 plus stderr forces continuation.

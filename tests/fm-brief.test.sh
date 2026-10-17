@@ -240,6 +240,164 @@ test_ship_modes_generate_clean_briefs() {
   pass "fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly"
 }
 
+# --forge forgejo is the Forgejo value of the project's registered forge binding
+# (bin/fm-project-mode.sh --forge), passed at intake exactly like --mode. It
+# names tea instead of gh-axi in the ship brief's forge-CLI rule and in the
+# direct-PR Definition of done's own open-a-PR line, and it marks the delivery
+# contract line so bin/fm-spawn.sh can check it against the registry. A brief
+# with no --forge renders the unchanged gh-axi wording. The forge is a ship
+# input only, and the closed set refuses anything else.
+test_forge_selection_renders_correct_cli() {
+  local home brief out rc
+  home="$TMP_ROOT/forge-home"
+  mkdir -p "$home/data"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-default some-proj --mode direct-PR >/dev/null 2>&1 \
+    || fail "a ship brief with no --forge should still scaffold"
+  brief="$home/data/brief-forge-default/brief.md"
+  assert_grep "3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations." "$brief" \
+    "a brief with no --forge must render the exact pre-existing gh-axi Rule 3 line"
+  # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+  assert_grep 'open a PR with `gh-axi`' "$brief" \
+    "a direct-PR brief with no --forge must still tell the worker to open the PR with gh-axi"
+  grep -qx "Delivery contract: mode=direct-PR" "$brief" \
+    || fail "a brief with no --forge must keep the bare delivery contract line"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-forgejo some-proj --mode direct-PR --forge forgejo >/dev/null 2>&1 \
+    || fail "--forge forgejo should scaffold a direct-PR ship brief"
+  brief="$home/data/brief-forge-forgejo/brief.md"
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+    "--forge forgejo must render the tea Rule 3 line"
+  # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+  assert_grep 'open a PR with `tea`' "$brief" \
+    "--forge forgejo's direct-PR DOD must tell the worker to open the PR with tea"
+  grep -qx "Delivery contract: mode=direct-PR forge=forgejo" "$brief" \
+    || fail "--forge forgejo must mark the delivery contract line for the spawn's registry check"
+  # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
+  assert_grep 'confirm it is not a draft (`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<number>` must show `draft` as false' "$brief" \
+    "--forge forgejo's direct-PR DOD must read the draft state back with tea"
+  # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+  assert_grep 'remove that prefix with `tea pulls edit <number>' "$brief" \
+    "--forge forgejo's direct-PR DOD must clear a draft with tea"
+  assert_no_grep 'gh-axi pr view' "$brief" \
+    "--forge forgejo's direct-PR DOD must not send the worker to gh-axi for the draft read-back"
+  assert_no_grep 'gh-axi pr ready' "$brief" \
+    "--forge forgejo's direct-PR DOD must not send the worker to gh-axi to clear a draft"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-nm some-proj --mode no-mistakes --forge forgejo >/dev/null 2>&1 \
+    || fail "--forge forgejo should scaffold a no-mistakes ship brief"
+  brief="$home/data/brief-forge-nm/brief.md"
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+    "a no-mistakes --forge forgejo brief must render the tea Rule 3 line"
+  grep -qx "Delivery contract: mode=no-mistakes forge=forgejo" "$brief" \
+    || fail "a no-mistakes --forge forgejo brief must mark the delivery contract line"
+  # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
+  assert_grep 'confirm it is not a draft (`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<number>` must show `draft` as false' "$brief" \
+    "a no-mistakes --forge forgejo DOD must read the draft state back with tea"
+  assert_no_grep 'gh-axi pr view' "$brief" \
+    "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi for the draft read-back"
+  assert_no_grep 'gh-axi pr ready' "$brief" \
+    "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi to clear a draft"
+
+  while IFS='|' read -r label args expect; do
+    [ -n "$label" ] || continue
+    # shellcheck disable=SC2086 # The row's arguments must split into words.
+    out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-bad some-proj $args 2>&1); rc=$?
+    expect_code 1 "$rc" "$label must be refused"
+    assert_contains "$out" "$expect" "$label was refused without its reason"
+    [ ! -e "$home/data/brief-forge-bad/brief.md" ] || fail "$label left a brief behind"
+  done <<'ROWS'
+a value outside the closed set|--mode direct-PR --forge gitlab|expected none, gerrit, or forgejo
+the removed github value|--mode direct-PR --forge github|expected none, gerrit, or forgejo
+forgejo on local-only|--mode local-only --forge forgejo|cannot ship mode=local-only
+a shape on forgejo|--mode direct-PR --forge forgejo --shape squash|--shape applies only with --forge gerrit
+forgejo on a scout|--scout --forge forgejo|apply only to ship briefs
+ROWS
+
+  pass "fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else"
+}
+
+# shellcheck disable=SC2016
+test_ci_polling_contract_follows_forge_for_both_consumers() {
+  local forge task_home project fresh_id promoted_id forge_token output contract task_id
+  for forge in none forgejo; do
+    task_home="$TMP_ROOT/ci-contract-$forge"
+    project="$task_home/projects/proj"
+    fresh_id="ci-fresh-$forge"
+    promoted_id="ci-promoted-$forge"
+    mkdir -p "$project" "$task_home/config" "$task_home/state" "$task_home/data/$promoted_id"
+    git -C "$project" init -q || fail "could not initialize $forge project fixture"
+    forge_token=
+    set --
+    if [ "$forge" = forgejo ]; then
+      forge_token=' forge=forgejo'
+      set -- --forge forgejo
+    fi
+    printf '%s\n' "- proj [no-mistakes +yolo$forge_token] - fixture (added 2026-01-01)" > "$task_home/data/projects.md"
+    FM_ROOT_OVERRIDE='' FM_HOME="$task_home" "$ROOT/bin/fm-brief.sh" "$fresh_id" proj --mode no-mistakes "$@" >/dev/null 2>&1 \
+      || fail "$forge fresh no-mistakes brief failed"
+    printf 'window=fm-%s\nkind=scout\nworktree=%s/wt\nproject=%s\n' "$promoted_id" "$task_home" "$project" \
+      > "$task_home/state/$promoted_id.meta"
+    cat > "$task_home/data/$promoted_id/brief.md" <<'EOF'
+# Task
+## Captain's intent
+Ship the investigated fix.
+
+## Published intent
+Preserve the registered forge and delivery contract.
+
+## Firstmate spec
+Carry over the fix and validate it.
+EOF
+    output=$(FM_ROOT_OVERRIDE='' FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" \
+      FM_DATA_OVERRIDE="$task_home/data" FM_CONFIG_OVERRIDE="$task_home/config" \
+      "$ROOT/bin/fm-promote.sh" "$promoted_id" --mode no-mistakes --yolo off 2>&1) \
+      || fail "$forge no-mistakes promotion failed: $output"
+
+    for contract in "$task_home/data/$fresh_id/brief.md" \
+      "$task_home/data/$promoted_id/ship-instructions.md" "$task_home/data/$promoted_id/brief.md"; do
+      task_id=$promoted_id
+      [ "$contract" != "$task_home/data/$fresh_id/brief.md" ] || task_id=$fresh_id
+      assert_grep 'poll every 60 seconds with one poll per command' "$contract" "$forge omitted the poll cadence"
+      assert_grep 'Every poll reads the PR itself, not only its checks' "$contract" "$forge omitted review reads"
+      assert_grep "needs-decision [at=<epoch>] [key=pr-<n>-<comment-id>]: review feedback file=$task_home/data/$task_id/pr-<n>-<comment-id>.txt" \
+        "$contract" "$forge changed the emitted review-feedback protocol"
+      assert_grep 'never append `done:` while a `pr-<n>-<comment-id>` decision you opened is still unanswered' \
+        "$contract" "$forge lost the pending-feedback completion hold"
+      assert_grep 'append `paused [at=<epoch>] [key=nm-<run>-ci-wait]' "$contract" "$forge lost keyed CI waits"
+      assert_grep 'append `resolved [at=<epoch>] [key=nm-<run>-ci-wait]' "$contract" "$forge lost CI wait resolution"
+      assert_grep 'that is the CI-ready return point' "$contract" "$forge lost the CI-ready return point"
+      assert_grep 'done [at=<epoch>]: PR {url} checks green' "$contract" "$forge changed the completion event"
+      if [ "$forge" = forgejo ]; then
+        assert_no_grep 'gh pr checks' "$contract" "Forgejo received GitHub CI commands"
+        assert_no_grep 'gh api repos/' "$contract" "Forgejo received GitHub review commands"
+        assert_grep 'tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>' \
+          "$contract" "Forgejo must read the live PR head"
+        assert_grep '/repos/{owner}/{repo}/commits/<head-sha>/status?limit=50&page=<page>' \
+          "$contract" "Forgejo must read paginated combined statuses"
+        assert_grep '/repos/{owner}/{repo}/pulls/<n>/reviews?limit=50&page=<page>' \
+          "$contract" "Forgejo must list reviews"
+        assert_grep '/repos/{owner}/{repo}/pulls/<n>/reviews/<review-id>/comments' \
+          "$contract" "Forgejo must read comments for each review"
+        assert_grep '/repos/{owner}/{repo}/issues/<n>/comments' "$contract" "Forgejo must read issue comments"
+        assert_grep 'including the final empty page' "$contract" "Forgejo must validate pagination completion"
+        assert_grep 'Every page must contain both `statuses` and `state`' \
+          "$contract" "Forgejo must reject missing combined-status fields"
+        assert_grep '`statuses` must be an array or `null` paired with `state: ""`' \
+          "$contract" "Forgejo must accept the valid null terminator and reject malformed null pages"
+        assert_grep 'at least one status exists, and every page is readable' "$contract" "Forgejo cannot finish on absent or unreadable CI"
+        assert_grep 'When every non-empty combined-status page for the current PR head reports `state: success`' \
+          "$contract" "Forgejo must derive readiness from the current head's statuses"
+      else
+        assert_grep 'When `gh pr checks <n>` shows every check passing or skipping' "$contract" "GitHub readiness changed"
+        assert_grep '`gh api repos/<owner>/<repo>/pulls/<n>/reviews`, `.../pulls/<n>/comments`, and `.../issues/<n>/comments`' \
+          "$contract" "GitHub review reads changed"
+      fi
+    done
+  done
+  pass "fresh, promoted and relaunched no-mistakes prompts use the registered forge and preserve the feedback protocol"
+}
+
 # A ship task's delivery mode is firstmate's per-task decision, so a missing or
 # unusable value must stop the scaffold instead of silently defaulting. The
 # no-mistakes-prod-only row is the conditional registry policy: it is never a task
@@ -1528,7 +1686,7 @@ test_branch_prefix_value_is_validated() {
 test_branch_prefix_command_is_shell_safe() {
   local home id prefix marker brief command repo branch
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
-  marker="$TMP_ROOT/branch-prefix-shell-safe-marker"
+  marker='branch-prefix-shell-safe-marker'
   id='brief-branch-safe-g3'
   prefix="\$(touch\${IFS}$marker)"
   mkdir -p "$home/data"
@@ -1541,7 +1699,7 @@ test_branch_prefix_command_is_shell_safe() {
   repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && eval "$command" ) || fail "generated branch-creation command did not run"
-  assert_absent "$marker" "generated branch command executed the prefix's command substitution"
+  assert_absent "$repo/$marker" "generated branch command executed the prefix's command substitution"
   branch=$(git -C "$repo" branch --show-current)
   [ "$branch" = "$prefix$id" ] \
     || fail "generated branch command did not create the literal configured branch (got '$branch')"
@@ -1683,6 +1841,8 @@ test_help_includes_entire_header
 test_ship_dod_implement_discipline
 test_help_teaches_spec_shaped_firstmate_spec
 test_ship_modes_generate_clean_briefs
+test_forge_selection_renders_correct_cli
+test_ci_polling_contract_follows_forge_for_both_consumers
 test_ship_mode_is_required_and_closed_set
 test_ship_mode_is_explicit_not_registry
 test_delivery_flags_are_refused_where_they_do_not_apply

@@ -97,65 +97,6 @@ trap cleanup EXIT
 # staged; the record is promoted to applied once the destination holds the
 # payload, so an interrupted transfer can never make the previous copy read
 # as drift on retry.
-validate_receipt_record() {  # <state> <generation> <bytes> <hash> <command>
-  case "$1" in applied|pending) ;; *) die "inheritance generation record is malformed" ;; esac
-  case "$2" in ''|*[!0-9]*) die "inheritance generation record is malformed" ;; esac
-  [ "${#2}" -le 18 ] || die "inheritance generation record is malformed"
-  case "$3" in ''|*[!0-9]*) die "inheritance generation record is malformed" ;; esac
-  case "$4" in ''|*[!A-Fa-f0-9]*) die "inheritance generation record is malformed" ;; esac
-  [ "${#4}" -eq 64 ] || die "inheritance generation record is malformed"
-  case "$5" in put|absent) ;; *) die "inheritance generation record is malformed" ;; esac
-}
-
-# Parse the receipt into APPLIED_* (APPLIED_PRESENT=1 when an applied record
-# exists) and PENDING_* (PENDING_GEN empty when none) globals.
-read_generation_receipt() {
-  APPLIED_PRESENT=0
-  APPLIED_GEN=
-  APPLIED_BYTES=
-  APPLIED_HASH=
-  APPLIED_CMD=
-  PENDING_GEN=
-  PENDING_BYTES=
-  PENDING_HASH=
-  PENDING_CMD=
-  [ -e "$GENERATION_FILE" ] || [ -L "$GENERATION_FILE" ] || return 0
-  [ -f "$GENERATION_FILE" ] && [ ! -L "$GENERATION_FILE" ] || die "inheritance generation record is unsafe"
-  local line lines=0
-  set --
-  while IFS= read -r line; do
-    lines=$((lines + 1))
-    [ "$lines" -le 10 ] || die "inheritance generation record is malformed"
-    set -- "$@" "$line"
-  done < "$GENERATION_FILE"
-  [ -z "$line" ] && [ "$lines" -ge 1 ] || die "inheritance generation record is malformed"
-  if [ "$1" = applied ] || [ "$1" = pending ]; then
-    case "$1:$lines" in applied:5|applied:10|pending:5) ;; *) die "inheritance generation record is malformed" ;; esac
-    validate_receipt_record "$1" "$2" "$3" "$4" "$5"
-    if [ "$1" = applied ]; then
-      APPLIED_PRESENT=1
-      APPLIED_GEN=$2 APPLIED_BYTES=$3 APPLIED_HASH=$4 APPLIED_CMD=$5
-      if [ "$lines" -eq 10 ]; then
-        [ "$6" = pending ] || die "inheritance generation record is malformed"
-        validate_receipt_record "$6" "$7" "$8" "$9" "${10}"
-        PENDING_GEN=$7 PENDING_BYTES=$8 PENDING_HASH=$9 PENDING_CMD=${10}
-      fi
-    else
-      PENDING_GEN=$2 PENDING_BYTES=$3 PENDING_HASH=$4 PENDING_CMD=$5
-    fi
-  else
-    [ "$lines" -eq 4 ] || die "inheritance generation record is malformed"
-    validate_receipt_record applied "$1" "$2" "$3" "$4"
-    APPLIED_PRESENT=1
-    APPLIED_GEN=$1 APPLIED_BYTES=$2 APPLIED_HASH=$3 APPLIED_CMD=$4
-  fi
-  APPLIED_HASH=$(printf '%s' "$APPLIED_HASH" | tr 'A-F' 'a-f')
-  if [ -n "$PENDING_HASH" ]; then
-    PENDING_HASH=$(printf '%s' "$PENDING_HASH" | tr 'A-F' 'a-f')
-  fi
-  return 0
-}
-
 write_applied_generation() {  # <generation> <bytes> <hash> <command>
   GENERATION_TMP=$(umask 077; mktemp "$PARENT_REAL/.inherit-generation.XXXXXX") \
     || die "cannot stage inheritance generation"
@@ -196,7 +137,7 @@ pending_payload_at_dest() {
 }
 
 commit_generation() {
-  read_generation_receipt
+  fm_inherit_receipt_read "$GENERATION_FILE" || die "$FM_INHERIT_RECEIPT_DIAG"
   # An older pending record whose payload the destination already holds was
   # published by an interrupted run; treat it as applied before it is
   # replaced, so a second interruption cannot make that payload read as drift.
