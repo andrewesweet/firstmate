@@ -1,0 +1,34 @@
+[
+  {
+    "variant": "current",
+    "test": "test_mismatched_state_override_is_ignored",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "stdout": "ok - override guard: a foreign-named override is ignored and the task's own state files are read",
+    "stderr": ""
+  },
+  {
+    "variant": "current",
+    "test": "test_matched_state_override_is_honoured",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "stdout": "ok - override guard: a matching-name override still steers the read at the captured generation",
+    "stderr": ""
+  },
+  {
+    "variant": "foreign-metadata-accepted",
+    "test": "test_mismatched_state_override_is_ignored",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "stdout": "",
+    "stderr": "not ok - a mismatched override must be ignored: the task's own working log line wins (missing: 'state: working')\n--- output ---\nstate: unknown \u00b7 source: none \u00b7 worktree gone (torn down?)"
+  },
+  {
+    "variant": "matching-metadata-ignored",
+    "test": "test_matched_state_override_is_honoured",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "stdout": "",
+    "stderr": "not ok - a matched-name override must be honoured over the live status log (missing: 'state: paused')\n--- output ---\nstate: unknown \u00b7 source: none \u00b7 worktree gone (torn down?)"
+  }
+]

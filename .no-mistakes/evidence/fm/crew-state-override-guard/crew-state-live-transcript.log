@@ -1,0 +1,73 @@
+~/.no-mistakes/worktrees/5ac353bebe94/01M54NF7FAK33AVF9TVBAP55YG/.lv
+Private tmux endpoint: records:fm-lab-task 100x30
+No overrides: own records
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Foreign metadata alone ignored
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Foreign status alone ignored
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Both foreign overrides ignored
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Matching metadata alone honoured
+  $ bin/fm-crew-state.sh task-a
+  state: unknown · source: none · worktree gone (torn down?)
+Matching status alone honoured
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Matching captured generation overrides changed live metadata
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Matching metadata and foreign status resolved independently
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Foreign metadata and matching status resolved independently
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Relative matching paths honoured
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Bare matching basenames honoured
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Lookalike prefix-task-a rejected
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Lookalike task-a-extra rejected
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Lookalike TASK-A rejected
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Wrong file extensions rejected independently
+  $ bin/fm-crew-state.sh task-a
+  state: working · source: status-log · own task-a
+Inherited snapshot environment reads task-a
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Inherited snapshot environment reads task-b
+  $ bin/fm-crew-state.sh task-b
+  state: working · source: status-log · own task-b
+Inherited snapshot environment reads task-a
+  $ bin/fm-crew-state.sh task-a
+  state: paused · source: status-log · captured task-a
+Missing own metadata never borrows foreign capture
+  $ bin/fm-crew-state.sh absent-task
+  state: unknown · source: none · no metadata for absent-task
+Matching missing metadata capture remains authoritative
+  $ bin/fm-crew-state.sh task-a
+  state: unknown · source: none · no metadata for task-a
+Matching missing status capture does not use live status
+  $ bin/fm-crew-state.sh task-a
+  state: unknown · source: none · no current-state source available
+Base reproduces foreign metadata poisoning
+  $ .lv/baseline-bin/fm-crew-state.sh task-a
+  state: unknown · source: none · worktree gone (torn down?)
+Base reproduces foreign status poisoning
+  $ .lv/baseline-bin/fm-crew-state.sh task-a
+  state: blocked · source: status-log · foreign task
+All exact-basename behavioral checks passed; base reproduces both reported failures.
+Cleanup: private tmux stopped (exit 0); disposable home removed=True
