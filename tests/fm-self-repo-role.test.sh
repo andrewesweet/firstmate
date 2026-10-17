@@ -425,6 +425,34 @@ test_declared_target_unusable_falls_back() {
   pass "declared publication target: unreadable, malformed, and symlinked declarations fall back to remote order"
 }
 
+test_scopes_require_a_host() {
+  local root home out rc pin
+  root=$(make_fork_layout empty-host-root)
+  home=$(make_role_home empty-host-home 'maintainer /fork-owner/firstmate')
+  printf '/fork-owner/firstmate\n' > "$home/config/firstmate-pub-target"
+
+  out=$(check_as "$root" "$home" "$root" upstream-consent github.com/kunchenguid/firstmate); rc=$?
+  expect_code 0 "$rc" "an empty-host declaration must fall back and allow consent for the upstream parent (got: $out)"
+  pin=$(printf '%s\n' "$out" | sed -n 's/^publication pin: //p')
+  assert_equals "$(printf 'github.com\ngithub.com/kunchenguid/firstmate')" "$(publication_environment "$pin")" \
+    "the fallback must pin the upstream parent and its nonempty host"
+
+  out=$(check_as "$root" "$home" "$root" upstream-consent /fork-owner/firstmate); rc=$?
+  expect_code 1 "$rc" "an empty-host consent matching the malformed declaration must be refused (got: $out)"
+  assert_contains "$out" "is not a valid <host>/<owner>/<repo> scope" \
+    "empty-host consent must fail scope validation"
+
+  out=$(run_role "$home" report)
+  assert_contains "$out" "fm-role: user" "an empty-host maintainer scope must resolve to user"
+  assert_contains "$out" "invalid repository scope '/fork-owner/firstmate'" \
+    "an empty-host maintainer scope must fail scope validation"
+
+  out=$(fm_role_publication_pin /fork-owner/firstmate); rc=$?
+  expect_code 1 "$rc" "publication pins must reject empty-host scopes"
+  assert_equals '' "$out" "an empty-host scope must emit no publication exports"
+  pass "repository scopes: empty hosts fall back in declarations and cannot authorize or produce pins"
+}
+
 test_declared_target_keeps_lineage_refusal() {
   local root shallow home out rc
   root=$(make_fork_layout decl-lineage)
@@ -1033,6 +1061,7 @@ test_check_task_consent_authorizes_one_task
 test_declared_target_selects_the_fork
 test_declared_target_grants_no_authority
 test_declared_target_unusable_falls_back
+test_scopes_require_a_host
 test_declared_target_keeps_lineage_refusal
 test_secondmate_declares_its_own_target
 test_publication_commands_pin_the_authorized_fork
