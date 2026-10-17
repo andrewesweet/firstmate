@@ -1569,7 +1569,7 @@ This section is the single owner of the canonical schema.
 - A tool does not always announce a new release on the command that prints its version: `no-mistakes --version` prints only the version, while its other commands carry the announcement.
 - `announce_args` names the command to search for the announcement in that case, and it is asked only of the copy `PATH` resolves; without it the version probe's own output is searched.
 - A tool whose CLI never announces its own updates (Claude Code is one) can name a `version_url` instead: an https document whose body carries the newest published version.
-- It is fetched read-only with curl inside the same probe bound and compared with the version `PATH` resolves.
+- It is fetched read-only with curl inside the same probe bound and compared with the newest installed copy found.
 - `update available` is reported when the published version is newer, and an unreadable document or a missing curl is reported as that tool's own check failure.
 - An `announce_pattern` that is not a usable extended regular expression stops `arm`, and during a sweep it is reported as that one tool's own check failure so one broken pattern never stops the other watched tools from being checked.
 - A `git` entry reports how many commits the local clone is behind its remote branch, and stays silent when the clone is current or ahead.

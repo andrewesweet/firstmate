@@ -454,8 +454,8 @@ SH
   chmod 0755 "$dir/curl"
 }
 
-test_published_version_newer_than_path_is_reported() {
-  local home dir out report
+test_published_version_newer_than_installed_is_reported() {
+  local home dir fresh out report
   home=$(make_home version-url)
   dir="$TMP_ROOT/version-url/bin"
   make_copy "$dir" claude-fixture '2.1.271 (Claude Code)'
@@ -466,7 +466,38 @@ test_published_version_newer_than_path_is_reported() {
   report=$(cat "$out")
   assert_contains "$report" "claude update available: 2.1.273 published at https://downloads.example.invalid/latest, PATH resolves 2.1.271" "a newer published version was not reported against the version PATH resolves"
   assert_not_contains "$report" "not in effect" "a published update must not be reported as PATH skew"
-  pass "a newer version at version_url is reported as an available update"
+
+  fresh="$TMP_ROOT/version-url/new/bin"
+  make_copy "$fresh" claude-fixture '2.1.272 (Claude Code)'
+  run_check "$home" "$(fixture_path "$dir:$fresh")" "$out"
+  report=$(cat "$out")
+  assert_contains "$report" "claude update available: 2.1.273 published at https://downloads.example.invalid/latest, PATH resolves 2.1.271" "a published version newer than every installed copy was not reported"
+  assert_contains "$report" "claude update not in effect: PATH resolves 2.1.271 at $dir/claude-fixture but 2.1.272 is installed at $fresh/claude-fixture" "a published update suppressed the installed PATH skew"
+  pass "a version_url newer than every installed copy is reported as an available update"
+}
+
+test_published_version_already_installed_is_not_double_reported() {
+  local home stale fresh installed out report
+  home=$(make_home version-url-installed)
+  stale="$TMP_ROOT/version-url-installed/old/bin"
+  fresh="$TMP_ROOT/version-url-installed/new/bin"
+  make_copy "$stale" claude-fixture '2.1.271 (Claude Code)'
+  make_curl_fixture "$stale" '2.1.273'
+  write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
+  out="$home/out.txt"
+
+  for installed in 2.1.273 2.1.274; do
+    make_copy "$fresh" claude-fixture "$installed (Claude Code)"
+    run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
+    report=$(cat "$out")
+    assert_contains "$report" "claude update not in effect: PATH resolves 2.1.271 at $stale/claude-fixture but $installed is installed at $fresh/claude-fixture" "a published version already installed was not reported as PATH skew"
+    assert_not_contains "$report" "update available" "a published version no newer than an installed copy was reported as available"
+    assert_not_contains "$report" "check failed" "readable installed and published versions produced a check failure"
+
+    run_check "$home" "$(fixture_path "$fresh:$stale")" "$out"
+    [ ! -s "$out" ] || fail "a version_url no newer than the active copy must be silent, got: $(cat "$out")"
+  done
+  pass "a version_url no newer than an installed copy reports only PATH skew when needed"
 }
 
 test_published_version_equal_to_path_is_silent() {
@@ -1180,7 +1211,8 @@ test_one_broken_pattern_does_not_blind_the_rest_of_the_sweep
 test_an_unchecked_announcement_source_is_not_read_as_current
 test_an_announcement_probe_that_does_not_answer_is_reported
 test_quiet_tool_with_announce_pattern_is_silent
-test_published_version_newer_than_path_is_reported
+test_published_version_newer_than_installed_is_reported
+test_published_version_already_installed_is_not_double_reported
 test_published_version_equal_to_path_is_silent
 test_unreadable_version_url_is_a_failure_not_a_pass
 test_missing_curl_is_a_failure_not_a_pass
