@@ -15,6 +15,63 @@ RUNNER="$ROOT/bin/fm-test-run.sh"
 assert_present "$RUNNER" "bin/fm-test-run.sh is missing"
 [ -x "$RUNNER" ] || fail "bin/fm-test-run.sh must be executable"
 
+test_failed_scripts_replay_bounded_evidence_beside_the_summary() {
+  local tmp repo runner rc out after
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-failsection.XXXXXX}")
+  repo="$tmp/repo"
+  runner="$repo/bin/fm-test-run.sh"
+  mkdir -p "$repo/bin" "$repo/tests"
+  cp "$RUNNER" "$runner"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  # A passing fixture whose output must stay out of the failure section, and
+  # a failing fixture verbose enough to prove the replay is bounded: fifty
+  # lines with the default tail of thirty keeps the earliest lines out and
+  # the latest lines in.
+  cat >"$repo/tests/fm-brief.test.sh" <<'SH'
+#!/usr/bin/env bash
+echo "passing fixture distinctive output line"
+echo "ok - passing fixture"
+SH
+  cat >"$repo/tests/fm-composer-lib.test.sh" <<'SH'
+#!/usr/bin/env bash
+i=1
+while [ "$i" -le 50 ]; do
+  printf 'failure evidence line %02d of 50\n' "$i"
+  i=$((i + 1))
+done
+echo "not ok - failing fixture distinctive marker"
+exit 1
+SH
+  chmod +x "$runner" "$repo/tests/fm-brief.test.sh" "$repo/tests/fm-composer-lib.test.sh"
+  set +e
+  "$runner" --jobs 1 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || { rm -rf "$tmp"; fail "run with a failing fixture must exit non-zero"; }
+  out=$(cat "$tmp/out")
+  printf '%s\n' "$out" | grep -q '^FM_TEST_SUMMARY total=2 failed=1' \
+    || { rm -rf "$tmp"; fail "failure summary wrong: $(grep FM_TEST_SUMMARY "$tmp/out")"; }
+  printf '%s\n' "$out" | grep -q '^FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=1$' \
+    || { rm -rf "$tmp"; fail "failure section names no failed script"; }
+  # Everything from the summary on is the attribution section: the failing
+  # script's bounded tail must be there, the passing script's output must not.
+  after=$(printf '%s\n' "$out" | sed -n '/^FM_TEST_SUMMARY /,$p')
+  printf '%s\n' "$after" | grep -q 'failure evidence line 50 of 50' \
+    || { rm -rf "$tmp"; fail "failure section is missing the failing tail"; }
+  printf '%s\n' "$after" | grep -q 'failing fixture distinctive marker' \
+    || { rm -rf "$tmp"; fail "failure section is missing the failing marker"; }
+  if printf '%s\n' "$after" | grep -q 'failure evidence line 01 of 50'; then
+    rm -rf "$tmp"; fail "failure section replayed beyond its bound"
+  fi
+  if printf '%s\n' "$after" | grep -q 'passing fixture distinctive output line'; then
+    rm -rf "$tmp"; fail "failure section repeated a passing script"
+  fi
+  printf '%s\n' "$after" | grep -q '^FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh$' \
+    || { rm -rf "$tmp"; fail "failure section is missing its closing marker"; }
+  rm -rf "$tmp"
+  pass "failed scripts replay bounded evidence beside the summary; passing scripts stay quiet"
+}
+
 test_list_all_exact_suite_coverage() {
   local listed expected missing extra f
   listed=$("$RUNNER" --list --all | LC_ALL=C sort)
@@ -1876,5 +1933,6 @@ test_per_script_timeout_bounds_a_hang
 test_changed_bound_gives_slow_watcher_suites_headroom
 test_max_wall_ms_is_a_result_not_advice
 test_jobs_parallel_scheduler_and_failure_propagation
+test_failed_scripts_replay_bounded_evidence_beside_the_summary
 test_herdr_ci_family_run_has_a_step_timeout
 test_aggregate_json

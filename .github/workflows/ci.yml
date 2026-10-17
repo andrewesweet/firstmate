@@ -119,13 +119,22 @@ jobs:
           set -eu
           npm install -g tasks-axi
           tasks-axi --version
-      - name: Install the Pi package for the Pi extension tests
+      # The Pi extension tests read the installed Pi package's own types and
+      # runtime, so without it they gate-skip and pass silently. It is a public
+      # npm package and needs no credential, so CI holds the real thing. The
+      # install is the exact 1.0.4 closure from etc/ci-pi via
+      # bin/fm-install-pi.sh, never a floating global pin: Pi 1.0.4's ^1.0.4
+      # ranges once floated pi-codemode to 1.3.0, which removed the
+      # MCP_TYPESCRIPT_PREAMBLE export Pi 1.0.4 imports, and broke every pull
+      # request in the Pi extension shards.
+      - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
-          # Includes the typed before_agent_start message variants used by the extensions.
-          npm install -g @earendil-works/pi-coding-agent@1.2.0
-          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+          bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+          echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Run portable parallel shard 1
+        env:
+          FM_PI_PACKAGE_DIR: ${{ runner.temp }}/pi/node_modules/@earendil-works/pi-coding-agent
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/fm-test"
@@ -241,15 +250,20 @@ jobs:
           printf '%s' "$status" | jq -e . >/dev/null || { echo "::error::treehouse status --json did not print valid JSON"; exit 1; }
       # The Pi extension tests read the installed Pi package's own types and
       # runtime, so without it they gate-skip and pass silently. It is a public
-      # npm package and needs no credential, so CI can hold the real thing.
-      - name: Install the Pi package for the Pi extension tests
+      # npm package and needs no credential, so CI can hold the real thing. The
+      # install is the exact 1.0.4 closure from etc/ci-pi via
+      # bin/fm-install-pi.sh, never a floating global pin: Pi 1.0.4's ^1.0.4
+      # ranges once floated pi-codemode to 1.3.0, which removed the
+      # MCP_TYPESCRIPT_PREAMBLE export Pi 1.0.4 imports, and broke every pull
+      # request in the Pi extension shards.
+      - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
-          # Includes the typed before_agent_start message variants used by the extensions.
-          npm install -g @earendil-works/pi-coding-agent@1.2.0
-          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+          bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+          echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Run portable serial shard ${{ matrix.shard }}
         env:
+          FM_PI_PACKAGE_DIR: ${{ runner.temp }}/pi/node_modules/@earendil-works/pi-coding-agent
           # job-total rather than a literal, so shrinking or growing the matrix
           # without matching bin/fm-test-run.sh is refused instead of quietly
           # leaving a shard of the required lane unrun.
