@@ -1,0 +1,217 @@
+Private tmux endpoint: ~/.no-mistakes/worktrees/15083dca46d2/01M54W5CFZRN9BZXG7VFH5PBA2/.l/tmux/tmux-1000/fm-lab 120x35 sleep
+Inherited socket selection: ~/.no-mistakes/worktrees/15083dca46d2/01M54W5CFZRN9BZXG7VFH5PBA2/.l/tmux/tmux-1000/fm-lab,2840997,0
+Fixtures: 47 unrelated run rows; no worker-branch row at initial status read.
+
+matching-zero-idle
+$ bin/fm-crew-state.sh live
+state: working · source: status-log · implementation continues
+real no-mistakes axi status: exit 0
+current_branch: fm/lab-no-run
+runs_on_current_branch: 0
+count: 10 of 47 total
+runs[10]{id,branch,status,head,pr}:
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+  "01A00000000000000000000009",fm/unrelated-9,cancelled,cdd2142d,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+
+matching-zero-busy
+$ bin/fm-crew-state.sh live
+state: working · source: pane · harness busy (fm-recovery)
+real no-mistakes axi status: exit 0
+current_branch: fm/lab-no-run
+runs_on_current_branch: 0
+count: 10 of 47 total
+runs[10]{id,branch,status,head,pr}:
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+  "01A00000000000000000000009",fm/unrelated-9,cancelled,cdd2142d,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+
+no-run-race
+$ bin/fm-crew-state.sh live
+state: working · source: status-log · implementation continues
+real no-mistakes axi status: exit 0
+current_branch: fm/lab-no-run
+runs_on_current_branch: 0
+count: 10 of 47 total
+runs[10]{id,branch,status,head,pr}:
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+  "01A00000000000000000000009",fm/unrelated-9,cancelled,cdd2142d,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+Newly arrived conflicting row, independently read after crew-state returned:
+$ no-mistakes runs --limit 1
+failed       fm/lab-no-run        cdd2142d  2026-10-17 13:16
+
+  (47 more runs, use --limit to see more)
+
+base-counterfactual
+$ bin/.crew-state-live-base.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+real no-mistakes axi status: exit 0
+current_branch: fm/lab-no-run
+runs_on_current_branch: 0
+count: 10 of 47 total
+runs[10]{id,branch,status,head,pr}:
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+  "01A00000000000000000000009",fm/unrelated-9,cancelled,cdd2142d,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+real no-mistakes axi: exit 0
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/15083dca46d2/01M54W5CFZRN9BZXG7VFH5PBA2/.test-crew-state/live/repo
+current_branch: fm/lab-no-run
+daemon: stopped
+count: 10 of 48 total
+runs[10]{id,branch,status,head,pr}:
+  "01A99999999999999999999999",fm/lab-no-run,failed,cdd2142d,""
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+real no-mistakes axi status --run 01A99999999999999999999999: exit 0
+run:
+  id: "01A99999999999999999999999"
+  branch: fm/lab-no-run
+  status: failed
+  head: cdd2142d
+  head_sha: cdd2142d4d7d73bbccbbb99587724d30a46a076c
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+Base counterfactual rejected the required fallback, as expected; target passes the same race.
+
+mismatched-current-branch
+$ bin/fm-crew-state.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+real no-mistakes axi status: exit 0
+current_branch: fm/lab-other
+runs_on_current_branch: 0
+count: 10 of 48 total
+runs[10]{id,branch,status,head,pr}:
+  "01A99999999999999999999999",fm/lab-no-run,failed,cdd2142d,""
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+real no-mistakes axi: exit 0
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/15083dca46d2/01M54W5CFZRN9BZXG7VFH5PBA2/.test-crew-state/live/repo
+current_branch: fm/lab-no-run
+daemon: stopped
+count: 10 of 48 total
+runs[10]{id,branch,status,head,pr}:
+  "01A99999999999999999999999",fm/lab-no-run,failed,cdd2142d,""
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+real no-mistakes axi status --run 01A99999999999999999999999: exit 0
+run:
+  id: "01A99999999999999999999999"
+  branch: fm/lab-no-run
+  status: failed
+  head: cdd2142d
+  head_sha: cdd2142d4d7d73bbccbbb99587724d30a46a076c
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+
+missing-zero-run-fields
+$ bin/fm-crew-state.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+real no-mistakes axi status: exit 0
+run:
+  id: "01A99999999999999999999999"
+  branch: fm/lab-no-run
+  status: failed
+  head: cdd2142d
+  head_sha: cdd2142d4d7d73bbccbbb99587724d30a46a076c
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+real no-mistakes axi: exit 0
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/15083dca46d2/01M54W5CFZRN9BZXG7VFH5PBA2/.test-crew-state/live/repo
+current_branch: fm/lab-no-run
+daemon: stopped
+count: 10 of 48 total
+runs[10]{id,branch,status,head,pr}:
+  "01A99999999999999999999999",fm/lab-no-run,failed,cdd2142d,""
+  "01A00000000000000000000000",fm/unrelated-0,cancelled,cdd2142d,""
+  "01A00000000000000000000001",fm/unrelated-1,cancelled,cdd2142d,""
+  "01A00000000000000000000002",fm/unrelated-2,cancelled,cdd2142d,""
+  "01A00000000000000000000003",fm/unrelated-3,cancelled,cdd2142d,""
+  "01A00000000000000000000004",fm/unrelated-4,cancelled,cdd2142d,""
+  "01A00000000000000000000005",fm/unrelated-5,cancelled,cdd2142d,""
+  "01A00000000000000000000006",fm/unrelated-6,cancelled,cdd2142d,""
+  "01A00000000000000000000007",fm/unrelated-7,cancelled,cdd2142d,""
+  "01A00000000000000000000008",fm/unrelated-8,cancelled,cdd2142d,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+real no-mistakes axi status --run 01A99999999999999999999999: exit 0
+run:
+  id: "01A99999999999999999999999"
+  branch: fm/lab-no-run
+  status: failed
+  head: cdd2142d
+  head_sha: cdd2142d4d7d73bbccbbb99587724d30a46a076c
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+
+All live scenarios passed.
+Private tmux teardown exit: 0

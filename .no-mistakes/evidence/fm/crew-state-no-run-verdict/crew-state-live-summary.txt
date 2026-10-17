@@ -1,0 +1,28 @@
+matching-zero-idle
+$ bin/fm-crew-state.sh live
+state: working · source: status-log · implementation continues
+matching-zero-busy
+$ bin/fm-crew-state.sh live
+state: working · source: pane · harness busy (fm-recovery)
+no-run-race
+$ bin/fm-crew-state.sh live
+state: working · source: status-log · implementation continues
+base-counterfactual
+$ bin/.crew-state-live-base.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+Base counterfactual rejected the required fallback, as expected; target passes the same race.
+mismatched-current-branch
+$ bin/fm-crew-state.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+missing-zero-run-fields
+$ bin/fm-crew-state.sh live
+state: failed · source: run-step · run failed · run: 01A99999999999999999999999
+Private tmux teardown exit: 0
+matching-zero-idle: actual no-mistakes calls = [['axi', 'status']]
+matching-zero-busy: actual no-mistakes calls = [['axi', 'status']]
+no-run-race: actual no-mistakes calls = [['axi', 'status']]
+base-counterfactual: actual no-mistakes calls = [['axi', 'status'], ['axi'], ['axi', 'status', '--run', '01A99999999999999999999999']]
+mismatched-current-branch: actual no-mistakes calls = [['axi', 'status'], ['axi'], ['axi', 'status', '--run', '01A99999999999999999999999']]
+missing-zero-run-fields: actual no-mistakes calls = [['axi', 'status'], ['axi'], ['axi', 'status', '--run', '01A99999999999999999999999']]
+Run-arrival oracle: the real no-mistakes runs --limit 1 independently returned the new failed worker-branch row after crew-state used status-log.
+Final cleanup: all disposable workspace fixtures removed; private tmux server stopped.

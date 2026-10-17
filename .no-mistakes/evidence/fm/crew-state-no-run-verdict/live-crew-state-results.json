@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Matching zero-run verdict reaches the current status log without inventory",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Matching zero-run verdict preserves the semantic busy pane source",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A run arriving after the zero-run answer cannot override it through a later ledger read",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A zero-run answer for a different branch still selects the worker run from inventory",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A status payload without zero-run fields preserves inventory attribution",
+    "result": "pass",
+    "live": true
+  }
+]
