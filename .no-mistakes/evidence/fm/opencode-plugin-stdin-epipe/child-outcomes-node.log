@@ -1,0 +1,7 @@
+{"runtime":{"node":"24.22.0"},"oracle":"Intent: ignore stdin transport errors; preserve child result. Public encoder protocol: U+2063 FIRSTMATE_OP: v1 <kind>: <body>."}
+{"case":"nonreader exit 7","result":"rejected with exact child diagnostic","broken_pipe_events":1}
+{"case":"nonreader exit 0 with output","result":"resolved with exact child stdout","broken_pipe_events":2}
+{"case":"nonreader exit 0 without output","result":"existing empty-output rejection preserved","broken_pipe_events":3}
+{"case":"real encoder normal input","stdout":"⁣FIRSTMATE_OP: v1 watcher: First line\nSecond line"}
+{"case":"real encoder refuses invalid kind","result":"child diagnostic preserved","broken_pipe_events":3}
+{"case":"guard child exits before reading","calls":1000,"host_survived":true,"broken_pipe_events":264}

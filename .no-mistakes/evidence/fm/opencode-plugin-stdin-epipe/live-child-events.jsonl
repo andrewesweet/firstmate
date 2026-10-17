@@ -1,0 +1,14 @@
+{"kind":"observer-loaded"}
+{"kind": "guard", "mode": "guard-early-zero"}
+{"kind": "guard", "mode": "guard-early-failure"}
+{"kind": "guard", "mode": "encoder-refusal"}
+{"kind": "encoder", "mode": "encoder-refusal"}
+{"kind":"stdin-error","code":"EPIPE"}
+{"kind": "guard", "mode": "encoder-refusal"}
+{"kind": "encoder", "mode": "encoder-refusal"}
+{"kind":"stdin-error","code":"EPIPE"}
+{"kind": "guard", "mode": "encoder-success"}
+{"kind": "encoder", "mode": "encoder-success"}
+{"kind":"stdin-error","code":"EPIPE"}
+{"kind": "guard", "mode": "normal-encoding"}
+{"kind": "encoder", "mode": "normal-encoding"}

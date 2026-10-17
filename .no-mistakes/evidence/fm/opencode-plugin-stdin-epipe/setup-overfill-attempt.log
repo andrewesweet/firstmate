@@ -1,0 +1,17 @@
+{"action": "server-started", "health": {"healthy": true, "version": "1.19.0"}, "provider": "local HTTP fixture; no real account", "socket": "~/.no-mistakes/worktrees/c75a534c6389/01M54HXZWEKVDYCYK19Q7245WW/.r1b0tif5/tmux/tmux-1000/fm-lab"}
+{"case": "guard-early", "action": "prompt", "session": "ses_eb6da3fb5ffeeTGq7dwkotWBXg", "finish": "stop", "parts": ["LAB_MODEL_OK"]}
+{"case": "guard-early", "action": "host-survived", "health": {"healthy": true, "version": "1.19.0"}, "assistant_replies": 1, "user_messages": 1, "child_events": [{"kind": "guard", "mode": "guard-early"}]}
+{"case": "encoder-refusal", "action": "prompt", "session": "ses_eb6da2c73ffeCIrQh6DIs8tnCF", "finish": "stop", "parts": ["LAB_MODEL_OK"]}
+{"case": "encoder-refusal", "action": "host-survived", "health": {"healthy": true, "version": "1.19.0"}, "assistant_replies": 1, "user_messages": 1, "child_events": [{"kind": "guard", "mode": "encoder-refusal"}, {"kind": "encoder", "mode": "encoder-refusal"}]}
+{"case": "encoder-refusal", "action": "same-session-continuation", "finish": "stop", "assistant_replies": 2, "health": {"healthy": true, "version": "1.19.0"}}
+{"case": "encoder-success", "action": "prompt", "session": "ses_eb6da24a0ffeoUw5XTLEtcQRDI", "finish": "stop", "parts": ["LAB_MODEL_OK"]}
+{"case": "encoder-success", "action": "host-survived", "health": {"healthy": true, "version": "1.19.0"}, "assistant_replies": 2, "user_messages": 2, "child_events": [{"kind": "encoder", "mode": "encoder-success"}, {"kind": "guard", "mode": "encoder-success"}, {"kind": "encoder", "mode": "encoder-success"}]}
+{"case": "normal-encoding", "action": "prompt", "session": "ses_eb6da1ba7ffeDR64MNg4g9ZXwk", "finish": "stop", "parts": ["LAB_MODEL_OK"]}
+{"case": "normal-encoding", "action": "host-survived", "health": {"healthy": true, "version": "1.19.0"}, "assistant_replies": 2, "user_messages": 2, "child_events": [{"kind": "guard", "mode": "normal-encoding"}, {"kind": "encoder", "mode": "normal-encoding"}]}
+{"action": "driver-failure", "error": "AssertionError('No actual broken stdin observed')", "traceback": "Traceback (most recent call last):\n  File \"~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py\", line 153, in <module>\n    assert any(e.get('kind')=='stdin-error' for e in events()),'No actual broken stdin observed'\n           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: No actual broken stdin observed\n"}
+{"action": "cleanup", "lab_removed": true, "private_server_stopped": true}
+Traceback (most recent call last):
+  File "~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py", line 153, in <module>
+    assert any(e.get('kind')=='stdin-error' for e in events()),'No actual broken stdin observed'
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: No actual broken stdin observed

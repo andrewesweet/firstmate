@@ -1,0 +1,25 @@
+Runtime: v24.22.0
+
+Target commit: b6644086bfecb1d5e562fb056eb40dcf47963e14
+ok - OpenCode watcher plugin coordinates with the turn-end guard
+ok - OpenCode healthy arm output does not suppress the turn-end guard
+ok - OpenCode turn-end guard survives an encoder that never reads stdin
+
+Base commit: ce697402e662cd7f9d6ef5c367041dd51516eb49 (expected regression failure)
+not ok - OpenCode turn-end guard must survive an encoder that never reads its stdin (node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at WriteWrap.onWriteComplete [as oncomplete] (node:internal/stream_base_commons:51:19)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.22.0): expected exit 0, got 1
+Base failed as expected (status=1); target passed.

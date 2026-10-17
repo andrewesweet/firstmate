@@ -1,0 +1,40 @@
+{"action": "server-started", "health": {"healthy": true, "version": "1.19.0"}, "provider": "local HTTP fixture; no real account", "socket": "~/.no-mistakes/worktrees/c75a534c6389/01M54HXZWEKVDYCYK19Q7245WW/.zuduht94/tmux/tmux-1000/fm-lab"}
+{"action": "driver-failure", "error": "TimeoutError('timed out')", "traceback": "Traceback (most recent call last):\n  File \"~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py\", line 145, in <module>\n    drive('guard-early')\n    ~~~~~^^^^^^^^^^^^^^^\n  File \"~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py\", line 72, in drive\n    session=request('/session',{})\n  File \"~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py\", line 54, in request\n    with urllib.request.urlopen(req,timeout=timeout) as r:\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 187, in urlopen\n    return opener.open(url, data, timeout)\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 489, in open\n    response = self._open(req, data)\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 506, in _open\n    result = self._call_chain(self.handle_open, protocol, protocol +\n                              '_open', req)\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 466, in _call_chain\n    result = func(*args)\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 1364, in http_open\n    return self.do_open(http.client.HTTPConnection, req)\n           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py\", line 1339, in do_open\n    r = h.getresponse()\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py\", line 1490, in getresponse\n    response.begin()\n    ~~~~~~~~~~~~~~^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py\", line 350, in begin\n    version, status, reason = self._read_status()\n                              ~~~~~~~~~~~~~~~~~^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py\", line 306, in _read_status\n    line = str(self.fp.readline(_MAXLINE + 1), \"iso-8859-1\")\n               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"~/.local/share/mise/installs/python/3.15.0/lib/python3.15/socket.py\", line 738, in readinto\n    return self._sock.recv_into(b)\n           ~~~~~~~~~~~~~~~~~~~~^^^\nTimeoutError: timed out\n"}
+{"action": "cleanup", "lab_removed": true, "private_server_stopped": true}
+Traceback (most recent call last):
+  File "~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py", line 145, in <module>
+    drive('guard-early')
+    ~~~~~^^^^^^^^^^^^^^^
+  File "~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py", line 72, in drive
+    session=request('/session',{})
+  File "~/.no-mistakes/evidence/01M54HXZWEKVDYCYK19Q7245WW/live-opencode.py", line 54, in request
+    with urllib.request.urlopen(req,timeout=timeout) as r:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 489, in open
+    response = self._open(req, data)
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 506, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 466, in _call_chain
+    result = func(*args)
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 1364, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/urllib/request.py", line 1339, in do_open
+    r = h.getresponse()
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py", line 1490, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py", line 350, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/http/client.py", line 306, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "~/.local/share/mise/installs/python/3.15.0/lib/python3.15/socket.py", line 738, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+TimeoutError: timed out
