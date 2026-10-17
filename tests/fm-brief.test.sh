@@ -1686,7 +1686,7 @@ test_branch_prefix_value_is_validated() {
 test_branch_prefix_command_is_shell_safe() {
   local home id prefix marker brief command repo branch
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
-  marker=branch-prefix-shell-safe-marker
+  marker='branch-prefix-shell-safe-marker'
   id='brief-branch-safe-g3'
   prefix="\$(touch\${IFS}$marker)"
   mkdir -p "$home/data"

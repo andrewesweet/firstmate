@@ -361,7 +361,7 @@ fm_inherit_receipt_record_valid() {
 # exists) and PENDING_* (PENDING_GEN empty when none) globals.
 # shellcheck disable=SC2034
 fm_inherit_receipt_read() {
-  local receipt=$1 line= lines=0
+  local receipt=$1 line='' lines=0
   FM_INHERIT_RECEIPT_DIAG="inheritance generation record is malformed"
   APPLIED_PRESENT=0
   APPLIED_GEN=
