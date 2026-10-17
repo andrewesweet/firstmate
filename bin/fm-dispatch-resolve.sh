@@ -20,7 +20,7 @@
 #   ONE Choice question whose options are every rule's `when` from
 #   config/crew-dispatch.json plus one fixed generic none option. Jev returns
 #   the matched rule, a probability per option, and a confidence. Everything
-#   after that is jq: the confidence floor (0.6 on the answer confidence, or a
+#   after that is jq: the confidence floor (0.5 on the answer confidence, or a
 #   rule's declared `min_confidence` on that rule's probability, falling to the
 #   most probable other option that clears its own floor), the rule's declared
 #   `approval` and `floor`, each profile's declared `provider` and `floor`, the
@@ -113,7 +113,7 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 # shellcheck source=bin/fm-brief-heading-lib.sh
 . "$SCRIPT_DIR/fm-brief-heading-lib.sh"
 
-CONFIDENCE_FLOOR=0.6
+CONFIDENCE_FLOOR=0.5
 DISPATCH_POLICY_VERSION=1
 TS_MODEL=jev-latest
 TS_BASE=https://api.typesafe.ai

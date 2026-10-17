@@ -35,7 +35,7 @@
 #   override_rate: clear pairs whose spawn differs from the resolver profile.
 #   rule_agreement (labels only): clear pairs whose task carries a label and
 #     whose resolver selected_option equals that label.
-#   floors: for each floor 0.3 to 0.9 by 0.1 (the live 0.6 floor marked with
+#   floors: for each floor 0.3 to 0.9 by 0.1 (the live 0.5 floor marked with
 #     `*`), over every resolver record with a numeric confidence, a record
 #     counting as clear at floor f when its confidence is at or above f:
 #     clear_frac is the fraction of records clear at f; precision_vs_label
@@ -166,7 +166,7 @@ SUMMARY=$(jq -cn --slurpfile resolve "$WORK/resolve.json" --slurpfile spawns "$W
     | ($h != null and $h == .harness and $m == (.model | norm) and $e == (.effort | norm));
   def labelled($L): .task != null and ($L[.task] // "") != "";
   def label_agrees($L): $L[.task] == .selected_option;
-  ($resolve[0]) as $R | ($spawns[0]) as $S | ($labels) as $L | 0.6 as $live
+  ($resolve[0]) as $R | ($spawns[0]) as $S | ($labels) as $L | 0.5 as $live
   | ([$S[] | . as $s | $s + {resolver: ([$R[] | select(.task != null and .task == $s.task and ._epoch <= $s._epoch)] | max_by(._epoch))}]) as $J
   | ([$J[] | .task] | unique) as $tasks
   | ([$J[] | select(.resolver != null) | .task] | unique) as $covered

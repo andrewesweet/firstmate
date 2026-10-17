@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # fm-jev-lint.sh - advisory worker self-check: frozen Jev questions over the
-# worker's own diff, run after implementation and before no-mistakes validation.
+# worker's own diff; an optional hand-run check, not part of any definition of
+# done.
 #
 # Usage:
 #   fm-jev-lint.sh check [--diff-file <file>] [--record <path>]

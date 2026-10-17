@@ -293,7 +293,7 @@ assert_equals 'A simple bug fix with a stated root cause.' "$(jq -r .selected_op
 assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "the selected probability is logged"
 assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "the runner-up margin is selected minus the highest other probability"
 assert_equals 'string:1' "$(jq -r '.policy.version | type + ":" + .' <<<"$line")" "the dispatch policy version is logged as a string"
-assert_equals '0.6' "$(jq -r .policy.confidence_floor <<<"$line")" "the confidence floor in force is logged"
+assert_equals '0.5' "$(jq -r .policy.confidence_floor <<<"$line")" "the confidence floor in force is logged"
 assert_equals "$(file_sha256 "$BASE_RULES")" "$(jq -r .rules_digest <<<"$line")" "the exact rules bytes are identified by SHA-256"
 assert_equals "$(file_sha256 "$BRIEF")" "$(jq -r .brief_sha256 <<<"$line")" "the exact brief bytes are identified by SHA-256"
 assert_equals 'true' "$(jq -r '.ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line")" "the logged timestamp is UTC ISO 8601"
@@ -306,7 +306,7 @@ assert_equals '2' "$(wc -l < "$DISPATCH_LOG")" "each resolved call appends exact
 line=$(sed -n '2p' "$DISPATCH_LOG")
 assert_equals 'ambiguous' "$(jq -r .status <<<"$line")" "the ambiguous status is logged"
 assert_equals 'null' "$(jq -r .profile <<<"$line")" "a non-clear outcome logs no profile"
-assert_contains "$(jq -r .reason <<<"$line")" 'confidence 0.41 below floor 0.6' "the non-clear reason is logged"
+assert_contains "$(jq -r .reason <<<"$line")" 'confidence 0.41 below floor 0.5' "the non-clear reason is logged"
 assert_equals '0.96' "$(jq -r .selected_probability <<<"$line")" "an ambiguous result retains the selected probability"
 assert_equals '0.95' "$(jq -r .runner_up_margin <<<"$line")" "an ambiguous result retains the runner-up margin"
 assert_equals "$(file_sha256 "$BRIEF")" "$(jq -r .brief_sha256 <<<"$line")" "a non-clear outcome still identifies the exact brief bytes"
@@ -535,7 +535,7 @@ write_response "$RESPONSE" rule_4 0.41
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
 expect_code 0 "$code" "ambiguous exits 0"
 assert_contains "$out" '  status: ambiguous' "below the floor is ambiguous"
-assert_contains "$out" '  reason: confidence 0.41 below floor 0.6' "ambiguous names the floor"
+assert_contains "$out" '  reason: confidence 0.41 below floor 0.5' "ambiguous names the floor"
 assert_contains "$out" 'candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=projected_exhaustion  -> eligible' "ambiguous preserves matched candidate evidence"
 assert_contains "$out" 'candidate: kimi:kimi-code/k3  provider=kimi  -> eligible, unranked: provider kimi unmeasured (unknown): disclosed uncertainty' "ambiguous preserves eligible unranked candidate evidence"
 assert_not_contains "$out" '  profile:' "ambiguous emits no profile line"
@@ -608,8 +608,29 @@ cp "$BASE_RULES" "$RULES"
 reset_log
 write_floor_response "$RESPONSE" rule_2 0.55 0.01 0.55 0.01 0.42 0.01
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
+assert_contains "$out" '  status: clear' "confidence between 0.5 and 0.6 clears the global floor"
+assert_not_contains "$out" '  fallback:' "without declared floors no runner-up is taken"
+
+reset_log
+write_response "$RESPONSE" rule_4 0.5
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
+expect_code 0 "$code" "confidence at the floor exits 0"
+assert_contains "$out" '  status: clear' "confidence exactly at 0.5 clears the global floor"
+assert_contains "$out" '  profile:' "confidence at the floor emits a concrete profile"
+
+reset_log
+write_response "$RESPONSE" rule_4 0.4999
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
+expect_code 0 "$code" "confidence just below the floor exits 0"
+assert_contains "$out" '  status: ambiguous' "confidence just below 0.5 requires a manual pick despite high rule probability"
+assert_contains "$out" '  reason: confidence 0.4999 below floor 0.5' "the boundary refusal names the actual floor"
+assert_not_contains "$out" '  profile:' "confidence below the floor emits no profile"
+
+reset_log
+write_floor_response "$RESPONSE" rule_2 0.41 0.01 0.41 0.01 0.48 0.09
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
 assert_contains "$out" '  status: ambiguous' "without declared floors a low pick stays ambiguous"
-assert_contains "$out" '  reason: confidence 0.55 below floor 0.6' "without declared floors the global floor reason is unchanged"
+assert_contains "$out" '  reason: confidence 0.41 below floor 0.5' "without declared floors the global floor reason is unchanged"
 assert_not_contains "$out" '  fallback:' "without declared floors no runner-up is taken"
 pass "per-rule confidence floors fall to the most probable runner-up that clears its own floor"
 

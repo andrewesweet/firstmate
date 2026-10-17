@@ -71,8 +71,8 @@ dispatch-resolve-score:
   floors:
     floor=0.3 clear_frac=1.0000 (7/7) precision_vs_spawn=n/a precision_vs_label=0.3333 (1/3)
     floor=0.4 clear_frac=1.0000 (7/7) precision_vs_spawn=n/a precision_vs_label=0.3333 (1/3)
-    floor=0.5 clear_frac=0.8571 (6/7) precision_vs_spawn=n/a precision_vs_label=0.3333 (1/3)
-    floor=0.6 * clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2) precision_vs_label=0.3333 (1/3)
+    floor=0.5 * clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2) precision_vs_label=0.3333 (1/3)
+    floor=0.6 clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2) precision_vs_label=0.3333 (1/3)
     floor=0.7 clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2) precision_vs_label=0.3333 (1/3)
     floor=0.8 clear_frac=0.7143 (5/7) precision_vs_spawn=0.5000 (1/2) precision_vs_label=0.3333 (1/3)
     floor=0.9 clear_frac=0.4286 (3/7) precision_vs_spawn=0.0000 (0/1) precision_vs_label=0.0000 (0/2)
@@ -99,7 +99,7 @@ expect_code 0 "$code" "unlabeled scorer exits 0"
 assert_not_contains "$out" 'rule_agreement' "unlabeled output carries no rule agreement"
 assert_not_contains "$out" 'precision_vs_label' "unlabeled floor lines carry no label precision"
 assert_contains "$out" '  coverage: 3/5 = 0.6000' "unlabeled coverage is unchanged"
-assert_contains "$out" '    floor=0.6 * clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2)' "unlabeled floor line keeps spawn precision"
+assert_contains "$out" '    floor=0.5 * clear_frac=0.8571 (6/7) precision_vs_spawn=0.5000 (1/2)' "unlabeled floor line keeps spawn precision"
 pass "unlabeled replay omits every label-derived metric"
 
 # --- missing spawns log: coverage 0, not an error ------------------------------
@@ -110,7 +110,7 @@ assert_contains "$_out" '  spawns_log: '"$TMP_ROOT"'/no-such-log.jsonl records=0
 assert_contains "$_out" '  coverage: 0/0 = n/a' "missing spawns log is coverage 0, not an error"
 assert_contains "$_out" '  clear_joined: 0' "missing spawns log joins nothing"
 assert_contains "$_out" '  profile_agreement: 0/0 = n/a' "empty joins print n/a, not zeros"
-assert_contains "$_out" '    floor=0.6 * clear_frac=0.8571 (6/7) precision_vs_spawn=n/a (0/0)' "floors still score the resolve log with n/a precision"
+assert_contains "$_out" '    floor=0.5 * clear_frac=0.8571 (6/7) precision_vs_spawn=n/a (0/0)' "floors still score the resolve log with n/a precision"
 pass "a missing spawns log is coverage 0, not an error"
 
 # --- logs beyond one argv value's 128 KiB still score ---------------------------
