@@ -100,13 +100,13 @@ stop_reply_listener() {
   return 1
 }
 
-# Block until this generation's capture has been applied. A live listener keeps
-# its claim across polls, so start is only launched when nothing owns the source.
+# Block until this generation's capture has been applied. Confirm the current
+# registration: replay handling can supersede a listener that is still live.
+# A completed capture can replace it again during confirmation, so only the
+# result and handled marker below decide whether this wait succeeds.
 await_reply_result() { # <result-path>
   local result=$1 handled=${1%.result}.handled _
-  if [ "$(reply_owner)" != live ]; then
-    remote_env "$ROOT/bin/fm-procevent.sh" start "$SID" >/dev/null 2>&1 &
-  fi
+  remote_env "$ROOT/bin/fm-procevent.sh" ensure-listening "$SID" >/dev/null 2>&1 || true
   for _ in $(seq 1 800); do
     [ -s "$result" ] && [ -f "$handled" ] && return 0
     sleep 0.05
