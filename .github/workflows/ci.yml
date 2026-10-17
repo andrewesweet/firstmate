@@ -122,8 +122,8 @@ jobs:
       - name: Install the Pi package for the Pi extension tests
         run: |
           set -eu
-          # Pinned to the 1.0.x release the Pi extension tests were validated on.
-          npm install -g @earendil-works/pi-coding-agent@1.0.4
+          # Includes the typed before_agent_start message variants used by the extensions.
+          npm install -g @earendil-works/pi-coding-agent@1.2.0
           npm ls -g --depth 0 @earendil-works/pi-coding-agent
       - name: Run portable parallel shard 1
         run: |
@@ -245,8 +245,8 @@ jobs:
       - name: Install the Pi package for the Pi extension tests
         run: |
           set -eu
-          # Pinned to the 1.0.x release the Pi extension tests were validated on.
-          npm install -g @earendil-works/pi-coding-agent@1.0.4
+          # Includes the typed before_agent_start message variants used by the extensions.
+          npm install -g @earendil-works/pi-coding-agent@1.2.0
           npm ls -g --depth 0 @earendil-works/pi-coding-agent
       - name: Run portable serial shard ${{ matrix.shard }}
         env:
