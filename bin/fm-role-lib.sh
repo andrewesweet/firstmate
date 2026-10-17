@@ -66,8 +66,7 @@
 #
 # Global outputs: FM_ROLE (user|maintainer), FM_ROLE_SCOPE (maintainer scope),
 # FM_ROLE_SOURCE (absent|local|inherited), FM_ROLE_DIAG (narrow refusal or
-# malformed-input reason), FM_ROLE_PUB_TARGET, FM_ROLE_PUB_TARGET_SOURCE,
-# FM_ROLE_PUB_DECLARED, FM_ROLE_PUB_DECLARED_DIAG, FM_ROLE_PUB_AUTHORITY,
+# malformed-input reason), FM_ROLE_PUB_TARGET, FM_ROLE_PUB_AUTHORITY,
 # FM_ROLE_PUB_DENIAL.
 
 # fm_role_file <config-dir>
@@ -242,20 +241,10 @@ fm_role_git_common_dir() {
 # <config-dir>/firstmate-pub-target when that file holds a usable target, and
 # otherwise the first of upstream, github, origin that is configured,
 # normalized to host/owner/repo or path:<abs>. Empty when nothing determines a
-# target. Sets FM_ROLE_PUB_TARGET (the identity) and FM_ROLE_PUB_TARGET_SOURCE
-# (declared or remote) in the current shell, and also prints the identity so
-# stdout callers keep working; run it unredirected when the globals matter.
+# target.
 fm_role_publication_target() {
   local dir=$1 config=${2:-} remote url=
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  FM_ROLE_PUB_TARGET=
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  FM_ROLE_PUB_TARGET_SOURCE=
   if [ -n "$config" ] && fm_role_declared_target "$config"; then
-    # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-    FM_ROLE_PUB_TARGET_SOURCE=declared
-    FM_ROLE_PUB_TARGET=$FM_ROLE_PUB_DECLARED
-    printf '%s\n' "$FM_ROLE_PUB_TARGET"
     return 0
   fi
   for remote in upstream github origin; do
@@ -265,39 +254,19 @@ fm_role_publication_target() {
     url=
   done
   [ -n "$url" ] || return 0
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  FM_ROLE_PUB_TARGET_SOURCE=remote
-  FM_ROLE_PUB_TARGET=$(fm_role_remote_identity "$url" "$dir")
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  [ -n "$FM_ROLE_PUB_TARGET" ] || FM_ROLE_PUB_TARGET_SOURCE=
-  printf '%s\n' "$FM_ROLE_PUB_TARGET"
+  fm_role_remote_identity "$url" "$dir"
 }
 
 # fm_role_declared_target <config-dir> - read the optional publication-target
-# declaration. rc 0 with FM_ROLE_PUB_DECLARED set to the normalized scope;
-# rc 1 when the file exists but cannot be used (symlinked, unreadable, or
-# malformed), rc 2 when absent. FM_ROLE_PUB_DECLARED_DIAG names the narrow
-# reason whenever rc is 1. Unlike the role file, every unusable state here
+# declaration. Prints the normalized scope and returns 0 when usable;
+# returns 1 when absent, symlinked, unreadable, or malformed. Unlike the role
+# file, every unusable state here
 # falls back to the remote order instead of failing closed: a declaration can
 # only ever select a target, never grant authority.
 fm_role_declared_target() {
   local file line target=
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  FM_ROLE_PUB_DECLARED=
-  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-  FM_ROLE_PUB_DECLARED_DIAG=
   file=$(fm_role_pub_target_file "$1")
-  if [ -L "$file" ]; then
-    # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-    FM_ROLE_PUB_DECLARED_DIAG="publication target declaration must not be a symlink"
-    return 1
-  fi
-  if [ ! -e "$file" ]; then
-    return 2
-  fi
-  if [ ! -f "$file" ] || [ ! -r "$file" ]; then
-    # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-    FM_ROLE_PUB_DECLARED_DIAG="publication target declaration is unreadable"
+  if [ -L "$file" ] || [ ! -f "$file" ] || [ ! -r "$file" ]; then
     return 1
   fi
   while IFS= read -r line || [ -n "$line" ]; do
@@ -306,24 +275,12 @@ fm_role_declared_target() {
     '' | '#'*) continue ;;
     esac
     if [ -n "$target" ]; then
-      # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-      FM_ROLE_PUB_DECLARED_DIAG="publication target declaration must hold exactly one target line"
       return 1
     fi
     target=$line
   done <"$file"
-  if [ -z "$target" ]; then
-    # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-    FM_ROLE_PUB_DECLARED_DIAG="publication target declaration holds no target"
-    return 1
-  fi
-  if ! fm_role_scope_valid "$target"; then
-    # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
-    FM_ROLE_PUB_DECLARED_DIAG="invalid repository scope '$target'"
-    return 1
-  fi
-  FM_ROLE_PUB_DECLARED=$(fm_role_scope_norm "$target")
-  return 0
+  fm_role_scope_valid "$target" || return 1
+  fm_role_scope_norm "$target"
 }
 
 fm_role_publication_pin() {
@@ -638,7 +595,7 @@ fm_role_gate_self_publish() {
   if [ "$lineage" -eq 1 ]; then
     return 2
   fi
-  fm_role_publication_target "$proj" "$config" >/dev/null
+  FM_ROLE_PUB_TARGET=$(fm_role_publication_target "$proj" "$config")
   if [ "$lineage" -eq 2 ]; then
     # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
     FM_ROLE_PUB_DENIAL="cannot determine whether $proj shares firstmate's history (the code root $root has no readable history, or a shallow clone shares no root commit); fetch full history (git fetch --unshallow) before dispatching publishing work"

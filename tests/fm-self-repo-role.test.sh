@@ -343,10 +343,10 @@ test_declared_target_selects_the_fork() {
   printf 'github.com/fork-owner/firstmate\n' > "$home/config/firstmate-pub-target"
   out=$(check_as "$root" "$home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
   expect_code 0 "$rc" "a declared fork target must authorize matching fork consent (got: $out)"
-  assert_contains "$out" "authorized: task consent for github.com/fork-owner/firstmate" \
-    "the declaration must not create standing authority; consent must still be named"
-  assert_contains "$out" "publication target: github.com/fork-owner/firstmate (declared)" \
-    "the check output must name the declared target and its source"
+  assert_equals "$(printf '%s\n' \
+    'authorized: task consent for github.com/fork-owner/firstmate' \
+    "publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'")" \
+    "$out" "a successful check must print only authority and the declared publication pin"
   pin=$(printf '%s\n' "$out" | sed -n 's/^publication pin: //p')
   expected=$(printf 'github.com\ngithub.com/fork-owner/firstmate')
   assert_equals "$expected" "$(publication_environment "$pin")" \
@@ -357,10 +357,8 @@ test_declared_target_selects_the_fork() {
   plain_home=$(make_role_home decl-fork-plain)
   out=$(check_as "$root" "$plain_home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
   expect_code 1 "$rc" "fork consent must stay refused while the target resolves to the parent (got: $out)"
-  assert_contains "$out" "no publication authority for github.com/kunchenguid/firstmate" \
-    "the refusal must name the remote-derived parent target"
-  assert_contains "$out" "publication target: github.com/kunchenguid/firstmate (remote order)" \
-    "the check output must name the remote order as the target source"
+  assert_equals "refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate" \
+    "$out" "a refused check must print only its reason naming the remote-derived parent target"
   pass "declared publication target: a fork declaration selects the fork; no declaration keeps the parent"
 }
 
@@ -394,17 +392,16 @@ test_declared_target_grants_no_authority() {
 }
 
 test_declared_target_unusable_falls_back() {
-  local root home out rc bad
+  local root home out rc bad expected
   root=$(make_fork_layout decl-fallback)
+  expected="refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate"
 
   # A directory where the declaration file belongs is unreadable as a file.
   home=$(make_role_home decl-fallback-dir)
   mkdir "$home/config/firstmate-pub-target"
   out=$(check_as "$root" "$home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
   expect_code 1 "$rc" "an unreadable declaration must fall back to the remote order (got: $out)"
-  assert_contains "$out" "no publication authority for github.com/kunchenguid/firstmate" \
-    "the fallback must select the upstream parent"
-  assert_contains "$out" "declaration ignored" "the output must name the ignored declaration"
+  assert_equals "$expected" "$out" "an unreadable declaration must keep the remote-derived refusal output"
 
   # Malformed declarations (a non-scope line, an escaping path, or a second
   # line) are ignored too, never partially honored.
@@ -415,8 +412,7 @@ test_declared_target_unusable_falls_back() {
     printf '%s\n' "$bad" > "$home/config/firstmate-pub-target"
     out=$(check_as "$root" "$home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
     expect_code 1 "$rc" "a malformed declaration must fall back to the remote order (got: $out)"
-    assert_contains "$out" "publication target: github.com/kunchenguid/firstmate (remote order)" \
-      "the fallback must report the remote order source"
+    assert_equals "$expected" "$out" "a malformed declaration must keep the remote-derived refusal output"
   done
 
   # A symlinked declaration is refused the way a symlinked role file is.
@@ -425,9 +421,7 @@ test_declared_target_unusable_falls_back() {
   ln -s "$TMP_ROOT/decl-fallback-target" "$home/config/firstmate-pub-target"
   out=$(check_as "$root" "$home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
   expect_code 1 "$rc" "a symlinked declaration must fall back to the remote order (got: $out)"
-  assert_contains "$out" "no publication authority for github.com/kunchenguid/firstmate" \
-    "the fallback must select the upstream parent"
-  assert_contains "$out" "declaration ignored" "the symlinked declaration must be named ignored"
+  assert_equals "$expected" "$out" "a symlinked declaration must keep the remote-derived refusal output"
   pass "declared publication target: unreadable, malformed, and symlinked declarations fall back to remote order"
 }
 
@@ -463,8 +457,8 @@ test_secondmate_declares_its_own_target() {
     "role inheritance must leave a secondmate's own publication-target declaration alone"
   out=$(check_as "$root" "$sm_home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
   expect_code 0 "$rc" "a secondmate home must declare and consent to its own target (got: $out)"
-  assert_contains "$out" "publication target: github.com/fork-owner/firstmate (declared)" \
-    "the secondmate's declaration must select its fork"
+  assert_contains "$out" "authorized: task consent for github.com/fork-owner/firstmate" \
+    "the secondmate's declaration must select its consented fork"
   pass "secondmate home: the publication-target declaration is home-local and survives role inheritance"
 }
 

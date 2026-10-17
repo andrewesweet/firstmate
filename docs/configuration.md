@@ -640,10 +640,10 @@ Firstmate selects the publication target from the home's optional declaration fi
 The optional local, gitignored `config/firstmate-pub-target` file declares the publication target as one `<host>/<owner>/<repo>` line, with blank lines and `#` comment lines ignored, and is refused when symlinked like the role file.
 It exists for a fork home that keeps the parent repository as its `upstream` remote and would otherwise resolve every fork ship to the parent.
 A declaration only selects the target and grants no authority: a user/operator home still needs per-task consent equal to the declared target, and a maintainer scope must still equal it.
-An absent, unreadable, or malformed declaration is ignored - `bin/fm-role.sh check` names it as "declaration ignored" - and the remote order applies.
+An absent, unreadable, or malformed declaration is ignored, and the remote order applies.
 The file is home-local on purpose and is never propagated: role inheritance (`bin/fm-config-inherit-lib.sh`) carries only `config/firstmate-role`, so a secondmate home declares its own target.
 Authorized ship launches pin `GH_REPO` to that full host/owner/repository target and `GH_HOST` to its host inside the worker environment, including when launch environment filtering is enabled, so inherited `GH_REPO`, `GH_HOST`, and `remote.<name>.gh-resolved` defaults cannot redirect publication.
-Scaffolds and promotions carry the same exports and require an explicit `--repo` on gh-axi repository commands; `bin/fm-role.sh check` prints the selected target with its source and the exports for manual use.
+Scaffolds and promotions carry the same exports and require an explicit `--repo` on gh-axi repository commands; `bin/fm-role.sh check` prints the exports for manual use.
 See `bin/fm-role-lib.sh` for URL and local-path normalization.
 A task's project counts as the firstmate repository when it shares the code root's lineage - the same git common dir, or a root commit of the code root's history, which every fork, the parent, and any clone of either share - computed offline; undeterminable lineage (for example a shallow clone sharing no root commit) and an undeterminable publication target are refused, even under task consent.
 Secondmate homes inherit the primary's resolved role, never its raw file: a primary file that resolves to user for any reason propagates as revocation.
