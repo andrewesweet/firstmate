@@ -1,21 +1,13 @@
 #!/usr/bin/env bash
 # fm-install-pi.sh - install CI's pinned, reproducible Pi package set.
 #
-# The Pi extension tests import the installed Pi package's runtime and types,
-# so they need the real thing. Pinning only @earendil-works/pi-coding-agent is
-# not reproducible: Pi 1.0.4 declares its @earendil-works/* siblings as ^1.0.4
-# ranges, and a fresh resolve floats them to releases Pi 1.0.4 cannot import.
-# Observed October 2026: the float resolved @earendil-works/pi-codemode to
-# 1.3.0, which removed the MCP_TYPESCRIPT_PREAMBLE export Pi 1.0.4's
-# dist/extensions/codemode/tool.js statically imports, so every import of the
-# Pi package failed with "does not provide an export named
-# 'MCP_TYPESCRIPT_PREAMBLE'" and every pull request broke in the portable
-# serial Pi extension shards. This helper installs from the committed
-# etc/ci-pi manifest (exact Pi pin plus exact overrides for every
-# @earendil-works/* transitive) with its lockfile, so the installed closure is
-# bit-identical on every run. The post-install proof replays the exact import
-# that broke, so a future incompatible float fails here with the package set
-# named instead of surfacing as a mysterious extension-test failure.
+# The Pi extension tests import the installed Pi package's runtime and types
+# and gate-skip without it. The public npm package needs no credentials.
+# Pinning only the top-level package leaves its sibling ranges floating; see
+# etc/ci-pi/package.json for the exact pins and incompatibility rationale.
+# This helper uses the committed lockfile to reproduce the resolved dependency
+# tree. The post-install import check catches incompatible exports before the
+# extension tests run.
 #
 # Usage:
 #   fm-install-pi.sh <destination-directory>
@@ -31,8 +23,8 @@
 # delete etc/ci-pi/package-lock.json, run
 # `npm install --package-lock-only --no-audit --no-fund` in etc/ci-pi, verify
 # every @earendil-works/* entry in the lockfile carries the intended version,
-# and run this helper plus the two Pi extension tests against the result
-# before committing.
+# and run this helper plus the Pi extension and typecheck suites against the
+# result before committing.
 set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -75,9 +67,8 @@ case "$INSTALLED_VERSION" in
   *) die "installed pi reports [$INSTALLED_VERSION], expected $PI_VERSION" ;;
 esac
 
-# Replay the exact import whose failure broke CI: Pi 1.0.4 statically imports
-# MCP_TYPESCRIPT_PREAMBLE from its pi-codemode sibling, so a float that drops
-# that export fails here with the package set named.
+# Import the public entry point: version checks alone cannot detect a sibling
+# release that removes a statically imported export.
 node --input-type=module -e "await import('file://$PKG_DIR/dist/index.js')" \
   || die "installed Pi package fails to import (incompatible dependency float)"
 
