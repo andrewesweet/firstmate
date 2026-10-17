@@ -1,0 +1,121 @@
+[
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/older",
+    "status": 200,
+    "body": "2.1.270\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/numeric",
+    "status": 200,
+    "body": "v2.10.0\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/latest",
+    "status": 200,
+    "body": "2.1.273\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/newest",
+    "status": 200,
+    "body": "2.1.275\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/error",
+    "status": 503,
+    "body": "9.9.9\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/newest",
+    "status": 200,
+    "body": "2.1.275\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/body/9.9.9",
+    "status": 200,
+    "body": "no version is published here\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/newest",
+    "status": 200,
+    "body": "2.1.275\n",
+    "delay_seconds": 0
+  },
+  {
+    "method": "GET",
+    "path": "/slow",
+    "status": 200,
+    "body": "9.9.9\n",
+    "delay_seconds": 8
+  },
+  {
+    "method": "GET",
+    "path": "/newest",
+    "status": 200,
+    "body": "2.1.275\n",
+    "delay_seconds": 0
+  }
+]

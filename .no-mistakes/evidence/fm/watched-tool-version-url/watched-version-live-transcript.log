@@ -1,0 +1,289 @@
+Product: bin/fm-tool-update-check.sh at target HEAD; real curl over verified HTTPS.
+Disposable publisher: https://127.0.0.1:45307; fixture CA supplied through CURL_CA_BUNDLE.
+
+SCENARIO: Arm version_url and receive a real watcher wake for a silent tool; repeat is suppressed
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=0, elapsed=0.091s
+stdout: armed: state/tool-updates.check.sh
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed/state/tool-updates.check.sh
+exit=0, elapsed=0.096s
+stdout: tool updates: watched update available: 2.1.273 published at https://127.0.0.1:45307/latest, PATH resolves 2.1.271
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232028
+reported=watched update available: 2.1.273 published at https://127.0.0.1:45307/latest, PATH resolves 2.1.271
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed/state/tool-updates.check.sh
+exit=0, elapsed=0.080s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232028
+reported=watched update available: 2.1.273 published at https://127.0.0.1:45307/latest, PATH resolves 2.1.271
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-watch-checkpoint.sh --seconds 10
+exit=0, elapsed=0.794s
+stdout: check: ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed/state/tool-updates.check.sh: tool updates: watched update available: 2.1.273 published at https://127.0.0.1:45307/latest, PATH resolves 2.1.271
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=watched update available: 2.1.273 published at https://127.0.0.1:45307/latest, PATH resolves 2.1.271
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/armed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh disarm
+exit=0, elapsed=0.010s
+stdout: disarmed: state/tool-updates.check.sh
+RESULT: pass
+
+SCENARIO: Current or newer active copy stays silent; dotted versions compare numerically
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/current ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.078s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/older-publisher ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.071s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/numeric ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.072s
+stdout: tool updates: watched update available: 2.10.0 published at https://127.0.0.1:45307/numeric, PATH resolves 2.9.0
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=watched update available: 2.10.0 published at https://127.0.0.1:45307/numeric, PATH resolves 2.9.0
+RESULT: pass
+
+SCENARIO: Installed release reports only PATH skew; release newer than all copies also reports availability
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/already-installed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.097s
+stdout: tool updates: watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/already-installed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.097s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/already-installed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.098s
+stdout: tool updates: watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.274 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/new-bin/watched-fixture
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.274 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/new-bin/watched-fixture
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/already-installed ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.096s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232029
+reported=
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/newer-than-all ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.103s
+stdout: tool updates: watched update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271; watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232030
+reported=watched update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271; watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+RESULT: pass
+
+SCENARIO: HTTP failure, unreadable body, and slow HTTPS report check failure within bound and continue sweep
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/failure--error ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.123s
+stdout: tool updates: watched check failed: https://127.0.0.1:45307/error did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232030
+reported=watched check failed: https://127.0.0.1:45307/error did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/failure--body-9.9.9 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.145s
+stdout: tool updates: watched check failed: https://127.0.0.1:45307/body/9.9.9 did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232030
+reported=watched check failed: https://127.0.0.1:45307/body/9.9.9 did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/failure--slow ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=2.134s
+stdout: tool updates: watched check failed: https://127.0.0.1:45307/slow did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched check failed: https://127.0.0.1:45307/slow did not report a version; next update available: 2.1.275 published at https://127.0.0.1:45307/newest, PATH resolves 2.1.271
+RESULT: pass
+
+SCENARIO: Curl absent from PATH produces explicit check failure without a network request
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/missing-curl ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.048s
+stdout: tool updates: watched check failed: curl is required to read https://127.0.0.1:45307/latest
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched check failed: curl is required to read https://127.0.0.1:45307/latest
+RESULT: pass
+
+SCENARIO: Malformed, insecure, wrong-type, or command-less version_url is rejected before probing or arming
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-0 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.023s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-0 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.012s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-0/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-1 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.021s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-1 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.014s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-1/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-2 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.022s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-2 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-2/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-3 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.020s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-3 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-3/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-4 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.021s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-4 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.012s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-4/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-5 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.022s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-5 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-5/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-6 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.025s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-6 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.014s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-6/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-7 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.026s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-7 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-7/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-8 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.024s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-8 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-8/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-9 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.023s
+stdout: tool updates: watched tool registry: tool watched version_url must be one https URL
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url must be one https URL
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-9 ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.011s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url must be one https URL (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/invalid-9/config/watched-tools.json)
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/missing-command ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.023s
+stdout: tool updates: watched tool registry: tool watched version_url needs command
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=watched tool registry: tool watched version_url needs command
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/missing-command ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh arm
+exit=1, elapsed=0.013s
+stdout: <silent>
+stderr: fm-tool-update-check: tool watched version_url needs command (~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/missing-command/config/watched-tools.json)
+RESULT: pass
+
+SCENARIO: Entries without version_url retain silent, PATH-skew, and announcement behavior without curl
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/legacy-quiet ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.050s
+stdout: <silent>
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232032
+reported=
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/legacy-quiet ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.079s
+stdout: tool updates: watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232033
+reported=watched update not in effect: PATH resolves 2.1.271 at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/old-bin/watched-fixture but 2.1.273 is installed at ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/same-bin/watched-fixture
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/legacy-announcement ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.059s
+stdout: tool updates: watched update available: Update available: 2.1.273
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232033
+reported=watched update available: Update available: 2.1.273
+RESULT: pass
+
+SCENARIO: Shipped Claude example retrieves a version from its real public HTTPS endpoint
+$ FM_HOME=~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-live-44ntv5jr/shipped-example ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0, elapsed=0.281s
+stdout: tool updates: claude update available: 2.1.302 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 0.0.0
+persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232033
+reported=claude update available: 2.1.302 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 0.0.0
+RESULT: pass
+
+All watched commands were disposable external-boundary fixtures; watcher and curl were real.
+Disposable homes, binaries, private TLS key, and publisher removed.

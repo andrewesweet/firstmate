@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Arm version_url and receive a real watcher wake for a silent tool; repeat is suppressed",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Current or newer active copy stays silent; dotted versions compare numerically",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Installed release reports only PATH skew; release newer than all copies also reports availability",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "HTTP failure, unreadable body, and slow HTTPS report check failure within bound and continue sweep",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Curl absent from PATH produces explicit check failure without a network request",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Malformed, insecure, wrong-type, or command-less version_url is rejected before probing or arming",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Entries without version_url retain silent, PATH-skew, and announcement behavior without curl",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Shipped Claude example retrieves a version from its real public HTTPS endpoint",
+    "result": "pass",
+    "live": true
+  }
+]

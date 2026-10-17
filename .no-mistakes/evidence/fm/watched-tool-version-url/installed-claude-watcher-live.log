@@ -1,0 +1,17 @@
+The real installed Claude executable is used through an isolated PATH and HOME; no login or primary is launched.
+$ ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-real-claude-ktmzao03/bin/claude --version
+exit=0
+2.1.301 (Claude Code)
+$ ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/.tool-version-real-claude-ktmzao03/bin/curl -fsS --max-time 5 -- https://downloads.claude.ai/claude-code-releases/latest
+exit=0
+2.1.302
+$ ~/.no-mistakes/worktrees/3d78cffe00b3/01M54MMDEVYV2QGWZ6VJ25Y57G/bin/fm-tool-update-check.sh check
+exit=0
+tool updates: claude update available: 2.1.302 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 2.1.301
+Persisted state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792232105
+reported=claude update available: 2.1.302 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 2.1.301
+
+RESULT: pass; actual installed CLI and public publisher agree with watcher output.
+Disposable HOME, PATH links, and watcher state removed.
