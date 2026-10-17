@@ -16,8 +16,8 @@ assert_present "$RUNNER" "bin/fm-test-run.sh is missing"
 [ -x "$RUNNER" ] || fail "bin/fm-test-run.sh must be executable"
 
 test_failed_scripts_replay_bounded_evidence_beside_the_summary() {
-  local tmp repo runner rc out after
-  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-failsection.XXXXXX}")
+  local jobs=$1 tmp repo runner rc out after replay
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-failsection.XXXXXX")
   repo="$tmp/repo"
   runner="$repo/bin/fm-test-run.sh"
   mkdir -p "$repo/bin" "$repo/tests"
@@ -25,7 +25,7 @@ test_failed_scripts_replay_bounded_evidence_beside_the_summary() {
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   # A passing fixture whose output must stay out of the failure section, and
   # a failing fixture verbose enough to prove the replay is bounded: fifty
-  # lines with the default tail of thirty keeps the earliest lines out and
+  # lines with the fixed tail of thirty keeps the earliest lines out and
   # the latest lines in.
   cat >"$repo/tests/fm-brief.test.sh" <<'SH'
 #!/usr/bin/env bash
@@ -44,7 +44,7 @@ exit 1
 SH
   chmod +x "$runner" "$repo/tests/fm-brief.test.sh" "$repo/tests/fm-composer-lib.test.sh"
   set +e
-  "$runner" --jobs 1 tests/fm-brief.test.sh tests/fm-composer-lib.test.sh >"$tmp/out" 2>"$tmp/err"
+  FM_TEST_FAILURE_TAIL_LINES=100 "$runner" --jobs "$jobs" tests/fm-brief.test.sh tests/fm-composer-lib.test.sh >"$tmp/out" 2>"$tmp/err"
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || { rm -rf "$tmp"; fail "run with a failing fixture must exit non-zero"; }
@@ -56,6 +56,11 @@ SH
   # Everything from the summary on is the attribution section: the failing
   # script's bounded tail must be there, the passing script's output must not.
   after=$(printf '%s\n' "$out" | sed -n '/^FM_TEST_SUMMARY /,$p')
+  replay=$(printf '%s\n' "$after" | sed -n '/^FM_TEST_FAILED /,/^FM_TEST_FAILURE_END /p' | sed '1d;$d')
+  [ "$(printf '%s\n' "$replay" | wc -l | tr -d ' ')" -eq 30 ] \
+    || { rm -rf "$tmp"; fail "failure section must replay exactly 30 lines despite an inherited override"; }
+  printf '%s\n' "$replay" | grep -q '^failure evidence line 22 of 50$' \
+    || { rm -rf "$tmp"; fail "failure section did not retain the full 30-line tail"; }
   printf '%s\n' "$after" | grep -q 'failure evidence line 50 of 50' \
     || { rm -rf "$tmp"; fail "failure section is missing the failing tail"; }
   printf '%s\n' "$after" | grep -q 'failing fixture distinctive marker' \
@@ -69,7 +74,7 @@ SH
   printf '%s\n' "$after" | grep -q '^FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh$' \
     || { rm -rf "$tmp"; fail "failure section is missing its closing marker"; }
   rm -rf "$tmp"
-  pass "failed scripts replay bounded evidence beside the summary; passing scripts stay quiet"
+  pass "failed scripts replay 30 lines beside the summary with jobs=$jobs; passing scripts stay quiet"
 }
 
 test_list_all_exact_suite_coverage() {
@@ -233,6 +238,33 @@ init_changed_fixture_repo() {
   git -C "$repo" init -q
   git -C "$repo" add .
   git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm baseline
+}
+
+test_changed_pi_install_inputs_select_package_consumers() {
+  local tmp repo script path listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-pi-inputs.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  for script in fm-calm-pi-extension.test.sh fm-pi-branch-extension.test.sh fm-pi-primary-types.test.sh; do
+    printf '#!/usr/bin/env bash\n' >"$repo/tests/$script"
+  done
+  git -C "$repo" add tests
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm pi-consumer-fixtures
+  mkdir -p "$repo/etc/ci-pi"
+  for path in bin/fm-install-pi.sh etc/ci-pi/package.json etc/ci-pi/package-lock.json; do
+    printf '\n' >"$repo/$path"
+    listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD) \
+      || { rm -rf "$tmp"; fail "Pi install input has no changed-test mapping: $path"; }
+    for script in fm-calm-pi-extension.test.sh fm-pi-branch-extension.test.sh fm-pi-primary-types.test.sh; do
+      assert_contains "$listed" "tests/$script" "$path must select its installed Pi package consumer"
+    done
+    assert_contains "$listed" "tests/fm-harness-adapter-instructions-live-e2e.test.sh" \
+      "$path must select live harness guards"
+    assert_not_contains "$listed" "tests/fm-brief.test.sh" "$path must keep selection focused on Pi consumers"
+    rm -f "$repo/$path"
+  done
+  rm -rf "$tmp"
+  pass "each Pi install input selects installed-package consumers and live guards"
 }
 
 # Build a repository with a primary checkout and one linked worktree, each
@@ -1898,6 +1930,7 @@ test_list_all_exact_suite_coverage
 test_family_selection
 test_single_script_selection
 test_changed_file_selection_is_conservative
+test_changed_pi_install_inputs_select_package_consumers
 test_task_marker_refuses_the_primary_checkout
 test_changed_runner_surfaces_select_their_family
 test_shell_line_ending_policy_selects_runner_contract
@@ -1933,6 +1966,7 @@ test_per_script_timeout_bounds_a_hang
 test_changed_bound_gives_slow_watcher_suites_headroom
 test_max_wall_ms_is_a_result_not_advice
 test_jobs_parallel_scheduler_and_failure_propagation
-test_failed_scripts_replay_bounded_evidence_beside_the_summary
+test_failed_scripts_replay_bounded_evidence_beside_the_summary 1
+test_failed_scripts_replay_bounded_evidence_beside_the_summary 2
 test_herdr_ci_family_run_has_a_step_timeout
 test_aggregate_json

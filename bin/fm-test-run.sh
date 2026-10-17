@@ -96,7 +96,7 @@
 #   FM_TEST_SLOWEST rank=<k> script=<path> duration_ms=<n>
 #   FM_TEST_FAILED script=<path> exit=<code>   (once per failed script, only
 #     when at least one script failed; each marker is followed by that
-#     script's bounded output tail, FM_TEST_FAILURE_TAIL_LINES lines, and a
+#     script's bounded output tail, at most 30 lines, and a
 #     closing FM_TEST_FAILURE_END script=<path> marker)
 #   FM_TEST_BUDGET max_wall_ms=<n> duration_ms=<n>   (only with --max-wall-ms)
 #
@@ -190,13 +190,6 @@ JOBS_EXPLICIT=0
 JOBS_MAX=8
 MAX_WALL_MS=
 PER_SCRIPT_TIMEOUT_SECS=0
-# Lines of captured output replayed per failed script in the end-of-run
-# failure section (overridable via the environment; defaults to 30). Bounded
-# so a verbose failure cannot flood the log; the full output already streamed
-# live (serial) or replayed at completion (concurrent), and this section
-# exists so the failure and its evidence sit together beside the summary
-# instead of buried mid-log.
-FM_TEST_FAILURE_TAIL_LINES=${FM_TEST_FAILURE_TAIL_LINES:-30}
 # Bound applied automatically on the automatic --changed path, derived from
 # measured healthy runtimes with margin rather than picked: the slowest hinted
 # script is tests/fm-supervision-host.test.sh at about 1197s under CI load (the
@@ -1484,6 +1477,12 @@ families_for_changed_path() {
       # pure-contract-unit script. It runs each candidate directly, never
       # through run_script_bounded, so it cannot regress fixture Git isolation.
       printf '%s\n' pure-contract-unit
+      ;;
+    bin/fm-install-pi.sh|etc/ci-pi/package.json|etc/ci-pi/package-lock.json)
+      printf '%s\n' __script__:fm-calm-pi-extension.test.sh
+      printf '%s\n' __script__:fm-pi-branch-extension.test.sh
+      printf '%s\n' __script__:fm-pi-primary-types.test.sh
+      printf '%s\n' live-harness-optin
       ;;
     bin/backends/herdr*|bin/fm-herdr-lab.sh|tests/herdr-test-safety.sh|tests/herdr-client-pair-fixture.sh)
       printf '%s\n' real-herdr-gated
@@ -2795,7 +2794,7 @@ if [ "$FAILED" -gt 0 ] && [ -s "$FAILURES" ]; then
     [ -n "$failed_script" ] || continue
     printf 'FM_TEST_FAILED script=%s exit=%s\n' "$failed_script" "$failed_rc"
     if [ -f "$failed_out" ] && [ -s "$failed_out" ]; then
-      tail -n "$FM_TEST_FAILURE_TAIL_LINES" "$failed_out"
+      tail -n 30 "$failed_out"
     else
       printf '(no captured output)\n'
     fi
