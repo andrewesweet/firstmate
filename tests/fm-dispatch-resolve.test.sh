@@ -612,6 +612,21 @@ assert_contains "$out" '  status: clear' "confidence between 0.5 and 0.6 clears 
 assert_not_contains "$out" '  fallback:' "without declared floors no runner-up is taken"
 
 reset_log
+write_response "$RESPONSE" rule_4 0.5
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
+expect_code 0 "$code" "confidence at the floor exits 0"
+assert_contains "$out" '  status: clear' "confidence exactly at 0.5 clears the global floor"
+assert_contains "$out" '  profile:' "confidence at the floor emits a concrete profile"
+
+reset_log
+write_response "$RESPONSE" rule_4 0.4999
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
+expect_code 0 "$code" "confidence just below the floor exits 0"
+assert_contains "$out" '  status: ambiguous' "confidence just below 0.5 requires a manual pick despite high rule probability"
+assert_contains "$out" '  reason: confidence 0.4999 below floor 0.5' "the boundary refusal names the actual floor"
+assert_not_contains "$out" '  profile:' "confidence below the floor emits no profile"
+
+reset_log
 write_floor_response "$RESPONSE" rule_2 0.41 0.01 0.41 0.01 0.48 0.09
 TYPESAFE_API_KEY=$KEY run code out err "$BRIEF"
 assert_contains "$out" '  status: ambiguous' "without declared floors a low pick stays ambiguous"
