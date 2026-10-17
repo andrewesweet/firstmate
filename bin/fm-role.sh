@@ -13,12 +13,16 @@
 #
 #   check    evaluates the self-repository publication gate for a task whose
 #            project is <project-dir>: exits 0 and prints
-#            "authorized: <authority>" and "publication pin: <exports>" when this home may run a publication
-#            contract there, exits 1 and prints "refused: <reason>" when it may
-#            not, and exits 2 with "not a self-repository task" when the task
-#            project is not firstmate's own repository (the boundary does not
-#            apply). The optional `upstream-consent <scope>` argument is the
-#            recorded per-task consent a dispatcher captured.
+#            "authorized: <authority>", the "publication target: <target>
+#            (<declared|remote order>)" line, and
+#            "publication pin: <exports>" when this home may run a publication
+#            contract there, exits 1 and prints "refused: <reason>" (plus the
+#            publication target line when one was selected, naming an ignored
+#            declaration) when it may not, and exits 2 with "not a
+#            self-repository task" when the task project is not firstmate's own
+#            repository (the boundary does not apply). The optional
+#            `upstream-consent <scope>` argument is the recorded per-task
+#            consent a dispatcher captured.
 #
 # bin/fm-role-lib.sh owns the schema summary and mechanics;
 # docs/configuration.md "Firstmate role" owns the operator-facing schema.
@@ -31,6 +35,15 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
+
+# print_publication_target_line - the selected target and its source, plus the
+# narrow reason when a declaration existed but was ignored.
+print_publication_target_line() {
+  printf 'publication target: %s (%s)' "$FM_ROLE_PUB_TARGET" \
+    "$([ "$FM_ROLE_PUB_TARGET_SOURCE" = declared ] && printf declared || printf 'remote order')"
+  [ -z "$FM_ROLE_PUB_DECLARED_DIAG" ] || printf ' - declaration ignored: %s' "$FM_ROLE_PUB_DECLARED_DIAG"
+  printf '\n'
+}
 
 case ${1:-} in
 report)
@@ -61,6 +74,7 @@ check)
   fi
   if fm_role_gate_self_publish "$FM_HOME" "$CONFIG" "$proj" "$FM_ROOT" "$consent"; then
     printf 'authorized: %s\n' "$FM_ROLE_PUB_AUTHORITY"
+    print_publication_target_line
     printf 'publication pin: %s\n' "$(fm_role_publication_pin "$FM_ROLE_PUB_TARGET")"
     exit 0
   else
@@ -71,6 +85,9 @@ check)
     exit 2
   fi
   printf 'refused: %s\n' "$FM_ROLE_PUB_DENIAL"
+  if [ -n "$FM_ROLE_PUB_TARGET" ]; then
+    print_publication_target_line
+  fi
   exit 1
   ;;
 -h | --help | help)
