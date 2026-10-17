@@ -1,0 +1,24 @@
+ok - fm-pr-merge records pr= and pr_head= for a verified GitHub merge
+ok - fm-pr-merge enforces required producer identity and named waivers
+ok - fm-pr-merge requires producer evidence for app-bound required checks
+ok - fm-pr-merge reports known missing checks and all independent read errors
+ok - fm-pr-merge refuses when a required check from branch protection or a ruleset never reported
+ok - fm-pr-merge merges when every required check reported and is green
+ok - fm-pr-merge reports a red check and an unreported required check together with every other failure
+ok - fm-pr-merge refuses when the required checks cannot be read, and tells a plan without rules apart
+ok - fm-pr-merge --allow-missing waives only its named unreported check
+ok - fm-pr-merge --allow-missing is single use, attended-only, and GitHub-only like --allow-red
+ok - classic-admin-no-waiver observes producer policy through fm-pr-merge CLI
+ok - classic-wrong-name-waiver observes producer policy through fm-pr-merge CLI
+ok - classic-exact-waiver observes producer policy through fm-pr-merge CLI
+ok - classic-unreadable-waiver observes producer policy through fm-pr-merge CLI
+ok - classic-stale-waiver observes producer policy through fm-pr-merge CLI
+ok - classic-wrong-app observes producer policy through fm-pr-merge CLI
+ok - classic-correct-app observes producer policy through fm-pr-merge CLI
+ok - ruleset-admin-no-waiver observes producer policy through fm-pr-merge CLI
+ok - ruleset-wrong-name-waiver observes producer policy through fm-pr-merge CLI
+ok - ruleset-exact-waiver observes producer policy through fm-pr-merge CLI
+ok - ruleset-unreadable-waiver observes producer policy through fm-pr-merge CLI
+ok - ruleset-stale-waiver observes producer policy through fm-pr-merge CLI
+ok - ruleset-wrong-app observes producer policy through fm-pr-merge CLI
+ok - ruleset-correct-app observes producer policy through fm-pr-merge CLI

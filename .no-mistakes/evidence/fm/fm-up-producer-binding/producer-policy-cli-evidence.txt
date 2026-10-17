@@ -1,0 +1,651 @@
+Producer-policy CLI evidence
+
+Scope: real bin/fm-pr-merge.sh executable with disposable homes and Git repositories.
+GitHub boundary: mocked gh/gh-axi responses. These are not live GitHub scenarios.
+No remote repository, branch protection, ruleset, app, status, check run, or merge was created.
+
+Independent oracle: the author-supplied acceptance contract requires verifiable same-head app evidence for bound requirements, name matching for unbound requirements, an exact attended missing-check waiver, and refusal on unreadable producer responses.
+Regression: the new policy test rejects the base commit because it accepts a green name-only status; the target passes.
+
+BASE COMMIT: bug reproduction; expected regression-test failure
+Case: required-app-evidence-classic-status
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-admin-no-waiver
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-correct-app
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":865473},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/112 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/112 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 112 --repo example/repo --match-head-commit a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 --squash --admin
+Actual exit status: 0
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-exact-waiver
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/112 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/112 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 112 --repo example/repo --match-head-commit a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 --squash --admin
+Actual exit status: 0
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-stale-waiver
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":865473},"head_sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check producers at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 could not be read
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-unreadable-waiver
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check producers at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 could not be read
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-wrong-app
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-classic-wrong-name-waiver
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-admin-no-waiver
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-correct-app
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":865473},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/112 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/112 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 112 --repo example/repo --match-head-commit a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 --squash --admin
+Actual exit status: 0
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-exact-waiver
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/112 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/112 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 112 --repo example/repo --match-head-commit a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 --squash --admin
+Actual exit status: 0
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-stale-waiver
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":865473},"head_sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check producers at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 could not be read
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-unreadable-waiver
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check producers at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8 could not be read
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-wrong-app
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"license/cla","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: adversarial-ruleset-wrong-name-waiver
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/112
+  - required check 'license/cla' has not reported at head a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+Actual exit status: 1
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: required-app-evidence-classic-status
+github-branch.json (mock response):
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: required-app-evidence-classic-unbound
+github-branch.json (mock response):
+{"name":"main","protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"non_admins","contexts":["license/cla"],"checks":[{"context":"license/cla","app_id":null}]}}}
+github-required-rules.json (mock response):
+[{"type":"deletion"}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: required-app-evidence-ruleset-status
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+Actual product stderr (watcher-warning banner omitted):
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+Actual product stdout:
+armed: state/task-x1.check.sh
+Merge request observed at the mocked gh boundary:
+(none)
+
+TARGET COMMIT: acceptance and adversarial checks
+Case: required-app-evidence-ruleset-unbound
+github-branch.json (mock response):
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+github-required-rules.json (mock response):
+[{"type":"deletion"},{"type":"required_status_checks","parameters":{"required_status_checks":[{"context":"license/cla"}]}}]
+github-view.json (mock response):
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+github-runs.json (mock response):
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+Actual product stderr (watcher-warning banner omitted):
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+Actual product stdout:
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+Merge request observed at the mocked gh boundary:
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+
