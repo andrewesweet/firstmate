@@ -45,11 +45,8 @@
 # gitignored, and is never propagated to another home. Adding a tool is a config
 # edit, never a code change. docs/configuration.md owns that schema.
 #
-# A tool whose CLI never announces its own updates (Claude Code is one) can name
-# a `version_url` instead: an https document whose body carries the newest
-# published version. It is fetched read-only, within the same probe bound, and
-# compared with the newest installed copy found; "update available" is reported
-# only when the published version is newer.
+# For tools without CLI update announcements, see `version_url` in
+# docs/configuration.md's "Watched tool updates" section.
 #
 # Probing costs real time, so `check` runs its probes at most once per
 # FM_TOOL_UPDATE_INTERVAL (default 900, 0 disables the gate, otherwise 60..86400)
