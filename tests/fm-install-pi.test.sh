@@ -25,25 +25,28 @@ mkdir -p "$(dirname "$sentinel")"
 printf '{"name":"pre-existing-global-package","version":"1.0.0"}\n' > "$tmp/expected-package.json"
 cp "$tmp/expected-package.json" "$sentinel"
 printf '{"name":"pre-existing-manifest","version":"1.0.0"}\n' > "$tmp/expected-manifest.json"
+ln -s "$tmp/global" "$tmp/global-link"
 
-for destination in "$global_root" "$(dirname "$global_root")"; do
-  cp "$tmp/expected-manifest.json" "$destination/package.json"
-  cp "$tmp/expected-manifest.json" "$destination/package-lock.json"
-  rc=0
-  bash "$ROOT/bin/fm-install-pi.sh" "$destination" > "$tmp/install.log" 2>&1 || rc=$?
-  if ! cmp -s "$tmp/expected-package.json" "$sentinel"; then
-    cat "$tmp/install.log"
-    fail "installer changed a pre-existing global package: $destination (exit=$rc)"
-  fi
-  if [ "$rc" -eq 0 ]; then
-    cat "$tmp/install.log"
-    fail "installer accepted a destination in the global npm tree: $destination"
-  fi
-  assert_contains "$(cat "$tmp/install.log")" "refusing to install into the global npm root" \
-    "installer must reject the global destination before npm ci"
-  cmp -s "$tmp/expected-manifest.json" "$destination/package.json" \
-    || fail "installer staged package.json before refusing: $destination"
-  cmp -s "$tmp/expected-manifest.json" "$destination/package-lock.json" \
-    || fail "installer staged package-lock.json before refusing: $destination"
-  pass "installer refuses $destination without changing global packages or manifests"
+for npm_config_prefix in "$tmp/global" "$tmp/global-link"; do
+  for destination in "$(dirname "$global_root")" "$global_root"; do
+    cp "$tmp/expected-manifest.json" "$destination/package.json"
+    cp "$tmp/expected-manifest.json" "$destination/package-lock.json"
+    rc=0
+    bash "$ROOT/bin/fm-install-pi.sh" "$destination" > "$tmp/install.log" 2>&1 || rc=$?
+    if ! cmp -s "$tmp/expected-package.json" "$sentinel"; then
+      cat "$tmp/install.log"
+      fail "installer changed a pre-existing global package: $destination (exit=$rc)"
+    fi
+    if [ "$rc" -eq 0 ]; then
+      cat "$tmp/install.log"
+      fail "installer accepted a destination in the global npm tree: $destination"
+    fi
+    assert_contains "$(cat "$tmp/install.log")" "refusing to install into the global npm root" \
+      "installer must reject the global destination before npm ci"
+    cmp -s "$tmp/expected-manifest.json" "$destination/package.json" \
+      || fail "installer staged package.json before refusing: $destination"
+    cmp -s "$tmp/expected-manifest.json" "$destination/package-lock.json" \
+      || fail "installer staged package-lock.json before refusing: $destination"
+    pass "installer refuses $destination without changing global packages or manifests (prefix=$npm_config_prefix)"
+  done
 done

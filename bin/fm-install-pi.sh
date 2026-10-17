@@ -51,6 +51,13 @@ command -v node >/dev/null 2>&1 || die "node is required to verify the pinned Pi
 GLOBAL_ROOT=$(npm root -g 2>/dev/null) || die "cannot resolve the global npm root"
 mkdir -p "$DESTINATION" || die "cannot create destination directory: $DESTINATION"
 DEST_ABS=$(cd "$DESTINATION" && pwd -P) || die "cannot resolve destination directory: $DESTINATION"
+# Resolve symlinked prefixes without creating a missing global node_modules.
+if [ -d "$GLOBAL_ROOT" ]; then
+  GLOBAL_ROOT=$(cd "$GLOBAL_ROOT" && pwd -P) || die "cannot resolve the global npm root"
+elif [ -d "${GLOBAL_ROOT%/*}" ]; then
+  GLOBAL_ROOT="$(cd "${GLOBAL_ROOT%/*}" && pwd -P)/${GLOBAL_ROOT##*/}" \
+    || die "cannot resolve the global npm root"
+fi
 [ "$DEST_ABS" != "$GLOBAL_ROOT" ] && [ "$DEST_ABS/node_modules" != "$GLOBAL_ROOT" ] \
   || die "refusing to install into the global npm root or its parent ($GLOBAL_ROOT)"
 
