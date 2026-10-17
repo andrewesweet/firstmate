@@ -12,8 +12,9 @@
 # Usage:
 #   fm-install-pi.sh <destination-directory>
 #
-# The destination must not be the global npm root: the host's global install
-# is shared state this helper never touches. CI installs into $RUNNER_TEMP/pi,
+# The destination must not be the global npm root or its parent: npm ci replaces
+# <dest>/node_modules, and the host's global install is shared state this helper
+# never touches. CI installs into $RUNNER_TEMP/pi,
 # then adds <dest>/node_modules/.bin to PATH and exports
 # FM_PI_PACKAGE_DIR=<dest>/node_modules/@earendil-works/pi-coding-agent for
 # the test steps (the extension tests honor FM_PI_PACKAGE_DIR and fall back to
@@ -50,7 +51,8 @@ command -v node >/dev/null 2>&1 || die "node is required to verify the pinned Pi
 GLOBAL_ROOT=$(npm root -g 2>/dev/null) || die "cannot resolve the global npm root"
 mkdir -p "$DESTINATION" || die "cannot create destination directory: $DESTINATION"
 DEST_ABS=$(cd "$DESTINATION" && pwd -P) || die "cannot resolve destination directory: $DESTINATION"
-[ "$DEST_ABS" != "$GLOBAL_ROOT" ] || die "refusing to install into the global npm root ($GLOBAL_ROOT)"
+[ "$DEST_ABS" != "$GLOBAL_ROOT" ] && [ "$DEST_ABS/node_modules" != "$GLOBAL_ROOT" ] \
+  || die "refusing to install into the global npm root or its parent ($GLOBAL_ROOT)"
 
 cp "$MANIFEST_DIR/package.json" "$MANIFEST_DIR/package-lock.json" "$DEST_ABS/" \
   || die "cannot stage the pin manifest in $DEST_ABS"

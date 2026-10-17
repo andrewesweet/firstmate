@@ -1479,6 +1479,7 @@ families_for_changed_path() {
       printf '%s\n' pure-contract-unit
       ;;
     bin/fm-install-pi.sh|etc/ci-pi/package.json|etc/ci-pi/package-lock.json)
+      printf '%s\n' __script__:fm-install-pi.test.sh
       printf '%s\n' __script__:fm-calm-pi-extension.test.sh
       printf '%s\n' __script__:fm-pi-branch-extension.test.sh
       printf '%s\n' __script__:fm-pi-primary-types.test.sh
