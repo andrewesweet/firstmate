@@ -2404,7 +2404,7 @@ SH
 # explicit auto changes only the permission flag, and malformed values refuse.
 claude_settings_json_arg() {  # <launch>
   local command
-  command=$(fm_test_launch_command "$1")
+  command=$(fm_test_launch_command "${1#unset TRACEPARENT; }")
   eval "set -- $command"
   while [ "$#" -gt 0 ]; do
     if [ "$1" = --settings ]; then
