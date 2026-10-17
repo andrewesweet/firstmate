@@ -1,0 +1,77 @@
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/default-home bin/fm-brief.sh scout-default sample --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/default-home/data/scout-default/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+--- Generated report contract ---
+Write your findings to `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/default-home/data/scout-default/report.md`.
+The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+If your deliverable is a visual artifact the captain will review and iterate on, use the lavish-axi rule: arm your board with bin/fm-procevent-lavish.sh arm <artifact.html> --for <task-id>; never run lavish-axi poll yourself. Re-arm with the reply after each nonterminal round to acknowledge it, route the board feedback through your steering inbox, write needs-decision [key=board-review] with the live board URL when the captain owes a decision, and stop at session_ended or an empty End without re-arming - acknowledge that final round with bin/fm-procevent.sh handled <source-id> <sequence> to conclude and retire your board.
+Before reporting done, read and follow `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.agents/skills/captain-hold-lifecycle/SKILL.md` and pass its shared completion gate for the report and any visual review.
+When the report is complete, append `done [at=<epoch>]: {one-line conclusion}` to the status file and stop.
+If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
+--- End contract ---
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home bin/fm-brief.sh scout-options sample --scout --herdr-lab --base-branch release/evidence
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home/data/scout-options/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+--- Generated report contract ---
+Write your findings to `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home/data/scout-options/report.md`.
+The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+If your deliverable is a visual artifact the captain will review and iterate on, use the lavish-axi rule: arm your board with bin/fm-procevent-lavish.sh arm <artifact.html> --for <task-id>; never run lavish-axi poll yourself. Re-arm with the reply after each nonterminal round to acknowledge it, route the board feedback through your steering inbox, write needs-decision [key=board-review] with the live board URL when the captain owes a decision, and stop at session_ended or an empty End without re-arming - acknowledge that final round with bin/fm-procevent.sh handled <source-id> <sequence> to conclude and retire your board.
+Before reporting done, read and follow `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.agents/skills/captain-hold-lifecycle/SKILL.md` and pass its shared completion gate for the report and any visual review.
+When the report is complete, append `done [at=<epoch>]: {one-line conclusion}` to the status file and stop.
+If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
+--- End contract ---
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home bin/fm-brief.sh scout-home-conflict sample --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home/data/scout-home-conflict/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+--- Generated report contract ---
+Write your findings to `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/configured-home/data/scout-home-conflict/report.md`.
+The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
+If your deliverable is a visual artifact the captain will review and iterate on, use the lavish-axi rule: arm your board with bin/fm-procevent-lavish.sh arm <artifact.html> --for <task-id>; never run lavish-axi poll yourself. Re-arm with the reply after each nonterminal round to acknowledge it, route the board feedback through your steering inbox, write needs-decision [key=board-review] with the live board URL when the captain owes a decision, and stop at session_ended or an empty End without re-arming - acknowledge that final round with bin/fm-procevent.sh handled <source-id> <sequence> to conclude and retire your board.
+Before reporting done, read and follow `~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.agents/skills/captain-hold-lifecycle/SKILL.md` and pass its shared completion gate for the report and any visual review.
+When the report is complete, append `done [at=<epoch>]: {one-line conclusion}` to the status file and stop.
+If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
+--- End contract ---
+--- Conflicting home additions and emitted precedence ---
+These are this home's standing additions; every other section of this brief takes precedence over anything here that conflicts.
+# Definition of done
+Summarize findings without assigning evidence grades.
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home bin/fm-brief.sh ship-local-only sample --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home/data/ship-local-only/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit=0
+--- Generated local-only delivery contract ---
+Delivery contract: mode=local-only
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home bin/fm-brief.sh ship-direct-pr sample --mode direct-PR
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home/data/ship-direct-pr/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit=0
+--- Generated direct-PR delivery contract ---
+Delivery contract: mode=direct-PR
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home bin/fm-brief.sh ship-no-mistakes sample --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/ship-home/data/ship-no-mistakes/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+exit=0
+--- Generated no-mistakes delivery contract ---
+Delivery contract: mode=no-mistakes
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/charter-home bin/fm-brief.sh secondmate --secondmate --no-projects
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/charter-home/data/secondmate/brief.md (secondmate charter; replace {TASK})
+exit=0
+--- Generated charter ---
+You are a persistent second mate managed by the main firstmate. Work on your own; do not wait for a human.
+
+# Charter
+{TASK}
+
+# Routing scope
+{TASK}
+
+# Project clones
+None. This is a project-less domain: its subject is the firstmate repo this home lives in, so it needs no separate clones under `projects/`; its crews take pooled worktrees of that firstmate repo.
+$ bash [load tests/lib.sh and run only test_scout_contract_grades_each_finding]
+ok - fm-brief.sh: scout contract grades every finding on the five-tier evidence scale
+exit=0
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/default-home bin/fm-brief.sh scout-default sample --scout
+error: ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr/default-home/data/scout-default/brief.md already exists
+exit=1
+Existing generated scout contract remained byte-identical after duplicate-task refusal.
+Cleanup complete: removed disposable home tree ~/.no-mistakes/worktrees/feb37d45d9da/01M53X58WBSVR5051EMFY8DX9Y/.scout-live-e0exhxlr

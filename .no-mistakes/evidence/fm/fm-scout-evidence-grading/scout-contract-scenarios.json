@@ -1,0 +1,18 @@
+[
+  {
+    "scenario": "default scout contract",
+    "result": "pass"
+  },
+  {
+    "scenario": "customized and conflicting-addition scout contracts",
+    "result": "pass"
+  },
+  {
+    "scenario": "ship and secondmate contracts stay separate",
+    "result": "pass"
+  },
+  {
+    "scenario": "duplicate scout task preserves existing brief",
+    "result": "pass"
+  }
+]
