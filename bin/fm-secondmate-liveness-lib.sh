@@ -47,6 +47,11 @@
 # A separate per-home lock serializes relaunches of different mates, since each
 # fresh spawn owns the same task-set lock. The watcher uses its spawn timeout
 # as the lock-wait bound; an untimed sweep defaults to 600 seconds.
+# After that wait, recovery also takes the task's lifecycle control lock and
+# re-probes in poll mode before recording an attempt or killing an endpoint.
+# A busy control lock, a live replacement, or an inconclusive probe skips the
+# recovery without touching the endpoint, so a pre-wait dead verdict cannot
+# authorize killing a replacement started by fm-control.
 # The attempt ledger (.secondmate-relaunch-<id>, one line per attempt plus one
 # per outcome) is both the durable relaunch record and the input to the
 # watcher's relaunch bound; teardown removes it.
@@ -258,10 +263,10 @@ fm_secondmate_liveness_probe() {  # <meta> <id> <full|poll>
 
 # fm_secondmate_liveness_relaunch <meta> <id> [timeout-secs]
 #
-# Acts on a `relaunchable` probe verdict for <id>: takes the per-home relaunch
-# lock, records the attempt, kills a confirmed-dead local endpoint if required
-# (FM_SM_LIVE_KILL), runs the guarded spawn, then records its outcome.
-# The header owns the lock-wait bounds. A positive timeout separately
+# Acts on a `relaunchable` probe verdict for <id> through the lock and re-probe
+# boundary in the header, then records the attempt, kills a confirmed-dead local
+# endpoint if required (FM_SM_LIVE_KILL), runs the guarded spawn, and records
+# its outcome. The header owns the lock-wait bounds. A positive timeout separately
 # wraps the spawn in fm_run_timed so a watcher poll stays bounded; 124/137 mean
 # the bound fired. Returns the spawn exit status; combined spawn output is in
 # FM_SM_LIVE_OUT and the status in FM_SM_LIVE_RC. When the lock wait expires,

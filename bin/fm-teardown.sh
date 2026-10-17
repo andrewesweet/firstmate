@@ -87,13 +87,19 @@
 # A scratch copy (kind=scout) and a --force run discard untracked content.
 # Treehouse's return resets with `git clean -fd`, which never deletes a nested
 # git repository, so the pool slot stays dirty and later checkouts skip it.
-# Before that return, teardown runs `git clean -ffdq` in the copy, and a forced
-# secondmate teardown does the same in each child copy it returns.
+# The main scratch/--force path runs `git clean -ffdq` before return, except
+# for an unclaimed pool slot, which must reach the holder-checked return first.
+# Forced secondmate cleanup scrubs only non-pool child copies: a pool child
+# reaches the holder-checked return without that scrub, even with a local owner
+# claim, because Treehouse's lease may now belong to another live task.
 # The second -f removes nested repositories, and -x stays off so ignored files remain.
 # A ship teardown without --force does not run that clean: it refuses untracked
 # entries, except those under the .claude/ allowance, so a nested repository
 # there can still survive the return.
-# After a return that succeeds, teardown reads `git status --porcelain --untracked-files=all`.
+# After a pool-slot return succeeds, teardown reads
+# `git status --porcelain --untracked-files=all`; an unclaimed-slot return first
+# checks for nested-repository residue or an unreadable worktree, since plain
+# untracked files are Treehouse's own cleaning responsibility on that path.
 # Any remaining output, a status read that fails, or a copy that is missing or
 # no longer a readable worktree is reported at once with the lost pool slot and
 # what remains. Teardown then finishes every cleanup step, reports the lost slot

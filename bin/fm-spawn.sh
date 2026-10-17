@@ -2330,7 +2330,7 @@ launch_template() {
   # alone disables the feature; keep both so a managed override of one still
   # leaves the other in force. Both are per-launch, scoped to this invocation only,
   # and never touch the captain's global ~/.claude/settings.json.
-  # Unless config/keep-ai-trailers is present, the same inline --settings JSON
+  # Unless config/keep-ai-trailers is present, the same session --settings JSON
   # also carries the attribution policy
   # ("attribution": {"commit": "", "pr": "", "sessionUrl": false}), which
   # suppresses Claude Code's Co-Authored-By trailer, Claude-Session link, and

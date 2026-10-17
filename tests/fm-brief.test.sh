@@ -1686,7 +1686,7 @@ test_branch_prefix_value_is_validated() {
 test_branch_prefix_command_is_shell_safe() {
   local home id prefix marker brief command repo branch
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
-  marker="$TMP_ROOT/branch-prefix-shell-safe-marker"
+  marker=branch-prefix-shell-safe-marker
   id='brief-branch-safe-g3'
   prefix="\$(touch\${IFS}$marker)"
   mkdir -p "$home/data"
@@ -1699,7 +1699,7 @@ test_branch_prefix_command_is_shell_safe() {
   repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && eval "$command" ) || fail "generated branch-creation command did not run"
-  assert_absent "$marker" "generated branch command executed the prefix's command substitution"
+  assert_absent "$repo/$marker" "generated branch command executed the prefix's command substitution"
   branch=$(git -C "$repo" branch --show-current)
   [ "$branch" = "$prefix$id" ] \
     || fail "generated branch command did not create the literal configured branch (got '$branch')"

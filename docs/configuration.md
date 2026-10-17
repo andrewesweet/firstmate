@@ -1252,14 +1252,13 @@ This is not a sandbox: it cannot revoke same-user access to credential files, pr
 
 Regression coverage executes emitted launch commands with synthetic nonsecret values in [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh), and the Orca environment source in [`tests/fm-spawn-orca-worktree.test.sh`](../tests/fm-spawn-orca-worktree.test.sh).
 
-Every claude launch's inline `--settings` JSON also trims the worker's startup context: it disables claude.ai connectors, the `claude-in-chrome` MCP server, auto memory, workflows, and bundled skills, and denies `Artifact`, `ReportFindings`, `ScheduleWakeup`, and `AskUserQuestion`; the [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) "Startup context" owns why each key is there.
-The same JSON also sets `autoCompactWindow` to 220000, so a Claude worker on a 1M-context model still auto-compacts near 187k tokens instead of never compacting under the default `auto` window; the same reference owns the rationale.
+The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md#startup-context) owns the startup-context trims and compaction settings applied to every Claude launch.
 For Pi worker exclusions, see [Worker tool exclusions](#worker-tool-exclusions-configcrew-exclude-tools).
 
 ### Commit attribution
 
 The optional local, gitignored `config/keep-ai-trailers` presence flag opts this home into keeping AI co-author trailers on its launched workers.
-With the flag absent, every Claude launch's inline `--settings` JSON carries `"attribution":{"commit":"","pr":"","sessionUrl":false}`, every Devin worker config sets `"attribution": false`, and every fleet launch appends a pane-scoped `GIT_CONFIG` `core.hooksPath` entry pointing at `state/<id>.git-hooks`, where git's `commit-msg` hook strips known AI trailers even when a runtime injects them after the typed message.
+With the flag absent, every Claude launch's session `--settings` carries `"attribution":{"commit":"","pr":"","sessionUrl":false}`, every Devin worker config sets `"attribution": false`, and every fleet launch appends a pane-scoped `GIT_CONFIG` `core.hooksPath` entry pointing at `state/<id>.git-hooks`, where git's `commit-msg` hook strips known AI trailers even when a runtime injects them after the typed message.
 The entry follows any `GIT_CONFIG_*` entries the worker inherits, so an inherited scoped `credential.helper` still applies to the worker and to the repository's own hooks, such as a git-lfs `pre-push`; an inherited `GIT_CONFIG_COUNT` that is not a decimal number, or that leaves no room for another entry within Git's signed int, stops the launch before the worker runs.
 When the flag is present, Claude launches omit those attribution-off settings, Devin worker configs keep the user config's `attribution` setting (Devin's default is on), and fleet launches do not install or select the strip hooks, so Git uses the repository's configured hooks directly.
 `bin/fm-git-strip-ai-trailers.sh` owns the identities, the install, and chaining the hooks of whichever repository git is running in, including when `git -c core.hooksPath` supplies the pane's hook override, so a project hook such as husky still runs when stripping is enabled.

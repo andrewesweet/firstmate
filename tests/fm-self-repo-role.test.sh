@@ -376,6 +376,9 @@ test_ship_launch_pins_destination_after_environment_filtering() {
     fm_test_spawn_home "$worker_home" claude
     git clone -q --shared "$ROOT" "$proj" || fail "could not clone the firstmate fixture"
     git clone -q --shared "$ROOT" "$case_dir/published" || fail "could not clone the publication fixture"
+    # Gate worktrees have a detached HEAD; the disposable remote needs a
+    # named default branch for the spawn's real origin refresh.
+    git -C "$case_dir/published" checkout -q -B main || fail "could not name the publication fixture's default branch"
     git -C "$case_dir/published" remote set-url origin https://github.com/fork-owner/firstmate
     git -C "$proj" remote set-url origin "$case_dir/published"
     git -C "$proj" remote add default-repo https://github.com/kunchenguid/firstmate
