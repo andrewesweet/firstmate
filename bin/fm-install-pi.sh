@@ -20,8 +20,9 @@
 # the test steps (the extension tests honor FM_PI_PACKAGE_DIR and fall back to
 # the global root only when it is unset).
 #
-# Regenerating the pin: edit etc/ci-pi/package.json (exact versions only),
-# delete etc/ci-pi/package-lock.json, run
+# Regenerating the pin: edit etc/ci-pi/package.json (exact versions only) and
+# update PI_VERSION and PI_SCOPE_PACKAGES below to match.
+# Delete etc/ci-pi/package-lock.json, then run
 # `npm install --package-lock-only --no-audit --no-fund` in etc/ci-pi, verify
 # every @earendil-works/* entry in the lockfile carries the intended version,
 # and run this helper plus the Pi extension and typecheck suites against the
