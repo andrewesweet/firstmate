@@ -1,0 +1,40 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/poo
+l/.treehouse/project-5d6b74/3/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-run
+time/live/pool/.treehouse/project-5d6b74/3/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$ export GOTMPDIR=/tmp/fm-lab-tp-off-allowlisted-carrier/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$ export FM_TASK_ID=lab-tp-off-allowlisted-carrier
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$ . '/tmp/fm-lab-tp-off-allowlisted-carrier+c0cecc2e8ceec91ba76df11662b405bb6dced16024f3b7bf7
+29e9bac381f60cb/launch.s1792236181.676509.1486.sh'
+WORKER_ENV {"pid": 679441, "parent_pid": 679435, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPA
+Q78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/3/project", "environment": {"TRACEPARENT": null, "OTEL_RES
+OURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve", "LAB_KEEP": "pane-kept", "LAB_DROP": null, "FM_TASK_
+ID": "lab-tp-off-allowlisted-carrier", "COMPACT_ADVISER_DISABLE": "1"}}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/3/project$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

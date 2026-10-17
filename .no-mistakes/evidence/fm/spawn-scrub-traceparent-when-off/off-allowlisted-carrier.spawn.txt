@@ -1,0 +1,3 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/off-allowlisted-carrier
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/off-allowlisted-carrier/data/lab-tp-off-allowlisted-carrier/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-tp-off-allowlisted-carrier
+spawned lab-tp-off-allowlisted-carrier harness=python3 kind=ship mode=no-mistakes yolo=off window=primary:fm-lab-tp-off-allowlisted-carrier worktree=~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/3/project

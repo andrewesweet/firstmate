@@ -1,0 +1,61 @@
+Live trace-context validation
+
+Product interface: bin/fm-spawn.sh <task-id> <fixture-project> <raw observation command> --mode no-mistakes --yolo off --backend tmux.
+Each worker was launched by the real Firstmate script, real tmux backend, and real Treehouse into a separate fixture worktree. The observation command was Python, invoked through the documented raw-launch interface; no vendor harness CLI or login was substituted.
+The private tmux server had a 120-column by 40-row grid and a distinct private socket. No default tmux or Herdr session was used.
+
+Independent oracle: the author requires trace-off workers to have no TRACEPARENT, and trace-on workers to receive a fresh carrier matching task metadata. The launch allowlist and OTEL_RESOURCE_ATTRIBUTES must retain their prior behavior.
+
+The daemon/pane ambient carrier was 00-11111111111111111111111111111111-2222222222222222-01. The spawning process carried 00-33333333333333333333333333333333-4444444444444444-01. A separate real pane observation confirmed the daemon carrier before Firstmate launched any worker.
+OTEL_RESOURCE_ATTRIBUTES was service.name=ambient-pane,lab.marker=preserve. LAB_KEEP and LAB_DROP were independent filtering sentinels.
+
+Observed results:
+off-no-allowlist:
+  worker TRACEPARENT = null
+  metadata traceparent = null
+  OTEL_RESOURCE_ATTRIBUTES = "service.name=ambient-pane,lab.marker=preserve"
+  LAB_KEEP = "pane-kept"; LAB_DROP = "pane-dropped"
+  result = pass
+on-no-allowlist:
+  worker TRACEPARENT = "00-629f06984e76fa52502cd3ced8612760-c380b65d0fb47609-01"
+  metadata traceparent = "00-629f06984e76fa52502cd3ced8612760-c380b65d0fb47609-01"
+  OTEL_RESOURCE_ATTRIBUTES = "service.name=ambient-pane,lab.marker=preserve"
+  LAB_KEEP = "pane-kept"; LAB_DROP = "pane-dropped"
+  result = pass
+off-allowlisted-carrier:
+  worker TRACEPARENT = null
+  metadata traceparent = null
+  OTEL_RESOURCE_ATTRIBUTES = "service.name=ambient-pane,lab.marker=preserve"
+  LAB_KEEP = "pane-kept"; LAB_DROP = null
+  result = pass
+on-allowlisted-carrier:
+  worker TRACEPARENT = "00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01"
+  metadata traceparent = "00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01"
+  OTEL_RESOURCE_ATTRIBUTES = "service.name=ambient-pane,lab.marker=preserve"
+  LAB_KEEP = "pane-kept"; LAB_DROP = null
+  result = pass
+off-empty-allowlist:
+  worker TRACEPARENT = null
+  metadata traceparent = null
+  OTEL_RESOURCE_ATTRIBUTES = null
+  LAB_KEEP = null; LAB_DROP = null
+  result = pass
+
+Before-fix counterfactual: the base-commit fm-spawn.sh, run with the same off/no-allowlist setup and current unchanged helper libraries, delivered 00-11111111111111111111111111111111-2222222222222222-01 to its worker. This reproduced the original leak. The target script delivered no TRACEPARENT.
+
+Evidence consists of real CLI transcripts, pane captures, selected task metadata, and worker-produced JSON environment observations. The change has no visual UI surface requiring a screenshot.
+Both live-run scripts stopped their private tmux server and removed its socket and staged launch files in their cleanup path. Fixture repositories and temporary test drivers are removed before returning the test result.
+
+Additional empty-allowlist enabled case: the worker received 00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01, exactly matching task metadata, while OTEL_RESOURCE_ATTRIBUTES and both unallowlisted sentinels were absent. The automatically forwarded carrier was distinct from both ambient carriers and both previous enabled tasks.
+
+Focused repository checks and test-only repair:
+- The initial trace-context suite used TMPDIR inside the source worktree. The suite correctly rejected a nested secondmate fixture. Running it with ordinary /tmp test-toolchain space passed.
+- TMPDIR=/tmp bash tests/fm-trace-context-spawn.test.sh passed.
+- TMPDIR=/tmp bash tests/fm-claude-trust.test.sh passed.
+- TMPDIR=/tmp bash tests/fm-kimi-harness.test.sh passed.
+- TMPDIR=/tmp bash tests/fm-spawn-dispatch-profile.test.sh initially failed in the keep-ai-trailers assertion. Its settings-argument helper did not strip the new unset prefix when the Git-hooks prefix was absent; eval executed the command instead of parsing its argv. The neighboring brief-argument helper already stripped that prefix.
+- A focused reproduction used a workspace-local rejecting Claude executable to prove unintended execution safely. The existing test failed with unexpected-harness-execution-blocked instead of settings JSON.
+- The one-line test-only repair applies the same prefix removal to claude_settings_json_arg in tests/fm-spawn-dispatch-profile.test.sh. No production code changed during this test phase.
+- After repair, focused rechecks passed for opted-in keep-ai-trailers, secondmate inheritance, default crew attribution, secondmate attribution, bypass and auto permission modes, and the final dispatch-profile secondmate case. A guard verified that settings parsing never executed the Claude command. These include the failing case and all cases the original full dispatch suite had not reached. The full dispatch suite was not repeated after this focused repair.
+- The full dispatch run also capability-skipped its optional fish check because fish is absent; the recorded human decision about fish behavior was preserved. Live product checks in this phase used Bash.
+Temporary fixture repositories, observation drivers, rejecting executable, and focused runner were removed. The only retained worktree change is the one-line test helper correction.

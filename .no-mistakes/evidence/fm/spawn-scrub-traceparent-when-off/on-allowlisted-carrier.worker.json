@@ -1,0 +1,13 @@
+{
+  "pid": 682508,
+  "parent_pid": 682505,
+  "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/4/project",
+  "environment": {
+    "TRACEPARENT": "00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01",
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+    "LAB_KEEP": "pane-kept",
+    "LAB_DROP": null,
+    "FM_TASK_ID": "lab-tp-on-allowlisted-carrier",
+    "COMPACT_ADVISER_DISABLE": "1"
+  }
+}

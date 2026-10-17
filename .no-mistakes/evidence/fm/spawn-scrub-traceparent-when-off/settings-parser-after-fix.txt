@@ -1,0 +1,8 @@
+ok - keep-ai-trailers omits Claude attribution settings and the pane strip hooks
+ok - keep-ai-trailers is inherited so a secondmate's crew launch keeps AI trailers
+ok - a claude crewmate launch carries the attribution-off policy in its own settings
+ok - a claude secondmate launch carries the attribution-off policy too
+ok - config/claude-permission-mode=bypass launches exactly as an absent file does
+ok - config/claude-permission-mode=auto replaces --dangerously-skip-permissions with --permission-mode auto
+ok - active crew-dispatch profile does not block secondmate launches
+ok - settings argument parsing never executed the harness

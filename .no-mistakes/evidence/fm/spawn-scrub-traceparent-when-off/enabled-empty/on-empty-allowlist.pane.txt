@@ -1,0 +1,48 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-ena
+bled-empty/pool/.treehouse/project-e90dba/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat Oct 17 12:25:07 BST 2026
+
+  System load:  1.73                 Processes:             233
+  Usage of /:   36.1% of 1006.85GB   Users logged in:       2
+  Memory usage: 47%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   36%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty/user-home/.h
+ushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS
+4VRY/.test-runtime/live-enabled-empty/pool/.treehouse/project-e90dba/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ export GOTMPDIR=/tmp/fm-lab-tp-on-empty-allowlist/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ export FM_TASK_ID=lab-tp-on-empty-allowlist
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ export TRACEPARENT=00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$ . '/tmp/fm-lab-tp-on-empty-allowlist+9719782d53367cf40e7439be73f76ea141415b0f
+28327826d74aec021511cbb0/launch.s1792236309.806534.4270.sh'
+WORKER_ENV {"pid": 810926, "parent_pid": 810923, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPA
+Q78ZYQS4VRY/.test-runtime/live-enabled-empty/pool/.treehouse/project-e90dba/1/project", "environment": {"TRACEPARENT": "
+00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01", "OTEL_RESOURCE_ATTRIBUTES": null, "LAB_KEEP": null, "LAB_DROP"
+: null, "FM_TASK_ID": "lab-tp-on-empty-allowlist", "COMPACT_ADVISER_DISABLE": "1"}}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty
+/pool/.treehouse/project-e90dba/1/project$

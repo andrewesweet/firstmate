@@ -1,0 +1,8 @@
+{
+  "window": "primary:fm-lab-tp-on-empty-allowlist",
+  "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty/pool/.treehouse/project-e90dba/1/project",
+  "harness": "python3",
+  "kind": "ship",
+  "mode": "no-mistakes",
+  "traceparent": "00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01"
+}

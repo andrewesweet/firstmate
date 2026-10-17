@@ -1,0 +1,161 @@
+[
+  {
+    "case": "off-no-allowlist",
+    "mode": "off",
+    "allowlist": null,
+    "worker": {
+      "pid": 671666,
+      "parent_pid": 669841,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/1/project",
+      "environment": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+        "LAB_KEEP": "pane-kept",
+        "LAB_DROP": "pane-dropped",
+        "FM_TASK_ID": "lab-tp-off-no-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-off-no-allowlist",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/1/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes"
+    },
+    "result": "pass"
+  },
+  {
+    "case": "on-no-allowlist",
+    "mode": "on",
+    "allowlist": null,
+    "worker": {
+      "pid": 676423,
+      "parent_pid": 672598,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/2/project",
+      "environment": {
+        "TRACEPARENT": "00-629f06984e76fa52502cd3ced8612760-c380b65d0fb47609-01",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+        "LAB_KEEP": "pane-kept",
+        "LAB_DROP": "pane-dropped",
+        "FM_TASK_ID": "lab-tp-on-no-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-on-no-allowlist",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/2/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes",
+      "traceparent": "00-629f06984e76fa52502cd3ced8612760-c380b65d0fb47609-01"
+    },
+    "result": "pass"
+  },
+  {
+    "case": "off-allowlisted-carrier",
+    "mode": "off",
+    "allowlist": "TRACEPARENT\nOTEL_RESOURCE_ATTRIBUTES\nLAB_KEEP\n",
+    "worker": {
+      "pid": 679441,
+      "parent_pid": 679435,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/3/project",
+      "environment": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+        "LAB_KEEP": "pane-kept",
+        "LAB_DROP": null,
+        "FM_TASK_ID": "lab-tp-off-allowlisted-carrier",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-off-allowlisted-carrier",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/3/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes"
+    },
+    "result": "pass"
+  },
+  {
+    "case": "on-allowlisted-carrier",
+    "mode": "on",
+    "allowlist": "TRACEPARENT\nOTEL_RESOURCE_ATTRIBUTES\nLAB_KEEP\n",
+    "worker": {
+      "pid": 682508,
+      "parent_pid": 682505,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/4/project",
+      "environment": {
+        "TRACEPARENT": "00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+        "LAB_KEEP": "pane-kept",
+        "LAB_DROP": null,
+        "FM_TASK_ID": "lab-tp-on-allowlisted-carrier",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-on-allowlisted-carrier",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/4/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes",
+      "traceparent": "00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01"
+    },
+    "result": "pass"
+  },
+  {
+    "case": "off-empty-allowlist",
+    "mode": "off",
+    "allowlist": "",
+    "worker": {
+      "pid": 685917,
+      "parent_pid": 685914,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/5/project",
+      "environment": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": null,
+        "LAB_KEEP": null,
+        "LAB_DROP": null,
+        "FM_TASK_ID": "lab-tp-off-empty-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-off-empty-allowlist",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/5/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes"
+    },
+    "result": "pass"
+  },
+  {
+    "case": "on-empty-allowlist",
+    "mode": "on",
+    "allowlist": "",
+    "worker": {
+      "pid": 810926,
+      "parent_pid": 810923,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty/pool/.treehouse/project-e90dba/1/project",
+      "environment": {
+        "TRACEPARENT": "00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01",
+        "OTEL_RESOURCE_ATTRIBUTES": null,
+        "LAB_KEEP": null,
+        "LAB_DROP": null,
+        "FM_TASK_ID": "lab-tp-on-empty-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-on-empty-allowlist",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-enabled-empty/pool/.treehouse/project-e90dba/1/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes",
+      "traceparent": "00-e50d58119789762b14f4b878b9c696cd-d008f0b1ad2f7c42-01"
+    },
+    "result": "pass"
+  }
+]

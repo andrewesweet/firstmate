@@ -1,0 +1,13 @@
+{
+  "pid": 685917,
+  "parent_pid": 685914,
+  "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/5/project",
+  "environment": {
+    "TRACEPARENT": null,
+    "OTEL_RESOURCE_ATTRIBUTES": null,
+    "LAB_KEEP": null,
+    "LAB_DROP": null,
+    "FM_TASK_ID": "lab-tp-off-empty-allowlist",
+    "COMPACT_ADVISER_DISABLE": "1"
+  }
+}

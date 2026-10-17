@@ -1,0 +1,47 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-bef
+ore-fix/pool/.treehouse/project-b519e4/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat Oct 17 12:23:32 BST 2026
+
+  System load:  1.89                 Processes:             222
+  Usage of /:   36.1% of 1006.85GB   Users logged in:       2
+  Memory usage: 47%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   36%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/user-home/.hush
+login file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VR
+Y/.test-runtime/live-before-fix/pool/.treehouse/project-b519e4/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$ export GOTMPDIR=/tmp/fm-lab-tp-off-no-allowlist/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$ export FM_TASK_ID=lab-tp-off-no-allowlist
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$ . '/tmp/fm-lab-tp-off-no-allowlist+bd4418014184429786d687d880184ea669ec25a0b6c2e
+a2e8375995f6470329c/launch.s1792236214.695372.27746.sh'
+WORKER_ENV {"pid": 701329, "parent_pid": 697028, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPA
+Q78ZYQS4VRY/.test-runtime/live-before-fix/pool/.treehouse/project-b519e4/1/project", "environment": {"TRACEPARENT": "00-
+11111111111111111111111111111111-2222222222222222-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker
+=preserve", "LAB_KEEP": "pane-kept", "LAB_DROP": "pane-dropped", "FM_TASK_ID": "lab-tp-off-no-allowlist", "COMPACT_ADVIS
+ER_DISABLE": "1"}}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/po
+ol/.treehouse/project-b519e4/1/project$

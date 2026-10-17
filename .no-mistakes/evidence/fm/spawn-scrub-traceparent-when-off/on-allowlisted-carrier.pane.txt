@@ -1,0 +1,40 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/poo
+l/.treehouse/project-5d6b74/4/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-run
+time/live/pool/.treehouse/project-5d6b74/4/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ export GOTMPDIR=/tmp/fm-lab-tp-on-allowlisted-carrier/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ export FM_TASK_ID=lab-tp-on-allowlisted-carrier
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ export TRACEPARENT=00-9ccf91b6521b552243a3bfe6aaf6f787-337d4464e448efa7-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$ . '/tmp/fm-lab-tp-on-allowlisted-carrier+6912b356a63b9f1adba1794fb2e0cbe6a49428af55d1222b09
+57cc7b871a8b5e/launch.s1792236185.679563.26789.sh'
+WORKER_ENV {"pid": 682508, "parent_pid": 682505, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPA
+Q78ZYQS4VRY/.test-runtime/live/pool/.treehouse/project-5d6b74/4/project", "environment": {"TRACEPARENT": "00-9ccf91b6521
+b552243a3bfe6aaf6f787-337d4464e448efa7-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+ "LAB_KEEP": "pane-kept", "LAB_DROP": null, "FM_TASK_ID": "lab-tp-on-allowlisted-carrier", "COMPACT_ADVISER_DISABLE": "1
+"}}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live/pool/.treehou
+se/project-5d6b74/4/project$
+
+
+
+
+
+
+
+
+
+
+
+

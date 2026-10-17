@@ -1,0 +1,28 @@
+[
+  {
+    "case": "off-no-allowlist",
+    "mode": "off",
+    "allowlist": null,
+    "worker": {
+      "pid": 701329,
+      "parent_pid": 697028,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/pool/.treehouse/project-b519e4/1/project",
+      "environment": {
+        "TRACEPARENT": "00-11111111111111111111111111111111-2222222222222222-01",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=ambient-pane,lab.marker=preserve",
+        "LAB_KEEP": "pane-kept",
+        "LAB_DROP": "pane-dropped",
+        "FM_TASK_ID": "lab-tp-off-no-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1"
+      }
+    },
+    "metadata": {
+      "window": "primary:fm-lab-tp-off-no-allowlist",
+      "worktree": "~/.no-mistakes/worktrees/65938fb6b121/01M54R9YEHJ6EPAQ78ZYQS4VRY/.test-runtime/live-before-fix/pool/.treehouse/project-b519e4/1/project",
+      "harness": "python3",
+      "kind": "ship",
+      "mode": "no-mistakes"
+    },
+    "result": "original stale-carrier leak reproduced"
+  }
+]
