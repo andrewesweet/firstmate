@@ -25,10 +25,15 @@ concurrency:
 # tiers and their rationale; tests/fm-ci-workflow.test.sh guards this workflow.
 # Each job comment identifies the tier implemented by its executable value.
 
+# CONTRIBUTING.md owns the fork opt-out variables and their supported use.
+# Keep opt-outs at job level: a skipped job reports success, while a workflow
+# filtered out at the trigger stays pending and blocks the merge.
+# The inherited push conditions are dormant under the pull_request-only trigger.
 jobs:
   lint:
     name: Lint ${{ matrix.partition }}
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Normal tier (see the timeout policy above).
     timeout-minutes: 30
     strategy:
@@ -79,6 +84,7 @@ jobs:
   test-coverage:
     name: Test coverage guard
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Fast tier: the coverage guard is a seconds-long local computation.
     timeout-minutes: 5
     steps:
@@ -91,6 +97,7 @@ jobs:
   tests-portable-parallel-1:
     name: Behavior portable parallel 1
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Normal tier (see the timeout policy above).
     timeout-minutes: 30
     steps:
@@ -112,13 +119,15 @@ jobs:
           set -eu
           npm install -g tasks-axi
           tasks-axi --version
-      - name: Install the Pi package for the Pi extension tests
+      # bin/fm-install-pi.sh owns the locked Pi setup and compatibility checks.
+      - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
-          # Pinned to the 1.0.x release the Pi extension tests were validated on.
-          npm install -g @earendil-works/pi-coding-agent@1.0.4
-          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+          bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+          echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Run portable parallel shard 1
+        env:
+          FM_PI_PACKAGE_DIR: ${{ runner.temp }}/pi/node_modules/@earendil-works/pi-coding-agent
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/fm-test"
@@ -136,6 +145,7 @@ jobs:
   tests-portable-parallel-2:
     name: Behavior portable parallel 2
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Normal tier (see the timeout policy above).
     timeout-minutes: 30
     steps:
@@ -180,6 +190,7 @@ jobs:
   tests-portable-serial:
     name: Behavior portable serial ${{ matrix.shard }}
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Normal tier (see the timeout policy above).
     timeout-minutes: 30
     strategy:
@@ -230,17 +241,15 @@ jobs:
           status=$(treehouse status --json)
           printf '%s\n' "$status"
           printf '%s' "$status" | jq -e . >/dev/null || { echo "::error::treehouse status --json did not print valid JSON"; exit 1; }
-      # The Pi extension tests read the installed Pi package's own types and
-      # runtime, so without it they gate-skip and pass silently. It is a public
-      # npm package and needs no credential, so CI can hold the real thing.
-      - name: Install the Pi package for the Pi extension tests
+      # bin/fm-install-pi.sh owns the locked Pi setup and compatibility checks.
+      - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
-          # Pinned to the 1.0.x release the Pi extension tests were validated on.
-          npm install -g @earendil-works/pi-coding-agent@1.0.4
-          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+          bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+          echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Run portable serial shard ${{ matrix.shard }}
         env:
+          FM_PI_PACKAGE_DIR: ${{ runner.temp }}/pi/node_modules/@earendil-works/pi-coding-agent
           # job-total rather than a literal, so shrinking or growing the matrix
           # without matching bin/fm-test-run.sh is refused instead of quietly
           # leaving a shard of the required lane unrun.
@@ -269,6 +278,7 @@ jobs:
   tests-herdr:
     name: Behavior tests (Herdr)
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Heavy tier (see the timeout policy above): the last-resort job backstop.
     # The family-run step below owns the hang tripwire, so a wedged suite fails
     # there with the always() cleanup and timing upload still running.
@@ -397,7 +407,7 @@ jobs:
       - tests-portable-parallel-2
       - tests-portable-serial
       - tests-herdr
-    if: always()
+    if: ${{ always() && !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     steps:
       - uses: actions/checkout@v6
       - name: Download lane timing artifacts
@@ -430,6 +440,7 @@ jobs:
   macos-stock-bash:
     name: Stock macOS Bash snapshot compatibility
     runs-on: macos-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') && vars.FM_CI_SKIP_MACOS != '1' }}
     # Normal tier (see the timeout policy above).
     timeout-minutes: 30
     steps:
@@ -524,6 +535,7 @@ jobs:
   invariants:
     name: Repo invariants
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && vars.FM_CI_SKIP_PUSH == '1') }}
     # Fast tier: the invariant checks are seconds-long file comparisons.
     timeout-minutes: 5
     steps:

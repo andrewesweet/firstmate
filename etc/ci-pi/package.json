@@ -1,0 +1,18 @@
+{
+  "name": "fm-ci-pi-pin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned Pi package set for the Pi extension tests. bin/fm-install-pi.sh owns the install from this manifest plus package-lock.json. Pi 1.2.0 provides the typed before_agent_start message variants used by the extensions. Pi itself and every @earendil-works/* transitive are pinned exactly to prevent incompatible sibling releases: pi-codemode 1.3.0 removed the MCP_TYPESCRIPT_PREAMBLE export used by earlier Pi versions.",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.2.0"
+  },
+  "overrides": {
+    "@earendil-works/pi-agent-core": "1.2.0",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@earendil-works/pi-codemode": "1.2.0",
+    "@earendil-works/pi-coding-agent": "1.2.0",
+    "@earendil-works/pi-mcp": "1.2.0",
+    "@earendil-works/pi-telemetry": "1.2.0",
+    "@earendil-works/pi-tui": "1.2.0"
+  }
+}
