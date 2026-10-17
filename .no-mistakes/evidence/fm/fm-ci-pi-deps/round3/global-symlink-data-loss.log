@@ -1,0 +1,27 @@
+Global npm safety reproduction with a real disposable npm prefix.
+Oracle: fm-install-pi.sh promises not to touch global npm packages or their parent.
+All destinations and npm configuration were inside the validation workspace.
+npm_config_prefix=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/alias-global-prefix
+$ npm root -g
+~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/alias-global-prefix/lib/node_modules
+Physical destination: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-symlink-prefix-parent/lib
+Before: node_modules/pre-existing-global-package/package.json existed with version 1.0.0.
+
+$ bash bin/fm-install-pi.sh ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-symlink-prefix-parent/lib
+
+added 118 packages in 5s
+fm-install-pi.sh: installed pi 1.2.0 with all 7 scope packages at 1.2.0
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-symlink-prefix-parent/lib/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-symlink-prefix-parent/lib/node_modules/@earendil-works/pi-coding-agent
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm warn install-scripts 2 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+
+exit=0
+
+After: original global package preserved=False
+After: original package.json and package-lock.json preserved=False
+Result: FAIL. Only destination is canonicalized; npm global root retains its symlink spelling.

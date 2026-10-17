@@ -1,0 +1,70 @@
+job=tests-portable-parallel-1
+$ set -eu
+bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
+
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 118 packages in 7s
+npm warn install-scripts 2 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.2.0 with all 7 scope packages at 1.2.0
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-parallel-1/pi/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-parallel-1/pi/node_modules/@earendil-works/pi-coding-agent
+consumer=Run portable parallel shard 1
+$ set -eu
+command -v pi
+pi --version
+node --input-type=module <<'JS'
+import { pathToFileURL } from 'node:url';
+const pkg = process.env.FM_PI_PACKAGE_DIR;
+const loaded = await import(pathToFileURL(`${pkg}/dist/index.js`));
+console.log(`FM_PI_PACKAGE_DIR=${pkg}`);
+console.log(`runtime imported; ExtensionRunner=${typeof loaded.ExtensionRunner}`);
+if (typeof loaded.ExtensionRunner !== 'function') process.exit(1);
+JS
+
+~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-parallel-1/pi/node_modules/.bin/pi
+1.2.0
+FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-parallel-1/pi/node_modules/@earendil-works/pi-coding-agent
+runtime imported; ExtensionRunner=function
+Local execution of workflow install and consumer environment succeeded.
+
+job=tests-portable-serial
+$ set -eu
+bin/fm-install-pi.sh "$RUNNER_TEMP/pi"
+echo "$RUNNER_TEMP/pi/node_modules/.bin" >> "$GITHUB_PATH"
+
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 118 packages in 6s
+npm warn install-scripts 2 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.21.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+fm-install-pi.sh: installed pi 1.2.0 with all 7 scope packages at 1.2.0
+fm-install-pi.sh: add to PATH: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-serial/pi/node_modules/.bin
+fm-install-pi.sh: FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-serial/pi/node_modules/@earendil-works/pi-coding-agent
+consumer=Run portable serial shard ${{ matrix.shard }}
+$ set -eu
+command -v pi
+pi --version
+node --input-type=module <<'JS'
+import { pathToFileURL } from 'node:url';
+const pkg = process.env.FM_PI_PACKAGE_DIR;
+const loaded = await import(pathToFileURL(`${pkg}/dist/index.js`));
+console.log(`FM_PI_PACKAGE_DIR=${pkg}`);
+console.log(`runtime imported; ExtensionRunner=${typeof loaded.ExtensionRunner}`);
+if (typeof loaded.ExtensionRunner !== 'function') process.exit(1);
+JS
+
+~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-serial/pi/node_modules/.bin/pi
+1.2.0
+FM_PI_PACKAGE_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/workflow/workflow-tests-portable-serial/pi/node_modules/@earendil-works/pi-coding-agent
+runtime imported; ExtensionRunner=function
+Local execution of workflow install and consumer environment succeeded.
+

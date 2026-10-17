@@ -1,0 +1,24 @@
+{
+  "source_changes_made_by_test_phase": false,
+  "disposable_worktree_fixtures_removed": true,
+  "environment": {
+    "node": "v24.22.0",
+    "npm": "12.2.0"
+  },
+  "setup_failures_resolved": [
+    "npm rejects one file used for both user and global config; used separate empty worktree-local config files.",
+    "Nested TMUX_TMPDIR exceeded Unix socket limits; used the worktree root for test-owned sockets.",
+    "Chromium singleton sockets exceeded Unix path limits; a worktree-local launcher set TMPDIR=/tmp only for Chromium incidental temporary files.",
+    "Host process reparenting differs from init; used a private PID namespace. Root mapping bypassed read-only fixtures; the passing final runner suite preserved ordinary UID with --map-current-user."
+  ],
+  "final_targeted_checks": {
+    "fm-test-run.test.sh": "pass in private PID namespace preserving UID",
+    "fm-calm-pi-extension.test.sh": "pass, including real TUI, persistence, restart, and Chrome export checks",
+    "fm-pi-branch-extension.test.sh": "pass",
+    "fm-pi-watch-extension.test.sh": "pass",
+    "fresh_and_repaired_locked_pi_install": "pass",
+    "serial_parallel_failure_replay": "pass",
+    "exact_global_root_refusal": "pass",
+    "parent_of_global_root_safety": "fail: installer exits 0 and deletes a pre-existing package in an isolated global npm tree"
+  }
+}

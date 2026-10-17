@@ -1,0 +1,13 @@
+$ node --input-type=module -e const pi = await import("file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/historical-floating/node_modules/%40earendil-works/pi-coding-agent/dist/index.js"); console.log("Public Pi runtime imported; exports=" + Object.keys(pi).length);
+file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/historical-floating/node_modules/@earendil-works/pi-coding-agent/dist/extensions/codemode/tool.js:24
+import { MCP_TYPESCRIPT_PREAMBLE, mcpStructuredContentSchema, renderToolOutputType, renderToolSample, toCodemodeIdentifier, } from "@earendil-works/pi-codemode/declarations";
+         ^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module '@earendil-works/pi-codemode/declarations' does not provide an export named 'MCP_TYPESCRIPT_PREAMBLE'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/[eval1]:1:12
+
+Node.js v24.22.0
+
+exit=1

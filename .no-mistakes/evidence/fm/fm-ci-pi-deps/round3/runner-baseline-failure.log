@@ -1,0 +1,56 @@
+FM_TEST_BEGIN 2026-10-17T02:18:34Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+failure evidence 01
+failure evidence 02
+failure evidence 03
+failure evidence 04
+failure evidence 05
+failure evidence 06
+failure evidence 07
+failure evidence 08
+failure evidence 09
+failure evidence 10
+failure evidence 11
+failure evidence 12
+failure evidence 13
+failure evidence 14
+failure evidence 15
+failure evidence 16
+failure evidence 17
+failure evidence 18
+failure evidence 19
+failure evidence 20
+failure evidence 21
+failure evidence 22
+failure evidence 23
+failure evidence 24
+failure evidence 25
+failure evidence 26
+failure evidence 27
+failure evidence 28
+failure evidence 29
+failure evidence 30
+failure evidence 31
+failure evidence 32
+failure evidence 33
+failure evidence 34
+failure evidence 35
+failure evidence 36
+failure evidence 37
+failure evidence 38
+failure evidence 39
+failure evidence 40
+failure evidence 41
+failure evidence 42
+failure evidence 43
+failure evidence 44
+failure evidence 45
+failure evidence 46
+failure evidence 47
+failure evidence 48
+failure evidence 49
+failure evidence 50
+FAILURE_STDERR_SENTINEL
+FM_TEST_END 2026-10-17T02:18:34Z tests/fm-composer-lib.test.sh exit=7 duration_ms=12 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=46
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=12 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-composer-lib.test.sh duration_ms=12

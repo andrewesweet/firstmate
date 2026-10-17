@@ -1,0 +1,7 @@
+npm root -g: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global/lib/node_modules
+Destination: ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global/lib/node_modules
+Pre-existing global package existed before: true
+fm-install-pi.sh: refusing to install into the global npm root (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global/lib/node_modules)
+
+Installer exit: 1
+Pre-existing global package survives: True

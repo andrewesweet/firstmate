@@ -1,0 +1,61 @@
+{
+  "families": [
+    {
+      "count": 1,
+      "duration_ms": 42108,
+      "failed": 0,
+      "name": "pure-contract-unit"
+    },
+    {
+      "count": 1,
+      "duration_ms": 90408,
+      "failed": 0,
+      "name": "standalone"
+    },
+    {
+      "count": 1,
+      "duration_ms": 333,
+      "failed": 0,
+      "name": "unclassified"
+    }
+  ],
+  "finished_at": "2026-10-17T02:22:09Z",
+  "run_id": "fm-test-run-1792203596146-1459226",
+  "scripts": [
+    {
+      "duration_ms": 333,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "unclassified",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-install-pi.test.sh"
+    },
+    {
+      "duration_ms": 90408,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "standalone",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pi-branch-extension.test.sh"
+    },
+    {
+      "duration_ms": 42108,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-calm-pi-extension.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=1",
+  "started_at": "2026-10-17T02:19:56Z",
+  "summary": {
+    "duration_ms": 132936,
+    "failed": 0,
+    "skipped_gate": 0,
+    "total": 3
+  }
+}

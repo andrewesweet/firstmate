@@ -1,0 +1,3 @@
+$ git -c "user.name=Live Test" -c user.email=test@example.invalid -c commit.gpgsign=false commit -qm baseline
+
+Observed exit status: 0

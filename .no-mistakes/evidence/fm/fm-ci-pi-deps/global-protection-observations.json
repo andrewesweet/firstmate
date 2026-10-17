@@ -1,0 +1,30 @@
+[
+  {
+    "prefix": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix",
+    "destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib",
+    "exit": 1,
+    "preexisting_package_unchanged": true,
+    "both_manifests_unchanged": true
+  },
+  {
+    "prefix": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix",
+    "destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib/node_modules",
+    "exit": 1,
+    "preexisting_package_unchanged": true,
+    "both_manifests_unchanged": true
+  },
+  {
+    "prefix": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix-link",
+    "destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib",
+    "exit": 1,
+    "preexisting_package_unchanged": true,
+    "both_manifests_unchanged": true
+  },
+  {
+    "prefix": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix-link",
+    "destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib/node_modules",
+    "exit": 1,
+    "preexisting_package_unchanged": true,
+    "both_manifests_unchanged": true
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "baseline_counterfactual": "Base-commit runner exits nonzero but omits failure attribution and replay after its summary; current runner replays fixed 30-line tails.",
+  "real_product_checks": [
+    "Fresh locked Pi install, public runtime import, and pi --version",
+    "Dependency drift repair and exact npm tree restoration",
+    "Both changed workflow install steps and consumer PATH/package environments executed locally",
+    "Literal global root and parent refusal preserve packages and manifests",
+    "Symlinked npm prefix bypasses refusal and deletes the pre-existing global package",
+    "Serial/parallel failure replay, stderr, silent failure, passing-output exclusion, and subsequent success",
+    "Changed-test selection for all three installer inputs",
+    "Existing installer and Pi branch/Calm consumer tests, including real Pi TUI and exported-HTML rendering",
+    "Existing runner contract suite in a private PID namespace retaining the ordinary UID"
+  ],
+  "source_changes_made": false,
+  "linters_formatters_static_analysis_run": false,
+  "complete_repository_suite_run": false,
+  "visual_evidence": "No UI source changed; installer and runner CLI transcripts are the relevant product evidence. Existing Calm end-to-end checks exercised its actual TUI and Chrome export rendering.",
+  "overall_result": "no-go: symlinked global npm prefix allows destruction of existing global packages",
+  "disposable_workspace_removed": true,
+  "empty_test_socket_directories_removed": []
+}

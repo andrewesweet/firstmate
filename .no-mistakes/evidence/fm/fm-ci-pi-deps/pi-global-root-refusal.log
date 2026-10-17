@@ -1,0 +1,4 @@
+$ bin/fm-install-pi.sh ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-exact/lib/node_modules
+fm-install-pi.sh: refusing to install into the global npm root (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-exact/lib/node_modules)
+
+exit=1

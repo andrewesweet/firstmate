@@ -1,0 +1,25 @@
+{
+  "oracle": "Accepted fixed 30-line failure replay, stderr capture, attribution, and nonzero failure propagation",
+  "current": [
+    {
+      "jobs": 1,
+      "exit": 1,
+      "verbose_tail_lines": 30,
+      "first_replayed_row": "failure evidence 22",
+      "last_replayed_row": "FAILURE_STDERR_SENTINEL",
+      "silent_failure": "exit=9, (no captured output)",
+      "passing_output_replayed": false
+    },
+    {
+      "jobs": 2,
+      "exit": 1,
+      "verbose_tail_lines": 30,
+      "first_replayed_row": "failure evidence 22",
+      "last_replayed_row": "FAILURE_STDERR_SENTINEL",
+      "silent_failure": "exit=9, (no captured output)",
+      "passing_output_replayed": false
+    }
+  ],
+  "subsequent_success_has_no_failure_section": true,
+  "base_commit_omits_failure_replay": true
+}

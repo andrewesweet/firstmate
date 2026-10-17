@@ -1,0 +1,4 @@
+$ bash bin/fm-test-run.sh --list --changed --base 7e22f2adc8e15f7548288980e5cf7f4d3129821a
+fm-test-run: no changed-test mapping for source path: .fm-ci-pi-live-v_53zgp6/guard-prefix-link
+
+Observed exit status: 2

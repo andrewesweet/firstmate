@@ -1,0 +1,46 @@
+{
+  "families": [
+    {
+      "count": 1,
+      "duration_ms": 12154,
+      "failed": 1,
+      "name": "pure-contract-unit"
+    },
+    {
+      "count": 1,
+      "duration_ms": 83942,
+      "failed": 0,
+      "name": "standalone"
+    }
+  ],
+  "finished_at": "2026-10-17T02:29:49Z",
+  "run_id": "fm-test-run-1792204093698-1912117",
+  "scripts": [
+    {
+      "duration_ms": 12154,
+      "exit": 1,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-calm-pi-extension.test.sh"
+    },
+    {
+      "duration_ms": 83942,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "standalone",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pi-branch-extension.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=1",
+  "started_at": "2026-10-17T02:28:13Z",
+  "summary": {
+    "duration_ms": 96156,
+    "failed": 1,
+    "skipped_gate": 0,
+    "total": 2
+  }
+}

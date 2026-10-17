@@ -1,0 +1,25 @@
+$ node --input-type=module -e "
+import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
+const root = process.argv[1];
+const require = createRequire(pathToFileURL(root + '/package.json'));
+const names = ['pi-agent-core','pi-ai','pi-codemode','pi-coding-agent','pi-mcp','pi-telemetry','pi-tui'];
+for (const name of names) {
+  const pkg = require(root + '/node_modules/@earendil-works/' + name + '/package.json');
+  if (pkg.version !== '1.2.0') throw Error(name + ' floated to ' + pkg.version);
+  console.log('@earendil-works/' + name + '=' + pkg.version);
+}
+const runtime = await import(pathToFileURL(root + '/node_modules/@earendil-works/pi-coding-agent/dist/index.js'));
+if (typeof runtime.createAgentSession !== 'function') throw Error('public SDK unavailable');
+console.log('Pi public runtime imported; createAgentSession is callable');
+" ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/pinned-pi
+@earendil-works/pi-agent-core=1.2.0
+@earendil-works/pi-ai=1.2.0
+@earendil-works/pi-codemode=1.2.0
+@earendil-works/pi-coding-agent=1.2.0
+@earendil-works/pi-mcp=1.2.0
+@earendil-works/pi-telemetry=1.2.0
+@earendil-works/pi-tui=1.2.0
+Pi public runtime imported; createAgentSession is callable
+
+Observed exit status: 0

@@ -1,0 +1,33 @@
+{
+  "fresh_install": {
+    "installer_exit": 0,
+    "version": "1.2.0",
+    "scope_versions": {
+      "@earendil-works/pi-coding-agent": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-agent-core": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-ai": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-telemetry": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-codemode": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-mcp": [
+        "1.2.0"
+      ],
+      "@earendil-works/pi-tui": [
+        "1.2.0"
+      ]
+    },
+    "public_runtime_imported": true
+  },
+  "reinstall_repairs_drift_and_removes_extraneous": true,
+  "entire_dependency_tree_reproduced": true,
+  "committed_lock_unchanged": true
+}

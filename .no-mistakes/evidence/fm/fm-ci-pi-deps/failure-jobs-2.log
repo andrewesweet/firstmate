@@ -1,0 +1,109 @@
+$ bash ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/runner-repo/bin/fm-test-run.sh --jobs 2 --json ~/.no-mistakes/evidence/01M53Q0RK2MPN19NNQ90V2JFV1/failure-jobs-2.json tests/fm-brief.test.sh tests/fm-composer-lib.test.sh tests/fm-ask-user-authority.test.sh tests/fm-documentation-audiences.test.sh
+FM_TEST_BEGIN 2026-10-17T02:28:10Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-17T02:28:10Z tests/fm-composer-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+passing fixture unique output
+FM_TEST_END 2026-10-17T02:28:10Z tests/fm-brief.test.sh exit=0 duration_ms=12 gate_skip=false
+failure evidence line 01 of 50
+failure evidence line 02 of 50
+failure evidence line 03 of 50
+failure evidence line 04 of 50
+failure evidence line 05 of 50
+failure evidence line 06 of 50
+failure evidence line 07 of 50
+failure evidence line 08 of 50
+failure evidence line 09 of 50
+failure evidence line 10 of 50
+failure evidence line 11 of 50
+failure evidence line 12 of 50
+failure evidence line 13 of 50
+failure evidence line 14 of 50
+failure evidence line 15 of 50
+failure evidence line 16 of 50
+failure evidence line 17 of 50
+failure evidence line 18 of 50
+failure evidence line 19 of 50
+failure evidence line 20 of 50
+failure evidence line 21 of 50
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+distinctive stderr failure
+FM_TEST_END 2026-10-17T02:28:10Z tests/fm-composer-lib.test.sh exit=7 duration_ms=13 gate_skip=false
+FM_TEST_BEGIN 2026-10-17T02:28:10Z tests/fm-documentation-audiences.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-17T02:28:10Z tests/fm-ask-user-authority.test.sh family=pure-contract-unit expected_gate_skip=none
+short failure details
+FM_TEST_END 2026-10-17T02:28:10Z tests/fm-documentation-audiences.test.sh exit=3 duration_ms=13 gate_skip=false
+FM_TEST_END 2026-10-17T02:28:10Z tests/fm-ask-user-authority.test.sh exit=9 duration_ms=13 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=3 skipped_gate=0 duration_ms=184
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=4 duration_ms=51 failed=3
+FM_TEST_SLOWEST rank=1 script=tests/fm-ask-user-authority.test.sh duration_ms=13
+FM_TEST_SLOWEST rank=2 script=tests/fm-composer-lib.test.sh duration_ms=13
+FM_TEST_SLOWEST rank=3 script=tests/fm-documentation-audiences.test.sh duration_ms=13
+FM_TEST_SLOWEST rank=4 script=tests/fm-brief.test.sh duration_ms=12
+FM_TEST_FAILED script=tests/fm-composer-lib.test.sh exit=7
+failure evidence line 22 of 50
+failure evidence line 23 of 50
+failure evidence line 24 of 50
+failure evidence line 25 of 50
+failure evidence line 26 of 50
+failure evidence line 27 of 50
+failure evidence line 28 of 50
+failure evidence line 29 of 50
+failure evidence line 30 of 50
+failure evidence line 31 of 50
+failure evidence line 32 of 50
+failure evidence line 33 of 50
+failure evidence line 34 of 50
+failure evidence line 35 of 50
+failure evidence line 36 of 50
+failure evidence line 37 of 50
+failure evidence line 38 of 50
+failure evidence line 39 of 50
+failure evidence line 40 of 50
+failure evidence line 41 of 50
+failure evidence line 42 of 50
+failure evidence line 43 of 50
+failure evidence line 44 of 50
+failure evidence line 45 of 50
+failure evidence line 46 of 50
+failure evidence line 47 of 50
+failure evidence line 48 of 50
+failure evidence line 49 of 50
+failure evidence line 50 of 50
+distinctive stderr failure
+FM_TEST_FAILURE_END script=tests/fm-composer-lib.test.sh
+FM_TEST_FAILED script=tests/fm-documentation-audiences.test.sh exit=3
+short failure details
+FM_TEST_FAILURE_END script=tests/fm-documentation-audiences.test.sh
+FM_TEST_FAILED script=tests/fm-ask-user-authority.test.sh exit=9
+(no captured output)
+FM_TEST_FAILURE_END script=tests/fm-ask-user-authority.test.sh
+fm-test-run: wrote timing artifact: ~/.no-mistakes/evidence/01M53Q0RK2MPN19NNQ90V2JFV1/failure-jobs-2.json
+
+Observed exit status: 1

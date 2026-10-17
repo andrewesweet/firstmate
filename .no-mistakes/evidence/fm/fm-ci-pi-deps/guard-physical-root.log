@@ -1,0 +1,4 @@
+$ bash bin/fm-install-pi.sh ~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib/node_modules
+fm-install-pi.sh: refusing to install into the global npm root or its parent (~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.fm-ci-pi-live-v_53zgp6/guard-prefix/lib/node_modules)
+
+Observed exit status: 1

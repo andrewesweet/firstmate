@@ -1,0 +1,4 @@
+$ node --input-type=module -e const pi = await import("file://~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/pinned/node_modules/%40earendil-works/pi-coding-agent/dist/index.js"); console.log("Public Pi runtime imported; exports=" + Object.keys(pi).length);
+Public Pi runtime imported; exports=156
+
+exit=0

@@ -1,0 +1,16 @@
+{
+  "oracle": "Installer header promises the host global npm install is shared state this helper never touches",
+  "isolated_npm_global_root": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global/lib/node_modules",
+  "results": [
+    {
+      "destination": "exact-global-root",
+      "installer_exit": 1,
+      "pre_existing_global_package_survives": true
+    },
+    {
+      "destination": "parent-of-global-root",
+      "installer_exit": 0,
+      "pre_existing_global_package_survives": false
+    }
+  ]
+}

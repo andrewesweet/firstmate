@@ -1,0 +1,35 @@
+{
+  "oracle": "The installer promises never to touch global npm shared state, including an existing global prefix named by a symlink.",
+  "results": [
+    {
+      "case": "global-root",
+      "npm_global_root": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global-root/lib/node_modules",
+      "physical_destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global-root/lib/node_modules",
+      "exit": 1,
+      "refused": true,
+      "global_package_preserved": true,
+      "manifests_preserved": true,
+      "result": "pass"
+    },
+    {
+      "case": "global-root-parent",
+      "npm_global_root": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global-root-parent/lib/node_modules",
+      "physical_destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-global-root-parent/lib",
+      "exit": 1,
+      "refused": true,
+      "global_package_preserved": true,
+      "manifests_preserved": true,
+      "result": "pass"
+    },
+    {
+      "case": "symlink-prefix-parent",
+      "npm_global_root": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/alias-global-prefix/lib/node_modules",
+      "physical_destination": "~/.no-mistakes/worktrees/feb37d45d9da/01M53Q0RK2MPN19NNQ90V2JFV1/.pi-ci-validation/guard-symlink-prefix-parent/lib",
+      "exit": 0,
+      "refused": false,
+      "global_package_preserved": false,
+      "manifests_preserved": false,
+      "result": "fail"
+    }
+  ]
+}
