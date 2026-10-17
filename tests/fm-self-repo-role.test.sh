@@ -323,6 +323,47 @@ test_check_task_consent_authorizes_one_task() {
   pass "fm-role.sh check: recorded one-task consent authorizes its named repository only"
 }
 
+# A fork home that keeps the parent repository as its `upstream` remote
+# (upstream first in the remote order) resolves every fork ship to the parent
+# (upstream issue 7438). An explicit home-local declaration selects the fork
+# instead, and only selects it: authority still comes from a matching
+# maintainer scope or one-task consent, and every unusable declaration falls
+# back to the remote order.
+make_fork_layout() {  # <name> - a fixture code root with upstream=parent, origin=fork
+  local root
+  root=$(make_lineage_root "$1" https://github.com/fork-owner/firstmate)
+  git -C "$root" remote add upstream https://github.com/kunchenguid/firstmate
+  printf '%s\n' "$root"
+}
+
+test_declared_target_selects_the_fork() {
+  local root home plain_home out rc pin expected
+  root=$(make_fork_layout decl-fork)
+  home=$(make_role_home decl-fork-user)
+  printf 'github.com/fork-owner/firstmate\n' > "$home/config/firstmate-pub-target"
+  out=$(check_as "$root" "$home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
+  expect_code 0 "$rc" "a declared fork target must authorize matching fork consent (got: $out)"
+  assert_contains "$out" "authorized: task consent for github.com/fork-owner/firstmate" \
+    "the declaration must not create standing authority; consent must still be named"
+  assert_contains "$out" "publication target: github.com/fork-owner/firstmate (declared)" \
+    "the check output must name the declared target and its source"
+  pin=$(printf '%s\n' "$out" | sed -n 's/^publication pin: //p')
+  expected=$(printf 'github.com\ngithub.com/fork-owner/firstmate')
+  assert_equals "$expected" "$(publication_environment "$pin")" \
+    "the publication pin must follow the declared target, not the upstream remote"
+
+  # The same layout without a declaration keeps the parent as the target and
+  # refuses fork consent (the reported issue 7438 surface).
+  plain_home=$(make_role_home decl-fork-plain)
+  out=$(check_as "$root" "$plain_home" "$root" upstream-consent github.com/fork-owner/firstmate); rc=$?
+  expect_code 1 "$rc" "fork consent must stay refused while the target resolves to the parent (got: $out)"
+  assert_contains "$out" "no publication authority for github.com/kunchenguid/firstmate" \
+    "the refusal must name the remote-derived parent target"
+  assert_contains "$out" "publication target: github.com/kunchenguid/firstmate (remote order)" \
+    "the check output must name the remote order as the target source"
+  pass "declared publication target: a fork declaration selects the fork; no declaration keeps the parent"
+}
+
 publication_environment() {
   GH_REPO=kunchenguid/firstmate GH_HOST=upstream.example \
     bash -c "$1; printf '%s\\n%s\\n' \"\$GH_HOST\" \"\$GH_REPO\""
@@ -891,6 +932,7 @@ test_check_equivalent_remote_spellings_are_one_repo
 test_check_fork_lineage_reaches_the_gate
 test_check_undeterminable_lineage_and_target_refuse
 test_check_task_consent_authorizes_one_task
+test_declared_target_selects_the_fork
 test_publication_commands_pin_the_authorized_fork
 test_ship_launch_pins_destination_after_environment_filtering
 test_secondmate_cannot_self_grant
