@@ -397,7 +397,7 @@ EOF
 # each fix round must sweep the pattern itself instead of waiting for the next
 # review to find the rest. Defined once so tests and a later miner pass can
 # match the exact text, including its stable "Sibling-site sweep:" lead phrase
-# that marks a fix round as swept.
+# that identifies the sweep instruction.
 FM_SIBLING_SITE_SWEEP='Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.'
 
 # The forge-independent middle of the no-mistakes contract: how a worker drives
