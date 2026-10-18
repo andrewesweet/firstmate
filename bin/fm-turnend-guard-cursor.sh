@@ -10,8 +10,8 @@
 #             actionable wake, then return that wake as the follow-up. No model
 #             tokens are spent while parked. The next turn end parks again, so
 #             the arm/re-arm loop is hook-owned, never model-memory-owned.
-#   BACKSTOP  when the park cannot establish supervision, return the shared
-#             turn-end guard's repair instruction as a bounded follow-up.
+#   BACKSTOP  return a bounded repair follow-up for explicit host failure or
+#             the shared turn-end guard's repair instruction.
 #
 # EXIT 2 IS A SILENT NO-OP ON CURSOR'S stop. Cursor's blocked-response mapper
 # returns an empty object for the stop step (index.js @ 4823085,
@@ -35,8 +35,9 @@
 # header owns the output this park reads. A "supervision-host:" line is
 # actionable like a wake line, and the follow-up carries every such line in
 # order while wake lines keep the eight-line cap; "supervision-host stood
-# down:" ends the park silently; a host that died without a close is retried
-# instead of being judged by the healthy-watcher predicate. On a home that does not run the host nothing below changes.
+# down:" ends the park silently. docs/turnend-guard.md "Supervision-host
+# failures" owns failure reporting and lost-host retries. On a home that does
+# not run the host nothing below changes.
 #
 # LOOP BOUNDING IS DOUBLE, because either bound alone is insufficient:
 #   - `loop_limit` in .cursor/hooks.json is Cursor's own ceiling. Once

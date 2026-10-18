@@ -107,16 +107,8 @@ The stale-owner claim occurs only after the existing AFK and supervision-need ga
 A main-mate restart mid-cycle is a non-event for the same reason: the dying session's hook lives on as an orphan that can no longer deliver, so its claim is no longer open, and the replacement session's first Stop takes the next generation, attaches to the running watcher through `bin/fm-watch-arm.sh`, and is the hook that delivers the cycle's close; [`turnend-guard.md`](turnend-guard.md#harness-integrations) owns the open-claim definition.
 
 ### Claude arm failures
-After each non-actionable arm close, the hook rechecks the identity-matched watcher lock and fresh beacon before retrying a bounded number of times.
-The beacon is `state/.last-watcher-beat`, which only the watcher process touches.
 
-- A cycle-end failure is benign when that live-watcher predicate is true.
-  In that case the hook suppresses the arm output and continues silently.
-- Only an exhausted failure with no verified watcher commits one last-resort notice for the continuous failure episode.
-- A refused notice commit stays silent for a later retry.
-- After a successful notice, later Stop cycles exit 2 without repeating it until the turn-end guard consumes the attended fail-open.
-
-The Claude turn-end guard owns that notice commit contract, the monotonic failure progression, one-time attended fail-open, post-alarm continuation suppression, and positive recovery reset described in [`turnend-guard.md`](turnend-guard.md#harness-integrations).
+[`turnend-guard.md`](turnend-guard.md#failure-progression-and-block-budget) owns arm retry and failure progression, notice commits, attended fail-open, and recovery reset, including the [supervision-host exception](turnend-guard.md#supervision-host-failures).
 
 ### Supervision host
 
