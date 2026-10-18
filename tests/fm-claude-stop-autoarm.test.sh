@@ -1565,6 +1565,10 @@ SH
       crash)
         printf 'kill -KILL "$$"\n'
         ;;
+      failure|quiet-failure)
+        [ "$kind" != failure ] || printf "printf 'watcher: started pid=123 (beacon fresh)\\n'\n"
+        printf 'exit 1\n'
+        ;;
     esac
     printf 'exit 0\n'
   } > "$dir/bin/fm-supervision-host.sh"
@@ -1780,6 +1784,26 @@ test_host_lost_announced_handback_notifies_once_per_episode() {
   pass "auto-arm: a lost host hand-back on an announced marker notifies once per failure episode"
 }
 
+# The failed-downtime hand-back case in fm-supervision-host.test.sh requires
+# an exit-2 notice to main. Reject a second park on an explicit host failure,
+# whether the host streamed its readiness line before the failure or not.
+test_host_failure_is_reported_without_retry() {
+  local kind dir out status
+  for kind in failure quiet-failure; do
+    dir=$(make_primary_dir "$TMP_ROOT/host-$kind")
+    rm -f "$dir/config/supervision-host-off"
+    : > "$dir/state/task.meta"
+    write_host_fixture "$dir" "$kind"
+    out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+    expect_code 2 "$status" "an explicit host failure must notify main"
+    [ "$(wc -l < "$dir/state/host-ran" | tr -d ' ')" -eq 1 ] \
+      || fail "$kind: an explicit host failure started another park"
+    assert_contains "$out" "auto-arm FAILED" "an explicit host failure must deliver the failure notice"
+    [ "$(epoch_outcome "$dir")" = failed ] || fail "$kind: the failure was not committed"
+  done
+  pass "auto-arm: explicit host failures notify main without retry, with or without readiness output"
+}
+
 test_host_crash_is_retried_then_reported() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-crash")
@@ -1908,6 +1932,7 @@ test_host_stand_down_is_silent
 test_host_benign_rewake_refusal_opens_no_failure_episode
 test_host_lost_handback_notifies_once_per_episode
 test_host_lost_announced_handback_notifies_once_per_episode
+test_host_failure_is_reported_without_retry
 test_host_crash_is_retried_then_reported
 test_arguments_never_arm
 test_fm_lock_status_still_works_with_shared_lib
