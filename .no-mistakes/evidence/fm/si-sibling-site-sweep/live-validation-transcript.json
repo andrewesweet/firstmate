@@ -1,0 +1,171 @@
+[
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-none-background",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "none"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-none-background/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-gerrit-background",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "gerrit"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-gerrit-background/brief.md (ship, mode=no-mistakes forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-forgejo-background",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "forgejo"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-forgejo-background/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-none-foreground",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "none"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-none-foreground/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-gerrit-foreground",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "gerrit"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-gerrit-foreground/brief.md (ship, mode=no-mistakes forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "no-mistakes prompt across forges and wait modes",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-forgejo-foreground",
+      "disposable-project",
+      "--mode",
+      "no-mistakes",
+      "--forge",
+      "forgejo"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-forgejo-foreground/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "task guidance is additive to fixed sweep",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-custom-guidance",
+      "disposable-project",
+      "--mode",
+      "no-mistakes"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-custom-guidance/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "emitted_additions": "For this task, preserve retry limits while fixing selected findings.\n",
+    "emitted_rule": "- Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`"
+  },
+  {
+    "scenario": "faster modes omit pipeline-only sweep",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-boundary-direct-PR-none",
+      "disposable-project",
+      "--mode",
+      "direct-PR",
+      "--forge",
+      "none"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-boundary-direct-PR-none/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "delivery": "Delivery contract: mode=direct-PR"
+  },
+  {
+    "scenario": "faster modes omit pipeline-only sweep",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-boundary-direct-PR-gerrit",
+      "disposable-project",
+      "--mode",
+      "direct-PR",
+      "--forge",
+      "gerrit"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-boundary-direct-PR-gerrit/brief.md (ship, mode=direct-PR forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "delivery": "Delivery contract: mode=direct-PR forge=gerrit shape=squash"
+  },
+  {
+    "scenario": "faster modes omit pipeline-only sweep",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-boundary-direct-PR-forgejo",
+      "disposable-project",
+      "--mode",
+      "direct-PR",
+      "--forge",
+      "forgejo"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-boundary-direct-PR-forgejo/brief.md (ship, mode=direct-PR forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "delivery": "Delivery contract: mode=direct-PR forge=forgejo"
+  },
+  {
+    "scenario": "faster modes omit pipeline-only sweep",
+    "command": [
+      "bin/fm-brief.sh",
+      "sweep-boundary-local-only-none",
+      "disposable-project",
+      "--mode",
+      "local-only",
+      "--forge",
+      "none"
+    ],
+    "result": "pass",
+    "output": "scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0/.sibling-sweep-live-cb964jg8/home/data/sweep-boundary-local-only-none/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})",
+    "delivery": "Delivery contract: mode=local-only"
+  },
+  {
+    "scenario": "regression: previous generated contract lacks fixed sweep",
+    "result": "expected failure",
+    "reason": "Must emit one complete fixed sweep in definition of done"
+  }
+]
