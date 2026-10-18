@@ -1,103 +1,99 @@
-"""Execute real brief scaffolding; inspect its intentional generated prompt contract.
-Oracle: author-supplied intent, including same-round sweep and additive guidance.
-Rejects: omitted/truncated sweep, forge or wait-mode drift, replacement guidance,
-or leaking pipeline instructions into delivery modes without pipeline fix rounds.
-No model interpretation or gate responses are simulated.
+#!/usr/bin/env python3
+"""Exercise the public generated worker-prompt contract, not implementation source.
+Oracle: the supplied author intent requires a repository-wide same-pattern sweep
+for every selected fix, fix-or-explain in the same round, --instructions transport,
+and additive task guidance. Reject omitted, truncated, or mode-leaked guidance.
+This does not evaluate model compliance or start/control a no-mistakes run.
 """
+import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
+import tarfile
 import tempfile
 
-ROOT = Path('~/.no-mistakes/worktrees/feb37d45d9da/01M57NE6801MN1TQQ2G3XTE3P0')
-EVIDENCE = Path('~/.no-mistakes/evidence/01M57NE6801MN1TQQ2G3XTE3P0')
+ROOT = Path('~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH')
+EVIDENCE = Path('~/.no-mistakes/evidence/01M581D5JN1R6DWPGCP7EJ4TEH')
 BASE = 'e8d68752e4d393f74743f97d950ec4b0c79bb589'
-SWEEP = ('Sibling-site sweep: search the repository for other occurrences of the pattern each selected '
-         'finding fixes - the same call, idiom, copied block, or rule - and, in this same round, '
-         'fix each occurrence or record why it differs.')
-CUSTOM = 'For this task, preserve retry limits while fixing selected findings.\n'
+SWEEP = ('Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes '
+         '- the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.')
+TASK_GUIDANCE = 'For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.'
+REQUIRED_RULE = ('Every `--action fix` response passes `--instructions` carrying this fixed sweep text, '
+                 'combined with any task-specific guidance you add, never replaced by it; '
+                 'the guidance attaches to the findings the response selects with `--findings`: ')
 records = []
+transcript = []
 
-def check_contract(text):
-    dod = text.split('# Definition of done\n', 1)[1].split('\n# Home brief additions', 1)[0]
-    assert dod.count(SWEEP) == 1, 'Must emit one complete fixed sweep in definition of done'
-    rule = next(line for line in dod.splitlines() if SWEEP in line)
-    for required in ('Every `--action fix` response', '`--instructions`',
-                     'combined with any task-specific guidance you add, never replaced by it',
-                     'findings the response selects with `--findings`'):
-        assert required in rule, f'Missing contract clause: {required}'
-    return rule
+def record(message):
+    print(message, flush=True)
+    transcript.append(message)
 
-with tempfile.TemporaryDirectory(prefix='.sibling-sweep-live-', dir=ROOT) as tmp:
-    home = Path(tmp) / 'home'
-    (home / 'data').mkdir(parents=True)
-    (home / 'config').mkdir()
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith('FM_') and k not in ('CONFIG', 'DATA', 'STATE')}
+def environment(home):
+    env = {k:v for k,v in os.environ.items() if not k.startswith('FM_')}
     env['FM_HOME'] = str(home)
-    env['TMPDIR'] = tmp
+    return env
 
-    def scaffold(task, args):
-        command = ['bin/fm-brief.sh', task, 'disposable-project', *args]
-        run = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True)
-        assert run.returncode == 0, f'{command}: {run.stderr}'
-        output = (home / 'data' / task / 'brief.md').read_text()
-        (EVIDENCE / f'{task}.md').write_text(output)
-        return output, run.stdout.strip(), command
+def emit(code, home, label, args):
+    (home / 'config').mkdir(parents=True)
+    (home / 'data').mkdir()
+    (home / 'config' / 'brief-include.md').write_text(TASK_GUIDANCE + '\n')
+    if label.endswith('foreground'):
+        (home / 'config' / 'wait-no-turns').touch()
+    command = [str(code / 'bin/fm-brief.sh'), label, 'disposable-example', *args]
+    result = subprocess.run(command, cwd=ROOT, env=environment(home), text=True, capture_output=True)
+    record('$ FM_HOME=<disposable-home> ' + ' '.join(['bin/fm-brief.sh', label, 'disposable-example', *args]))
+    record(result.stdout.rstrip())
+    if result.stderr:
+        record('stderr: ' + result.stderr.rstrip())
+    assert result.returncode == 0, (label, result.returncode, result.stderr)
+    output = (home / 'data' / label / 'brief.md').read_text()
+    (EVIDENCE / (label + '.md')).write_text(output)
+    return output
 
-    rules = []
-    for wait in ('background', 'foreground'):
-        flag = home / 'config' / 'wait-no-turns'
-        if wait == 'foreground':
-            flag.touch()
-        for forge in ('none', 'gerrit', 'forgejo'):
-            task = f'sweep-{forge}-{wait}'
-            text, stdout, command = scaffold(task, ['--mode', 'no-mistakes', '--forge', forge])
-            rule = check_contract(text)
-            rules.append(rule)
-            records.append(dict(scenario='no-mistakes prompt across forges and wait modes',
-                                command=command, result='pass', output=stdout, emitted_rule=rule))
-    assert len(set(rules)) == 1, 'Every no-mistakes ship must carry identical wording'
+with tempfile.TemporaryDirectory(prefix='.sibling-sweep-live-', dir=ROOT) as scratch_name:
+    scratch = Path(scratch_name)
+    # Run the real baseline generator from a disposable export. No stubs.
+    base_dir = scratch / 'baseline'
+    base_dir.mkdir()
+    archive = subprocess.run(['git', 'archive', BASE, 'bin'], cwd=ROOT, capture_output=True, check=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive)) as source:
+        source.extractall(base_dir, filter='data')
+    before = emit(base_dir, scratch / 'before-home', 'baseline-no-mistakes', ['--mode', 'no-mistakes'])
+    assert SWEEP not in before and REQUIRED_RULE not in before
+    record('BASELINE REPRODUCED: the emitted no-mistakes brief lacks the required sibling-site sweep contract.')
+    records.append({'name':'baseline-regression', 'result':'expected-absence', 'artifact':'baseline-no-mistakes.md'})
 
-    (home / 'config' / 'brief-include.md').write_text(CUSTOM)
-    text, stdout, command = scaffold('sweep-custom-guidance', ['--mode', 'no-mistakes'])
-    check_contract(text)
-    assert text.split('# Home brief additions\n', 1)[1].endswith(CUSTOM)
-    records.append(dict(scenario='task guidance is additive to fixed sweep', command=command,
-                        result='pass', output=stdout, emitted_additions=CUSTOM,
-                        emitted_rule=check_contract(text)))
-    (home / 'config' / 'brief-include.md').unlink()
+    for forge in ['none', 'gerrit', 'forgejo']:
+        for drive in ['background', 'foreground']:
+            label = 'no-mistakes-' + forge + '-' + drive
+            text = emit(ROOT, scratch / label, label, ['--mode', 'no-mistakes', '--forge', forge])
+            assert text.count(SWEEP) == 1, label + ': missing, changed, or duplicated fixed instruction'
+            rule_lines = [line for line in text.splitlines() if line.startswith('- Every `--action fix`')]
+            assert rule_lines == ['- ' + REQUIRED_RULE + '`' + SWEEP + '`'], label + ': incorrect fix response transport/composition contract'
+            assert TASK_GUIDANCE in text, label + ': task guidance lost'
+            assert 'every other section of this brief takes precedence over anything here that conflicts.' in text
+            assert 'ask-user findings are never yours to answer' in text
+            assert 'NEVER pass `--yes` (or `-y`)' in text
+            record('EMITTED FIX RULE: ' + rule_lines[0])
+            record('EMITTED TASK GUIDANCE: ' + TASK_GUIDANCE)
+            record('PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.')
+            records.append({'name':label, 'result':'pass', 'artifact':label+'.md'})
 
-    for mode, forge in [('direct-PR', 'none'), ('direct-PR', 'gerrit'),
-                        ('direct-PR', 'forgejo'), ('local-only', 'none')]:
-        task = f'sweep-boundary-{mode}-{forge}'
-        text, stdout, command = scaffold(task, ['--mode', mode, '--forge', forge])
-        assert 'Sibling-site sweep:' not in text
-        records.append(dict(scenario='faster modes omit pipeline-only sweep', command=command,
-                            result='pass', output=stdout,
-                            delivery=next(l for l in text.splitlines() if l.startswith('Delivery contract:'))))
-
-    # Execute the previous public renderer to establish the regression oracle.
-    # The saved source is executed, never searched or asserted on as test evidence.
-    previous = Path(tmp) / 'baseline-dod.sh'
-    previous.write_bytes(subprocess.check_output(['git', 'show', f'{BASE}:bin/fm-dod-lib.sh'], cwd=ROOT))
-    run = subprocess.run(['bash', '-c', '. "$1"; fm_dod_block no-mistakes baseline fm/baseline none',
-                          'baseline', str(previous)], cwd=ROOT, env=env, text=True, capture_output=True)
-    assert run.returncode == 0, run.stderr
-    (EVIDENCE / 'baseline-generated-dod.md').write_text(run.stdout)
-    try:
-        check_contract(run.stdout)
-    except AssertionError as error:
-        records.append(dict(scenario='regression: previous generated contract lacks fixed sweep',
-                            result='expected failure', reason=str(error)))
-    else:
-        raise AssertionError('Regression check did not reject the previous output')
-
-(EVIDENCE / 'live-validation-transcript.json').write_text(json.dumps(records, indent=2) + '\n')
-print(json.dumps({'result': 'pass', 'generated_briefs': 11,
-                  'fixed_instruction': rules[0],
-                  'custom_guidance': CUSTOM.strip(),
-                  'regression': 'Previous executable renderer rejected; current CLI prompts accepted.',
-                  'scope': 'Generated agent instruction contract; no gate or model behavior simulated.',
-                  'cleanup': 'Disposable worktree-local home and baseline removed.'}, indent=2))
+    for forge in ['none', 'gerrit', 'forgejo']:
+        label = 'direct-PR-' + forge
+        text = emit(ROOT, scratch / label, label, ['--mode','direct-PR','--forge',forge])
+        assert 'Sibling-site sweep:' not in text and REQUIRED_RULE not in text
+        assert TASK_GUIDANCE in text
+        record('PASS: direct-PR emitted its own contract without pipeline fix-round guidance.')
+        records.append({'name':label, 'result':'pass', 'artifact':label+'.md'})
+    for label, args in [('local-only',['--mode','local-only']), ('scout',['--scout'])]:
+        text = emit(ROOT, scratch / label, label, args)
+        assert 'Sibling-site sweep:' not in text and REQUIRED_RULE not in text
+        assert TASK_GUIDANCE in text
+        record('PASS: ' + label + ' did not inherit pipeline fix-round guidance.')
+        records.append({'name':label,'result':'pass','artifact':label+'.md'})
+record('CLEANUP: disposable source export, generated homes, and working-tree scratch directory removed.')
+(EVIDENCE / 'sibling-sweep-results.json').write_text(json.dumps(records, indent=2)+'\n')
+(EVIDENCE / 'sibling-sweep-transcript.log').write_text('\n'.join(transcript)+'\n')

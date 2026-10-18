@@ -1,0 +1,62 @@
+[
+  {
+    "name": "baseline-regression",
+    "result": "expected-absence",
+    "artifact": "baseline-no-mistakes.md"
+  },
+  {
+    "name": "no-mistakes-none-background",
+    "result": "pass",
+    "artifact": "no-mistakes-none-background.md"
+  },
+  {
+    "name": "no-mistakes-none-foreground",
+    "result": "pass",
+    "artifact": "no-mistakes-none-foreground.md"
+  },
+  {
+    "name": "no-mistakes-gerrit-background",
+    "result": "pass",
+    "artifact": "no-mistakes-gerrit-background.md"
+  },
+  {
+    "name": "no-mistakes-gerrit-foreground",
+    "result": "pass",
+    "artifact": "no-mistakes-gerrit-foreground.md"
+  },
+  {
+    "name": "no-mistakes-forgejo-background",
+    "result": "pass",
+    "artifact": "no-mistakes-forgejo-background.md"
+  },
+  {
+    "name": "no-mistakes-forgejo-foreground",
+    "result": "pass",
+    "artifact": "no-mistakes-forgejo-foreground.md"
+  },
+  {
+    "name": "direct-PR-none",
+    "result": "pass",
+    "artifact": "direct-PR-none.md"
+  },
+  {
+    "name": "direct-PR-gerrit",
+    "result": "pass",
+    "artifact": "direct-PR-gerrit.md"
+  },
+  {
+    "name": "direct-PR-forgejo",
+    "result": "pass",
+    "artifact": "direct-PR-forgejo.md"
+  },
+  {
+    "name": "local-only",
+    "result": "pass",
+    "artifact": "local-only.md"
+  },
+  {
+    "name": "scout",
+    "result": "pass",
+    "artifact": "scout.md"
+  }
+]

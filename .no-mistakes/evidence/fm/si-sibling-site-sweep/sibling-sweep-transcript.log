@@ -1,0 +1,49 @@
+$ FM_HOME=<disposable-home> bin/fm-brief.sh baseline-no-mistakes disposable-example --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/before-home/data/baseline-no-mistakes/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+BASELINE REPRODUCED: the emitted no-mistakes brief lacks the required sibling-site sweep contract.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-none-background disposable-example --mode no-mistakes --forge none
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-none-background/data/no-mistakes-none-background/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-none-foreground disposable-example --mode no-mistakes --forge none
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-none-foreground/data/no-mistakes-none-foreground/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-gerrit-background disposable-example --mode no-mistakes --forge gerrit
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-gerrit-background/data/no-mistakes-gerrit-background/brief.md (ship, mode=no-mistakes forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-gerrit-foreground disposable-example --mode no-mistakes --forge gerrit
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-gerrit-foreground/data/no-mistakes-gerrit-foreground/brief.md (ship, mode=no-mistakes forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-forgejo-background disposable-example --mode no-mistakes --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-forgejo-background/data/no-mistakes-forgejo-background/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh no-mistakes-forgejo-foreground disposable-example --mode no-mistakes --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/no-mistakes-forgejo-foreground/data/no-mistakes-forgejo-foreground/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+EMITTED FIX RULE: - Every `--action fix` response passes `--instructions` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with `--findings`: `Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.`
+EMITTED TASK GUIDANCE: For token-parser fixes, preserve empty-token rejection and explain any intentionally different parser.
+PASS: fixed sweep emitted once; additive guidance and selected-findings scope retained; existing gate guards retained.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh direct-PR-none disposable-example --mode direct-PR --forge none
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/direct-PR-none/data/direct-PR-none/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+PASS: direct-PR emitted its own contract without pipeline fix-round guidance.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh direct-PR-gerrit disposable-example --mode direct-PR --forge gerrit
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/direct-PR-gerrit/data/direct-PR-gerrit/brief.md (ship, mode=direct-PR forge=gerrit shape=squash; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+PASS: direct-PR emitted its own contract without pipeline fix-round guidance.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh direct-PR-forgejo disposable-example --mode direct-PR --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/direct-PR-forgejo/data/direct-PR-forgejo/brief.md (ship, mode=direct-PR forge=forgejo; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+PASS: direct-PR emitted its own contract without pipeline fix-round guidance.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh local-only disposable-example --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/local-only/data/local-only/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+PASS: local-only did not inherit pipeline fix-round guidance.
+$ FM_HOME=<disposable-home> bin/fm-brief.sh scout disposable-example --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M581D5JN1R6DWPGCP7EJ4TEH/.sibling-sweep-live-kdhfwtl3/scout/data/scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+PASS: scout did not inherit pipeline fix-round guidance.
+CLEANUP: disposable source export, generated homes, and working-tree scratch directory removed.
