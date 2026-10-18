@@ -676,6 +676,34 @@ test_no_mistakes_dod_green_detection() {
   pass "fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll"
 }
 
+# The review-finding miner's conversion C7: every no-mistakes fix response must
+# carry the fixed sibling-site sweep guidance with its stable lead phrase, and
+# a faster-mode brief, which has no pipeline fix rounds, must not.
+test_no_mistakes_dod_carries_the_sibling_site_sweep() {
+  local home id brief other_id faster_brief faster_mode
+  home="$TMP_ROOT/sweep-home"
+  mkdir -p "$home/data"
+  id="brief-sweep-n1"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "brief was not scaffolded"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the backticked flag must stay literal
+  assert_grep 'Every `--action fix` response passes `--instructions`' "$brief" \
+    "no-mistakes DOD must require --instructions on every fix response"
+  # shellcheck disable=SC2016  # single quotes are deliberate: the exact sweep text must stay literal
+  assert_grep 'Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.' "$brief" \
+    "no-mistakes DOD must carry the exact sibling-site sweep text"
+  for faster_mode in direct-PR local-only; do
+    other_id="brief-sweep-$faster_mode"
+    FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$other_id" some-proj --mode "$faster_mode" >/dev/null 2>&1
+    faster_brief="$home/data/$other_id/brief.md"
+    assert_present "$faster_brief" "$faster_mode brief was not scaffolded"
+    assert_no_grep 'Sibling-site sweep:' "$faster_brief" \
+      "$faster_mode DOD must not carry the sibling-site sweep"
+  done
+  pass "fm-brief.sh: no-mistakes DOD carries the sibling-site sweep and the faster modes do not"
+}
+
 test_ask_user_escalation_format() {
   local home id brief mode other_id other_brief
   home="$TMP_ROOT/ask-user-home"
@@ -1869,6 +1897,7 @@ test_delivery_flags_are_refused_where_they_do_not_apply
 test_faster_paths_use_configured_authority_without_stacked_review
 test_no_mistakes_dod_wording
 test_no_mistakes_dod_green_detection
+test_no_mistakes_dod_carries_the_sibling_site_sweep
 test_pr_based_dod_requires_non_draft
 test_ask_user_escalation_format
 test_ship_project_memory_wording
