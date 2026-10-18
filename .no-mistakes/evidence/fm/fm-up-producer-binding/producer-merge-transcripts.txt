@@ -1,0 +1,1571 @@
+Public merge CLI transcripts with simulated GitHub responses.
+NOT live GitHub merge evidence. Baseline run: 0
+
+CASE: required-app-evidence-classic-absent
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-classic-bot-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"cla-bot[bot]","type":"Bot"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+api apps/cla-bot --jq .id
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-app-evidence-classic-correct-app
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"},{"name":"license/cla","app":{"id":865473},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-app-evidence-classic-other-bot-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"other-bot[bot]","type":"Bot"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+api apps/other-bot --jq .id
+
+
+CASE: required-app-evidence-classic-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-classic-statuses-unreadable
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+{}
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required status producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-classic-superseded-bot-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":2,"created_at":"2026-01-01T00:00:02Z","creator":{"login":"someone","type":"User"}},{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"cla-bot[bot]","type":"Bot"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-classic-unbound
+--- github-branch.json
+{"name":"main","protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"non_admins","contexts":["license/cla"],"checks":[{"context":"license/cla","app_id":null}]}}}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-app-evidence-classic-unresolved-bot-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"unknown-bot[bot]","type":"Bot"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+api apps/unknown-bot --jq .id
+
+
+CASE: required-app-evidence-classic-user-status
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"cla-bot","type":"User"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-classic-waived
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-app-evidence-classic-wrong-app
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "license/cla"
+      ],
+      "checks": [
+        {
+          "context": "license/cla",
+          "app_id": 865473
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"CheckRun","name":"license/cla","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"},{"name":"license/cla","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-ruleset-absent
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-ruleset-bot-status
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-statuses.json
+[{"context":"license/cla","state":"success","id":1,"created_at":"2026-01-01T00:00:01Z","creator":{"login":"cla-bot[bot]","type":"Bot"}}]
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+api apps/cla-bot --jq .id
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-app-evidence-ruleset-status
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "license/cla",
+          "integration_id": 865473
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+
+CASE: required-app-evidence-ruleset-unbound
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[{"type":"deletion"},{"type":"required_status_checks","parameters":{"required_status_checks":[{"context":"license/cla"}]}}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":null,"completedAt":null},{"__typename":"StatusContext","context":"license/cla","state":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7"}]}
+
+--- github-apps
+cla-bot 865473
+other-bot 42
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+
+--- gh.log
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-producer-classic-correct
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/110 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/110 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+pr merge 110 --repo example/repo --match-head-commit a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=110 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-producer-classic-malformed
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{}
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-classic-stale
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"bbbb"}]}
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-classic-unreadable
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-classic-waived
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/110 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/110 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+pr merge 110 --repo example/repo --match-head-commit a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=110 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-producer-classic-wrong
+--- github-branch.json
+{
+  "name": "main",
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": [
+        "ci"
+      ],
+      "checks": [
+        {
+          "context": "ci",
+          "app_id": 15368
+        }
+      ]
+    }
+  }
+}
+
+--- github-required-rules.json
+[{"type":"deletion"}]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-ruleset-correct
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/110 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/110 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+pr merge 110 --repo example/repo --match-head-commit a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=110 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-producer-ruleset-malformed
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{}
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-ruleset-stale
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":15368},"head_sha":"bbbb"}]}
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-ruleset-unreadable
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check producers at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 could not be read
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+
+CASE: required-producer-ruleset-waived
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/110 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/110 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+pr merge 110 --repo example/repo --match-head-commit a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=110 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+
+
+CASE: required-producer-ruleset-wrong
+--- github-branch.json
+{"name":"main","protected":false,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}
+
+--- github-required-rules.json
+[
+  {
+    "type": "deletion"
+  },
+  {
+    "type": "required_status_checks",
+    "parameters": {
+      "required_status_checks": [
+        {
+          "context": "ci",
+          "integration_id": 15368
+        }
+      ]
+    }
+  }
+]
+
+--- github-view.json
+{"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1","baseRefName":"main","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]}
+
+--- github-runs.json
+{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"}]}
+
+--- stdout
+armed: state/task-x1.check.sh
+
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/110
+  - required check 'ci' has not reported at head a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+error: these required checks have not reported: ci
+
+--- gh.log
+pr view https://github.com/example/repo/pull/110 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/110 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/check-runs
+api --paginate repos/example/repo/commits/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/statuses
+
+

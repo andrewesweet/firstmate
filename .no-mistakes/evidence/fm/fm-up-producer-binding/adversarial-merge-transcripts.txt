@@ -1,0 +1,131 @@
+Public merge CLI transcripts with simulated GitHub responses. NOT live GitHub merge evidence.
+
+CASE: classic-admin-without-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (admin-without-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+CASE: classic-wrong-named-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (wrong-named-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+CASE: classic-unreadable-with-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (unreadable-with-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required status producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+CASE: ruleset-admin-without-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (admin-without-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+CASE: ruleset-wrong-named-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (wrong-named-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+CASE: ruleset-unreadable-with-waiver
+Command: bin/fm-pr-merge.sh task-x1 https://github.com/example/repo/pull/111 (unreadable-with-waiver)
+Exit: 1
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required status producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+
+Simulated GitHub calls:
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
