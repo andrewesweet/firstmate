@@ -607,6 +607,63 @@ test_park_host_boundary_stand_down_and_death() {
   pass "cursor park: boundary wakes, silent stand-down, crash retries, and explicit failures reach the stop guard"
 }
 
+test_park_host_failure_notifies_despite_a_healthy_successor() {
+  local dir watcher waited=0 out first_out status i
+  dir=$(make_primary_dir "$TMP_ROOT/park-host-failure-healthy")
+  : > "$dir/state/task1.meta"
+  mkdir -p "$dir/config"
+  : > "$dir/config/supervision-host"
+  write_host_fixture "$dir" failure
+  cat > "$dir/bin/fm-watch.sh" <<'SH'
+#!/usr/bin/env bash
+. "$FM_HOME/bin/fm-wake-lib.sh"
+mkdir -p "$FM_HOME/state/.watch.lock"
+printf '%s\n' "$$" > "$FM_HOME/state/.watch.lock/pid"
+printf '%s\n' "$FM_HOME" > "$FM_HOME/state/.watch.lock/fm-home"
+printf '%s\n' "$FM_HOME/bin/fm-watch.sh" > "$FM_HOME/state/.watch.lock/watcher-path"
+fm_pid_identity "$$" > "$FM_HOME/state/.watch.lock/pid-identity"
+touch "$FM_HOME/state/.last-watcher-beat"
+for ((i = 0; i < 60; i++)); do
+  [ -d "$FM_HOME/state" ] || exit 0
+  sleep 1
+done
+SH
+  FM_HOME="$dir" bash "$dir/bin/fm-watch.sh" >/dev/null 2>&1 &
+  watcher=$!
+  while [ ! -e "$dir/state/.last-watcher-beat" ] && [ "$waited" -lt 100 ]; do
+    sleep 0.05
+    waited=$((waited + 1))
+  done
+  FM_HOME="$dir" bash -c '
+    . "$FM_HOME/bin/fm-wake-lib.sh"
+    fm_watcher_healthy "$FM_HOME/state" "$FM_HOME/bin/fm-watch.sh" 300 "$FM_HOME"
+  '; status=$?
+  kill -0 "$watcher" 2>/dev/null && [ "$status" -eq 0 ] \
+    || fail "fixture: the successor is not a healthy live watcher"
+  printf '%s' "$CURSOR_PAYLOAD" | FM_HOME="$dir" bash "$dir/bin/fm-turnend-guard.sh" --cursor >/dev/null 2>&1
+  status=$?
+  expect_code 0 "$status" "fixture: the shared guard must accept the healthy successor"
+  for i in 1 2 3 4; do
+    out=$(run_park "$dir")
+    [ "$i" -ne 1 ] || first_out=$out
+    if [ "$i" -le 3 ]; then
+      [ "$(kind_of_followup "$out")" = turn-end-guard ] \
+        || fail "host failure $i was hidden by the healthy successor: $out"
+    else
+      [ -z "$out" ] || fail "host failure exceeded the repair budget: $out"
+    fi
+  done
+  kill "$watcher" 2>/dev/null || true
+  wait "$watcher" 2>/dev/null || true
+  [ "$(wc -l < "$dir/state/host-ran" | tr -d ' ')" -eq 4 ] \
+    || fail "an explicit host failure retried the park"
+  case "$(followup_of "$first_out")" in
+    *'supervision host exited 1'*) ;;
+    *) fail "the repair follow-up omitted the explicit host failure: $first_out" ;;
+  esac
+  pass "cursor park: explicit host failure notifies despite a healthy successor within the repair budget"
+}
+
 test_park_inert_under_pi_coding_agent() {
   local dir out payload
   dir=$(make_primary_dir "$TMP_ROOT/park-pi-host")
@@ -833,6 +890,7 @@ test_superseded_park_does_not_consume_nag_budget
 test_park_inert_when_afk
 test_park_runs_the_supervision_host_only_when_opted_in
 test_park_host_boundary_stand_down_and_death
+test_park_host_failure_notifies_despite_a_healthy_successor
 test_park_inert_under_pi_coding_agent
 test_park_still_parks_with_pi_leak_and_cursor_identity
 test_park_stands_down_when_away_mode_activates_before_commit

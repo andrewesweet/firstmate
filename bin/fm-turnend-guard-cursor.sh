@@ -377,7 +377,10 @@ while [ "$attempt" -lt "$ARM_ATTEMPTS" ]; do
       ARM_OUT=
       continue
     fi
-    [ "$HOST_RC" -eq 0 ] || break
+    if [ "$HOST_RC" -ne 0 ]; then
+      ARM_TAIL=$(grep -E '^watcher:' "$ARM_OUT" 2>/dev/null | head -4)
+      emit_repair_followup "The supervision host exited $HOST_RC without a wake; repair automatic supervision before ending the turn." "$ARM_TAIL" "$attempt"
+    fi
   fi
 
   # A non-actionable close is benign when another verified watcher already owns
