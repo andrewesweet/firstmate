@@ -1,0 +1,3 @@
+before host failure: real watcher health=0
+shared guard status=0
+after host failure: real watcher health=0

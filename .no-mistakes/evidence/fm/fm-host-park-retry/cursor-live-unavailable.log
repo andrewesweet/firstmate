@@ -1,0 +1,1 @@
+not ok - cursor-agent not found; install it or set FM_CURSOR_BIN. This guard refuses to pass without checking the real harness.

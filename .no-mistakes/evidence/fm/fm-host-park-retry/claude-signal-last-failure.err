@@ -1,0 +1,4 @@
+~/.no-mistakes/worktrees/feb37d45d9da/01M58CXV1J8BG12BY1ZW73N6HQ/l.vGEz16/bin/fm-claude-stop-autoarm.sh: line 473: 2067350 Killed                  FM_SUPERVISION_HOST_AUTOARM_GEN=$MY_GEN FM_SUPERVISION_HOST_OWNER_PID=$$ FM_SUPERVISION_HOST_PRIMARY=claude FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-supervision-host.sh" park > "${OUT:-/dev/null}" 2>&1
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: ~/.no-mistakes/worktrees/feb37d45d9da/01M58CXV1J8BG12BY1ZW73N6HQ/l.vGEz16/state/probe.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.

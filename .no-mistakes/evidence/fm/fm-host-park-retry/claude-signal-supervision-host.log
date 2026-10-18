@@ -1,0 +1,13 @@
+1792357878	start	gen=host-2036033-1792357877	primary=claude
+1792357881	start	gen=host-2037467-1792357880	primary=claude
+1792357885	start	gen=host-2039019-1792357884	primary=claude
+1792357887	start	gen=host-2040253-1792357887	primary=claude
+1792357890	start	gen=host-2041045-1792357890	primary=claude
+1792357893	start	gen=host-2041975-1792357892	primary=claude
+1792357895	start	gen=host-2042916-1792357895	primary=claude
+1792357898	start	gen=host-2044523-1792357897	primary=claude
+1792357900	start	gen=host-2045724-1792357900	primary=claude
+1792357903	start	gen=host-2046732-1792357902	primary=claude
+1792357945	start	gen=host-2067350-1792357944	primary=claude
+1792357945	start	gen=host-2067797-1792357945	primary=claude
+1792357978	pass-through	attended	branch eligibility could not be computed	signal: ~/.no-mistakes/worktrees/feb37d45d9da/01M58CXV1J8BG12BY1ZW73N6HQ/l.vGEz16/state/probe.status

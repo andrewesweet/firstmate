@@ -1,0 +1,3 @@
+1792358029	start	gen=host-2105731-1792358029	primary=claude
+1792358032	pass-through	attended	main-only	signal: ~/.no-mistakes/worktrees/feb37d45d9da/01M58CXV1J8BG12BY1ZW73N6HQ/.test-tmp/fm-supervision-host.epIgjk/hook-turns-main-only-write-fails/state/demo.status
+1792358032	pass-through	downtime-unrestored	signal: ~/.no-mistakes/worktrees/feb37d45d9da/01M58CXV1J8BG12BY1ZW73N6HQ/.test-tmp/fm-supervision-host.epIgjk/hook-turns-main-only-write-fails/state/demo.status

@@ -1,0 +1,3 @@
+ok - host+hook: failed at-turn downtime write notifies main despite a healthy successor
+ok - host+hook: a refused hand-back becomes a delivered failure notice
+ok - host+hook: a refused hand-back on an announced handling marker becomes a delivered failure notice
