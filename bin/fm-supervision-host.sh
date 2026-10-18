@@ -28,9 +28,12 @@
 # lines. A "supervision-host:" line is a wake in its own right (the park
 # boundary prints nothing else); "supervision-host stood down: ..." means this
 # session or generation no longer owns supervision and the owner stands down
-# silently; an exit status above 128, or no output at all, means the host
-# itself died and the owner retries it. Any other close is judged exactly as
-# the arm's. --restart starts the first cycle with fm-watch-arm.sh --restart,
+# silently. Without a close, Claude and Cursor retry a signal-killed exit
+# (status above 128) or a clean exit without a readiness line, but report an
+# explicit failure (nonzero status at or below 128) at once.
+# docs/turnend-guard.md#supervision-host-failures owns these failure rules.
+# Any other close is judged exactly as the arm's.
+# --restart starts the first cycle with fm-watch-arm.sh --restart,
 # and an FM_WATCH_PREDECESSOR_ARM_PID the owner passes reaches that first
 # cycle only, for owners that start their own successor after every close
 # (OpenCode, omp).

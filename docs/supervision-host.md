@@ -272,7 +272,7 @@ So it never stops the owner's host or watcher or releases its leases.
 
 ### A host that dies without a close
 
-The host's owner retries it.
+For Claude and Cursor, [turnend-guard.md](turnend-guard.md#supervision-host-failures) owns the distinction between an explicit failure reported immediately and a lost host retried by its owner.
 Grok's model and Codex's checkpoint see it as a failed cycle and start the next one.
 Before it arms, the next host does two things:
 

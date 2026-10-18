@@ -10,8 +10,8 @@
 #             actionable wake, then return that wake as the follow-up. No model
 #             tokens are spent while parked. The next turn end parks again, so
 #             the arm/re-arm loop is hook-owned, never model-memory-owned.
-#   BACKSTOP  when the park cannot establish supervision, return the shared
-#             turn-end guard's repair instruction as a bounded follow-up.
+#   BACKSTOP  return a bounded repair follow-up for explicit host failure or
+#             the shared turn-end guard's repair instruction.
 #
 # EXIT 2 IS A SILENT NO-OP ON CURSOR'S stop. Cursor's blocked-response mapper
 # returns an empty object for the stop step (index.js @ 4823085,
@@ -35,8 +35,9 @@
 # header owns the output this park reads. A "supervision-host:" line is
 # actionable like a wake line, and the follow-up carries every such line in
 # order while wake lines keep the eight-line cap; "supervision-host stood
-# down:" ends the park silently; a host that died without a close is retried
-# instead of being judged by the healthy-watcher predicate. On a home that does not run the host nothing below changes.
+# down:" ends the park silently. docs/turnend-guard.md "Supervision-host
+# failures" owns failure reporting and lost-host retries. On a home that does
+# not run the host nothing below changes.
 #
 # LOOP BOUNDING IS DOUBLE, because either bound alone is insufficient:
 #   - `loop_limit` in .cursor/hooks.json is Cursor's own ceiling. Once
@@ -370,11 +371,16 @@ while [ "$attempt" -lt "$ARM_ATTEMPTS" ]; do
     # A host that died without a close may have left its cycle running with
     # no owner to deliver the close; retrying lets the next host stop what it
     # left and own a fresh cycle, which the healthy-watcher predicate cannot.
-    if [ "$HOST_RC" -gt 128 ] || [ -z "$ARM_OUT" ] || [ ! -s "$ARM_OUT" ]; then
+    # An explicit failure still needs reporting if no readiness line streamed.
+    if [ "$HOST_RC" -gt 128 ] || { [ "$HOST_RC" -eq 0 ] && [ ! -s "$ARM_OUT" ]; }; then
       [ "$attempt" -lt "$ARM_ATTEMPTS" ] || break
       [ -z "$ARM_OUT" ] || rm -f "$ARM_OUT" 2>/dev/null
       ARM_OUT=
       continue
+    fi
+    if [ "$HOST_RC" -ne 0 ]; then
+      ARM_TAIL=$(grep -E '^watcher:' "$ARM_OUT" 2>/dev/null | head -4)
+      emit_repair_followup "The supervision host exited $HOST_RC without a wake; repair automatic supervision before ending the turn." "$ARM_TAIL" "$attempt"
     fi
   fi
 

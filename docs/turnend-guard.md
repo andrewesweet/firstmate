@@ -386,7 +386,8 @@ An upgrade mid-session can therefore neither double-arm nor deadlock, and a fail
 #### Failure progression and block budget
 
 Fresh `failed` and `failed-suppressed` outcomes enter or advance the failure progression instead of acting as unconditional recovery proof.
-The auto-arm itself rechecks the healthy watcher predicate and retries a bounded number of times before reporting a genuine failure.
+For plain watcher arms, the auto-arm rechecks the healthy watcher predicate and retries a bounded number of times before reporting a genuine failure.
+The [supervision-host failure rules](#supervision-host-failures) apply when the host replaces that arm.
 
 The foreground arm legitimately follows a healthy watcher until its next wake.
 The hook therefore catches HUP, TERM, and INT from host timeout or teardown and commits the ordinary durable failed outcome and failure-notice marker before exiting 2 for a recovery turn.
@@ -449,6 +450,20 @@ The native path returns the shared guard's status and stderr to the same Grok pr
 Grok's project hook requires the checkout to be trusted with `/hooks-trust` or launch-time `--trust`.
 Genuine pre-native builds can run the same tracked hook from an isolated global hook directory.
 
+### Supervision-host failures
+
+When the supervision host exits without an actionable close or a `supervision-host stood down:` line, Claude's Stop auto-arm and Cursor's park distinguish explicit failure from a lost host:
+
+- A nonzero exit status at or below 128 reports failure immediately, without another park attempt, whether or not a readiness line streamed.
+  A healthy successor watcher cannot suppress that notice: the host still failed to deliver its close.
+  Claude uses its existing once-per-episode failure notice and exit-2 path, subject to the [attended fail-open](#attended-fail-open).
+  Cursor emits a `turn-end-guard` repair follow-up without consulting the shared guard, subject to its [repair budget and loop bounds](#cursor-repair-nag-and-loop-bounds).
+- An exit status above 128, or a clean exit with no output, still takes the bounded retry path.
+  The next host can take over a cycle whose previous host left it without an owner to deliver its close.
+
+`tests/fm-claude-stop-autoarm.test.sh` and `tests/fm-cursor-primary.test.sh` pin the failure/retry distinction, including failures with and without readiness output.
+The Cursor suite also covers explicit failure with a healthy successor and the repair budget.
+
 ### Cursor park
 
 Cursor cannot block a turn end at all.
@@ -477,7 +492,7 @@ When either Cursor identity marker is present, the park still runs despite a lea
 
 #### Cursor repair nag and loop bounds
 
-When the park cannot establish a cycle it asks this shared guard with `--cursor` and renders a returned exit 2 as one bounded `turn-end-guard` follow-up.
+Except for [explicit supervision-host failures](#supervision-host-failures), when the park cannot establish a cycle it asks this shared guard with `--cursor` and renders a returned exit 2 as one bounded `turn-end-guard` follow-up.
 Those nags are capped by `FM_CURSOR_TURNEND_BLOCK_BUDGET` (default 3) consecutive unproductive nags per session.
 A delivered wake resets that budget because it is productive work.
 
