@@ -470,6 +470,34 @@ test_dod_omits_the_self_check() {
 
 test_dod_omits_the_self_check
 
+# The review-finding miner's conversion C7: reviewed runs kept reporting that a
+# fix round fixed one site of a pattern and left sibling sites of the same
+# pattern unfixed, so every no-mistakes fix response must carry the fixed
+# sibling-site sweep guidance, and the faster modes, which have no pipeline fix
+# rounds, must not.
+test_dod_carries_the_sibling_site_sweep() {
+  local forge mode out
+  for forge in none gerrit; do
+    out="$TMP_ROOT/dod-sweep-nm-$forge.md"
+    FM_DATA_OVERRIDE="$TMP_ROOT/data" fm_dod_block no-mistakes dod-sweep-task fm/dod-sweep-task "$forge" > "$out"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the backticked flag must stay literal
+    assert_grep 'Every `--action fix` response passes `--instructions`' "$out" \
+      "no-mistakes:$forge: DoD must require --instructions on every fix response"
+    # shellcheck disable=SC2016  # single quotes are deliberate: the exact sweep text must stay literal
+    assert_grep 'Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.' "$out" \
+      "no-mistakes:$forge: DoD must carry the exact sibling-site sweep text"
+  done
+  for mode in direct-PR local-only; do
+    out="$TMP_ROOT/dod-sweep-$mode.md"
+    fm_dod_block "$mode" dod-sweep-task fm/dod-sweep-task > "$out"
+    assert_no_grep 'Sibling-site sweep:' "$out" \
+      "$mode: DoD must not carry the sibling-site sweep"
+  done
+  pass "the no-mistakes DoD carries the sibling-site sweep and the faster modes do not"
+}
+
+test_dod_carries_the_sibling_site_sweep
+
 # A scout spawned on a named base keeps that base through promotion: the ship
 # instructions start from it and the PR targets it; local-only cannot carry it.
 test_promotion_keeps_the_recorded_base_branch() {

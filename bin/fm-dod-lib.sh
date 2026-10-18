@@ -391,8 +391,17 @@ fm_ask_user_escalation_block() {  # <data-dir> <task-id>
 EOF
 }
 
+# The fixed sibling-site sweep instruction every worker fix response carries
+# through `--instructions`: reviewed runs kept reporting that a fix round fixed
+# one site of a pattern and left sibling sites of the same pattern unfixed, so
+# each fix round must sweep the pattern itself instead of waiting for the next
+# review to find the rest. Defined once so tests and a later miner pass can
+# match the exact text, including its stable "Sibling-site sweep:" lead phrase
+# that identifies the sweep instruction.
+FM_SIBLING_SITE_SWEEP='Sibling-site sweep: search the repository for other occurrences of the pattern each selected finding fixes - the same call, idiom, copied block, or rule - and, in this same round, fix each occurrence or record why it differs.'
+
 # The forge-independent middle of the no-mistakes contract: how a worker drives
-# the pipeline, what `--intent` may carry, and the two firstmate-specific rules.
+# the pipeline, what `--intent` may carry, and the firstmate-specific rules.
 # Written once; only the two sentences about a green PR depend on the forge,
 # because on gerrit the ci step is skipped and there is no PR to report.
 fm_nm_driving_block() {  # <forge>
@@ -435,12 +444,13 @@ $drive_block
 A killed or timed-out call is never evidence the daemon died: the daemon accepts your response immediately and runs the round in the background, so the call was only ever waiting for a read while the run kept working.
 Reattach and keep going rather than reporting the pipeline blocked; rule 7 owns the checks that decide when a pipeline block is real.
 
-Two firstmate-specific rules layer on top of that guidance:
+Three firstmate-specific rules layer on top of that guidance:
 - ask-user findings are never yours to answer: escalate to firstmate using rule 6's ask-user format and stop.
   Firstmate applies \`ask-user-authority\` and obtains any required captain decision.
   When the decision comes back, feed it to the gate with \`no-mistakes axi respond\` and let the pipeline apply it - do not route the question to "the user" or implement the fix yourself.
 - NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide.
   It auto-resolves every gate including ask-user findings with no escalation, and answering your own ask-user finding is a hard rule violation.
+- Every \`--action fix\` response passes \`--instructions\` carrying this fixed sweep text, combined with any task-specific guidance you add, never replaced by it; the guidance attaches to the findings the response selects with \`--findings\`: \`$FM_SIBLING_SITE_SWEEP\`
 EOF
 }
 
