@@ -496,6 +496,10 @@ write_host_fixture() {  # <dir> <kind>
         printf '[ "$(wc -l < "$FM_HOME/state/host-ran")" -gt 1 ] || kill -KILL $$\n'
         printf 'printf "stale: fixture-win after a retry\\n"\n'
         ;;
+      failure|quiet-failure)
+        [ "$kind" != failure ] || printf "printf 'watcher: started pid=123 (beacon fresh)\\n'\n"
+        printf 'exit 1\n'
+        ;;
     esac
     printf 'exit 0\n'
   } > "$dir/bin/fm-supervision-host.sh"
@@ -559,7 +563,7 @@ test_park_runs_the_supervision_host_only_when_opted_in() {
 }
 
 test_park_host_boundary_stand_down_and_death() {
-  local dir out
+  local dir out kind
   dir=$(make_primary_dir "$TMP_ROOT/park-host-boundary")
   : > "$dir/state/task1.meta"
   mkdir -p "$dir/config"
@@ -585,7 +589,22 @@ test_park_host_boundary_stand_down_and_death() {
   out=$(run_park "$dir")
   [ "$(wc -l < "$dir/state/host-ran" | tr -d ' ')" -eq 2 ] || fail "a host that died without a close must be retried: $(cat "$dir/state/host-ran")"
   case "$(followup_of "$out")" in *'stale: fixture-win after a retry'*) ;; *) fail "the retried host's wake was not delivered: $out" ;; esac
-  pass "cursor park: the host's boundary wakes, its stand-down is silent, and a host that died is retried"
+
+  # Like Claude's failed-downtime hand-back, an explicit host failure must
+  # reach the owner's error path rather than starting another park.
+  for kind in failure quiet-failure; do
+    dir=$(make_primary_dir "$TMP_ROOT/park-host-$kind")
+    : > "$dir/state/task1.meta"
+    mkdir -p "$dir/config"
+    : > "$dir/config/supervision-host"
+    write_host_fixture "$dir" "$kind"
+    out=$(run_park "$dir")
+    [ "$(wc -l < "$dir/state/host-ran" | tr -d ' ')" -eq 1 ] \
+      || fail "$kind: an explicit host failure started another park"
+    [ "$(kind_of_followup "$out")" = turn-end-guard ] \
+      || fail "$kind: an explicit host failure did not reach the stop guard: $out"
+  done
+  pass "cursor park: boundary wakes, silent stand-down, crash retries, and explicit failures reach the stop guard"
 }
 
 test_park_inert_under_pi_coding_agent() {
