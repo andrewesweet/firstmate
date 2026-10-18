@@ -263,6 +263,24 @@ case "${1:-} ${2:-}" in
         cat "$FM_TEST_GH_RUNS"
         exit $?
         ;;
+      *" repos/"*"/commits/"*"/statuses"*)
+        case "$*" in
+          *"/commits/$(cat "$FM_TEST_GH_HEAD")/statuses"*) ;;
+          *) exit 1 ;;
+        esac
+        # No statuses file means the head has no commit statuses at all.
+        [ -e "$FM_TEST_GH_STATUSES" ] || { printf '[]\n'; exit 0; }
+        cat "$FM_TEST_GH_STATUSES"
+        exit $?
+        ;;
+      *" apps/"*)
+        # One "<slug> <id>" line per app the apps API knows; others are 404.
+        slug=${2#apps/}
+        app_id=$(awk -v s="$slug" '$1 == s { print $2 }' "$FM_TEST_GH_APPS" 2>/dev/null)
+        [ -n "$app_id" ] || { echo 'gh: Not Found (HTTP 404)' >&2; exit 1; }
+        printf '%s\n' "$app_id"
+        exit 0
+        ;;
       *" repos/"*"/rules/branches/"*merge_queue*) ;;
       *" repos/"*"/rules/branches/"*)
         if [ -f "${FM_TEST_GH_REQUIRED_RULES_FAIL:-}" ]; then
@@ -671,6 +689,8 @@ run_pr_merge() {
   FM_TEST_GH_MERGEABLE_CALLS="$case_dir/mergeable-calls" \
   FM_TEST_GH_HEAD="$case_dir/github-head" \
   FM_TEST_GH_RUNS="$case_dir/github-runs.json" \
+  FM_TEST_GH_STATUSES="$case_dir/github-statuses.json" \
+  FM_TEST_GH_APPS="$case_dir/github-apps" \
   FM_TEST_GH_MERGE_RC_FILE="$case_dir/github-merge-rc" \
   FM_TEST_GH_MERGE_OUTPUT="$(cat "$case_dir/github-merge-output" 2>/dev/null || true)" \
   FM_TEST_GH_GRAPHQL_FAIL="$case_dir/github-graphql-fail" \
@@ -4085,16 +4105,30 @@ test_required_producer_identity() {
 
 # A required check bound to a GitHub App is satisfied only by verifiable
 # producer evidence at the verified head: a green same-name commit status
-# carries no app id to compare and satisfies nothing, and a check run from
-# another app satisfies nothing, while a check run from the bound app satisfies
-# and an unbound requirement still matches a status by name. The attended
+# satisfies it only when its newest entry was created by the bound app's bot,
+# resolved through the apps API, and a check run from another app satisfies
+# nothing, while a check run from the bound app satisfies and an unbound
+# requirement still matches a status by name. The attended
 # named --allow-missing waiver remains the explicit path for a bound
 # requirement whose producer evidence is missing.
+# The license/cla statuses at a head, one per "<login> <type>" argument, newest
+# first with descending created_at, the way the REST statuses read lists them.
+status_creators() {
+  local creator n=$#
+  for creator in "$@"; do
+    printf '{"context":"license/cla","state":"success","id":%s,"created_at":"2026-01-01T00:00:%02dZ","creator":{"login":"%s","type":"%s"}}\n' \
+      "$n" "$n" "${creator% *}" "${creator#* }"
+    n=$((n - 1))
+  done | jq -sc .
+}
+
 test_app_bound_required_status_requires_producer_evidence() {
   local case_dir head spec kind variant
   head=a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
   for spec in classic:status ruleset:status classic:absent ruleset:absent \
-    classic:unbound ruleset:unbound classic:wrong-app classic:correct-app classic:waived; do
+    classic:unbound ruleset:unbound classic:wrong-app classic:correct-app classic:waived \
+    classic:bot-status ruleset:bot-status classic:other-bot-status classic:user-status \
+    classic:superseded-bot-status classic:unresolved-bot-status classic:statuses-unreadable; do
     kind=${spec%%:*}
     variant=${spec#*:}
     case_dir=$(make_case "required-app-evidence-$kind-$variant")
@@ -4140,21 +4174,35 @@ test_app_bound_required_status_requires_producer_evidence() {
           "$head" > "$case_dir/github-runs.json"
         ;;
     esac
+    # Commit statuses as the REST statuses read reports them, newest first.
+    printf '%s\n' 'cla-bot 865473' 'other-bot 42' > "$case_dir/github-apps"
+    case "$variant" in
+      bot-status) status_creators 'cla-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
+      other-bot-status) status_creators 'other-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
+      user-status) status_creators 'cla-bot User' > "$case_dir/github-statuses.json" ;;
+      superseded-bot-status) status_creators 'someone User' 'cla-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
+      unresolved-bot-status) status_creators 'unknown-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
+      statuses-unreadable) printf '{}' > "$case_dir/github-statuses.json" ;;
+    esac
     case "$variant" in
       waived)
         run_required_case "$case_dir" 111 --attended-override --allow-missing license/cla -- --admin
         expect_code 0 "$RC" "app-evidence-$kind-$variant: the named waiver must merge: $(cat "$case_dir/stderr")"
         assert_logged_gh_merge "$case_dir" 111 example/repo --squash --admin
         ;;
-      status|wrong-app|absent)
+      status|wrong-app|absent|other-bot-status|user-status|superseded-bot-status|unresolved-bot-status|statuses-unreadable)
         run_required_case "$case_dir" 111
         expect_code 1 "$RC" "app-evidence-$kind-$variant: an app-bound requirement without producer evidence must refuse: $(cat "$case_dir/stderr")"
         assert_grep "required check 'license/cla' has not reported" "$case_dir/stderr" \
           "app-evidence-$kind-$variant: the unverified requirement was not named"
         assert_no_grep 'pr merge' "$case_dir/gh.log" \
           "app-evidence-$kind-$variant: gh pr merge ran without producer evidence"
+        if [ "$variant" = statuses-unreadable ]; then
+          assert_grep 'required status producers at head' "$case_dir/stderr" \
+            "app-evidence-$kind-$variant: the unreadable statuses read was not reported"
+        fi
         ;;
-      unbound|correct-app)
+      unbound|correct-app|bot-status)
         run_required_case "$case_dir" 111
         expect_code 0 "$RC" "app-evidence-$kind-$variant: $(cat "$case_dir/stderr")"
         assert_logged_gh_merge "$case_dir" 111 example/repo --squash
