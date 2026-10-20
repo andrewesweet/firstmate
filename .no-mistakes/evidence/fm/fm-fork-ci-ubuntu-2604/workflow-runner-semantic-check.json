@@ -1,0 +1,86 @@
+{
+  "contract": "Normalized GitHub Actions configuration; this is not hosted runner execution",
+  "base": "bdfb8d7eaf7107c59298ca8b2dc0e36403deca29",
+  "target": "1477265eb38b37ca3097be339986044f5b805c50",
+  "checks": {
+    "all_linux_job_definitions_pinned_to_ubuntu_24_04": true,
+    "macos_jobs_fully_unchanged": true,
+    "other_platform_jobs_fully_unchanged": true,
+    "all_other_workflow_semantics_including_matrices_steps_triggers_unchanged": true,
+    "base_does_not_meet_pinning_contract": true
+  },
+  "linux_jobs": [
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "lint",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "test-coverage",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tests-portable-parallel-1",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tests-portable-parallel-2",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tests-portable-serial",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tests-herdr",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tests-timing-aggregate",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "invariants",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    },
+    {
+      "workflow": ".github/workflows/no-mistakes-required.yml",
+      "job": "check",
+      "before": "ubuntu-latest",
+      "after": "ubuntu-24.04"
+    }
+  ],
+  "macos_jobs": [
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "macos-stock-bash",
+      "before": "macos-latest",
+      "after": "macos-latest"
+    }
+  ],
+  "other_jobs": [
+    {
+      "workflow": ".github/workflows/windows-herdr-spike.yml",
+      "job": "measure",
+      "before": "windows-latest",
+      "after": "windows-latest"
+    }
+  ],
+  "live_execution": false,
+  "hosted_ci_result": "Not run: hosted CI is owned by the outer executor, outside this assigned local test phase."
+}
