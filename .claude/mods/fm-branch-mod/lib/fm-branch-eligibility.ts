@@ -344,6 +344,7 @@ export interface QueueMeta {
   task: string;
   project: string;
   window: string;
+  terminal: string;
 }
 
 /** A status-log stat bound by the consumer: the stat version string for the
@@ -454,15 +455,19 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
   const metadata = new Map<string, string>();
   const taskByKey = new Map<string, string>();
   for (const meta of inputs.metas) {
-    if (!meta.project) continue;
-    metadata.set(meta.task, meta.project);
-    taskByKey.set(meta.task, meta.task);
-    taskByKey.set(`${meta.task}.status`, meta.task);
-    taskByKey.set(`${meta.task}.turn-ended`, meta.task);
-    if (meta.window) {
-      metadata.set(meta.window, meta.project);
-      taskByKey.set(meta.window, meta.task);
+    // An Orca task's stale rows name its terminal handle, not its window
+    // (bin/fm-watch.sh keys Orca endpoints by terminal=), so index both.
+    const aliases = [meta.task, `${meta.task}.status`, `${meta.task}.turn-ended`, meta.window, meta.terminal];
+    for (const key of aliases) {
+      if (!key) continue;
+      const owner = taskByKey.get(key);
+      // Even an incomplete record claims its endpoint. Ambiguous ownership
+      // must not inherit another record's decision state or project context.
+      if (owner !== undefined && owner !== meta.task) return UNSAFE_SCOPE;
+      taskByKey.set(key, meta.task);
     }
+    // Projectless records may establish ambiguity, never routing authority.
+    if (meta.project) metadata.set(meta.task, meta.project);
   }
 
   const { resolveVerb, heldVerb, reservedPrefixes, pausedVerb } = inputs.env;
@@ -531,7 +536,7 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
       project = metadata.get(task) ?? "";
     } else if (kind === "stale") {
       task = taskByKey.get(key) ?? taskByKey.get(key.replace(/^fm-/, "")) ?? "";
-      project = metadata.get(key) ?? metadata.get(key.replace(/^fm-/, "")) ?? "";
+      project = metadata.get(task) ?? "";
       if (task) {
         const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
         if (verdict === "torn") return UNSAFE_SCOPE;
