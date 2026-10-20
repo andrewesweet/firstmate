@@ -456,7 +456,7 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 - A re-arm whose recovery cycle is slowed after confirmation and must still surface rather than read as a watcher that stayed live.
 - The self-healing moved-generation acknowledgement that consumes its handled rows and names its remedy.
 - The already-acknowledged confirmation no-op for a matching generation, with its mismatched-generation, dead-pid, and lock-mismatch rejections preserved.
-- The manual-restart generation churn that makes a confirmation for the churned generation report a mismatch, which an arm check without a reopen leaves in place.
+- New work superseding an announced generation, rejection of a confirmation for the superseded generation, and an arm check preserving the replacement generation.
 - A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime, and attaches without stopping a cycle the named arm does not own.
 - The disposable-checkout arm refusal.
 - The home-gone and state-gone watcher exits.
@@ -470,6 +470,7 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 `tests/fm-watch-triage.test.sh` proves TERM stops a watcher blocked inside a poll's pane capture and still releases its lock and records an acknowledgeable stop.
 It also exercises a single TERM with a live foreign downtime-marker lock holder, retained stale singleton and subsequent arm-style recovery, including decimal `08` and zero `00` cleanup bounds.
 It checks that a newly appended keyed decision is classified without rereading earlier status bytes, so signal handling can return to the watcher's beacon refresh even when the status history is long.
+Its recovery regressions cover unchanged-row check cadence, one resurface for a later row, acknowledgement between restarts, and the [announcement record](#announcement)'s sequence checks for both announced and acknowledged episodes.
 `tests/fm-wake-queue.test.sh` proves TERM likewise stops a watcher blocked in the drain-ring idle check's pane capture.
 
 `tests/fm-watcher-lock.test.sh` covers:

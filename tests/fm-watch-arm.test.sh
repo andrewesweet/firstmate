@@ -1654,11 +1654,11 @@ test_handling_delivered_accepts_already_acked_generation() {
   pass "watch-arm: an already-acknowledged handling confirmation succeeds as a no-op"
 }
 
-# A non-successor arm start mints a fresh generation, and a confirmation for
-# the churned generation reports a mismatch (status 3). The closing arm check
-# without a reopen - the marker step a handling successor runs - keeps the
-# churned generation. This characterizes existing marker behavior that the Pi
-# superseded-delivery path relies on.
+# New work appended after an announcement supersedes its generation, and a
+# confirmation for that superseded generation reports a mismatch (status 3).
+# The closing arm check without a reopen - the marker step a handling successor
+# runs - keeps the replacement generation. The Pi superseded-delivery path
+# relies on this distinction.
 test_handling_delivered_rejects_a_superseded_generation() {
   local dir home state pid identity first second status
   dir=$(make_case handling-delivered-superseded)
@@ -1680,10 +1680,8 @@ test_handling_delivered_rejects_a_superseded_generation() {
     announced:downtime:"$first") ;;
     *) fail "announced episode has the wrong shape: $(cat "$state/.watcher-down")" ;;
   esac
-  # Reopening mints a fresh generation only when unrecovered work is queued:
-  # an announced episode with an empty queue must survive untouched, so queue
-  # one wake and re-announce first. Without this the reopen below is a no-op
-  # by design (no idle churn) and the fresh-generation assertion below fails.
+  # Establish an announced episode with a queued wake before appending the
+  # later work that supersedes it.
   append_wake "$state" check inbox:fixture 'check: manual-restart churn fixture' \
     || fail "could not queue the fixture wake for the manual restart"
   FM_STATE_OVERRIDE="$state" bash -c '. "$1"; fm_recovery_marker_arm_check "$2"' \
