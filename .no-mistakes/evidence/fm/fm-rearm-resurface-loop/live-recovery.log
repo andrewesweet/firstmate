@@ -1,0 +1,51 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5C3GEKDK8HPR2Q6E8D3M0DF/.fm-lab-1l1gpvt2
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5C3GEKDK8HPR2Q6E8D3M0DF/.fm-lab-1l1gpvt2
+[exit 0]
+$ bin/fm-check-register.sh cadence
+registered: state/cadence.check.sh
+[exit 0]
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append check "$1" "check: $1" _ original-work
+[exit 0]
+initial-announce: check: rearm-resurface [exit 0]
+initial announcement sidecar: {".watcher-down": "announced:downtime:837871.1792481843.xm0vcQ", ".watcher-down.announce-seq": "1\nlab-session-a", ".wake-queue.seq": "1", ".wake-queue": "1792481843\t1\tcheck\toriginal-work\tcheck: original-work"}
+same-session-restart-1: {"output": "", "marker": "announced:downtime:837871.1792481843.xm0vcQ", "check_mtime_ns": 1792481845140832560, "heartbeat_mtime_ns": 1792481845166832511, "registered_check_runs": 2}
+same-session-restart-2: {"output": "", "marker": "announced:downtime:837871.1792481843.xm0vcQ", "check_mtime_ns": 1792481848903825596, "heartbeat_mtime_ns": 1792481848931825545, "registered_check_runs": 4}
+PASS same-session restarts retain generation and execute real registered checks and heartbeat scans
+$ bin/fm-wake-drain.sh
+1792481843	1	check	original-work	check: original-work
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 837871.1792481843.xm0vcQ
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 registered custom check(s), but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+[exit 0]
+$ bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 837871.1792481843.xm0vcQ
+[exit 0]
+acknowledgement after two restarts: {".watcher-down": "acked:handling:837871.1792481843.xm0vcQ", ".watcher-down.announce-seq": "1\nlab-session-a", ".wake-queue.seq": "1", ".wake-queue": ""}
+PASS between-restart acknowledgement consumes original row and retires original generation
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append check "$1" "check: $1" _ late-work
+[exit 0]
+post-ack-new-work: check: rearm-resurface [exit 0]
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append check "$1" "check: $1" _ after-announcement-work
+[exit 0]
+late-row-resurface: check: rearm-resurface [exit 0]
+late-row-repeat-restart: {"output": "", "marker": "announced:downtime:841944.1792481851.YLEtg5", "check_mtime_ns": 1792481853843816456, "heartbeat_mtime_ns": 1792481852439819053, "registered_check_runs": 6}
+late work surfaced once: {".watcher-down": "announced:downtime:841944.1792481851.YLEtg5", ".watcher-down.announce-seq": "3\nlab-session-a", ".wake-queue.seq": "3", ".wake-queue": "1792481850\t2\tcheck\tlate-work\tcheck: late-work\n1792481851\t3\tcheck\tafter-announcement-work\tcheck: after-announcement-work"}
+PASS appended work resurfaces under a fresh generation once
+new-session-replay: check: rearm-resurface [exit 0]
+new-session-repeat-restart: {"output": "", "marker": "announced:downtime:843266.1792481854.IppG2y", "check_mtime_ns": 1792481855243813865, "heartbeat_mtime_ns": 1792481855271813813, "registered_check_runs": 8}
+new session replayed once: {".watcher-down": "announced:downtime:843266.1792481854.IppG2y", ".watcher-down.announce-seq": "3\nlab-session-b", ".wake-queue.seq": "3", ".wake-queue": "1792481850\t2\tcheck\tlate-work\tcheck: late-work\n1792481851\t3\tcheck\tafter-announcement-work\tcheck: after-announcement-work"}
+PASS new session replays unhandled work once and later same-session restarts remain quiet
+$ bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 837871.1792481843.xm0vcQ
+wake drain: acknowledged wakes through 1 (0 row(s) consumed), but a newer recovery episode is pending; re-run bin/fm-wake-drain.sh and use the new WAKE_ACK_REQUIRED command
+[exit 0]
+PASS stale acknowledgement cannot retire the newer recovery or late queued work
+missing-sidecar-replay: check: rearm-resurface [exit 0]
+missing-sidecar-repeat-restart: {"output": "", "marker": "announced:downtime:844599.1792481857.RRh0Ki", "check_mtime_ns": 1792481859704805610, "heartbeat_mtime_ns": 1792481859730805562, "registered_check_runs": 10}
+PASS missing legacy announce record replays once then stabilizes
+ALL LIVE WATCHER SCENARIOS PASSED
+Disposable lab removed; no default backend session used.

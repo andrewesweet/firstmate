@@ -1,0 +1,4 @@
+ok - an unchanged unacknowledged row never stops .last-check advancing
+ok - a row appended after the announcement resurfaces once under a fresh generation
+ok - an acknowledgement typed between restarts retires the generation it names
+ok - a new supervisor session replays an announced episode once
