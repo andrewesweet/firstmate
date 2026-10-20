@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Unchanged unacknowledged row survives same, different, and absent session IDs while checks and heartbeats keep running",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Work appended after announcement resurfaces once under a new generation and then stays quiet",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Regressed, missing, empty, and invalid sequence evidence conservatively resurfaces queued work",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Acknowledgement using the originally presented generation succeeds after two restarts and consumes the row",
+    "result": "pass",
+    "live": true
+  }
+]

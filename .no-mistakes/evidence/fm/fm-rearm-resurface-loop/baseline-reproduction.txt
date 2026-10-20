@@ -1,0 +1,28 @@
+Counterfactual: target watcher with only fm-wake-lib.sh restored to base afaf620.
+[
+  {
+    "start": 1,
+    "stdout": "check: rearm-resurface",
+    "marker": "announced:downtime:3850830.1792496385.zcomCF",
+    "queue": "1792496385\t1\tcheck\tinbox:baseline\tcheck: unchanged row",
+    "last_check_exists": false,
+    "check_ran": false
+  },
+  {
+    "start": 2,
+    "stdout": "check: rearm-resurface",
+    "marker": "announced:downtime:3851295.1792496386.aqnYyO",
+    "queue": "1792496385\t1\tcheck\tinbox:baseline\tcheck: unchanged row",
+    "last_check_exists": false,
+    "check_ran": false
+  },
+  {
+    "start": 3,
+    "stdout": "check: rearm-resurface",
+    "marker": "announced:downtime:3851671.1792496386.HraTq0",
+    "queue": "1792496385\t1\tcheck\tinbox:baseline\tcheck: unchanged row",
+    "last_check_exists": false,
+    "check_ran": false
+  }
+]
+Observed: three launches over the same row minted three recovery generations; the registered due check never ran.

@@ -1,0 +1,132 @@
+Private tmux isolation container: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5CGF3ACMA45G6YFQV3T9Q56/.l15qk3zhe/s,3826626,0
+
+SCENARIO: Unchanged unacknowledged row survives same, different, and absent session IDs while checks and heartbeats keep running
+registered: state/cadence.check.sh
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496314\t1\tcheck\tinbox:initial work\tcheck: initial work", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3826691.1792496314.3gYlGS", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+restart session=supervisor-A: stdout=''; stderr=''
+.last-check mtime_ns: 0 -> 1792496317241317379; .last-heartbeat mtime_ns: 1792496314870315848 -> 1792496317269317398; custom-check runs: 0 -> 2
+{".heartbeat-streak": "2", ".wake-queue": "1792496314\t1\tcheck\tinbox:initial work\tcheck: initial work", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3826691.1792496314.3gYlGS", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed"}
+restart session=supervisor-B: stdout=''; stderr=''
+.last-check mtime_ns: 1792496317241317379 -> 1792496319072318562; .last-heartbeat mtime_ns: 1792496317269317398 -> 1792496319100318580; custom-check runs: 2 -> 4
+{".heartbeat-streak": "3", ".wake-queue": "1792496314\t1\tcheck\tinbox:initial work\tcheck: initial work", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3826691.1792496314.3gYlGS", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed\ncheck executed\ncheck executed"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 1792496319072318562 -> 1792496322819320982; .last-heartbeat mtime_ns: 1792496319100318580 -> 1792496322848321001; custom-check runs: 4 -> 6
+{".heartbeat-streak": "5", ".wake-queue": "1792496314\t1\tcheck\tinbox:initial work\tcheck: initial work", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3826691.1792496314.3gYlGS", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed\ncheck executed\ncheck executed\ncheck executed\ncheck executed"}
+Observed result: PASS
+
+SCENARIO: Work appended after announcement resurfaces once under a new generation and then stays quiet
+registered: state/cadence.check.sh
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496324\t1\tcheck\tinbox:first\tcheck: first", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3830066.1792496324.TKSzmy", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496324\t1\tcheck\tinbox:first\tcheck: first\n1792496324\t2\tcheck\tinbox:late\tcheck: late", ".wake-queue.seq": "2", ".watcher-down": "announced:downtime:3830531.1792496324.A1ajkD", ".watcher-down.announce-seq": "2", "check-runs": "<missing>"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 0 -> 1792496327388323933; .last-heartbeat mtime_ns: 1792496324452322037 -> 1792496327416323951; custom-check runs: 0 -> 2
+{".heartbeat-streak": "2", ".wake-queue": "1792496324\t1\tcheck\tinbox:first\tcheck: first\n1792496324\t2\tcheck\tinbox:late\tcheck: late", ".wake-queue.seq": "2", ".watcher-down": "announced:downtime:3830531.1792496324.A1ajkD", ".watcher-down.announce-seq": "2", "check-runs": "check executed\ncheck executed"}
+Observed result: PASS
+
+SCENARIO: Acknowledgement using the originally presented generation succeeds after two restarts and consumes the row
+registered: state/cadence.check.sh
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496328\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3832386.1792496328.xIduRr", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 0 -> 1792496329946325585; .last-heartbeat mtime_ns: 1792496329024324989 -> 1792496329973325602; custom-check runs: 0 -> 2
+{".heartbeat-streak": "1", ".wake-queue": "1792496328\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3832386.1792496328.xIduRr", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 1792496329946325585 -> 1792496333681327998; .last-heartbeat mtime_ns: 1792496329973325602 -> 1792496333710328016; custom-check runs: 2 -> 4
+{".heartbeat-streak": "3", ".wake-queue": "1792496328\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3832386.1792496328.xIduRr", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed\ncheck executed\ncheck executed"}
+fm-wake-drain.sh stdout:
+1792496328	1	check	inbox:handled between restarts	check: handled between restarts
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 3832386.1792496328.xIduRr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 registered custom check(s), but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+ack exit=0 stdout:
+stderr:
+
+Traceback (most recent call last):
+  File "/home/cti/.no-mistakes/evidence/01M5CGF3ACMA45G6YFQV3T9Q56/drive-watcher.py", line 89, in scenario
+    fn()
+  File "/home/cti/.no-mistakes/evidence/01M5CGF3ACMA45G6YFQV3T9Q56/drive-watcher.py", line 132, in ack
+    assert read(p,'.watcher-down')=='acked:downtime:'+generation
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+
+SCENARIO: Regressed, missing, empty, and invalid sequence evidence conservatively resurfaces queued work
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496336\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3835813.1792496336.U93CHM", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: regressed
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496336\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "0", ".watcher-down": "announced:downtime:3836329.1792496336.cD0xVX", ".watcher-down.announce-seq": "0", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496337\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3836730.1792496337.iSAcnx", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: missing-record
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496337\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3837238.1792496338.DWTpSn", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496338\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3837593.1792496338.rAUV7O", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: empty-record
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496338\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3838105.1792496339.kKXjcm", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496339\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3838469.1792496339.J9BrJF", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: invalid-record
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496339\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3838962.1792496340.9dB1dT", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496340\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3839329.1792496340.ougsa4", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: missing-live
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496340\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "<missing>", ".watcher-down": "announced:downtime:3839825.1792496341.8O1aWM", ".watcher-down.announce-seq": "", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496341\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3840190.1792496341.Om1w5d", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: empty-live
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496341\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "", ".watcher-down": "announced:downtime:3840686.1792496342.kOEP9T", ".watcher-down.announce-seq": "", "check-runs": "<missing>"}
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496342\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3841053.1792496342.UNsUa2", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+Adversarial persisted-state fault: invalid-live
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496342\t1\tcheck\tinbox:recoverable\tcheck: recoverable", ".wake-queue.seq": "invalid", ".watcher-down": "announced:downtime:3841564.1792496343.CDIKji", ".watcher-down.announce-seq": "invalid", "check-runs": "<missing>"}
+Observed result: PASS
+Teardown: private tmux server stopped and every disposable home removed.
+Private tmux isolation container: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5CGF3ACMA45G6YFQV3T9Q56/.l0e93jw42/s,3843442,0
+
+SCENARIO: Acknowledgement using the originally presented generation succeeds after two restarts and consumes the row
+registered: state/cadence.check.sh
+fm-watch.sh exit=0: check: rearm-resurface
+{".heartbeat-streak": "0", ".wake-queue": "1792496359\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3843551.1792496359.patxdf", ".watcher-down.announce-seq": "1", "check-runs": "<missing>"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 0 -> 1792496362127346369; .last-heartbeat mtime_ns: 1792496359744344830 -> 1792496362154346386; custom-check runs: 0 -> 2
+{".heartbeat-streak": "2", ".wake-queue": "1792496359\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3843551.1792496359.patxdf", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed"}
+restart session=absent: stdout=''; stderr=''
+.last-check mtime_ns: 1792496362127346369 -> 1792496365399348482; .last-heartbeat mtime_ns: 1792496362154346386 -> 1792496365425348498; custom-check runs: 2 -> 4
+{".heartbeat-streak": "4", ".wake-queue": "1792496359\t1\tcheck\tinbox:handled between restarts\tcheck: handled between restarts", ".wake-queue.seq": "1", ".watcher-down": "announced:downtime:3843551.1792496359.patxdf", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed\ncheck executed\ncheck executed"}
+fm-wake-drain.sh stdout:
+1792496359	1	check	inbox:handled between restarts	check: handled between restarts
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 3843551.1792496359.patxdf
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 registered custom check(s), but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+ack exit=0 stdout:
+stderr:
+
+{".heartbeat-streak": "4", ".wake-queue": "", ".wake-queue.seq": "1", ".watcher-down": "acked:handling:3843551.1792496359.patxdf", ".watcher-down.announce-seq": "1", "check-runs": "check executed\ncheck executed\ncheck executed\ncheck executed"}
+Observed result: PASS
+Teardown: private tmux server stopped and every disposable home removed.
