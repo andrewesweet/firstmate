@@ -913,18 +913,20 @@ run_watcher_bounded() {
 }
 
 test_rejected_metacharacter_bytes_are_inert() {
-  local dir family rc before after
-  dir=$(make_case rejected-metacharacters)
-  write_task_meta "$dir"
-  write_poll_meta "$dir/home/state" safe-check https://github.com/o/r/pull/99
+  local dir family i rc before after
   families=(
     'https://github.com/o$/r/pull/1'
     'https://github.com/o(/r/pull/1'
     'https://github.com/o)/r/pull/1'
     'https://github.com/o`/r/pull/1'
   )
-  for family in "${families[@]}"; do
-    rm -f "$dir/home/state/task-a.check.sh" "$dir/home/state/task-a.pr-poll"
+  for i in "${!families[@]}"; do
+    family=${families[$i]}
+    # Each case needs a first merge notification; re-registering an already
+    # reported merge retires silently and cannot end the watcher cycle.
+    dir=$(make_case "rejected-metacharacters-$i")
+    write_task_meta "$dir"
+    write_poll_meta "$dir/home/state" safe-check https://github.com/o/r/pull/99
     set +e
     run_check_entry "$dir" task-a "$family" > /dev/null 2> "$dir/stderr"
     rc=$?
@@ -941,7 +943,8 @@ test_rejected_metacharacter_bytes_are_inert() {
     rc=$?
     set -e
     [ "$rc" -eq 0 ] || fail "bounded watcher did not complete through the authenticated poll"
-    rm -f "$dir/home/state/.last-check"
+    [ "$(cat "$dir/watch.out")" = "check: $dir/home/state/safe-check.check.sh: merged" ] \
+      || fail "rejected metacharacter case did not reach the authenticated merged poll"
   done
 
   FM_TEST_GH_STATE=OPEN run_check_entry "$dir" task-a https://github.com/o/r/pull/1 >/dev/null 2>/dev/null \

@@ -749,7 +749,7 @@ test_delivery_gap_wake_is_recovered_once() {
 }
 
 test_interrupted_handling_is_redrained_on_rearm() {
-  local dir home state fakebin first_arm recovery_arm sequence generation handling_watcher_pid handling_generation generation_replay
+  local dir home state fakebin first_arm recovery_arm sequence generation handling_watcher_pid handling_generation
   dir=$(make_case interrupted-handling-redrain)
   home="$dir/home"
   state="$dir/state"
@@ -775,20 +775,6 @@ test_interrupted_handling_is_redrained_on_rearm() {
     pending:downtime:*|announced:downtime:*) ;;
     *) fail "reason emission marked recovery handled before a successor was established" ;;
   esac
-  generation_before=$(recovery_marker_generation "$state/.watcher-down")
-  [ -n "$generation_before" ] || fail "crash-gap recovery left no recovery generation"
-
-  start_rearm_arm "$home" "$state" "$fakebin" "$dir/reason-emit-crash-replay.out"
-  wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS" || fail "a crash after reason emission stranded the durable wake"
-  recovery_arm=$ARM_PID
-  grep -F 'check: rearm-resurface' "$dir/reason-emit-crash-replay.out" >/dev/null \
-    || fail "a crash after reason emission did not re-drain recovery"
-  generation_replay=$(recovery_marker_generation "$state/.watcher-down")
-  [ -n "$generation_replay" ] \
-    || fail "reason-emission replay left no recovery generation"
-  grep "$(printf '\tsignal\tinterrupted.status\t')" "$state/.wake-queue" >/dev/null \
-    || fail "reason-emission replay removed the unacknowledged durable wake"
-
   start_rearm_arm "$home" "$state" "$fakebin" "$dir/handling-successor-arm.out" "$recovery_arm"
   is_live_non_zombie "$ARM_PID" \
     || fail "expected handling successor looped on the pending durable wake"
@@ -1668,11 +1654,11 @@ test_handling_delivered_accepts_already_acked_generation() {
   pass "watch-arm: an already-acknowledged handling confirmation succeeds as a no-op"
 }
 
-# A non-successor arm start mints a fresh generation, and a confirmation for
-# the churned generation reports a mismatch (status 3). The closing arm check
-# without a reopen - the marker step a handling successor runs - keeps the
-# churned generation. This characterizes existing marker behavior that the Pi
-# superseded-delivery path relies on.
+# New work appended after an announcement supersedes its generation, and a
+# confirmation for that superseded generation reports a mismatch (status 3).
+# The closing arm check without a reopen - the marker step a handling successor
+# runs - keeps the replacement generation. The Pi superseded-delivery path
+# relies on this distinction.
 test_handling_delivered_rejects_a_superseded_generation() {
   local dir home state pid identity first second status
   dir=$(make_case handling-delivered-superseded)
@@ -1694,10 +1680,8 @@ test_handling_delivered_rejects_a_superseded_generation() {
     announced:downtime:"$first") ;;
     *) fail "announced episode has the wrong shape: $(cat "$state/.watcher-down")" ;;
   esac
-  # Reopening mints a fresh generation only when unrecovered work is queued:
-  # an announced episode with an empty queue must survive untouched, so queue
-  # one wake and re-announce first. Without this the reopen below is a no-op
-  # by design (no idle churn) and the fresh-generation assertion below fails.
+  # Establish an announced episode with a queued wake before appending the
+  # later work that supersedes it.
   append_wake "$state" check inbox:fixture 'check: manual-restart churn fixture' \
     || fail "could not queue the fixture wake for the manual restart"
   FM_STATE_OVERRIDE="$state" bash -c '. "$1"; fm_recovery_marker_arm_check "$2"' \
@@ -1708,6 +1692,8 @@ test_handling_delivered_rejects_a_superseded_generation() {
     announced:downtime:"$first") ;;
     *) fail "queued episode has the wrong shape: $(cat "$state/.watcher-down")" ;;
   esac
+  append_wake "$state" check inbox:later 'check: later work supersedes the announcement' \
+    || fail "could not queue new work after the announcement"
   FM_STATE_OVERRIDE="$state" bash -c '. "$1"; fm_recovery_marker_reopen_announced "$2"' \
     _ "$ROOT/bin/fm-wake-lib.sh" "$state/.watcher-down" \
     || fail "a manual arm start could not reopen the announced episode"

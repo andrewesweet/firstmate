@@ -6770,6 +6770,204 @@ test_paused_bg_job_until_timeout_rechecks_after_the_job_ends() {
   pass "until set to a background job's timeout rechecks the worker paused on it once the job must have ended"
 }
 
+# The rearm-resurface starvation: a watcher restart with one unacknowledged row
+# left in the durable queue used to reopen the announced recovery episode
+# because the queue was merely non-empty, mint a fresh generation, and resurface
+# again - every turn end, while .last-check froze and no due check ever ran.
+test_unacknowledged_row_does_not_stop_last_check_advancing() {
+  local dir state fakebin out check_file pid announced
+  dir=$(make_case rearm-starve)
+  state="$dir/state"; fakebin="$dir/fakebin"; out="$dir/watch.out"
+  check_file="$state/task.check.sh"
+  # Empty output: the check runs and advances .last-check without appending a
+  # queue row, so the queue stays unchanged across every cycle below.
+  cat > "$check_file" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  chmod 0700 "$check_file"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-check-register.sh" task >/dev/null \
+    || fail "could not register the due custom check"
+  append_wake "$state" signal task 'signal: task.status' \
+    || fail "the unacknowledged row could not be queued"
+
+  # The first start announces the fresh pending episode - the one legitimate
+  # resurface; the check block sits behind the resurface wake and cannot run.
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID FM_CHECK_INTERVAL=0
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
+  grep -F 'check: rearm-resurface' "$out" >/dev/null \
+    || fail "fixture: the first watcher did not announce the fresh episode: $(cat "$out")"
+  announced=$(cat "$state/.watcher-down")
+
+  # A restart over the unchanged queue must not resurface again: the watcher
+  # cycles quietly, and its due check advances .last-check.
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID FM_CHECK_INTERVAL=0
+  pid=$!
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the restarted watcher exited instead of cycling quietly: $(cat "$out")"; }
+  [ ! -s "$out" ] \
+    || { reap "$pid"; fail "the restart resurfaced the unchanged queue: $(cat "$out")"; }
+  [ -e "$state/.last-check" ] \
+    || { reap "$pid"; fail "the restart did not advance .last-check"; }
+
+  # Repeated cycles keep the same hold: no resurface, cadence still advancing,
+  # the episode still the generation the first start announced.
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the restarted watcher exited during its later cycles: $(cat "$out")"; }
+  reap "$pid"
+  [ "$(cat "$state/.watcher-down")" = "$announced" ] \
+    || fail "a restart reopened the announced episode: $announced -> $(cat "$state/.watcher-down")"
+  grep -F "$(printf '\tsignal\ttask\t')" "$state/.wake-queue" >/dev/null \
+    || fail "the unacknowledged row vanished from the durable queue"
+  pass "an unchanged unacknowledged row never stops .last-check advancing"
+}
+
+# Genuinely new queued work must still resurface once: a row appended after the
+# announcement opens a fresh episode on the next start, and that second episode
+# must not loop either once its own queue is unchanged.
+test_row_appended_after_announcement_still_resurfaces() {
+  local dir state fakebin out pid announced reopened
+  dir=$(make_case rearm-late-row)
+  state="$dir/state"; fakebin="$dir/fakebin"; out="$dir/watch.out"
+  append_wake "$state" signal task 'signal: task.status' \
+    || fail "the unacknowledged row could not be queued"
+
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
+  grep -F 'check: rearm-resurface' "$out" >/dev/null \
+    || fail "fixture: the first watcher did not announce the fresh episode: $(cat "$out")"
+  announced=$(cat "$state/.watcher-down")
+
+  # A row appended after the announcement advances the queue's append sequence.
+  append_wake "$state" signal late 'signal: late arriving work' \
+    || fail "the late row could not be queued"
+
+  # The next start must resurface the new work once, under a fresh generation.
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the restarted watcher never surfaced the late row: $(cat "$out")"; }
+  grep -F 'check: rearm-resurface' "$out" >/dev/null \
+    || fail "a row appended after the announcement did not resurface: $(cat "$out")"
+  reopened=$(cat "$state/.watcher-down")
+  [ "$reopened" != "$announced" ] \
+    || fail "the late row resurfaced under the old generation instead of a fresh one"
+
+  # The second episode must not loop over its own unchanged queue either.
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the watcher after the resurface exited instead of cycling quietly: $(cat "$out")"; }
+  [ ! -s "$out" ] \
+    || { reap "$pid"; fail "an unchanged queue resurfaced a second time: $(cat "$out")"; }
+  reap "$pid"
+  pass "a row appended after the announcement resurfaces once under a fresh generation"
+}
+
+# On a Claude primary every turn end re-arms the watcher, and each restart used
+# to mint a fresh recovery generation over the unchanged queue - so a hand-typed
+# acknowledgement between turns was refused as "a newer recovery episode is
+# pending". With the episode staying announced across restarts, the generation a
+# wake presented must still be acknowledgeable after any number of them.
+test_ack_between_restarts_is_not_refused_as_newer_episode() {
+  local dir state fakebin out pid generation err
+  dir=$(make_case rearm-ack)
+  state="$dir/state"; fakebin="$dir/fakebin"; out="$dir/watch.out"; err="$dir/ack.err"
+  append_wake "$state" signal task 'signal: task.status' \
+    || fail "the unacknowledged row could not be queued"
+
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
+  generation=$(cat "$state/.watcher-down")
+  generation=${generation##*:}
+  [ -n "$generation" ] || fail "the announce left no generation to acknowledge"
+
+  # Two restarts over the unchanged queue: exactly what turn-end re-arms do.
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the first restart exited instead of cycling quietly: $(cat "$out")"; }
+  reap "$pid"
+  watch_bg "$state" "$fakebin" "$out" env -u CLAUDE_CODE_SESSION_ID
+  pid=$!
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the second restart exited instead of cycling quietly: $(cat "$out")"; }
+  reap "$pid"
+
+  # The acknowledgement a wake presentation printed must still land.
+  FM_STATE_OVERRIDE="$state" "$DRAIN" --ack-through 1 --recovery-generation "$generation" \
+    >/dev/null 2> "$err" || fail "the between-restarts acknowledgement failed: $(cat "$err")"
+  if grep -F 'newer recovery episode is pending' "$err" >/dev/null; then
+    fail "the restarts minted a newer episode over the unchanged queue: $(cat "$err")"
+  fi
+  case "$(cat "$state/.watcher-down")" in
+    acked:downtime:"$generation") ;;
+    *) fail "the acknowledged generation was not retired: $(cat "$state/.watcher-down")" ;;
+  esac
+  [ ! -s "$state/.wake-queue" ] || fail "the acknowledgement did not consume the queued row"
+  pass "an acknowledgement typed between restarts retires the generation it names"
+}
+
+test_recovery_rearm_depends_only_on_queue_sequence() {
+  local dir state phase sequence identity
+  dir=$(make_case rearm-sequence)
+  for phase in announced acked; do
+    for sequence in same higher regressed missing-record empty-record invalid-record missing-live empty-live invalid-live; do
+      for identity in same different absent; do
+        state="$dir/$phase-$sequence-$identity"
+        FM_STATE_OVERRIDE="$state" CLAUDE_CODE_SESSION_ID=first bash -s -- \
+          "$ROOT/bin/fm-wake-lib.sh" "$phase" "$sequence" "$identity" <<'SH' \
+          || fail "$phase re-arm violated sequence contract: $sequence, $identity identity"
+set -eu
+. "$1"
+marker="$STATE/.watcher-down"
+fm_wake_append signal task 'signal: task.status'
+fm_recovery_marker_arm_check "$marker"
+[ "$FM_RECOVERY_MARKER_ACTION" = recover ]
+[ "$(cat "$marker.announce-seq")" = 1 ]
+generation=${FM_RECOVERY_MARKER_TOKEN##*:}
+if [ "$2" = acked ]; then
+  fm_recovery_marker_ack "$marker" "$generation"
+fi
+before=$(cat "$marker")
+case "$3" in
+  higher) printf '2\n' > "$STATE/.wake-queue.seq" ;;
+  regressed) printf '0\n' > "$STATE/.wake-queue.seq" ;;
+  missing-record) rm "$marker.announce-seq" ;;
+  empty-record) : > "$marker.announce-seq" ;;
+  invalid-record) printf 'invalid\n' > "$marker.announce-seq" ;;
+  missing-live) rm "$STATE/.wake-queue.seq" ;;
+  empty-live) : > "$STATE/.wake-queue.seq" ;;
+  invalid-live) printf 'invalid\n' > "$STATE/.wake-queue.seq" ;;
+esac
+case "$4" in
+  different) export CLAUDE_CODE_SESSION_ID=second ;;
+  absent) unset CLAUDE_CODE_SESSION_ID ;;
+esac
+fm_recovery_marker_reopen_announced "$marker"
+fm_recovery_marker_arm_check "$marker"
+if [ "$3" = same ]; then
+  [ "$(cat "$marker")" = "$before" ]
+  [ "$FM_RECOVERY_MARKER_ACTION" != recover ]
+else
+  [ "$FM_RECOVERY_MARKER_ACTION" = recover ]
+  [ "$(cat "$marker")" != "$before" ]
+  case "$(cat "$marker")" in announced:downtime:*) ;; *) exit 1 ;; esac
+  [ "$(cat "$marker.announce-seq")" = "$(cat "$STATE/.wake-queue.seq" 2>/dev/null || true)" ]
+fi
+SH
+      done
+    done
+  done
+  pass "recovery re-arms follow only queue sequence changes across identities and episode states"
+}
+
 # CI's stock macOS Bash lane sets FM_TEST_ONLY to run just the bash-3.2
 # churn-deferral regression. The rest of this file is not a 3.2 snapshot suite.
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -7107,3 +7305,7 @@ test_exit_picker_wedge_keeps_climbing
 test_quoted_exit_picker_stays_ordinary_stale
 test_secondmate_exit_picker_stays_quiet
 test_closed_exit_picker_drops_saved_dialog_name
+test_unacknowledged_row_does_not_stop_last_check_advancing
+test_row_appended_after_announcement_still_resurfaces
+test_ack_between_restarts_is_not_refused_as_newer_episode
+test_recovery_rearm_depends_only_on_queue_sequence
