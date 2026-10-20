@@ -1,0 +1,164 @@
+Public CLI validation of fm-crew-state.sh
+no-mistakes version v1.96.0 (93b4407) 2026-10-13T13:36:31Z
+Isolation: worktree-local NM_HOME, marked FM_HOME, and private tmux fm-lab socket.
+Data: 12 inert historical cancelled records on other branches; no pipeline was initialized or run.
+The observation proxy delegates every call to the installed CLI unchanged.
+The race scenario switches the disposable Git branch immediately before the first real axi status.
+A real tmux shell supplies the pane; real fm-busy-event commands supply the semantic events. No LLM agent or login is required for this state-selection contract.
+Oracle: author intent requires zero-run/no-inventory on the matching branch, and inventory in all other cases.
+
+SCENARIO: Matching zero-run verdict bypasses capped inventory and preserves status-log detail
+
+$ no-mistakes axi status
+current_branch: fm/live-no-run
+runs_on_current_branch: 0
+count: 10 of 12 total
+runs[10]{id,branch,status,head,pr}:
+  "01LABHISTORY11",fm/other-11,cancelled,84bd92b0,""
+  "01LABHISTORY10",fm/other-10,cancelled,84bd92b0,""
+  "01LABHISTORY09",fm/other-9,cancelled,84bd92b0,""
+  "01LABHISTORY08",fm/other-8,cancelled,84bd92b0,""
+  "01LABHISTORY07",fm/other-7,cancelled,84bd92b0,""
+  "01LABHISTORY06",fm/other-6,cancelled,84bd92b0,""
+  "01LABHISTORY05",fm/other-5,cancelled,84bd92b0,""
+  "01LABHISTORY04",fm/other-4,cancelled,84bd92b0,""
+  "01LABHISTORY03",fm/other-3,cancelled,84bd92b0,""
+  "01LABHISTORY02",fm/other-2,cancelled,84bd92b0,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+
+$ bin/fm-crew-state.sh zero
+state: working · source: status-log · implementation continues
+CLI calls: ['axi status']
+RESULT: pass
+
+SCENARIO: Matching zero-run verdict preserves busy-pane priority
+
+$ no-mistakes axi status
+current_branch: fm/live-no-run
+runs_on_current_branch: 0
+count: 10 of 12 total
+runs[10]{id,branch,status,head,pr}:
+  "01LABHISTORY11",fm/other-11,cancelled,84bd92b0,""
+  "01LABHISTORY10",fm/other-10,cancelled,84bd92b0,""
+  "01LABHISTORY09",fm/other-9,cancelled,84bd92b0,""
+  "01LABHISTORY08",fm/other-8,cancelled,84bd92b0,""
+  "01LABHISTORY07",fm/other-7,cancelled,84bd92b0,""
+  "01LABHISTORY06",fm/other-6,cancelled,84bd92b0,""
+  "01LABHISTORY05",fm/other-5,cancelled,84bd92b0,""
+  "01LABHISTORY04",fm/other-4,cancelled,84bd92b0,""
+  "01LABHISTORY03",fm/other-3,cancelled,84bd92b0,""
+  "01LABHISTORY02",fm/other-2,cancelled,84bd92b0,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+
+$ bin/fm-crew-state.sh zero
+state: working · source: pane · harness busy (claude-hook)
+CLI calls: ['axi status']
+RESULT: pass
+
+SCENARIO: Existing run without the new optional fields retains inventory attribution
+
+$ no-mistakes axi status
+run:
+  id: "01K80000000000000000000001"
+  branch: fm/live-no-run
+  status: failed
+  head: 84bd92b0
+  head_sha: 84bd92b0f0eaf8a8f96577664eed283a35dd88c9
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+
+$ no-mistakes axi
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/15083dca46d2/01M5BY6D152EJFQDJBYDZMB2WK/.test-phase/live/repo
+current_branch: fm/live-no-run
+daemon: stopped
+count: 10 of 13 total
+runs[10]{id,branch,status,head,pr}:
+  "01LABHISTORY11",fm/other-11,cancelled,84bd92b0,""
+  "01LABHISTORY10",fm/other-10,cancelled,84bd92b0,""
+  "01LABHISTORY09",fm/other-9,cancelled,84bd92b0,""
+  "01LABHISTORY08",fm/other-8,cancelled,84bd92b0,""
+  "01LABHISTORY07",fm/other-7,cancelled,84bd92b0,""
+  "01LABHISTORY06",fm/other-6,cancelled,84bd92b0,""
+  "01LABHISTORY05",fm/other-5,cancelled,84bd92b0,""
+  "01LABHISTORY04",fm/other-4,cancelled,84bd92b0,""
+  "01LABHISTORY03",fm/other-3,cancelled,84bd92b0,""
+  "01LABHISTORY02",fm/other-2,cancelled,84bd92b0,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+
+$ no-mistakes axi status --run 01K80000000000000000000001
+run:
+  id: "01K80000000000000000000001"
+  branch: fm/live-no-run
+  status: failed
+  head: 84bd92b0
+  head_sha: 84bd92b0f0eaf8a8f96577664eed283a35dd88c9
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+
+$ bin/fm-crew-state.sh zero
+state: failed · source: run-step · run failed · run: 01K80000000000000000000001
+CLI calls: ['axi status', 'axi', 'axi status --run 01K80000000000000000000001']
+RESULT: pass
+
+SCENARIO: Branch switches between crew branch read and status: mismatched zero-run verdict cannot hide the worker run
+
+$ no-mistakes axi status
+current_branch: fm/live-other
+runs_on_current_branch: 0
+count: 10 of 13 total
+runs[10]{id,branch,status,head,pr}:
+  "01LABHISTORY11",fm/other-11,cancelled,84bd92b0,""
+  "01LABHISTORY10",fm/other-10,cancelled,84bd92b0,""
+  "01LABHISTORY09",fm/other-9,cancelled,84bd92b0,""
+  "01LABHISTORY08",fm/other-8,cancelled,84bd92b0,""
+  "01LABHISTORY07",fm/other-7,cancelled,84bd92b0,""
+  "01LABHISTORY06",fm/other-6,cancelled,84bd92b0,""
+  "01LABHISTORY05",fm/other-5,cancelled,84bd92b0,""
+  "01LABHISTORY04",fm/other-4,cancelled,84bd92b0,""
+  "01LABHISTORY03",fm/other-3,cancelled,84bd92b0,""
+  "01LABHISTORY02",fm/other-2,cancelled,84bd92b0,""
+help[2]: "Run no-mistakes axi run --intent \"the user's goal\" --yes to validate the current branch",No run exists for this branch; every run listed above is on another branch - inspect one deliberately with `no-mistakes axi status --run <id>`
+
+$ no-mistakes axi
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/15083dca46d2/01M5BY6D152EJFQDJBYDZMB2WK/.test-phase/live/repo
+current_branch: fm/live-other
+daemon: stopped
+count: 10 of 13 total
+runs[10]{id,branch,status,head,pr}:
+  "01LABHISTORY11",fm/other-11,cancelled,84bd92b0,""
+  "01LABHISTORY10",fm/other-10,cancelled,84bd92b0,""
+  "01LABHISTORY09",fm/other-9,cancelled,84bd92b0,""
+  "01LABHISTORY08",fm/other-8,cancelled,84bd92b0,""
+  "01LABHISTORY07",fm/other-7,cancelled,84bd92b0,""
+  "01LABHISTORY06",fm/other-6,cancelled,84bd92b0,""
+  "01LABHISTORY05",fm/other-5,cancelled,84bd92b0,""
+  "01LABHISTORY04",fm/other-4,cancelled,84bd92b0,""
+  "01LABHISTORY03",fm/other-3,cancelled,84bd92b0,""
+  "01LABHISTORY02",fm/other-2,cancelled,84bd92b0,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+
+$ no-mistakes axi status --run 01K80000000000000000000001
+current_branch: fm/live-other
+other_branch_run:
+  id: "01K80000000000000000000001"
+  branch: fm/live-no-run
+  status: failed
+  head: 84bd92b0
+  head_sha: 84bd92b0f0eaf8a8f96577664eed283a35dd88c9
+  verification_plan: none
+  findings: none
+  steps[0]:
+outcome: failed
+
+$ bin/fm-crew-state.sh zero
+state: failed · source: run-step · run failed · run: 01K80000000000000000000001
+CLI calls: ['axi status', 'axi', 'axi status --run 01K80000000000000000000001']
+RESULT: pass

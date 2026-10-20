@@ -1,0 +1,13 @@
+$ TMPDIR="$PWD/.test-phase/tmp" bash tests/.crew-state-base-phase.test.sh
+not ok - explicit no-run answer falls through to the current status (missing: 'state: working')
+--- output ---
+state: unknown · source: run-step · complete same-branch run inventory unreadable; run ids: 
+exit: 1
+
+$ TMPDIR="$PWD/.test-phase/tmp" bash tests/.crew-state-phase.test.sh
+ok - runs_on_current_branch: 0 makes a capped overview fall through to crew-state sources
+ok - cross-branch run is attributed via the real runs list
+ok - no run + a busy semantic record reads working, attributed to its source
+ok - no run + idle pane uses the status-log verb
+ok - legacy live rebased run is authoritative over an older failed row
+exit: 0
