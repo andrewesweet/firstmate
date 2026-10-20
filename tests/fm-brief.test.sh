@@ -229,7 +229,7 @@ test_ship_modes_generate_clean_briefs() {
 # with no --forge renders the unchanged gh-axi wording. The forge is a ship
 # input only, and the closed set refuses anything else.
 test_forge_selection_renders_correct_cli() {
-  local home brief out rc
+  local home brief out rc endpoint
   home="$TMP_ROOT/forge-home"
   mkdir -p "$home/data"
 
@@ -275,9 +275,19 @@ test_forge_selection_renders_correct_cli() {
   # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
   assert_grep 'confirm it is not a draft (`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<number>` must show `draft` as false' "$brief" \
     "a no-mistakes --forge forgejo DOD must read the draft state back with tea"
-  # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
-  assert_grep 'Every poll reads the PR itself, not only its checks: `tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews`' "$brief" \
-    "a no-mistakes --forge forgejo DOD must read the CI-gate reviews and comments with tea"
+  for endpoint in \
+    '/pulls/<n>' \
+    '/commits/<head.sha>/status' \
+    '/pulls/<n>/reviews' \
+    '/pulls/<n>/reviews/<review-id>/comments' \
+    '/issues/<n>/comments'; do
+    assert_grep "tea api --repo <owner>/<repo> /repos/{owner}/{repo}$endpoint\`" "$brief" \
+      "a no-mistakes --forge forgejo DOD must name the Forgejo polling read $endpoint"
+  done
+  assert_grep 'for each review' "$brief" \
+    "a no-mistakes --forge forgejo DOD must read inline comments for every review"
+  assert_grep 'reading every page of these API lists and commit statuses' "$brief" \
+    "a no-mistakes --forge forgejo DOD must not truncate feedback or CI statuses"
   assert_no_grep 'gh-axi pr view' "$brief" \
     "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi for the draft read-back"
   assert_no_grep 'gh-axi pr ready' "$brief" \

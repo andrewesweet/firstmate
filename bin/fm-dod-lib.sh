@@ -485,7 +485,7 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>]
     contract_forge=' forge=forgejo'
     forge_cli=tea
     draft_check="(\`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<number>\` must show \`draft\` as false, where <owner>/<repo> and <number> come from your PR URL); Forgejo marks a draft by a work-in-progress title prefix such as \`WIP:\`, so if it is a draft, remove that prefix with \`tea pulls edit <number> --repo <owner>/<repo> --title '<title without the prefix>'\`."
-    ci_poll_line="Every poll reads the PR itself, not only its checks: \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews\`, \`.../pulls/<n>/comments\`, and \`.../issues/<n>/comments\` for the review submissions and comments, and the head commit's \`.../commits/<sha>/status\` for the checks."
+    ci_poll_line="Every poll reads the PR itself, not only its checks: \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>\` for \`head.sha\`, then \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/commits/<head.sha>/status\` for the checks; read the review submissions and comments with \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews\`, \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews/<review-id>/comments\` for each review, and \`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/issues/<n>/comments\`, reading every page of these API lists and commit statuses."
   fi
   if [ -n "$base" ]; then
     printf -v base_q '%q' "$base"
