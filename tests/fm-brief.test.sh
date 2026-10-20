@@ -275,10 +275,15 @@ test_forge_selection_renders_correct_cli() {
   # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
   assert_grep 'confirm it is not a draft (`tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<number>` must show `draft` as false' "$brief" \
     "a no-mistakes --forge forgejo DOD must read the draft state back with tea"
+  # shellcheck disable=SC2016 # Backticks and braces are literal generated brief text.
+  assert_grep 'Every poll reads the PR itself, not only its checks: `tea api --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>/reviews`' "$brief" \
+    "a no-mistakes --forge forgejo DOD must read the CI-gate reviews and comments with tea"
   assert_no_grep 'gh-axi pr view' "$brief" \
     "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi for the draft read-back"
   assert_no_grep 'gh-axi pr ready' "$brief" \
     "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi to clear a draft"
+  assert_no_grep 'gh-axi pr checks' "$brief" \
+    "a no-mistakes --forge forgejo DOD must not send the worker to gh-axi for the CI-gate checks poll"
 
   while IFS='|' read -r label args expect; do
     [ -n "$label" ] || continue
