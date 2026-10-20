@@ -57,8 +57,8 @@
 # bin/fm-project-mode.sh's header owns what the registry binding means, and this
 # file owns what each forge changes for a WORKER (docs/gerrit-forge-integration.md
 # is the gerrit design and docs/external-review-forge.md the external one). In
-# the Definition of done, forgejo changes only the CLI a direct-PR worker opens
-# its pull request with: tea instead of gh-axi. A forge composes with
+# the Definition of done, forgejo uses tea instead of gh-axi for pull-request
+# creation, draft read-back, and CI-gate checks and feedback reads. A forge composes with
 # the two modes that publish and is refused on local-only, which publishes
 # nothing. On gerrit the worker publishes one squashed change with
 # `gerrit-axi publish --squash` instead of opening a pull request: direct-PR does
@@ -85,21 +85,10 @@
 # report, read back from the forge; a lane that deliberately holds a draft
 # declares a paused wait instead. bin/fm-pr-check.sh refuses to arm merge
 # monitoring on a draft through the same reading bin/fm-pr-merge.sh uses.
-# The no-mistakes block is also the one owner of the worker's conduct at the CI
-# gate: every poll reads the PR's reviews and comments, not only its checks;
-# review-bot or maintainer feedback is fed to a parked gate through
-# `no-mistakes axi respond --action fix`, never dismissed as a non-required
-# check; feedback that lands while no gate is parked is a keyed
-# `needs-decision [key=pr-<n>-<comment-id>]` line carrying the comment inline
-# that, for that decision only, replaces rule 6's stop: the worker keeps polling
-# behind it until firstmate answers dismiss (reply on the PR) or fix, which the
-# worker adds to the next parked gate, and `done:` waits until no such decision
-# is open and the PR holds no unactioned feedback; a maintainer-only wait (fork-workflow approval,
-# flaky-job rerun) is a `[key=nm-<run>-ci-wait]` declared-external-wait line,
-# keyed apart from the gate's own ask-user key so the worker's `resolved` never
-# folds away an escalation only firstmate may close, that the worker resumes
-# from itself, never `blocked:`; and no single wait exceeds the harness command
-# bound the block already names.
+# The no-mistakes block in fm_dod_block owns CI-gate polling, feedback routing,
+# and maintainer-only waits; tests/fm-brief.test.sh checks the generated output.
+# Its external-wait key stays separate from the gate's ask-user key so a worker's
+# `resolved` never closes an escalation only firstmate may close.
 # This file is the one owner of the no-mistakes `--intent` contract: only the
 # brief's `## Captain's intent` subsection plus later captain words, never
 # `## Firstmate spec` and never the worker's own tradeoffs.
@@ -467,8 +456,8 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>]
   local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-}
   local branch=${3:-fm/$id} pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check ci_poll_line adapter
   # Same declared-wait verb the brief renders (bin/fm-brief.sh PAUSED_VERB), so
-  # an override still classifies; falls back to the literal when this library is
-  # sourced without bin/fm-classify-lib.sh.
+  # an override still classifies; uses the classifier default or paused when no
+  # override is set.
   local paused_verb=${FM_CLASSIFY_PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB_DEFAULT:-paused}}
   fm_forge_valid_for_mode "$forge" "$mode" fm_dod_block || return 1
   fm_base_branch_valid "$base" "$mode" "$forge" fm_dod_block || return 1
