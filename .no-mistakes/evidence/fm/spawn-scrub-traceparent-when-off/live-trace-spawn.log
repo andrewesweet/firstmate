@@ -1,0 +1,86 @@
+Real tmux, 120x40 panes; real Treehouse; public fm-spawn raw-command worker.
+
+Scenario off-allowlist-false: TRACEPARENT ambient=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; OTEL=service.name=trace-lab,deployment.environment=disposable
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false/data/tclive-2842458-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2842458-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false/data/tclive-2842458-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2842458-0 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2842458-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/1/project
+
+{
+  "scenario": "off-allowlist-false",
+  "result": "pass",
+  "child": {
+    "TRACEPARENT": null,
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+    "TRACE_LAB_DROP": "must-not-pass-allowlist",
+    "FM_TASK_ID": "tclive-2842458-0",
+    "GOTMPDIR": "/tmp/fm-tclive-2842458-0/gotmp",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/1/project"
+  },
+  "recorded_traceparent": []
+}
+
+Scenario on-allowlist-false: TRACEPARENT ambient=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; OTEL=service.name=trace-lab,deployment.environment=disposable
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-false
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-false/data/tclive-2842458-1/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2842458-1
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-false/data/tclive-2842458-1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2842458-1 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2842458-1 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/2/project
+
+{
+  "scenario": "on-allowlist-false",
+  "result": "pass",
+  "child": {
+    "TRACEPARENT": "00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01",
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+    "TRACE_LAB_DROP": "must-not-pass-allowlist",
+    "FM_TASK_ID": "tclive-2842458-1",
+    "GOTMPDIR": "/tmp/fm-tclive-2842458-1/gotmp",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/2/project"
+  },
+  "recorded_traceparent": [
+    "00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01"
+  ]
+}
+
+Scenario off-allowlist-true: TRACEPARENT ambient=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; OTEL=service.name=trace-lab,deployment.environment=disposable
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-true
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-true/data/tclive-2842458-2/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2842458-2
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-true/data/tclive-2842458-2/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2842458-2 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2842458-2 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/3/project
+
+{
+  "scenario": "off-allowlist-true",
+  "result": "pass",
+  "child": {
+    "TRACEPARENT": null,
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+    "TRACE_LAB_DROP": null,
+    "FM_TASK_ID": "tclive-2842458-2",
+    "GOTMPDIR": "/tmp/fm-tclive-2842458-2/gotmp",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/3/project"
+  },
+  "recorded_traceparent": []
+}
+
+Scenario on-allowlist-true: TRACEPARENT ambient=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; OTEL=service.name=trace-lab,deployment.environment=disposable
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-true
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-true/data/tclive-2842458-3/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2842458-3
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/on-allowlist-true/data/tclive-2842458-3/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2842458-3 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2842458-3 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/4/project
+
+{
+  "scenario": "on-allowlist-true",
+  "result": "pass",
+  "child": {
+    "TRACEPARENT": "00-c59ed3a777c4d8e9b7fe0fcfd4e5fc26-9e087dd26e7c74ba-01",
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+    "TRACE_LAB_DROP": null,
+    "FM_TASK_ID": "tclive-2842458-3",
+    "GOTMPDIR": "/tmp/fm-tclive-2842458-3/gotmp",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/4/project"
+  },
+  "recorded_traceparent": [
+    "00-c59ed3a777c4d8e9b7fe0fcfd4e5fc26-9e087dd26e7c74ba-01"
+  ]
+}
+Private tmux server stopped; disposable lab and task temp roots removed.

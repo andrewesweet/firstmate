@@ -1,0 +1,13 @@
+window=fm-lab-trace:fm-tclive-2858829-0
+endpoint_task_id=tclive-2858829-0
+worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/pool/.treehouse/project-a95f91/1/project
+project=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/project
+harness=python3
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/tclive-2858829-0
+tasktmp=/tmp/fm-tclive-2858829-0
+model=default
+effort=default
+spawn_gen=s1792488416.2859389.25906

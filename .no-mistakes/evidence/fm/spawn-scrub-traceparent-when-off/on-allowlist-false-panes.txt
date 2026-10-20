@@ -1,0 +1,130 @@
+%0 bash ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6
+bash-5.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%1 fm-tclive-2842458-0 ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/1/project
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/po
+ol/.treehouse/project-832cf0/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Tue Oct 20 10:26:43 BST 2026
+
+  System load:  2.89                 Processes:             245
+  Usage of /:   37.5% of 1006.85GB   Users logged in:       2
+  Memory usage: 59%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   30%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/user/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-l
+ab-1f49wsei/pool/.treehouse/project-832cf0/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$ export GOTMPDIR=/tmp/fm-tclive-2842458-0/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$ export FM_TASK_ID=tclive-2842458-0
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$ . '/tmp/fm-tclive-2842458-0+701a5488901e724699e51ed4e538c78f0f64eaf60e7f229ba5d8d9f11959b4
+a1/launch.s1792488405.2842694.774.sh'
+{"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable", "TRACE_LAB
+_DROP": "must-not-pass-allowlist", "FM_TASK_ID": "tclive-2842458-0", "GOTMPDIR": "/tmp/fm-tclive-2842458-0/gotmp", "cwd"
+: "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/projec
+t-832cf0/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/1/project$
+
+%2 fm-tclive-2842458-1 ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/2/project
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/po
+ol/.treehouse/project-832cf0/2/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-l
+ab-1f49wsei/pool/.treehouse/project-832cf0/2/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ export GOTMPDIR=/tmp/fm-tclive-2842458-1/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ export FM_TASK_ID=tclive-2842458-1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ export TRACEPARENT=00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$ . '/tmp/fm-tclive-2842458-1+e68afd4896f21817c69e845f9239667ec34eb28ae16bc57913d337c7b860ed
+9e/launch.s1792488409.2845960.28917.sh'
+{"TRACEPARENT": "00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=tra
+ce-lab,deployment.environment=disposable", "TRACE_LAB_DROP": "must-not-pass-allowlist", "FM_TASK_ID": "tclive-2842458-1"
+, "GOTMPDIR": "/tmp/fm-tclive-2842458-1/gotmp", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P
+9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/2/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treeho
+use/project-832cf0/2/project$
+
+
+
+
+
+
+
+
+
+
+
+
+

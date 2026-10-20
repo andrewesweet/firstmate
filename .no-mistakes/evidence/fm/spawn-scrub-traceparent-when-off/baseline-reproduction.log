@@ -1,0 +1,23 @@
+Real tmux, 120x40 panes; real Treehouse; public fm-spawn raw-command worker.
+
+Scenario off-allowlist-false: TRACEPARENT ambient=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01; OTEL=service.name=trace-lab,deployment.environment=disposable
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/off-allowlist-false
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/off-allowlist-false/data/tclive-2858829-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2858829-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/off-allowlist-false/data/tclive-2858829-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2858829-0 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2858829-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/pool/.treehouse/project-a95f91/1/project
+
+BASELINE DEFECT REPRODUCED: stale ambient carrier reached trace-off worker.
+{
+  "scenario": "off-allowlist-false",
+  "result": "pass",
+  "child": {
+    "TRACEPARENT": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+    "TRACE_LAB_DROP": "must-not-pass-allowlist",
+    "FM_TASK_ID": "tclive-2858829-0",
+    "GOTMPDIR": "/tmp/fm-tclive-2858829-0/gotmp",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-iraarosn/pool/.treehouse/project-a95f91/1/project"
+  },
+  "recorded_traceparent": []
+}
+Private tmux server stopped; disposable lab and task temp roots removed.

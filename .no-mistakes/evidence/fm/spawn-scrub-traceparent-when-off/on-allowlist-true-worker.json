@@ -1,0 +1,8 @@
+{
+  "TRACEPARENT": "00-c59ed3a777c4d8e9b7fe0fcfd4e5fc26-9e087dd26e7c74ba-01",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+  "TRACE_LAB_DROP": null,
+  "FM_TASK_ID": "tclive-2842458-3",
+  "GOTMPDIR": "/tmp/fm-tclive-2842458-3/gotmp",
+  "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/4/project"
+}

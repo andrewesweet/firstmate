@@ -1,0 +1,4 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false/data/tclive-2842458-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/tclive-2842458-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/off-allowlist-false/data/tclive-2842458-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned tclive-2842458-0 harness=python3 kind=ship mode=no-mistakes yolo=off window=fm-lab-trace:fm-tclive-2842458-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/1/project
