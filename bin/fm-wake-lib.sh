@@ -879,6 +879,66 @@ _fm_recovery_marker_ack() {
   fm_lock_release "$lock"
 }
 
+# The sidecar recording the durable queue's append sequence and the supervising
+# session id at the moment the recovery episode that announced it was armed.
+# Reopen and re-arm transitions fire only for durable facts the announced
+# episode has not seen: rows appended after its announcement, or a different
+# supervisor session arming now. An unchanged backlog re-armed by the session
+# that saw its announce - the ordinary state between a wake and its handled
+# acknowledgement - never reopens the episode, so turn-end re-arms cannot mint
+# a generation per close and starve due checks (docs/watcher-continuity.md
+# "Announcement").
+# A missing or unreadable record reads as "rows gained": a marker written
+# before this rule reopens once under the old rule, and the announce that
+# follows records the sequence so the steady state holds from then on.
+# Two id-less arms count as different sessions: a replay that reaches no
+# recorded reader must be re-delivered to the next boot.
+_fm_recovery_marker_announce_seq_path() {  # <marker>
+  printf '%s.announce-seq' "$1"
+}
+
+# Caller holds FM_WAKE_QUEUE_LOCK and the marker lock.
+_fm_recovery_marker_record_announce_seq_locked() {  # <marker>
+  local marker=$1 seq session tmp target
+  target=$(_fm_recovery_marker_announce_seq_path "$marker")
+  seq=$(cat "$STATE/.wake-queue.seq" 2>/dev/null || true)
+  case "$seq" in ''|*[!0-9]*) seq=0 ;; esac
+  session=${CLAUDE_CODE_SESSION_ID:-}
+  case "$session" in *$'\n'*|*$'\r'*) session='' ;; esac
+  tmp=$(mktemp "${marker}.announce-seq.tmp.XXXXXX") || return 1
+  if ! printf '%s\n%s\n' "$seq" "$session" > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! mv -f -- "$tmp" "$target"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
+# True when the durable queue gained rows since the announced episode recorded
+# its append sequence, or when the session arming now is not the one the
+# announce named. Two id-less arms differ, so an announce whose reader never
+# materialised is re-delivered to the next boot. Caller holds
+# FM_WAKE_QUEUE_LOCK and the marker lock.
+_fm_recovery_marker_reopen_warranted_locked() {  # <marker>
+  local marker=$1 record recorded_seq recorded_session current session
+  record=$(cat "$(_fm_recovery_marker_announce_seq_path "$marker")" 2>/dev/null || true)
+  recorded_seq=${record%%$'\n'*}
+  case "$recorded_seq" in ''|*[!0-9]*) return 0 ;; esac
+  case "$record" in
+    *$'\n'*) recorded_session=${record#*$'\n'}; recorded_session=${recorded_session%%$'\n'*} ;;
+    *) recorded_session='' ;;
+  esac
+  current=$(cat "$STATE/.wake-queue.seq" 2>/dev/null || true)
+  case "$current" in ''|*[!0-9]*) return 0 ;; esac
+  # Any sequence movement warrants reopen: forward means appended rows, and a
+  # regressed sequence means the queue was rebuilt after the announce.
+  [ "$current" -ne "$recorded_seq" ] && return 0
+  session=${CLAUDE_CODE_SESSION_ID:-}
+  case "$session" in *$'\n'*|*$'\r'*) session='' ;; esac
+  [ -n "$session" ] && [ "$session" = "$recorded_session" ] && return 1
+  return 0
+}
+
 _fm_recovery_marker_arm_check() {
   local marker=$1 lock line quarantine
   FM_RECOVERY_MARKER_ACTION='none'
@@ -891,6 +951,11 @@ _fm_recovery_marker_arm_check() {
   if [ ! -e "$marker" ] && [ ! -L "$marker" ]; then
     if [ -s "$FM_WAKE_QUEUE" ]; then
       if ! _fm_recovery_marker_write_locked "$marker" downtime "" announced; then
+        fm_lock_release "$lock"
+        fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+        return 1
+      fi
+      if ! _fm_recovery_marker_record_announce_seq_locked "$marker"; then
         fm_lock_release "$lock"
         fm_lock_release "$FM_WAKE_QUEUE_LOCK"
         return 1
@@ -915,6 +980,11 @@ _fm_recovery_marker_arm_check() {
       fm_lock_release "$FM_WAKE_QUEUE_LOCK"
       return 1
     fi
+    if ! _fm_recovery_marker_record_announce_seq_locked "$marker"; then
+      fm_lock_release "$lock"
+      fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+      return 1
+    fi
     FM_RECOVERY_MARKER_ACTION='recover'
     fm_lock_release "$lock"
     fm_lock_release "$FM_WAKE_QUEUE_LOCK"
@@ -934,12 +1004,23 @@ _fm_recovery_marker_arm_check() {
         fm_lock_release "$FM_WAKE_QUEUE_LOCK"
         return 1
       fi
+      if ! _fm_recovery_marker_record_announce_seq_locked "$marker"; then
+        fm_lock_release "$lock"
+        fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+        return 1
+      fi
       FM_RECOVERY_MARKER_TOKEN="announced:downtime:${line##*:}"
       FM_RECOVERY_MARKER_ACTION='recover'
       ;;
     acked:*)
-      if [ -s "$FM_WAKE_QUEUE" ]; then
+      if [ -s "$FM_WAKE_QUEUE" ] \
+        && _fm_recovery_marker_reopen_warranted_locked "$marker"; then
         if ! _fm_recovery_marker_write_locked "$marker" downtime "" announced; then
+          fm_lock_release "$lock"
+          fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+          return 1
+        fi
+        if ! _fm_recovery_marker_record_announce_seq_locked "$marker"; then
           fm_lock_release "$lock"
           fm_lock_release "$FM_WAKE_QUEUE_LOCK"
           return 1
@@ -971,7 +1052,13 @@ _fm_recovery_marker_reopen_announced() {
   fi
   case "$FM_RECOVERY_MARKER_TOKEN" in
     announced:*)
+      # Reopen only for durable facts the announced episode has not seen: rows
+      # appended after the announce, or a different supervisor session arming
+      # now. An unchanged backlog re-armed by the same session must not reopen
+      # the episode, or every turn-end restart mints a fresh generation and
+      # the resurface wake starves due checks.
       if [ -s "$FM_WAKE_QUEUE" ] \
+        && _fm_recovery_marker_reopen_warranted_locked "$marker" \
         && ! _fm_recovery_marker_write_locked "$marker" downtime ""; then
         fm_lock_release "$lock"
         fm_lock_release "$FM_WAKE_QUEUE_LOCK"

@@ -7105,9 +7105,10 @@ test_closed_exit_picker_drops_saved_dialog_name() {
 # The rearm-resurface starvation: a watcher restart with one unacknowledged row
 # left in the durable queue used to reopen the announced recovery episode
 # because the queue was merely non-empty, mint a fresh generation, and resurface
-# again - every cycle, while .last-check froze and no due check ever ran.
-# A restart must instead leave the unchanged backlog announced and run its due
-# checks, and it must keep doing so across repeated cycles.
+# again - every turn end, while .last-check froze and no due check ever ran.
+# The restarts below carry the same supervisor session id a Stop-hook re-arm
+# does, so they model exactly that loop; a restart must leave the unchanged
+# backlog announced and run its due checks, across repeated cycles.
 test_unacknowledged_row_does_not_stop_last_check_advancing() {
   local dir state fakebin out check_file pid announced
   dir=$(make_case rearm-starve)
@@ -7127,7 +7128,7 @@ SH
 
   # The first start announces the fresh pending episode - the one legitimate
   # resurface; the check block sits behind the resurface wake and cannot run.
-  watch_bg "$state" "$fakebin" "$out" env FM_CHECK_INTERVAL=0
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session FM_CHECK_INTERVAL=0
   pid=$!
   wait_for_exit "$pid" 100 \
     || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
@@ -7137,7 +7138,7 @@ SH
 
   # A restart over the unchanged queue must not resurface again: the watcher
   # cycles quietly, and its due check advances .last-check.
-  watch_bg "$state" "$fakebin" "$out" env FM_CHECK_INTERVAL=0
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session FM_CHECK_INTERVAL=0
   pid=$!
   wait_poll_cycle "$state" "$pid" \
     || { reap "$pid"; fail "the restarted watcher exited instead of cycling quietly: $(cat "$out")"; }
@@ -7168,7 +7169,7 @@ test_row_appended_after_announcement_still_resurfaces() {
   append_wake "$state" signal task 'signal: task.status' \
     || fail "the unacknowledged row could not be queued"
 
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_for_exit "$pid" 100 \
     || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
@@ -7181,7 +7182,7 @@ test_row_appended_after_announcement_still_resurfaces() {
     || fail "the late row could not be queued"
 
   # The next start must resurface the new work once, under a fresh generation.
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_for_exit "$pid" 100 \
     || { reap "$pid"; fail "the restarted watcher never surfaced the late row: $(cat "$out")"; }
@@ -7192,7 +7193,7 @@ test_row_appended_after_announcement_still_resurfaces() {
     || fail "the late row resurfaced under the old generation instead of a fresh one"
 
   # The second episode must not loop over its own unchanged queue either.
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_poll_cycle "$state" "$pid" \
     || { reap "$pid"; fail "the watcher after the resurface exited instead of cycling quietly: $(cat "$out")"; }
@@ -7214,7 +7215,7 @@ test_ack_between_restarts_is_not_refused_as_newer_episode() {
   append_wake "$state" signal task 'signal: task.status' \
     || fail "the unacknowledged row could not be queued"
 
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_for_exit "$pid" 100 \
     || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
@@ -7223,12 +7224,12 @@ test_ack_between_restarts_is_not_refused_as_newer_episode() {
   [ -n "$generation" ] || fail "the announce left no generation to acknowledge"
 
   # Two restarts over the unchanged queue: exactly what turn-end re-arms do.
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_poll_cycle "$state" "$pid" \
     || { reap "$pid"; fail "the first restart exited instead of cycling quietly: $(cat "$out")"; }
   reap "$pid"
-  watch_bg "$state" "$fakebin" "$out"
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-loop-session
   pid=$!
   wait_poll_cycle "$state" "$pid" \
     || { reap "$pid"; fail "the second restart exited instead of cycling quietly: $(cat "$out")"; }
@@ -7248,6 +7249,47 @@ test_ack_between_restarts_is_not_refused_as_newer_episode() {
   pass "an acknowledgement typed between restarts retires the generation it names"
 }
 
+# A supervisor session that never saw the announce must still learn about the
+# episode: a boot under a different session id replays the announced wake once
+# under a fresh generation, and that new session's own later re-arms stay
+# quiet - the replay is per arriving session, never per restart.
+test_new_session_boot_replays_the_announced_episode_once() {
+  local dir state fakebin out pid first second
+  dir=$(make_case rearm-new-session)
+  state="$dir/state"; fakebin="$dir/fakebin"; out="$dir/watch.out"
+  append_wake "$state" signal task 'signal: task.status' \
+    || fail "the unacknowledged row could not be queued"
+
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-session-a
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the first watcher never surfaced its announce: $(cat "$out")"; }
+  first=$(cat "$state/.watcher-down")
+
+  # A different session boots over the unchanged queue: it gets its own replay.
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-session-b
+  pid=$!
+  wait_for_exit "$pid" 100 \
+    || { reap "$pid"; fail "the new session's boot never replayed the episode: $(cat "$out")"; }
+  grep -F 'check: rearm-resurface' "$out" >/dev/null \
+    || fail "the new session's boot did not replay the announced episode: $(cat "$out")"
+  second=$(cat "$state/.watcher-down")
+  [ "$second" != "$first" ] \
+    || fail "the new session's replay reused the announced generation"
+
+  # The new session's own turn-end re-arms must not loop the replay either.
+  watch_bg "$state" "$fakebin" "$out" env CLAUDE_CODE_SESSION_ID=fm-rearm-session-b
+  pid=$!
+  wait_poll_cycle "$state" "$pid" \
+    || { reap "$pid"; fail "the new session's restart exited instead of cycling quietly: $(cat "$out")"; }
+  [ ! -s "$out" ] \
+    || { reap "$pid"; fail "the new session's re-arms looped the replay: $(cat "$out")"; }
+  reap "$pid"
+  [ "$(cat "$state/.watcher-down")" = "$second" ] \
+    || fail "the new session's re-arm reopened its own replay: $second -> $(cat "$state/.watcher-down")"
+  pass "a new supervisor session replays an announced episode once"
+}
+
 test_exit_picker_stale_names_the_dialog
 test_exit_picker_wedge_keeps_climbing
 test_quoted_exit_picker_stays_ordinary_stale
@@ -7256,3 +7298,4 @@ test_closed_exit_picker_drops_saved_dialog_name
 test_unacknowledged_row_does_not_stop_last_check_advancing
 test_row_appended_after_announcement_still_resurfaces
 test_ack_between_restarts_is_not_refused_as_newer_episode
+test_new_session_boot_replays_the_announced_episode_once
