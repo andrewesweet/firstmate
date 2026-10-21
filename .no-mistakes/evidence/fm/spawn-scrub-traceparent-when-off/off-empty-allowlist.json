@@ -1,0 +1,14 @@
+{
+  "scenario": "off-empty-allowlist",
+  "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "observed_child": {
+    "TRACEPARENT": null,
+    "OTEL_RESOURCE_ATTRIBUTES": null,
+    "LAB_ALLOW": null,
+    "LAB_BLOCK": null,
+    "FM_TASK_ID": "tr136424-off-empty-allowlist",
+    "COMPACT_ADVISER_DISABLE": "1",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project"
+  },
+  "recorded_traceparent": null
+}

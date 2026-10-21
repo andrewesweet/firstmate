@@ -1,58 +1,84 @@
-[
-  {
-    "scenario": "off-allowlist-false",
-    "result": "pass",
-    "child": {
-      "TRACEPARENT": null,
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACE_LAB_DROP": "must-not-pass-allowlist",
-      "FM_TASK_ID": "tclive-2842458-0",
-      "GOTMPDIR": "/tmp/fm-tclive-2842458-0/gotmp",
-      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/1/project"
+{
+  "method": "Real bin/fm-spawn.sh raw-command interface with real tmux 3.4 and Treehouse v3.1.4; disposable marked FM_HOME and git project, 120x40 panes. The child observer records only selected fixture environment variables. No fake multiplexer or harness is involved.",
+  "oracle": "Author intent: off workers receive no TRACEPARENT, enabled workers receive the recorded fresh carrier; launch allowlist and OTEL_RESOURCE_ATTRIBUTES behavior remains unchanged.",
+  "rejected_wrong_behaviors": [
+    "stale daemon carrier survives a fresh off launch",
+    "allowlisting TRACEPARENT overrides off scrub",
+    "enabled carrier is scrubbed or differs from task metadata",
+    "OTEL attributes or allowlisted names change unexpectedly",
+    "unlisted ambient names bypass configured filtering"
+  ],
+  "scenarios": [
+    {
+      "scenario": "off-ambient",
+      "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "observed_child": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient",
+        "LAB_ALLOW": "retained value",
+        "LAB_BLOCK": "must disappear",
+        "FM_TASK_ID": "tr136424-off-ambient",
+        "COMPACT_ADVISER_DISABLE": "1",
+        "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project"
+      },
+      "recorded_traceparent": null
     },
-    "recorded_traceparent": []
-  },
-  {
-    "scenario": "on-allowlist-false",
-    "result": "pass",
-    "child": {
-      "TRACEPARENT": "00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACE_LAB_DROP": "must-not-pass-allowlist",
-      "FM_TASK_ID": "tclive-2842458-1",
-      "GOTMPDIR": "/tmp/fm-tclive-2842458-1/gotmp",
-      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/2/project"
+    {
+      "scenario": "off-allowlist",
+      "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "observed_child": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient",
+        "LAB_ALLOW": "retained value",
+        "LAB_BLOCK": null,
+        "FM_TASK_ID": "tr136424-off-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1",
+        "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/2/project"
+      },
+      "recorded_traceparent": null
     },
-    "recorded_traceparent": [
-      "00-91089ce4dc311c734c34265fe3e68a4c-ea0745c7e331bb97-01"
-    ]
-  },
-  {
-    "scenario": "off-allowlist-true",
-    "result": "pass",
-    "child": {
-      "TRACEPARENT": null,
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACE_LAB_DROP": null,
-      "FM_TASK_ID": "tclive-2842458-2",
-      "GOTMPDIR": "/tmp/fm-tclive-2842458-2/gotmp",
-      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/3/project"
+    {
+      "scenario": "on-ambient",
+      "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "observed_child": {
+        "TRACEPARENT": "00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient",
+        "LAB_ALLOW": "retained value",
+        "LAB_BLOCK": "must disappear",
+        "FM_TASK_ID": "tr136424-on-ambient",
+        "COMPACT_ADVISER_DISABLE": "1",
+        "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/3/project"
+      },
+      "recorded_traceparent": "00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01"
     },
-    "recorded_traceparent": []
-  },
-  {
-    "scenario": "on-allowlist-true",
-    "result": "pass",
-    "child": {
-      "TRACEPARENT": "00-c59ed3a777c4d8e9b7fe0fcfd4e5fc26-9e087dd26e7c74ba-01",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACE_LAB_DROP": null,
-      "FM_TASK_ID": "tclive-2842458-3",
-      "GOTMPDIR": "/tmp/fm-tclive-2842458-3/gotmp",
-      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5C9TKX989GA6P9TQ8D20JT6/.trace-lab-1f49wsei/pool/.treehouse/project-832cf0/4/project"
+    {
+      "scenario": "on-allowlist",
+      "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "observed_child": {
+        "TRACEPARENT": "00-731933072627e4d7c80d2b9ab51a2116-3530b835cddfe55f-01",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient",
+        "LAB_ALLOW": "retained value",
+        "LAB_BLOCK": null,
+        "FM_TASK_ID": "tr136424-on-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1",
+        "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/4/project"
+      },
+      "recorded_traceparent": "00-731933072627e4d7c80d2b9ab51a2116-3530b835cddfe55f-01"
     },
-    "recorded_traceparent": [
-      "00-c59ed3a777c4d8e9b7fe0fcfd4e5fc26-9e087dd26e7c74ba-01"
-    ]
-  }
-]
+    {
+      "scenario": "off-empty-allowlist",
+      "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "observed_child": {
+        "TRACEPARENT": null,
+        "OTEL_RESOURCE_ATTRIBUTES": null,
+        "LAB_ALLOW": null,
+        "LAB_BLOCK": null,
+        "FM_TASK_ID": "tr136424-off-empty-allowlist",
+        "COMPACT_ADVISER_DISABLE": "1",
+        "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project"
+      },
+      "recorded_traceparent": null
+    }
+  ],
+  "cleanup": "Private tmux server stopped; all five product task cleanups exited 0; disposable lab removed."
+}

@@ -1,0 +1,44 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/pro
+ject-441c2d/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Wed Oct 21 11:52:29 BST 2026
+
+  System load:  1.07                 Processes:             213
+  Usage of /:   38.5% of 1006.85GB   Users logged in:       2
+  Memory usage: 44%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   38%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/u/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/projec
+t-441c2d/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$ export GOTMPDIR=/tmp/fm-tr136424-off-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$ export FM_TASK_ID=tr136424-off-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$ . '/tmp/fm-tr136424-off-ambient+ca455c2fd0029413b46b5ee8403ebf2a51532d293fccdb17ab92797eee9c55aa/launch.s17
+92579951.136473.10164.sh'
+{"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient", "LAB_ALLOW": "retained valu
+e", "LAB_BLOCK": "must disappear", "FM_TASK_ID": "tr136424-off-ambient", "COMPACT_ADVISER_DISABLE": "1", "cwd": "~
+ndre/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/1/project$

@@ -1,0 +1,93 @@
+Real private tmux daemon before spawn: TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+Grid: 120x40
+Tools: v3.1.4; tmux 3.4
+
+CASE off-ambient; trace=off; allowlist=None
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-ambient/launch-brief.md records no ship branch; defaulting to legacy branch fm/tr136424-off-ambient
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-ambient/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: tr136424-off-ambient ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned tr136424-off-ambient harness=env kind=ship mode=local-only yolo=off window=primary:fm-tr136424-off-ambient worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project
+Actual child environment: {"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "tr136424-off-ambient", "LAB_ALLOW": "retained value", "LAB_BLOCK": "must disappear", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient", "TRACEPARENT": null, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project"}
+Recorded traceparent: None
+PASS: observed child carrier, task metadata, allowlist, OTEL attributes, task marker, and isolated cwd satisfy independent intent.
+
+CASE off-allowlist; trace=off; allowlist=['TRACEPARENT', 'OTEL_RESOURCE_ATTRIBUTES', 'LAB_ALLOW']
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-allowlist/launch-brief.md records no ship branch; defaulting to legacy branch fm/tr136424-off-allowlist
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-allowlist/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: tr136424-off-allowlist ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned tr136424-off-allowlist harness=env kind=ship mode=local-only yolo=off window=primary:fm-tr136424-off-allowlist worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/2/project
+Actual child environment: {"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "tr136424-off-allowlist", "LAB_ALLOW": "retained value", "LAB_BLOCK": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient", "TRACEPARENT": null, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/2/project"}
+Recorded traceparent: None
+PASS: observed child carrier, task metadata, allowlist, OTEL attributes, task marker, and isolated cwd satisfy independent intent.
+
+CASE on-ambient; trace=on; allowlist=None
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-on-ambient/launch-brief.md records no ship branch; defaulting to legacy branch fm/tr136424-on-ambient
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-on-ambient/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: tr136424-on-ambient ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned tr136424-on-ambient harness=env kind=ship mode=local-only yolo=off window=primary:fm-tr136424-on-ambient worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/3/project
+Actual child environment: {"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "tr136424-on-ambient", "LAB_ALLOW": "retained value", "LAB_BLOCK": "must disappear", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient", "TRACEPARENT": "00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/3/project"}
+Recorded traceparent: '00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01'
+PASS: observed child carrier, task metadata, allowlist, OTEL attributes, task marker, and isolated cwd satisfy independent intent.
+
+CASE on-allowlist; trace=on; allowlist=['OTEL_RESOURCE_ATTRIBUTES', 'LAB_ALLOW']
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-on-allowlist/launch-brief.md records no ship branch; defaulting to legacy branch fm/tr136424-on-allowlist
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-on-allowlist/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: tr136424-on-allowlist ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned tr136424-on-allowlist harness=env kind=ship mode=local-only yolo=off window=primary:fm-tr136424-on-allowlist worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/4/project
+Actual child environment: {"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "tr136424-on-allowlist", "LAB_ALLOW": "retained value", "LAB_BLOCK": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient", "TRACEPARENT": "00-731933072627e4d7c80d2b9ab51a2116-3530b835cddfe55f-01", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/4/project"}
+Recorded traceparent: '00-731933072627e4d7c80d2b9ab51a2116-3530b835cddfe55f-01'
+PASS: observed child carrier, task metadata, allowlist, OTEL attributes, task marker, and isolated cwd satisfy independent intent.
+
+CASE off-empty-allowlist; trace=off; allowlist=[]
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-empty-allowlist/launch-brief.md records no ship branch; defaulting to legacy branch fm/tr136424-off-empty-allowlist
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/tr136424-off-empty-allowlist/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: tr136424-off-empty-allowlist ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned tr136424-off-empty-allowlist harness=env kind=ship mode=local-only yolo=off window=primary:fm-tr136424-off-empty-allowlist worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project
+Actual child environment: {"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "tr136424-off-empty-allowlist", "LAB_ALLOW": null, "LAB_BLOCK": null, "OTEL_RESOURCE_ATTRIBUTES": null, "TRACEPARENT": null, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project"}
+Recorded traceparent: None
+PASS: observed child carrier, task metadata, allowlist, OTEL attributes, task marker, and isolated cwd satisfy independent intent.
+
+All five real spawn scenarios passed: off-ambient, off-allowlist, on-ambient, on-allowlist, off-empty-allowlist
+Private tmux cleanup exit=0
+Product cleanup tr136424-off-ambient exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  5 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌳 Worktree returned to pool.
+teardown tr136424-off-ambient complete (window primary:fm-tr136424-off-ambient, worktree ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project)
+Backlog: tr136424-off-ambient just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/backlog.md - move tr136424-off-ambient to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Product cleanup tr136424-on-allowlist exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown tr136424-on-allowlist complete (window primary:fm-tr136424-on-allowlist, worktree ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/4/project)
+Backlog: tr136424-on-allowlist just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/backlog.md - move tr136424-on-allowlist to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Product cleanup tr136424-on-ambient exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown tr136424-on-ambient complete (window primary:fm-tr136424-on-ambient, worktree ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/3/project)
+Backlog: tr136424-on-ambient just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/backlog.md - move tr136424-on-ambient to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Product cleanup tr136424-off-allowlist exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown tr136424-off-allowlist complete (window primary:fm-tr136424-off-allowlist, worktree ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/2/project)
+Backlog: tr136424-off-allowlist just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/backlog.md - move tr136424-off-allowlist to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Product cleanup tr136424-off-empty-allowlist exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+🌳 Worktree returned to pool.
+teardown tr136424-off-empty-allowlist complete (window primary:fm-tr136424-off-empty-allowlist, worktree ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project)
+Backlog: tr136424-off-empty-allowlist just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/data/backlog.md - move tr136424-off-empty-allowlist to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Disposable lab removed: True

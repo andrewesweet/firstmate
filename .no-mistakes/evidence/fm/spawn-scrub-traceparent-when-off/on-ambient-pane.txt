@@ -1,0 +1,40 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/pro
+ject-441c2d/3/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/projec
+t-441c2d/3/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ export GOTMPDIR=/tmp/fm-tr136424-on-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ export FM_TASK_ID=tr136424-on-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ export TRACEPARENT=00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$ . '/tmp/fm-tr136424-on-ambient+ca455c2fd0029413b46b5ee8403ebf2a51532d293fccdb17ab92797eee9c55aa/launch.s179
+2579959.141548.20648.sh'
+{"TRACEPARENT": "00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=tra
+ce-lab,scenario=ambient", "LAB_ALLOW": "retained value", "LAB_BLOCK": "must disappear", "FM_TASK_ID": "tr136424-on-ambie
+nt", "COMPACT_ADVISER_DISABLE": "1", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/
+.l/pool/.treehouse/project-441c2d/3/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/3/project$
+
+
+
+
+
+
+
+
+
+
+
+
+

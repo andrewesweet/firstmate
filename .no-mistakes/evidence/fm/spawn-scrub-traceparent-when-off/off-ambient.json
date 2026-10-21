@@ -1,0 +1,14 @@
+{
+  "scenario": "off-ambient",
+  "daemon_ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "observed_child": {
+    "TRACEPARENT": null,
+    "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,scenario=ambient",
+    "LAB_ALLOW": "retained value",
+    "LAB_BLOCK": "must disappear",
+    "FM_TASK_ID": "tr136424-off-ambient",
+    "COMPACT_ADVISER_DISABLE": "1",
+    "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/1/project"
+  },
+  "recorded_traceparent": null
+}

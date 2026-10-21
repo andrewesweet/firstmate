@@ -1,0 +1,40 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/pro
+ject-441c2d/5/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/projec
+t-441c2d/5/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$ export GOTMPDIR=/tmp/fm-tr136424-off-empty-allowlist/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$ export FM_TASK_ID=tr136424-off-empty-allowlist
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$ . '/tmp/fm-tr136424-off-empty-allowlist+ca455c2fd0029413b46b5ee8403ebf2a51532d293fccdb17ab92797eee9c55aa/la
+unch.s1792579966.150635.26399.sh'
+{"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": null, "LAB_ALLOW": null, "LAB_BLOCK": null, "FM_TASK_ID": "tr136424-of
+f-empty-allowlist", "COMPACT_ADVISER_DISABLE": "1", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RER
+RAM3S6V266QF0T/.l/pool/.treehouse/project-441c2d/5/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
+d/5/project$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
