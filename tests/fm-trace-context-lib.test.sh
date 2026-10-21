@@ -248,6 +248,13 @@ for bad in \
   { [ -z "$out" ] && [ "$link_bad" -eq 0 ]; } || fail "malformed ambient must never become a link: '$bad' (got '$out' rc=$link_bad)"
   link_bad=0
 done
+LIB_CODE=$(sed 's/#.*$//' "$ROOT/bin/fm-trace-context-lib.sh")
+for tok in harness backend tmux herdr zellij orca cmux paseo claude codex opencode grok kind ship scout secondmate ; do
+  case "$LIB_CODE" in
+    *"$tok"*) fail "trace-context lib code must be harness/backend/kind agnostic, but references '$tok'" ;;
+  esac
+done
+pass "the carrier is minted identically for every harness, backend, and spawn kind (no such branching in the lib code)"
 dollar='$'
 out=$(TRACEPARENT="${dollar}(touch link-pwned-$$)" fm_trace_context_link_resolve "$LINK_HOME")
 { [ -z "$out" ] && [ ! -e "link-pwned-$$" ]; } \

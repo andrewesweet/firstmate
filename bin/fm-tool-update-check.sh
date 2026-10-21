@@ -45,11 +45,8 @@
 # gitignored, and is never propagated to another home. Adding a tool is a config
 # edit, never a code change. docs/configuration.md owns that schema.
 #
-# A tool whose CLI never announces its own updates (Claude Code is one) can name
-# a `version_url` instead: an https document whose body carries the newest
-# published version. It is fetched read-only, within the same probe bound, and
-# compared with the version PATH resolves; "update available" is reported when
-# the published version is newer.
+# For tools without CLI update announcements, see `version_url` in
+# docs/configuration.md's "Watched tool updates" section.
 #
 # Probing costs real time, so `check` runs its probes at most once per
 # FM_TOOL_UPDATE_INTERVAL (default 900, 0 disables the gate, otherwise 60..86400)
@@ -422,7 +419,7 @@ probe_output() {
 
 command_findings() {
   local name=$1 command_name=$2 args_joined=$3 announce=$4 announce_args=$5 version_url=${6:-}
-  local hit out version matched announce_out status published matched_line announced_version
+  local hit out version matched announce_out status matched_line announced_version published
   local resolved_path='' resolved_version='' resolved_out=''
   local best_path='' best_version='' unreadable='' hits=''
 
@@ -518,8 +515,8 @@ EOF
 
   if [ -n "$version_url" ]; then
     # The published version is read from the document body, never from the URL,
-    # and compared with the copy PATH resolves: a newer install elsewhere on
-    # PATH is the "not in effect" finding below, not an available update.
+    # and compared with the newest installed copy found: a newer install elsewhere
+    # on PATH is the "not in effect" finding below, not an available update.
     if budget_exhausted; then
       emit "$name check failed: the time budget ran out before $version_url was read"
     elif ! command -v curl >/dev/null 2>&1; then
@@ -530,7 +527,7 @@ EOF
       published=$(parse_version "$out")
       if [ "$status" -ne 0 ] || [ -z "$published" ]; then
         emit "$name check failed: $version_url did not report a version"
-      elif version_newer "$published" "$resolved_version"; then
+      elif version_newer "$published" "$best_version"; then
         emit "$name update available: $published published at $version_url, PATH resolves $resolved_version"
       fi
     fi

@@ -120,7 +120,9 @@ jobs:
           set -eu
           npm install -g tasks-axi
           tasks-axi --version
-      # bin/fm-install-pi.sh owns the locked Pi setup and compatibility checks.
+      # Runtime-facing Pi extension probes need the installed public package
+      # to avoid capability skips, and bin/fm-install-pi.sh owns the locked,
+      # reproducible Pi setup and compatibility checks that provide it.
       - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
@@ -242,7 +244,9 @@ jobs:
           status=$(treehouse status --json)
           printf '%s\n' "$status"
           printf '%s' "$status" | jq -e . >/dev/null || { echo "::error::treehouse status --json did not print valid JSON"; exit 1; }
-      # bin/fm-install-pi.sh owns the locked Pi setup and compatibility checks.
+      # Runtime-facing Pi extension probes need the installed public package
+      # to avoid capability skips, and bin/fm-install-pi.sh owns the locked,
+      # reproducible Pi setup and compatibility checks that provide it.
       - name: Install the pinned reproducible Pi package set
         run: |
           set -eu
@@ -259,8 +263,6 @@ jobs:
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/fm-test"
-          # The Pi package is installed above and CI provides npm and tsc, so
-          # any missing typecheck prerequisite is a broken lane, not a valid skip.
           bin/fm-test-run.sh --lane "$FM_SERIAL_LANE" \
             --fail-on-gate-skip 'Pi extension typecheck prerequisite not found' \
             --json "$RUNNER_TEMP/fm-test/fm-test-timing-portable-serial-${FM_SERIAL_SHARD}.json"

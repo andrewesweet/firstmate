@@ -14,9 +14,11 @@
 #       the old gen are rejected as stale from then on.
 #
 #   apply <state-dir> <id> <busy|idle|unknown> (--gen G | --current-gen)
-#         --source S --event E [--turn-ended]
+#         --source S --event E [--turn-ended] [--if-seq N]
 #       Append one lifecycle event: validate the gen against the armed
 #       sidecar, advance seq under the lock, atomically replace the record.
+#       --if-seq also requires the locked record's sequence to equal N;
+#       a mismatch refuses the event without changing the record or marker.
 #       --turn-ended also touches state/<id>.turn-ended, the watcher
 #       notification, under the same lock, so a writer whose gen was refused,
 #       or whose incarnation is replaced right after, never signals the
@@ -39,18 +41,19 @@
 #       an old task from retiring a newly armed incarnation. A missing sidecar
 #       is already retired, so any orphan record is removed idempotently.
 #
-# Exit codes: 0 applied; 1 refused (stale gen, unarmed task, lock timeout,
-# invalid input); 2 usage. Adapter hook command lines append `|| true` so a
-# refusal never breaks the harness's own lifecycle.
+# Exit codes: 0 applied; 1 refused (stale gen or sequence, unarmed task,
+# lock timeout, invalid input); 2 usage. Adapter hook command lines append
+# `|| true` so a refusal never breaks the harness's own lifecycle.
 set -u
 
 usage() {
   cat >&2 <<'EOF'
 usage:
   fm-busy-event.sh arm <state-dir> <id> [--state busy|idle|unknown] [--source S] [--event E]
-  fm-busy-event.sh apply <state-dir> <id> <busy|idle|unknown> (--gen G | --current-gen) --source S --event E [--turn-ended]
+  fm-busy-event.sh apply <state-dir> <id> <busy|idle|unknown> (--gen G | --current-gen) --source S --event E [--turn-ended] [--if-seq N]
   fm-busy-event.sh progress <state-dir> <id> --gen G
   fm-busy-event.sh retire <state-dir> <id> (--gen G | --current-gen)
+--if-seq N applies the event only if the locked record still has sequence N.
 See the header comment for the full contract.
 EOF
   exit 2
@@ -77,6 +80,7 @@ NEW_STATE=
 GEN=
 USE_CURRENT_GEN=0
 TURN_ENDED=0
+IF_SEQ=
 SOURCE=
 EVENT=
 if [ "$CMD" = apply ]; then
@@ -95,6 +99,12 @@ while [ $# -gt 0 ]; do
     --source) SOURCE=${2:-}; shift 2 || usage ;;
     --event) EVENT=${2:-}; shift 2 || usage ;;
     --turn-ended) [ "$CMD" = apply ] || usage; TURN_ENDED=1; shift ;;
+    --if-seq)
+      [ "$CMD" = apply ] || usage
+      IF_SEQ=${2:-}
+      case "$IF_SEQ" in ''|*[!0-9]*) usage ;; esac
+      shift 2 || usage
+      ;;
     *) usage ;;
   esac
 done
@@ -243,6 +253,12 @@ if [ -f "$REC" ]; then
       esac
       ;;
   esac
+fi
+if [ -n "$IF_SEQ" ] && [ "$OLD_SEQ" != "$IF_SEQ" ]; then
+  lock_release
+  umask "$old_umask"
+  echo "error: stale busy-state sequence for $ID (event rejected)" >&2
+  exit 1
 fi
 write_record "$GEN" $((OLD_SEQ + 1)) || {
   lock_release

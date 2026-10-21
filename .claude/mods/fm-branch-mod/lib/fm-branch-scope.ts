@@ -51,6 +51,7 @@ export interface ScanQueueMeta {
   task: string
   project: string
   window: string
+  terminal: string
 }
 
 export type ScanStatusStat = { state: 'refused' } | { state: 'ok'; version: string }
@@ -167,6 +168,7 @@ export async function scanScope(deps: ScopeScanDeps, state: string, heartbeat: b
         task,
         project: fields.find((l: string) => l.startsWith('project='))?.slice(8) ?? '',
         window: fields.find((l: string) => l.startsWith('window='))?.slice(7) ?? '',
+        terminal: fields.find((l: string) => l.startsWith('terminal='))?.slice(9) ?? '',
       })
       let kind: string
       try {

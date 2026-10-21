@@ -344,6 +344,7 @@ export interface QueueMeta {
   task: string;
   project: string;
   window: string;
+  terminal: string;
 }
 
 /** A status-log stat bound by the consumer: the stat version string for the
@@ -454,15 +455,19 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
   const metadata = new Map<string, string>();
   const taskByKey = new Map<string, string>();
   for (const meta of inputs.metas) {
-    if (!meta.project) continue;
-    metadata.set(meta.task, meta.project);
-    taskByKey.set(meta.task, meta.task);
-    taskByKey.set(`${meta.task}.status`, meta.task);
-    taskByKey.set(`${meta.task}.turn-ended`, meta.task);
-    if (meta.window) {
-      metadata.set(meta.window, meta.project);
-      taskByKey.set(meta.window, meta.task);
+    // An Orca task's stale rows name its terminal handle, not its window
+    // (bin/fm-watch.sh keys Orca endpoints by terminal=), so index both.
+    const aliases = [meta.task, `${meta.task}.status`, `${meta.task}.turn-ended`, meta.window, meta.terminal];
+    for (const key of aliases) {
+      if (!key) continue;
+      const owner = taskByKey.get(key);
+      // Even an incomplete record claims its endpoint. Ambiguous ownership
+      // must not inherit another record's decision state or project context.
+      if (owner !== undefined && owner !== meta.task) return UNSAFE_SCOPE;
+      taskByKey.set(key, meta.task);
     }
+    // Projectless records may establish ambiguity, never routing authority.
+    if (meta.project) metadata.set(meta.task, meta.project);
   }
 
   const { resolveVerb, heldVerb, reservedPrefixes, pausedVerb } = inputs.env;
@@ -508,44 +513,39 @@ export function scopeForUnreadWake(inputs: UnreadWakeInputs): UnreadWakeScope {
     let task = "";
     if (kind === "signal") {
       task = key.replace(/\.(?:status|turn-ended)$/, "");
-      // A second mate's signal is judged by its new span on BOTH paths; every
-      // other signal row keeps the historical rule, where only an attended
-      // host folds the whole log.
-      const spanRule = task !== "" && inputs.readPresentedSpan !== undefined && inputs.readKind(task) === "secondmate";
+      // Main-owned exactly like a check-kind row while attended: a
+      // needs-decision status append surfaced through the actionable signal
+      // path is excluded from what the branch may claim without vetoing the
+      // scan. Away, the branch takes the decision row like any other
+      // task-local row (bin/fm-lease-lib.sh).
       if (/^needs-decision:/.test(fields[4] ?? "")) {
         needsDecisionKeys.push(key);
         needsDecisionTasks.push(task);
         if (!inputs.afk) continue;
-      } else if (task && (spanRule || inputs.attendedHost)) {
-        // An attended host can have accepted a routine signal before its
-        // task gained a main-owned decision: fold the status log exactly as
-        // a stale row does, so the offer rule keeps that close on main.
-        const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig, spanRule);
-        if (verdict === "torn") return UNSAFE_SCOPE;
-        if (verdict) {
-          needsDecisionKeys.push(key);
-          needsDecisionTasks.push(task);
-          if (!inputs.afk) continue;
-        }
       }
       project = metadata.get(task) ?? "";
     } else if (kind === "stale") {
       task = taskByKey.get(key) ?? taskByKey.get(key.replace(/^fm-/, "")) ?? "";
-      project = metadata.get(key) ?? metadata.get(key.replace(/^fm-/, "")) ?? "";
-      if (task) {
-        const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig);
-        if (verdict === "torn") return UNSAFE_SCOPE;
-        if (verdict) {
-          needsDecisionKeys.push(key);
-          needsDecisionTasks.push(task);
-          if (!inputs.afk) continue;
-        }
-      }
+      project = metadata.get(task) ?? "";
     } else {
       // A row kind this repo's queue writer never emits: corruption.
       return UNSAFE_SCOPE;
     }
+    // Projectless records may establish ambiguity, never routing authority.
     if (!project || !task) return UNSAFE_SCOPE;
+    // A second mate's signal is judged by its new span on BOTH paths; every
+    // other signal row keeps the historical rule, where only an attended
+    // host folds the whole log.
+    const spanRule = kind === "signal" && inputs.readPresentedSpan !== undefined && inputs.readKind(task) === "secondmate";
+    if (kind === "stale" || (kind === "signal" && (inputs.attendedHost || spanRule))) {
+      const verdict = staleDecisionVerdict(task, inputs, staleOwned, verdictConfig, spanRule);
+      if (verdict === "torn") return UNSAFE_SCOPE;
+      if (verdict) {
+        needsDecisionKeys.push(key);
+        needsDecisionTasks.push(task);
+        if (!inputs.afk) continue;
+      }
+    }
     projects.add(project);
     eligibleTasks.add(task);
     eligibleSeqs.push(seq);

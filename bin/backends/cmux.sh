@@ -303,7 +303,7 @@ fm_backend_cmux_container_ensure() {
 }
 
 # fm_backend_cmux_home_label: readable home prefix plus a short hash of the
-# resolved FM_ROOT path. cmux has one app-global workspace namespace, so the
+# resolved FM_HOME path. cmux has one app-global workspace namespace, so the
 # path hash distinguishes every firstmate installation, including multiple
 # primary homes. Moving an installation changes this tag and old cmux titles
 # stop matching; task meta already records absolute worktree paths, so repo

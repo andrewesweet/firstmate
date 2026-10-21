@@ -149,6 +149,7 @@ function listQueueMetas(state: string): QueueMeta[] | null {
         task,
         project: fields.find((line) => line.startsWith("project="))?.slice(8) ?? "",
         window: fields.find((line) => line.startsWith("window="))?.slice(7) ?? "",
+        terminal: fields.find((line) => line.startsWith("terminal="))?.slice(9) ?? "",
       });
     }
     return metas;

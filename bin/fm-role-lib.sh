@@ -41,7 +41,8 @@
 # from the home's optional declaration file config/firstmate-pub-target (one
 # <host>/<owner>/<repo> line; blank lines and full-line # comments ignored;
 # symlinked, unreadable, or malformed files ignored) when that file holds a
-# usable target, and otherwise from the first remote named upstream, github,
+# usable target, and otherwise from the first remote whose remote.<name>.gh-resolved
+# is base unless that remote is the firstmate parent, and otherwise the first remote named upstream, github,
 # or origin under Firstmate's explicit target policy, reduced to lowercase
 # host/owner/repo; a local-path remote
 # is resolved one hop through that repository's own origin, and left as
@@ -239,14 +240,32 @@ fm_role_git_common_dir() {
 # fm_role_publication_target <git-dir> [<config-dir>] - the repository
 # Firstmate selects for publication: the home's declared target in
 # <config-dir>/firstmate-pub-target when that file holds a usable target, and
+# otherwise the first remote whose remote.<name>.gh-resolved is base and
+# whose identity is not the firstmate parent (a base marker on the parent
+# records where the fork came from, never where this home publishes), and
 # otherwise the first of upstream, github, origin that is configured,
 # normalized to host/owner/repo or path:<abs>. Empty when nothing determines a
-# target.
+# target or the selected remote is unreadable. Resolution is entirely offline.
+fm_role_base_repo() {
+  printf 'github.com/kunchenguid/firstmate\n'
+}
+
 fm_role_publication_target() {
-  local dir=$1 config=${2:-} remote url=
+  local dir=$1 config=${2:-} remote remotes url=
   if [ -n "$config" ] && fm_role_declared_target "$config"; then
     return 0
   fi
+  remotes=$(git -C "$dir" remote 2>/dev/null) || return 0
+  while IFS= read -r remote; do
+    [ -n "$remote" ] || continue
+    if [ "$(git -C "$dir" config --get "remote.$remote.gh-resolved" 2>/dev/null)" = base ]; then
+      url=$(git -C "$dir" remote get-url "$remote" 2>/dev/null) || return 0
+      if [ "$(fm_role_remote_identity "$url" "$dir")" != "$(fm_role_base_repo)" ]; then
+        fm_role_remote_identity "$url" "$dir"
+        return
+      fi
+    fi
+  done <<< "$remotes"
   for remote in upstream github origin; do
     if url=$(git -C "$dir" remote get-url "$remote" 2>/dev/null) && [ -n "$url" ]; then
       break

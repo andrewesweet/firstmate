@@ -56,6 +56,39 @@ test_apply_advances_seq_and_source() {
   pass "apply advances seq under the armed gen and attributes the writing source"
 }
 
+test_apply_sequence_precondition_is_checked_under_the_writer_lock() {
+  local state gen fakebin rc=0 out
+  state=$(new_state_dir conditional-apply)
+  gen=$("$EV" arm "$state" t1) || fail "arm failed"
+  fakebin=$(fm_fakebin "$TMP_ROOT/conditional-apply")
+  cat > "$fakebin/mkdir" <<'SH'
+#!/usr/bin/env bash
+if [ "$1" = "$FM_TEST_BUSY_LOCK" ]; then
+  PATH="$FM_TEST_REAL_PATH" "$FM_TEST_BUSY_WRITER" apply "$FM_TEST_BUSY_STATE" t1 busy \
+    --gen "$FM_TEST_BUSY_GEN" --source polytoken-hook --event pre-user-prompt || exit 1
+fi
+exec "$FM_TEST_REAL_MKDIR" "$@"
+SH
+  chmod +x "$fakebin/mkdir"
+  out=$(env FM_TEST_BUSY_LOCK="$state/t1.busy-state.lock" FM_TEST_BUSY_STATE="$state" FM_TEST_BUSY_GEN="$gen" \
+    FM_TEST_BUSY_WRITER="$EV" FM_TEST_REAL_PATH="$PATH" FM_TEST_REAL_MKDIR="$(command -v mkdir)" \
+    PATH="$fakebin:$PATH" "$EV" apply "$state" t1 idle --gen "$gen" --if-seq 1 \
+      --source fm-interrupt --event interrupt --turn-ended 2>&1) || rc=$?
+  expect_code 1 "$rc" "a newer event at lock acquisition must reject the conditional close: $out"
+  assert_equals 'busy polytoken-hook pre-user-prompt 2' "$(fm_busy_record_read "$state" t1)" \
+    "the newer busy event must survive with its sequence unchanged"
+  assert_absent "$state/t1.turn-ended" "a refused conditional close must not notify turn end"
+  "$EV" apply "$state" t1 idle --gen "$gen" --if-seq 2 --source fm-interrupt --event interrupt --turn-ended \
+    || fail "a matching sequence must apply"
+  assert_equals 'idle fm-interrupt interrupt 3' "$(fm_busy_record_read "$state" t1)" "a matching conditional close must advance once"
+  [ -f "$state/t1.turn-ended" ] || fail "an accepted conditional close must notify turn end"
+  if "$EV" apply "$state" t1 idle --gen "$gen" --if-seq invalid --source fm-interrupt --event interrupt 2>/dev/null; then
+    fail "a malformed sequence precondition must refuse"
+  fi
+  assert_equals 'idle fm-interrupt interrupt 3' "$(fm_busy_record_read "$state" t1)" "a malformed precondition must not change the record"
+  pass "conditional apply checks the observed sequence under the writer lock before state or notification changes"
+}
+
 test_apply_current_gen_reset() {
   local state out
   state=$(new_state_dir apply-current)
@@ -618,6 +651,7 @@ test_turn_ended_notification_is_generation_bound
 
 test_arm_seeds_busy_spawn
 test_apply_advances_seq_and_source
+test_apply_sequence_precondition_is_checked_under_the_writer_lock
 test_apply_current_gen_reset
 test_apply_unarmed_refused
 test_retire_serializes_and_rejects_stale_gen
