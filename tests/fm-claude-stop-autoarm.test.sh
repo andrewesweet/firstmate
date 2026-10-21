@@ -863,6 +863,24 @@ test_term_mid_arm_commits_failure_and_rewakes() {
 # an identityless one reclaimed without any signalling. The generation-claim
 # section below pins the current contract.
 
+# Wait for the sleeper to finish exec before recording its command-line identity.
+# A just-forked child can still expose bash's argv or an empty /proc cmdline.
+start_claim_sleeper() {
+  local i=0 command
+  sleep "${1:-60}" &
+  CLAIM_SLEEPER_PID=$!
+  while [ "$i" -lt 100 ]; do
+    command=$(ps -o comm= -p "$CLAIM_SLEEPER_PID" 2>/dev/null | tr -d '[:space:]')
+    case "$command" in sleep|*/sleep) return 0 ;; esac
+    sleep 0.02
+    i=$((i + 1))
+  done
+  kill "$CLAIM_SLEEPER_PID" 2>/dev/null || true
+  wait "$CLAIM_SLEEPER_PID" 2>/dev/null || true
+  return 1
+}
+export -f start_claim_sleeper
+
 # Fabricate a held owner lock: <dir> <pid> <role>. Plain-dir shape on purpose -
 # the hook must reclaim whatever a crashed or blocked owner left behind.
 record_autoarm_owner() {
@@ -937,14 +955,22 @@ test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting() {
   FM_STATE_OVERRIDE="$dir/state" bash -c '
     . "$1"
     fm_lock_try_create "$2" || exit 7
+    printf "ready\n" > "$3"
     exec sleep 30
-  ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.claude-autoarm.lock.steal" >/dev/null 2>&1 &
+  ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.claude-autoarm.lock.steal" "$dir/state/steal-ready" >/dev/null 2>&1 &
   holder=$!
   i=0
-  while [ "$i" -lt 50 ] && [ ! -s "$dir/state/.claude-autoarm.lock.steal/pid" ]; do
+  while [ "$i" -lt 100 ] && [ ! -s "$dir/state/steal-ready" ]; do
     sleep 0.02
     i=$((i + 1))
   done
+  if [ ! -s "$dir/state/steal-ready" ]; then
+    kill -KILL "$holder" 2>/dev/null || true
+    wait "$holder" 2>/dev/null || true
+    fail "steal-mutex holder never finished acquisition"
+  fi
+  [ "$(cat "$dir/state/.claude-autoarm.lock.steal/pid")" = "$holder" ] \
+    || fail "steal mutex does not belong to its fixture holder"
   kill -KILL "$holder" 2>/dev/null || true
   wait "$holder" 2>/dev/null || true
   assert_present "$dir/state/.claude-autoarm.lock.steal" "fixture did not leave a dead-owner steal mutex"
@@ -1002,8 +1028,8 @@ test_fresh_arming_claim_with_stale_beacon_is_never_reclaimed() {
   dir=$(make_primary_dir "$TMP_ROOT/fresh-arming-claim")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
+  start_claim_sleeper || fail "claim sleeper did not finish exec"
+  pid=$CLAIM_SLEEPER_PID
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   printf 'epoch=464 owner_pid=%s outcome=arming updated_at=%s\n' "$pid" "$(date +%s)" \
@@ -1106,8 +1132,8 @@ test_identity_matched_arming_claim_is_never_reclaimed() {
   dir=$(make_primary_dir "$TMP_ROOT/identity-matched-arming")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
+  start_claim_sleeper || fail "claim sleeper did not finish exec"
+  pid=$CLAIM_SLEEPER_PID
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1152,8 +1178,8 @@ test_stuck_live_legacy_owner_is_retired_and_reclaimed() {
   dir=$(make_primary_dir "$TMP_ROOT/legacy-term")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
+  start_claim_sleeper || fail "claim sleeper did not finish exec"
+  pid=$CLAIM_SLEEPER_PID
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1177,8 +1203,8 @@ test_stopped_legacy_owner_is_reclaimed_with_term_pending() {
   dir=$(make_primary_dir "$TMP_ROOT/legacy-term-stopped")
   : > "$dir/state/task1.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
+  start_claim_sleeper || fail "claim sleeper did not finish exec"
+  pid=$CLAIM_SLEEPER_PID
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1232,8 +1258,9 @@ test_open_generation_claim_defers_without_any_lock() {
   out=$(printf '%s\n' '{"session_id":"sess-autoarm","stop_hook_active":false}' \
     | FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" "$FAKE_CLAUDE" -c '
         printf "%s\n" "$$" > "$FM_HOME/state/.lock"
-        sleep 60 &
-        owner=$!
+        start_claim_sleeper || exit 97
+        owner=$CLAIM_SLEEPER_PID
+        trap "kill $owner 2>/dev/null; wait $owner 2>/dev/null || true" EXIT
         identity=$(. "$FM_HOME/bin/fm-wake-lib.sh"; fm_pid_identity "$owner") || exit 97
         printf "epoch=464 owner_pid=%s outcome=arming updated_at=1\n%s\n" "$owner" "$identity" \
           > "$FM_HOME/state/.claude-autoarm-epoch"
@@ -1260,8 +1287,8 @@ test_stuck_generation_claim_is_superseded_and_rearms() {
   : > "$dir/state/task1.meta"
   : > "$dir/state/task2.meta"
   write_arm_fixture "$dir" actionable
-  sleep 60 &
-  pid=$!
+  start_claim_sleeper || fail "claim sleeper did not finish exec"
+  pid=$CLAIM_SLEEPER_PID
   record_autoarm_v2_claim "$dir" 464 "$pid" arming "$pid" || fail "could not record a v2 claim"
   touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
   touch -t 202001010000 "$dir/state/.last-watcher-beat"
@@ -1439,12 +1466,15 @@ test_recycled_bridge_claim_stays_open_on_session_id_match() {
     FM_STATE_OVERRIDE="$dir/state" bash -c '
         . "$1/bin/fm-wake-lib.sh"
         . "$1/bin/fm-session-lock-lib.sh"
-        sleep 60 &
-        owner=$!
-        sleep 60 &
-        other=$!
-        sleep 61 &
-        predecessor=$!
+        start_claim_sleeper || exit 97
+        owner=$CLAIM_SLEEPER_PID
+        trap "kill $owner 2>/dev/null; wait $owner 2>/dev/null || true" EXIT
+        start_claim_sleeper || exit 97
+        other=$CLAIM_SLEEPER_PID
+        trap "kill $owner $other 2>/dev/null; wait $owner $other 2>/dev/null || true" EXIT
+        start_claim_sleeper 61 || exit 97
+        predecessor=$CLAIM_SLEEPER_PID
+        trap "kill $owner $other $predecessor 2>/dev/null; wait $owner $other $predecessor 2>/dev/null || true" EXIT
         identity=$(fm_pid_identity "$owner") || exit 97
         lock_identity=$(fm_pid_identity "$other") || exit 97
         if [ "$4" != current ]; then
@@ -1497,8 +1527,9 @@ test_claim_without_numeric_session_lock_is_not_open() {
   probe() {
     FM_STATE_OVERRIDE="$dir/state" bash -c '
         . "$1/bin/fm-wake-lib.sh"
-        sleep 60 &
-        owner=$!
+        start_claim_sleeper || exit 97
+        owner=$CLAIM_SLEEPER_PID
+        trap "kill $owner 2>/dev/null; wait $owner 2>/dev/null || true" EXIT
         identity=$(fm_pid_identity "$owner") || exit 97
         printf "epoch=464 owner_pid=%s outcome=arming updated_at=1\n%s\n" "$owner" "$identity" \
           > "$1/state/.claude-autoarm-epoch"
