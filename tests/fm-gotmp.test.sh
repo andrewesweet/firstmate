@@ -67,6 +67,7 @@ SH
   # Teardown sources the span emitter even when tracing is disabled.
   ln -s "$ROOT/bin/fm-trace-span-lib.sh" "$fake/bin/fm-trace-span-lib.sh"
   ln -s "$ROOT/bin/fm-trace-context-lib.sh" "$fake/bin/fm-trace-context-lib.sh"
+  ln -s "$ROOT/bin/fm-trace-task-lib.sh" "$fake/bin/fm-trace-task-lib.sh"
   # fm-primary-scope-lib.sh: the trace-context library sources it for the
   # canonical secondmate-home predicate that gates trace links.
   ln -s "$ROOT/bin/fm-primary-scope-lib.sh" "$fake/bin/fm-primary-scope-lib.sh"
@@ -182,6 +183,7 @@ SH
   # Teardown sources the span emitter even when tracing is disabled.
   ln -s "$ROOT/bin/fm-trace-span-lib.sh" "$fake/bin/fm-trace-span-lib.sh"
   ln -s "$ROOT/bin/fm-trace-context-lib.sh" "$fake/bin/fm-trace-context-lib.sh"
+  ln -s "$ROOT/bin/fm-trace-task-lib.sh" "$fake/bin/fm-trace-task-lib.sh"
   # fm-primary-scope-lib.sh: the trace-context library sources it for the
   # canonical secondmate-home predicate that gates trace links.
   ln -s "$ROOT/bin/fm-primary-scope-lib.sh" "$fake/bin/fm-primary-scope-lib.sh"

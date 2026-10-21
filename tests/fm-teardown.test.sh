@@ -712,12 +712,13 @@ run_teardown() {
   # repo's own home and a test could mutate live records.
   # NM_HOME is pinned to the case dir so the spend line's pipeline columns are
   # read from a fixture inventory, never the developer's real one. A case
-  # measuring a populated inventory selects it through FM_TEARDOWN_TEST_NM_HOME.
+  # measuring a populated inventory selects it through FM_TEARDOWN_TEST_NM_HOME;
+  # an explicit empty value leaves home selection to the configured resolver.
   FM_ROOT_OVERRIDE="$ROOT" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
-  NM_HOME="${FM_TEARDOWN_TEST_NM_HOME:-$case_dir/nm-empty}" \
+  NM_HOME="${FM_TEARDOWN_TEST_NM_HOME-$case_dir/nm-empty}" \
   PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
     "$TEARDOWN" task-x1 "$@"
 }
@@ -4681,13 +4682,11 @@ SH
   chmod +x "$case_dir/resolver"
   printf '%s\n' "$case_dir/resolver" > "$case_dir/config/nm-home-resolver"
 
-  (
-    unset NM_HOME
-    FM_FAKE_NM_EXPECT_HOME="$case_dir/workspace-nm" \
-    FM_FAKE_AXI_STATUS="$(parked_axi_status_toon fm/task-x1 "$head")" \
-    FM_FAKE_NM_ABORT_LOG="$case_dir/nm-abort.log" \
-      run_teardown "$case_dir"
-  ) > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  FM_TEARDOWN_TEST_NM_HOME='' \
+  FM_FAKE_NM_EXPECT_HOME="$case_dir/workspace-nm" \
+  FM_FAKE_AXI_STATUS="$(parked_axi_status_toon fm/task-x1 "$head")" \
+  FM_FAKE_NM_ABORT_LOG="$case_dir/nm-abort.log" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
   expect_code 0 "$rc" "parked-run-resolved-home: teardown should still succeed"
   assert_grep "abort --run 01RUN" "$case_dir/nm-abort.log" \
     "parked-run-resolved-home: the parked run in the resolved workspace home was not aborted"

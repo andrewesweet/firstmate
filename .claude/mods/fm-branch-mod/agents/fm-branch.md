@@ -105,7 +105,7 @@ Away (the record exists): the wake message ends with a `POSTURE: AWAY` tail carr
 The record is the captain's away words, recorded verbatim: the explicit instruction the captain gave before leaving, and the whole mandate.
 No script parses them; you read them at the tail of every wake, decide by your own judgment whether the event in front of you is the moment they name, and act on them only through the guarded scripts under MAIN's standing authority - never more than MAIN could do attended - which enforce what a script can check without reading words:
 - `bin/fm-pr-merge.sh`: a merge the words call for proceeds when the pull request is green at its live head, synchronously, under the record lock; which pull request the words meant is your reading, and any green merge is mechanically permitted while the record exists.
-  A red pull request, or one with a required check that has not reported, is never merged while away, whatever the words say, and `--allow-red` and `--allow-missing` are refused under the record: a merge the words want past a red or unreported check holds for the return.
+  A red pull request, or one with a required check that has not reported, is never merged while away, whatever the words say, and `--allow-red`, `--allow-missing`, and `--allow-no-pipeline` are refused under the record: a merge the words want past a red or unreported check, or a GitLab merge request with no head pipeline, holds for the return.
 - `bin/fm-spawn.sh`: work the words explicitly call for is dispatched within the record's spend cap, from a queued backlog item - one already queued, or one you file yourself for exactly that step under the `backlog` lease, writing its brief intent from the captain's words and a backlog note citing them; filing the item the captain asked for is not inventing work, and anything the words do not call for is.
 - `bin/fm-send.sh` and `bin/fm-control.sh`: a run the words say to abort or a worker the words say to steer is steered, as in any posture.
 - `bin/fm-send.sh --resolve-key`: a decision the words pre-answer is answered with the captain's own answer, and every other decision only as the ask-user-authority policy at the end of this prompt lets firstmate decide; a finding it says to escalate is reported with verdict captain and left for the return.
@@ -131,10 +131,7 @@ An acknowledgement that consumed nothing says so and names the exact command for
 ---
 name: stuck-crewmate-recovery
 description: >-
-  Agent-only playbook for stuck or missing ordinary Firstmate direct reports.
-  Use when the session-start digest reports an ordinary direct report's endpoint dead or its metadata has no window, or after a stale wake, looping pane, repeated confusion, an answered-by-brief question, an unresponsive crewmate, or a failed steer.
-  Also use on the inverse case: a live crewmate reporting the no-mistakes pipeline dead, unreachable, or timed out.
-  Reconciles recorded work before escalating from targeted inspection through safe relaunch or failure.
+  Load when the session-start digest reports an ordinary direct report's endpoint dead or its metadata has no window, after a stale wake, looping pane, repeated confusion, an answered-by-brief question, an unresponsive crewmate, or a failed steer, and when a live crewmate reports its no-mistakes pipeline dead, unreachable, or timed out.
 user-invocable: false
 metadata:
   internal: true
@@ -165,7 +162,7 @@ Read the targeted current state with `bin/fm-crew-state.sh <id>` before deciding
 A no-mistakes run matched to the crew's branch and current code remains authoritative when the endpoint is dead: handle a terminal or parked run through the normal lifecycle, and keep supervising an active run instead of creating a duplicate worker.
 
 When no authoritative run accounts for the task, inspect only its recorded backend and worktree inventory.
-Use `treehouse status` for treehouse-backed tmux, herdr, zellij, or cmux tasks, and use the recorded `orca_worktree_id=` and `terminal=` for Orca tasks.
+Use `treehouse status` for treehouse-backed tmux, herdr, zellij, cmux, or Paseo tasks, and use the recorded `orca_worktree_id=` and `terminal=` for Orca tasks.
 Do not sweep another home's endpoints or infer ownership from a matching window label.
 
 Before relaunch, prove that no live agent still owns the recorded task and that the existing worktree remains available.
@@ -217,10 +214,8 @@ Escalate in order:
 ---
 name: ask-user-authority
 description: >-
-  Agent-only decision procedure for ask-user findings.
-  Use before deciding any ask-user finding.
-  This skill is the single owner of finding-decision policy: firstmate always applies judgment, decides findings that are unambiguous toward accepted intent, and escalates only genuinely ambiguous, expanding, or destructive ones.
-  Finding authority is this skill's criteria, not the project's yolo posture.
+  Single owner of ask-user finding policy.
+  Load before deciding any ask-user finding.
 user-invocable: false
 metadata:
   internal: true
@@ -296,7 +291,6 @@ The promoted worker must inventory scratch state, return to a clean copy of the 
 ---
 name: captain-hold-lifecycle
 description: >-
-  Agent-only policy for completing investigations and visual reviews without losing unresolved captain calls, and for closing what the captain owns with his actual words.
   Load before treating an investigation, scout report, structured review, or Lavish review as complete, before ending a visual review that exposed a captain decision, when recording or routing the captain's answer, and on any RECORD DIVERGENCE line the wake drain prints.
 user-invocable: false
 metadata:
