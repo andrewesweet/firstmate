@@ -361,7 +361,7 @@ agent_view() { # <session> set|clear
 }
 
 cmd_sync() {
-  local only=${1:-} record session workspaces panes live_pane live_ws pane_count changed pair diff rc=0
+  local only=${1:-} record session workspaces panes live_pane live_ws pane_count pair diff rc=0
   local -a args=()
   collect_tasks "$only"
   [ "${#TASKS[@]}" -gt 0 ] || return 0
@@ -374,7 +374,6 @@ cmd_sync() {
     panes=$(fm_backend_herdr_cli "$session" pane list 2>/dev/null) || {
       warn "could not list panes for session $session"; rc=1; continue
     }
-    changed=0
     for record in "${TASKS[@]}"; do
       plan_task "$record"
       [ "$P_SESSION" = "$session" ] || continue
@@ -389,12 +388,10 @@ cmd_sync() {
         while IFS= read -r pair; do args+=(--token "$pair"); done <<EOF
 $diff
 EOF
-        if fm_backend_herdr_cli "$session" pane report-metadata "$P_PANE" \
-          --source "$FM_HERDR_GROUPS_SOURCE" "${args[@]}" >/dev/null 2>&1; then
-          changed=1
-        else
+        fm_backend_herdr_cli "$session" pane report-metadata "$P_PANE" \
+          --source "$FM_HERDR_GROUPS_SOURCE" "${args[@]}" >/dev/null 2>&1 || {
           warn "could not tag pane $P_PANE for task $P_TASK"; rc=1
-        fi
+        }
       fi
       projected_workspace "$P_TASK" "$P_SESSION" "$P_WORKSPACE" "$P_PANE" || continue
       pane_count=$(printf '%s' "$workspaces" | jq -r --arg w "$P_WORKSPACE" '
@@ -415,9 +412,7 @@ EOF
         warn "could not tag workspace $P_WORKSPACE for task $P_TASK"; rc=1
       }
     done
-    if [ "$changed" = 1 ]; then
-      agent_view "$session" set || rc=1
-    fi
+    agent_view "$session" set || rc=1
   done
   return "$rc"
 }

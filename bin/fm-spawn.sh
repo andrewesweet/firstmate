@@ -1651,8 +1651,7 @@ spawn_abort_cleanup() {
   fi
   # A fresh polytoken spawn that fails and leaves no record must leave the pool
   # as it found it. Before its launch is delivered, the endpoint it opened holds nothing but
-  # the shell whose `treehouse get` leases the slot, so closing it returns the
-  # slot to the pool and leaves no window or tab for a retry to trip over; the
+  # the shell whose `treehouse get` leases the slot; the
   # Firstmate wiring, task temp root, and staged launch file it wrote go with it.
   # Once a launch was delivered into an endpoint still open, a worker may be
   # running there, so those stay for the operator, as the refusal says.
@@ -1713,10 +1712,15 @@ spawn_abort_cleanup() {
     SPAWN_SLOT_CLAIMED=0
     if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
       fm_treehouse_slot_owner_release "$WT" "$ID" || true
-    elif [ "${HARNESS:-}" = polytoken ] && [ -n "$SPAWN_TREEHOUSE_PROJECT_LOCK" ] &&
-      fm_lock_try_acquire "$SPAWN_TREEHOUSE_PROJECT_LOCK"; then
-      fm_treehouse_slot_owner_release "$WT" "$ID" || true
-      fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+    elif [ "${HARNESS:-}" = polytoken ] && [ "$SPAWN_ENDPOINT_CLOSED" = 1 ] &&
+      [ -n "$SPAWN_TREEHOUSE_PROJECT_LOCK" ] && fm_lock_try_acquire "$SPAWN_TREEHOUSE_PROJECT_LOCK"; then
+      fm_treehouse_slot_owner_state "$WT" "$ID"
+      if [ "$FM_TREEHOUSE_SLOT_OWNER" = mine ]; then
+        SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+        fm_treehouse_slot_owner_release "$WT" "$ID" || true
+      else
+        fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+      fi
     else
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
     fi

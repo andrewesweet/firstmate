@@ -950,7 +950,6 @@ make_remote_leg_ssh_stub() { # <w> -> echoes the fakebin dir
   cat > "$fb/fake-ssh" <<'SH'
 #!/usr/bin/env bash
 set -u
-cat > /dev/null
 while [ "$#" -gt 0 ]; do
   case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
 done
@@ -1328,7 +1327,7 @@ remote_nudge_bootstrap() {  # <w> -> bootstrap output
     FM_SSH_BIN="$fakebin/fake-ssh" FM_REMOTE_CODE_ROOT="$w/coderoot" \
     FM_TEST_REPO_ROOT="$ROOT" \
     FM_INHERITABLE_CONFIG='' FM_FAKE_TREEHOUSE_LEASE_HELP=1 FM_SEND_SETTLE=0 \
-    "$ROOT/bin/fm-bootstrap.sh" 2>&1
+    "$ROOT/bin/${2:-fm-bootstrap.sh}" 2>&1
 }
 
 remote_marker() {  # <w> <owed:0|1|legacy>
@@ -1377,6 +1376,52 @@ test_bootstrap_nudges_remote_home_only_when_owed() {
     "an instruction advance must nudge (out: $out)"
   assert_contains "$(cat "$marker")" "owed=1" "an instruction advance whose send failed stays owed"
   pass "R11 a remote home is nudged only for an owed reread or a real instruction change, never for a cut-off attempt that changed nothing"
+}
+
+test_remote_reread_survives_failure_after_mutation() {
+  local command action w fakebin marker out rc
+  for command in fm-config-push.sh fm-bootstrap.sh; do
+    for action in put absent; do
+      w=$(remote_nudge_world "receipt-failure-$command-$action")
+      marker="$w/home/state/.secondmate-nudge-pending/sm.pending"
+      if [ "$action" = absent ]; then
+        printf 'herdr\n' > "$w/home/config/backend"
+        out=$(remote_nudge_bootstrap "$w" "$command") || true
+        rm -f "$w/home/config/backend" "$marker"
+        [ -f "$w/sm/config/backend" ] || fail "initial config was not inherited: $out"
+      else
+        printf 'herdr\n' > "$w/home/config/backend"
+      fi
+      fakebin=$(make_remote_leg_ssh_stub "$w")
+      cat > "$fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+case "${4:-}" in
+  */config/.fm-inherit-backend.generation)
+    if [ "$(head -n 1 "$3")" = applied ] && ! grep -q '^pending$' "$3"; then exit 1; fi
+    ;;
+esac
+exec /bin/mv "$@"
+SH
+      chmod +x "$fakebin/mv"
+      rc=0
+      out=$(remote_nudge_bootstrap "$w" "$command") || rc=$?
+      if [ "$command" = fm-config-push.sh ]; then
+        [ "$rc" -ne 0 ] || fail "config push must report the receipt failure: $out"
+      fi
+      assert_contains "$out" "cannot publish inheritance generation" "receiver must fail after applying the config mutation"
+      if [ "$action" = put ]; then
+        assert_equals herdr "$(cat "$w/sm/config/backend")" "config update precedes receipt failure"
+      else
+        [ ! -e "$w/sm/config/backend" ] || fail "config removal must precede receipt failure"
+      fi
+      assert_contains "$(cat "$marker")" "owed=1" "uncertain mutation must preserve the write-ahead reread"
+      rm "$fakebin/mv"
+      out=$(remote_nudge_bootstrap "$w" "$command") || true
+      assert_contains "$out" "send failed" "unchanged retry must still attempt the owed reread"
+      assert_contains "$(cat "$marker")" "owed=1" "failed notification must retain the reread"
+    done
+  done
+  pass "remote config push and bootstrap retain rereads after failed update and removal receipts"
 }
 
 # --- R9: a remote launch never re-targets the host's own Firstmate copy --------
@@ -1457,6 +1502,7 @@ test_remote_sync_skips_dirty_diverged_and_feature_branch
 test_remote_sync_without_target_follows_host_copy
 test_bootstrap_syncs_remote_home_to_primary_commit
 test_bootstrap_reports_outdated_host_actionably
+test_remote_reread_survives_failure_after_mutation
 test_bootstrap_nudges_remote_home_only_when_owed
 test_remote_launch_does_not_retarget_host_copy
 

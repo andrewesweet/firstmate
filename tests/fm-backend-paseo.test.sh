@@ -98,8 +98,8 @@ paseo_expected_root_hash() { # <root>
   fi
 }
 
-paseo_expected_home_label() { # [home] [root]
-  local home=${1:-$ROOT} root=${2:-$ROOT} marker id prefix
+paseo_expected_home_label() { # [home]
+  local home=${1:-$ROOT} marker id prefix
   marker="$home/.fm-secondmate-home"
   if [ -f "$marker" ]; then
     id=$(tr -d '[:space:]' <"$marker" 2>/dev/null)
@@ -111,16 +111,16 @@ paseo_expected_home_label() { # [home] [root]
   else
     prefix="firstmate"
   fi
-  printf '%s-%s' "$prefix" "$(paseo_expected_root_hash "$root")"
+  printf '%s-%s' "$prefix" "$(paseo_expected_root_hash "$home")"
 }
 
-paseo_expected_scoped_name() { # <fm-task-label> [home] [root]
-  local label=$1 home=${2:-$ROOT} root=${3:-$ROOT} rest
+paseo_expected_scoped_name() { # <fm-task-label> [home]
+  local label=$1 home=${2:-$ROOT} rest
   case "$label" in
   fm-*) rest=${label#fm-} ;;
   *) rest=$label ;;
   esac
-  printf 'fm-%s-%s' "$(paseo_expected_home_label "$home" "$root")" "$rest"
+  printf 'fm-%s-%s' "$(paseo_expected_home_label "$home")" "$rest"
 }
 
 paseo_assert_call_order() {
@@ -206,7 +206,7 @@ test_scoped_name_uses_primary_home_label() {
   expected=$(paseo_expected_scoped_name fm-task1 "$dir")
   out=$(FM_HOME="$dir" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
   [ "$out" = "$expected" ] || fail "primary scoped name should be $expected, got '$out'"
-  pass "fm_backend_paseo_scoped_name: scopes a primary task name with firstmate plus root hash"
+  pass "fm_backend_paseo_scoped_name: scopes a primary task name with firstmate plus home hash"
 }
 
 test_scoped_name_uses_secondmate_home_label() {
@@ -217,7 +217,38 @@ test_scoped_name_uses_secondmate_home_label() {
   expected=$(paseo_expected_scoped_name fm-task1 "$dir")
   out=$(FM_HOME="$dir" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
   [ "$out" = "$expected" ] || fail "secondmate scoped name should be $expected, got '$out'"
-  pass "fm_backend_paseo_scoped_name: scopes a secondmate task name with the home marker plus root hash"
+  pass "fm_backend_paseo_scoped_name: scopes a secondmate task name with the home marker plus home hash"
+}
+
+test_scoped_name_distinguishes_homes_sharing_a_code_root() {
+  local dir home_one home_two out_one out_two
+  dir="$TMP_ROOT/scoped-name-home-hash"; home_one="$dir/home-one"; home_two="$dir/home-two"
+  mkdir -p "$home_one" "$home_two"
+  out_one=$(FM_HOME="$home_one" FM_ROOT_OVERRIDE="$ROOT" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
+  out_two=$(FM_HOME="$home_two" FM_ROOT_OVERRIDE="$ROOT" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
+  [ "$out_one" != "$out_two" ] || fail "task names must distinguish homes sharing a code root"
+  ln -s "$home_one" "$dir/alias"
+  out_two=$(FM_HOME="$dir/alias" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
+  assert_equals "$out_one" "$out_two" "home aliases must resolve to the same routing identity"
+  pass "fm_backend_paseo_scoped_name: distinguishes operational homes and resolves aliases"
+}
+
+test_stale_target_never_recovers_another_homes_terminal() {
+  local dir fb name status
+  dir="$TMP_ROOT/cross-home-recovery"
+  mkdir -p "$dir/responses" "$dir/home-a" "$dir/home-b"
+  name=$(FM_HOME="$dir/home-b" bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_scoped_name fm-task1' "$ROOT")
+  paseo_terminal_ls_response "$dir" 1 "bbbbbbbb-0000-0000-0000-000000000000" wks_bbbbbbbbbbbbbbbb "$name"
+  cp "$dir/responses/1.out" "$dir/responses/2.out"
+  cp "$dir/responses/1.out" "$dir/responses/3.out"
+  fb=$(make_paseo_fakebin "$dir")
+  status=0
+  PATH="$fb:$PATH" FM_HOME="$dir/home-a" FM_ROOT_OVERRIDE="$ROOT" \
+    FM_PASEO_LOG="$dir/log" FM_PASEO_RESPONSES="$dir/responses" \
+    bash -c '. "$0/bin/backends/paseo.sh"; fm_backend_paseo_send_literal aaaaaaaa-0000-0000-0000-000000000000:wks_aaaaaaaaaaaaaaaa secret fm-task1' "$ROOT" || status=$?
+  [ "$status" -ne 0 ] || fail "stale task routing must refuse another home's same-id terminal"
+  assert_not_contains "$(cat "$dir/log")" $'\x1f''send-keys' "cross-home recovery must never send the payload"
+  pass "fm_backend_paseo_send_literal: stale targets never recover another home's same-id terminal"
 }
 
 # --- dispatch wiring (fm-backend.sh) ------------------------------------------
@@ -968,7 +999,7 @@ test_list_live_filters_by_name_prefix() {
   other_root="$dir/other-root"
   mkdir -p "$other_root"
   name=$(paseo_expected_scoped_name fm-task1)
-  other_name=$(paseo_expected_scoped_name fm-task2 "$ROOT" "$other_root")
+  other_name=$(paseo_expected_scoped_name fm-task2 "$other_root")
   paseo_terminal_ls_response "$dir" 1 \
     "aaaaaaaa-0000-0000-0000-000000000000" "wks_bbbbbbbbbbbbbbbb" "$name" \
     "dddddddd-8888-8888-8888-888888888888" "wks_ffffffffffffffff" "$other_name" \
@@ -1056,6 +1087,8 @@ test_version_check_refuses_old_version
 test_version_check_refuses_missing_paseo
 test_parse_target
 test_scoped_name_uses_primary_home_label
+test_stale_target_never_recovers_another_homes_terminal
+test_scoped_name_distinguishes_homes_sharing_a_code_root
 test_scoped_name_uses_secondmate_home_label
 test_dispatch_routes_paseo_backend
 test_dispatch_busy_state_unknown_for_paseo

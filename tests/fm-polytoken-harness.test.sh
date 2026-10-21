@@ -573,7 +573,8 @@ case "\$subcmd" in
 esac
 SH
   chmod +x "$fakebin/polytoken"
-  fm_fake_exit0 "$fakebin" treehouse gh-axi gh
+  fm_fake_exit0 "$fakebin" gh-axi gh
+  fm_test_fake_treehouse_lease "$fakebin"
   printf '%s\n' "$fakebin"
 }
 
@@ -790,6 +791,9 @@ make_polytoken_spawn_case() {
   cat > "$home/data/$id/brief.md" <<'EOF'
 # Task
 ## Captain's intent
+Exercise Polytoken dispatch.
+
+## Published intent
 Exercise Polytoken dispatch.
 
 ## Firstmate spec
@@ -1157,6 +1161,20 @@ test_polytoken_post_launch_failure_drops_its_slot_claim() {
   git -C "$PROJ_DIR" worktree move "$WT_DIR" "$slot_root/1/project"
   WT_DIR="$slot_root/1/project"
   printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$WT_DIR" > "$slot_root/treehouse-state.json"
+  cat > "$FAKEBIN_DIR/treehouse" <<'SH'
+#!/usr/bin/env bash
+case "$1" in
+  get)
+    printf '%s\n' "$FM_FAKE_PANE_PATH" > "$(dirname "$0")/lease"
+    printf '%s\n' "$FM_FAKE_PANE_PATH"
+    ;;
+  return)
+    [ ! -s "$(dirname "$0")/.spawn-window" ] || exit 1
+    rm -f "$(dirname "$0")/lease"
+    ;;
+esac
+SH
+  chmod +x "$FAKEBIN_DIR/treehouse"
   claim="$slot_root/1/.fm-slot-owner"
   rc=0
   out=$(PTFAKE_NO_HOOK=1 FM_POLYTOKEN_READY_POLLS=2 FM_POLYTOKEN_POLL_INTERVAL=0 \
@@ -1167,6 +1185,7 @@ test_polytoken_post_launch_failure_drops_its_slot_claim() {
     "the failed gate must close the endpoint holding the slot"
   assert_absent "$HOME_DIR/state/$id.meta" "the failed launch must not leave its task record"
   [ ! -e "$claim" ] || fail "the failed launch left a slot claim naming a task with no record: $(cat "$claim")"
+  assert_absent "$FAKEBIN_DIR/lease" "the failed launch must return its durable Treehouse lease: $out"
   pass "fm-spawn: a gate failure after publication drops the slot claim with the record"
 }
 

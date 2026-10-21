@@ -9,9 +9,9 @@
 # startup network bound's TERM followed by KILL, leaves the reread owed. Once
 # the attempt reports, the record stays owed when that attempt (or an earlier
 # one) changed the home's instructions or inherited material, or when
-# completion is unknown (transport 255 or a per-mate budget cut-off). An
+# completion is unknown (including any failed convergence). An
 # attempt whose outcome proves nothing changed, with no earlier reread owed, is
-# written back to owed=0 when it failed or removed when it converged; an owed
+# removed when it converged; an owed
 # reread survives unchanged retries until a successful send.
 
 FM_SECOND_MATE_NUDGE_MESSAGE='firstmate was updated to the latest - please re-read your AGENTS.md to pick up the new instructions.'

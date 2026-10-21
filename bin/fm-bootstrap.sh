@@ -662,8 +662,7 @@ secondmate_sync() {
     remote_marker=$(secondmate_nudge_marker_path "$id" 2>/dev/null || true)
     # Only a reread a previous attempt left owed carries over. The record is
     # written owed before any step can change the home (write-ahead), so a kill
-    # at any point leaves it owed; an attempt whose outcome proves nothing
-    # changed writes it back below (bin/fm-secondmate-nudge-lib.sh).
+    # at any point leaves it owed (bin/fm-secondmate-nudge-lib.sh).
     remote_pending=0
     if fm_secondmate_remote_nudge_owed "$STATE" "$id"; then remote_pending=1; fi
     if ! secondmate_write_nudge_marker "$id" "$_home" "" remote \
@@ -684,11 +683,10 @@ secondmate_sync() {
     else
       sync_rc=$?
     fi
-    if fm_secondmate_remote_sync_changed "$sync_out" || [ "$sync_rc" -eq 255 ]; then nudge_needed=1; fi
+    if fm_secondmate_remote_sync_changed "$sync_out"; then nudge_needed=1; fi
     if fm_timed_out "$sync_rc"; then
       echo "SECONDMATE_SYNC: secondmate $id: skipped: remote tracked-file sync failed on $remote_host: no answer within the ${budget}s per-mate convergence budget"
       converged=0
-      nudge_needed=1
     elif [ "$sync_rc" -ne 0 ]; then
       echo "SECONDMATE_SYNC: secondmate $id: skipped: remote tracked-file sync failed on $remote_host: $(remote_sync_failure_reason "$sync_rc" "$sync_out")"
       converged=0
@@ -704,11 +702,10 @@ secondmate_sync() {
       inherit_rc=$?
     fi
     # Items a failed push applied before it stopped changed the home too.
-    if [ "$inherit_rc" -eq 255 ] || printf '%s\n' "${inherit_out:-}" | grep -Eq '^(pushed|removed):'; then nudge_needed=1; fi
+    if printf '%s\n' "${inherit_out:-}" | grep -Eq '^(pushed|removed):'; then nudge_needed=1; fi
     if fm_timed_out "$inherit_rc"; then
       echo "SECONDMATE_SYNC: secondmate $id: skipped: remote inheritance failed on $remote_host: no answer within the ${budget}s per-mate convergence budget"
       converged=0
-      nudge_needed=1
     elif [ "$inherit_rc" -ne 0 ]; then
       echo "SECONDMATE_SYNC: secondmate $id: skipped: remote inheritance failed on $remote_host: $(remote_inherit_failure_reason "$inherit_out")"
       converged=0
@@ -723,9 +720,6 @@ secondmate_sync() {
       fi
     elif [ "$converged" -eq 1 ]; then
       rm -f "$remote_marker"
-    elif [ "$nudge_needed" -eq 0 ] && ! secondmate_write_nudge_marker "$id" "$_home" "" remote \
-      "$REMOTE_SECOND_MATE_NUDGE_MESSAGE" 1 0; then
-      echo "NUDGE_SECONDMATES: secondmate $id: send failed: cannot record remote retry marker"
     fi
     fm_lock_release "$remote_lock" || true
     return 0

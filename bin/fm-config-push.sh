@@ -154,12 +154,8 @@ while IFS='|' read -r id home _window meta; do
     remote_out=$(FM_CONFIG_INHERIT_LIVE=1 \
       "$SCRIPT_DIR/fm-remote-inherit-push.sh" "$id" "$remote_generation" 2>&1) || remote_rc=$?
     [ -z "$remote_out" ] || printf '%s\n' "$remote_out" | sed 's/^/  /'
-    if [ "$remote_rc" -eq 255 ] || printf '%s\n' "$remote_out" | grep -Eq '^(pushed|removed):'; then
+    if printf '%s\n' "$remote_out" | grep -Eq '^(pushed|removed):'; then
       remote_nudge=1
-    fi
-    if [ "$remote_rc" -ne 0 ] && [ "$remote_nudge" -eq 0 ]; then
-      fm_secondmate_nudge_write "$STATE" "$id" "$home" "" remote \
-        "$FM_REMOTE_SECOND_MATE_NUDGE_MESSAGE" 1 0 || echo "  config-reread: retry marker update failed"
     fi
     if [ "$remote_rc" -eq 0 ]; then
       if [ "$remote_nudge" -eq 1 ]; then

@@ -120,8 +120,8 @@ zellij_expected_root_hash() {  # <root>
   fi
 }
 
-zellij_expected_home_label() {  # [home] [root]
-  local home=${1:-$ROOT} root=${2:-$ROOT} marker id prefix
+zellij_expected_home_label() {  # [home]
+  local home=${1:-$ROOT} marker id prefix
   marker="$home/.fm-secondmate-home"
   if [ -f "$marker" ]; then
     id=$(tr -d '[:space:]' < "$marker" 2>/dev/null)
@@ -133,16 +133,16 @@ zellij_expected_home_label() {  # [home] [root]
   else
     prefix="firstmate"
   fi
-  printf '%s-%s' "$prefix" "$(zellij_expected_root_hash "$root")"
+  printf '%s-%s' "$prefix" "$(zellij_expected_root_hash "$home")"
 }
 
-zellij_expected_scoped_title() {  # <fm-task-label> [home] [root]
-  local label=$1 home=${2:-$ROOT} root=${3:-$ROOT} rest
+zellij_expected_scoped_title() {  # <fm-task-label> [home]
+  local label=$1 home=${2:-$ROOT} rest
   case "$label" in
     fm-*) rest=${label#fm-} ;;
     *) rest=$label ;;
   esac
-  printf 'fm-%s-%s' "$(zellij_expected_home_label "$home" "$root")" "$rest"
+  printf 'fm-%s-%s' "$(zellij_expected_home_label "$home")" "$rest"
 }
 
 # --- version_check / tool_check ----------------------------------------------
@@ -238,7 +238,7 @@ test_scoped_title_uses_primary_home_label() {
   expected=$(zellij_expected_scoped_title fm-task1 "$dir")
   out=$( FM_HOME="$dir" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
   [ "$out" = "$expected" ] || fail "primary scoped title should be $expected, got '$out'"
-  pass "fm_backend_zellij_scoped_title: scopes a primary task title with firstmate plus root hash"
+  pass "fm_backend_zellij_scoped_title: scopes a primary task title with firstmate plus home hash"
 }
 
 test_scoped_title_uses_secondmate_home_label() {
@@ -248,21 +248,20 @@ test_scoped_title_uses_secondmate_home_label() {
   expected=$(zellij_expected_scoped_title fm-task1 "$dir")
   out=$( FM_HOME="$dir" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
   [ "$out" = "$expected" ] || fail "secondmate scoped title should be $expected, got '$out'"
-  pass "fm_backend_zellij_scoped_title: scopes a secondmate task title with the home marker plus root hash"
+  pass "fm_backend_zellij_scoped_title: scopes a secondmate task title with the home marker plus home hash"
 }
 
-test_scoped_title_changes_with_root_path() {
-  local dir home root_one root_two out_one out_two expected_one expected_two
-  dir="$TMP_ROOT/scoped-title-root-hash"; home="$dir/home"; root_one="$dir/root-one"; root_two="$dir/root-two"
-  mkdir -p "$home" "$root_one" "$root_two"
-  expected_one=$(zellij_expected_scoped_title fm-task1 "$home" "$root_one")
-  expected_two=$(zellij_expected_scoped_title fm-task1 "$home" "$root_two")
-  out_one=$( FM_HOME="$home" FM_ROOT_OVERRIDE="$root_one" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
-  out_two=$( FM_HOME="$home" FM_ROOT_OVERRIDE="$root_two" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
-  [ "$out_one" = "$expected_one" ] || fail "scoped title should include root-one hash as $expected_one, got '$out_one'"
-  [ "$out_two" = "$expected_two" ] || fail "scoped title should include root-two hash as $expected_two, got '$out_two'"
-  [ "$out_one" != "$out_two" ] || fail "scoped titles should differ for distinct FM_ROOT paths"
-  pass "fm_backend_zellij_scoped_title: includes the resolved FM_ROOT hash in the home label"
+test_scoped_title_changes_with_home_path() {
+  local dir home_one home_two out_one out_two
+  dir="$TMP_ROOT/scoped-title-home-hash"; home_one="$dir/home-one"; home_two="$dir/home-two"
+  mkdir -p "$home_one" "$home_two"
+  out_one=$( FM_HOME="$home_one" FM_ROOT_OVERRIDE="$ROOT" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
+  out_two=$( FM_HOME="$home_two" FM_ROOT_OVERRIDE="$ROOT" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
+  [ "$out_one" != "$out_two" ] || fail "scoped titles should differ for distinct FM_HOME paths sharing a code root"
+  ln -s "$home_one" "$dir/alias"
+  out_two=$( FM_HOME="$dir/alias" bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_scoped_title fm-task1' "$ROOT" )
+  assert_equals "$out_one" "$out_two" "home aliases must resolve to the same routing identity"
+  pass "fm_backend_zellij_scoped_title: distinguishes operational homes and resolves aliases"
 }
 
 test_expected_label_accepts_unambiguous_untagged_legacy_tab() {
@@ -309,9 +308,9 @@ test_list_live_scopes_to_own_home_tag() {
   dir="$TMP_ROOT/list-live-scope"; mkdir -p "$dir/responses"
   other_root="$dir/other-root"; mkdir -p "$other_root"
   own_title=$(zellij_expected_scoped_title fm-task1)
-  foreign_title=$(zellij_expected_scoped_title fm-task2 "$ROOT" "$other_root")
+  foreign_title=$(zellij_expected_scoped_title fm-task2 "$other_root")
   # 1: list-tabs --json -> our own home-scoped tab, a DIFFERENT installation's
-  # home-scoped tab (same prefix shape, different FM_ROOT hash), and an
+  # home-scoped tab (same prefix shape, different FM_HOME hash), and an
   # unrelated non-firstmate tab.
   zellij_multi_tab_response "$dir" 1 \
     3 "$own_title" \
@@ -892,7 +891,7 @@ test_forced_secondmate_teardown_kills_zellij_children_with_child_home_tag() {
     "worktree=$dir/missing-child-worktree" \
     "project=$project" \
     "kind=scout"
-  child_title=$(zellij_expected_scoped_title fm-childz "$home" "$home")
+  child_title=$(zellij_expected_scoped_title fm-childz "$home")
   zellij_pane_response "$dir" 1 7 4
   zellij_tab_response "$dir" 2 4 "$child_title"
   printf '[]\n' > "$dir/responses/3.out"
@@ -1304,7 +1303,7 @@ test_parse_target
 test_normalize_key
 test_scoped_title_uses_primary_home_label
 test_scoped_title_uses_secondmate_home_label
-test_scoped_title_changes_with_root_path
+test_scoped_title_changes_with_home_path
 test_expected_label_accepts_unambiguous_untagged_legacy_tab
 test_expected_label_refuses_ambiguous_untagged_tab
 test_list_live_scopes_to_own_home_tag

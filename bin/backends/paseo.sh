@@ -235,7 +235,7 @@ fm_backend_paseo_container_ensure() {
 }
 
 # fm_backend_paseo_home_label: readable home prefix plus a short hash of the
-# resolved FM_ROOT path (bin/fm-backend-hometag-lib.sh). The paseo daemon is
+# resolved FM_HOME path (bin/fm-backend-hometag-lib.sh). The paseo daemon is
 # one app-global terminal namespace shared by every firstmate home, so the
 # path hash distinguishes every installation, exactly like cmux's shared
 # workspace namespace.
