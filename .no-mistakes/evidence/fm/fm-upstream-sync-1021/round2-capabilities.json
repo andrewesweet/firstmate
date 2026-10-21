@@ -1,0 +1,10 @@
+{
+  "tmux": "/usr/bin/tmux",
+  "herdr": "/home/cti/.local/bin/herdr",
+  "polytoken": null,
+  "paseo": null,
+  "claude": "/home/cti/.local/bin/claude",
+  "pi": "/home/cti/.local/bin/pi",
+  "glab": null,
+  "treehouse": "/home/cti/.local/bin/treehouse"
+}

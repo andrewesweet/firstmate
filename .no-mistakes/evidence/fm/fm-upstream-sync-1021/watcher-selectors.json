@@ -1,0 +1,11 @@
+[
+  "test_wedge_guard_critical_defers_one_window_at_a_time_up_to_the_cap",
+  "test_wedge_guard_failures_fail_open",
+  "test_wedge_guard_never_defers_a_gone_endpoint",
+  "test_wedge_threshold_defers_to_a_parked_gate_awaiting_a_human",
+  "test_wedge_threshold_parked_gate_needs_an_unanswered_decision",
+  "test_wedge_threshold_parked_gate_is_off_until_armed",
+  "test_wedge_threshold_defers_to_a_worker_blocker",
+  "test_wedge_threshold_worker_wait_is_off_until_armed",
+  "test_recovery_rearm_depends_only_on_queue_sequence"
+]

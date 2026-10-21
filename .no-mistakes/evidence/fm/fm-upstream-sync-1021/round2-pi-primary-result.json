@@ -1,0 +1,15 @@
+{
+  "scenario": "Pi 1.2 native session activation and replacement",
+  "result": "pass",
+  "before": {
+    "state/.pi-turnend-extension-loaded": "sha256:7457940acee8a92e80cdb555fd8d7441af54dac1112c27024e356c9d018ae1b0\n1991095\n",
+    "state/.pi-watch-extension-loaded": "sha256:94bd69a924f3283e914151741a42c23a93099c57cc25f6a9bc175031a14f1eb7\n1991095\ngeneration=1 phase=active\n",
+    "state/.lock": "1991095\n"
+  },
+  "after": {
+    "state/.pi-turnend-extension-loaded": "sha256:7457940acee8a92e80cdb555fd8d7441af54dac1112c27024e356c9d018ae1b0\n1991095\n",
+    "state/.pi-watch-extension-loaded": "sha256:94bd69a924f3283e914151741a42c23a93099c57cc25f6a9bc175031a14f1eb7\n1991095\ngeneration=2 phase=active\n",
+    "state/.lock": "1991095\n"
+  },
+  "teardown": "Private tmux server stopped and marked lab removed."
+}

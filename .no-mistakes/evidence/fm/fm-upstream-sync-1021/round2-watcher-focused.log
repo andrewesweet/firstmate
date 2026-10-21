@@ -1,0 +1,18 @@
+$ FM_TEST_ONLY=test_wedge_guard_critical_defers_one_window_at_a_time_up_to_the_cap bash tests/fm-watch-triage.test.sh
+ok - a CRITICAL guard defers one window at a time, the cap escalates naming the guard, and the run survives a restart
+$ FM_TEST_ONLY=test_wedge_guard_failures_fail_open bash tests/fm-watch-triage.test.sh
+ok - a guard that times out, fails, answers malformed, UNKNOWN or WARNING, or is untrusted leaves the ladder unchanged
+$ FM_TEST_ONLY=test_wedge_guard_never_defers_a_gone_endpoint bash tests/fm-watch-triage.test.sh
+ok - a gone endpoint is reported before any guard is asked, so a guard never defers it
+$ FM_TEST_ONLY=test_wedge_threshold_defers_to_a_parked_gate_awaiting_a_human bash tests/fm-watch-triage.test.sh
+ok - a gate awaiting firstmate's decision for its own run is rechecked on the long cadence in either posture, while a crewmate-owed gate, an unrelated open decision and a runless verdict keep the unchanged ladder
+$ FM_TEST_ONLY=test_wedge_threshold_parked_gate_needs_an_unanswered_decision bash tests/fm-watch-triage.test.sh
+ok - a parked human-owed gate is deferred only while its decision is still open, so an answered-but-unrelayed gate, an unescalated one, and one holding only a blocker all keep the unchanged ladder
+$ FM_TEST_ONLY=test_wedge_threshold_parked_gate_is_off_until_armed bash tests/fm-watch-triage.test.sh
+ok - with config/wedge-defer-parked-gate absent a parked gate keeps the unchanged ladder, wording and reads
+$ FM_TEST_ONLY=test_wedge_threshold_defers_to_a_worker_blocker bash tests/fm-watch-triage.test.sh
+ok - in an armed home a worker's own open newest blocker or decision is deferred to the bounded recheck, and a newer line, a resolved line, a reserved key, or a newer acknowledged inbox record keeps the ladder
+$ FM_TEST_ONLY=test_wedge_threshold_worker_wait_is_off_until_armed bash tests/fm-watch-triage.test.sh
+ok - with config/wedge-defer-worker-wait absent a worker blocker keeps the byte-identical wedge reason
+$ FM_TEST_ONLY=test_recovery_rearm_depends_only_on_queue_sequence bash tests/fm-watch-triage.test.sh
+ok - recovery re-arms follow only queue sequence changes across identities and episode states

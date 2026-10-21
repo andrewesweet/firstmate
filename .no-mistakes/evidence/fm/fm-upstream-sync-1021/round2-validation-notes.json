@@ -1,0 +1,31 @@
+{
+  "target_commit": "002abd2076ca1c0efc56dc4375f06c5607ac720d",
+  "baseline": "Round 1 identified three fixture failures. This round reran all three repaired suites successfully, with supporting review-fix suites; no source edits were needed.",
+  "merge": "True merge 880fcc9c has parents 443d385c and 97316301 and is an ancestor of target; 38 upstream commits were introduced beyond the fork base.",
+  "live_results": [
+    "round2-cli-results.json",
+    "round2-claude-primary-result.json",
+    "round2-pi-primary-result.json",
+    "round2-tool-url-result.json",
+    "round2-watcher-live-result.json"
+  ],
+  "focused_results": [
+    "round2-targeted-results.json",
+    "round2-transport-results.json",
+    "round2-watcher-focused-results.json"
+  ],
+  "setup_corrections": [
+    "Pi probe initially required a Claude-only sidecar. Replaced that expectation with the native Pi generation marker and re-drove successfully.",
+    "Watcher probe initially expected an obsolete recovery phrase. Matched the actual public check: rearm-resurface contract and re-drove successfully."
+  ],
+  "blocked": {
+    "Herdr": "Mandatory prepare refused because no running default-session tripwire was available. No session was provisioned.",
+    "Polytoken": "Not on PATH; no repository-local executable supplied.",
+    "Paseo": "Not on PATH; no repository-local executable supplied.",
+    "GitLab": "glab not on PATH; no disposable live GitLab merge target or authority supplied."
+  },
+  "visual_evidence": "round2-primary-terminal-evidence.html renders unedited real Claude and Pi terminal captures with their persisted state. Herdr could not be rendered because its mandatory lab preparation refused.",
+  "cleanup": "All created real-primary and watcher lab homes and private tmux servers were removed; transient worktree test directories removed; source worktree remained clean.",
+  "phase_boundary": "Only targeted tests and live product verification ran. No linter, formatter, static analyzer, full regression, pipeline control, delivery push, PR, or CI phase was executed. Local test-only Git pushes used disposable fixture remotes.",
+  "evidence_classification": "The home-resolver check was a direct library probe, so its successful probe is retained as supporting evidence but is marked untested/live=false for end-to-end consumer validation."
+}

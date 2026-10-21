@@ -1,0 +1,9 @@
+ok - a CRITICAL guard defers one window at a time, the cap escalates naming the guard, and the run survives a restart
+ok - a guard that times out, fails, answers malformed, UNKNOWN or WARNING, or is untrusted leaves the ladder unchanged
+ok - a gone endpoint is reported before any guard is asked, so a guard never defers it
+ok - a gate awaiting firstmate's decision for its own run is rechecked on the long cadence in either posture, while a crewmate-owed gate, an unrelated open decision and a runless verdict keep the unchanged ladder
+ok - a parked human-owed gate is deferred only while its decision is still open, so an answered-but-unrelayed gate, an unescalated one, and one holding only a blocker all keep the unchanged ladder
+ok - with config/wedge-defer-parked-gate absent a parked gate keeps the unchanged ladder, wording and reads
+ok - in an armed home a worker's own open newest blocker or decision is deferred to the bounded recheck, and a newer line, a resolved line, a reserved key, or a newer acknowledged inbox record keeps the ladder
+ok - with config/wedge-defer-worker-wait absent a worker blocker keeps the byte-identical wedge reason
+ok - recovery re-arms follow only queue sequence changes across identities and episode states

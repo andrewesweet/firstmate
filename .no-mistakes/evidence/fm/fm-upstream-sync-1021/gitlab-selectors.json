@@ -1,0 +1,4 @@
+[
+  "test_allow_no_pipeline_merges_only_a_null_head_pipeline",
+  "test_allow_no_pipeline_is_attended_only_and_gitlab_only"
+]

@@ -1,0 +1,262 @@
+FM_TEST_BEGIN 2026-10-21T05:45:29Z tests/fm-spawn-pool-base-freshen.test.sh family=standalone expected_gate_skip=none
+ok - a remote-seeded secondmate home allocates and launches from its Treehouse pool
+ok - a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort
+ok - a launch refused after its slot claim leaves the pool for a retry and a second task
+ok - a refused polytoken launch leaves its per-id paths alone while another spawn holds the per-id lock
+ok - a non-polytoken launch refused after its slot claim keeps main's abort behavior
+ok - codex refuses a leased subdirectory before refresh or task publication
+ok - polytoken refuses a leased subdirectory before refresh or task publication
+ok - linked spawning home: primary preserves the primary before any refresh
+ok - linked spawning home: primary-alias preserves the primary before any refresh
+ok - linked spawning home: spawning preserves the primary before any refresh
+ok - linked spawning home: scout preserves the primary before any refresh
+ok - a stale pooled worktree refreshes to current origin/main before a crew branch is created
+ok - --base-branch picks the copy's starting point and is recorded; a missing or local-only base refuses
+ok - a spawn refuses when --base-branch and the brief's Base branch lines disagree
+ok - a Base branch line in the captain's intent neither blocks nor redirects a spawn
+ok - a based scout on a forge=gerrit project is refused at spawn
+ok - a stale pooled worktree resolves and refreshes a non-main default branch
+ok - direct-PR ships and scouts both refresh stale pooled worktrees before launch
+ok - a dirty pooled worktree is refused without discarding its local work
+ok - an unresolved remote default branch refuses the pooled worktree
+ok - an unreachable origin refuses a potentially stale pooled worktree
+ok - an origin-less pooled worktree launches as-is, skipping the freshness gate
+ok - a dirty origin-less pooled worktree is refused without discarding its local work
+ok - an origin configuration without a URL refuses the pooled worktree
+ok - an empty origin configuration section refuses the pooled worktree
+ok - an empty-only included origin section documents the accepted detection boundary
+ok - an inactive conditional origin include leaves the pooled worktree origin-less
+ok - an origin-less pool with a stale submodule pin refuses while naming both pins and no remedy
+ok - an unpushed submodule commit keeps the uncommitted-work refusal and survives it
+ok - work inside a submodule is still refused as uncommitted work, not called stale
+ok - a stale pin carrying real work is refused conservatively, never called stale
+ok - a stale pin beside other dirt yields the conservative refusal alone, with no stale-pin line
+# all fm-spawn-pool-base-freshen tests passed
+FM_TEST_END 2026-10-21T05:46:45Z tests/fm-spawn-pool-base-freshen.test.sh exit=0 duration_ms=76618 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:46:45Z tests/fm-session-lock-ancestry.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - session-lock: a version-named Claude Code session is identified from its install path and argv[0]
+ok - session-lock: a harness that is pid 1 of its own namespace is examined, not skipped
+ok - session-lock: ordinary script paths under a harness directory are not harness processes
+ok - session-lock: ownership stops at the first non-harness gap above the contiguous run
+ok - session-lock: a live version-named session holding the lock is not mistaken for a stale owner
+ok - session-lock: a trusted same-session id keeps owning a recycled background chain, and nothing weaker does
+ok - session-lock: a trusted id anchors the lock on the model-loop process, anything else on the outermost pid
+ok - session-lock e2e: a version-named session claims the home and arms supervision
+ok - session-lock e2e: a session parented by a harness-named daemon claims the home and arms supervision
+ok - session-lock e2e: a version-named session under a harness-named daemon keeps its own lock
+ok - session-lock e2e: a background session keeps its lock and its supervision across a recycled helper chain and a same-process session-id change
+ok - session-lock: a same-session confirmation waits for the claim lock and refreshes a re-keyed id
+ok - session-lock: a waiting confirmation does not steal another session's lock
+ok - session-lock: a failed lock write restores the previous sidecar
+ok - session-lock: a failed lock write removes a newly created sidecar
+ok - session-lock: a verified reclaim keeps the new sidecar beside the new pid
+ok - session-lock: a re-anchor keeps both supervision actors' task leases live
+ok - session-lock: a re-anchor during a rewake turn keeps the mid-turn auto-arm proof healthy
+FM_TEST_END 2026-10-21T05:48:08Z tests/fm-session-lock-ancestry.test.sh exit=0 duration_ms=82613 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:48:08Z tests/fm-claude-stop-autoarm.test.sh family=standalone expected_gate_skip=none
+ok - auto-arm: inert in a linked child worktree even when in-flight
+ok - auto-arm: inert with no session lock
+ok - auto-arm: a demonstrably dead recorded session owner is reclaimed through fm-lock.sh before arming
+ok - auto-arm: inert without arm, rewake, or lock replacement when another live harness owns the home
+ok - auto-arm: inert while AFK owns supervision
+ok - auto-arm: stale-owner recovery leaves the AFK and supervision-need gates unchanged
+ok - auto-arm: resolves the outermost pid of a nested contiguous claude ancestry (bg-spare chain)
+ok - auto-arm: inert with nothing in flight and no X-mode need
+ok - auto-arm: actionable close translates to exactly one exit-2 rewake with reason
+ok - auto-arm: actionable close survives a healthy successor without duplicate delivery
+ok - auto-arm: an attached cycle's end starts a handling successor named after the closed arm before the rewake
+ok - auto-arm: an unconfirmed handling successor is reported in the rewake instead of blocking it
+ok - auto-arm: bounded failure verification emits one automatic-mechanism alarm
+ok - auto-arm: consecutive failures keep Stop-owned retry without repeating notice
+ok - auto-arm: marker-write refusal defers delivery until one successor commits the notice
+ok - auto-arm: unverified clean close exhausts retries and fails closed
+ok - auto-arm: post-alarm actionable outcomes cannot continue or reset failure state
+ok - auto-arm: benign cycle end with a live watcher and fresh beacon stays silent across the next cycle
+ok - auto-arm: budget contention preserves the episode and forces a reset retry
+ok - auto-arm: owner-mutex contention preserves successor episode state
+ok - auto-arm: X-mode poll need arms the cycle even with no tasks in flight
+ok - auto-arm: a registered custom check arms the cycle even with no tasks in flight
+ok - auto-arm: concurrent firings admit one owner and one rewake translation
+ok - auto-arm: TERM mid-arm commits a durable failure and exits 2 for rewake
+ok - auto-arm: an abandoned owner claim is reclaimed so a lapsed cycle re-arms
+ok - auto-arm: an abandoned-claim reclaim reaps a dead steal mutex without nesting
+ok - auto-arm: a legacy owner still arming is never reclaimed while its watcher keeps beating
+ok - auto-arm: a fresh legacy arming claim is never reclaimed while its startup window is still open
+ok - auto-arm: a live claim the ledger does not name is never reclaimed
+ok - auto-arm: a claim whose pid was reused is reclaimed even while its ledger entry still reads arming
+ok - auto-arm: a reused-pid claim is reclaimed even with no ledger entry to prove it
+ok - auto-arm: an identity-matched owner still arming is never reclaimed
+ok - auto-arm: the guard's terminal-check claim is never reclaimed
+ok - auto-arm: a stuck live legacy owner is retired via TERM and its lock reclaimed
+ok - auto-arm: a SIGSTOPped legacy owner is reclaimed with TERM pending and dies on continue
+ok - auto-arm: a live open generation claim defers concurrent firings with no lock held
+ok - auto-arm: a hung generation owner with no watcher beat is superseded so re-arming self-heals
+ok - auto-arm: a dead session's orphaned open claim is superseded so the replacement session delivers the wake
+ok - auto-arm: a resumed session with the dead session's id still supersedes its orphaned claim
+ok - auto-arm: a claim is open only under a numeric session lock its owner descends from
+ok - auto-arm: a recycled-bridge claim stays open on its recorded session id and lock-holder identity, and nothing else does
+ok - auto-arm: an identityless arming ledger never defers the gate (reused-pid loophole closed)
+ok - auto-arm: a superseded owner never re-invokes the arm and leaves its successor's claim untouched
+ok - auto-arm: a superseded owner goes silent - one supersession episode, one translation, no held mutex
+ok - auto-arm: need vanishing mid-cycle closes without a rewake
+ok - auto-arm: mid-cycle AFK hands triage to the daemon with no rewake
+ok - auto-arm: active in a marked secondmate home
+ok - auto-arm: a long FM_POLL with FM_GUARD_GRACE unset reaches fm-watch-arm.sh with the derived grace
+ok - auto-arm: config/supervision-host-off keeps the hook on the arm exactly as before
+ok - auto-arm: a Claude home without config/supervision-host runs the host by default
+ok - auto-arm: with only the branch mod opt-in the hook runs the arm exactly as before
+ok - auto-arm: an opted-in home runs the host bound to its generation, and a host line rewakes like a wake
+ok - auto-arm: a wake the host hands back under the away record says it is automatic supervision, not a return
+ok - auto-arm: a wake the host hands back beside a quiet record carries no away note
+ok - auto-arm: without the host the rewake banner is unchanged, eight wake lines at most
+ok - auto-arm: a host handback delivers every host line, while its wake lines keep their cap
+ok - auto-arm: a host that stood down closes silently without a retry
+ok - auto-arm: a host rewake refused on an acknowledged marker opens no failure episode
+ok - auto-arm: a lost host hand-back notifies once per failure episode
+ok - auto-arm: a lost host hand-back on an announced marker notifies once per failure episode
+ok - auto-arm: explicit host failures notify main without retry, with or without readiness output
+ok - auto-arm: a host that died without a close is retried, then reported as a failure
+ok - auto-arm: --help, -h, and an unknown argument arm nothing; the Stop path still arms
+ok - fm-lock: shared session-lock lib preserves the status path
+ok - auto-arm: stands down only on a pi-code-delivered transcript_path (/.pi/)
+FM_TEST_END 2026-10-21T05:49:10Z tests/fm-claude-stop-autoarm.test.sh exit=0 duration_ms=61794 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:49:10Z tests/fm-polytoken-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-harness.sh: ancestry detects a natively-named polytoken command
+ok - fm-harness.sh: ancestry rejects unrelated polytoken mentions
+ok - fm-harness.sh: no inherited launcher marker claims the polytoken identity
+ok - fm-control-lib: polytoken mechanics are REST interrupt, /quit exit, no secondmates
+ok - fm-control-lib: polytoken wiring tables name every generated artifact and no project file
+ok - bin/fm-agent-process-lib.sh: polytoken is an agent, fragments are not
+ok - fm-busy-lib: the polytoken-hook source is scoped to polytoken tasks
+ok - fm-composer-lib: only the pinned Running-for row carries the polytoken busy verdict
+ok - fm-composer-lib: the polytoken separated shape reads empty, pending, and unknown exactly
+ok - fm-composer-lib: the queued-Enter conversion covers polytoken's verified queue behavior
+ok - fm-tmux-lib: only a polytoken-identity pane confirms a submit from its Running-for row
+ok - fm-polytoken-lib: the config mirror enforces the unattended posture
+ok - fm-polytoken-lib: the worker facet carries the role contract and no model pin
+ok - fm-polytoken-lib: the no-argv busy writer opens, closes, and never fails
+ok - fm-polytoken-lib: the hook layer binds the three events and refuses to clobber
+ok - fm-polytoken-lib: the model ref composes the effort axis and refuses unlisted models
+ok - fm-polytoken-lib: an unreachable listing refuses an unprovable pin
+ok - fm-polytoken-lib: the REST interrupt reports cancelled, not-running, and refuses unauthorized
+ok - fm-polytoken-lib: the interrupt close lands after mid-turn rewrites and spares a reopened or running turn
+ok - fm-polytoken-lib: the typed settle postcondition follows GET /sync
+ok - fm-spawn: the polytoken launch carries the hybrid contract end to end
+ok - fm-spawn: polytoken maps an unlisted effort and retains the requested axis
+ok - fm-spawn: polytoken requires explicit model and effort axes
+ok - fm-spawn: an unlisted polytoken model refuses before pane creation
+ok - fm-spawn: polytoken cannot be launched as a secondmate
+ok - fm-spawn: a project's own polytoken hook layer is refused, not clobbered
+ok - fm-spawn and facet writer: a project facet without hooks remains untouched
+ok - fm-spawn: a whitespace-bearing state dir refuses polytoken wiring before writing any
+ok - fm-spawn: a failed readiness gate fails loudly, reaps, and retires its wiring
+ok - fm-spawn: a gate failure after publication drops the slot claim with the record
+ok - fm-spawn: the polytoken busy contract arms and advances through the generated writer
+FM_TEST_END 2026-10-21T05:49:31Z tests/fm-polytoken-harness.test.sh exit=0 duration_ms=20729 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:49:31Z tests/fm-busy-state.test.sh family=standalone expected_gate_skip=none
+ok - native progress is generation-bound, separately recorded, and cleared on arm and retire
+ok - the turn-ended notification rides the apply generation check
+ok - arm mints a gen sidecar and seeds busy fm-spawn at seq=1
+ok - apply advances seq under the armed gen and attributes the writing source
+ok - conditional apply checks the observed sequence under the writer lock before state or notification changes
+ok - firstmate-owned interrupt and recovery events bind to the current gen
+ok - apply is refused for a task whose busy contract was never armed
+ok - retire waits for the writer lock and cannot remove a new incarnation
+ok - retire treats only an absent sidecar as already retired
+ok - the writer breaks a stale lock instead of dying on GNU stat output
+ok - a late event from a previous incarnation is rejected, record unchanged
+ok - a record from a stale incarnation classifies unknown, never idle
+ok - a converted adapter with no record classifies unknown, never idle
+ok - malformed records classify unknown malformed, never busy or idle
+ok - a record with no armed gen sidecar classifies unknown
+ok - a record is trusted only by the adapter whose source wrote it
+ok - converted adapters never classify busy from rendered footer text
+ok - a Claude launch parked on its trust or external-imports dialog classifies unknown launch-prompt
+ok - a Pi-family launch (pi, pi-signed, omp) parked on the project-trust dialog classifies unknown launch-prompt
+ok - the Pi signature requires both the dialog heading and its decline option, not the bare word trust
+ok - a Gemini launch parked on its trust, auth-picker, or API-key dialog classifies unknown launch-prompt
+ok - the launch-prompt backstop never reclassifies a genuinely working launch
+ok - the launch-prompt backstop is scoped to harnesses with a verified signature
+ok - the launch-prompt backstop only ever touches the untouched fm-spawn seed
+ok - the launch-prompt backstop never runs without a captured tail
+ok - the grok fallback is regex-scoped to grok and classifies only grok tasks
+ok - codex classifies unknown until a semantic source passes its verification gate
+ok - standalone kimi classifies unknown until the live verification gate opens
+ok - cursor classifies only from its transcript fold, never rendered text or native state
+ok - endpoint death is the only process-level override and yields dead, never busy
+ok - herdr's native verdict is trusted for busy only, and records outrank it
+ok - record parsing never clobbers the caller's positional parameters, glob setting, or fields
+ok - the boolean view reports busy only on an exact busy verdict
+all fm-busy-state tests passed
+FM_TEST_END 2026-10-21T05:49:34Z tests/fm-busy-state.test.sh exit=0 duration_ms=3841 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:49:34Z tests/fm-worker-account.test.sh family=backend-dispatch expected_gate_skip=none
+ok - Claude, Pi, and pi-signed secondmates use their own pins without changing other launches
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+warning: re-init: ignored --initial-branch=main
+ok - unusable per-mate pins name the setting and refuse rather than use the primary's usable account
+ok - a remote route refuses a primary-side account override instead of silently ignoring it
+ok - Herdr resolves Claude and Pi pins under nounset with default and explicit labels
+ok - an absent pin leaves Claude and Pi launches exactly as they were
+ok - a Claude pin selects its root and sheds the credentials that would outrank it
+ok - a Claude pin refuses a signed-out root even when the invoking process has a usable login and API key
+ok - an ordinary Claude pin selects the default login and drops an ambient root
+ok - malformed, relative, CR-terminated, empty, extra-line, missing-root, and non-file pins refuse before launch
+ok - a Pi pin selects its root and passes the declared provider
+ok - a Pi pin refuses unqualified, missing, undeclared, signed-out, and raw launches
+ok - extension providers and a Pi without auth check fall back to an exact model-listing match
+ok - a Claude pin leaves codex and Pi launches unchanged
+ok - a raw Claude launch command receives the home's pin
+ok - a pinned home refuses a raw Claude command that overrides the account
+ok - an unpinned home keeps a raw Claude account override
+ok - a local secondmate reads the launching home's pin and its own home's file is never inherited over
+# all fm-worker-account tests passed
+FM_TEST_END 2026-10-21T05:50:38Z tests/fm-worker-account.test.sh exit=0 duration_ms=63505 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:50:38Z tests/fm-herdr-groups.test.sh family=unclassified expected_gate_skip=none
+ok - absent or off setting: no plan, no key, and not a single Herdr call
+ok - on with zero tasks: plan and sync stay quiet and exit 0
+ok - on: one group per project, status order needs-captain, problem, running, done
+ok - rules: line order sets group order; task prefix beats repo beats catch-all; bad rules warn
+ok - all-invalid rules: empty RULE_GROUP still plans via project fallback
+ok - sync: reports only drifted tokens, workspace tokens only on the exact projection, view reconciled on every sync
+ok - sync: retries failed view publication after tokens converge
+ok - sync: an older Herdr protocol warns once and stays inactive
+ok - clear: removes this home's tokens and the agents view after the feature is turned off
+ok - sidebar-config: prints rows; --apply backs up, appends once, never reloads Herdr
+ok - agent view helper: exactly agent.view.set and agent.view.clear for source firstmate
+ok - watcher: one poll cycle reconciles the project-group tags
+FM_TEST_END 2026-10-21T05:50:43Z tests/fm-herdr-groups.test.sh exit=0 duration_ms=5102 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:50:43Z tests/fm-remote-inherit.test.sh family=secondmate expected_gate_skip=none
+ok - remote inheritance reaps serial and parallel workers without completion files
+ok - retry after an interrupted transfer converges without quarantining the previous copy
+ok - retry after an interruption still quarantines a locally edited destination
+ok - retry after a published-but-unpromoted transfer converges quietly
+ok - a newer push accepts a destination holding the interrupted transfer's payload
+ok - an old-format four-line receipt is read as an applied generation
+ok - a second interruption keeps the earlier interrupted payload recognized as published
+ok - malformed receipt shapes fail closed
+# all fm-remote-inherit tests passed
+FM_TEST_END 2026-10-21T05:50:48Z tests/fm-remote-inherit.test.sh exit=0 duration_ms=4377 gate_skip=false
+FM_TEST_SUMMARY total=8 failed=0 skipped_gate=0 duration_ms=318837
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=63505 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=20729 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=4377 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=3 duration_ms=142253 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=5102 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=82613 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-session-lock-ancestry.test.sh duration_ms=82613
+FM_TEST_SLOWEST rank=2 script=tests/fm-spawn-pool-base-freshen.test.sh duration_ms=76618
+FM_TEST_SLOWEST rank=3 script=tests/fm-worker-account.test.sh duration_ms=63505
+FM_TEST_SLOWEST rank=4 script=tests/fm-claude-stop-autoarm.test.sh duration_ms=61794
+FM_TEST_SLOWEST rank=5 script=tests/fm-polytoken-harness.test.sh duration_ms=20729
+FM_TEST_SLOWEST rank=6 script=tests/fm-herdr-groups.test.sh duration_ms=5102
+FM_TEST_SLOWEST rank=7 script=tests/fm-remote-inherit.test.sh duration_ms=4377
+FM_TEST_SLOWEST rank=8 script=tests/fm-busy-state.test.sh duration_ms=3841
+fm-test-run: wrote timing artifact: /home/cti/.no-mistakes/evidence/01M5E7D4NWGSE64JVQKMS28Z5X/round2-targeted-results.json

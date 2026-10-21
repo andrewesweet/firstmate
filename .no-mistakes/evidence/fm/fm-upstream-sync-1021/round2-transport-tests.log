@@ -1,0 +1,76 @@
+FM_TEST_BEGIN 2026-10-21T05:51:04Z tests/fm-backend-tmux-smoke.test.sh family=backend-dispatch expected_gate_skip=none
+@4
+ok - real tmux: fm_backend_tmux_create_task creates a window and refuses a duplicate
+ok - real tmux: fm_backend_tmux_send_text_line sends literal text and submits with Enter
+ok - real tmux: fm_backend_tmux_send_literal + fm_backend_tmux_send_key Enter submit as two separate steps
+ok - real tmux: fm_backend_tmux_capture's -S -N bound trims old history for a small window and reaches it for a large one
+ok - real tmux: fm_backend_tmux_resolve_bare_selector (list-live) finds the created window by name
+ok - real tmux: fm_backend_tmux_resolve_bare_selector fails for a window that does not exist
+ok - real tmux: fm_backend_target_exists finds an existing window
+ok - real tmux: fm_backend_target_exists finds an existing pane
+ok - real tmux: fm_backend_target_exists accepts bare and session-scoped window ids
+ok - real tmux: fm_backend_target_exists accepts window indexes including firstmate:0
+ok - real tmux: fm_backend_target_exists accepts index.pane targets
+ok - real tmux: fm_backend_target_exists accepts a bare session and explicit exact markers
+ok - real tmux: fm_backend_target_exists anchors the session name
+ok - real tmux: fm_backend_target_exists rejects malformed targets
+ok - real tmux: fm_backend_tmux_send_key withholds a key from a gone prefix target
+ok - real tmux: a gone dotted window reads absent beside its undotted neighbor
+ok - real tmux: fm_backend_target_exists rejects a killed window while another session stays alive
+ok - real tmux: fm_backend_target_exists rejects a missing session while another session stays alive
+ok - real tmux: kill removes the window and the readable session inventory authoritatively classifies it missing
+FM_TEST_END 2026-10-21T05:51:04Z tests/fm-backend-tmux-smoke.test.sh exit=0 duration_ms=621 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:51:04Z tests/fm-git-push-guard.test.sh family=unclassified expected_gate_skip=none
+ok - push guard: origin, origin's URL, and a remote aliasing origin's URL are all refused
+ok - push guard: the backup remote takes only backup/<id>, never the task branch or prefix
+ok - push guard: with an empty task prefix the bare task branch is still refused anywhere
+ok - push guard: the repository's own pre-push hook runs after the guard passes and still blocks
+ok - push guard: an unreadable guard file refuses every push
+# all fm-git-push-guard tests passed
+FM_TEST_END 2026-10-21T05:51:05Z tests/fm-git-push-guard.test.sh exit=0 duration_ms=1196 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:51:05Z tests/fm-trace-context-spawn.test.sh family=backend-dispatch expected_gate_skip=none
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - disabled: an inherited ambient TRACEPARENT is scrubbed from the launch, never forwarded to the worker
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+ok - duplicate secondmate preflight leaves trace-context unchanged
+ok - relaunch reuses the recorded carrier verbatim for both the meta record and the injected export
+ok - session start freezes the env override and later config or environment edits do not alter spawns
+ok - two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace that links to the routing agent
+ok - two-level: env-off/file-present keeps the nested worker disabled even though the config file was copied into the secondmate home
+ok - two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, link to its carrier, keep per-task identity across relaunch, and drop the link once the marker is gone
+ok - primary home: an ambient TRACEPARENT never becomes a recorded link (no marker, no link)
+ok - secondmate carrier and FM_TRACE_CONTEXT snapshot always agree, both derived from one frozen decision (file-decided path)
+# all fm-trace-context-spawn tests passed
+FM_TEST_END 2026-10-21T05:52:24Z tests/fm-trace-context-spawn.test.sh exit=0 duration_ms=78944 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:52:24Z tests/fm-pipeline-spend.test.sh family=pr-forge expected_gate_skip=none
+ok - known spend, including failed and cancelled invocations, is attributed to the task that ran it
+ok - repeated review rounds in a resumed session are counted once
+ok - absent spend reads as zero only when no run exists, and as unavailable when it cannot be read
+ok - older state without delta columns counts only rounds it can prove
+ok - record uses the captured task branch and its reflog after checkout
+ok - record appends one line per task incarnation
+ok - an absent opt-in flag bypasses task, pipeline, and ledger reads and writes
+ok - the state database resolves under the account home when NM_HOME and HOME are unset
+ok - a configured resolver supplies the no-mistakes home for reads when NM_HOME is unset
+ok - an explicit NM_HOME always wins and the resolver is not called
+ok - an absent or unusable resolver leaves every read on the ambient home
+ok - the resolver applies to host reads and axi abort --run only
+ok - missing tasks, secondmates, and unsafe ids are refused
+FM_TEST_END 2026-10-21T05:52:28Z tests/fm-pipeline-spend.test.sh exit=0 duration_ms=3915 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=84818
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=2 duration_ms=79565 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=3915 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=1196 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-trace-context-spawn.test.sh duration_ms=78944
+FM_TEST_SLOWEST rank=2 script=tests/fm-pipeline-spend.test.sh duration_ms=3915
+FM_TEST_SLOWEST rank=3 script=tests/fm-git-push-guard.test.sh duration_ms=1196
+FM_TEST_SLOWEST rank=4 script=tests/fm-backend-tmux-smoke.test.sh duration_ms=621
+fm-test-run: wrote timing artifact: /home/cti/.no-mistakes/evidence/01M5E7D4NWGSE64JVQKMS28Z5X/round2-transport-results.json

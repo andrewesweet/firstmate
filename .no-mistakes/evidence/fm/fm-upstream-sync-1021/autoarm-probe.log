@@ -1,0 +1,258 @@
++ set -u
+++ dirname tests/.gate-autoarm-probe.sh
++ . tests/lib.sh
+++ '[' -n '' ']'
+++ FM_TEST_LIB_SOURCED=1
+++ umask 022
++++ dirname tests/lib.sh
+++ . tests/git-config-helpers.sh
++++ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
++++ GIT_CONFIG_GLOBAL=/dev/null
++++ GIT_CONFIG_NOSYSTEM=1
++++ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
+++ export FM_GATE_REFUSE_BYPASS=1
+++ FM_GATE_REFUSE_BYPASS=1
+++ export FM_TEST_SEAM=1
+++ FM_TEST_SEAM=1
+++ unset FM_TASK_ID
+++ unset TASKS_AXI_FILE TASKS_AXI_BACKEND
+++++ dirname tests/lib.sh
++++ cd tests/..
++++ pwd
+++ ROOT=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
++++ fm_test_tmpdir
++++ local base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp physical
++++ base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ '[' -n /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++++ pwd -P
++++ physical=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.git ']'
++++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++ FM_TEST_TMPDIR=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++ FM_TEST_CLEANUP_DIRS=()
++++ mktemp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-cleanup.776865.XXXXXX
+++ FM_TEST_CLEANUP_REGISTRY=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-cleanup.776865.o2wL1S
++++ fm_test_pid_identity 776865
++++ local pid=776865
++++ FM_STATE_OVERRIDE=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ bash -c '. "$1"; fm_pid_identity "$2"' _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-wake-lib.sh 776865
+++ FM_TEST_OWNER_IDENTITY='linux-starttime=607535030 cmdline-hex=62617368002d780074657374732f2e676174652d6175746f61726d2d70726f62652e736800'
++++ mktemp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-procevent.776865.XXXXXX
+++ FM_TEST_PROCEVENT_REGISTRY=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-procevent.776865.lJ8RYg
++++ mktemp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-watcher.776865.XXXXXX
+++ FM_TEST_WATCHER_REGISTRY=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-watcher.776865.VftlB9
+++ FM_TEST_STUB_MAX_BLOCK_SECONDS=120
+++ export FM_TEST_STUB_MAX_BLOCK_SECONDS
+++ trap fm_test_cleanup EXIT
+++ trap 'fm_test_cleanup; exit 130' INT
+++ trap 'fm_test_cleanup; exit 143' TERM
+++ trap 'fm_test_cleanup; exit 129' HUP
+++ trap 'fm_test_cleanup; exit 131' QUIT
+++ FM_TEST_ORPHAN_MAX_AGE_SECONDS=3600
+++ '[' 0 '!=' 1 ']'
+++ fm_test_reap_orphans
+++ local marker dir mtime now owner_pid owner_identity current_identity
++++ date +%s
+++ now=1792560027
+++ for marker in "$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture
+++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wake-tangle-root.Q2dWfa/.fm-test-fixture ']'
++++ sed -n 1p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wake-tangle-root.Q2dWfa/.fm-test-fixture
+++ owner_pid=763578
++++ sed -n '2,$p' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wake-tangle-root.Q2dWfa/.fm-test-fixture
+++ owner_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 763578
+++ current_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ '[' -n 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ '[' 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' = 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ continue
+++ for marker in "$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture
+++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-triage-tests.Kwo7Fl/.fm-test-fixture ']'
++++ sed -n 1p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-triage-tests.Kwo7Fl/.fm-test-fixture
+++ owner_pid=763578
++++ sed -n '2,$p' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-triage-tests.Kwo7Fl/.fm-test-fixture
+++ owner_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 763578
+++ current_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ '[' -n 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ '[' 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' = 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ continue
+++ for marker in "$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture
+++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wedge-rec.1PvYJE/.fm-test-fixture ']'
++++ sed -n 1p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wedge-rec.1PvYJE/.fm-test-fixture
+++ owner_pid=763578
++++ sed -n '2,$p' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-wedge-rec.1PvYJE/.fm-test-fixture
+++ owner_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 763578
+++ current_identity='linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800'
+++ '[' -n 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ '[' 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' = 'linux-starttime=607532695 cmdline-hex=626173680074657374732f666d2d77617463682d7472696167652e746573742e736800' ']'
+++ continue
+++ fm_test_tmproot fm-claude-stop-autoarm
+++ local prefix=fm-claude-stop-autoarm root tmp_base
++++ fm_test_tmpdir
++++ local base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp physical
++++ base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ '[' -n /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++++ pwd -P
++++ physical=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.git ']'
++++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++ tmp_base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
+++ tmp_base=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp
++++ mktemp -d /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.XXXXXX
+++ root=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++++ cd -P -- /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++++ pwd -P
+++ root=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
+++ printf '%s\n%s\n' 776865 'linux-starttime=607535030 cmdline-hex=62617368002d780074657374732f2e676174652d6175746f61726d2d70726f62652e736800'
+++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
+++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++ TMP_ROOT=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++ fm_git_identity fmtest fmtest@example.invalid
++ export GIT_AUTHOR_NAME=fmtest GIT_AUTHOR_EMAIL=fmtest@example.invalid
++ GIT_AUTHOR_NAME=fmtest
++ GIT_AUTHOR_EMAIL=fmtest@example.invalid
++ export GIT_COMMITTER_NAME=fmtest GIT_COMMITTER_EMAIL=fmtest@example.invalid
++ GIT_COMMITTER_NAME=fmtest
++ GIT_COMMITTER_EMAIL=fmtest@example.invalid
+++ fm_fakebin /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin
+++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin fakebin=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin
+++ mkdir -p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin
+++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin
++ FAKEBIN=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin
++ ln -s /bin/bash /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin/claude
++ FAKE_CLAUDE=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/fakebin/fakebin/claude
++ export FAKE_CLAUDE
++ RUN_AUTOARM_BG_PID=
++ test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting
++ local dir out status pid holder lnbin lnlog i
+++ make_primary_dir /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
+++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
+++ mkdir -p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/config
+++ git init -q /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
+++ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal commit -q --allow-empty -m init
+++ :
+++ :
+++ install_autoarm_scripts /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
+++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
+++ mkdir -p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-claude-stop-autoarm.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-claude-stop-autoarm.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-primary-scope-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-primary-scope-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-supervision-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-supervision-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-wake-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-wake-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-path-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-path-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-session-lock-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-session-lock-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-cursor-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-cursor-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-hook-host-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-hook-host-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-lock.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-lock.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-afk-contract.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-afk-contract.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-classify-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-classify-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-timeout-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-timeout-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-supervision-engine-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-supervision-engine-lib.sh
+++ chmod +x /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-claude-stop-autoarm.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-lock.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-afk-contract.sh
+++ printf '%s\n' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
++ dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
++ :
++ write_arm_fixture /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal actionable
++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal kind=actionable
++ cat
++ case "$kind" in
++ cat
++ chmod +x /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-watch-arm.sh
++ pid=776973
++ record_autoarm_owner /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal 776973
++ sleep 60
++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal pid=776973 role=autoarm
++ mkdir -p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock
++ printf '%s\n' 776973
++ printf '%s\n' autoarm
++ record_autoarm_epoch /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal 464 776973 rewake
++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal seq=464 owner=776973 outcome=rewake
++ printf 'epoch=%s owner_pid=%s outcome=%s updated_at=1\n' 464 776973 rewake
++ touch -t 202001010000 /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm-epoch
++ holder=776977
++ i=0
++ '[' 0 -lt 50 ']'
++ '[' '!' -s /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal/pid ']'
++ sleep 0.02
++ FM_STATE_OVERRIDE=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state
++ bash -c '
+    . "$1"
+    fm_lock_try_create "$2" || exit 7
+    exec sleep 30
+  ' _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/bin/fm-wake-lib.sh /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal
++ i=1
++ '[' 1 -lt 50 ']'
++ '[' '!' -s /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal/pid ']'
++ kill -KILL 776977
++ wait 776977
++ true
++ assert_present /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal 'fixture did not leave a dead-owner steal mutex'
++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal ']'
++ lnbin=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/lnbin
++ lnlog=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/ln.log
++ mkdir -p /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/lnbin
++ cat
++ chmod +x /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/lnbin/ln
++ :
+++ PATH=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/lnbin:/home/cti/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/cti/.local/bin:/home/cti/.codex/tmp/arg0/codex-arg0ashKJv:/home/cti/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/cti/.local/bin:/home/cti/.local/bin:/home/cti/go/bin:/home/cti/.cargo/bin:/home/cti/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin
+++ FM_TEST_LN_LOG=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/ln.log
+++ run_autoarm /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal
++ out='firstmate watcher wake - one supervision event needs a handling turn now.
+stale: fixture-win actionable
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.'
++ status=2
++ kill 776973
++ wait 776973
++ true
++ expect_code 2 2 'a dead-owner steal mutex must not keep an abandoned claim unrecoverable'
++ '[' 2 '!=' 2 ']'
++ '[' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/arm-ran ']'
++ grep -q '\.steal\.steal$' /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/ln.log
++ assert_absent /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal 'reclaim left the dead steal mutex behind'
++ '[' '!' -e /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16/abandoned-claim-dead-steal/state/.claude-autoarm.lock.steal ']'
++ pass 'auto-arm: an abandoned-claim reclaim reaps a dead steal mutex without nesting'
++ printf 'ok - %s\n' 'auto-arm: an abandoned-claim reclaim reaps a dead steal mutex without nesting'
+ok - auto-arm: an abandoned-claim reclaim reaps a dead steal mutex without nesting
++ fm_test_cleanup
++ local d
++ fm_test_reap_watchers
++ local state lock_home 'seen=
+'
++ '[' -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-watcher.776865.VftlB9 ']'
++ IFS=
++ read -r state
++ rm -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-watcher.776865.VftlB9
++ fm_test_reap_procevent_homes
++ local home claim_root 'seen=
+'
++ '[' -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-procevent.776865.lJ8RYg ']'
++ IFS='	'
++ read -r home claim_root
++ rm -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-procevent.776865.lJ8RYg
++ for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"
++ '[' -n '' ']'
++ '[' -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-cleanup.776865.o2wL1S ']'
++ IFS=
++ read -r d
++ '[' -n /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16 ']'
++ fm_test_remove_tree /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++ local dir=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++ '[' -d /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16 ']'
++ '[' '!' -L /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16 ']'
++ find /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16 -type d -exec chmod u+rwx '{}' +
++ rm -rf /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-claude-stop-autoarm.3xMB16
++ IFS=
++ read -r d
++ rm -f /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/.fm-test-cleanup.776865.o2wL1S

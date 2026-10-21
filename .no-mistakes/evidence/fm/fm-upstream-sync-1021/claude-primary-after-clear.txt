@@ -1,0 +1,125 @@
+ ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
+
+
+❯ This is an isolated validation lab. Do not dispatch, publish, or supervise anything. Run only bin/fm-lock.sh and
+  bin/fm-lock.sh status using Bash, then say LOCK_CHECK_COMPLETE. Do not edit files or run any other commands.
+
+● Bash(bin/fm-lock.sh; echo "exit=$?")
+  ⎿  lock acquired: harness pid 862345
+     exit=0
+  ⎿  Created .live-validation-tmp/fm-watch-triage-tests.ixuD89/turn-ended-invalid-churn-deadline-empty/watch.out
+     (+0 -0)
+  ⎿  Updated .live-validation-tmp/.fm-test-watcher.782561.zKQciQ (+1 -0)
+      35  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-
+          triage-tests.ixuD89/turn-ended-churn-timer-write-failure/state
+      36  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-
+          triage-tests.ixuD89/turn-ended-invalid-churn-bound/state
+      37  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-
+          triage-tests.ixuD89/turn-ended-oversized-churn-bound/state
+      38 +/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-watch-
+         +triage-tests.ixuD89/turn-ended-invalid-churn-deadline-empty/state
+  ⎿  Updated .live-validation-tmp/fm-test-run.OAVaZS/out.1 (+1 -0)
+      35  ok - a perpetually churning pane surfaces once its bounded deferral window is spent
+      36  ok - an unrecordable pane-churn deadline surfaces the turn-end
+      37  ok - an invalid pane-churn bound surfaces the turn-end
+      38 +ok - an oversized pane-churn bound surfaces the turn-end
+  ⎿  Created .live-validation-tmp/fm-watch-triage-tests.ixuD89/turn-ended-invalid-churn-deadline-empty/fakebin/fm-c
+     rew-state.sh (+9 -0)
+      1 +#!/usr/bin/env bash
+      2 +set -u
+      3 +id=${1:-}
+      4 +[ -z "${FM_FAKE_CREW_STATE_LOG:-}" ] || printf '%s\n' "$id" >> "$FM_FAKE_CREW_STATE_LOG"
+      5 +key=$(printf '%s' "$id" | tr -c 'A-Za-z0-9' '_')
+      6 +var="FM_FAKE_CREW_STATE_$key"
+      7 +val=${!var:-${FM_FAKE_CREW_STATE:-}}
+      8 +printf '%s\n' "${val:-state: unknown · source: none · fake default}"
+      9 +exit 0
+  ⎿  Created .live-validation-tmp/fm-watch-triage-tests.ixuD89/turn-ended-invalid-churn-deadline-empty/fakebin/tmux
+     (+39 -0)
+       1 +#!/usr/bin/env bash
+       2 +set -u
+       3 +if [ "${1:-}" = "list-windows" ]; then
+       4 +  if [ -n "${FM_FAKE_TMUX_WINDOWS:-}" ]; then
+       5 +    printf '%s\n' "$FM_FAKE_TMUX_WINDOWS"
+       6 +  elif [ -n "${FM_FAKE_TMUX_WINDOW:-}" ]; then
+       7 +    printf '%s\n' "${FM_FAKE_TMUX_WINDOW#*:}"
+       8 +  fi
+       9 +  exit 0
+      10 +fi
+      11 +if [ "${1:-}" = "capture-pane" ]; then
+      12 +  if [ -n "${FM_FAKE_TMUX_CAPTURE_COUNT_FILE:-}" ]; then
+      13 +    _capture_count=$(cat "$FM_FAKE_TMUX_CAPTURE_COUNT_FILE" 2>/dev/null || echo 0)
+      14 +    printf '%s\n' "$((_capture_count + 1))" > "$FM_FAKE_TMUX_CAPTURE_COUNT_FILE"
+      15 +    if [ -n "${FM_FAKE_TMUX_CAPTURE_FAIL_AFTER:-}" ] \
+      16 +      && [ "$_capture_count" -ge "$FM_FAKE_TMUX_CAPTURE_FAIL_AFTER" ]; then
+      17 +      exit 1
+      18 +    fi
+      19 +  fi
+      20 +  if [ -n "${FM_FAKE_TMUX_FORBIDDEN_TARGET:-}" ]; then
+      21 +    _prev=
+      22 +    for _arg in "$@"; do
+      23 +      if [ "$_prev" = -t ] && [ "$_arg" = "$FM_FAKE_TMUX_FORBIDDEN_TARGET" ]; then
+      24 +        exit 1
+      25 +      fi
+      26 +      _prev=$_arg
+      27 +    done
+      28 +  fi
+      29 +  if [ -n "${FM_FAKE_TMUX_CAPTURE:-}" ]; then
+      30 +    cat "$FM_FAKE_TMUX_CAPTURE"
+      31 +  fi
+      32 +  exit 0
+      33 +fi
+      34 +if [ "${1:-}" = "display-message" ]; then
+      35 +  case "$*" in
+      36 +    *pane_current_command*) printf '%s\n' "${FM_FAKE_TMUX_CURRENT_COMMAND:-}"; exit 0 ;;
+      37 +  esac
+      38 +fi
+      39 +exit 1
+  ⎿  … 1 more file changed
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a
+     review or audit of the command)
+  ⎿  Allowed by auto mode classifier
+
+● Bash(bin/fm-lock.sh status; echo "exit=$?")
+ ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
+
+
+❯ /clear
+
+❯ This is still the isolated lab. Run only bin/fm-lock.sh and bin/fm-lock.sh status using Bash, then stop. Do not edit,
+  dispatch, publish, or run other commands.
+
+● Bash(bin/fm-lock.sh; echo "exit=$?"; bin/fm-lock.sh status; echo "exit=$?")
+  ⎿  lock acquired: harness pid 862345
+     exit=0
+     lock: held by live harness pid 862345
+     exit=0
+  ⎿  Allowed by auto mode classifier
+
+· Honking… (5s · ↓ 75 tokens)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · esc to interrupt · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

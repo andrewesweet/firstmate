@@ -1,0 +1,14 @@
+[ui]
+agent_panel_sort="default"
+
+# Firstmate project groups (docs/herdr-backend.md "Project groups").
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace"],
+  [{ token = "$fm_group", bold = true }, "$fm_state"],
+]
+
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", { token = "$fm_group", bold = true }, "$fm_state", "$fm_task"],
+]

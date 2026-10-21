@@ -1,0 +1,50 @@
+$ bin/fm-lab-home.sh create /tmp/fm-lab.zxn_eiqp
+/tmp/fm-lab.zxn_eiqp
+exit=0
+
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
+exit=0
+
+$ tmux -L fm-lab display-message -p #{socket_path}
+/tmp/fm-lab.zxn_eiqp/tmux/tmux-1001/fm-lab
+exit=0
+
+$ bin/fm-inbox.sh note --json First isolated recovery note
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792561994-SvOBfW","request_id":null,"saved":true,"announced":true,"acknowledged":false,"path":"/tmp/fm-lab.zxn_eiqp/state/inbox/1792561994-SvOBfW.note"}
+exit=0
+
+$ bin/fm-watch-arm.sh --restart --follow-budget 2
+watcher: started pid=2119083 (beacon fresh)
+check: rearm-resurface
+exit=0
+
+$ bin/fm-watch-arm.sh --follow-budget 2
+watcher: started pid=2119668 (beacon fresh)
+watcher: follow budget elapsed (started pid=2119668 left running)
+exit=0
+
+$ bin/fm-watch-arm.sh --stop
+watcher: stopped pid=2119668
+exit=0
+
+$ bin/fm-inbox.sh note --json Second isolated recovery note
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792561996-Mc1QhQ","request_id":null,"saved":true,"announced":true,"acknowledged":false,"path":"/tmp/fm-lab.zxn_eiqp/state/inbox/1792561996-Mc1QhQ.note"}
+exit=0
+
+$ bin/fm-watch-arm.sh --restart --follow-budget 2
+watcher: started pid=2120684 (beacon fresh)
+check: rearm-resurface
+exit=0
+
+PERSISTED QUEUE
+1792561994	1	check	inbox:1792561994-SvOBfW	check: captain inbox note 1792561994-SvOBfW - First isolated recovery note
+1792561996	2	check	inbox:1792561996-Mc1QhQ	check: captain inbox note 1792561996-Mc1QhQ - Second isolated recovery note
+PERSISTED RECOVERY MARKER
+announced:downtime:2120571.1792561996.YFG4Z3
+
+$ bin/fm-watch-arm.sh --stop
+watcher: none running
+exit=0
+
+$ tmux -L fm-lab kill-server
+exit=0

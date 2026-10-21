@@ -1,0 +1,521 @@
+FM_TEST_BEGIN 2026-10-21T05:20:28Z tests/fm-busy-state.test.sh family=standalone expected_gate_skip=none
+ok - native progress is generation-bound, separately recorded, and cleared on arm and retire
+ok - the turn-ended notification rides the apply generation check
+ok - arm mints a gen sidecar and seeds busy fm-spawn at seq=1
+ok - apply advances seq under the armed gen and attributes the writing source
+ok - conditional apply checks the observed sequence under the writer lock before state or notification changes
+ok - firstmate-owned interrupt and recovery events bind to the current gen
+ok - apply is refused for a task whose busy contract was never armed
+ok - retire waits for the writer lock and cannot remove a new incarnation
+ok - retire treats only an absent sidecar as already retired
+ok - the writer breaks a stale lock instead of dying on GNU stat output
+ok - a late event from a previous incarnation is rejected, record unchanged
+ok - a record from a stale incarnation classifies unknown, never idle
+ok - a converted adapter with no record classifies unknown, never idle
+ok - malformed records classify unknown malformed, never busy or idle
+ok - a record with no armed gen sidecar classifies unknown
+ok - a record is trusted only by the adapter whose source wrote it
+ok - converted adapters never classify busy from rendered footer text
+ok - a Claude launch parked on its trust or external-imports dialog classifies unknown launch-prompt
+ok - a Pi-family launch (pi, pi-signed, omp) parked on the project-trust dialog classifies unknown launch-prompt
+ok - the Pi signature requires both the dialog heading and its decline option, not the bare word trust
+ok - a Gemini launch parked on its trust, auth-picker, or API-key dialog classifies unknown launch-prompt
+ok - the launch-prompt backstop never reclassifies a genuinely working launch
+ok - the launch-prompt backstop is scoped to harnesses with a verified signature
+ok - the launch-prompt backstop only ever touches the untouched fm-spawn seed
+ok - the launch-prompt backstop never runs without a captured tail
+ok - the grok fallback is regex-scoped to grok and classifies only grok tasks
+ok - codex classifies unknown until a semantic source passes its verification gate
+ok - standalone kimi classifies unknown until the live verification gate opens
+ok - cursor classifies only from its transcript fold, never rendered text or native state
+ok - endpoint death is the only process-level override and yields dead, never busy
+ok - herdr's native verdict is trusted for busy only, and records outrank it
+ok - record parsing never clobbers the caller's positional parameters, glob setting, or fields
+ok - the boolean view reports busy only on an exact busy verdict
+all fm-busy-state tests passed
+FM_TEST_END 2026-10-21T05:20:32Z tests/fm-busy-state.test.sh exit=0 duration_ms=3951 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:20:32Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - status_span_has_actionable: benign absorbed, captain events surfaced, classified events not re-fired
+ok - an actionable event is not hidden by later routine appends, and is named as itself
+ok - span classification retires closed decisions and surfaces rejected transitions for reconciliation
+ok - span classification from an offset keeps closed decisions closed and live ones live
+ok - a malformed seen signature causes the whole status log to be classified
+ok - stale_is_terminal: terminal status surfaces, non-terminal and no-status are benign
+ok - classifier primitives: keyed decisions and activity phases, captain relevance, window-to-task, and overrides
+ok - unrecognized status prefixes are visible and recognized prefixes are unchanged
+ok - crew_is_provably_working: only working+run-step/pane is provable; idle/finished/parked/failed/unknown surface
+ok - status_is_paused: only the leading paused verb matches, paused is not captain-relevant, and the two declared-wait verbs stay separable
+ok - crew_absorb_class: working/paused/none from one read; crew_is_paused and crew_is_provably_working agree
+ok - crew_worktree_written_since: real writes are evidence; no worktree, no anchor, quiet trees, .git churn and a mate's own home are not
+ok - an empty FM_WORKTREE_WRITE_PRUNE widens the probe to the whole depth-bounded tree instead of disabling it
+ok - an empty FM_WORKTREE_WRITE_PRUNE exported into the environment prunes nothing, widening the probe
+ok - the worktree write probe is wall-clock bounded, and hitting the bound reads as no write evidence
+ok - signal_crew_provably_working: benign only when every referenced crew is provably working
+ok - a secondmate's unmarked routine progress absorbs when provably working; routed, terminal, note, marked, and unknown lines surface
+ok - a no-verb signal whose crew is provably working is absorbed (no exit, no queue, suppressor advanced, beacon present)
+ok - a bare turn-end whose crew is provably working (busy pane) is absorbed
+ok - a bare turn-end whose crew is not provably working is surfaced (the swallowed-finish fix)
+ok - a bare turn-end from a pane that churned since the previous poll is absorbed
+ok - pane churn starts a fresh stale-classification interval before a stopped render returns
+ok - pane churn resets prior wedge escalation state before the stale-path poll
+ok - a churning turn-end inside an already-open deferral window is absorbed without re-marking
+ok - a bare turn-end from a pane unchanged since the previous poll still surfaces
+ok - a bare turn-end backed by a malformed prior hash surfaces
+ok - a bare turn-end backed by a newline-terminated prior hash surfaces
+ok - a churning secondmate turn-end surfaces without a stale resurface path
+ok - a turn-end whose marker key matches another recorded endpoint surfaces
+ok - two metadata records sharing one endpoint make churn evidence ambiguous
+ok - a batch may satisfy positive evidence independently per task
+ok - per-task evidence composition stays off until the home opts in
+ok - a status-bearing batch never falls through to pane-churn evidence
+ok - pane-churn turn-end absorb is off until a home opts in
+ok - a perpetually churning pane surfaces once its bounded deferral window is spent
+ok - an unrecordable pane-churn deadline surfaces the turn-end
+ok - an invalid pane-churn bound surfaces the turn-end
+ok - an oversized pane-churn bound surfaces the turn-end
+ok - invalid existing pane-churn deadlines surface without mutation
+ok - a surfaced batch opens no partial pane-churn deadline
+ok - a no-verb working: note whose crew is idle with no running pipeline is surfaced
+ok - a secondmate's status note surfaces even while its own agent is busy
+ok - a busy secondmate's routine working: is absorbed while its later note: still surfaces
+ok - a secondmate blocker wakes despite busy evidence and later unrelated appends
+ok - a self-announced close never wakes its own home, and the next real note still does
+ok - a close after OPEN DECISIONS fold never wakes its own home, and the next real note still does
+ok - a folded worker decision with no home append still wakes
+ok - separate answers over unclassified decisions wake once, and the next real note still does
+ok - a close after OPEN DECISIONS fold still surfaces a worker failure inside the folded span
+ok - a close after OPEN DECISIONS fold still surfaces unlisted secondmate lines inside the folded span
+ok - captain-relevant signal is surfaced (queue + exit) and marked surfaced
+ok - a needs-decision signal row's queued payload is marked needs-decision: for branch exclusion
+ok - a reconciliation-required needs-decision row's queued payload is still marked needs-decision:
+ok - a captain-held signal stays actionable while the crew is still working
+ok - a pending-reply second-mate escalation is marked for main-only routing
+ok - an ordinary blocked event remains branch-eligible
+ok - a routine event containing a needs-decision phrase keeps its ordinary payload, unmarked
+ok - a captain event hidden behind a later routine append is still surfaced (queue + exit)
+ok - a keyed decision signal reads only the newly appended span, not the whole log
+ok - a finished release reported before routine cleanup chatter is still surfaced
+ok - a routine append after an already-classified event is absorbed (no re-wake)
+ok - unreadable status reports are bounded without advancing classification
+ok - permission recovery surfaces content from the unadvanced position
+ok - a stale pane sitting on a terminal status is surfaced (queue + exit)
+ok - a stale terminal-looking status is overridden and absorbed while a run is actively working, then wedge-escalated
+ok - provably-working non-terminal stale is absorbed on first sight, then wedge-escalated past the threshold
+ok - consecutive wedge escalations on the same pane accumulate and demand deep inspection at the threshold
+ok - a pane becoming active again resets the consecutive wedge-escalation counter
+FM_TEST_END 2026-10-21T05:24:45Z tests/fm-watch-triage.test.sh exit=143 duration_ms=252165 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:24:45Z tests/fm-project-mode.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-project-mode: an entry with no forge token reports forge none and keeps its two-word default output
+ok - fm-project-mode: forge=forgejo placed after the mode token binds forgejo without a warning
+ok - fm-project-mode: forge=forgejo binds in any token order and keeps +yolo
+ok - fm-project-mode: forge=forgejo on local-only is refused like every forge
+ok - fm-project-mode: the colon spelling forge:forgejo is not a forge binding
+ok - fm-project-mode: a value outside none|gerrit|forgejo|external is refused and the refusal names the accepted values
+ok - fm-project-mode: forge=external binds direct-PR, reports yolo=off with a refusal, and is refused on local-only
+ok - fm-project-mode: a missing project or absent registry defaults --forge to none
+# fm-project-mode.test.sh: all assertions passed
+FM_TEST_END 2026-10-21T05:24:45Z tests/fm-project-mode.test.sh exit=0 duration_ms=328 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:24:45Z tests/fm-spawn-pool-base-freshen.test.sh family=standalone expected_gate_skip=none
+ok - a remote-seeded secondmate home allocates and launches from its Treehouse pool
+ok - a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort
+not ok - the refusal message changed
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no ship branch; defaulting to legacy branch fm/pool-refused-retry-r1
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task pool-refused-retry-r1 leased '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/pool', which is not a readable directory; refusing to launch (missing: 'not firstmate's to clobber')
+--- output ---
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no ship branch; defaulting to legacy branch fm/pool-refused-retry-r1
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task pool-refused-retry-r1 leased '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/pool', which is not a readable directory; refusing to launch
+FM_TEST_END 2026-10-21T05:24:52Z tests/fm-spawn-pool-base-freshen.test.sh exit=1 duration_ms=7041 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:24:52Z tests/fm-backend-paseo.test.sh family=paseo expected_gate_skip=optional-binary
+ok - fm_backend_paseo_version_check: accepts the verified minimum (0.8.0)
+ok - fm_backend_paseo_version_check: accepts a newer version (0.9.2)
+ok - fm_backend_paseo_version_check: refuses an old version loudly
+ok - fm_backend_paseo_version_check: refuses loudly when paseo is not found on PATH or at the bundle path
+ok - fm_backend_paseo_parse_target: splits '<terminal_id>:<workspace_id>' on the first colon
+ok - fm_backend_paseo_scoped_name: scopes a primary task name with firstmate plus home hash
+ok - fm_backend_paseo_send_literal: stale targets never recover another home's same-id terminal
+ok - fm_backend_paseo_scoped_name: distinguishes operational homes and resolves aliases
+ok - fm_backend_paseo_scoped_name: scopes a secondmate task name with the home marker plus home hash
+ok - fm_backend_validate: paseo is a known backend
+ok - fm_backend_busy_state: paseo (no native primitive) always reports unknown, same as tmux/zellij/orca/cmux
+ok - fm_backend_composer_state: routes paseo to the paseo composer classifier
+ok - fm_backend_paseo_daemon_state: reports 'ok' when localDaemon=running and connectedDaemon=reachable
+ok - fm_backend_paseo_daemon_state: reports 'down' when 'paseo status' fails
+ok - fm_backend_paseo_ensure_running: returns immediately when paseo is already reachable
+ok - fm_backend_paseo_create_task: refuses a duplicate terminal name (paseo's own terminal create has no uniqueness check)
+ok - fm_backend_paseo_create_task: creates the shared workspace once plus a terminal tab and parses terminal_id/workspace_id
+ok - fm_backend_paseo_create_task: refuses, creating nothing, when the terminal or workspace inventory cannot be read
+ok - fm_backend_paseo_create_task: adopts the project's live firstmate workspace by cwd+label and adds a tab (never a second workspace)
+ok - fm_backend_paseo_create_task: adopts the workspace firstmate itself runs in (PASEO_WORKSPACE_ID) when its cwd is the project, ahead of the title lookup
+ok - fm_backend_paseo_create_task: a task for any project becomes a tab in firstmate's own workspace (PASEO_WORKSPACE_ID)
+ok - fm_backend_paseo_create_task: a Paseo agent uses the one workspace whose folder is its home, and falls back when that is ambiguous
+ok - fm_backend_paseo_workspace_ensure: adopts the shared workspace by its physical or slash-normalized logical cwd
+ok - fm_backend_paseo_cli_json: keeps stderr out of parsed JSON and relays it only on failure
+ok - fm_backend_paseo_workspace_label: 'firstmate' for the primary home, '2ndmate-<id>' for a secondmate home (no path hash)
+ok - fm_backend_paseo_target_ready: fails when the terminal is not found and no expected label is given
+ok - fm_backend_paseo_target_ready: verifies the live terminal name against the expected label
+ok - fm_backend_paseo_target_ready: rejects a terminal id reused under a different name
+ok - fm_backend_paseo_target_ready: recovers a stale terminal id by home-scoped NAME, never by title
+ok - fm_backend_paseo_capture: fetches the whole scrollback and trims to N lines locally
+ok - fm_backend_paseo_capture: fails when the target terminal is absent
+ok - fm_backend_paseo_send_key: passes the key through unchanged to the recorded terminal id
+ok - fm_backend_paseo_send_key: C-u goes as the raw 0x15 byte via -l; keys outside paseo's token set are refused, never typed
+ok - fm_backend_paseo_send_literal: calls send-keys -l with a -- separator before the literal payload
+ok - fm_backend_paseo_send_text_line: sends literal text then submits with Enter
+ok - fm_backend_paseo_current_path: actively probes with marked begin/end lines (creation-time-frozen cwd)
+ok - fm_backend_paseo_composer_state: a bare '❯' composer row reads empty
+ok - fm_backend_paseo_composer_state: real composer text reads pending
+ok - fm_backend_paseo_composer_state: reports unknown when the terminal cannot be captured
+ok - fm_backend_paseo_send_text_submit: reports 'empty' once the composer row reads empty after one Enter
+ok - fm_backend_paseo_send_text_submit: reports 'send-failed' when the target terminal is absent
+ok - fm_backend_paseo_kill: closes the task's terminal tab and leaves the workspace alive when its inventory is unreadable
+ok - fm_backend_paseo_kill: the last task tab retires firstmate's shared workspace and its own clone's project
+ok - fm_backend_paseo_kill: retires the recorded workspace and project when the task tab was already closed
+ok - fm_backend_paseo_kill: keeps the workspace while a tab, agent, other title, or firstmate itself uses it, and never retires anything outside this home's clones
+ok - fm_backend_paseo: spawn and workspace retirement share one lock; neither acts while another process holds it
+ok - fm_backend_paseo_kill: never fails even when terminal kill fails
+ok - fm_backend_paseo_list_live: lists only this home's scoped task terminals using plain fm-<id> labels
+ok - fm-spawn.sh: an explicit paseo refuses --secondmate (mirrors cmux/Orca); ambient Paseo markers never select paseo
+ok - Pi supervision branch claims a paseo stale wake keyed by the task's window= endpoint
+FM_TEST_END 2026-10-21T05:25:01Z tests/fm-backend-paseo.test.sh exit=0 duration_ms=8893 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:25:01Z tests/fm-pi-watch-extension.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - Pi extension reports external healthy watcher output
+ok - Pi custom tool exposes repair-only metadata and returns automatic-continuation guidance
+ok - Pi redundant tool call returns ownership guidance and spawns no second child
+ok - Pi scheduled retry remains extension-owned after another tool call
+ok - Pi actionable close starts one successor before wake delivery settles
+ok - Pi actionable output waits for predecessor close before successor restoration
+ok - Pi dispatcher branch offer owns accepted wakes and falls back to main
+ok - Pi dispatcher flags a fleet-wide heartbeat offer as branch-eligible
+ok - a co-present check row neither vetoes nor rides a heartbeat into main
+ok - every main-only check class still reaches main, never the supervision branch
+ok - a captain-held signal trigger reaches main with routine rows present
+ok - an unread pending-reply escalation keeps later stale aliases on main
+ok - a mixed batch of two distinct files - one routine, one needs-decision - routes wholly to main
+ok - a co-present needs-decision row neither vetoes nor rides a heartbeat into main
+ok - heartbeat restoration failure stays on main
+ok - watcher-failure repair stays with main even with a live, accepting branch listener
+ok - under the away-posture record every actionable row is offered to the branch while broken-queue wakes and watcher-failure alarms still reach main
+ok - Pi refused handling handshake is classified and not swallowed
+ok - Pi confirm failure retires the named arm with distinct watcher pid
+ok - Pi confirm failure for a stale successor spares the newer arm
+ok - Pi superseded handling delivery carries no rejection appendix and is logged
+ok - Pi superseded handling delivery is offered to the branch like a confirmed one
+ok - Pi extension diagnostic log stays off unless opted in
+ok - Pi repair starts a fresh arm instead of no-opping on a dead child
+ok - Pi scheduled retry starts a fresh arm instead of stalling on a dead child
+ok - Pi deferred close starts a fresh arm instead of stalling on a dead child
+ok - Pi hung successor falls back to one typed actionable wake
+ok - Pi unretired successor falls back without an overlapping retry
+ok - Pi late unretired closes resume classified supervision
+ok - Pi clean empty close triggers a bounded continuity retry
+ok - Pi established clean closes stop at the configured retry limit
+ok - Pi close handler verifies session-lock ownership before successor launch
+ok - Pi watcher arm distinguishes all session lock ownership states
+ok - Pi watch extension: a nested load keeps the live session's watch marker
+ok - Pi session transitions auto-arm through a generation owner across /new /resume /fork/reload, stale callbacks, and quit
+ok - Pi session replacement auto-arms and carries its in-flight actionable close
+ok - Pi replacement replays a streaming follow-up before consumption
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes
+ok - Pi retries a verified successor that failed during wake delivery once that delivery settles
+ok - Pi replacement receives actionable closes after retirement timeout
+ok - Pi replacement handoff tokens stay unique across fresh modules
+ok - Pi replacement persistence failure keeps its predecessor until a successor commits
+ok - Pi process-exit cleanup listener remains singular across session replacement
+ok - Pi process-exit cleanup stops the attached arm child
+ok - OpenCode plugins have an explicit ESM boundary even under a typeless parent package
+ok - OpenCode watcher plugin uses the effective FM_HOME state
+ok - OpenCode watcher plugin sources the effective config
+ok - OpenCode watcher plugin requires session lock ownership
+ok - OpenCode watcher coordinator respects primary scope
+ok - OpenCode watcher plugin starts one successor before wake prompt delivery settles
+ok - OpenCode watcher plugin runs the supervision host on an opted-in home and relays every host line (away record)
+ok - OpenCode watcher plugin runs the supervision host on an opted-in home and relays every host line (quiet record)
+ok - OpenCode pre-ready actionable close preserves its successor
+ok - OpenCode hung successor falls back to one typed actionable wake
+ok - OpenCode unretired successor falls back without an overlapping retry
+ok - OpenCode late unretired closes resume classified supervision
+ok - OpenCode clean empty close triggers a bounded continuity retry
+ok - OpenCode established clean closes stop at the configured retry limit
+ok - OpenCode close handler verifies session-lock ownership before successor launch
+ok - OpenCode watcher plugin coordinates with the turn-end guard
+ok - OpenCode healthy arm output does not suppress the turn-end guard
+ok - OpenCode turn-end guard survives an encoder that never reads stdin
+FM_TEST_END 2026-10-21T05:25:53Z tests/fm-pi-watch-extension.test.sh exit=0 duration_ms=52519 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:25:53Z tests/fm-pi-branch-extension.test.sh family=standalone expected_gate_skip=none
+ok - fm_branch_outcomes and fm_branch_processed call headers match stock on Pi before and from 0.99
+ok - fm_branch_outcomes hides through ToolExecutionComponent while Calm-off and HTML export stay stock
+ok - the installed Pi still bounds the picker's list and ranks its search
+ok - branch owns accepted wakes with a stable prefix and deterministic verdict-driven delivery
+ok - a captain outcome reaches main's model as one typed, sequence-keyed processing request while routine notes stay plain
+ok - a captain-classified wake passes to main with cover rows, the guard file, and its sweep
+ok - the pi classification record captures the evidence text it judged beside its byte range, with the cap named
+ok - the Pi classifier default resolves the branch's model (pin, else main's session model) before any completion call
+ok - the explicit classifier config wins over the pin and records the model used
+ok - the unresolvable classifier name falls back once to the branch's model and records the model used
+ok - the gated shadow trial appends joined records and the away posture skips classification
+ok - requested and unsolicited healthy outcomes keep distinct delivery and event ownership
+ok - captain outcomes are exact and exactly once across crash, reload, busy main, compaction, and an unrelated assistant response
+ok - a captain outcome opens one sequence-keyed processing turn, survives empty and unrelated answers, is re-presented at run end and session start, and closes only on its acknowledgement
+ok - Pi: an abbreviated processing request points to the full outcome and instructs main to read it first
+ok - Pi: a marker-less >1 MiB backlog is presented oldest first in bounded requests and continues after batch acknowledgement
+ok - an unprocessed captain row the store lists without its age is reported to main, never formatted undated, and stays unprocessed until the store is healthy
+ok - scopeForUnreadWake excludes every main-only class without vetoing eligible task-local rows, and writes the eligible snapshot
+ok - scopeForUnreadWake resolves unique Orca terminal owners and refuses conflicting aliases alongside another eligible row
+ok - scope and CLI keep projects with canonical owners in both discovery orders
+ok - second-mate signal rows route by their new span while crewmate and stale routing stay unchanged
+ok - branch prompt_cache_key is stable per home across sessions and distinct between homes
+ok - branch default-on eligibility (task-scoped, heartbeat, legacy flag ignored) binds and a broken branch rejects to watcher fallback
+ok - under the away-posture record the wake carries the verbatim read-back tail, claims every row, opens no processing turn, cancels a pending request, and presents the accumulated rows after archive
+ok - Pi branch: an unchanged held outcome reaches the captain once across cadences, and a later red check on the task still does
+ok - an accepted away-only wake rejects after archive, while a drained task-local wake stays a quiet no-op
+ok - a claimed heartbeat row on a non-heartbeat away wake lifts task scoping for the fleet report
+ok - a heartbeat review survives a check row arriving before its drain
+ok - fm_branch_report refuses a task the wake did not name, fleet included, while a heartbeat is unscoped
+ok - pre-drain eligibility re-check excludes a newly main-owned row without deferring eligible work
+ok - a co-present needs-decision row neither vetoes nor falsely settles routine branch delivery
+ok - a settled branch turn without a durable outcome falls back and releases its grant for main replay
+ok - provider-error latches cool down, re-probe once with backoff, and recover through a durable report
+ok - report-less error-free turns latch the branch, recover through probes, and double the cooldown
+ok - selection changes preserve in-flight transcript ownership and reset provider-error streaks
+ok - a stale main claim returns the durable wake to watcher delivery
+ok - pre-drain eligibility re-check no-ops an already-drained wake
+ok - dialog mirror filters tool and operational traffic, lands before wakes, and keeps a durable cursor
+ok - the dialog mirror re-anchors for each session's new branch conversation and stays incremental within it
+ok - every main session start begins a new branch conversation while one session keeps its own
+ok - the current pin state binds every branch build, and clearing it returns the branch to main's model
+ok - unpinned branches follow main model changes live while pinned branches stay fixed
+ok - supervision-model command persists the captain's pick and rebinds the live branch
+ok - supervision-model opens a bounded searchable list, follow main first, and pins the branch alone
+ok - branch model picker keeps follow main first and filters the eligible catalog
+ok - the effort pin binds every branch build, and clearing it returns the branch to main's effort
+ok - unpinned branches follow main effort changes live while pinned branches stay fixed
+ok - an extension-registered provider resolves in the isolated branch runtime
+ok - supervision-model runs an effort picker after the model picker and persists both independently
+ok - an unusable model pin rejects to watcher fallback and an unparseable one is treated as no pin
+ok - replacement activation cleans old branch leases and retries failed cleanup
+ok - branch activates on a cold start once the lock is acquired, never before
+ok - queued wakes and mirrors stop mutating branch state after lock ownership is lost
+ok - stale reports, shells, mirrors, cursors, leases, and prompts perform no side effects
+ok - a Pi session that does not own the lock accepts nothing and mutates no branch state
+ok - an extension rebind re-mirrors undelivered dialog instead of dropping it
+ok - outcome delivery keeps the event loop running and interleaved reports stay ordered and exactly once
+ok - a session replaced mid-delivery cancels cleanly and the stored outcome still arrives exactly once
+ok - a failing store script surfaces to the branch, its outcome is neither lost nor delivered twice, and fm_branch_processed renders the unified wordings byte-exactly
+ok - a failed cursor write re-delivers a routine note exactly once more while a captain outcome stays deduplicated
+FM_TEST_END 2026-10-21T05:28:21Z tests/fm-pi-branch-extension.test.sh exit=0 duration_ms=147974 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:28:21Z tests/fm-spawn-worktree-settle.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a single transient stale pane_current_path read is not accepted as the worktree
+ok - an already-settled pane costs the first settle read and the launch-boundary cwd check only
+ok - a transient primary-checkout pane read is not accepted as the worktree
+ok - a pane stuck on the primary checkout fails loudly at the deadline
+ok - a project with an unborn HEAD is refused at once with its cause named
+# all fm-spawn-worktree-settle tests passed
+FM_TEST_END 2026-10-21T05:28:33Z tests/fm-spawn-worktree-settle.test.sh exit=0 duration_ms=11172 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:28:33Z tests/fm-pr-merge.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-pr-merge reports exact queue retry flags after a zero-exit false success
+ok - fm-pr-merge omits merge-queue retry guidance for a closed GitHub PR
+ok - fm-pr-merge aggregates agreeing merge-queue rules
+ok - fm-pr-merge reports ambiguity for conflicting merge-queue rules
+ok - fm-pr-merge records pr= and pr_head= for a verified GitHub merge
+ok - fm-pr-merge records pr= before the forge call can land the merge
+ok - fm-pr-merge propagates a real merge failure without silently succeeding
+ok - fm-pr-merge refuses a GitHub merge call that leaves the PR open and unqueued
+ok - fm-pr-merge retries a bounded number of times when mergeable is UNKNOWN and merges once it resolves
+ok - fm-pr-merge reports mergeability still pending after its bounded UNKNOWN retry is spent
+ok - fm-pr-merge refuses on the UNKNOWN re-check when a check turned red between reads
+ok - fm-pr-merge refuses a genuine mergeable conflict immediately, without retrying
+ok - fm-pr-merge keeps PR bookkeeping when it cannot read a successful merge call's outcome
+ok - fm-pr-merge refuses with the forge's own output quoted apart from its verdict
+ok - fm-pr-merge quotes the forge output when it cannot read the outcome either
+ok - fm-pr-merge does not echo back queue flags the caller already used
+ok - fm-pr-merge still names retry flags when the caller used a different method
+ok - fm-pr-merge names the queue requirement even when its method is unrecognised
+ok - fm-pr-merge distinguishes unreadable branch rules from a base with no merge queue
+ok - fm-pr-merge reads a plan-gated 403 on branch rules as no merge queue, not unreadable
+ok - fm-pr-merge says nothing about a merge queue when the base branch has no queue rule
+ok - fm-pr-merge accepts only a proved merge from the gh-axi fallback
+ok - fm-pr-merge explains an armed auto-merge that landed nothing on a queue-less base
+ok - fm-pr-merge never reports auto-merge as armed when the merge command failed
+ok - fm-pr-merge claims no acceptance for a failed merge command carrying queue flags
+ok - fm-pr-merge falls back to the gh-axi view when gh's read fails
+ok - fm-pr-merge names a landed state hiding behind a failed GitHub merge command
+ok - fm-pr-merge refuses a GitHub merge when gh is missing, before recording
+ok - fm-pr-merge refuses a GitHub merge when gh is missing rather than merging blind
+ok - fm-pr-merge verifies a genuinely merged GitHub pull request
+ok - fm-pr-merge refuses to claim a merge when poll recording fails
+ok - fm-pr-merge accepts and accurately reports a GitHub merge-queue entry
+ok - fm-pr-merge explains how to retry with the required GitHub merge queue method
+ok - fm-pr-merge refuses branch deletion unless --attended-override is passed
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and refuses -d unless attended
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge refuses GitLab source-branch deletion unless --attended-override is passed
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge merges a Forgejo pull request through tea api instead of refusing it
+ok - fm-pr-merge resolves the tea login by matching the PR's host against every registered login
+ok - fm-pr-merge refuses when zero or more than one tea login matches the pull request's host
+ok - fm-pr-merge refuses on each Forgejo pre-merge condition independently
+ok - fm-pr-merge treats an unconfigured Forgejo combined status as none, refusing rather than skipping the check
+ok - fm-pr-merge reads every Forgejo combined-status page before merging
+ok - fm-pr-merge reports a stale recorded head and binds the merge to the live one instead
+ok - fm-pr-merge refuses a Forgejo head commit it cannot validate
+FM_TEST_END 2026-10-21T05:32:38Z tests/fm-pr-merge.test.sh exit=143 duration_ms=245182 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:32:38Z tests/fm-pipeline-spend.test.sh family=pr-forge expected_gate_skip=none
+ok - known spend, including failed and cancelled invocations, is attributed to the task that ran it
+ok - repeated review rounds in a resumed session are counted once
+ok - absent spend reads as zero only when no run exists, and as unavailable when it cannot be read
+ok - older state without delta columns counts only rounds it can prove
+ok - record uses the captured task branch and its reflog after checkout
+ok - record appends one line per task incarnation
+ok - an absent opt-in flag bypasses task, pipeline, and ledger reads and writes
+ok - the state database resolves under the account home when NM_HOME and HOME are unset
+ok - a configured resolver supplies the no-mistakes home for reads when NM_HOME is unset
+ok - an explicit NM_HOME always wins and the resolver is not called
+ok - an absent or unusable resolver leaves every read on the ambient home
+ok - the resolver applies to host reads and axi abort --run only
+ok - missing tasks, secondmates, and unsafe ids are refused
+FM_TEST_END 2026-10-21T05:32:41Z tests/fm-pipeline-spend.test.sh exit=0 duration_ms=3617 gate_skip=false
+FM_TEST_BEGIN 2026-10-21T05:32:41Z tests/fm-trace-context-spawn.test.sh family=backend-dispatch expected_gate_skip=none
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - disabled: an inherited ambient TRACEPARENT is scrubbed from the launch, never forwarded to the worker
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+not ok - duplicate secondmate spawn should report the existing endpoint (missing: 'already exists')
+--- output ---
+error: secondmate home cannot be inside the firstmate repo: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-trace-context-spawn.ZTrIgy/duplicate-secondmate/sm
+FM_TEST_END 2026-10-21T05:33:15Z tests/fm-trace-context-spawn.test.sh exit=1 duration_ms=33080 gate_skip=false
+FM_TEST_SUMMARY total=11 failed=4 skipped_gate=0 duration_ms=766259
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=2 duration_ms=44252 failed=1
+FM_TEST_SUMMARY_FAMILY family=paseo count=1 duration_ms=8893 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=248799 failed=1
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=328 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=3 duration_ms=158966 failed=1
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=2 duration_ms=304684 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=252165
+FM_TEST_SLOWEST rank=2 script=tests/fm-pr-merge.test.sh duration_ms=245182
+FM_TEST_SLOWEST rank=3 script=tests/fm-pi-branch-extension.test.sh duration_ms=147974
+FM_TEST_SLOWEST rank=4 script=tests/fm-pi-watch-extension.test.sh duration_ms=52519
+FM_TEST_SLOWEST rank=5 script=tests/fm-trace-context-spawn.test.sh duration_ms=33080
+FM_TEST_SLOWEST rank=6 script=tests/fm-spawn-worktree-settle.test.sh duration_ms=11172
+FM_TEST_SLOWEST rank=7 script=tests/fm-backend-paseo.test.sh duration_ms=8893
+FM_TEST_SLOWEST rank=8 script=tests/fm-spawn-pool-base-freshen.test.sh duration_ms=7041
+FM_TEST_SLOWEST rank=9 script=tests/fm-busy-state.test.sh duration_ms=3951
+FM_TEST_SLOWEST rank=10 script=tests/fm-pipeline-spend.test.sh duration_ms=3617
+FM_TEST_SLOWEST rank=11 script=tests/fm-project-mode.test.sh duration_ms=328
+FM_TEST_FAILED script=tests/fm-watch-triage.test.sh exit=143
+ok - invalid existing pane-churn deadlines surface without mutation
+ok - a surfaced batch opens no partial pane-churn deadline
+ok - a no-verb working: note whose crew is idle with no running pipeline is surfaced
+ok - a secondmate's status note surfaces even while its own agent is busy
+ok - a busy secondmate's routine working: is absorbed while its later note: still surfaces
+ok - a secondmate blocker wakes despite busy evidence and later unrelated appends
+ok - a self-announced close never wakes its own home, and the next real note still does
+ok - a close after OPEN DECISIONS fold never wakes its own home, and the next real note still does
+ok - a folded worker decision with no home append still wakes
+ok - separate answers over unclassified decisions wake once, and the next real note still does
+ok - a close after OPEN DECISIONS fold still surfaces a worker failure inside the folded span
+ok - a close after OPEN DECISIONS fold still surfaces unlisted secondmate lines inside the folded span
+ok - captain-relevant signal is surfaced (queue + exit) and marked surfaced
+ok - a needs-decision signal row's queued payload is marked needs-decision: for branch exclusion
+ok - a reconciliation-required needs-decision row's queued payload is still marked needs-decision:
+ok - a captain-held signal stays actionable while the crew is still working
+ok - a pending-reply second-mate escalation is marked for main-only routing
+ok - an ordinary blocked event remains branch-eligible
+ok - a routine event containing a needs-decision phrase keeps its ordinary payload, unmarked
+ok - a captain event hidden behind a later routine append is still surfaced (queue + exit)
+ok - a keyed decision signal reads only the newly appended span, not the whole log
+ok - a finished release reported before routine cleanup chatter is still surfaced
+ok - a routine append after an already-classified event is absorbed (no re-wake)
+ok - unreadable status reports are bounded without advancing classification
+ok - permission recovery surfaces content from the unadvanced position
+ok - a stale pane sitting on a terminal status is surfaced (queue + exit)
+ok - a stale terminal-looking status is overridden and absorbed while a run is actively working, then wedge-escalated
+ok - provably-working non-terminal stale is absorbed on first sight, then wedge-escalated past the threshold
+ok - consecutive wedge escalations on the same pane accumulate and demand deep inspection at the threshold
+ok - a pane becoming active again resets the consecutive wedge-escalation counter
+FM_TEST_FAILURE_END script=tests/fm-watch-triage.test.sh
+FM_TEST_FAILED script=tests/fm-spawn-pool-base-freshen.test.sh exit=1
+ok - a remote-seeded secondmate home allocates and launches from its Treehouse pool
+ok - a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort
+not ok - the refusal message changed
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no ship branch; defaulting to legacy branch fm/pool-refused-retry-r1
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task pool-refused-retry-r1 leased '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/pool', which is not a readable directory; refusing to launch (missing: 'not firstmate's to clobber')
+--- output ---
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no ship branch; defaulting to legacy branch fm/pool-refused-retry-r1
+warning: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/home/data/pool-refused-retry-r1/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task pool-refused-retry-r1 leased '/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-spawn-pool-base-freshen.Cw4ghD/refused-retry/pool', which is not a readable directory; refusing to launch
+FM_TEST_FAILURE_END script=tests/fm-spawn-pool-base-freshen.test.sh
+FM_TEST_FAILED script=tests/fm-pr-merge.test.sh exit=143
+ok - fm-pr-merge explains how to retry with the required GitHub merge queue method
+ok - fm-pr-merge refuses branch deletion unless --attended-override is passed
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and refuses -d unless attended
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge refuses GitLab source-branch deletion unless --attended-override is passed
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge merges a Forgejo pull request through tea api instead of refusing it
+ok - fm-pr-merge resolves the tea login by matching the PR's host against every registered login
+ok - fm-pr-merge refuses when zero or more than one tea login matches the pull request's host
+ok - fm-pr-merge refuses on each Forgejo pre-merge condition independently
+ok - fm-pr-merge treats an unconfigured Forgejo combined status as none, refusing rather than skipping the check
+ok - fm-pr-merge reads every Forgejo combined-status page before merging
+ok - fm-pr-merge reports a stale recorded head and binds the merge to the live one instead
+ok - fm-pr-merge refuses a Forgejo head commit it cannot validate
+FM_TEST_FAILURE_END script=tests/fm-pr-merge.test.sh
+FM_TEST_FAILED script=tests/fm-trace-context-spawn.test.sh exit=1
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - enabled: the pane receives OTEL_RESOURCE_ATTRIBUTES matching the meta, after TRACEPARENT and before the launch
+ok - disabled: no OTEL_RESOURCE_ATTRIBUTES export or retention term anywhere in the pane input
+ok - allowlist on: the launch environment retains OTEL_RESOURCE_ATTRIBUTES beside TRACEPARENT
+ok - trace_started recorded on the mint and preserved across relaunch; one firstmate.spawn span per launch with the relaunch attributes
+ok - disabled: no span posted and no trace_started recorded
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - disabled: an inherited ambient TRACEPARENT is scrubbed from the launch, never forwarded to the worker
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+not ok - duplicate secondmate spawn should report the existing endpoint (missing: 'already exists')
+--- output ---
+error: secondmate home cannot be inside the firstmate repo: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/fm-trace-context-spawn.ZTrIgy/duplicate-secondmate/sm
+FM_TEST_FAILURE_END script=tests/fm-trace-context-spawn.test.sh
+fm-test-run: wrote timing artifact: /home/cti/.no-mistakes/evidence/01M5E7D4NWGSE64JVQKMS28Z5X/remaining-results.json

@@ -1,0 +1,7 @@
+{
+  "command": "pi auth check --provider anthropic --json --no-refresh",
+  "exit": 1,
+  "status": "not_ready",
+  "reason": "credentials_not_configured",
+  "provider": "anthropic"
+}

@@ -1,0 +1,185 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home
+
+exit=0
+
+$ git init -q -b main /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+
+exit=0
+
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo -c user.name=Lab -c user.email=lab@example.invalid commit -q --allow-empty -m initial
+
+exit=0
+
+$ bin/fm-brief.sh ship /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo --mode no-mistakes --herdr-lab
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/data/ship/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+exit=0
+
+$ bin/fm-brief.sh scout /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo --scout --herdr-lab
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/data/scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+exit=0
+
+$ git init -q /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn
+
+exit=0
+
+$ bin/fm-brief.sh unborn /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn --mode local-only
+scaffolded: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/data/unborn/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+exit=0
+
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
+
+exit=0
+
+$ tmux -L fm-lab display-message -p #{socket_path}
+/tmp/fm-lab-sock.su1zi5r0/tmux-1001/fm-lab
+
+exit=0
+
+$ bin/fm-spawn.sh unborn /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn --mode local-only --harness claude --backend tmux --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home
+error: spawn refused: project /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn has no commit yet (unborn HEAD), so there is nothing to branch a worktree from; make one commit in the project, for example 'git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn commit --allow-empty -m "chore: initial commit"', then spawn again
+
+exit=1
+
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/unborn rev-list --all
+
+exit=0
+
+$ tmux -L fm-lab kill-server
+
+exit=0
+
+$ bin/fm-review-check.sh review https://review.example.test/r/123
+recorded: review=https://review.example.test/r/123 (no merge watch: a human approves and merges the review; escalate it to the captain)
+
+exit=0
+
+$ bin/fm-review-check.sh review https://github.com/o/r/pull/1
+error: https://github.com/o/r/pull/1 is not a canonical https review URL (no whitespace, query, fragment, or forge pull request URL), or does not match config/external-review-url
+
+exit=2
+
+$ bin/fm-review-check.sh review http://review.example.test/r/1
+error: http://review.example.test/r/1 is not a canonical https review URL (no whitespace, query, fragment, or forge pull request URL), or does not match config/external-review-url
+
+exit=2
+
+$ bin/fm-review-check.sh review https://review.example.test/r/1?x=1
+error: https://review.example.test/r/1?x=1 is not a canonical https review URL (no whitespace, query, fragment, or forge pull request URL), or does not match config/external-review-url
+
+exit=2
+
+PERSISTED EXTERNAL REVIEW CONTRACT
+kind=ship
+mode=direct-PR
+forge=external
+worktree=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+project=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+branch=main
+yolo=off
+review=https://review.example.test/r/123
+review_head=3a638bb98b085916e4758b7c5470b4e9f909b447
+No merge-watch or PR-poll file was created.
+
+$ bin/fm-busy-event.sh arm /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy
+g1792561543.1892047.563
+
+exit=0
+
+$ bin/fm-busy-event.sh apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy busy --gen g1792561543.1892047.563 --source polytoken-hook --event pre_model_turn
+
+exit=0
+
+$ bin/fm-busy-event.sh apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy idle --gen g1792561543.1892047.563 --source fm-interrupt --event interrupt --if-seq 1
+error: stale busy-state sequence for busy (event rejected)
+
+exit=1
+
+$ bin/fm-busy-event.sh apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy idle --gen g1792561543.1892047.563 --source fm-interrupt --event interrupt --if-seq 2
+
+exit=0
+
+PERSISTED IDLE CONTRACT
+v1 gen=g1792561543.1892047.563 seq=3 state=idle source=fm-interrupt event=interrupt ts=1792561543
+
+$ bin/fm-busy-event.sh arm /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy
+g1792561543.1892159.3213
+
+exit=0
+
+$ bin/fm-busy-event.sh apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/home/state busy idle --gen g1792561543.1892047.563 --source fm-interrupt --event interrupt --if-seq 1
+error: stale busy-state gen for busy (event rejected)
+
+exit=1
+
+PRESERVED NEW INCARNATION
+v1 gen=g1792561543.1892159.3213 seq=1 state=busy source=fm-spawn event=launch-brief ts=1792561543
+
+$ bin/fm-herdr-groups.sh plan
+api-one	Backend	needs-captain	001.Backend.1.api-one	001.Backend
+web-one	Web	done	002.Web.4.web-one	002.Web
+
+exit=0
+
+$ bin/fm-herdr-groups.sh sidebar-config --apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/herdr.toml
+appended the project-group sidebar rows to /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/herdr.toml (backup: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/herdr.toml.bak-1792561543); run `herdr server reload-config` to apply them
+
+exit=0
+
+$ bin/fm-herdr-groups.sh sidebar-config --apply /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/herdr.toml
+fm-herdr-groups: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/herdr.toml already defines Herdr sidebar rows; merge the suggested rows by hand (fm-herdr-groups.sh sidebar-config prints them)
+
+exit=1
+
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo remote add origin https://github.com/fork-owner/firstmate
+
+exit=0
+
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo remote add upstream https://github.com/kunchenguid/firstmate
+
+exit=0
+
+$ bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/fork-owner/firstmate
+
+exit=1
+
+$ bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+
+exit=0
+
+$ bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo upstream-consent github.com/fork-owner/firstmate
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/kunchenguid/firstmate
+
+exit=1
+
+$ git -C /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo config remote.origin.gh-resolved base
+
+exit=0
+
+$ bin/fm-role.sh check /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo upstream-consent github.com/fork-owner/firstmate
+authorized: task consent for github.com/fork-owner/firstmate
+publication pin: export GH_HOST='github.com' GH_REPO='github.com/fork-owner/firstmate'
+
+exit=0
+
+$ bash -c . bin/fm-nm-run-lib.sh; fm_nm_home_resolver_home "$1" _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/resolved-home
+
+exit=0
+
+$ bash -c . bin/fm-nm-run-lib.sh; fm_nm_home_resolver_home "$1" _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+
+exit=0
+
+$ bash -c . bin/fm-nm-run-lib.sh; fm_nm_home_resolver_home "$1" _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/manual-kg3s_8ch/repo
+
+exit=0
+
+Invalid multi-line resolver output was ignored; no directory or daemon was created.

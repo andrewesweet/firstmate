@@ -1,0 +1,2 @@
+ok - fm-pr-merge --allow-no-pipeline waives only a null GitLab head pipeline and keeps every other condition
+ok - fm-pr-merge --allow-no-pipeline is attended-only, takes no value, and applies only to GitLab

@@ -1,0 +1,21 @@
+$ bin/fm-lab-home.sh create /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/tool-url-g90e232o/home
+/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/.live-validation-tmp/tool-url-g90e232o/home
+exit=0
+
+$ claude --version
+2.1.301 (Claude Code)
+exit=0
+
+$ curl --fail --silent --show-error --location --max-time 8 https://downloads.claude.ai/claude-code-releases/latest
+2.1.306exit=0
+
+$ bin/fm-tool-update-check.sh check
+tool updates: claude update available: 2.1.306 published at https://downloads.claude.ai/claude-code-releases/latest, PATH resolves 2.1.301
+exit=0
+
+$ bin/fm-tool-update-check.sh check
+exit=0
+
+$ bin/fm-tool-update-check.sh check
+tool updates: watched tool registry: tool claude version_url must be one https URL
+exit=0

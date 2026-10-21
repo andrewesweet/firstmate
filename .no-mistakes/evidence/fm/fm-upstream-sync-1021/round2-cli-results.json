@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Scaffold ship and scout briefs with the required intent sections and leading-cd prohibition",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Refuse an unborn-HEAD spawn immediately without creating metadata or committing the project",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Record an external review and refuse forge PR, insecure and query-bearing URLs without arming a merge watch",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Reject stale interrupt closes after a new busy event or replacement generation; allow an unchanged close",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Preview Herdr group precedence and task statuses; apply sidebar configuration once and refuse overwrite",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Resolve declared fork and gh-resolved publication targets while refusing an ungranted or mismatched target",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Use an opt-in home resolver, preserve explicit NM_HOME, and ignore invalid resolver output",
+    "result": "untested",
+    "live": false,
+    "reason": "The direct library probe passed, but did not drive a host-side consumer against another real no-mistakes run. This phase cannot initialize a second pipeline; provide an existing disposable run for that integration check."
+  }
+]

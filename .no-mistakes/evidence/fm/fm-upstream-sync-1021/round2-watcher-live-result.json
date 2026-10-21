@@ -1,0 +1,5 @@
+{
+  "scenario": "A real watcher suppresses unchanged recovery rows and resurfaces newly queued work",
+  "result": "pass",
+  "live": true
+}

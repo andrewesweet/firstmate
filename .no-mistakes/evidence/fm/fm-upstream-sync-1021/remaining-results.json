@@ -1,0 +1,151 @@
+{
+  "families": [
+    {
+      "count": 2,
+      "duration_ms": 44252,
+      "failed": 1,
+      "name": "backend-dispatch"
+    },
+    {
+      "count": 1,
+      "duration_ms": 8893,
+      "failed": 0,
+      "name": "paseo"
+    },
+    {
+      "count": 2,
+      "duration_ms": 248799,
+      "failed": 1,
+      "name": "pr-forge"
+    },
+    {
+      "count": 1,
+      "duration_ms": 328,
+      "failed": 0,
+      "name": "pure-contract-unit"
+    },
+    {
+      "count": 3,
+      "duration_ms": 158966,
+      "failed": 1,
+      "name": "standalone"
+    },
+    {
+      "count": 2,
+      "duration_ms": 304684,
+      "failed": 1,
+      "name": "watcher-wake-lock"
+    }
+  ],
+  "finished_at": "2026-10-21T05:33:15Z",
+  "run_id": "fm-test-run-1792560028820-777944",
+  "scripts": [
+    {
+      "duration_ms": 3951,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "standalone",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-busy-state.test.sh"
+    },
+    {
+      "duration_ms": 252165,
+      "exit": 143,
+      "expected_gate_skip": "none",
+      "family": "watcher-wake-lock",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-watch-triage.test.sh"
+    },
+    {
+      "duration_ms": 328,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-project-mode.test.sh"
+    },
+    {
+      "duration_ms": 7041,
+      "exit": 1,
+      "expected_gate_skip": "none",
+      "family": "standalone",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-spawn-pool-base-freshen.test.sh"
+    },
+    {
+      "duration_ms": 8893,
+      "exit": 0,
+      "expected_gate_skip": "optional-binary",
+      "family": "paseo",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-backend-paseo.test.sh"
+    },
+    {
+      "duration_ms": 52519,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "watcher-wake-lock",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pi-watch-extension.test.sh"
+    },
+    {
+      "duration_ms": 147974,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "standalone",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pi-branch-extension.test.sh"
+    },
+    {
+      "duration_ms": 11172,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "backend-dispatch",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-spawn-worktree-settle.test.sh"
+    },
+    {
+      "duration_ms": 245182,
+      "exit": 143,
+      "expected_gate_skip": "none",
+      "family": "pr-forge",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pr-merge.test.sh"
+    },
+    {
+      "duration_ms": 3617,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pr-forge",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-pipeline-spend.test.sh"
+    },
+    {
+      "duration_ms": 33080,
+      "exit": 1,
+      "expected_gate_skip": "none",
+      "family": "backend-dispatch",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-trace-context-spawn.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=1",
+  "started_at": "2026-10-21T05:20:28Z",
+  "summary": {
+    "duration_ms": 766259,
+    "failed": 4,
+    "skipped_gate": 0,
+    "total": 11
+  }
+}

@@ -1,0 +1,20 @@
+not ok - a codex spawn whose slot stopped being isolated should refuse
+CLI OUTPUT
+warning: /tmp/fm-spawn-pool-base-freshen.rIyJdD/isolation-codex/home/data/pool-isolation-codex-r1/brief.md records no ship branch; defaulting to legacy branch fm/pool-isolation-codex-r1
+warning: /tmp/fm-spawn-pool-base-freshen.rIyJdD/isolation-codex/home/data/pool-isolation-codex-r1/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned pool-isolation-codex-r1 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-pool-isolation-codex-r1 worktree=/tmp/fm-spawn-pool-base-freshen.rIyJdD/isolation-codex/pool
+PUBLISHED TASK METADATA
+window=firstmate:fm-pool-isolation-codex-r1
+endpoint_task_id=pool-isolation-codex-r1
+worktree=/tmp/fm-spawn-pool-base-freshen.rIyJdD/isolation-codex/pool
+project=/tmp/fm-spawn-pool-base-freshen.rIyJdD/isolation-codex/project
+harness=codex
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/pool-isolation-codex-r1
+tasktmp=/tmp/fm-pool-isolation-codex-r1
+model=default
+effort=default
+spawn_gen=s1792560513.1311735.6146
+spawn_epoch_first=1792560513

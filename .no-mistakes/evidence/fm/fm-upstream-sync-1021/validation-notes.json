@@ -1,0 +1,27 @@
+{
+  "baseline_results": [
+    "targeted-results.json",
+    "remaining-results.json"
+  ],
+  "intentional_interruptions": "Broad watcher runs, a duplicate Pi branch run, and the broad forge merge run were stopped; the changed watcher and GitLab waiver cases were completed through focused selectors, and the Pi branch suite completed in remaining-results.json.",
+  "setup_corrections": "Using a long TMPDIR inside the repository exceeded AF_UNIX path length and violated the secondmate-home guard. Herdr groups, worker accounts, and trace-spawn suites passed with the normal test temporary directory.",
+  "test_fix": "tests/fm-spawn-pool-base-freshen.test.sh now models durable Treehouse leasing before pane entry and explicit return. Retry, contended cleanup, and non-Polytoken refusal cases pass; the later isolation-refusal case still fails.",
+  "unresolved_tests": [
+    "fm-session-lock-ancestry: fixture requires orphan adoption by PID 1",
+    "fm-claude-stop-autoarm: suite failed at dead steal-owner recovery, rerun failed at pid identity setup; isolated probes passed",
+    "fm-spawn-pool-base-freshen: third-read isolation injection never triggers on retained fork launch path"
+  ],
+  "live": [
+    "cli-results.json",
+    "claude-primary-result.json",
+    "tmux-live-smoke.log"
+  ],
+  "blocked": [
+    "Herdr prepare refused: no running default session for tripwire",
+    "Polytoken and Paseo not on PATH",
+    "Pi Anthropic auth: not_ready / credentials_not_configured",
+    "glab not on PATH"
+  ],
+  "visual_evidence": "No Herdr screenshot: mandatory lab prepare refused before any session or viewer could be created. CLI transcripts and generated public briefs/configuration are retained.",
+  "phase_boundary": "No linter, full regression, pipeline control, publication, PR, or CI phase was run."
+}

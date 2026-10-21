@@ -1,0 +1,7 @@
+{
+  "scenario": "Compare watched tool against its real HTTPS version document, suppress repeat reports, and reject HTTP",
+  "result": "pass",
+  "live": true,
+  "installed": "2.1.301 (Claude Code)",
+  "published": "2.1.306"
+}

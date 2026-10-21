@@ -1,0 +1,10 @@
+{
+  "scenario": "Real Claude primary session lock across /clear",
+  "result": "pass",
+  "before_session": "f386f5d9-4760-4984-bea7-750e02372fa1\n",
+  "before_lock": "1905345\n",
+  "scope": "Real Claude reacquired its lock after /clear with a new session id.",
+  "after_session": "a89c2144-95e4-4600-9e87-4b01be2a29a7\n",
+  "after_lock": "1905345\n",
+  "teardown": "private tmux server stopped and disposable lab removed"
+}

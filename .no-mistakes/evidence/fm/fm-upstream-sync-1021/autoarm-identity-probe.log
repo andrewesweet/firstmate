@@ -1,0 +1,365 @@
++ set -u
+++ dirname tests/.gate-autoarm-probe.sh
++ . tests/lib.sh
+++ '[' -n '' ']'
+++ FM_TEST_LIB_SOURCED=1
+++ umask 022
++++ dirname tests/lib.sh
+++ . tests/git-config-helpers.sh
++++ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
++++ GIT_CONFIG_GLOBAL=/dev/null
++++ GIT_CONFIG_NOSYSTEM=1
++++ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
+++ export FM_GATE_REFUSE_BYPASS=1
+++ FM_GATE_REFUSE_BYPASS=1
+++ export FM_TEST_SEAM=1
+++ FM_TEST_SEAM=1
+++ unset FM_TASK_ID
+++ unset TASKS_AXI_FILE TASKS_AXI_BACKEND
+++++ dirname tests/lib.sh
++++ cd tests/..
++++ pwd
+++ ROOT=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X
++++ fm_test_tmpdir
++++ local base=/tmp physical
++++ base=/tmp
++++ '[' -n /tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- /tmp
+++++ pwd -P
++++ physical=/tmp
++++ base=/tmp
++++ '[' -e /tmp/.git ']'
++++ printf '%s\n' /tmp
+++ FM_TEST_TMPDIR=/tmp
+++ FM_TEST_CLEANUP_DIRS=()
++++ mktemp /tmp/.fm-test-cleanup.980103.XXXXXX
+++ FM_TEST_CLEANUP_REGISTRY=/tmp/.fm-test-cleanup.980103.Hstvjg
++++ fm_test_pid_identity 980103
++++ local pid=980103
++++ FM_STATE_OVERRIDE=/tmp
++++ bash -c '. "$1"; fm_pid_identity "$2"' _ /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-wake-lib.sh 980103
+++ FM_TEST_OWNER_IDENTITY='linux-starttime=607550790 cmdline-hex=62617368002d780074657374732f2e676174652d6175746f61726d2d70726f62652e736800'
++++ mktemp /tmp/.fm-test-procevent.980103.XXXXXX
+++ FM_TEST_PROCEVENT_REGISTRY=/tmp/.fm-test-procevent.980103.qMkiBe
++++ mktemp /tmp/.fm-test-watcher.980103.XXXXXX
+++ FM_TEST_WATCHER_REGISTRY=/tmp/.fm-test-watcher.980103.YGpXVO
+++ FM_TEST_STUB_MAX_BLOCK_SECONDS=120
+++ export FM_TEST_STUB_MAX_BLOCK_SECONDS
+++ trap fm_test_cleanup EXIT
+++ trap 'fm_test_cleanup; exit 130' INT
+++ trap 'fm_test_cleanup; exit 143' TERM
+++ trap 'fm_test_cleanup; exit 129' HUP
+++ trap 'fm_test_cleanup; exit 131' QUIT
+++ FM_TEST_ORPHAN_MAX_AGE_SECONDS=3600
+++ '[' 0 '!=' 1 ']'
+++ fm_test_reap_orphans
+++ local marker dir mtime now owner_pid owner_identity current_identity
++++ date +%s
+++ now=1792560185
+++ for marker in "$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture
+++ '[' -e '/tmp/fm-*/.fm-test-fixture' ']'
+++ continue
+++ fm_test_tmproot fm-claude-stop-autoarm
+++ local prefix=fm-claude-stop-autoarm root tmp_base
++++ fm_test_tmpdir
++++ local base=/tmp physical
++++ base=/tmp
++++ '[' -n /tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- /tmp
+++++ pwd -P
++++ physical=/tmp
++++ base=/tmp
++++ '[' -e /tmp/.git ']'
++++ printf '%s\n' /tmp
+++ tmp_base=/tmp
+++ tmp_base=/tmp
++++ mktemp -d /tmp/fm-claude-stop-autoarm.XXXXXX
+++ root=/tmp/fm-claude-stop-autoarm.CuXf8B
++++ cd -P -- /tmp/fm-claude-stop-autoarm.CuXf8B
++++ pwd -P
+++ root=/tmp/fm-claude-stop-autoarm.CuXf8B
+++ printf '%s\n%s\n' 980103 'linux-starttime=607550790 cmdline-hex=62617368002d780074657374732f2e676174652d6175746f61726d2d70726f62652e736800'
+++ printf '%s\n' /tmp/fm-claude-stop-autoarm.CuXf8B
+++ printf '%s\n' /tmp/fm-claude-stop-autoarm.CuXf8B
++ TMP_ROOT=/tmp/fm-claude-stop-autoarm.CuXf8B
++ fm_git_identity fmtest fmtest@example.invalid
++ export GIT_AUTHOR_NAME=fmtest GIT_AUTHOR_EMAIL=fmtest@example.invalid
++ GIT_AUTHOR_NAME=fmtest
++ GIT_AUTHOR_EMAIL=fmtest@example.invalid
++ export GIT_COMMITTER_NAME=fmtest GIT_COMMITTER_EMAIL=fmtest@example.invalid
++ GIT_COMMITTER_NAME=fmtest
++ GIT_COMMITTER_EMAIL=fmtest@example.invalid
+++ fm_fakebin /tmp/fm-claude-stop-autoarm.CuXf8B/fakebin
+++ local dir=/tmp/fm-claude-stop-autoarm.CuXf8B/fakebin fakebin=/tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin
+++ mkdir -p /tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin
+++ printf '%s\n' /tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin
++ FAKEBIN=/tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin
++ ln -s /bin/bash /tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin/claude
++ FAKE_CLAUDE=/tmp/fm-claude-stop-autoarm.CuXf8B/fakebin/fakebin/claude
++ export FAKE_CLAUDE
++ RUN_AUTOARM_BG_PID=
++ test_recycled_bridge_claim_stays_open_on_session_id_match
++ local dir rc
+++ make_primary_dir /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
+++ local dir=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
+++ mkdir -p /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/config
+++ git init -q /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
+++ git -C /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim commit -q --allow-empty -m init
+++ :
+++ :
+++ install_autoarm_scripts /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
+++ local dir=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
+++ mkdir -p /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-claude-stop-autoarm.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-claude-stop-autoarm.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-primary-scope-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-primary-scope-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-supervision-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-supervision-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-wake-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-wake-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-path-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-path-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-session-lock-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-session-lock-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-cursor-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-cursor-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-hook-host-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-hook-host-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-lock.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-lock.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-afk-contract.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-afk-contract.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-classify-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-classify-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-timeout-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-timeout-lib.sh
+++ cp /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5E7D4NWGSE64JVQKMS28Z5X/bin/fm-supervision-engine-lib.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-supervision-engine-lib.sh
+++ chmod +x /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-claude-stop-autoarm.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-lock.sh /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/bin/fm-afk-contract.sh
+++ printf '%s\n' /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
++ dir=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim
++ :
++ probe sess-bridge sess-bridge current
++ FM_STATE_OVERRIDE=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state
++ bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        sleep 61 &
+        predecessor=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        lock_identity=$(fm_pid_identity "$other") || exit 97
+        if [ "$4" != current ]; then
+          lock_identity=$(fm_pid_identity "$predecessor") || exit 97
+          [ "$lock_identity" != "$(fm_pid_identity "$other")" ] || exit 95
+        fi
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n%s\n" \
+            "$owner" "$2" "$identity" "$lock_identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" "$predecessor" 2>/dev/null
+        exit "$rc"
+      ' _ /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim sess-bridge sess-bridge current
++ rc=0
++ '[' 0 -ne 97 ']'
++ '[' 0 -ne 95 ']'
++ '[' 0 -ne 96 ']'
++ expect_code 0 0 'a live claim whose recorded session id matches and whose recorded lock-holder identity still recomputes must stay open across a recycled bridge'
++ local expected=0 actual=0 'label=a live claim whose recorded session id matches and whose recorded lock-holder identity still recomputes must stay open across a recycled bridge'
++ '[' 0 = 0 ']'
++ probe sess-bridge sess-other current
++ FM_STATE_OVERRIDE=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state
++ bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        sleep 61 &
+        predecessor=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        lock_identity=$(fm_pid_identity "$other") || exit 97
+        if [ "$4" != current ]; then
+          lock_identity=$(fm_pid_identity "$predecessor") || exit 97
+          [ "$lock_identity" != "$(fm_pid_identity "$other")" ] || exit 95
+        fi
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n%s\n" \
+            "$owner" "$2" "$identity" "$lock_identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" "$predecessor" 2>/dev/null
+        exit "$rc"
+      ' _ /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim sess-bridge sess-other current
++ rc=1
++ expect_code 1 1 'a claim whose recorded session id does not match the sidecar must not be open'
++ local expected=1 actual=1 'label=a claim whose recorded session id does not match the sidecar must not be open'
++ '[' 1 = 1 ']'
++ probe sess-bridge absent current
++ FM_STATE_OVERRIDE=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state
++ bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        sleep 61 &
+        predecessor=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        lock_identity=$(fm_pid_identity "$other") || exit 97
+        if [ "$4" != current ]; then
+          lock_identity=$(fm_pid_identity "$predecessor") || exit 97
+          [ "$lock_identity" != "$(fm_pid_identity "$other")" ] || exit 95
+        fi
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n%s\n" \
+            "$owner" "$2" "$identity" "$lock_identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" "$predecessor" 2>/dev/null
+        exit "$rc"
+      ' _ /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim sess-bridge absent current
++ rc=1
++ expect_code 1 1 'a claim with no recorded sidecar id must not be open on broken ancestry'
++ local expected=1 actual=1 'label=a claim with no recorded sidecar id must not be open on broken ancestry'
++ '[' 1 = 1 ']'
++ probe sess-bridge sess-bridge reused
++ FM_STATE_OVERRIDE=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state
++ bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        sleep 61 &
+        predecessor=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        lock_identity=$(fm_pid_identity "$other") || exit 97
+        if [ "$4" != current ]; then
+          lock_identity=$(fm_pid_identity "$predecessor") || exit 97
+          [ "$lock_identity" != "$(fm_pid_identity "$other")" ] || exit 95
+        fi
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n%s\n" \
+            "$owner" "$2" "$identity" "$lock_identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" "$predecessor" 2>/dev/null
+        exit "$rc"
+      ' _ /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim sess-bridge sess-bridge reused
++ rc=1
++ expect_code 1 1 'a claim whose recorded lock-holder identity does not recompute from the lock'\''s holder pid must not be open, even on a reused pid number'
++ local expected=1 actual=1 'label=a claim whose recorded lock-holder identity does not recompute from the lock'\''s holder pid must not be open, even on a reused pid number'
++ '[' 1 = 1 ']'
++ probe '' sess-bridge current
++ FM_STATE_OVERRIDE=/tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim/state
++ bash -c '
+        . "$1/bin/fm-wake-lib.sh"
+        . "$1/bin/fm-session-lock-lib.sh"
+        sleep 60 &
+        owner=$!
+        sleep 60 &
+        other=$!
+        sleep 61 &
+        predecessor=$!
+        identity=$(fm_pid_identity "$owner") || exit 97
+        lock_identity=$(fm_pid_identity "$other") || exit 97
+        if [ "$4" != current ]; then
+          lock_identity=$(fm_pid_identity "$predecessor") || exit 97
+          [ "$lock_identity" != "$(fm_pid_identity "$other")" ] || exit 95
+        fi
+        if [ -n "$2" ]; then
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1 owner_session_id=%s\n%s\n%s\n" \
+            "$owner" "$2" "$identity" "$lock_identity" > "$1/state/.claude-autoarm-epoch"
+        else
+          printf "epoch=470 owner_pid=%s outcome=arming updated_at=1\n%s\n" \
+            "$owner" "$identity" > "$1/state/.claude-autoarm-epoch"
+        fi
+        printf "%s\n" "$other" > "$1/state/.lock"
+        if [ "$3" = absent ]; then
+          rm -f "$1/state/.lock-session"
+        else
+          printf "%s\n" "$3" > "$1/state/.lock-session"
+        fi
+        fm_pid_descends_from "$owner" "$other" && exit 96
+        fm_autoarm_claim_open "$1/state"; rc=$?
+        kill "$owner" "$other" "$predecessor" 2>/dev/null
+        exit "$rc"
+      ' _ /tmp/fm-claude-stop-autoarm.CuXf8B/v2-recycled-bridge-claim '' sess-bridge current
++ rc=1
++ expect_code 1 1 'a pre-change entry recording neither field must fall back to ancestry alone'
++ local expected=1 actual=1 'label=a pre-change entry recording neither field must fall back to ancestry alone'
++ '[' 1 = 1 ']'
++ pass 'auto-arm: a recycled-bridge claim stays open on its recorded session id and lock-holder identity, and nothing else does'
++ printf 'ok - %s\n' 'auto-arm: a recycled-bridge claim stays open on its recorded session id and lock-holder identity, and nothing else does'
+ok - auto-arm: a recycled-bridge claim stays open on its recorded session id and lock-holder identity, and nothing else does
++ fm_test_cleanup
++ local d
++ fm_test_reap_watchers
++ local state lock_home 'seen=
+'
++ '[' -f /tmp/.fm-test-watcher.980103.YGpXVO ']'
++ IFS=
++ read -r state
++ rm -f /tmp/.fm-test-watcher.980103.YGpXVO
++ fm_test_reap_procevent_homes
++ local home claim_root 'seen=
+'
++ '[' -f /tmp/.fm-test-procevent.980103.qMkiBe ']'
++ IFS='	'
++ read -r home claim_root
++ rm -f /tmp/.fm-test-procevent.980103.qMkiBe
++ for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"
++ '[' -n '' ']'
++ '[' -f /tmp/.fm-test-cleanup.980103.Hstvjg ']'
++ IFS=
++ read -r d
++ '[' -n /tmp/fm-claude-stop-autoarm.CuXf8B ']'
++ fm_test_remove_tree /tmp/fm-claude-stop-autoarm.CuXf8B
++ local dir=/tmp/fm-claude-stop-autoarm.CuXf8B
++ '[' -d /tmp/fm-claude-stop-autoarm.CuXf8B ']'
++ '[' '!' -L /tmp/fm-claude-stop-autoarm.CuXf8B ']'
++ find /tmp/fm-claude-stop-autoarm.CuXf8B -type d -exec chmod u+rwx '{}' +
++ rm -rf /tmp/fm-claude-stop-autoarm.CuXf8B
++ IFS=
++ read -r d
++ rm -f /tmp/.fm-test-cleanup.980103.Hstvjg
