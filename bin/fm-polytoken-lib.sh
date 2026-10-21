@@ -479,6 +479,8 @@ fm_polytoken_interrupt() {  # <port> <credential-token> [wait-secs]
 # prompt queued behind the cancelled turn submitted at the pause), while the
 # cancelled turn's own mid-turn pre_model_turn rewrites still close. GET /sync
 # is re-read right before the write, and a running turn skips the close.
+# The writer validates the observed generation and sequence under its lock,
+# so a newer hook between that read and the write also prevents the close.
 # Prints the fm_polytoken_interrupt outcome; returns nonzero as it does.
 fm_polytoken_interrupt_task() {  # <bin-dir> <state-dir> <id> <port> <credential-token> [wait-secs]
   local bin=$1 state=$2 id=$3 port=$4 token=$5 wait=${6:-10}

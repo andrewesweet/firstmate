@@ -27,12 +27,12 @@
 # sync reads each recorded session's workspace and pane lists once, reports
 # only the tokens whose live value differs from the planned value through
 # `herdr pane|workspace report-metadata --source firstmate`, and sets the
-# agents view through bin/backends/herdr-agent-view.py whenever it reported a
-# pane token, so a Herdr restart that dropped every token and the view is
-# repaired by the next sync. Workspace tokens are reported only for a task's
-# own projected workspace: an exact version 2 presentation journal binding the
-# task's recorded session, workspace, and pane, whose live workspace holds that
-# one pane. A pane missing from the live list is skipped.
+# agents view through bin/backends/herdr-agent-view.py for every supported
+# recorded session, independently of token changes, so a failed view publication
+# or a Herdr restart is repaired by the next sync. Workspace tokens are reported
+# only for a task's own projected workspace: an exact version 2 presentation
+# journal binding the task's recorded session, workspace, and pane, whose live
+# workspace holds that one pane. A pane missing from the live list is skipped.
 # clear removes this home's tokens from live panes and projected workspaces and
 # clears the agents view for every recorded session.
 # order-key prints the "<rank>.<group>" key bin/fm-spawn.sh passes to

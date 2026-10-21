@@ -64,8 +64,9 @@ Other transient consumers retain their existing shell-relative behavior.
 | Backend | Effect of the operational home |
 | --- | --- |
 | herdr | `FM_HOME` determines the adapter's workspace label. |
-| zellij | `FM_HOME` determines the readable home prefix in visible tab titles, but does not split containers; use `FM_ZELLIJ_SESSION` for a separate session; the full home label also includes a short hash of the resolved `FM_ROOT` path. |
-| cmux | `FM_HOME` determines the default config path and readable home prefix in workspace titles; `FM_CONFIG_OVERRIDE` overrides where `config/cmux-socket-password` is read; the full home label also includes a short hash of the resolved `FM_ROOT` path; there is no per-home container split. |
+| zellij | See [task shape and home isolation](zellij-backend.md#task-shape-and-home-isolation) for home-scoped titles and [setup](zellij-backend.md#setup) for session selection. |
+| cmux | See [task shape and metadata](cmux-backend.md#task-shape-and-metadata) for home-scoped workspace titles and [setup](cmux-backend.md#setup) for socket configuration. |
+| paseo | See [task shape and metadata](paseo-backend.md#task-shape-and-metadata) for home-scoped terminal names and workspace placement. |
 
 ## Operational home layout and state
 
@@ -555,14 +556,14 @@ Use the explicit guarded cleanup path described in [`docs/herdr-backend.md`](her
 ### Zellij sessions
 
 For normal zellij operations, `FM_ZELLIJ_SESSION` selects the named session and defaults to `firstmate`.
-Zellij has no per-home workspace split: primary and secondmate tasks share that one session, and visible tab titles are scoped by the active `FM_HOME` readable label plus a short hash of the resolved `FM_ROOT` path as `fm-<home-label>-<id>`.
+The [Zellij guide](zellij-backend.md#task-shape-and-home-isolation) owns task placement and home-scoped tab titles.
 
 Use the guarded cleanup path described in [`docs/zellij-backend.md`](zellij-backend.md) instead of `kill-all-sessions` or `delete-all-sessions`.
 
 ### cmux workspaces
 
 cmux has no session layer at all - one workspace per task, in whatever cmux window is open - and its socket password (when configured) is read from local, gitignored `config/cmux-socket-password` under the effective config directory, never committed.
-The caller-facing label remains `fm-<id>`, but the actual cmux workspace title is scoped by the active `FM_HOME` readable label plus a short hash of the resolved `FM_ROOT` path as `fm-<home-label>-<id>`.
+The [cmux guide](cmux-backend.md#task-shape-and-metadata) owns home-scoped workspace titles.
 
 Test cleanup must use the guarded path in [`docs/cmux-backend.md`](cmux-backend.md#current-operation-and-safety), never enumerate-and-close every workspace.
 `config/backend` is inherited into secondmate homes under the primary-authoritative contract owned by [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md).
@@ -645,7 +646,8 @@ Role is never inferred from GitHub identity, forge permissions, remotes, reposit
 `bin/fm-role.sh report` prints the resolved role with no network call, and the session-start digest shows it in the HOME ROLE subsection.
 
 `bin/fm-role-lib.sh` owns the fail-closed parser, self-repository detection, and the gate that `bin/fm-brief.sh`, `bin/fm-spawn.sh`, and `bin/fm-promote.sh` apply.
-Firstmate selects the publication target from the home's optional declaration file `config/firstmate-pub-target` when it holds a usable target, and otherwise from the first configured remote whose `remote.<name>.gh-resolved` value is exactly `base`, including custom remote names, and otherwise from the first configured remote in the remote order `upstream`, `github`, `origin`; selection is offline, and `bin/fm-role-lib.sh` owns URL and local-path normalization.
+Firstmate selects the publication target from the home's optional declaration file `config/firstmate-pub-target` when it holds a usable target, and otherwise from the first configured remote whose `remote.<name>.gh-resolved` value is exactly `base` and whose normalized identity is not the Firstmate parent `github.com/kunchenguid/firstmate`, including custom remote names, and otherwise from the first configured remote in the remote order `upstream`, `github`, `origin`.
+The parent exception applies only to marked-remote selection; selection is offline, and `bin/fm-role-lib.sh` owns URL and local-path normalization.
 The declaration holds one `<host>/<owner>/<repo>` line; blank lines and full-line `#` comments are ignored.
 It exists for a fork home that keeps the parent repository as its `upstream` remote and would otherwise resolve every fork ship to the parent.
 A declaration only selects the target and grants no authority: a user/operator home still needs per-task consent equal to the declared target, and a maintainer scope must still equal it.
@@ -654,7 +656,6 @@ The file is home-local, gitignored, and excluded from role inheritance (`bin/fm-
 An unreadable or URL-less marked remote is not replaced by a fallback remote, and an undeterminable target never authorizes a task, even under task consent.
 Authorized ship launches pin `GH_REPO` to that full host/owner/repository target and `GH_HOST` to its host inside the worker environment, including when launch environment filtering is enabled, so inherited `GH_REPO`, `GH_HOST`, and `remote.<name>.gh-resolved` defaults cannot redirect publication.
 Scaffolds and promotions carry the same exports and require an explicit `--repo` on gh-axi repository commands; `bin/fm-role.sh check` prints the exports for manual use.
-See `bin/fm-role-lib.sh` for URL and local-path normalization.
 A task's project counts as the firstmate repository when it shares the code root's lineage - the same git common dir, or a root commit of the code root's history, which every fork, the parent, and any clone of either share - computed offline; undeterminable lineage (for example a shallow clone sharing no root commit) and an undeterminable publication target are refused, even under task consent.
 Secondmate homes inherit the primary's resolved role, never its raw file: a primary file that resolves to user for any reason propagates as revocation.
 In a secondmate home the role file is honored only while the inheritance receipt `config/.fm-inherit-firstmate-role.generation` proves the exact bytes the primary last published (`bin/fm-config-inherit-lib.sh`); a role file with no matching receipt or a stale grant authorizes nothing.
@@ -681,7 +682,8 @@ The home cannot be derived from a task copy's `no-mistakes` remote, because ever
 The file's first line is the absolute path of an executable the site provides; Firstmate calls it with the task copy's path as its only argument and never interprets the layout itself.
 When the resolver exits successfully within 5 seconds and prints exactly one line naming an existing directory by absolute path, that directory is exported as `NM_HOME` for that one call.
 
-Only host-side reads use it: current-state reads, pipeline-spend recording, the custody check, and teardown's parked-run lookup and `axi abort --run`, which read `axi status`, the `axi` overview, `axi logs`, `runs`, `daemon status`, and the state database.
+Host-side current-state reads, pipeline-spend recording, the custody check, and teardown's parked-run lookup use it, as does teardown's run-targeted abort.
+The `fm_nm_home_resolver_applies` header in `bin/fm-nm-run-lib.sh` owns the exact command allowlist.
 It never starts a daemon and never changes how runs are launched or driven, account routing, or no-mistakes' own `config.yaml`.
 An explicit non-empty `NM_HOME` always wins and the resolver is not called.
 With the file absent, a first line that is not an absolute executable path, or a resolver that fails, times out, or prints anything else, every read uses the ambient home exactly as without the file.
@@ -1795,8 +1797,7 @@ This section is the single owner of the canonical schema.
 - It is fetched read-only with curl inside the same probe bound; the first dotted numeric version in the body is compared with the newest installed copy found.
 - `update available` is reported only when the published version is newer than every installed copy found; a failed request, a body without a readable version, or a missing curl is reported as that tool's own check failure.
 - An `announce_pattern` that is not a usable extended regular expression stops `arm`, and during a sweep it is reported as that one tool's own check failure so one broken pattern never stops the other watched tools from being checked.
-- A tool whose CLI never announces its own updates can name a `version_url` instead: the document is fetched read-only with `curl` inside the same probe bound, the first dotted number in its body is the published version, and `update available` is reported when that is newer than the version `PATH` resolves.
-  Claude Code is the shipped example, because its `--version` prints only the version and its release channel is a plain-text document; the exact entry is:
+- Claude Code is the shipped `version_url` example, because its `--version` prints only the version and its release channel is a plain-text document; the exact entry is:
 
   ```json
   {
@@ -2695,7 +2696,7 @@ Runtime tuning via environment variables (defaults shown):
 
 ```sh
 FM_HOME=                 # optional operational home for most scripts, unset means this repo root; fm-send requires it explicitly
-FM_ROOT_OVERRIDE=        # override firstmate repo root, tangle-guard target, and zellij/cmux home-title hash; also legacy whole-root override when FM_HOME is unset
+FM_ROOT_OVERRIDE=        # override firstmate repo root and tangle-guard target; also legacy whole-root override when FM_HOME is unset
 FM_STATE_OVERRIDE=       # alternate state dir, mainly for tests
 FM_DATA_OVERRIDE=        # alternate data dir, mainly for tests
 FM_PROJECTS_OVERRIDE=    # alternate projects dir, mainly for tests
@@ -2833,10 +2834,10 @@ FM_FLEET_SYNC_PACKED_REFS_LOCK_RETRY_WAIT_SECS=1 # seconds fm-fleet-sync.sh wait
 FM_FLEET_SYNC_PACKED_REFS_LOCK_AGE_SECS=30       # min mtime age before fm-fleet-sync.sh treats a leftover packed-refs.lock as provably stale
 FM_BUSY_REGEX=          # optional override for rendered delivery guards and Grok's isolated task-state fallback; converted worker state ignores it
 FM_COMPOSER_IDLE_RE=    # optional fleet-wide idle-placeholder regex override (bin/fm-composer-lib.sh); a match alone does not prove emptiness because shape-specific position and ANSI de-emphasis safety gates still apply
-FM_COMPOSER_LEFTBAR_FOOTER_RE=   # optional fleet-wide override of the opencode left-bar mode/model footer's regex (bin/fm-composer-lib.sh's FM_COMPOSER_LEFTBAR_FOOTER_RE_DEFAULT, matched against both the ghost-stripped and the ANSI-stripped form of a run's LAST row); an override that cannot match the de-emphasised 1.19.0 footer puts the false `pending` back on an idle pane, so keep the default's required space after the separator and its exact `Build`/`Plan` mode words rather than widening it - widening it is the one path that turns typed text into the `empty` verdict which authorizes typing into a live session; see [runtime backend verification](verification/runtime-backends.md#2026-10-14-opencode-1190-de-emphasised-modefooter-row-in-the-left-bar-composer)
+FM_COMPOSER_LEFTBAR_FOOTER_RE=   # optional opencode footer regex override; bin/fm-composer-lib.sh owns the matching and safety constraints; see the footer verification link after this block
 FM_COMPOSER_CAPTURE_LINES=20   # fleet-wide bound for tail-capture composer reads; it no longer bounds the adapter composer state/content reads on tmux or herdr, which supply their bounded visible pane instead, while the cmux, orca, Zellij, and Paseo adapters use this small window so stale scrollback banners stay out of the candidate set; it still bounds the shared inbox composer read (bin/fm-task-inbox-lib.sh) on every backend, and on herdr it also floors how many Ctrl+U presses a refused leftover may take
 FM_COMPOSER_PI_MAX_LINES=8     # fleet-wide: maximum rows admitted between Pi's identity-corroborated separator pair; taller or ambiguous candidates stay unknown
-FM_COMPOSER_GHOST_LUMA_MAX=128   # fleet-wide: max perceived luminance (0.299R+0.587G+0.114B, 0-255) for a TRUECOLOR foreground to count as de-emphasised ghost/placeholder text and be stripped; dim/faint (SGR 2) is stripped regardless, and a screen whose backend identity is Command Code is read at a fixed 160 instead. Assumes a dark terminal theme (bin/fm-composer-lib.sh's fm_composer_strip_ghost, used by styled tmux, herdr, and Zellij reads). The default sits between the two populations it separates: harnesses draw their own de-emphasised composer furniture below it (opencode 1.19.0's mode footer at luminance 119.8 and its cwd row) and typed text above it. While it sits above the furniture the mode cells are stripped as ghost, so the footer's own identifying cells are gone from the ghost-stripped row and only the row's ANSI-stripped form still proves the footer - which is why the left-bar footer rule reads both forms and an idle opencode pane reads `empty` instead of the false `pending` that position produced - while dropping it under the furniture's luminance leaves those cells in the row and the footer then matches the left-bar footer rule in its stripped form too (still `empty`), and raising it over real typed text deletes typed text and reads as the false `empty` that authorizes typing into a live session; the measured luminances and the left-bar footer proof this threshold decides are in [runtime backend verification](verification/runtime-backends.md#2026-10-14-opencode-1190-de-emphasised-modefooter-row-in-the-left-bar-composer), so move it only against a fresh live capture
+FM_COMPOSER_GHOST_LUMA_MAX=128   # default maximum luminance for dark-theme truecolor ghost stripping; bin/fm-composer-lib.sh owns per-read overrides and SGR-2 handling; change only against a fresh live capture (see the footer verification link after this block)
 GROK_HOME=              # optional Grok config home for firstmate's global grok turn-end hook; defaults to ~/.grok
 FM_SEND_RETRIES=3       # fm-send typed-plane Enter-retry attempts after typing the line once; agy typed targets use a longer per-harness default owned by bin/fm-send.sh
 FM_SEND_SLEEP=0.4       # seconds between fm-send typed-plane submit checks
@@ -2879,6 +2880,8 @@ FM_INBOX_STT_MODEL=     # overrides config/inbox-stt-model for fm-inbox.sh say
 FM_INBOX_ASK_MODEL=     # overrides config/inbox-ask-model for fm-inbox.sh ask
 FM_INBOX_PROFILE=       # overrides config/inbox-profile; explicitly empty forces ambient credentials
 ```
+
+Before overriding composer footer recognition or ghost thresholds, read the [footer verification](verification/runtime-backends.md#2026-10-14-opencode-1190-de-emphasised-modefooter-row-in-the-left-bar-composer) and refresh its live capture: a broader match or threshold can mistake a draft for an empty composer.
 
 `fm-teardown.sh` applies `FM_TREEHOUSE_RETURN_LOCK_RETRIES` only to retryable Git lock failures; its [header](../bin/fm-teardown.sh) owns return-failure classification and recovery, including the precedence of dirty-worktree refusals over success and retries.
 `FM_TREEHOUSE_RETURN_LOCK_RETRIES` accepts a nonnegative integer, and an unset, blank, or invalid value uses the default of 3.

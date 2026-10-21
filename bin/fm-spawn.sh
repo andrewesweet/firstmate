@@ -312,6 +312,8 @@
 #   behavior suite from the repository primary checkout while that marker is
 #   set (its header owns the refusal). A secondmate runs in its own home and is
 #   not marked.
+#   A fresh ship or scout refuses a project with an unborn HEAD before capacity
+#   admission or endpoint creation; the project needs a first commit to branch.
 #   Only after this isolation check, every fresh ship or scout requires a clean
 #   task worktree. When an origin configuration is detected, spawn fetches it,
 #   resolves the current remote default branch (or uses --base-branch, described

@@ -23,7 +23,7 @@ The invariant is enforced in three layers, from strongest to weakest:
 
 The ready report is `done: review <url> uploaded for review`.
 Firstmate cannot observe, approve, or merge the review, so `bin/fm-review-check.sh` records `review=` and `review_head=` without arming a merge watch, and the review always escalates to the captain whatever the yolo setting.
-A scout launches without the guard and the task record, so `bin/fm-promote.sh` refuses to promote one onto a `forge=external` project; such work starts as a ship.
+A scout launches without the ship's push guard and external-review metadata, so `bin/fm-promote.sh` refuses to promote one onto a `forge=external` project; such work starts as a ship.
 
 ## The personal backup remote
 

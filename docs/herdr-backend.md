@@ -595,7 +595,8 @@ Herdr's own agent status dot stays live beside it.
 
 The watcher reconciles every task once per poll cycle, and a spawn tags its new task at once.
 A reconcile reads each session's workspace and pane lists once and reports only tokens whose live value differs.
-Whenever it reports a pane token, it also sets the agents view: `agent.view.set` with source `firstmate`, label `projects`, and sort by the `fm_sort` token, then workspace order.
+Each reconcile also sets the agents view independently of token changes, so a failed view publication retries on the next poll even when tagging succeeded.
+The view uses `agent.view.set` with source `firstmate`, label `projects`, and sort by the `fm_sort` token, then workspace order.
 Herdr keeps neither tokens nor the agents view across a server restart, so the next reconcile after a restart reports them again.
 Agents without an `fm_sort` token, such as Firstmate itself or another tool's agents, sort after the tagged ones.
 Herdr exposes no CLI for the agents view, so `bin/backends/herdr-agent-view.py` sends only those two whitelisted requests over the named session socket.
@@ -636,9 +637,7 @@ A task whose group changes later keeps its position until it ends.
 
 ### Verification status
 
-The tags, the agents view, and the placement are covered by offline tests against a scripted Herdr CLI and socket helper (`tests/fm-herdr-groups.test.sh` and the ordering cases in `tests/fm-backend-herdr.test.sh`).
-They were also exercised against a real Herdr 0.9.5 server (protocol 22) in a guarded lab session: after one watcher poll `herdr pane list` showed the `fm_*` tokens on each task pane, the agents list header read `projects` with tasks ordered by group and then status, a newly spawned projected task landed after the other tasks of its group with only that workspace moving and no focus change, and `fm-herdr-groups.sh clear` removed the tokens and the view.
-To repeat the check on a live session, turn the feature on, wait one watcher poll, and confirm the same four results.
+[`Project-group verification`](verification/runtime-backends.md#project-groups) owns the portable regressions, recorded live results, and refresh procedure.
 
 ## Default-tab prune safety
 
@@ -1015,7 +1014,7 @@ Tests use thin compatibility wrappers in `tests/herdr-test-safety.sh` and never 
 ## Active limits
 
 - Presentation ordering needs protocol 16 and Python and is best-effort only.
-- Project groups need protocol 22 and Python, are tested offline, and were checked live once against Herdr 0.9.5 on protocol 22.
+- Project groups need protocol 22 and Python; [project-group verification](verification/runtime-backends.md#project-groups) records coverage.
 - Mutable labels can collide; they are never placement or destructive authority.
 - A Firstmate outside Herdr cannot resolve a launcher workspace, so a colliding home label refuses new spawns until the collision is cleared.
 - Ghost and placeholder recognition uses ANSI de-emphasis when available; an unstyled glyph row carrying trailing non-idle text fails safely to `unknown`.
