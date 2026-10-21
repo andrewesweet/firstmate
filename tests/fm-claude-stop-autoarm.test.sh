@@ -197,9 +197,12 @@ SH
       ;;
     gated-actionable)
       # Cycle whose watcher closes only when the test releases it, so a second
-      # session can fire its Stop while the cycle is still under way. Appends
-      # after the shared prelude so a handling successor still records apart.
-      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+      # session can fire its Stop while the cycle is still under way. Written
+      # whole so the handling successor of the replacement arm lands in
+      # state/arm-ran too; the orphan-supersession tests count three arms.
+      cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
+#!/usr/bin/env bash
+echo "$$" >> "$FM_HOME/state/arm-ran"
 while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
 printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
 touch "$FM_HOME/state/.last-watcher-beat"
@@ -230,20 +233,6 @@ SH
 printf 'watcher: attached pid=%s (beacon 2s)\n' "$$"
 printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
 printf 'signal: task.status done: fixture peer cycle ended\n'
-exit 0
-SH
-      ;;
-    gated-actionable)
-      # Cycle whose watcher closes only when the test releases it, so a second
-      # session can fire its Stop while the cycle is still under way.
-      cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
-#!/usr/bin/env bash
-echo "$$" >> "$FM_HOME/state/arm-ran"
-while [ ! -e "$FM_HOME/state/arm-release" ]; do sleep 0.02; done
-printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
-touch "$FM_HOME/state/.last-watcher-beat"
-printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
-printf 'signal: %s/state/tfmut-116.turn-ended\n' "$FM_HOME"
 exit 0
 SH
       ;;

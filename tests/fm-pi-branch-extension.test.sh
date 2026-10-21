@@ -5668,6 +5668,11 @@ test_branch_dispatch_resolves_terminal_keyed_orca_stale_row() {
   cp "$ROOT/.pi/extensions/lib/fm-native-contract.ts" "$repo/.pi/extensions/lib/fm-native-contract.ts"
   cp "$ROOT/.pi/extensions/lib/fm-async-exec.ts" "$repo/.pi/extensions/lib/fm-async-exec.ts"
   cp "$ROOT/.pi/extensions/lib/fm-branch-model-picker.ts" "$repo/.pi/extensions/lib/fm-branch-model-picker.ts"
+  # The delegation dispatch imports the shared eligibility lib, which imports
+  # its core (a symlink to the branch mod's copy); cp follows symlinks.
+  mkdir -p "$repo/lib"
+  cp "$ROOT/lib/fm-branch-eligibility.ts" "$repo/lib/fm-branch-eligibility.ts"
+  cp "$ROOT/lib/fm-branch-eligibility-core.ts" "$repo/lib/fm-branch-eligibility-core.ts"
   printf 'project=%s/projects/approved\nterminal=orca-term-1\n' "$home" > "$home/state/orca-task.meta"
   LIB="$repo/.pi/extensions/lib/fm-branch-dispatch.ts" FM_HOME="$home" \
     node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'

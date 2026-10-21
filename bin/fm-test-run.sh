@@ -759,6 +759,8 @@ tests/fm-claude-trust.test.sh 12010
 tests/fm-cmux-claude-composer-live-e2e.test.sh 77
 tests/fm-codex-continuity-live-e2e.test.sh 108
 tests/fm-codex-hook-layer-live-e2e.test.sh 1968
+tests/fm-commandcode-harness.test.sh 8182
+tests/fm-commandcode-signals-live-e2e.test.sh 49
 tests/fm-composer-codex-idle-live-e2e.test.sh 48389
 tests/fm-composer-matrix-live-e2e.test.sh 78
 tests/fm-contributions.test.sh 142681
@@ -783,8 +785,6 @@ tests/fm-fork-free-helpers.test.sh 811
 tests/fm-gate-refuse.test.sh 10137
 tests/fm-gemini-harness.test.sh 976
 tests/fm-git-strip-ai-trailers.test.sh 2153
-tests/fm-commandcode-harness.test.sh 8182
-tests/fm-commandcode-signals-live-e2e.test.sh 49
 tests/fm-gitignore-config.test.sh 59
 tests/fm-gotmp.test.sh 1739
 tests/fm-grok-continuity-live-e2e.test.sh 53
@@ -864,6 +864,7 @@ tests/fm-remote-transport-lanes.test.sh 66089
 tests/fm-retro-trigger.test.sh 20000
 tests/fm-rovo-harness.test.sh 15691
 tests/fm-rovo-signals-live-e2e.test.sh 79
+tests/fm-secondmate-busy-contract-live-e2e.test.sh 90000
 tests/fm-secondmate-harness.test.sh 204587
 tests/fm-secondmate-lifecycle-e2e.test.sh 12157
 tests/fm-secondmate-liveness.test.sh 37337
@@ -884,7 +885,6 @@ tests/fm-sessionstart-hook-live-e2e.test.sh 106
 tests/fm-sessionstart-instruction-refresh-live-e2e.test.sh 77
 tests/fm-sessionstart-nudge.test.sh 73711
 tests/fm-shared-captain-inheritance.test.sh 8531
-tests/fm-secondmate-busy-contract-live-e2e.test.sh 90000
 tests/fm-spawn-compact-adviser-disable-remote.test.sh 38561
 tests/fm-spawn-dispatch-profile.test.sh 164985
 tests/fm-spawn-orca-worktree.test.sh 2513
