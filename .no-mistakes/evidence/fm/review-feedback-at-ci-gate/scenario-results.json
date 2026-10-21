@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Generate a GitHub worker brief: bounded polls read all feedback and route change requests to a parked gate",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-worker-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate guidance for feedback without a parked gate: keep polling, handle late fix or dismiss, and hold done until answered",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-worker-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate default and custom maintainer waits: preserve independent wait keys and safely default standalone library calls to paused",
+    "result": "pass",
+    "live": true,
+    "evidence": "holding-worker-brief.md; standalone-fallback.md; github-worker-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate a Forgejo worker brief: use tea, per-review inline comments, and pagination without GitHub polling",
+    "result": "pass",
+    "live": true,
+    "evidence": "forgejo-worker-brief.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate direct-PR and local-only briefs: CI-gate instructions stay confined to no-mistakes workers",
+    "result": "pass",
+    "live": true,
+    "evidence": "direct-PR-worker-brief.md; local-only-worker-brief.md",
+    "reason": ""
+  }
+]
