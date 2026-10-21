@@ -78,8 +78,9 @@ That catches missing hints, not stale existing hints: the host suite still had a
 Refresh the hints whenever a serial member grows materially or the lane gains scripts, rather than waiting for missing-hint coverage to trip.
 
 `bin/fm-test-run.sh` owns the per-shard packing, so its `--check-coverage` output is the current account of lane size and coverage rather than a copied inventory.
-Nine serial runners pack the refreshed measurements into modeled script sums between 1072423 ms and 1196951 ms (17m52s-19m57s).
-The slowest shard is `tests/fm-supervision-host.test.sh` alone at its 1196951 ms slowest sample and the second is `tests/fm-watch-triage.test.sh` alone at 1122548 ms; each heavyweight's volatile duration exposes only its own shard, and the other seven shards model 17m52s.
+Ten serial runners pack the refreshed measurements into modeled script sums between 1081419 ms and 1196951 ms (18m01s-19m57s).
+The slowest shard is `tests/fm-supervision-host.test.sh` alone at its 1196951 ms slowest sample and the second is `tests/fm-watch-triage.test.sh` alone at 1122548 ms; each heavyweight's volatile duration exposes only its own shard, and the other eight shards model 18m01s.
+On 2026-10-21 the upstream sync brought the wedge-cap suite into the serial lane (`tests/fm-watch-wedge-cap.test.sh` at its 374225 ms Ubuntu sample), and the nine-shard packing crossed the 1200000 ms target at a 1219006 ms largest shard; because hint weights only grow and LPT packing is monotone in them, no refresh could restore the budget, so the lane gained a tenth serial shard (`.github/workflows/ci.yml` matrix raised to match) and the ten-shard packing models the sums above.
 The 30-minute bound is a job timeout, so it covers [workflow setup](../.github/workflows/ci.yml) as well as shard execution.
 Measure setup again when dependency installation changes before inferring job-level headroom from script hints.
 This is a packing estimate, not measured new-workflow execution or an end-to-end latency guarantee.
@@ -126,7 +127,7 @@ No fast mode, path skips, or paid runner provisioning is part of this layout.
 The slowest portable serial shard sets the modeled longest path described in [Portable serial CI shards](#portable-serial-ci-shards).
 Actual end-to-end latency also includes job setup and runner queue time, which these packing estimates do not bound.
 A complete run under fifteen minutes therefore needs the heavyweight scripts to get faster or be split, which packing cannot do.
-The candidate uses fourteen long-lived Linux jobs (nine serial, two parallel, Herdr, two lint), plus short checks and macOS; insufficient shared account capacity can erase the packing gain.
+The candidate uses fifteen long-lived Linux jobs (ten serial, two parallel, Herdr, two lint), plus short checks and macOS; insufficient shared account capacity can erase the packing gain.
 The immediate packing target is the runner's modeled script budget, not a claim that more shards alone can make an indivisible script faster.
 Compare complete before/after runs, preserve cancelled and partial-run evidence, and measure a representative normal-run sample before claiming a P95 improvement.
 The workflow retains per-PR supersession, triggers only on pull_request events, and leaves the compliance workflow's event semantics unchanged.

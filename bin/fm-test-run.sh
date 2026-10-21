@@ -206,7 +206,7 @@ CHANGED_DEFAULT_TIMEOUT_SECS=1500
 
 # How many separate-runner shards the portable serial remainder splits into.
 # One owner: CI lane names carry this count and are refused when they disagree.
-PORTABLE_SERIAL_SHARDS=9
+PORTABLE_SERIAL_SHARDS=10
 
 # Balance hint for a portable-serial script with no measured duration. It sits
 # below the current measured per-script mean of 44066 ms (about 44s), so a
