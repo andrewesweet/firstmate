@@ -70,7 +70,7 @@ fi
 exec "$FM_TEST_REAL_MKDIR" "$@"
 SH
   chmod +x "$fakebin/mkdir"
-  out=$(FM_TEST_BUSY_LOCK="$state/t1.busy-state.lock" FM_TEST_BUSY_STATE="$state" FM_TEST_BUSY_GEN="$gen" \
+  out=$(env FM_TEST_BUSY_LOCK="$state/t1.busy-state.lock" FM_TEST_BUSY_STATE="$state" FM_TEST_BUSY_GEN="$gen" \
     FM_TEST_BUSY_WRITER="$EV" FM_TEST_REAL_PATH="$PATH" FM_TEST_REAL_MKDIR="$(command -v mkdir)" \
     PATH="$fakebin:$PATH" "$EV" apply "$state" t1 idle --gen "$gen" --if-seq 1 \
       --source fm-interrupt --event interrupt --turn-ended 2>&1) || rc=$?

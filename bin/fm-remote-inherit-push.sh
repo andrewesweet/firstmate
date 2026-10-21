@@ -140,7 +140,7 @@ while [ "$next" -le "$N" ] || [ "$running" -gt 0 ]; do
       else
         item_rc=0
         wait "$worker_pid" || item_rc=$?
-        item_status[$i]=$item_rc
+        item_status[i]=$item_rc
         unset 'worker_pids[i]'
       fi
     fi
@@ -150,10 +150,10 @@ while [ "$next" -le "$N" ] || [ "$running" -gt 0 ]; do
   if [ "$stop" -eq 0 ] && [ "$next" -le "$N" ] && [ "$running" -lt "$JOBS" ]; then
     launched=$next
     if [ "$(cut -d' ' -f1 "$TMP/item.$next.plan")" = skip ]; then
-      item_status[$next]=0
+      item_status[next]=0
     else
       send_item "$next" &
-      worker_pids[$next]=$!
+      worker_pids[next]=$!
       running=$((running + 1))
     fi
     next=$((next + 1))
