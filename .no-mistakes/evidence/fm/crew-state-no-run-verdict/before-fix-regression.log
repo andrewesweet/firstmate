@@ -1,0 +1,3 @@
+not ok - explicit no-run answer falls through to the current status (missing: 'state: working')
+--- output ---
+state: unknown · source: run-step · complete same-branch run inventory unreadable; run ids: 

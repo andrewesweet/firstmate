@@ -1,0 +1,38 @@
+
+SCENARIO matching-zero-idle
+state: working · source: status-log · implementation continues
+CLI calls:
+axi status
+
+SCENARIO matching-zero-busy
+state: working · source: pane · harness busy (claude-hook)
+CLI calls:
+axi status
+
+SCENARIO mismatched-zero
+state: working · source: run-step · validating (background run)
+CLI calls:
+axi status
+axi
+runs --limit 200
+
+SCENARIO missing-count
+state: working · source: run-step · validating (background run)
+CLI calls:
+axi status
+axi
+runs --limit 200
+
+SCENARIO missing-branch
+state: working · source: run-step · validating (background run)
+CLI calls:
+axi status
+axi
+runs --limit 200
+
+SCENARIO matching-nonzero
+state: working · source: run-step · validating (background run)
+CLI calls:
+axi status
+axi
+runs --limit 200

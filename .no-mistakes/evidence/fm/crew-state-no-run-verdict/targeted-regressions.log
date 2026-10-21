@@ -1,0 +1,24 @@
+
+CASE feat-no-run-overview
+state: working · source: status-log · implementation continues
+ok - runs_on_current_branch: 0 makes a capped overview fall through to crew-state sources
+
+CASE feat-f
+state: working · source: run-step · validating (background run)
+ok - cross-branch run is attributed via the real runs list
+
+CASE feat-h
+state: working · source: pane · harness busy (claude-hook)
+ok - no run + a busy semantic record reads working, attributed to its source
+
+CASE feat-i
+state: parked · source: status-log · which database?
+ok - no run + idle pane uses the status-log verb
+
+CASE feat-g
+state: done · source: status-log · implemented, ready to validate
+ok - another branch's run is ignored, falls back
+
+CASE feat-rebased
+state: working · source: run-step · validating (running)
+ok - legacy live rebased run is authoritative over an older failed row
