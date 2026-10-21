@@ -190,6 +190,7 @@ fm_polytoken_write_config() {  # <config-dir>
 fm_polytoken_write_facet() {  # <worktree> <inbox-path>
   local wt=$1 inbox=$2 facet
   facet=$(fm_polytoken_facet_file "$wt") || return 1
+  fm_polytoken_require_path_free "$facet" || return 1
   mkdir -p "$(dirname "$facet")" || return 1
   cat >"$facet" <<EOF
 ---
@@ -254,16 +255,10 @@ EOF
 # (a project hook that negates a global hook by name fails daemon startup -
 # verified by the scout), so this file only registers firstmate's own three
 # events and negates nothing.
-# fm_polytoken_require_hooks_free: refuse a worktree that already carries a
-# `.polytoken/hooks.json` - a project's own hook layer is never firstmate's to
-# clobber. fm-spawn runs this before writing any wiring or arming a relaunch's
-# abort cleanup, and fm-control runs it before stopping a relaunch's running
-# agent, so a refusal leaves the worktree, state, and agent untouched.
-fm_polytoken_require_hooks_free() {  # <worktree>
-  local hooks
-  hooks=$(fm_polytoken_hooks_file "$1") || return 1
-  if [ -e "$hooks" ] || [ -L "$hooks" ]; then
-    echo "error: $hooks already exists; a project's own polytoken hook layer is not firstmate's to clobber, so this task cannot be launched on polytoken into this worktree. Select another harness for this task." >&2
+fm_polytoken_require_path_free() {  # <path>
+  local path=$1
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    echo "error: $path already exists; a project's own polytoken wiring is not firstmate's to clobber, so this task cannot be launched on polytoken into this worktree. Select another harness for this task." >&2
     return 1
   fi
 }
@@ -283,9 +278,9 @@ fm_polytoken_require_handler_path() {  # <busy-script>
 
 fm_polytoken_write_hooks() {  # <worktree> <busy-script>
   local wt=$1 script=$2 hooks
-  fm_polytoken_require_hooks_free "$wt" || return 1
   fm_polytoken_require_handler_path "$script" || return 1
   hooks=$(fm_polytoken_hooks_file "$wt") || return 1
+  fm_polytoken_require_path_free "$hooks" || return 1
   mkdir -p "$(dirname "$hooks")" || return 1
   local jscript
   jscript=$(fm_polytoken_json_escape "$script")

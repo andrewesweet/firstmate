@@ -119,15 +119,11 @@ send_item() {  # <n>
     "$SCRIPT_DIR/fm-on.sh" "$ID" fm-remote-inherit.sh absent "$rel" 0 "$EMPTY_HASH" "$GENERATION" \
       < /dev/null > "$TMP/item.$n.out" 2> "$TMP/item.$n.err" || rc=$?
   fi
-  printf '%s\n' "$rc" > "$TMP/item.$n.rc.tmp" && mv -f "$TMP/item.$n.rc.tmp" "$TMP/item.$n.rc"
+  return "$rc"
 }
 
-item_failed() {  # <n>: 0 when the item finished with a non-zero status
-  local rc=
-  [ -f "$TMP/item.$1.rc" ] || return 1
-  read -r rc < "$TMP/item.$1.rc" || true
-  [ "$rc" != 0 ]
-}
+worker_pids=()
+item_status=()
 
 running=0
 next=1
@@ -137,20 +133,28 @@ while [ "$next" -le "$N" ] || [ "$running" -gt 0 ]; do
   running=0
   i=1
   while [ "$i" -le "$launched" ]; do
-    if [ -f "$TMP/item.$i.started" ] && [ ! -f "$TMP/item.$i.rc" ]; then
-      running=$((running + 1))
-    elif item_failed "$i"; then
-      stop=1
+    worker_pid=${worker_pids[$i]:-}
+    if [ -n "$worker_pid" ]; then
+      if kill -0 "$worker_pid" 2>/dev/null; then
+        running=$((running + 1))
+      else
+        item_rc=0
+        wait "$worker_pid" || item_rc=$?
+        item_status[$i]=$item_rc
+        unset 'worker_pids[i]'
+      fi
     fi
+    if [ "${item_status[$i]:-0}" -ne 0 ]; then stop=1; fi
     i=$((i + 1))
   done
   if [ "$stop" -eq 0 ] && [ "$next" -le "$N" ] && [ "$running" -lt "$JOBS" ]; then
     launched=$next
     if [ "$(cut -d' ' -f1 "$TMP/item.$next.plan")" = skip ]; then
-      printf '0\n' > "$TMP/item.$next.rc"
+      item_status[$next]=0
     else
-      : > "$TMP/item.$next.started"
       send_item "$next" &
+      worker_pids[$next]=$!
+      running=$((running + 1))
     fi
     next=$((next + 1))
     continue
@@ -158,7 +162,6 @@ while [ "$next" -le "$N" ] || [ "$running" -gt 0 ]; do
   [ "$running" -gt 0 ] || break
   sleep 0.05
 done
-wait
 
 # Replay in allowlist order, so the output reads exactly as one sequential push
 # would: each sent item's own stdout and stderr, and a session-scoped item's
@@ -171,8 +174,8 @@ while [ "$i" -le "$launched" ]; do
   else
     cat "$TMP/item.$i.out"
     cat "$TMP/item.$i.err" >&2
-    if item_failed "$i"; then
-      item_rc=$(cat "$TMP/item.$i.rc")
+    item_rc=${item_status[$i]}
+    if [ "$item_rc" -ne 0 ]; then
       if [ "$status" -eq 0 ] || [ "$item_rc" -eq 255 ]; then status=$item_rc; fi
     fi
   fi

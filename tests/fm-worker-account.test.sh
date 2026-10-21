@@ -124,6 +124,35 @@ assert_refused_before_launch() {
   [ ! -s "$CASE/launch.log" ] || fail "a refused spawn must not launch a worker: $(cat "$CASE/launch.log")"
 }
 
+test_herdr_resolves_both_account_pins_under_nounset() {
+  local dir out harness
+  dir="$TMP_ROOT/herdr-resolve"
+  mkdir -p "$dir/config" "$dir/claude" "$dir/pi" "$dir/user-home" "$dir/fakebin"
+  printf '%s\n' "$dir/claude" > "$dir/config/claude-account"
+  printf '%s\nopenai\n' "$dir/pi" > "$dir/config/pi-account"
+  cat > "$dir/fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+printf '%s|%s\n' "${CLAUDE_CONFIG_DIR:-}" "${PI_CODING_AGENT_DIR:-}" >> "$FM_TEST_HERDR_ACCOUNT_LOG"
+printf 'claude: current (v10)\npi: current (v10)\n'
+SH
+  chmod +x "$dir/fakebin/herdr"
+  out=$(HOME="$dir/user-home" FM_BACKEND_HERDR_BIN="$dir/fakebin/herdr" FM_TEST_HERDR_ACCOUNT_LOG="$dir/probes" \
+    bash -u -c '. "$1/bin/backends/herdr.sh"; fm_backend_herdr_integration_check "$2"' _ "$ROOT" "$dir/config" 2>&1) \
+    || fail "Herdr integration checks must resolve pins under nounset: $out"
+  assert_equals '' "$out" "healthy pinned integrations must produce no false diagnostic"
+  assert_equals "$(printf '%s|\n|%s' "$dir/claude" "$dir/pi")" "$(cat "$dir/probes")" "both selected roots must reach the integration probe"
+  for harness in claude pi; do
+    printf 'bad relative path\n' > "$dir/config/$harness-account"
+    out=$(bash -u -c '. "$1/bin/fm-worker-account-lib.sh"; fm_worker_account_resolve "$2" "$3"' _ "$ROOT" "$harness" "$dir/config" 2>&1) \
+      && fail "invalid $harness pin must refuse" || true
+    assert_contains "$out" "config/$harness-account" "two-argument refusals must name the default setting"
+    out=$(bash -u -c '. "$1/bin/fm-worker-account-lib.sh"; fm_worker_account_resolve "$2" "$3" custom-setting' _ "$ROOT" "$harness" "$dir/config" 2>&1) \
+      && fail "invalid $harness pin must refuse" || true
+    assert_contains "$out" custom-setting "explicit diagnostic labels must remain supported"
+  done
+  pass "Herdr resolves Claude and Pi pins under nounset with default and explicit labels"
+}
+
 test_absent_pin_keeps_the_launch_unchanged() {
   local out rc id=acct-absent
   new_case absent claude
@@ -488,6 +517,7 @@ test_remote_secondmate_account_override_refuses_locally() {
 test_secondmate_account_override
 test_secondmate_account_refusals
 test_remote_secondmate_account_override_refuses_locally
+test_herdr_resolves_both_account_pins_under_nounset
 test_absent_pin_keeps_the_launch_unchanged
 test_claude_pin_selects_the_root_and_sheds_ambient_credentials
 test_claude_pin_refuses_a_signed_out_root_despite_an_ambient_login

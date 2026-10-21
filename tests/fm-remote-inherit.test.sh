@@ -81,6 +81,51 @@ assert_receipt_applied_only() {  # <home>
     || fail "receipt should not keep a pending record after the destination holds the generation"
 }
 
+test_push_reaps_workers_without_completion_files() {
+  local home fakebin jobs expected out
+  home=$(new_home push-reap)
+  fakebin=$(fm_fakebin "$TMP_ROOT/push-reap")
+  mkdir -p "$home/state"
+  printf -- '- sm - remote fixture (host: host-sm; root: /remote/code; home: /remote/home; scope: work; projects: alpha; added 2026-08-02)\n' > "$home/data/secondmates.md"
+  cat > "$fakebin/ssh" <<'SH'
+#!/usr/bin/env bash
+while [ "$#" -gt 0 ]; do
+  case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
+done
+shift 2
+args=()
+while IFS= read -r -d '' arg; do args+=("$arg"); done < <(printf '%s' "$4" | base64 --decode 2>/dev/null || printf '%s' "$4" | base64 -D)
+printf 'unchanged: %s\n' "${args[2]}"
+exit "${FM_TEST_PUSH_EXIT:-0}"
+SH
+  cat > "$fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  case "$arg" in */item.*.rc) exit 1 ;; esac
+done
+exec /bin/mv "$@"
+SH
+  chmod +x "$fakebin/ssh" "$fakebin/mv"
+  for jobs in 1 4; do
+    for expected in 0 255; do
+      out=$(PATH="$fakebin:$BASE_PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" FM_SSH_BIN="$fakebin/ssh" \
+        FM_INHERITABLE_CONFIG='backend trace-context' FM_REMOTE_INHERIT_PUSH_JOBS="$jobs" FM_TEST_PUSH_EXIT="$expected" \
+        python3 - "$ROOT/bin/fm-remote-inherit-push.sh" "$expected" <<'PYTHON'
+import subprocess, sys
+result = subprocess.run([sys.argv[1], "sm", "1"], capture_output=True, text=True, timeout=8)
+assert result.returncode == int(sys.argv[2]), (result.returncode, result.stdout, result.stderr)
+print(result.stdout, end="")
+PYTHON
+      ) || fail "push must terminate with the worker's status without completion files (jobs=$jobs, expected=$expected): $out"
+      if [ "$expected" = 0 ]; then
+        assert_equals "$(printf 'unchanged: config/backend\nunchanged: config/trace-context\nunchanged: data/captain-shared.md')" "$out" \
+          "serial and parallel success must replay every result in allowlist order"
+      fi
+    done
+  done
+  pass "remote inheritance reaps serial and parallel workers without completion files"
+}
+
 test_interrupted_transfer_retry_neither_quarantines_previous_copy_nor_loses_new_one() {
   local home payload_v1 payload_v2 out
   home=$(new_home interrupted-retry)
@@ -281,6 +326,7 @@ put"
   pass "malformed receipt shapes fail closed"
 }
 
+test_push_reaps_workers_without_completion_files
 test_interrupted_transfer_retry_neither_quarantines_previous_copy_nor_loses_new_one
 test_interrupted_transfer_retry_still_quarantines_real_drift
 test_interrupted_transfer_after_publication_retry_reports_unchanged

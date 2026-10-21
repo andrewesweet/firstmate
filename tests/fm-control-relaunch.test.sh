@@ -775,6 +775,32 @@ SH
   pass "fm-control relaunch: a refused relaunch onto polytoken keeps the project's own hook layer and the running agent"
 }
 
+test_relaunch_refuses_a_foreign_facet_beside_owned_hooks() {
+  local dir out rc
+  dir=$(new_case polytokenownfacet rl46)
+  add_ship_task "$dir" rl46 polytoken
+  mkdir -p "$dir/wt/.polytoken/facets"
+  printf '[{"handler":{"bash":"%s/home/state/rl46.polytoken-busy.sh"}}]\n' "$dir" > "$dir/wt/.polytoken/hooks.json"
+  printf 'project facet\n' > "$dir/wt/.polytoken/facets/firstmate-worker.md"
+  cat > "$dir/fakebin/polytoken" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  'print models') printf '%s\n' 'zai/glm-5.3-flash' 'zai/glm-5.3-flash(low)' ;;
+  *) exit 1 ;;
+esac
+SH
+  chmod +x "$dir/fakebin/polytoken"
+  rc=0
+  out=$(run_control "$dir" rl46 relaunch --harness polytoken --model zai/glm-5.3-flash --effort low --note retry) || rc=$?
+  [ "$rc" -ne 0 ] || fail "relaunch must refuse a foreign facet even beside owned hooks"
+  assert_contains "$out" "not firstmate's to clobber" "the foreign facet must fail preflight"
+  assert_contains "$out" '/facets/firstmate-worker.md' "owned hooks must not bypass the independent facet check"
+  assert_equals 'project facet' "$(cat "$dir/wt/.polytoken/facets/firstmate-worker.md")" "the foreign facet must survive refusal"
+  assert_equals '' "$(cat "$dir/fake/literal")" "preflight refusal must send no command"
+  assert_equals claude "$(cat "$dir/fake/command")" "preflight refusal must not stop the running process"
+  pass "fm-control relaunch: an owned hook never authorizes overwriting a foreign facet"
+}
+
 test_refused_polytoken_profile_leaves_the_running_agent() {
   local dir out rc
   dir=$(new_case polytokenprofile rl47)
@@ -2892,6 +2918,7 @@ test_relaunch_note_inbox_listing_is_safe_on_empty_inbox
 test_relaunch_requires_a_note_for_a_ship_task
 test_harness_switch_moves_the_record_and_clears_prior_wiring
 test_refused_relaunch_onto_polytoken_keeps_the_project_hook_layer
+test_relaunch_refuses_a_foreign_facet_beside_owned_hooks
 test_refused_polytoken_profile_leaves_the_running_agent
 test_relaunch_from_a_raw_polytoken_launch_keeps_the_project_layers
 test_harness_switch_does_not_carry_the_old_profile_axes
