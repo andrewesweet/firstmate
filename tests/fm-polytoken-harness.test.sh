@@ -775,18 +775,35 @@ test_polytoken_rest_interrupt_settles_the_turn() {
 }
 
 interrupt_task_case() {  # <name> <event-written-during-cancel> [reopen-after] -> prints the final record
-  local name=$1 event=$2 reopen=${3:-} dir state hook port pid out
+  local name=$1 event=$2 reopen=${3:-} late=${4:-} dir state hook port pid out bin
+  bin="$ROOT/bin"
   dir=$(make_wiring_case "interrupttask-$name")
   state="$dir/state"
   "$ROOT/bin/fm-busy-event.sh" arm "$state" task >/dev/null || fail "the busy contract must arm"
   "$ROOT/bin/fm-busy-event.sh" apply "$state" task busy --current-gen \
     --source polytoken-hook --event pre-model-turn >/dev/null || fail "the running turn's open must apply"
-  printf -v hook '%q apply %q task busy --current-gen --source polytoken-hook --event %q' \
-    "$ROOT/bin/fm-busy-event.sh" "$state" "$event"
+  if [ "$event" = rearm ]; then
+    printf -v hook '%q arm %q task --state busy --source polytoken-hook --event pre-model-turn' \
+      "$ROOT/bin/fm-busy-event.sh" "$state"
+  else
+    printf -v hook '%q apply %q task busy --current-gen --source polytoken-hook --event %q' \
+      "$ROOT/bin/fm-busy-event.sh" "$state" "$event"
+  fi
+  if [ -n "$late" ]; then
+    bin="$dir/bin"
+    mkdir -p "$bin"
+    cat > "$bin/fm-busy-event.sh" <<'SH'
+#!/usr/bin/env bash
+"$PTFAKE_BUSY_WRITER" apply "$2" "$3" busy --current-gen --source polytoken-hook --event "$PTFAKE_LATE_EVENT" || exit 1
+exec "$PTFAKE_BUSY_WRITER" "$@"
+SH
+    chmod +x "$bin/fm-busy-event.sh"
+  fi
   PTFAKE_STUB_ON_CANCEL="$hook" PTFAKE_STUB_REOPEN_AFTER="$reopen" \
     rest_stub_start "$dir" > "$dir/handle" || fail "the REST stub must start"
   read -r port pid < "$dir/handle"
-  out=$(fm_polytoken_interrupt_task "$ROOT/bin" "$state" task "$port" stub-token 8) \
+  out=$(PTFAKE_BUSY_WRITER="$ROOT/bin/fm-busy-event.sh" PTFAKE_LATE_EVENT="$late" \
+    fm_polytoken_interrupt_task "$bin" "$state" task "$port" stub-token 8) \
     || fail "the interrupt must be acknowledged"
   kill "$pid" 2>/dev/null || true
   [ "$out" = cancelled ] || fail "a settled cancel must report cancelled, got '$out'"
@@ -810,6 +827,15 @@ test_polytoken_interrupt_close_spares_a_reopened_turn() {
   out=$(interrupt_task_case resumed pre-model-turn 1)
   assert_contains "$out" "busy polytoken-hook pre-model-turn" \
     "a turn running at the write must not be closed, got '$out'"
+  out=$(interrupt_task_case late-prompt pre-model-turn '' pre-user-prompt)
+  assert_equals 'busy polytoken-hook pre-user-prompt 4' "$out" \
+    "a queued prompt after the final sync must survive the conditional close"
+  out=$(interrupt_task_case late-model pre-model-turn '' pre-model-turn)
+  assert_equals 'busy polytoken-hook pre-model-turn 4' "$out" \
+    "a new model event after the final sync must survive the conditional close"
+  out=$(interrupt_task_case replacement rearm)
+  assert_equals 'busy polytoken-hook pre-model-turn 1' "$out" \
+    "an incarnation replaced during cancellation must not be closed by the old interrupt"
   pass "fm-polytoken-lib: the interrupt close lands after mid-turn rewrites and spares a reopened or running turn"
 }
 
