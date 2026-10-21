@@ -349,15 +349,54 @@ make_wiring_case() {  # <name>
   printf '%s\n' "$case_dir"
 }
 
-polytoken_yaml_json() {
-  python3 - "$@" <<'PYTHON'
-import json, pathlib, sys, yaml
-text = pathlib.Path(sys.argv[1]).read_text()
+polytoken_fixture_json() {
+  python3 -S - "$@" <<'PYTHON'
+import json, pathlib, shlex, sys
+
+def scalar(text):
+    lexer = shlex.shlex(text, posix=False, punctuation_chars="[],")
+    lexer.whitespace_split = True
+    tokens = list(lexer)
+    if not tokens:
+        return None
+    if tokens[0] == "[":
+        return json.loads("".join(
+            token if all(char in "[]," for char in token) else json.dumps(scalar(token))
+            for token in tokens
+        ))
+    if len(tokens) == 1 and tokens[0].startswith('"'):
+        return json.loads(tokens[0])
+    if len(tokens) == 1 and tokens[0].startswith("'"):
+        assert tokens[0].endswith("'"), "unterminated fixture string"
+        return tokens[0][1:-1].replace("''", "'")
+    text = " ".join(tokens)
+    assert not text.startswith(("&", "*", "!", "|", ">", "{")), "unsupported fixture value"
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+lines = pathlib.Path(sys.argv[1]).read_text().splitlines()
 if len(sys.argv) > 2 and sys.argv[2] == "frontmatter":
-    lines = text.splitlines()
     assert lines[0] == "---", "facet must open with YAML frontmatter"
-    text = "\n".join(lines[1:lines.index("---", 1)])
-print(json.dumps(yaml.safe_load(text)))
+    lines = lines[1:lines.index("---", 1)]
+result = {}
+parents = [(-2, result)]
+for line in lines:
+    if not line.strip() or line.lstrip().startswith("#"):
+        continue
+    indent = len(line) - len(line.lstrip(" "))
+    key, separator, text = line.strip().partition(":")
+    assert separator and key, "fixture must contain mapping entries"
+    while indent <= parents[-1][0]:
+        parents.pop()
+    assert indent == parents[-1][0] + 2, "unexpected fixture indentation"
+    parent = parents[-1][1]
+    assert key not in parent, "duplicate fixture mapping key"
+    parent[key] = scalar(text) if text.strip() else {}
+    if not text.strip():
+        parents.append((indent, parent[key]))
+print(json.dumps(result))
 PYTHON
 }
 
@@ -371,9 +410,9 @@ test_polytoken_write_config_enforces_the_unattended_posture() {
     > "$home/.config/polytoken/config.yaml"
   XDG_CONFIG_HOME="$home/.config" HOME="$home" fm_polytoken_write_config "$cfgdir" \
     || fail "a mirrorable global config must be mirrored"
-  mirrored=$(polytoken_yaml_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
-  assert_equals bypass "$(printf '%s' "$mirrored" | jq -r '.default_permission_matcher')" \
-    "a standard global posture must be enforced to exactly bypass"
+  mirrored=$(polytoken_fixture_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
+  printf '%s' "$mirrored" | jq -e '.default_permission_matcher == "bypass"' >/dev/null \
+    || fail "a standard global posture must be enforced to exactly bypass"
   printf '%s' "$mirrored" | jq -e '.providers.zai.auth == {"type":"static_key","key":"k"}' >/dev/null \
     || fail "the mirrored provider authentication must survive"
   # bypass_plus is the one strictly-safer value that is preserved.
@@ -381,18 +420,18 @@ test_polytoken_write_config_enforces_the_unattended_posture() {
   rm -rf "$cfgdir"
   XDG_CONFIG_HOME="$home/.config" HOME="$home" fm_polytoken_write_config "$cfgdir" \
     || fail "a bypass_plus global config must be mirrored"
-  mirrored=$(polytoken_yaml_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
-  assert_equals bypass_plus "$(printf '%s' "$mirrored" | jq -r '.default_permission_matcher')" \
-    "the bypass_plus posture must be preserved"
+  mirrored=$(polytoken_fixture_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
+  printf '%s' "$mirrored" | jq -e '.default_permission_matcher == "bypass_plus"' >/dev/null \
+    || fail "the bypass_plus posture must be preserved"
   # Quoted and commented YAML spellings of bypass_plus are the same value.
   for spelling in '"bypass_plus"' "'bypass_plus'" 'bypass_plus # keep deny rules'; do
     printf 'version: 4\ndefault_permission_matcher: %s\n' "$spelling" > "$home/.config/polytoken/config.yaml"
     rm -rf "$cfgdir"
     XDG_CONFIG_HOME="$home/.config" HOME="$home" fm_polytoken_write_config "$cfgdir" \
       || fail "a bypass_plus global config spelled $spelling must be mirrored"
-    mirrored=$(polytoken_yaml_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
-    assert_equals bypass_plus "$(printf '%s' "$mirrored" | jq -r '.default_permission_matcher')" \
-      "the bypass_plus posture spelled $spelling must be preserved"
+    mirrored=$(polytoken_fixture_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
+    printf '%s' "$mirrored" | jq -e '.default_permission_matcher == "bypass_plus"' >/dev/null \
+      || fail "the bypass_plus posture spelled $spelling must be preserved"
   done
   # An absent key is appended, not silently inherited: the project layer
   # fully replaces the global config, so nothing can be inherited.
@@ -400,9 +439,9 @@ test_polytoken_write_config_enforces_the_unattended_posture() {
   rm -rf "$cfgdir"
   XDG_CONFIG_HOME="$home/.config" HOME="$home" fm_polytoken_write_config "$cfgdir" \
     || fail "a global config without the matcher key must still be mirrored"
-  mirrored=$(polytoken_yaml_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
-  assert_equals bypass "$(printf '%s' "$mirrored" | jq -r '.default_permission_matcher')" \
-    "an absent matcher key must become exactly bypass"
+  mirrored=$(polytoken_fixture_json "$cfgdir/config.yaml") || fail "generated config must parse as YAML"
+  printf '%s' "$mirrored" | jq -e '.default_permission_matcher == "bypass"' >/dev/null \
+    || fail "an absent matcher key must become exactly bypass"
   # A missing global config refuses rather than launching a worker with no
   # providers or credentials.
   rm -rf "$home/.config/polytoken" "$cfgdir"
@@ -422,8 +461,9 @@ test_polytoken_write_facet_carries_the_role_contract_without_a_model_pin() {
   facet="$case_dir/wt/.polytoken/facets/firstmate-worker.md"
   [ -f "$facet" ] || fail "the facet must exist at the project facet layer path"
   body=$(cat "$facet")
-  metadata=$(polytoken_yaml_json "$facet" frontmatter) || fail "facet frontmatter must parse as YAML"
-  assert_equals firstmate-worker "$(printf '%s' "$metadata" | jq -r '.name')" "the facet must be named exactly firstmate-worker"
+  metadata=$(polytoken_fixture_json "$facet" frontmatter) || fail "facet frontmatter must parse as YAML"
+  printf '%s' "$metadata" | jq -e '.name == "firstmate-worker"' >/dev/null \
+    || fail "the facet must be named exactly firstmate-worker"
   printf '%s' "$metadata" | jq -e '(.polytoken.tools_deny | sort) == (["switch_facet", "handoff_plan", "subagent", "message_subagent"] | sort)' >/dev/null \
     || fail "the facet must deny the exact facet-switching and delegation tools"
   assert_contains "$body" 'transclude("polytoken://system_prompts/facet.md")' \
@@ -991,9 +1031,9 @@ test_polytoken_launch_carries_the_hybrid_contract() {
   [ -f "$WT_DIR/.polytoken/hooks.json" ] || fail "the worktree hook layer was not written"
   [ -f "$WT_DIR/.polytoken/facets/firstmate-worker.md" ] || fail "the worker facet was not written"
   [ -f "$HOME_DIR/state/$id.polytoken-busy.sh" ] || fail "the busy writer was not written"
-  cfg=$(polytoken_yaml_json "$HOME_DIR/state/$id.polytoken-config/config.yaml") || fail "launched config must parse as YAML"
-  assert_equals bypass "$(printf '%s' "$cfg" | jq -r '.default_permission_matcher')" \
-    "the mirrored worker config must enforce exactly bypass"
+  cfg=$(polytoken_fixture_json "$HOME_DIR/state/$id.polytoken-config/config.yaml") || fail "launched config must parse as YAML"
+  printf '%s' "$cfg" | jq -e '.default_permission_matcher == "bypass"' >/dev/null \
+    || fail "the mirrored worker config must enforce exactly bypass"
   pass "fm-spawn: the polytoken launch carries the hybrid contract end to end"
 }
 

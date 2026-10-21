@@ -324,7 +324,7 @@ test_clear_removes_tokens_and_the_view_even_when_off() {
 
 assert_sidebar_config() {
   python3 - "$@" <<'PYTHON' || fail "generated sidebar configuration does not match its semantic contract"
-import sys, tomllib
+import json, sys, tomllib
 with open(sys.argv[1], "rb") as stream:
     config = tomllib.load(stream)
 group = {"token": "$fm_group", "bold": True}
@@ -332,7 +332,7 @@ expected = {
     "spaces": {"rows": [["state_icon", "workspace"], [group, "$fm_state"]]},
     "agents": {"rows": [["state_icon", group, "$fm_state", "$fm_task"]]},
 }
-assert config["ui"]["sidebar"] == expected, config
+assert json.dumps(config["ui"]["sidebar"], sort_keys=True) == json.dumps(expected, sort_keys=True), config
 if len(sys.argv) > 2:
     assert config["ui"]["agent_panel_sort"] == sys.argv[2], config
 PYTHON
