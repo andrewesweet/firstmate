@@ -77,8 +77,14 @@
 # A tool failing where the previous sweep did not is reported as unchanged from
 # the last report, its "<tool> check failed" finding is emitted only when the
 # same tool fails again on the next sweep, and a successful probe clears the
-# streak. Registry problems, the budget cut notice, and budget exhaustion are
-# never held back this way.
+# streak. Only probes that ran and failed enter the streak: version commands
+# with no version, announcement commands that time out, version_url reads that
+# fail or return no version, and git probes that time out, fail the repository
+# check, cannot resolve a default branch, cannot read the remote, find a missing
+# branch, or find no commit to compare. Invalid announcement patterns, missing
+# commands/curl/git, non-directory repositories, registry problems, the budget
+# cut notice, and all budget-exhaustion/incomplete findings report immediately
+# and never enter the streak.
 set -u
 export LC_ALL=C
 # A watched git remote must never stop to ask for credentials; an unauthenticated
@@ -443,20 +449,20 @@ command_findings() {
   # This tool's announcement source is dead if its pattern cannot be used, which
   # is reported here, for this tool alone, so the rest of the sweep still runs.
   if [ -n "$announce" ] && ! announce_pattern_usable "$announce"; then
-    emit_tool "$name check failed: announce_pattern is not a usable extended regular expression"
+    emit "$name check failed: announce_pattern is not a usable extended regular expression"
     announce=
   fi
 
   hits=$(path_hits "$command_name")
   if [ -z "$hits" ]; then
-    emit_tool "$name check failed: $command_name is not on PATH"
+    emit "$name check failed: $command_name is not on PATH"
     return 0
   fi
 
   while IFS= read -r hit; do
     [ -n "$hit" ] || continue
     if budget_exhausted; then
-      emit_tool "$name check failed: the time budget ran out before every copy answered"
+      emit "$name check failed: the time budget ran out before every copy answered"
       break
     fi
     # shellcheck disable=SC2086  # deliberate split on validated space-free tokens
@@ -489,7 +495,7 @@ EOF
       if budget_exhausted; then
         # The version probe's output cannot carry the announcement, so searching
         # it would present a source that was never asked as a clean result.
-        emit_tool "$name check failed: the time budget ran out before the update announcement was checked"
+        emit "$name check failed: the time budget ran out before the update announcement was checked"
         announce_out=
       else
         # shellcheck disable=SC2086  # deliberate split on validated space-free tokens
@@ -509,7 +515,7 @@ EOF
       matched=$(grep -oE -- "$announce" <<< "$announce_out" 2>/dev/null)
       status=$?
       if [ "$status" -gt 1 ]; then
-        emit_tool "$name check failed: announce_pattern is not a usable extended regular expression"
+        emit "$name check failed: announce_pattern is not a usable extended regular expression"
       elif [ -n "$matched" ]; then
         matched_line=$(printf '%s\n' "$matched" | head -n 1)
         announced_version=$(parse_announced_version "$matched_line")
@@ -535,9 +541,9 @@ EOF
     # and compared with the newest installed copy found: a newer install elsewhere
     # on PATH is the "not in effect" finding below, not an available update.
     if budget_exhausted; then
-      emit_tool "$name check failed: the time budget ran out before $version_url was read"
+      emit "$name check failed: the time budget ran out before $version_url was read"
     elif ! command -v curl >/dev/null 2>&1; then
-      emit_tool "$name check failed: curl is required to read $version_url"
+      emit "$name check failed: curl is required to read $version_url"
     else
       out=$(fm_run_timed "$(probe_bound)" curl -fsS --max-time "$(probe_bound)" -- "$version_url" 2>/dev/null)
       status=$?
@@ -585,7 +591,7 @@ git_probe_answered() {
   local status=$1 name=$2 subject=$3 question=$4
   case "$status" in
     "$GIT_PROBE_NOT_ISSUED")
-      emit_tool "$name check failed: the time budget ran out before $subject was asked $question"
+      emit "$name check failed: the time budget ran out before $subject was asked $question"
       return 1
       ;;
     124)
@@ -605,11 +611,11 @@ git_findings() {
   local status remote_sha local_sha local_label count short symref
 
   if ! command -v git >/dev/null 2>&1; then
-    emit_tool "$name check failed: git is not installed"
+    emit "$name check failed: git is not installed"
     return 0
   fi
   if [ ! -d "$repo" ]; then
-    emit_tool "$name check failed: $repo is not a directory"
+    emit "$name check failed: $repo is not a directory"
     return 0
   fi
   budget_allows "$name" || return 0
@@ -749,6 +755,21 @@ record_write() {
   return 0
 }
 
+finding_segments() {
+  local piece segment= boundary='^[^[:space:]]+ (check failed|update available|update not in effect): '
+  while IFS= read -r piece; do
+    if [[ "$piece" =~ $boundary ]]; then
+      [ -z "$segment" ] || printf '%s\n' "$segment"
+      segment=$piece
+    elif [ -n "$segment" ]; then
+      segment="$segment; $piece"
+    else
+      segment=$piece
+    fi
+  done <<< "${1//"; "/$'\n'}"
+  [ -z "$segment" ] || printf '%s\n' "$segment"
+}
+
 # True when one tool's own findings contain a probe failure.
 tool_findings_failed() {
   local name=$1 seg
@@ -757,7 +778,7 @@ tool_findings_failed() {
     case "$seg" in
       "$name check failed: "*) return 0 ;;
     esac
-  done <<< "${2//"; "/$'\n'}"
+  done < <(finding_segments "$2")
   return 1
 }
 
@@ -771,6 +792,12 @@ previous_tool_findings() {
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
     case "$seg" in
+      "$name check failed: announce_pattern is not a usable extended regular expression"|\
+      "$name check failed: the time budget ran out "*|\
+      "$name check failed: "*" is not on PATH"|\
+      "$name check failed: curl is required to read "*|\
+      "$name check failed: git is not installed"|\
+      "$name check failed: "*" is not a directory") continue ;;
       "$name check failed: "*|"$name update available: "*|"$name update not in effect: "*)
         if [ -z "$out" ]; then
           out=$seg
@@ -779,7 +806,7 @@ previous_tool_findings() {
         fi
         ;;
     esac
-  done <<< "${RECORD_REPORTED//"; "/$'\n'}"
+  done < <(finding_segments "$RECORD_REPORTED")
   printf '%s\n' "$out"
 }
 

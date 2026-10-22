@@ -1826,8 +1826,9 @@ Arm the check once per home with `bin/fm-tool-update-check.sh arm`.
 
 - The check prints nothing when everything is current, and `state/.tool-updates` records the findings the last report was made from, and which watched tools' probes failed that sweep, so the same pending update is reported once instead of on every poll.
 - A changed or returning condition is reported again.
-- A tool whose probe fails where the previous sweep did not fail it is reported as unchanged from the last report, and the `<tool> check failed` finding is reported only when the same tool's probe fails again on the next sweep, so one transient failure never wakes the home and the recovery after it is not news either.
-- Registry problems, the budget cut notice, and budget exhaustion are reported as they happen and are never held back this way.
+- A tool whose probe fails where the previous sweep did not fail it retains its previous probe findings, and the failure is reported only when the same tool's probe fails again on the next sweep, so a transient probe failure and its recovery do not wake the home.
+  This applies only to probes that ran: a version command returning no version, an announcement command timing out, a `version_url` read failing or returning no version, or a git probe timing out, failing its repository check, failing to resolve the default branch, failing to reach or read the remote, finding a missing branch, or finding no commit to compare.
+- Invalid `announce_pattern` configuration, missing commands, missing curl or git, repository paths that are not directories, registry problems, the budget cut notice, every budget-exhaustion finding, and the `check incomplete` notice are reported immediately and never enter the two-sweep streak.
 - Adding, removing, or changing a watched tool is an edit to this file and needs no code change or re-arming.
 - This file is not inherited by secondmate homes, so each home watches the tools it actually depends on.
 

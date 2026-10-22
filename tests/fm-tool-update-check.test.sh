@@ -211,8 +211,6 @@ test_missing_command_is_reported() {
   write_config "$home" '{"tools":[{"name":"herdr","command":"herdr-absent-fixture"}]}'
   out="$home/out.txt"
   run_check "$home" "$PATH" "$out"
-  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
-  run_check "$home" "$PATH" "$out"
   assert_contains "$(cat "$out")" "herdr check failed: herdr-absent-fixture is not on PATH" "a watched command missing from PATH was not reported"
   pass "a watched command missing from PATH is reported"
 }
@@ -337,8 +335,6 @@ test_unusable_announce_pattern_is_reported_not_read_as_silence() {
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","announce_pattern":"A new version of no-mistakes is available: ([^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
   run_check "$home" "$(fixture_path "$dir")" "$out"
-  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
-  run_check "$home" "$(fixture_path "$dir")" "$out"
   assert_contains "$(cat "$out")" "no-mistakes check failed: announce_pattern is not a usable extended regular expression" "a pattern that cannot be used was read as nothing to announce"
 
   # Arming is a deliberate operator action, so the same registry refuses it
@@ -367,10 +363,6 @@ test_one_broken_pattern_does_not_blind_the_rest_of_the_sweep() {
   run_check "$home" "$(fixture_path "$stale:$fresh:$dir")" "$out"
   report=$(cat "$out")
   assert_contains "$report" "herdr update not in effect: PATH resolves 0.8.0 at $stale/$TOOL" "a broken pattern on another tool suppressed the PATH skew report"
-  assert_not_contains "$report" "no-mistakes check failed" "the pattern tool's first failed sweep was reported before it could repeat"
-  run_check "$home" "$(fixture_path "$stale:$fresh:$dir")" "$out"
-  report=$(cat "$out")
-  assert_contains "$report" "herdr update not in effect: PATH resolves 0.8.0 at $stale/$TOOL" "the skew report did not survive into the second sweep"
   assert_contains "$report" "no-mistakes check failed: announce_pattern is not a usable extended regular expression" "the tool whose pattern cannot be used was not named"
   [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the report must stay exactly one line"
   pass "a broken pattern is reported for its own tool and the rest of the sweep still reports"
@@ -405,8 +397,6 @@ SH
   # more than a full second of headroom for the millisecond-scale work before
   # the copy loop, while the version probe below (bounded, then sleeping 30)
   # still exhausts the budget before the announcement check.
-  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=2
-  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=2
   report=$(cat "$out")
   assert_contains "$report" "no-mistakes check failed: the time budget ran out before the update announcement was checked" "an announcement source that was never asked was not reported"
@@ -558,14 +548,14 @@ test_unreadable_version_url_is_a_failure_not_a_pass() {
 # A probe PATH with every ambient binary except curl, so the version_url probe
 # has no reader while the check's other tools (jq, git, date, grep, timeout)
 # keep working. Built from symlinks, so the host's binaries are never moved.
-make_path_without_curl() {
-  local dir=$1 path_entry entry base
+make_path_without_command() {
+  local dir=$1 excluded=$2 path_entry entry base
   mkdir -p "$dir"
   while IFS= read -r path_entry; do
     [ -n "$path_entry" ] && [ -d "$path_entry" ] || continue
     for entry in "$path_entry"/*; do
       base=${entry##*/}
-      [ "$base" = curl ] && continue
+      [ "$base" = "$excluded" ] && continue
       [ -e "$dir/$base" ] && continue
       [ -x "$entry" ] && [ ! -d "$entry" ] || continue
       ln -s "$entry" "$dir/$base" 2>/dev/null || true
@@ -579,13 +569,12 @@ test_missing_curl_is_a_failure_not_a_pass() {
   dir="$TMP_ROOT/version-url-nocurl/bin"
   make_copy "$dir" claude-fixture '2.1.271 (Claude Code)'
   nobin="$TMP_ROOT/version-url-nocurl/nobin"
-  make_path_without_curl "$nobin"
+  make_path_without_command "$nobin" curl
   write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
   out="$home/out.txt"
   run_check "$home" "$dir:$nobin" "$out"
-  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
-  run_check "$home" "$dir:$nobin" "$out"
   assert_contains "$(cat "$out")" "claude check failed: curl is required to read https://downloads.example.invalid/latest" "a host without curl took the tool for current"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "missing curl entered the probe streak"
   pass "a missing curl is a check failure"
 }
 
@@ -1036,6 +1025,137 @@ test_failure_streaks_are_tracked_per_tool() {
   pass "each tool's failure streak is tracked independently"
 }
 
+test_payload_separators_survive_transient_failures() {
+  local home stale fresh sibling out initial
+  home=$(make_home separator-flap)
+  stale="$home/tool; cache/bin"
+  fresh="$home/new; installed/bin"
+  sibling="$home/sibling/bin"
+  make_copy "$stale" "$TOOL" 'herdr 0.8.0'
+  make_copy "$fresh" "$TOOL" 'herdr 0.8.2'
+  make_copy "$sibling" claude-fixture '2.1.307'
+  make_curl_fixture "$stale" '0.8.3'
+  write_config "$home" "{\"tools\":[{\"name\":\"h.erdr\",\"command\":\"$TOOL\",\"version_url\":\"https://downloads.example.invalid/latest\"},{\"name\":\"claude\",\"command\":\"claude-fixture\",\"version_url\":\"https://downloads.example.invalid/latest\"}]}"
+  out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$stale:$fresh:$sibling")" "$out"
+  initial=$(cat "$out")
+  assert_contains "$initial" "$stale/$TOOL but 0.8.2 is installed at $fresh/$TOOL" "the initial report did not contain both separator paths"
+  assert_contains "$initial" 'h.erdr update available: 0.8.3' "the initial report did not contain both findings"
+  make_curl_fixture "$stale" '' 22
+  run_check "$home" "$(fixture_path "$stale:$fresh:$sibling")" "$out"
+  [ ! -s "$out" ] || fail "separator payload changed on a transient failure: $(cat "$out")"
+  make_curl_fixture "$stale" '0.8.3'
+  run_check "$home" "$(fixture_path "$stale:$fresh:$sibling")" "$out"
+  [ ! -s "$out" ] || fail "separator payload changed on recovery: $(cat "$out")"
+  printf '%s\n' 'fm-tool-updates-v1' 'epoch=1' "reported=${initial#tool updates: }" > "$home/state/.tool-updates"
+  make_curl_fixture "$stale" '' 22
+  run_check "$home" "$(fixture_path "$stale:$fresh:$sibling")" "$out"
+  [ ! -s "$out" ] || fail "old-record separator payload changed: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$stale:$fresh:$sibling")" "$out"
+  assert_contains "$(cat "$out")" 'h.erdr check failed:' "a repeated failure with separator paths was suppressed"
+  assert_contains "$(cat "$out")" "$stale/$TOOL but 0.8.2 is installed at $fresh/$TOOL" "a repeated failure truncated the skew payload"
+  pass "separator payloads survive transient failures and old records"
+}
+
+test_immediate_findings_do_not_seed_or_reappear_in_probe_streaks() {
+  local home dir out
+  home=$(make_home immediate-streak)
+  dir="$home/bin"
+  out="$home/out.txt"
+  write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
+  run_check "$home" "$PATH" "$out"
+  assert_contains "$(cat "$out")" 'is not on PATH' "a missing command was suppressed"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "a missing command entered the probe streak"
+  make_copy "$dir" "$TOOL" 'no version here'
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "a missing command seeded or reappeared in a probe failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" 'did not report a version' "a repeated actual failure was suppressed"
+  make_copy "$dir" "$TOOL" 'herdr 0.8.2'
+  write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\",\"announce_pattern\":\"(\"}]}"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" 'announce_pattern is not a usable' "a regex configuration error was suppressed"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "a regex error entered the probe streak"
+  make_copy "$dir" "$TOOL" 'no version here'
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "a regex error was duplicated during a probe failure: $(cat "$out")"
+  pass "immediate findings remain outside probe failure streaks and inheritance"
+}
+
+test_missing_git_and_repository_directory_report_immediately() {
+  local home nobin out
+  home=$(make_home missing-git)
+  nobin="$home/nobin"
+  make_path_without_command "$nobin" git
+  out="$home/out.txt"
+  write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$home\"}}]}"
+  run_check "$home" "$nobin" "$out"
+  assert_contains "$(cat "$out")" 'git is not installed' "a missing git was suppressed"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "missing git entered the probe streak"
+  write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$home/absent; directory\"}}]}"
+  run_check "$home" "$PATH" "$out"
+  assert_contains "$(cat "$out")" "$home/absent; directory is not a directory" "a missing repository directory was suppressed"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "a missing repository directory entered the probe streak"
+  pass "missing git and repository directories report immediately"
+}
+
+test_budget_findings_remain_immediate_without_a_failed_probe() {
+  local kind home dir fresh out expected real_git
+  real_git=$(command -v git)
+  for kind in copies announcement version-url git; do
+    home=$(make_home "immediate-budget-$kind")
+    dir="$home/bin"
+    fresh="$home/fresh/bin"
+    mkdir -p "$dir"
+    cat > "$dir/date" <<'SH'
+#!/usr/bin/env bash
+if [ -f "$FM_HOME/expired" ]; then
+  printf '2000\n'
+else
+  printf '1000\n'
+fi
+SH
+    cat > "$dir/$TOOL" <<'SH'
+#!/usr/bin/env bash
+printf 'herdr 0.8.0\n'
+: > "$FM_HOME/expired"
+SH
+    chmod 0755 "$dir/date" "$dir/$TOOL"
+    case "$kind" in
+      copies)
+        make_copy "$fresh" "$TOOL" 'herdr 0.8.2'
+        write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
+        expected='the time budget ran out before every copy answered'
+        ;;
+      announcement)
+        write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\",\"announce_args\":[\"--help\"],\"announce_pattern\":\"update available\"}]}"
+        expected='the time budget ran out before the update announcement was checked'
+        ;;
+      version-url)
+        write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\",\"version_url\":\"https://downloads.example.invalid/latest\"}]}"
+        expected='the time budget ran out before https://downloads.example.invalid/latest was read'
+        ;;
+      git)
+        cat > "$dir/git" <<'SH'
+#!/usr/bin/env bash
+"$FM_BUDGET_REAL_GIT" "$@"
+status=$?
+: > "$FM_HOME/expired"
+exit "$status"
+SH
+        chmod 0755 "$dir/git"
+        write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"git\":{\"repo\":\"$ROOT\",\"branch\":\"main\"}}]}"
+        expected="the time budget ran out before origin was asked where main points"
+        ;;
+    esac
+    out="$home/out.txt"
+    run_check "$home" "$(fixture_path "$dir:$fresh")" "$out" "FM_BUDGET_REAL_GIT=$real_git"
+    assert_contains "$(cat "$out")" "herdr check failed: $expected" "$kind budget exhaustion was suppressed"
+    grep -qxF 'failed=' "$home/state/.tool-updates" || fail "$kind budget exhaustion entered a probe streak"
+  done
+  pass "every tool budget finding reports immediately without a failed probe"
+}
+
 test_an_overlong_report_says_it_was_cut() {
   local home out report i tools_json=
   # Many watched tools can outgrow one line. The report must say it was cut
@@ -1047,10 +1167,6 @@ test_an_overlong_report_says_it_was_cut() {
   done
   write_config "$home" "{\"tools\":[$tools_json]}"
   out="$home/out.txt"
-  run_check "$home" "$PATH" "$out"
-  # Every one of these failures is a first for its tool, so the first sweep
-  # holds them all back and the long line only exists once they repeat.
-  [ ! -s "$out" ] || fail "the first failed sweep already reported: $(cat "$out")"
   run_check "$home" "$PATH" "$out"
   report=$(cat "$out")
   assert_contains "$report" "[truncated]" "an over-long report was cut without saying so"
@@ -1075,17 +1191,15 @@ test_a_finding_past_the_cut_is_still_reported() {
   out="$home/out.txt"
   write_config "$home" "{\"tools\":[$tools_json]}"
   run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
-  [ ! -s "$out" ] || fail "the first failed sweep already reported: $(cat "$out")"
-  run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
-  assert_contains "$(cat "$out")" "[truncated]" "the second sweep's report was not long enough to be cut, so the next finding cannot land past the cut"
+  assert_contains "$(cat "$out")" "[truncated]" "the first sweep's report was not long enough to be cut, so the next finding cannot land past the cut"
 
   # The skew tool goes last, so its finding falls past the cut and the printed
-  # line is byte identical to the one the second sweep already recorded.
+  # line is byte identical to the one the first sweep already recorded.
   write_config "$home" "{\"tools\":[$tools_json,{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
   run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
   report=$(cat "$out")
   [ -n "$report" ] || fail "a finding past the cut produced no report at all, so it can never reach the watcher"
-  assert_contains "$report" "[truncated]" "the third report was not cut, so the finding was not past the cut"
+  assert_contains "$report" "[truncated]" "the second report was not cut, so the finding was not past the cut"
   pass "a finding that lands past the cut is still reported as news"
 }
 
@@ -1407,6 +1521,10 @@ test_one_transient_failure_flaps_silently
 test_failure_is_reported_only_after_two_consecutive_failed_sweeps
 test_an_old_format_record_is_accepted
 test_failure_streaks_are_tracked_per_tool
+test_payload_separators_survive_transient_failures
+test_immediate_findings_do_not_seed_or_reappear_in_probe_streaks
+test_missing_git_and_repository_directory_report_immediately
+test_budget_findings_remain_immediate_without_a_failed_probe
 test_an_overlong_report_says_it_was_cut
 test_a_finding_past_the_cut_is_still_reported
 test_probes_are_skipped_between_intervals
