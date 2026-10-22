@@ -1057,6 +1057,51 @@ test_payload_separators_survive_transient_failures() {
   pass "separator payloads survive transient failures and old records"
 }
 
+test_repeating_incomplete_notice_does_not_flap_with_a_transient_failure() {
+  local home dir fresh out log
+  home=$(make_home incomplete-flap)
+  dir="$home/tool; cache/bin"
+  fresh="$home/new; installed/bin"
+  log="$home/skipped-probes"
+  make_copy "$dir" claude-fixture '2.1.307'
+  make_copy "$fresh" claude-fixture '2.1.308'
+  make_counting_copy "$dir" "$TOOL" 'herdr 0.8.2' "$log"
+  cat > "$dir/date" <<'SH'
+#!/usr/bin/env bash
+if [ -f "$FM_HOME/expired" ]; then
+  printf '2000\n'
+else
+  printf '1000\n'
+fi
+SH
+  cat > "$dir/curl" <<'SH'
+#!/usr/bin/env bash
+: > "$FM_HOME/expired"
+[ ! -f "$FM_HOME/fail" ] || exit 22
+printf '2.1.309\n'
+SH
+  chmod 0755 "$dir/date" "$dir/curl"
+  write_config "$home" "{\"tools\":[{\"name\":\"claude\",\"command\":\"claude-fixture\",\"version_url\":\"https://downloads.example.invalid/latest\"},{\"name\":\"herdr\",\"command\":\"$TOOL\"},{\"name\":\"skipped\",\"command\":\"$TOOL\"}]}"
+  out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir:$fresh")" "$out"
+  assert_contains "$(cat "$out")" 'claude update available: 2.1.309' "the initial sweep did not report the update"
+  assert_contains "$(cat "$out")" "$dir/claude-fixture but 2.1.308 is installed at $fresh/claude-fixture" "the initial sweep did not contain the complete skew payload"
+  assert_contains "$(cat "$out")" '; check incomplete: the time budget ran out before herdr' "the initial sweep did not end with the incomplete notice"
+  assert_absent "$log" "a probe ran after the sweep budget was exhausted"
+  : > "$home/fail"
+  rm -f "$home/expired"
+  run_check "$home" "$(fixture_path "$dir:$fresh")" "$out"
+  [ ! -s "$out" ] || fail "a transient failure duplicated the incomplete notice: $(cat "$out")"
+  grep -qxF 'failed=claude' "$home/state/.tool-updates" || fail "the second sweep did not exercise an actual probe failure"
+  assert_absent "$log" "a skipped tool ran during the failed sweep"
+  rm -f "$home/fail" "$home/expired"
+  run_check "$home" "$(fixture_path "$dir:$fresh")" "$out"
+  [ ! -s "$out" ] || fail "recovery after one failure changed the incomplete report: $(cat "$out")"
+  grep -qxF 'failed=' "$home/state/.tool-updates" || fail "the recovery did not clear the failure streak"
+  assert_absent "$log" "a skipped tool ran during the recovery sweep"
+  pass "a repeating incomplete notice stays unchanged through a transient failure and recovery"
+}
+
 test_immediate_findings_do_not_seed_or_reappear_in_probe_streaks() {
   local home dir out
   home=$(make_home immediate-streak)
@@ -1522,6 +1567,7 @@ test_failure_is_reported_only_after_two_consecutive_failed_sweeps
 test_an_old_format_record_is_accepted
 test_failure_streaks_are_tracked_per_tool
 test_payload_separators_survive_transient_failures
+test_repeating_incomplete_notice_does_not_flap_with_a_transient_failure
 test_immediate_findings_do_not_seed_or_reappear_in_probe_streaks
 test_missing_git_and_repository_directory_report_immediately
 test_budget_findings_remain_immediate_without_a_failed_probe
