@@ -1,0 +1,17 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live
+~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live
+
+$ bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live
+/tmp/fml.iDffuN
+
+$ tmux -f /dev/null -S /tmp/fml.iDffuN/tmux-1000/fm-lab new-session -d -s fm-lab-trace -x 120 -y 35 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T bash --noprofile --norc
+error creating /tmp/fml.iDffuN/tmux-1000/fm-lab (No such file or directory)
+
+$ tmux -S /tmp/fml.iDffuN/tmux-1000/fm-lab set-option -g default-shell /bin/bash
+error connecting to /tmp/fml.iDffuN/tmux-1000/fm-lab (No such file or directory)
+
+$ tmux -S /tmp/fml.iDffuN/tmux-1000/fm-lab kill-server
+error connecting to /tmp/fml.iDffuN/tmux-1000/fm-lab (No such file or directory)
+
+$ bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live
+

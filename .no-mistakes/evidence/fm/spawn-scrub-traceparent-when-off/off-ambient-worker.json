@@ -1,0 +1,1 @@
+{"COMPACT_ADVISER_DISABLE": "1", "GOTMPDIR": "/tmp/fm-trace-live-off-ambient/gotmp", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable", "TRACEPARENT": null, "TRACE_ALLOWED_SENTINEL": "keep-me", "TRACE_BLOCKED_SENTINEL": "drop-me"}

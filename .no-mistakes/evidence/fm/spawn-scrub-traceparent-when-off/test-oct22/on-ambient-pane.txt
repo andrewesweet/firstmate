@@ -1,0 +1,29 @@
+bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/
+.treehouse/trace-project-fbcd0a/2/trace-project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T
+/.test-trace-live/pool/.treehouse/trace-project-fbcd0a/2/trace-project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export GOTMPDIR=/tmp/fm-trace-live-2613234-on-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export FM_TASK_ID=trace-live-2613234-on-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export TRACEPARENT=00-af1216c712acf19ce804688422c968e2-e7dbdf4ec53fce54-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ . '/tmp/fm-trace-live-2613234-on-ambient+76d3e5086e504cbb9f1b385a26bee44536e65dbc
+dd80855f302436ba44994eb8/launch.s1792656245.2617606.30998.sh'
+{"COMPACT_ADVISER_DISABLE": "1", "GOTMPDIR": "/tmp/fm-trace-live-2613234-on-ambient/gotmp", "OTEL_RESOURCE_ATTRIBUTES":
+"service.name=trace-lab,deployment.environment=disposable", "TRACEPARENT": "00-af1216c712acf19ce804688422c968e2-e7dbdf4e
+c53fce54-01", "TRACE_ALLOWED_SENTINEL": "keep-me", "TRACE_BLOCKED_SENTINEL": "drop-me"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$

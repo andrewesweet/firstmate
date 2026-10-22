@@ -1,0 +1,54 @@
+[
+  {
+    "scenario": "off-ambient",
+    "result": "pass",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "GOTMPDIR": "/tmp/fm-trace-live-off-ambient/gotmp",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+      "TRACEPARENT": null,
+      "TRACE_ALLOWED_SENTINEL": "keep-me",
+      "TRACE_BLOCKED_SENTINEL": "drop-me"
+    },
+    "recorded_traceparent": null
+  },
+  {
+    "scenario": "on-ambient",
+    "result": "pass",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "GOTMPDIR": "/tmp/fm-trace-live-on-ambient/gotmp",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+      "TRACEPARENT": "00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc-01",
+      "TRACE_ALLOWED_SENTINEL": "keep-me",
+      "TRACE_BLOCKED_SENTINEL": "drop-me"
+    },
+    "recorded_traceparent": "00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc-01"
+  },
+  {
+    "scenario": "off-allowlist",
+    "result": "pass",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "GOTMPDIR": "/tmp/fm-trace-live-off-allowlist/gotmp",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+      "TRACEPARENT": null,
+      "TRACE_ALLOWED_SENTINEL": "keep-me",
+      "TRACE_BLOCKED_SENTINEL": null
+    },
+    "recorded_traceparent": null
+  },
+  {
+    "scenario": "on-allowlist",
+    "result": "pass",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "GOTMPDIR": "/tmp/fm-trace-live-on-allowlist/gotmp",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
+      "TRACEPARENT": "00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1dfb1-01",
+      "TRACE_ALLOWED_SENTINEL": "keep-me",
+      "TRACE_BLOCKED_SENTINEL": null
+    },
+    "recorded_traceparent": "00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1dfb1-01"
+  }
+]

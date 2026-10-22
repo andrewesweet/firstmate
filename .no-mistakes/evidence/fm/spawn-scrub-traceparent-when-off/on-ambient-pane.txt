@@ -1,40 +1,29 @@
 bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.5
+Run "treehouse update" to update
+
 🌳 Setting up worktree...
-🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/pro
-ject-441c2d/3/project. Type 'exit' to return.
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/
+.treehouse/trace-project-fbcd0a/2/trace-project. Type 'exit' to return.
 To run a command as administrator (user "root"), use "sudo <command>".
 See "man sudo_root" for details.
 
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/projec
-t-441c2d/3/project'
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ export GOTMPDIR=/tmp/fm-tr136424-on-ambient/gotmp
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ export COMPACT_ADVISER_DISABLE=1
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ export FM_TASK_ID=tr136424-on-ambient
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ export TRACEPARENT=00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$ . '/tmp/fm-tr136424-on-ambient+ca455c2fd0029413b46b5ee8403ebf2a51532d293fccdb17ab92797eee9c55aa/launch.s179
-2579959.141548.20648.sh'
-{"TRACEPARENT": "00-6e61ef370b21afd09ac0652d14d2a8a3-d5f1ef9548d8c4f8-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=tra
-ce-lab,scenario=ambient", "LAB_ALLOW": "retained value", "LAB_BLOCK": "must disappear", "FM_TASK_ID": "tr136424-on-ambie
-nt", "COMPACT_ADVISER_DISABLE": "1", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/
-.l/pool/.treehouse/project-441c2d/3/project"}
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.l/pool/.treehouse/project-441c2
-d/3/project$
-
-
-
-
-
-
-
-
-
-
-
-
-
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T
+/.test-trace-live/pool/.treehouse/trace-project-fbcd0a/2/trace-project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export GOTMPDIR=/tmp/fm-trace-live-on-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export FM_TASK_ID=trace-live-on-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ export TRACEPARENT=00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$ . '/tmp/fm-trace-live-on-ambient+76d3e5086e504cbb9f1b385a26bee44536e65dbcdd80855f
+302436ba44994eb8/launch.s1792656160.2554408.24409.sh'
+{"COMPACT_ADVISER_DISABLE": "1", "GOTMPDIR": "/tmp/fm-trace-live-on-ambient/gotmp", "OTEL_RESOURCE_ATTRIBUTES": "service
+.name=trace-lab,deployment.environment=disposable", "TRACEPARENT": "00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc
+-01", "TRACE_ALLOWED_SENTINEL": "keep-me", "TRACE_BLOCKED_SENTINEL": "drop-me"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
+/trace-project-fbcd0a/2/trace-project$
