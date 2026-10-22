@@ -1824,8 +1824,10 @@ Arm the check once per home with `bin/fm-tool-update-check.sh arm`.
 
 **Repeat reporting and inheritance**
 
-- The check prints nothing when everything is current, and `state/.tool-updates` records the findings the last report was made from so the same pending update is reported once instead of on every poll.
+- The check prints nothing when everything is current, and `state/.tool-updates` records the findings the last report was made from, and which watched tools' probes failed that sweep, so the same pending update is reported once instead of on every poll.
 - A changed or returning condition is reported again.
+- A tool whose probe fails where the previous sweep did not fail it is reported as unchanged from the last report, and the `<tool> check failed` finding is reported only when the same tool's probe fails again on the next sweep, so one transient failure never wakes the home and the recovery after it is not news either.
+- Registry problems, the budget cut notice, and budget exhaustion are reported as they happen and are never held back this way.
 - Adding, removing, or changing a watched tool is an edit to this file and needs no code change or re-arming.
 - This file is not inherited by secondmate homes, so each home watches the tools it actually depends on.
 

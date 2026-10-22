@@ -189,12 +189,15 @@ test_one_copy_reached_twice_is_probed_once() {
 
 test_unreadable_version_is_a_failure_not_a_pass() {
   local home dir out report
-  # A copy that will not say what it is cannot be called current.
+  # A copy that will not say what it is cannot be called current. The failure
+  # follows the two-sweep rule, so it is named once it repeats.
   home=$(make_home mute)
   dir="$TMP_ROOT/mute/bin"
   make_copy "$dir" "$TOOL" 'no version here'
   write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
   out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$(fixture_path "$dir")" "$out"
   report=$(cat "$out")
   assert_contains "$report" "herdr check failed" "a copy that reports no version was treated as current"
@@ -207,6 +210,8 @@ test_missing_command_is_reported() {
   home=$(make_home absent)
   write_config "$home" '{"tools":[{"name":"herdr","command":"herdr-absent-fixture"}]}'
   out="$home/out.txt"
+  run_check "$home" "$PATH" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$PATH" "$out"
   assert_contains "$(cat "$out")" "herdr check failed: herdr-absent-fixture is not on PATH" "a watched command missing from PATH was not reported"
   pass "a watched command missing from PATH is reported"
@@ -332,6 +337,8 @@ test_unusable_announce_pattern_is_reported_not_read_as_silence() {
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","announce_pattern":"A new version of no-mistakes is available: ([^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
   run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
   assert_contains "$(cat "$out")" "no-mistakes check failed: announce_pattern is not a usable extended regular expression" "a pattern that cannot be used was read as nothing to announce"
 
   # Arming is a deliberate operator action, so the same registry refuses it
@@ -360,6 +367,10 @@ test_one_broken_pattern_does_not_blind_the_rest_of_the_sweep() {
   run_check "$home" "$(fixture_path "$stale:$fresh:$dir")" "$out"
   report=$(cat "$out")
   assert_contains "$report" "herdr update not in effect: PATH resolves 0.8.0 at $stale/$TOOL" "a broken pattern on another tool suppressed the PATH skew report"
+  assert_not_contains "$report" "no-mistakes check failed" "the pattern tool's first failed sweep was reported before it could repeat"
+  run_check "$home" "$(fixture_path "$stale:$fresh:$dir")" "$out"
+  report=$(cat "$out")
+  assert_contains "$report" "herdr update not in effect: PATH resolves 0.8.0 at $stale/$TOOL" "the skew report did not survive into the second sweep"
   assert_contains "$report" "no-mistakes check failed: announce_pattern is not a usable extended regular expression" "the tool whose pattern cannot be used was not named"
   [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the report must stay exactly one line"
   pass "a broken pattern is reported for its own tool and the rest of the sweep still reports"
@@ -395,6 +406,8 @@ SH
   # the copy loop, while the version probe below (bounded, then sleeping 30)
   # still exhausts the budget before the announcement check.
   run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=2
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=2
   report=$(cat "$out")
   assert_contains "$report" "no-mistakes check failed: the time budget ran out before the update announcement was checked" "an announcement source that was never asked was not reported"
   pass "an announcement source the budget could not reach is reported, not read as current"
@@ -419,6 +432,8 @@ SH
   chmod 0755 "$dir/no-mistakes-fixture"
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","version_args":["--version"],"announce_args":["--help"],"announce_pattern":"A new version of no-mistakes is available: [^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=1
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=1
   report=$(cat "$out")
   assert_contains "$report" "no-mistakes check failed: $dir/no-mistakes-fixture did not answer when asked for its update announcement" "an announcement probe that never answered was read as a clean sweep"
@@ -522,10 +537,19 @@ test_unreadable_version_url_is_a_failure_not_a_pass() {
   write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
   out="$home/out.txt"
   run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
   assert_contains "$(cat "$out")" "claude check failed: https://downloads.example.invalid/latest did not report a version" "a version_url that could not be read was taken for current"
 
+  # The same failure follows the once-per-change rule, so a healthy sweep in
+  # between makes the second failure shape news again: a body with no version
+  # is a failure too, not a clean answer.
+  make_curl_fixture "$dir" '2.1.308'
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available" "the recovery between the two failure shapes was not reported"
   make_curl_fixture "$dir" 'no version here'
-  rm -f "$home/state/.tool-updates"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep of the second shape already reported: $(cat "$out")"
   run_check "$home" "$(fixture_path "$dir")" "$out"
   assert_contains "$(cat "$out")" "claude check failed: https://downloads.example.invalid/latest did not report a version" "a version_url body with no version was taken for current"
   pass "a version_url that does not answer with a version is a check failure"
@@ -558,6 +582,8 @@ test_missing_curl_is_a_failure_not_a_pass() {
   make_path_without_curl "$nobin"
   write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
   out="$home/out.txt"
+  run_check "$home" "$dir:$nobin" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$dir:$nobin" "$out"
   assert_contains "$(cat "$out")" "claude check failed: curl is required to read https://downloads.example.invalid/latest" "a host without curl took the tool for current"
   pass "a missing curl is a check failure"
@@ -675,6 +701,8 @@ test_unusable_git_source_is_reported() {
   write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$TMP_ROOT/git-broken/not-a-repo\",\"branch\":\"main\"}}]}"
   out="$home/out.txt"
   run_check "$home" "$PATH" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$PATH" "$out"
   assert_contains "$(cat "$out")" "firstmate check failed" "an unusable git source was not reported"
   pass "an unusable git source is reported as a check failure"
 }
@@ -691,6 +719,8 @@ test_unreadable_remote_is_not_reported_as_a_missing_branch() {
   write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$work\",\"remote\":\"origin\",\"branch\":\"main\"}}]}"
   out="$home/out.txt"
   run_check "$home" "$PATH" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$PATH" "$out"
   report=$(cat "$out")
   assert_contains "$report" "firstmate check failed" "a remote that could not be read was not reported"
   assert_contains "$report" "origin could not be reached or read" "the report does not name the condition the probe actually found"
@@ -706,6 +736,8 @@ test_missing_branch_on_a_readable_remote_is_still_reported() {
   work=$(git_fixture git-no-branch-repo)
   write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$work\",\"remote\":\"origin\",\"branch\":\"release\"}}]}"
   out="$home/out.txt"
+  run_check "$home" "$PATH" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$PATH" "$out"
   assert_contains "$(cat "$out")" "firstmate check failed: origin has no branch release" "a branch the remote does not have was not reported as missing"
   pass "a branch a readable remote does not have is still reported as missing"
@@ -767,6 +799,8 @@ SH
   # that specific report keeps an unrelated timeout from passing this case for the
   # wrong reason.
   run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=3
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=3
   report=$(cat "$out")
   assert_not_contains "$report" "update available" "a probe that never answered was reported as an available update"
   assert_contains "$report" "firstmate check failed: $work did not answer whether it already has" "the stalled object query was not the reported failure"
@@ -799,6 +833,8 @@ SH
 
   write_config "$home" "{\"tools\":[{\"name\":\"firstmate\",\"git\":{\"repo\":\"$work\",\"remote\":\"origin\",\"branch\":\"main\"}}]}"
   out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=1
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
   run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_PROBE_SECS=1
   report=$(cat "$out")
   assert_contains "$report" "firstmate check failed: $work did not answer whether it is a git repository" "a repository probe that never answered was not reported as such"
@@ -875,6 +911,131 @@ test_findings_are_reported_once_until_they_change() {
   pass "the same pending update is reported once, and a change is reported again"
 }
 
+# --- transient probe failures -----------------------------------------------
+
+# A release endpoint can fail one sweep and answer the next. On 2026-10-22 the
+# Claude release endpoint did exactly that, and every flip woke the supervisor:
+# the failed sweep reported "check failed", the recovery reported "update
+# available", and the pair repeated while a manual fetch of the same URL kept
+# answering. The cases below pin the fix: a tool's first failed sweep reports
+# that tool as unchanged from the last report, the failure itself is reported
+# only after it repeats on the next sweep, and the recovery from a failure that
+# was never reported is not news either.
+
+test_one_transient_failure_flaps_silently() {
+  local home dir out
+  home=$(make_home flap)
+  dir="$TMP_ROOT/flap/bin"
+  make_copy "$dir" claude-fixture '2.1.307 (Claude Code)'
+  make_curl_fixture "$dir" '2.1.308'
+  write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
+  out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available: 2.1.308" "the first sweep did not report the pending update this case turns on"
+
+  # The endpoint fails once. The tool's last finding stands in for the failure,
+  # so the sweep reports unchanged and prints nothing.
+  make_curl_fixture "$dir" '' 22
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "one failed probe was reported as a change: $(cat "$out")"
+
+  # The endpoint recovers, and the finding is the one already on record, so the
+  # recovery is not news either.
+  make_curl_fixture "$dir" '2.1.308'
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the recovery after one unreported failure was reported as news: $(cat "$out")"
+  pass "one failed probe reports as unchanged, and its recovery is not news"
+}
+
+test_failure_is_reported_only_after_two_consecutive_failed_sweeps() {
+  local home dir out
+  home=$(make_home repeat)
+  dir="$TMP_ROOT/repeat/bin"
+  make_copy "$dir" claude-fixture '2.1.307 (Claude Code)'
+  make_curl_fixture "$dir" '2.1.308'
+  write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
+  out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available: 2.1.308" "the first sweep did not report the pending update this case turns on"
+
+  make_curl_fixture "$dir" '' 22
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported the failure: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude check failed: https://downloads.example.invalid/latest did not report a version" "a failure repeated on the next sweep was not reported"
+
+  # An established failure follows the once-per-change rule like any finding.
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "the same failure was reported twice: $(cat "$out")"
+
+  # A recovery from a failure that was reported is news.
+  make_curl_fixture "$dir" '2.1.308'
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available: 2.1.308" "the recovery from a reported failure was not reported"
+  pass "a probe failure is reported on the second consecutive failed sweep, once"
+}
+
+test_an_old_format_record_is_accepted() {
+  local home dir out
+  home=$(make_home old-record)
+  dir="$TMP_ROOT/old-record/bin"
+  make_copy "$dir" claude-fixture '2.1.307 (Claude Code)'
+  make_curl_fixture "$dir" '2.1.308'
+  write_config "$home" '{"tools":[{"name":"claude","command":"claude-fixture","version_url":"https://downloads.example.invalid/latest"}]}'
+  out="$home/out.txt"
+
+  # A record written before the failure streak existed carries no failed field,
+  # which has to read as no prior failure rather than as a parse failure.
+  printf '%s\n' \
+    'fm-tool-updates-v1' \
+    'epoch=1' \
+    'reported=claude update available: 2.1.308 published at https://downloads.example.invalid/latest, PATH resolves 2.1.307' \
+    > "$home/state/.tool-updates"
+  make_curl_fixture "$dir" '' 22
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "an old-format record made the first failed sweep report: $(cat "$out")"
+
+  # The streak then builds from the record the sweep itself wrote.
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" "claude check failed" "a failure repeated after an old-format record was not reported"
+  pass "a record without the failure field reads as no prior failure"
+}
+
+test_failure_streaks_are_tracked_per_tool() {
+  local home claude_dir herdr_dir out
+  home=$(make_home streaks)
+  claude_dir="$TMP_ROOT/streaks/claude/bin"
+  herdr_dir="$TMP_ROOT/streaks/herdr/bin"
+  make_copy "$claude_dir" claude-fixture '2.1.307 (Claude Code)'
+  make_curl_fixture "$claude_dir" '2.1.308'
+  make_copy "$herdr_dir" "$TOOL" 'herdr 0.8.2'
+  write_config "$home" "{\"tools\":[{\"name\":\"claude\",\"command\":\"claude-fixture\",\"version_url\":\"https://downloads.example.invalid/latest\"},{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
+  out="$home/out.txt"
+  run_check "$home" "$(fixture_path "$claude_dir:$herdr_dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available: 2.1.308" "the first sweep did not report the pending update this case turns on"
+
+  # Both probes fail once in the same sweep, and neither failure is reported.
+  make_curl_fixture "$claude_dir" '' 22
+  make_copy "$herdr_dir" "$TOOL" 'no version here'
+  run_check "$home" "$(fixture_path "$claude_dir:$herdr_dir")" "$out"
+  [ ! -s "$out" ] || fail "a first failure on either tool was reported: $(cat "$out")"
+
+  # Claude fails again while herdr recovers: only claude's failure is news, and
+  # herdr's earlier failure left nothing behind in the report.
+  make_copy "$herdr_dir" "$TOOL" 'herdr 0.8.2'
+  run_check "$home" "$(fixture_path "$claude_dir:$herdr_dir")" "$out"
+  assert_contains "$(cat "$out")" "claude check failed: https://downloads.example.invalid/latest did not report a version" "the repeated failure was not reported"
+  assert_not_contains "$(cat "$out")" "herdr" "one tool's failure leaked into the other tool's report"
+
+  # Claude's recovery from its reported failure is news, and herdr stays quiet,
+  # so neither tool's streak ever influenced the other's.
+  make_curl_fixture "$claude_dir" '2.1.308'
+  run_check "$home" "$(fixture_path "$claude_dir:$herdr_dir")" "$out"
+  assert_contains "$(cat "$out")" "claude update available: 2.1.308" "the recovery from a reported failure was not reported"
+  assert_not_contains "$(cat "$out")" "herdr" "a recovered tool produced a report"
+  pass "each tool's failure streak is tracked independently"
+}
+
 test_an_overlong_report_says_it_was_cut() {
   local home out report i tools_json=
   # Many watched tools can outgrow one line. The report must say it was cut
@@ -886,6 +1047,10 @@ test_an_overlong_report_says_it_was_cut() {
   done
   write_config "$home" "{\"tools\":[$tools_json]}"
   out="$home/out.txt"
+  run_check "$home" "$PATH" "$out"
+  # Every one of these failures is a first for its tool, so the first sweep
+  # holds them all back and the long line only exists once they repeat.
+  [ ! -s "$out" ] || fail "the first failed sweep already reported: $(cat "$out")"
   run_check "$home" "$PATH" "$out"
   report=$(cat "$out")
   assert_contains "$report" "[truncated]" "an over-long report was cut without saying so"
@@ -910,15 +1075,17 @@ test_a_finding_past_the_cut_is_still_reported() {
   out="$home/out.txt"
   write_config "$home" "{\"tools\":[$tools_json]}"
   run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
-  assert_contains "$(cat "$out")" "[truncated]" "the first report was not long enough to be cut, so this case proves nothing"
+  [ ! -s "$out" ] || fail "the first failed sweep already reported: $(cat "$out")"
+  run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
+  assert_contains "$(cat "$out")" "[truncated]" "the second sweep's report was not long enough to be cut, so the next finding cannot land past the cut"
 
   # The skew tool goes last, so its finding falls past the cut and the printed
-  # line is byte identical to the one the first sweep already recorded.
+  # line is byte identical to the one the second sweep already recorded.
   write_config "$home" "{\"tools\":[$tools_json,{\"name\":\"herdr\",\"command\":\"$TOOL\"}]}"
   run_check "$home" "$(fixture_path "$stale:$fresh")" "$out"
   report=$(cat "$out")
   [ -n "$report" ] || fail "a finding past the cut produced no report at all, so it can never reach the watcher"
-  assert_contains "$report" "[truncated]" "the second report was not cut, so the finding was not past the cut"
+  assert_contains "$report" "[truncated]" "the third report was not cut, so the finding was not past the cut"
   pass "a finding that lands past the cut is still reported as news"
 }
 
@@ -949,6 +1116,12 @@ test_probes_are_skipped_between_intervals() {
   FM_HOME="$home" PATH="$(fixture_path "$dir")" FM_CHECK_TIMEOUT=30 FM_TOOL_UPDATE_INTERVAL=900 FM_TOOL_UPDATE_NOW="$((now + 901))" \
     "$CHECK" >"$out" 2>&1 || status=$?
   expect_code 0 "$status" "due cadence run exit"
+  [ ! -s "$out" ] || fail "the first failed sweep after the interval reported at once: $(cat "$out")"
+
+  status=0
+  FM_HOME="$home" PATH="$(fixture_path "$dir")" FM_CHECK_TIMEOUT=30 FM_TOOL_UPDATE_INTERVAL=900 FM_TOOL_UPDATE_NOW="$((now + 1802))" \
+    "$CHECK" >"$out" 2>&1 || status=$?
+  expect_code 0 "$status" "second due cadence run exit"
   assert_contains "$(cat "$out")" "did not report a version" "the run after the interval did not probe"
   pass "probes run once per interval, not on every poll"
 }
@@ -1230,6 +1403,10 @@ test_a_stalled_repository_probe_is_not_reported_as_not_a_repository
 test_absent_registry_is_silent
 test_malformed_registry_is_reported_not_ignored
 test_findings_are_reported_once_until_they_change
+test_one_transient_failure_flaps_silently
+test_failure_is_reported_only_after_two_consecutive_failed_sweeps
+test_an_old_format_record_is_accepted
+test_failure_streaks_are_tracked_per_tool
 test_an_overlong_report_says_it_was_cut
 test_a_finding_past_the_cut_is_still_reported
 test_probes_are_skipped_between_intervals

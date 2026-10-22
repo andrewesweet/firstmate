@@ -69,6 +69,16 @@
 # while a new finding that lands past the one-line cut is still news. A sweep
 # killed part way through leaves no record and is retried, instead of
 # suppressing its finding.
+#
+# A probe failure is held to a stricter rule than the other findings, because a
+# release endpoint that fails one sweep and answers the next is common, and
+# reporting both flips wakes the supervisor twice for one transient fault. The
+# record also carries which tools' probes failed on the last completed sweep.
+# A tool failing where the previous sweep did not is reported as unchanged from
+# the last report, its "<tool> check failed" finding is emitted only when the
+# same tool fails again on the next sweep, and a successful probe clears the
+# streak. Registry problems, the budget cut notice, and budget exhaustion are
+# never held back this way.
 set -u
 export LC_ALL=C
 # A watched git remote must never stop to ask for credentials; an unauthenticated
@@ -198,20 +208,27 @@ record_epoch_now() {
 real_epoch() { date +%s; }
 
 FINDINGS=
+TOOL_FINDINGS=
 DEADLINE=0
 INCOMPLETE_REPORTED=0
 
 # Each finding is flattened to a single line here, because the whole report must
 # stay one line for the wake record.
-emit() {
-  local text
-  text=$(printf '%s' "$1" | tr '\t\r\n' '   ')
-  if [ -z "$FINDINGS" ]; then
-    FINDINGS=$text
+emit_to() {
+  local var=$1 text
+  text=$(printf '%s' "$2" | tr '\t\r\n' '   ')
+  if [ -z "${!var}" ]; then
+    printf -v "$var" '%s' "$text"
   else
-    FINDINGS="$FINDINGS; $text"
+    printf -v "$var" '%s; %s' "${!var}" "$text"
   fi
 }
+
+# Configuration-level findings go straight into the report. A tool's own
+# findings land in TOOL_FINDINGS first, so the sweep can tell a fresh probe
+# failure from one the last sweep already reported before anything is printed.
+emit() { emit_to FINDINGS "$@"; }
+emit_tool() { emit_to TOOL_FINDINGS "$@"; }
 
 budget_exhausted() {
   [ "$(real_epoch)" -ge "$DEADLINE" ]
@@ -426,20 +443,20 @@ command_findings() {
   # This tool's announcement source is dead if its pattern cannot be used, which
   # is reported here, for this tool alone, so the rest of the sweep still runs.
   if [ -n "$announce" ] && ! announce_pattern_usable "$announce"; then
-    emit "$name check failed: announce_pattern is not a usable extended regular expression"
+    emit_tool "$name check failed: announce_pattern is not a usable extended regular expression"
     announce=
   fi
 
   hits=$(path_hits "$command_name")
   if [ -z "$hits" ]; then
-    emit "$name check failed: $command_name is not on PATH"
+    emit_tool "$name check failed: $command_name is not on PATH"
     return 0
   fi
 
   while IFS= read -r hit; do
     [ -n "$hit" ] || continue
     if budget_exhausted; then
-      emit "$name check failed: the time budget ran out before every copy answered"
+      emit_tool "$name check failed: the time budget ran out before every copy answered"
       break
     fi
     # shellcheck disable=SC2086  # deliberate split on validated space-free tokens
@@ -472,7 +489,7 @@ EOF
       if budget_exhausted; then
         # The version probe's output cannot carry the announcement, so searching
         # it would present a source that was never asked as a clean result.
-        emit "$name check failed: the time budget ran out before the update announcement was checked"
+        emit_tool "$name check failed: the time budget ran out before the update announcement was checked"
         announce_out=
       else
         # shellcheck disable=SC2086  # deliberate split on validated space-free tokens
@@ -481,7 +498,7 @@ EOF
         if [ "$status" -eq 124 ]; then
           # A source that was asked and never answered is not a source that had
           # nothing to say. The one that answers with nothing stays silent below.
-          emit "$name check failed: $resolved_path did not answer when asked for its update announcement"
+          emit_tool "$name check failed: $resolved_path did not answer when asked for its update announcement"
           announce_out=
         fi
       fi
@@ -492,7 +509,7 @@ EOF
       matched=$(grep -oE -- "$announce" <<< "$announce_out" 2>/dev/null)
       status=$?
       if [ "$status" -gt 1 ]; then
-        emit "$name check failed: announce_pattern is not a usable extended regular expression"
+        emit_tool "$name check failed: announce_pattern is not a usable extended regular expression"
       elif [ -n "$matched" ]; then
         matched_line=$(printf '%s\n' "$matched" | head -n 1)
         announced_version=$(parse_announced_version "$matched_line")
@@ -500,7 +517,7 @@ EOF
         # naming a version already installed is not an available update.
         if [ -z "$announced_version" ] || [ -z "$best_version" ] \
           || version_newer "$announced_version" "$best_version"; then
-          emit "$name update available: $matched_line"
+          emit_tool "$name update available: $matched_line"
         fi
       fi
     fi
@@ -509,7 +526,7 @@ EOF
   if [ -z "$resolved_version" ]; then
     # No copy was probed at all when the path is empty, and the budget report
     # already covers that, so do not blame a copy that was never asked.
-    [ -z "$resolved_path" ] || emit "$name check failed: $resolved_path did not report a version"
+    [ -z "$resolved_path" ] || emit_tool "$name check failed: $resolved_path did not report a version"
     return 0
   fi
 
@@ -518,28 +535,28 @@ EOF
     # and compared with the newest installed copy found: a newer install elsewhere
     # on PATH is the "not in effect" finding below, not an available update.
     if budget_exhausted; then
-      emit "$name check failed: the time budget ran out before $version_url was read"
+      emit_tool "$name check failed: the time budget ran out before $version_url was read"
     elif ! command -v curl >/dev/null 2>&1; then
-      emit "$name check failed: curl is required to read $version_url"
+      emit_tool "$name check failed: curl is required to read $version_url"
     else
       out=$(fm_run_timed "$(probe_bound)" curl -fsS --max-time "$(probe_bound)" -- "$version_url" 2>/dev/null)
       status=$?
       published=$(parse_version "$out")
       if [ "$status" -ne 0 ] || [ -z "$published" ]; then
-        emit "$name check failed: $version_url did not report a version"
+        emit_tool "$name check failed: $version_url did not report a version"
       elif version_newer "$published" "$best_version"; then
-        emit "$name update available: $published published at $version_url, PATH resolves $resolved_version"
+        emit_tool "$name update available: $published published at $version_url, PATH resolves $resolved_version"
       fi
     fi
   fi
 
   if [ -n "$best_version" ] && [ "$best_path" != "$resolved_path" ] \
     && version_newer "$best_version" "$resolved_version"; then
-    emit "$name update not in effect: PATH resolves $resolved_version at $resolved_path but $best_version is installed at $best_path"
+    emit_tool "$name update not in effect: PATH resolves $resolved_version at $resolved_path but $best_version is installed at $best_path"
   fi
 
   if [ -n "$unreadable" ]; then
-    emit "$name check failed: $unreadable did not report a version"
+    emit_tool "$name check failed: $unreadable did not report a version"
   fi
   return 0
 }
@@ -568,11 +585,11 @@ git_probe_answered() {
   local status=$1 name=$2 subject=$3 question=$4
   case "$status" in
     "$GIT_PROBE_NOT_ISSUED")
-      emit "$name check failed: the time budget ran out before $subject was asked $question"
+      emit_tool "$name check failed: the time budget ran out before $subject was asked $question"
       return 1
       ;;
     124)
-      emit "$name check failed: $subject did not answer $question"
+      emit_tool "$name check failed: $subject did not answer $question"
       return 1
       ;;
   esac
@@ -588,11 +605,11 @@ git_findings() {
   local status remote_sha local_sha local_label count short symref
 
   if ! command -v git >/dev/null 2>&1; then
-    emit "$name check failed: git is not installed"
+    emit_tool "$name check failed: git is not installed"
     return 0
   fi
   if [ ! -d "$repo" ]; then
-    emit "$name check failed: $repo is not a directory"
+    emit_tool "$name check failed: $repo is not a directory"
     return 0
   fi
   budget_allows "$name" || return 0
@@ -600,7 +617,7 @@ git_findings() {
   status=$?
   git_probe_answered "$status" "$name" "$repo" "whether it is a git repository" || return 0
   if [ "$status" -ne 0 ]; then
-    emit "$name check failed: $repo is not a git repository"
+    emit_tool "$name check failed: $repo is not a git repository"
     return 0
   fi
 
@@ -619,7 +636,7 @@ git_findings() {
       | awk '$1 == "ref:" { sub(/^refs\/heads\//, "", $2); print $2; exit }')
   fi
   if [ -z "$branch" ]; then
-    emit "$name check failed: cannot resolve the default branch of $remote in $repo"
+    emit_tool "$name check failed: cannot resolve the default branch of $remote in $repo"
     return 0
   fi
 
@@ -630,12 +647,12 @@ git_findings() {
     # The probe itself failed, so nothing at all is known about the branch. An
     # offline host and a deleted branch are different problems, and reporting a
     # missing branch here would name a cause that was never established.
-    emit "$name check failed: $remote could not be reached or read from $repo"
+    emit_tool "$name check failed: $remote could not be reached or read from $repo"
     return 0
   fi
   remote_sha=$(printf '%s\n' "$remote_sha" | awk 'NR == 1 { print $1 }')
   if [ -z "$remote_sha" ]; then
-    emit "$name check failed: $remote has no branch $branch"
+    emit_tool "$name check failed: $remote has no branch $branch"
     return 0
   fi
 
@@ -650,7 +667,7 @@ git_findings() {
     local_sha=$(git_probe "$repo" rev-parse --verify --quiet HEAD 2>/dev/null)
     git_probe_answered "$?" "$name" "$repo" "where HEAD points" || return 0
     if [ -z "$local_sha" ]; then
-      emit "$name check failed: $repo has no commit to compare"
+      emit_tool "$name check failed: $repo has no commit to compare"
       return 0
     fi
     local_label='local HEAD'
@@ -676,12 +693,12 @@ git_findings() {
       ''|*[!0-9]*|0) count= ;;
     esac
     if [ -n "$count" ]; then
-      emit "$name update available: $local_label is $(commit_phrase "$count") behind $remote/$branch"
+      emit_tool "$name update available: $local_label is $(commit_phrase "$count") behind $remote/$branch"
       return 0
     fi
   fi
 
-  emit "$name update available: $remote/$branch is at $short which this copy does not have"
+  emit_tool "$name update available: $remote/$branch is at $short which this copy does not have"
   return 0
 }
 
@@ -689,11 +706,13 @@ git_findings() {
 
 RECORD_EPOCH=0
 RECORD_REPORTED=
+RECORD_FAILED=
 
 record_read() {
   local line first=1
   RECORD_EPOCH=0
   RECORD_REPORTED=
+  RECORD_FAILED=
   [ -f "$RECORD" ] || return 0
   while IFS= read -r line; do
     if [ "$first" = 1 ]; then
@@ -710,29 +729,73 @@ record_read() {
         esac
         ;;
       reported=*) RECORD_REPORTED=${line#reported=} ;;
+      failed=*) RECORD_FAILED=${line#failed=} ;;
     esac
   done < "$RECORD"
   return 0
 }
 
 record_write() {
-  local reported=$1 tmp
+  local reported=$1 failed=$2 tmp
   tmp=$(mktemp "$RECORD.XXXXXX" 2>/dev/null) || return 1
   chmod 0600 "$tmp" 2>/dev/null || { rm -f -- "$tmp"; return 1; }
   {
     printf '%s\n' "$RECORD_SCHEMA"
     printf 'epoch=%s\n' "$(record_epoch_now)"
     printf 'reported=%s\n' "$reported"
+    printf 'failed=%s\n' "$failed"
   } > "$tmp" || { rm -f -- "$tmp"; return 1; }
   mv -f -- "$tmp" "$RECORD" || { rm -f -- "$tmp"; return 1; }
   return 0
+}
+
+# True when one tool's own findings contain a probe failure.
+tool_findings_failed() {
+  local name=$1 seg
+  while IFS= read -r seg; do
+    [ -n "$seg" ] || continue
+    case "$seg" in
+      "$name check failed: "*) return 0 ;;
+    esac
+  done <<< "${2//"; "/$'\n'}"
+  return 1
+}
+
+# The findings the last completed sweep reported for one tool, or nothing when
+# it reported none, so a first failed sweep can stand in its last report for
+# the failure. Segments are matched as literal prefixes, never as a regular
+# expression, because a tool name is not one.
+previous_tool_findings() {
+  local name=$1 seg out=
+  [ -n "$RECORD_REPORTED" ] || return 0
+  while IFS= read -r seg; do
+    [ -n "$seg" ] || continue
+    case "$seg" in
+      "$name check failed: "*|"$name update available: "*|"$name update not in effect: "*)
+        if [ -z "$out" ]; then
+          out=$seg
+        else
+          out="$out; $seg"
+        fi
+        ;;
+    esac
+  done <<< "${RECORD_REPORTED//"; "/$'\n'}"
+  printf '%s\n' "$out"
+}
+
+# True when this same tool's probe also failed on the last completed sweep.
+failed_last_sweep() {
+  case " $RECORD_FAILED " in
+    *" $1 "*) return 0 ;;
+  esac
+  return 1
 }
 
 # --- actions ----------------------------------------------------------------
 
 action_check() {
   local name command_name args_joined announce announce_args repo remote branch version_url
-  local line now
+  local line now failed_now
 
   [ -f "$CONFIG" ] || return 0
 
@@ -749,14 +812,30 @@ action_check() {
     emit "sweep budget ${BUDGET_CUT_FROM}s cut to ${BUDGET_SECS}s to stay inside the watcher check timeout of ${CHECK_TIMEOUT}s"
   fi
 
+  failed_now=
   if ! config_validate; then
     emit "watched tool registry: $CONFIG_PROBLEM"
   else
     while IFS=$FIELD_SEP read -r name command_name args_joined announce announce_args repo remote branch version_url; do
       [ -n "$name" ] || continue
       budget_allows "$name" || break
+      TOOL_FINDINGS=
       [ -z "$command_name" ] || command_findings "$name" "$command_name" "$args_joined" "$announce" "$announce_args" "$version_url"
       [ -z "$repo" ] || git_findings "$name" "$repo" "$remote" "$branch"
+      if [ -n "$TOOL_FINDINGS" ] && tool_findings_failed "$name" "$TOOL_FINDINGS"; then
+        failed_now="$failed_now${failed_now:+ }$name"
+        # A first failed sweep is not news: the tool's last finding stands in
+        # for the failure, so one transient probe failure reports as unchanged
+        # and its recovery is not news either. The failure itself is reported
+        # when the same tool fails again on the next sweep.
+        failed_last_sweep "$name" || TOOL_FINDINGS=$(previous_tool_findings "$name")
+      fi
+      [ -n "$TOOL_FINDINGS" ] || continue
+      if [ -z "$FINDINGS" ]; then
+        FINDINGS=$TOOL_FINDINGS
+      else
+        FINDINGS="$FINDINGS; $TOOL_FINDINGS"
+      fi
     done < <(config_records)
   fi
 
@@ -778,7 +857,7 @@ action_check() {
   if [ -n "$line" ] && [ "$FINDINGS" != "$RECORD_REPORTED" ]; then
     printf '%s\n' "$line"
   fi
-  record_write "$FINDINGS" || true
+  record_write "$FINDINGS" "$failed_now" || true
   return 0
 }
 
