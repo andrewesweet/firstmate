@@ -1,0 +1,95 @@
+Real Codex pane (120x40):
+
+  Folder access
+  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5GZQPT8JXS0T4X6ABTMHP7Z
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your permission settings. Folder settings
+  can run code automatically, even without a model request. Continue only if you trust these files. Your trust
+  decision will be saved.
+
+› 1. Trust and continue
+  2. Back to Agent Command Center
+
+  enter continue · esc back
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Current pane after trust:
+╭───────────────────────────────────────────────────────────────╮
+│ ✨ Update available! 0.162.1 -> 0.163.0                       │
+│ See https://github.com/openai/codex for installation options. │
+│                                                               │
+│ See full release notes:                                       │
+│ https://github.com/openai/codex/releases/latest               │
+╰───────────────────────────────────────────────────────────────╯
+
+
+  >_ OpenAI Codex (v0.162.1)
+     /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5GZQPT8JXS0T4X6ABTMHP7Z
+
+  Tip: Maximize usage with GPT-6.1 Sol. Try it on complex work for near-Astra performance at a lower cost.
+
+
+› Ask Codex to do anything
+
+  GPT-6.1-Sol default · /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5GZQPT8JXS0T4X6ABT…  ⚠ 2 warnings · f2 to view
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Actual tmux windows:
+0 worker codex
+
+Real semantic classification: unknown codex-unverified
+Real endpoint classification: alive
+initial notification: signal: /tmp/fm-lab.g2u033tw/state/worker.status
+first inconclusive stale sight: stale: primary:worker
+changed viewport with recent progress: (no alert)
+changed viewport without progress: stale: primary:worker
+PASS: recent progress bounds the repeat; liveness alone does not silence a changed pane.
+Private Codex server stopped; disposable lab removed.

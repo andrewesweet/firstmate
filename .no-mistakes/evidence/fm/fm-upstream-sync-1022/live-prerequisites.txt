@@ -1,0 +1,6 @@
+tmux: /usr/bin/tmux
+grok: /home/cti/.local/bin/grok
+omp: absent from PATH
+codex: /home/cti/.local/bin/codex
+no-mistakes: /home/cti/.local/bin/no-mistakes
+grok 1.0.34 (3736acbc8658)

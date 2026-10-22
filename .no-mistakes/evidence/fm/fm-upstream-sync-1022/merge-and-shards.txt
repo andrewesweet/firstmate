@@ -1,0 +1,24 @@
+$ git show --no-patch --format=commit %H%nparents %P%nsubject %s 1fdac294
+commit 1fdac294fff083f307a14137db1aec42b8892378
+parents 775f35628fda0e789d3e07a30b52221cca6b70b7 bd866530a07b23b57d933c6a745a9c81a2a94931
+subject Merge remote-tracking branch 'upstream/main' into fm/fm-upstream-sync-1022
+$ git log --format=%h %s 97316301^..bd866530
+bd866530 feat(fm-watch): bound consecutive wedge escalations behind an opt-in cap (#7552)
+83b70ef4 fix(bin): point non-checkout omp homes at fm <project> relaunch (#7155)
+3847411b fix(composer): recognize Grok approval-titled borders (#6132)
+2c93247f fix(bin): honor explicit no-run verdict in crew-state (#5888)
+8eb9be51 fix(bin): bound repeat stale alarms for unknown-but-alive progressing panes (#7437)
+f1ef0294 feat(bin): add fm-capacity.sh to report open lanes and host headroom (#6973)
+0e82f3ee feat: support per-mate secondmate runtime pins (#6917)
+97316301 feat(brief): forbid leading cd in generated scout and ship briefs (#7481)
+portable-serial-1of10: 1 scripts; wedge registrations=[]
+portable-serial-2of10: 1 scripts; wedge registrations=[]
+portable-serial-3of10: 31 scripts; wedge registrations=[]
+portable-serial-4of10: 31 scripts; wedge registrations=['tests/fm-watch-wedge-cap.test.sh', 'tests/fm-watch-wedge-cap-live.test.sh']
+portable-serial-5of10: 32 scripts; wedge registrations=['tests/fm-watch-wedge-cap-unconfigured-parity.test.sh']
+portable-serial-6of10: 31 scripts; wedge registrations=[]
+portable-serial-7of10: 32 scripts; wedge registrations=[]
+portable-serial-8of10: 31 scripts; wedge registrations=[]
+portable-serial-9of10: 33 scripts; wedge registrations=[]
+portable-serial-10of10: 32 scripts; wedge registrations=[]
+Runner partitions all ten serial shards without overlap and places both new portable cap suites exactly once.
