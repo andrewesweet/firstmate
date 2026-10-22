@@ -356,7 +356,7 @@ That is redundant and idempotent rather than a lost helm.
 ### omp
 
 omp is a run-tier harness.
-The tracked transport is `.omp/extensions/fm-primary-turnend-guard.ts`, which is auto-discovered from the home with no trust gate.
+The tracked transport is `.omp/extensions/fm-primary-turnend-guard.ts`; the [omp adapter reference](../.agents/skills/harness-adapters/references/harness/omp.md#extension-loading) owns extension discovery and home-aware launch guidance.
 The extension starts the wrapper at `session_start`.
 It has `before_agent_start` await the wrapper and return one persistent context message before the first provider call, exactly as Pi's does.
 `session_compact` is the compaction equivalent.
