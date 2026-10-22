@@ -1319,9 +1319,9 @@ wedge_episode_end() {
 
 # _wedge_cap_marker_stands: 0 while the cap marker a fired cap wrote for this
 # WINDOW is still inside FM_CAP_HORIZON_SECS, 1 once it is absent or expired.
-# The cap is window-scoped by design, so this one marker is the whole ceiling:
-# a pane that rebuilds its escalation counter on a fresh hash is silenced by
-# the same marker a static one is, which is the loop this cap exists to stop.
+# The cap is window-scoped, so a pane that stays on the wedge-timer path is
+# silenced even while its rendered bytes change. A fresh first-sight stale
+# classification instead releases the marker at the boundary described above.
 # An expired marker is deliberately left on disk for the cap-fire path to
 # overwrite; it simply no longer silences anything, which is what lets a fresh
 # wedge re-fire past the horizon.

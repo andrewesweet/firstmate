@@ -10,7 +10,7 @@ The concurrent isolation proof in [fm-test-isolation-proof.md](fm-test-isolation
 Local timings are not interchangeable with CI timings: platform and machine load can affect each script differently and change their relative weights.
 
 Both hint tables were refreshed on 2026-09-30 from five Ubuntu CI runs: [36583881812](https://github.com/kunchenguid/firstmate/actions/runs/36583881812), [36658498535](https://github.com/kunchenguid/firstmate/actions/runs/36658498535), [36663947738](https://github.com/kunchenguid/firstmate/actions/runs/36663947738), [36664663190](https://github.com/kunchenguid/firstmate/actions/runs/36664663190), and [36669175457](https://github.com/kunchenguid/firstmate/actions/runs/36669175457).
-Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the two version/platform exceptions below.
+Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the later samples and platform exceptions below.
 All artifact records were cross-checked against the corresponding job's markers.
 This covers all 24 parallel and 201 serial members; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
 Observed maxima provide conservative packing weights, not an upper bound on future durations.
@@ -25,9 +25,7 @@ For the supervision-host suite's later serial timing samples and retained hint, 
 The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains its separate 5121 ms measurement from 2026-09-06T21:02Z instead of a portable capability skip.
 The 2026-10-07 polytoken adapter tests carry provisional local measurements instead - 21090 ms for `tests/fm-polytoken-harness.test.sh` and the 103 ms live-guard skip for `tests/fm-polytoken-signals-live-e2e.test.sh`, both measured on the adapter-verification macOS host - until the next CI refresh replaces them with Ubuntu measurements, because they postdate the 2026-09-30 baseline.
 The wedge-cap suite carries the Ubuntu measurements from CI run [39597689178](https://github.com/kunchenguid/firstmate/actions/runs/39597689178) - 374225 ms for `tests/fm-watch-wedge-cap.test.sh` and the 74 ms live-guard skip for `tests/fm-watch-wedge-cap-live.test.sh` - in place of the provisional local measurements the suite first carried (1003000 ms and the 155 ms skip), which overstated the CI cost of both.
-They are not a formality: without a hint the suite is packed on the 45000 ms default, which puts it beside a shard already holding about 17 minutes of measured work, so that shard would really have run for about 23 minutes - past the 20-minute target the guard reserves - while the coverage guard still passed.
 The same run measured the wedge-cap parity suite at 27763 ms, which `bin/fm-test-run.sh` packs at in place of the provisional 209000 ms local measurement.
-The local measurements had left the serial lane less aggregate headroom under the nine shards' 1200000 ms budget than the packing-boundary check needs to place one script exactly at the budget, so that check failed; the CI measurements restore it.
 The session-start hint retains its pre-optimization maximum until CI measures the shorter fixture-only home-summary bound; do not discount a local speedup from CI packing weights.
 
 ## Parallel lanes
@@ -78,9 +76,7 @@ That catches missing hints, not stale existing hints: the host suite still had a
 Refresh the hints whenever a serial member grows materially or the lane gains scripts, rather than waiting for missing-hint coverage to trip.
 
 `bin/fm-test-run.sh` owns the per-shard packing, so its `--check-coverage` output is the current account of lane size and coverage rather than a copied inventory.
-Ten serial runners pack the refreshed measurements into modeled script sums between 1081419 ms and 1196951 ms (18m01s-19m57s).
-The slowest shard is `tests/fm-supervision-host.test.sh` alone at its 1196951 ms slowest sample and the second is `tests/fm-watch-triage.test.sh` alone at 1122548 ms; each heavyweight's volatile duration exposes only its own shard, and the other eight shards model 18m01s.
-On 2026-10-21 the upstream sync brought the wedge-cap suite into the serial lane (`tests/fm-watch-wedge-cap.test.sh` at its 374225 ms Ubuntu sample), and the nine-shard packing crossed the 1200000 ms target at a 1219006 ms largest shard; because hint weights only grow and LPT packing is monotone in them, no refresh could restore the budget, so the lane gained a tenth serial shard (`.github/workflows/ci.yml` matrix raised to match) and the ten-shard packing models the sums above.
+Read the current shard count and modeled duration sums from that output after any suite or hint change; the [CI workflow](../.github/workflows/ci.yml) matrix must match the runner-owned count.
 The 30-minute bound is a job timeout, so it covers [workflow setup](../.github/workflows/ci.yml) as well as shard execution.
 Measure setup again when dependency installation changes before inferring job-level headroom from script hints.
 This is a packing estimate, not measured new-workflow execution or an end-to-end latency guarantee.
@@ -127,7 +123,7 @@ No fast mode, path skips, or paid runner provisioning is part of this layout.
 The slowest portable serial shard sets the modeled longest path described in [Portable serial CI shards](#portable-serial-ci-shards).
 Actual end-to-end latency also includes job setup and runner queue time, which these packing estimates do not bound.
 A complete run under fifteen minutes therefore needs the heavyweight scripts to get faster or be split, which packing cannot do.
-The candidate uses fifteen long-lived Linux jobs (ten serial, two parallel, Herdr, two lint), plus short checks and macOS; insufficient shared account capacity can erase the packing gain.
+The [CI workflow](../.github/workflows/ci.yml) owns the job inventory; insufficient shared account capacity can erase the packing gain.
 The immediate packing target is the runner's modeled script budget, not a claim that more shards alone can make an indivisible script faster.
 Compare complete before/after runs, preserve cancelled and partial-run evidence, and measure a representative normal-run sample before claiming a P95 improvement.
 The workflow retains per-PR supersession, triggers only on pull_request events, and leaves the compliance workflow's event semantics unchanged.
