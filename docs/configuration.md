@@ -1811,7 +1811,7 @@ This section is the single owner of the canonical schema.
   A home running the Claude Code supervision-branch mod can carry that entry to learn when a release lands, the trigger for the mod's post-upgrade test in [`docs/claude-supervision-branch.md`](claude-supervision-branch.md) "Claude Code versions".
 - A `git` entry reports how many commits the local clone is behind its remote branch, and stays silent when the clone is current or ahead.
 - An omitted `branch` uses the remote's default branch, taken from the clone's own record of it and otherwise asked of the remote directly, so a `--single-branch` clone still resolves.
-Both probe kinds are read-only and bounded, and a probe that cannot answer is reported as a check failure rather than assumed current.
+Both probe kinds are read-only and bounded; failure reporting follows **Repeat reporting and inheritance** in this section.
 See [`docs/examples/watched-tools.json`](examples/watched-tools.json) for a starting point to copy into local `config/watched-tools.json`.
 
 **Arm, edit, and disarm**
@@ -1824,7 +1824,7 @@ Arm the check once per home with `bin/fm-tool-update-check.sh arm`.
 
 **Repeat reporting and inheritance**
 
-- The check prints nothing when everything is current, and `state/.tool-updates` records the findings the last report was made from, and which watched tools' probes failed that sweep, so the same pending update is reported once instead of on every poll.
+- The check prints nothing when everything is current and reports the same pending finding once instead of on every poll.
 - A changed or returning condition is reported again.
 - A tool whose probe fails where the previous sweep did not fail it retains its previous probe findings, and the failure is reported only when the same tool's probe fails again on the next sweep, so a transient probe failure and its recovery do not wake the home.
   This applies only to probes that ran: a version command returning no version, an announcement command timing out, a `version_url` read failing or returning no version, or a git probe timing out, failing its repository check, failing to resolve the default branch, failing to reach or read the remote, finding a missing branch, or finding no commit to compare.

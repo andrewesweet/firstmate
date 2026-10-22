@@ -32,8 +32,8 @@
 # newer version published". So PATH skew is measured, never inferred: every
 # executable copy on PATH is asked for its own version, and those answers are
 # compared. A directory name is never read as a version, because a version
-# manager's "latest" directory can hold an older build. A copy that will not
-# report a version is reported as a check failure rather than assumed current.
+# manager's "latest" directory can hold an older build. Failure reporting follows
+# docs/configuration.md's "Repeat reporting and inheritance" rules.
 #
 # What this script never does: it reports, and it repairs nothing. It does not
 # install, update, uninstall, reorder PATH, or touch any version manager's
@@ -70,21 +70,13 @@
 # killed part way through leaves no record and is retried, instead of
 # suppressing its finding.
 #
-# A probe failure is held to a stricter rule than the other findings, because a
-# release endpoint that fails one sweep and answers the next is common, and
-# reporting both flips wakes the supervisor twice for one transient fault. The
-# record also carries which tools' probes failed on the last completed sweep.
-# A tool failing where the previous sweep did not is reported as unchanged from
-# the last report, its "<tool> check failed" finding is emitted only when the
-# same tool fails again on the next sweep, and a successful probe clears the
-# streak. Only probes that ran and failed enter the streak: version commands
-# with no version, announcement commands that time out, version_url reads that
-# fail or return no version, and git probes that time out, fail the repository
-# check, cannot resolve a default branch, cannot read the remote, find a missing
-# branch, or find no commit to compare. Invalid announcement patterns, missing
-# commands/curl/git, non-directory repositories, registry problems, the budget
-# cut notice, and all budget-exhaustion/incomplete findings report immediately
-# and never enter the streak.
+# The fm-tool-updates-v1 record carries epoch= for the completed sweep's clock,
+# reported= for its uncut effective findings, and failed= for the space-separated
+# names of tools whose probes failed that sweep. Older records without failed=
+# read as having no prior probe failures. Each completed sweep replaces failed=;
+# a skipped cadence check leaves it untouched. The probe-failure streak and the
+# immediate-reporting exceptions are owned by docs/configuration.md's "Repeat
+# reporting and inheritance" rules (tests/fm-tool-update-check.test.sh).
 set -u
 export LC_ALL=C
 # A watched git remote must never stop to ask for credentials; an unauthenticated
