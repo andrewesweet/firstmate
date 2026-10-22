@@ -748,7 +748,7 @@ record_write() {
 }
 
 finding_segments() {
-  local piece segment= boundary='^[^[:space:]]+ (check failed|update available|update not in effect): '
+  local piece segment='' boundary='^[^[:space:]]+ (check failed|update available|update not in effect): '
   local budget_boundary='^sweep budget [0-9]+s cut to [0-9]+s '
   while IFS= read -r piece; do
     if [[ "$piece" =~ $boundary ]] || [[ "$piece" = 'check incomplete: '* ]] \
