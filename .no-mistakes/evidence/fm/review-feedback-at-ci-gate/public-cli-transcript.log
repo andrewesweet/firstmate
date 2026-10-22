@@ -1,0 +1,38 @@
+$ FM_HOME=<worktree-disposable-home> bin/fm-brief.sh github-ci-feedback disposable-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/data/github-ci-feedback/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+
+
+exit=0
+$ FM_HOME=<worktree-disposable-home> bin/fm-brief.sh custom-pause-ci-feedback disposable-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/custom-pause-ci-feedback/data/custom-pause-ci-feedback/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+
+
+exit=0
+$ FM_HOME=<worktree-disposable-home> bin/fm-brief.sh forgejo-ci-feedback disposable-project --mode no-mistakes --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/forgejo-ci-feedback/data/forgejo-ci-feedback/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK} and {FIRSTMATE_SPEC})
+
+
+exit=0
+$ FM_HOME=<worktree-disposable-home> bin/fm-brief.sh boundary-direct-pr disposable-project --mode direct-PR
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/boundary-direct-pr/data/boundary-direct-pr/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
+
+
+exit=0
+$ FM_HOME=<worktree-disposable-home> bin/fm-brief.sh boundary-local-only disposable-project --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/boundary-local-only/data/boundary-local-only/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+
+
+exit=0
+$ FM_CLASSIFY_PAUSED_VERB=unset bash -uc '. bin/fm-dod-lib.sh; fm_dod_block no-mistakes fallback-task'
+exit=0; emitted CI wait verb=paused
+$ FM_CLASSIFY_PAUSED_VERB=empty bash -uc '. bin/fm-dod-lib.sh; fm_dod_block no-mistakes fallback-task'
+exit=0; emitted CI wait verb=paused
+$ FM_CLASSIFY_PAUSED_VERB=custom bash -uc '. bin/fm-dod-lib.sh; fm_dod_block no-mistakes fallback-task'
+exit=0; emitted CI wait verb=holding
+
+PASS: GitHub brief requires bounded checks plus all feedback reads and routes parked-gate feedback as fix work.
+PASS: No parked gate, late answers after green, synchronized branches, and final feedback reread are covered before done.
+PASS: Maintainer-only waits use separate pause/resolution keys and honor the holding override.
+PASS: Forgejo brief uses tea reads, per-review inline comments, and pagination rather than GitHub polling.
+PASS: CI feedback guidance stays scoped to no-mistakes delivery.
+PASS: Existing fm_dod_block calling convention works outside fm-brief with unset, empty, and custom pause verbs.
