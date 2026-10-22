@@ -766,14 +766,15 @@ finding_segments() {
 
 # True when one tool's own findings contain a probe failure.
 tool_findings_failed() {
-  local name=$1 seg
+  local name=$1 seg status=1
+  # Keep reading after a match so the segment writer never loses its reader.
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
     case "$seg" in
-      "$name check failed: "*) return 0 ;;
+      "$name check failed: "*) status=0 ;;
     esac
   done < <(finding_segments "$2")
-  return 1
+  return "$status"
 }
 
 # The findings the last completed sweep reported for one tool, or nothing when

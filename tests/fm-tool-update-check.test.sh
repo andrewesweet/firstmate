@@ -1025,6 +1025,31 @@ test_failure_streaks_are_tracked_per_tool() {
   pass "each tool's failure streak is tracked independently"
 }
 
+test_multiple_probe_failures_are_silent_until_repeated() {
+  local home dir out remote
+  home=$(make_home multiple-failures)
+  dir="$home/bin"
+  out="$home/out.txt"
+  make_copy "$dir" "$TOOL" 'herdr 0.8.2'
+  make_curl_fixture "$dir" '' 22
+  git init -q "$home/repo"
+  # A later finding larger than a pipe buffer makes an early reader exit
+  # observable without relying on the scheduler to expose the broken pipe.
+  printf -v remote '%98304s' ''
+  remote=${remote// /x}
+  write_config "$home" "{\"tools\":[{\"name\":\"herdr\",\"command\":\"$TOOL\",\"version_url\":\"https://downloads.example.invalid/latest\",\"git\":{\"repo\":\"$home/repo\",\"remote\":\"$remote\",\"branch\":\"main\"}}]}"
+  # An ignored SIGPIPE turns a closed pipe into a write error, as in CI.
+  (trap '' PIPE; run_check "$home" "$(fixture_path "$dir")" "$out") || fail "first multiple-failure check failed"
+  [ ! -s "$out" ] || fail "multiple first probe failures produced output: $(cat "$out")"
+  grep -qxF 'failed=herdr' "$home/state/.tool-updates" || fail "the failed probes did not enter the failure streak"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  assert_contains "$(cat "$out")" 'herdr check failed: https://downloads.example.invalid/latest did not report a version' "consecutive failures were not reported"
+  assert_contains "$(cat "$home/state/.tool-updates")" "$remote could not be reached or read" "the later failure was not recorded in full"
+  run_check "$home" "$(fixture_path "$dir")" "$out"
+  [ ! -s "$out" ] || fail "unchanged consecutive failures produced output: $(cat "$out")"
+  pass "multiple probe failures stay silent until repeated without leaking parser errors"
+}
+
 test_payload_separators_survive_transient_failures() {
   local home stale fresh sibling out initial
   home=$(make_home separator-flap)
@@ -1566,6 +1591,7 @@ test_one_transient_failure_flaps_silently
 test_failure_is_reported_only_after_two_consecutive_failed_sweeps
 test_an_old_format_record_is_accepted
 test_failure_streaks_are_tracked_per_tool
+test_multiple_probe_failures_are_silent_until_repeated
 test_payload_separators_survive_transient_failures
 test_repeating_incomplete_notice_does_not_flap_with_a_transient_failure
 test_immediate_findings_do_not_seed_or_reappear_in_probe_streaks
