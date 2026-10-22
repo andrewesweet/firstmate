@@ -1,0 +1,51 @@
+[
+  {
+    "name": "A release update is reported once; one real HTTP failure and recovery leave the report unchanged and do not wake the watcher",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A sustained HTTP failure is reported on its second sweep once, and recovery reports the pending update once",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Failures on different tools never combine into a consecutive failure streak",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A Git remote outage and recovery preserve its pending update without fetching or changing the watched clone",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Missing tools, invalid patterns, absent directories, registry errors, and budget cuts remain immediate and outside probe streaks",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A repeated real sweep-budget notice stays single and silent through one failed probe and recovery",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A hung HTTPS origin obeys the probe timeout and reports only after consecutive failed sweeps",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-transcript.log",
+    "reason": ""
+  }
+]

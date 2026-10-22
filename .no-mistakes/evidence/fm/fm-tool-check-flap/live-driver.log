@@ -1,0 +1,289 @@
+Real product: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5HHTSWMAT2Z86V93H6K6W7B/bin/fm-tool-update-check.sh
+Real dependencies: git version 2.43.0, curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0 OpenSSL/3.0.13 zlib/1.3 brotli/1.1.0 zstd/1.5.5 libidn2/2.3.7 libpsl/0.21.2 (+libidn2/2.3.7) libssh/0.10.6/openssl/zlib nghttp2/1.59.0 librtmp/2.3 OpenLDAP/2.6.10
+Isolated HTTPS file origin: https://localhost:41455; certificates and homes confined to /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5HHTSWMAT2Z86V93H6K6W7B/.test-tool-check-tmp/live-cb_2h34k
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+initial release: bin/fm-tool-update-check.sh check (0.102s)
+stdout: tool updates: git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665939
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+unchanged release: bin/fm-tool-update-check.sh check (0.092s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665939
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+
+single real HTTP 404: bin/fm-tool-update-check.sh check (0.095s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665939
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=git-release
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+origin restored after one failure: bin/fm-tool-update-check.sh check (0.094s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665939
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+armed: state/tool-updates.check.sh
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+Watcher during one HTTP failure: checkpoint: no actionable wake within 2s
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+recovery after quiet watcher checkpoint: bin/fm-tool-update-check.sh check (0.094s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665941
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+SCENARIO PASS: A release update is reported once; one real HTTP failure and recovery leave the report unchanged and do not wake the watcher
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+initial release before sustained outage: bin/fm-tool-update-check.sh check (0.091s)
+stdout: tool updates: git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665941
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+
+sustained outage first sweep: bin/fm-tool-update-check.sh check (0.093s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=git-release
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+
+sustained outage second sweep: bin/fm-tool-update-check.sh check (0.095s)
+stdout: tool updates: git-release check failed: https://localhost:41455/latest did not report a version
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=git-release check failed: https://localhost:41455/latest did not report a version
+failed=git-release
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+
+sustained outage third sweep: bin/fm-tool-update-check.sh check (0.094s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=git-release check failed: https://localhost:41455/latest did not report a version
+failed=git-release
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+recovery after reported outage: bin/fm-tool-update-check.sh check (0.095s)
+stdout: tool updates: git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+recovery is reported only once: bin/fm-tool-update-check.sh check (0.094s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+SCENARIO PASS: A sustained HTTP failure is reported on its second sweep once, and recovery reports the pending update once
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+HTTPS origin: "GET /second HTTP/1.1" 200 -
+
+two initial updates: bin/fm-tool-update-check.sh check (0.154s)
+stdout: tool updates: first update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0; second update available: 99.0.0 published at https://localhost:41455/second, PATH resolves 2.43.0
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=first update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0; second update available: 99.0.0 published at https://localhost:41455/second, PATH resolves 2.43.0
+failed=
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /latest HTTP/1.1" 404 -
+HTTPS origin: "GET /second HTTP/1.1" 200 -
+
+first tool fails once: bin/fm-tool-update-check.sh check (0.155s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=first update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0; second update available: 99.0.0 published at https://localhost:41455/second, PATH resolves 2.43.0
+failed=first
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /second HTTP/1.1" 404 -
+
+second tool fails while first recovers: bin/fm-tool-update-check.sh check (0.155s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665942
+reported=first update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0; second update available: 99.0.0 published at https://localhost:41455/second, PATH resolves 2.43.0
+failed=second
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+HTTPS origin: "GET /second HTTP/1.1" 200 -
+
+both tools recover: bin/fm-tool-update-check.sh check (0.153s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=first update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0; second update available: 99.0.0 published at https://localhost:41455/second, PATH resolves 2.43.0
+failed=
+
+SCENARIO PASS: Failures on different tools never combine into a consecutive failure streak
+
+real Git remote newer than clone: bin/fm-tool-update-check.sh check (0.094s)
+stdout: tool updates: git-project update available: origin/main is at 7e79737d675d which this copy does not have
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=git-project update available: origin/main is at 7e79737d675d which this copy does not have
+failed=
+
+
+real Git remote unavailable once: bin/fm-tool-update-check.sh check (0.064s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=git-project update available: origin/main is at 7e79737d675d which this copy does not have
+failed=git-project
+
+
+real Git remote restored: bin/fm-tool-update-check.sh check (0.088s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=git-project update available: origin/main is at 7e79737d675d which this copy does not have
+failed=
+
+Watched clone file hashes unchanged, including Git refs, objects, index, config, and FETCH_HEAD presence.
+SCENARIO PASS: A Git remote outage and recovery preserve its pending update without fetching or changing the watched clone
+
+configuration and missing tool problems first sweep: bin/fm-tool-update-check.sh check (0.076s)
+stdout: tool updates: missing check failed: fm-live-clearly-absent is not on PATH; bad-pattern check failed: announce_pattern is not a usable extended regular expression; absent-repo check failed: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5HHTSWMAT2Z86V93H6K6W7B/.test-tool-check-tmp/live-cb_2h34k/absent; directory is not a directory
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=missing check failed: fm-live-clearly-absent is not on PATH; bad-pattern check failed: announce_pattern is not a usable extended regular expression; absent-repo check failed: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5HHTSWMAT2Z86V93H6K6W7B/.test-tool-check-tmp/live-cb_2h34k/absent; directory is not a directory
+failed=
+
+
+same immediate findings are not repeated: bin/fm-tool-update-check.sh check (0.072s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=missing check failed: fm-live-clearly-absent is not on PATH; bad-pattern check failed: announce_pattern is not a usable extended regular expression; absent-repo check failed: /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5HHTSWMAT2Z86V93H6K6W7B/.test-tool-check-tmp/live-cb_2h34k/absent; directory is not a directory
+failed=
+
+
+invalid registry first sweep: bin/fm-tool-update-check.sh check (0.028s)
+stdout: tool updates: watched tool registry: the watched tool registry is not valid JSON
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=watched tool registry: the watched tool registry is not valid JSON
+failed=
+
+HTTPS origin: "GET /latest HTTP/1.1" 200 -
+
+oversized budget reports immediately: bin/fm-tool-update-check.sh check (0.097s)
+stdout: tool updates: sweep budget 120s cut to 27s to stay inside the watcher check timeout of 30s; git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665943
+reported=sweep budget 120s cut to 27s to stay inside the watcher check timeout of 30s; git-release update available: 99.0.0 published at https://localhost:41455/latest, PATH resolves 2.43.0
+failed=
+
+SCENARIO PASS: Missing tools, invalid patterns, absent directories, registry errors, and budget cuts remain immediate and outside probe streaks
+HTTPS origin: "GET /timed/latest HTTP/1.1" 200 -
+
+update plus exhausted sweep notice: bin/fm-tool-update-check.sh check (0.503s)
+stdout: tool updates: release update available: 99.0.0 published at https://localhost:41455/timed/latest, PATH resolves 2.43.0; check incomplete: the time budget ran out before unreached
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665944
+reported=release update available: 99.0.0 published at https://localhost:41455/timed/latest, PATH resolves 2.43.0; check incomplete: the time budget ran out before unreached
+failed=
+
+HTTPS origin: code 404, message File not found
+HTTPS origin: "GET /timed/latest HTTP/1.1" 404 -
+
+one failed probe with same exhausted sweep notice: bin/fm-tool-update-check.sh check (1.001s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665945
+reported=release update available: 99.0.0 published at https://localhost:41455/timed/latest, PATH resolves 2.43.0; check incomplete: the time budget ran out before unreached
+failed=release
+
+HTTPS origin: "GET /timed/latest HTTP/1.1" 200 -
+
+recovery with same exhausted sweep notice: bin/fm-tool-update-check.sh check (0.999s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665946
+reported=release update available: 99.0.0 published at https://localhost:41455/timed/latest, PATH resolves 2.43.0; check incomplete: the time budget ran out before unreached
+failed=
+
+SCENARIO PASS: A repeated real sweep-budget notice stays single and silent through one failed probe and recovery
+
+origin does not answer first probe: bin/fm-tool-update-check.sh check (1.094s)
+stdout: <silent>
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665947
+reported=
+failed=slow
+
+
+origin does not answer consecutive probe: bin/fm-tool-update-check.sh check (1.085s)
+stdout: tool updates: slow check failed: https://localhost:41455/hang/latest did not report a version
+state/.tool-updates:
+fm-tool-updates-v1
+epoch=1792665948
+reported=slow check failed: https://localhost:41455/hang/latest did not report a version
+failed=slow
+
+SCENARIO PASS: A hung HTTPS origin obeys the probe timeout and reports only after consecutive failed sweeps
+Cleanup: isolated homes, repositories, certificate, and HTTPS server removed.
