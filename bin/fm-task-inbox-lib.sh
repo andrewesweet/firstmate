@@ -349,10 +349,18 @@ fm_task_inbox_doorbell_line() {  # <record-path>
 # CONSTANT line the worker recovers semantically, while skipping on ambiguous
 # verdicts would starve a harness whose idle screen the classifier cannot
 # positively identify (that classifier is advisory here by design).
-# A pending composer holding exactly our own doorbell line is a previous ring
+# A composer holding exactly our own doorbell line is a previous ring
 # whose Enter never landed, so on an agent not reported busy it is submitted
-# rather than skipped; skipping it would block every later ring. On both paths
-# a lost first Enter gets one confirmed retry.
+# rather than skipped; skipping it would block every later ring. That
+# recovery keys on the holds proof ALONE, never on the classifier verdict:
+# the verdict can misread exactly this screen - a herdr-hosted Claude draws
+# the stranded line in muted-grey typed text that the verdict's ghost strip
+# drops (verdict `empty`; the 2026-10-22 idle-steer incident) and any
+# unclassifiable screen reads `unknown` - and gating the recovery on
+# `pending` starved every such recipient: the proof-gated Claude send
+# refuses a non-empty composer without pressing Enter, and an ungated one
+# retypes the constant line on top of itself. On both paths a lost first
+# Enter gets one confirmed retry.
 fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   local backend=$1 target=$2 rec=$3 label=${4:-} line cstate verdict
   case "$(fm_backend_agent_state "$backend" "$target" 2>/dev/null || true)" in
@@ -361,19 +369,20 @@ fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   if ! line=$(fm_task_inbox_doorbell_line "$rec"); then
     return 2
   fi
+  # Submit-our-own-stuck-doorbell recovery, keyed on the holds proof alone and
+  # deliberately BEFORE the verdict read: the verdict can misread exactly the
+  # screen that holds our stranded line (see the header), while this exact
+  # match cannot. Never on an agent reported busy.
+  if fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" \
+    && [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ]; then
+    fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
+    sleep 0.3
+    fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" || return 0
+    fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
+    return 0
+  fi
   cstate=$(fm_backend_composer_state "$backend" "$target" "$label" 2>/dev/null) || cstate=unknown
-  case "$cstate" in
-    pending)
-      fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" \
-        && [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ] \
-        || return 1
-      fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
-      sleep 0.3
-      fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" || return 0
-      fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
-      return 0
-      ;;
-  esac
+  [ "$cstate" != pending ] || return 1
   # Accepted residual race: terminal input and Enter are separate delivery
   # steps, so an agent exiting after the liveness check could leave a bare
   # shell only a suffix; the `: ` prefix protects complete lines only. Do not

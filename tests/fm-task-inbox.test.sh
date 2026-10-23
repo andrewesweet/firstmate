@@ -435,7 +435,10 @@ case "${1:-}" in
     fi
     exit 0 ;;
   display-message)
-    case "$*" in *cursor_y*) printf '\n'; exit 0 ;; esac
+    case "$*" in *cursor_y*)
+      if [ -n "${FM_FAKE_CURSOR:-}" ]; then printf '%s\n' "$FM_FAKE_CURSOR"; else printf '\n'; fi
+      exit 0 ;;
+    esac
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
     rule=$(printf '\xe2\x94\x80%.0s' $(seq 64))
@@ -473,16 +476,18 @@ test_ring_submits_stuck_doorbell_on_misread_verdict() {
   rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
   doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
   log="$dir/send.log"; ringlog="$dir/ring.log"; composer="$dir/composer"; drops="$dir/drops"
-  ring() {
+  ring() {  # <busy 0|1> [cursor-y]
     PATH="$dir/fakebin:$PATH" FM_SEND_LOG="$log" FM_RING_LOG="$ringlog" \
       FM_FAKE_COMPOSER="$composer" FM_FAKE_DROP_ENTERS="$drops" FM_FAKE_BUSY="${1:-0}" \
+      FM_FAKE_CURSOR="${2:-}" \
       inbox_lib "$state" fm_task_inbox_ring tmux sess:fm-t1 "$rec" fm-t1
   }
 
   : > "$log"; : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
   rc=0; ring || rc=$?
   [ "$rc" = 0 ] || fail "an unknown-verdict screen holding our stuck doorbell should be submitted, got rc $rc"
-  [ ! -s "$ringlog" ] || fail "the stuck doorbell was retyped on an unknown-verdict screen:"$'\n'"$(cat "$ringlog")"
+  [ "$(grep -c '^TYPE:' "$ringlog")" = 0 ] \
+    || fail "the stuck doorbell was retyped on an unknown-verdict screen:"$'\n'"$(cat "$ringlog")"
   [ "$(cat "$log")" = "SUBMIT: $doorbell" ] \
     || fail "the stuck doorbell should be submitted exactly once, not garbled:"$'\n'"$(cat "$log")"
   [ ! -s "$composer" ] || fail "the stuck doorbell was left in the composer"
@@ -495,13 +500,11 @@ test_ring_submits_stuck_doorbell_on_misread_verdict() {
     || fail "the retry Enter should submit the stuck doorbell once:"$'\n'"$(cat "$log")"
   [ ! -s "$composer" ] || fail "a lost Enter left the stuck doorbell unsubmitted"
 
-  : > "$log"; : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
-  rc=0; ring 1 || rc=$?
-  [ "$rc" = 1 ] || fail "a busy-reported agent holding our stuck doorbell must not be entered, got rc $rc"
-  [ ! -s "$ringlog" ] || fail "a busy-reported agent was sent keystrokes:"$'\n'"$(cat "$ringlog")"
-  [ ! -s "$log" ] || fail "a busy-reported agent was submitted to:"$'\n'"$(cat "$log")"
-  [ "$(cat "$composer")" = "$doorbell" ] || fail "a busy-reported agent's composer changed"
-  pass "inbox: the ring submits its own stuck doorbell from the holds proof alone on misread verdicts, without retyping, and never enters a busy agent"
+  # A busy-reported agent whose composer provably holds our stuck doorbell:
+  # the skip protection is untouched. (The backend busy guard answers natively
+  # on herdr; on tmux the busy deferral is the watcher's job, pinned by the
+  # watcher tests, so the busy case is asserted on the herdr path below.)
+  pass "inbox: the ring submits its own stuck doorbell from the holds proof alone on misread verdicts, without retyping"
 }
 
 # A stateful herdr CLI fake serving the incident shape: a Claude idle pane whose
@@ -529,7 +532,7 @@ render() {  # <ansi 0|1>
   fi
   printf '\xe2\x8f\xba Done for now\n'
   if [ -s "$FM_FAKE_COMPOSER" ]; then
-    while IFS= read -r row; do
+    while IFS= read -r row || [ -n "$row" ]; do
       if [ "$first" = 1 ]; then
         first=0
         printf '\xe2\x9d\xaf %s%s%s\n' "$grey" "$row" "$reset"
@@ -624,6 +627,15 @@ test_ring_submits_stuck_doorbell_on_herdr_claude() {
     [ "$(cat "$composer")" = 'a half-typed draft' ] \
       || fail "foreign pending text on a $status agent was changed"
   done
+
+  # A busy-reported agent holding our own stranded doorbell still gets no
+  # Enter: the busy guard runs with the holds proof, not after it.
+  : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
+  rc=0; ring working || rc=$?
+  c=$(counts)
+  [ "$c" = "types=0 enters=0" ] \
+    || fail "a busy agent holding our stuck doorbell must not be entered, got $c:"$'\n'"$(cat "$ringlog")"
+  [ "$(cat "$composer")" = "$doorbell" ] || fail "a busy agent's composer changed"
   pass "inbox: the ring submits its own stuck doorbell on the herdr Claude incident screen (muted-grey ghost misread), exactly once, without retyping, and leaves foreign or busy composers untouched"
 }
 
