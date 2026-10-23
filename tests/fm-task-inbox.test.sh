@@ -398,6 +398,235 @@ test_ring_submits_its_own_stuck_doorbell() {
   pass "inbox: the ring submits its own stuck doorbell, skips other pending text, and retries a lost Enter once on both paths"
 }
 
+# A tmux fake whose cursor row is unreadable, so the classifier's verdict for
+# ANY screen is `unknown` (fm_tmux_composer_state: no cursor row, no verdict).
+# Geometry and submit semantics match make_composer_stub; literal sends are
+# logged as TYPE lines in FM_RING_LOG so a retype (a second delivery of the
+# constant line on top of the stuck one) is observable, and FM_FAKE_BUSY=1
+# renders a Claude busy footer instead of the idle one.
+make_unverdict_composer_stub() {  # <dir>
+  mkdir -p "$1/fakebin"
+  cat > "$1/fakebin/tmux" <<'SH'
+#!/usr/bin/env bash
+set -u
+case "${1:-}" in
+  send-keys)
+    shift
+    literal=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -t) shift 2 ;;
+        -l) literal=1; shift ;;
+        *) break ;;
+      esac
+    done
+    if [ "$literal" = 1 ]; then
+      printf 'TYPE: %s\n' "$1" >> "${FM_RING_LOG:-/dev/null}"
+      printf '%s' "$1" >> "$FM_FAKE_COMPOSER"
+    elif [ "${1:-}" = Enter ]; then
+      printf 'ENTER\n' >> "${FM_RING_LOG:-/dev/null}"
+      drops=$(cat "$FM_FAKE_DROP_ENTERS" 2>/dev/null || echo 0)
+      if [ "$drops" -gt 0 ]; then
+        echo $((drops - 1)) > "$FM_FAKE_DROP_ENTERS"
+      elif [ -s "$FM_FAKE_COMPOSER" ]; then
+        printf 'SUBMIT: %s\n' "$(cat "$FM_FAKE_COMPOSER")" >> "$FM_SEND_LOG"
+        : > "$FM_FAKE_COMPOSER"
+      fi
+    fi
+    exit 0 ;;
+  display-message)
+    case "$*" in *cursor_y*) printf '\n'; exit 0 ;; esac
+    printf 'fakepane\n'; exit 0 ;;
+  capture-pane)
+    rule=$(printf '\xe2\x94\x80%.0s' $(seq 64))
+    printf '\xe2\x97\x8f done\n%s\n' "$rule"
+    if [ -s "$FM_FAKE_COMPOSER" ]; then
+      fold -w 60 "$FM_FAKE_COMPOSER" | awk 'NR == 1 { print "\xe2\x9d\xaf " $0; next } { print "  " $0 }'
+    else
+      printf '\xe2\x9d\xaf \n'
+    fi
+    printf '%s\n' "$rule"
+    if [ "${FM_FAKE_BUSY:-0}" = 1 ]; then
+      printf '\xe2\x8f\xba Working... (esc to interrupt - 15s)\n'
+    else
+      printf '  ? for shortcuts\n'
+    fi
+    exit 0 ;;
+  list-windows) printf 'fm-t1\n'; exit 0 ;;
+esac
+exit 0
+SH
+  chmod +x "$1/fakebin/tmux"
+}
+
+# The incident's other half: a screen the classifier cannot positively identify
+# (here: unreadable cursor row -> verdict `unknown`) while the composer provably
+# holds our own stuck doorbell. The recovery must submit it from the holds proof
+# alone - never retype the constant line on top of itself (a doubled, garbled
+# submit), never skip. A busy-reported pane still gets no Enter.
+test_ring_submits_stuck_doorbell_on_misread_verdict() {
+  local dir state rec doorbell log ringlog composer drops rc
+  dir="$TMP_ROOT/ring-unverdict"
+  state="$dir/state"
+  mkdir -p "$state"
+  make_unverdict_composer_stub "$dir"
+  rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
+  doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
+  log="$dir/send.log"; ringlog="$dir/ring.log"; composer="$dir/composer"; drops="$dir/drops"
+  ring() {
+    PATH="$dir/fakebin:$PATH" FM_SEND_LOG="$log" FM_RING_LOG="$ringlog" \
+      FM_FAKE_COMPOSER="$composer" FM_FAKE_DROP_ENTERS="$drops" FM_FAKE_BUSY="${1:-0}" \
+      inbox_lib "$state" fm_task_inbox_ring tmux sess:fm-t1 "$rec" fm-t1
+  }
+
+  : > "$log"; : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] || fail "an unknown-verdict screen holding our stuck doorbell should be submitted, got rc $rc"
+  [ ! -s "$ringlog" ] || fail "the stuck doorbell was retyped on an unknown-verdict screen:"$'\n'"$(cat "$ringlog")"
+  [ "$(cat "$log")" = "SUBMIT: $doorbell" ] \
+    || fail "the stuck doorbell should be submitted exactly once, not garbled:"$'\n'"$(cat "$log")"
+  [ ! -s "$composer" ] || fail "the stuck doorbell was left in the composer"
+
+  : > "$log"; : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; echo 1 > "$drops"
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] || fail "a lost Enter on an unknown-verdict screen should still report rung, got rc $rc"
+  [ "$(grep -c '^TYPE:' "$ringlog")" = 0 ] || fail "a lost Enter triggered a retype:"$'\n'"$(cat "$ringlog")"
+  [ "$(cat "$log")" = "SUBMIT: $doorbell" ] \
+    || fail "the retry Enter should submit the stuck doorbell once:"$'\n'"$(cat "$log")"
+  [ ! -s "$composer" ] || fail "a lost Enter left the stuck doorbell unsubmitted"
+
+  : > "$log"; : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
+  rc=0; ring 1 || rc=$?
+  [ "$rc" = 1 ] || fail "a busy-reported agent holding our stuck doorbell must not be entered, got rc $rc"
+  [ ! -s "$ringlog" ] || fail "a busy-reported agent was sent keystrokes:"$'\n'"$(cat "$ringlog")"
+  [ ! -s "$log" ] || fail "a busy-reported agent was submitted to:"$'\n'"$(cat "$log")"
+  [ "$(cat "$composer")" = "$doorbell" ] || fail "a busy-reported agent's composer changed"
+  pass "inbox: the ring submits its own stuck doorbell from the holds proof alone on misread verdicts, without retyping, and never enters a busy agent"
+}
+
+# A stateful herdr CLI fake serving the incident shape: a Claude idle pane whose
+# viewport renders the composer content in Claude's muted-grey typed-text color
+# (SGR 38;2;112;112;112 - the color the /exit fix documented live). The shared
+# classifier's default ghost strip drops that color, so the verdict reads
+# `empty` while the proof read (ghost ceiling off) sees the exact doorbell:
+# exactly the screen where the verdict-gated recovery starved. Enter clears the
+# composer state (a landed submit), FM_FAKE_DROP_ENTERS swallows that many
+# Enters, send-text appends and is logged as TYPE, send-keys as KEY.
+make_herdr_inbox_stub() {  # <dir>
+  mkdir -p "$1/fakebin"
+  cat > "$1/fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+set -u
+D=$(dirname "${FM_FAKE_COMPOSER:?}")
+line="herdr"; for a in "$@"; do line="$line"$'\x1f'"$a"; done
+printf '%s\n' "$line" >> "${FM_RING_LOG:-/dev/null}"
+render() {  # <ansi 0|1>
+  local ansi=$1 rule row first=1 grey='' reset=''
+  rule=$(printf '\xe2\x94\x80%.0s' $(seq 92))
+  if [ "$ansi" = 1 ]; then
+    grey=$(printf '\033[38;2;112;112;112m')
+    reset=$(printf '\033[0m')
+  fi
+  printf '\xe2\x8f\xba Done for now\n'
+  if [ -s "$FM_FAKE_COMPOSER" ]; then
+    while IFS= read -r row; do
+      if [ "$first" = 1 ]; then
+        first=0
+        printf '\xe2\x9d\xaf %s%s%s\n' "$grey" "$row" "$reset"
+      else
+        printf '  %s%s%s\n' "$grey" "$row" "$reset"
+      fi
+    done < <(fold -w 90 "$FM_FAKE_COMPOSER")
+  else
+    printf '\xe2\x9d\xaf \n'
+  fi
+  printf '\n  ? for shortcuts\n'
+}
+cmd=${1:-}; sub=${2:-}; pane=${3:-}
+case "$cmd $sub" in
+  "status --json") printf '{"client":{"version":"0.9.0","protocol":14},"server":{"running":true}}\n' ;;
+  "agent get") printf '{"result":{"agent":{"agent":"claude","agent_status":"%s"}}}\n' "${FM_FAKE_AGENT_STATUS:-idle}" ;;
+  "pane get") printf '{"result":{"pane":{"pane_id":"%s","foreground_cwd":"/tmp"}}}\n' "$pane" ;;
+  "pane read")
+    src=""; ansi=0; args=("$@"); for ((i=0; i<${#args[@]}; i++)); do
+      case "${args[$i]}" in --source) src="${args[$((i+1))]}" ;; ansi) ansi=1 ;; esac
+    done
+    render "$ansi" ;;
+  "pane send-text")
+    printf 'TYPE: %s\n' "${4:-}" >> "${FM_RING_LOG:-/dev/null}"
+    printf '%s' "${4:-}" >> "$FM_FAKE_COMPOSER" ;;
+  "pane send-keys")
+    key=${4:-}
+    case "$key" in
+      enter)
+        printf 'KEY: enter\n' >> "${FM_RING_LOG:-/dev/null}"
+        drops=$(cat "$FM_FAKE_DROP_ENTERS" 2>/dev/null || echo 0)
+        if [ "$drops" -gt 0 ]; then
+          echo $((drops - 1)) > "$FM_FAKE_DROP_ENTERS"
+        else
+          : > "$FM_FAKE_COMPOSER"
+        fi ;;
+    esac ;;
+  *) : ;;
+esac
+exit 0
+SH
+  chmod +x "$1/fakebin/herdr"
+}
+
+# THE incident: a herdr-hosted Claude pane sitting idle with the doorbell line
+# stranded in its composer in the muted-grey typed color. The verdict reader
+# calls that screen `empty` (the ghost strip), the proof gate refuses a
+# non-empty composer without pressing Enter, and the instruction sat unread for
+# hours until a human pressed Enter. The recovery must press Enter from the
+# holds proof alone: exactly once, with no retype, and never on a busy agent.
+test_ring_submits_stuck_doorbell_on_herdr_claude() {
+  local dir state rec doorbell ringlog composer drops rc
+  dir="$TMP_ROOT/ring-herdr-claude"
+  state="$dir/state"
+  mkdir -p "$state"
+  make_herdr_inbox_stub "$dir"
+  rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
+  doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
+  ringlog="$dir/ring.log"; composer="$dir/composer"; drops="$dir/drops"
+  ring() {  # <agent-status>
+    PATH="$dir/fakebin:$PATH" FM_RING_LOG="$ringlog" FM_FAKE_COMPOSER="$composer" \
+      FM_FAKE_DROP_ENTERS="$drops" FM_FAKE_AGENT_STATUS="${1:-idle}" \
+      FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+      inbox_lib "$state" fm_task_inbox_ring herdr ses:p1 "$rec" label
+  }
+  counts() { printf 'types=%s enters=%s' "$(grep -c '^TYPE: ' "$ringlog" 2>/dev/null || true)" "$(grep -c '^KEY: enter$' "$ringlog" 2>/dev/null || true)"; }
+
+  # Idle pane holding the stranded doorbell: submit it from the composer, once.
+  : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] || fail "the incident shape (idle Claude holding the muted-grey doorbell) should be submitted, got rc $rc"
+  c=$(counts); [ "$c" = "types=0 enters=1" ] \
+    || fail "recovery must press Enter exactly once and never retype, got $c:"$'\n'"$(cat "$ringlog")"
+  [ ! -s "$composer" ] || fail "the stuck doorbell was left in the composer"
+
+  # A swallowed Enter still recovers: the retry, not a retype, delivers it.
+  : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; echo 1 > "$drops"
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] || fail "a swallowed Enter on the incident shape should still report rung, got rc $rc"
+  c=$(counts); [ "$c" = "types=0 enters=2" ] \
+    || fail "a swallowed Enter should get one confirmed retry Enter and no retype, got $c:"$'\n'"$(cat "$ringlog")"
+  [ ! -s "$composer" ] || fail "a swallowed Enter left the stuck doorbell unsubmitted"
+
+  # The proof gate's real job is untouched: foreign pending text is refused
+  # with no keystrokes at all, busy or not.
+  for status in idle working; do
+    : > "$ringlog"; printf '%s' 'a half-typed draft' > "$composer"; : > "$drops"
+    rc=0; ring "$status" || rc=$?
+    c=$(counts)
+    [ "$c" = "types=0 enters=0" ] \
+      || fail "foreign pending text on a $status agent must not be typed into or entered, got $c:"$'\n'"$(cat "$ringlog")"
+    [ "$(cat "$composer")" = 'a half-typed draft' ] \
+      || fail "foreign pending text on a $status agent was changed"
+  done
+  pass "inbox: the ring submits its own stuck doorbell on the herdr Claude incident screen (muted-grey ghost misread), exactly once, without retyping, and leaves foreign or busy composers untouched"
+}
+
 test_idempotent_write_dedups_exact_body() {
   local state r1 r2 r3 r4 count text
   state="$TMP_ROOT/idem/state"; mkdir -p "$state"
@@ -1186,6 +1415,8 @@ test_doorbell_is_a_shell_noop
 test_doorbell_rejects_terminal_controls
 test_ring_skips_dead_agent
 test_ring_submits_its_own_stuck_doorbell
+test_ring_submits_stuck_doorbell_on_misread_verdict
+test_ring_submits_stuck_doorbell_on_herdr_claude
 test_idempotent_write_dedups_exact_body
 test_idempotent_write_follows_concurrent_ack
 test_handled_mv_dedups_by_sequence
