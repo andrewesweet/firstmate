@@ -48,12 +48,10 @@
 # outcome on this plane: "did the doorbell land" is no longer the question -
 # "was the message acted on" is, and that is answered asynchronously for an
 # ordinary record by the worker's acknowledgement move into handled/.
-# bin/fm-task-inbox-lib.sh owns the record format, doorbell line, and retry and
-# escalation policy for ordinary and fire-and-forget records.
-# The composer pre-check before the ring is ADVISORY only: when
-# the composer visibly holds pending text the ring is skipped with a notice and
-# the watcher re-rings an ordinary record later; no composer verdict is
-# delivery proof on this plane, and a failed ring never fails the send.
+# bin/fm-task-inbox-lib.sh owns the record format, doorbell line, ring safety,
+# submission recovery, and retry and escalation policy for ordinary and
+# fire-and-forget records. No composer verdict is delivery proof on this plane,
+# and a failed ring never fails the send.
 #
 # TYPED - the LOCAL text that must reach the terminal itself: a harness-native
 # invocation (a leading "/", or a leading "$" to a codex target) must reach

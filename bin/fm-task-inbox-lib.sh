@@ -50,10 +50,9 @@
 #
 # Re-ring ladder (fm_task_inbox_due_action): an unhandled message older than
 # FM_TASK_INBOX_GRACE_SECS is due one delivery attempt per grace period; an
-# attempt may ring or be skipped to protect another draft in a proven pending
-# composer; an unsubmitted copy of this doorbell is retried. After
+# attempt uses fm_task_inbox_ring's safety and submission checks below. After
 # FM_TASK_INBOX_RING_MAX attempts without an acknowledgement it escalates. The
-# caller owns the busy and recovery-grade endpoint checks: due actions deferred
+# caller owns the ladder's busy and recovery-grade endpoint checks: due actions deferred
 # by a busy pane consume a separate durable consecutive-poll budget,
 # FM_TASK_INBOX_BUSY_MAX. At that bound the same escalation path surfaces a
 # stuck-busy reason without typing. A non-busy due check or acknowledgement resets
@@ -93,7 +92,7 @@
 #   FM_TASK_INBOX_BUSY_MAX     default 2; consecutive busy-deferred due polls before escalation
 
 _FM_TASK_INBOX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Both dependencies are canonical lint roots in their own right. Keep them as
+# These dependencies are canonical lint roots in their own right. Keep them as
 # analysis boundaries here so ShellCheck's external-source traversal does not
 # recursively duplicate the full backend graph for every inbox consumer.
 # shellcheck source=/dev/null
@@ -337,32 +336,31 @@ fm_task_inbox_doorbell_line() {  # <record-path>
     "$quoted"
 }
 
-# Ring the doorbell, best-effort: one endpoint-liveness pre-check, one advisory
-# composer pre-check, then the backend's submit machinery with a minimal retry
-# budget, verdict discarded.
+# Ring the doorbell, best-effort: check endpoint liveness and busy state before
+# either recovering an unsubmitted doorbell or using the backend's submit
+# machinery with an advisory composer pre-check and a minimal retry budget.
 # Returns 0 rang, 1 skipped because the recipient is busy or the composer
 # PROVENLY holds other pending text (the watcher re-rings later), 2 the backend send
 # failed, 3 skipped because the endpoint is positively dead or missing (nothing
 # typed; recovery owns the record). No return value is delivery proof; the
 # acknowledgement move is the only delivery signal.
-# The skip is deliberately narrow: only an exact `pending` verdict can defer,
-# because there our Enter could submit someone's real half-typed content.
+# Busy checks use the backend's native state and bin/fm-busy-lib.sh's
+# harness-aware classification; either reporting busy defers all input.
+# After those checks, only an exact `pending` composer verdict can defer,
+# unless the composer holds our own doorbell as described below: an Enter
+# into other pending text could submit someone's real half-typed content.
 # `pending-unproven` and `unknown` still ring - the worst outcome is a garbled
 # CONSTANT line the worker recovers semantically, while skipping on ambiguous
 # verdicts would starve a harness whose idle screen the classifier cannot
 # positively identify (that classifier is advisory here by design).
-# A composer holding exactly our own doorbell line is a previous ring
-# whose Enter never landed, so on an agent not reported busy it is submitted
-# rather than skipped; skipping it would block every later ring. That
-# recovery keys on the holds proof ALONE, never on the classifier verdict:
-# the verdict can misread exactly this screen - a herdr-hosted Claude draws
-# the stranded line in muted-grey typed text that the verdict's ghost strip
-# drops (verdict `empty`; the 2026-10-22 idle-steer incident) and any
-# unclassifiable screen reads `unknown` - and gating the recovery on
-# `pending` starved every such recipient: the proof-gated Claude send
-# refuses a non-empty composer without pressing Enter, and an ungated one
-# retypes the constant line on top of itself. On both paths a lost first
-# Enter gets one confirmed retry.
+# A composer holding exactly our own doorbell line, ignoring whitespace,
+# proves an earlier ring remains unsubmitted. After the busy checks, submit
+# it with Enter without retyping, before consulting the composer verdict:
+# ghost stripping can misread muted typed text as `empty`, and an
+# unclassifiable screen reads `unknown`. Requiring `pending` would strand
+# either case or send the same line on top of itself. On both paths a lost
+# first Enter gets one confirmed retry. The repeated-ring recovery regressions
+# are in tests/fm-task-inbox.test.sh; only the handled/ move proves consumption.
 fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   local backend=$1 target=$2 rec=$3 label=${4:-} line cstate verdict inbox state task harness tail40
   case "$(fm_backend_agent_state "$backend" "$target" 2>/dev/null || true)" in
@@ -380,10 +378,7 @@ fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ] || return 1
   tail40=$(fm_backend_capture "$backend" "$target" 40 "$label" 2>/dev/null) || tail40=
   fm_busy_is_busy "$backend" "$target" "$harness" "$task" "$state" "$tail40" && return 1
-  # Submit-our-own-stuck-doorbell recovery, keyed on the holds proof alone and
-  # deliberately BEFORE the verdict read: the verdict can misread exactly the
-  # screen that holds our stranded line (see the header), while this exact
-  # match cannot. Never on an agent reported busy.
+  # Recover before advisory classification; see the ring contract above.
   if fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label"; then
     fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
     sleep 0.3
