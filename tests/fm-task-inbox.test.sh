@@ -398,6 +398,20 @@ test_ring_submits_its_own_stuck_doorbell() {
   pass "inbox: the ring submits its own stuck doorbell, skips other pending text, and retries a lost Enter once on both paths"
 }
 
+make_inbox_consumer() {
+  cat > "$1/consume" <<'SH'
+#!/usr/bin/env bash
+set -eu
+. "$FM_FAKE_INBOX_LIB"
+for rec in "$FM_FAKE_INBOX"/*.msg; do
+  [ -f "$rec" ] || continue
+  fm_task_inbox_body "$rec" >> "$FM_CONSUME_LOG"
+  mv "$rec" "$FM_FAKE_INBOX/handled/"
+done
+SH
+  chmod +x "$1/consume"
+}
+
 # A tmux fake whose cursor row is unreadable, so the classifier's verdict for
 # ANY screen is `unknown` (fm_tmux_composer_state: no cursor row, no verdict).
 # Geometry and submit semantics match make_composer_stub; literal sends are
@@ -431,12 +445,13 @@ case "${1:-}" in
       elif [ -s "$FM_FAKE_COMPOSER" ]; then
         printf 'SUBMIT: %s\n' "$(cat "$FM_FAKE_COMPOSER")" >> "$FM_SEND_LOG"
         : > "$FM_FAKE_COMPOSER"
+        [ -z "${FM_FAKE_CONSUMER:-}" ] || "$FM_FAKE_CONSUMER"
       fi
     fi
     exit 0 ;;
   display-message)
     case "$*" in *cursor_y*)
-      if [ -n "${FM_FAKE_CURSOR:-}" ]; then printf '%s\n' "$FM_FAKE_CURSOR"; else printf '\n'; fi
+      printf '\n'
       exit 0 ;;
     esac
     printf 'fakepane\n'; exit 0 ;;
@@ -468,18 +483,22 @@ SH
 # alone - never retype the constant line on top of itself (a doubled, garbled
 # submit), never skip. A busy-reported pane still gets no Enter.
 test_ring_submits_stuck_doorbell_on_misread_verdict() {
-  local dir state rec doorbell log ringlog composer drops rc
+  local dir state rec doorbell log ringlog composer drops rc attempt pending consumed
   dir="$TMP_ROOT/ring-unverdict"
   state="$dir/state"
   mkdir -p "$state"
   make_unverdict_composer_stub "$dir"
+  make_inbox_consumer "$dir"
+  printf 'harness=claude\n' > "$state/t1.meta"
   rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
   doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
   log="$dir/send.log"; ringlog="$dir/ring.log"; composer="$dir/composer"; drops="$dir/drops"
-  ring() {  # <busy 0|1> [cursor-y]
+  consumed="$dir/consumed"
+  ring() {
     PATH="$dir/fakebin:$PATH" FM_SEND_LOG="$log" FM_RING_LOG="$ringlog" \
       FM_FAKE_COMPOSER="$composer" FM_FAKE_DROP_ENTERS="$drops" FM_FAKE_BUSY="${1:-0}" \
-      FM_FAKE_CURSOR="${2:-}" \
+      FM_FAKE_CONSUMER="${consumer:-}" FM_FAKE_INBOX="$state/t1.inbox" \
+      FM_FAKE_INBOX_LIB="$ROOT/bin/fm-task-inbox-lib.sh" FM_CONSUME_LOG="$consumed" \
       inbox_lib "$state" fm_task_inbox_ring tmux sess:fm-t1 "$rec" fm-t1
   }
 
@@ -500,10 +519,45 @@ test_ring_submits_stuck_doorbell_on_misread_verdict() {
     || fail "the retry Enter should submit the stuck doorbell once:"$'\n'"$(cat "$log")"
   [ ! -s "$composer" ] || fail "a lost Enter left the stuck doorbell unsubmitted"
 
-  # A busy-reported agent whose composer provably holds our stuck doorbell:
-  # the skip protection is untouched. (The backend busy guard answers natively
-  # on herdr; on tmux the busy deferral is the watcher's job, pinned by the
-  # watcher tests, so the busy case is asserted on the herdr path below.)
+  for pending in '' "$doorbell" 'a half-typed draft'; do
+    : > "$log"; : > "$ringlog"; printf '%s' "$pending" > "$composer"; : > "$drops"
+    rc=0; ring 1 || rc=$?
+    [ "$rc" = 1 ] || fail "a busy tmux recipient should defer, got rc $rc"
+    [ ! -s "$ringlog" ] || fail "a busy tmux recipient received input: $(cat "$ringlog")"
+    [ "$(cat "$composer")" = "$pending" ] || fail "a busy tmux composer's content changed"
+  done
+
+  bash "$ROOT/bin/fm-busy-event.sh" arm "$state" t1 --source claude-hook --event user-prompt-submit >/dev/null \
+    || fail "could not arm the busy recipient"
+  : > "$ringlog"; printf '%s' "$doorbell" > "$composer"
+  rc=0; ring || rc=$?
+  [ "$rc" = 1 ] && [ ! -s "$ringlog" ] || fail "semantic busy state must defer an idle-looking tmux pane"
+  bash "$ROOT/bin/fm-busy-event.sh" apply "$state" t1 idle --current-gen --source claude-hook --event stop \
+    || fail "could not settle the busy recipient"
+
+  local consumer="$dir/consume"
+  : > "$log"; : > "$ringlog"; : > "$consumed"
+  printf '%s' "$doorbell" > "$composer"; echo 4 > "$drops"
+  for attempt in 1 2; do
+    rc=0; ring || rc=$?
+    [ "$rc" = 0 ] || fail "unconsumed attempt $attempt should report rung, got $rc"
+    [ "$(cat "$composer")" = "$doorbell" ] || fail "attempt $attempt changed the stranded doorbell"
+    [ ! -s "$log" ] && [ ! -s "$consumed" ] || fail "attempt $attempt unexpectedly consumed the steer"
+    [ "$(inbox_lib "$state" fm_task_inbox_oldest_unhandled "$state" t1)" = "$rec" ] \
+      || fail "attempt $attempt lost the unhandled record"
+    [ "$(inbox_lib "$state" fm_task_inbox_body "$rec")" = 'please continue' ] \
+      || fail "attempt $attempt changed the durable steer"
+  done
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] && [ ! -s "$composer" ] || fail "recovery did not submit the stranded doorbell"
+  [ "$(grep -c '^TYPE:' "$ringlog")" = 0 ] || fail "repeated rings retyped the doorbell"
+  [ "$(cat "$log")" = "SUBMIT: $doorbell" ] || fail "recovery should submit the doorbell once"
+  [ ! -e "$rec" ] && [ -f "$state/t1.inbox/handled/${rec##*/}" ] || fail "recovery did not acknowledge the same record"
+  ring || fail "an extra ring failed"
+  [ "$(cat "$consumed")" = 'please continue' ] || fail "the steer was lost or consumed more than once"
+  if inbox_lib "$state" fm_task_inbox_oldest_unhandled "$state" t1 >/dev/null; then
+    fail "acknowledged steer remained unhandled"
+  fi
   pass "inbox: the ring submits its own stuck doorbell from the holds proof alone on misread verdicts, without retyping"
 }
 
@@ -566,8 +620,9 @@ case "$cmd $sub" in
         drops=$(cat "$FM_FAKE_DROP_ENTERS" 2>/dev/null || echo 0)
         if [ "$drops" -gt 0 ]; then
           echo $((drops - 1)) > "$FM_FAKE_DROP_ENTERS"
-        else
+        elif [ -s "$FM_FAKE_COMPOSER" ]; then
           : > "$FM_FAKE_COMPOSER"
+          [ -z "${FM_FAKE_CONSUMER:-}" ] || "$FM_FAKE_CONSUMER"
         fi ;;
     esac ;;
   *) : ;;
@@ -584,17 +639,22 @@ SH
 # hours until a human pressed Enter. The recovery must press Enter from the
 # holds proof alone: exactly once, with no retype, and never on a busy agent.
 test_ring_submits_stuck_doorbell_on_herdr_claude() {
-  local dir state rec doorbell ringlog composer drops rc
+  local dir state rec doorbell ringlog composer drops rc attempt pending consumed
   dir="$TMP_ROOT/ring-herdr-claude"
   state="$dir/state"
   mkdir -p "$state"
   make_herdr_inbox_stub "$dir"
+  make_inbox_consumer "$dir"
+  printf 'harness=claude\n' > "$state/t1.meta"
   rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
   doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
   ringlog="$dir/ring.log"; composer="$dir/composer"; drops="$dir/drops"
+  consumed="$dir/consumed"
   ring() {  # <agent-status>
     PATH="$dir/fakebin:$PATH" FM_RING_LOG="$ringlog" FM_FAKE_COMPOSER="$composer" \
       FM_FAKE_DROP_ENTERS="$drops" FM_FAKE_AGENT_STATUS="${1:-idle}" \
+      FM_FAKE_CONSUMER="${consumer:-}" FM_FAKE_INBOX="$state/t1.inbox" \
+      FM_FAKE_INBOX_LIB="$ROOT/bin/fm-task-inbox-lib.sh" FM_CONSUME_LOG="$consumed" \
       FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
       inbox_lib "$state" fm_task_inbox_ring herdr ses:p1 "$rec" label
   }
@@ -628,14 +688,37 @@ test_ring_submits_stuck_doorbell_on_herdr_claude() {
       || fail "foreign pending text on a $status agent was changed"
   done
 
-  # A busy-reported agent holding our own stranded doorbell still gets no
-  # Enter: the busy guard runs with the holds proof, not after it.
-  : > "$ringlog"; printf '%s' "$doorbell" > "$composer"; : > "$drops"
-  rc=0; ring working || rc=$?
-  c=$(counts)
-  [ "$c" = "types=0 enters=0" ] \
-    || fail "a busy agent holding our stuck doorbell must not be entered, got $c:"$'\n'"$(cat "$ringlog")"
-  [ "$(cat "$composer")" = "$doorbell" ] || fail "a busy agent's composer changed"
+  for pending in '' "$doorbell" 'a half-typed draft'; do
+    : > "$ringlog"; printf '%s' "$pending" > "$composer"; : > "$drops"
+    rc=0; ring working || rc=$?
+    [ "$rc" = 1 ] || fail "a busy Herdr recipient should defer, got rc $rc"
+    c=$(counts)
+    [ "$c" = "types=0 enters=0" ] \
+      || fail "a busy Herdr recipient received input, got $c:"$'\n'"$(cat "$ringlog")"
+    [ "$(cat "$composer")" = "$pending" ] || fail "a busy Herdr composer's content changed"
+  done
+
+  local consumer="$dir/consume"
+  : > "$ringlog"; : > "$consumed"; printf '%s' "$doorbell" > "$composer"; echo 4 > "$drops"
+  for attempt in 1 2; do
+    rc=0; ring || rc=$?
+    [ "$rc" = 0 ] || fail "unconsumed Herdr attempt $attempt should report rung, got $rc"
+    [ "$(cat "$composer")" = "$doorbell" ] || fail "Herdr attempt $attempt changed the stranded doorbell"
+    [ ! -s "$consumed" ] || fail "Herdr attempt $attempt unexpectedly consumed the steer"
+    [ "$(inbox_lib "$state" fm_task_inbox_oldest_unhandled "$state" t1)" = "$rec" ] \
+      || fail "Herdr attempt $attempt lost the unhandled record"
+    [ "$(inbox_lib "$state" fm_task_inbox_body "$rec")" = 'please continue' ] \
+      || fail "Herdr attempt $attempt changed the durable steer"
+  done
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] && [ ! -s "$composer" ] || fail "Herdr recovery did not submit the stranded doorbell"
+  c=$(counts); [ "$c" = 'types=0 enters=5' ] || fail "Herdr recovery retyped or duplicated the doorbell: $c"
+  [ ! -e "$rec" ] && [ -f "$state/t1.inbox/handled/${rec##*/}" ] || fail "Herdr recovery did not acknowledge the same record"
+  ring || fail "an extra Herdr ring failed"
+  [ "$(cat "$consumed")" = 'please continue' ] || fail "Herdr lost or consumed the steer more than once"
+  if inbox_lib "$state" fm_task_inbox_oldest_unhandled "$state" t1 >/dev/null; then
+    fail "Herdr acknowledged steer remained unhandled"
+  fi
   pass "inbox: the ring submits its own stuck doorbell on the herdr Claude incident screen (muted-grey ghost misread), exactly once, without retyping, and leaves foreign or busy composers untouched"
 }
 

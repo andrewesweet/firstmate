@@ -100,6 +100,8 @@ _FM_TASK_INBOX_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$_FM_TASK_INBOX_LIB_DIR/fm-wake-lib.sh"
 # shellcheck source=/dev/null
 . "$_FM_TASK_INBOX_LIB_DIR/fm-backend.sh"
+# shellcheck source=/dev/null
+. "$_FM_TASK_INBOX_LIB_DIR/fm-busy-lib.sh"
 
 FM_TASK_INBOX_SCHEMA='fm-task-inbox.v1'
 FM_TASK_INBOX_GRACE_DEFAULT=90
@@ -338,8 +340,8 @@ fm_task_inbox_doorbell_line() {  # <record-path>
 # Ring the doorbell, best-effort: one endpoint-liveness pre-check, one advisory
 # composer pre-check, then the backend's submit machinery with a minimal retry
 # budget, verdict discarded.
-# Returns 0 rang, 1 skipped because the composer PROVENLY holds pending text
-# other than our own doorbell (the watcher re-rings later), 2 the backend send
+# Returns 0 rang, 1 skipped because the recipient is busy or the composer
+# PROVENLY holds other pending text (the watcher re-rings later), 2 the backend send
 # failed, 3 skipped because the endpoint is positively dead or missing (nothing
 # typed; recovery owns the record). No return value is delivery proof; the
 # acknowledgement move is the only delivery signal.
@@ -362,19 +364,31 @@ fm_task_inbox_doorbell_line() {  # <record-path>
 # retypes the constant line on top of itself. On both paths a lost first
 # Enter gets one confirmed retry.
 fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
-  local backend=$1 target=$2 rec=$3 label=${4:-} line cstate verdict
+  local backend=$1 target=$2 rec=$3 label=${4:-} line cstate verdict inbox state task harness tail40
   case "$(fm_backend_agent_state "$backend" "$target" 2>/dev/null || true)" in
     dead|missing) return 3 ;;
   esac
+  fm_backend_source "$backend" || return 2
   if ! line=$(fm_task_inbox_doorbell_line "$rec"); then
     return 2
+  fi
+  inbox=${rec%/*}
+  inbox=${inbox%/handled}
+  state=${inbox%/*}
+  task=${inbox##*/}
+  task=${task%.inbox}
+  harness=$(fm_meta_get "$state/$task.meta" harness)
+  [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ] || return 1
+  tail40=$(fm_backend_capture "$backend" "$target" 40 "$label" 2>/dev/null) || tail40=
+  fm_busy_is_busy "$backend" "$target" "$harness" "$task" "$state" "$tail40" && return 1
+  if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 | fm_busy_lines_match "$harness"; then
+    return 1
   fi
   # Submit-our-own-stuck-doorbell recovery, keyed on the holds proof alone and
   # deliberately BEFORE the verdict read: the verdict can misread exactly the
   # screen that holds our stranded line (see the header), while this exact
   # match cannot. Never on an agent reported busy.
-  if fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" \
-    && [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ]; then
+  if fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label"; then
     fm_backend_send_key "$backend" "$target" Enter "$label" >/dev/null 2>&1 || return 2
     sleep 0.3
     fm_task_inbox_composer_holds "$backend" "$target" "$line" "$label" || return 0
