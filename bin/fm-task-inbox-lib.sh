@@ -368,7 +368,6 @@ fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   case "$(fm_backend_agent_state "$backend" "$target" 2>/dev/null || true)" in
     dead|missing) return 3 ;;
   esac
-  fm_backend_source "$backend" || return 2
   if ! line=$(fm_task_inbox_doorbell_line "$rec"); then
     return 2
   fi
@@ -381,9 +380,6 @@ fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" != busy ] || return 1
   tail40=$(fm_backend_capture "$backend" "$target" 40 "$label" 2>/dev/null) || tail40=
   fm_busy_is_busy "$backend" "$target" "$harness" "$task" "$state" "$tail40" && return 1
-  if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 | fm_busy_lines_match "$harness"; then
-    return 1
-  fi
   # Submit-our-own-stuck-doorbell recovery, keyed on the holds proof alone and
   # deliberately BEFORE the verdict read: the verdict can misread exactly the
   # screen that holds our stranded line (see the header), while this exact

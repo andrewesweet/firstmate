@@ -457,7 +457,7 @@ case "${1:-}" in
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
     rule=$(printf '\xe2\x94\x80%.0s' $(seq 64))
-    printf '\xe2\x97\x8f done\n%s\n' "$rule"
+    printf '\xe2\x97\x8f Use esc to interrupt a running turn.\n%s\n' "$rule"
     if [ -s "$FM_FAKE_COMPOSER" ]; then
       fold -w 60 "$FM_FAKE_COMPOSER" | awk 'NR == 1 { print "\xe2\x9d\xaf " $0; next } { print "  " $0 }'
     else
@@ -519,6 +519,8 @@ test_ring_submits_stuck_doorbell_on_misread_verdict() {
     || fail "the retry Enter should submit the stuck doorbell once:"$'\n'"$(cat "$log")"
   [ ! -s "$composer" ] || fail "a lost Enter left the stuck doorbell unsubmitted"
 
+  bash "$ROOT/bin/fm-busy-event.sh" arm "$state" t1 --source claude-hook --event user-prompt-submit >/dev/null \
+    || fail "could not arm the busy recipient"
   for pending in '' "$doorbell" 'a half-typed draft'; do
     : > "$log"; : > "$ringlog"; printf '%s' "$pending" > "$composer"; : > "$drops"
     rc=0; ring 1 || rc=$?
@@ -527,8 +529,6 @@ test_ring_submits_stuck_doorbell_on_misread_verdict() {
     [ "$(cat "$composer")" = "$pending" ] || fail "a busy tmux composer's content changed"
   done
 
-  bash "$ROOT/bin/fm-busy-event.sh" arm "$state" t1 --source claude-hook --event user-prompt-submit >/dev/null \
-    || fail "could not arm the busy recipient"
   : > "$ringlog"; printf '%s' "$doorbell" > "$composer"
   rc=0; ring || rc=$?
   [ "$rc" = 1 ] && [ ! -s "$ringlog" ] || fail "semantic busy state must defer an idle-looking tmux pane"
@@ -584,7 +584,7 @@ render() {  # <ansi 0|1>
     grey=$(printf '\033[38;2;112;112;112m')
     reset=$(printf '\033[0m')
   fi
-  printf '\xe2\x8f\xba Done for now\n'
+  printf '\xe2\x8f\xba Use esc to interrupt a running turn.\n'
   if [ -s "$FM_FAKE_COMPOSER" ]; then
     while IFS= read -r row || [ -n "$row" ]; do
       if [ "$first" = 1 ]; then
