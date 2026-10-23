@@ -1,0 +1,7 @@
+{
+  "result": "pass",
+  "recovery": true,
+  "foreign_draft": true,
+  "busy_guard": true,
+  "duplicate_action": false
+}

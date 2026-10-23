@@ -1,0 +1,375 @@
+<!doctype html><meta charset="utf-8"><title>Durable steer live validation</title><style>body{background:#111;color:#ddd;font:16px system-ui;margin:32px}section{margin:32px 0}pre{background:#1b1b1b;border:1px solid #444;padding:18px;overflow:auto;font:13px/1.4 monospace}h1,h2{font-weight:600}a{color:#9cf}</style><h1>Durable steer live validation</h1><p>Actual Claude Code 2.1.301 terminal captures from an isolated, marked lab. The CLI ran on a private tmux socket with a 140×42 grid. No product code changed.</p>
+<section><h2>Idle worker with busy-looking assistant text</h2><pre> ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM
+
+
+❯ Reply with exactly this sentence and nothing else: Use esc to interrupt a running turn.
+
+● Use esc to interrupt a running turn.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents                                                          ◐ medium · /effort
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></section>
+<section><h2>Two rings preserve a user draft</h2><pre> ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM
+
+
+❯ Reply with exactly this sentence and nothing else: Use esc to interrupt a running turn.
+
+● Use esc to interrupt a running turn.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ a half-typed user draft
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                         ◐ medium · /effort
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></section>
+<section><h2>Exact doorbell waiting without Enter</h2><pre> ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM
+
+
+❯ Reply with exactly this sentence and nothing else: Use esc to interrupt a running turn.
+
+● Use esc to interrupt a running turn.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                               Ctrl+Y to paste deleted text
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></section>
+<section><h2>Worker acts once and acknowledges</h2><pre> ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM
+
+
+❯ Reply with exactly this sentence and nothing else: Use esc to interrupt a running turn.
+
+● Use esc to interrupt a running turn.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(echo &quot;$FM_TASK_INBOX&quot;; ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do echo &quot;== $f&quot;; cat &quot;$f&quot;; done)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox
+     total 16
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     … +10 lines (ctrl+o to expand)
+
+● Bash(bash -c &#x27;printf &quot;consumed\n&quot; &gt;&gt;
+      /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/consumed.log&#x27; &amp;&amp; mv &quot;$FM_T…)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox:
+     handled
+     … +2 lines (ctrl+o to expand)
+  ⎿  Created .live-test-tmp/home.lb49c1c0/consumed.log (+1 -0)
+      1 +consumed
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a review or audit of the
+     command)
+
+● RECOVERY-CONSUMED
+
+✻ Crunched for 18s · done 5:01 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                                                    ✔ Update installed · Restart to update
+                                      tmux focus-events off · add &#x27;set -g focus-events on&#x27; to ~/.tmux.conf and reattach for focus tracking
+
+
+</pre></section>
+<section><h2>Duplicate doorbell finds an empty inbox</h2><pre>  then mv each into its handled/.
+
+● Bash(echo &quot;$FM_TASK_INBOX&quot;; ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do echo &quot;== $f&quot;; cat &quot;$f&quot;; done)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox
+     total 16
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     … +10 lines (ctrl+o to expand)
+
+● Bash(bash -c &#x27;printf &quot;consumed\n&quot; &gt;&gt;
+      /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/consumed.log&#x27; &amp;&amp; mv &quot;$FM_T…)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox:
+     handled
+     … +2 lines (ctrl+o to expand)
+  ⎿  Created .live-test-tmp/home.lb49c1c0/consumed.log (+1 -0)
+      1 +consumed
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a review or audit of the
+     command)
+
+● RECOVERY-CONSUMED
+
+✻ Crunched for 18s · done 5:01 AM
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do [ -e &quot;$f&quot; ] &amp;&amp; { echo &quot;== $f&quot;; cat &quot;$f&quot;; }; done)
+  ⎿  Error: Exit code 1
+     total 12
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     drwxrwxr-x 2 cti cti 4096 Oct 23 05:01 handled
+
+● The inbox has no new records. 001.msg was already handled and is in handled/.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents                                      ✔ Update installed · Restart to update
+
+
+</pre></section>
+<section><h2>Busy worker receives no ring input</h2><pre>● Bash(bash -c &#x27;printf &quot;consumed\n&quot; &gt;&gt;
+      /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/consumed.log&#x27; &amp;&amp; mv &quot;$FM_T…)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox:
+     handled
+     … +2 lines (ctrl+o to expand)
+  ⎿  Created .live-test-tmp/home.lb49c1c0/consumed.log (+1 -0)
+      1 +consumed
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a review or audit of the
+     command)
+
+● RECOVERY-CONSUMED
+
+✻ Crunched for 18s · done 5:01 AM
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do [ -e &quot;$f&quot; ] &amp;&amp; { echo &quot;== $f&quot;; cat &quot;$f&quot;; }; done)
+  ⎿  Error: Exit code 1
+     total 12
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     drwxrwxr-x 2 cti cti 4096 Oct 23 05:01 handled
+
+● The inbox has no new records. 001.msg was already handled and is in handled/.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+❯ Run exactly this shell command: sleep 30. Then reply BUSY-TURN-DONE. Do nothing else.
+
+● Bash(sleep 30)
+  ⎿  Error: Blocked: standalone sleep 30. To wait for a condition, use Monitor with an until-loop (e.g. `until &lt;check&gt;; do sleep 2; done`).
+     To wait for a command you started, use run_in_background: true. Do not chain shorter sleeps to work around this block.
+
+✢ Gallivanting… (3s · ↓ 58 tokens)
+  ⎿  Tip: Hit shift+tab to cycle between manual mode, auto-accept edit mode, and plan mode
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt · ← for agents                   ✔ Update installed · Restart to update
+
+</pre></section>
+<section><h2>Repeated busy rings preserve the exact doorbell</h2><pre>      /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/consumed.log&#x27; &amp;&amp; mv &quot;$FM_T…)
+  ⎿  /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox:
+     handled
+     … +2 lines (ctrl+o to expand)
+  ⎿  Created .live-test-tmp/home.lb49c1c0/consumed.log (+1 -0)
+      1 +consumed
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a review or audit of the
+     command)
+
+● RECOVERY-CONSUMED
+
+✻ Crunched for 18s · done 5:01 AM
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do [ -e &quot;$f&quot; ] &amp;&amp; { echo &quot;== $f&quot;; cat &quot;$f&quot;; }; done)
+  ⎿  Error: Exit code 1
+     total 12
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     drwxrwxr-x 2 cti cti 4096 Oct 23 05:01 handled
+
+● The inbox has no new records. 001.msg was already handled and is in handled/.
+
+✻ Sautéed for 6s · done 5:01 AM
+
+❯ Run exactly this shell command: sleep 30. Then reply BUSY-TURN-DONE. Do nothing else.
+
+● Bash(sleep 30)
+  ⎿  Error: Blocked: standalone sleep 30. To wait for a condition, use Monitor with an until-loop (e.g. `until &lt;check&gt;; do sleep 2; done`).
+     To wait for a command you started, use run_in_background: true. Do not chain shorter sleeps to work around this block.
+
+✽ Gallivanting… (4s · ↓ 80 tokens)
+  ⎿  Tip: Hit shift+tab to cycle between manual mode, auto-accept edit mode, and plan mode
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                     ✔ Update installed · Restart to update
+
+</pre></section>
+<section><h2>Idle recovery delivers the second durable message</h2><pre>     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     drwxrwxr-x 2 cti cti 4096 Oct 23 05:01 handled
+
+● The inbox has no new records. 001.msg was already handled and is in handled/.
+
+✻ Sautéed for 6s · done 5:01 AM · 1 shell still running
+
+❯ Run exactly this shell command: sleep 30. Then reply BUSY-TURN-DONE. Do nothing else.
+
+● Bash(sleep 30)
+  ⎿  Error: Blocked: standalone sleep 30. To wait for a condition, use Monitor with an until-loop (e.g. `until &lt;check&gt;; do sleep 2; done`).
+     To wait for a command you started, use run_in_background: true. Do not chain shorter sleeps to work around this block.
+
+● Bash(sleep 30)
+  ⎿  Running in the background (↓ to manage)
+
+● The harness blocks a foreground sleep 30, so I started sleep 30 in the background. I&#x27;ll reply BUSY-TURN-DONE when it finishes.
+
+✻ Cooked for 10s · done 5:01 AM · 1 shell still running
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do [ -e &quot;$f&quot; ] &amp;&amp; { echo &quot;== $f&quot;; cat &quot;$f&quot;; }; done; true)
+  ⎿  total 16
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     … +7 lines (ctrl+o to expand)
+
+● Bash(mv &quot;$FM_TASK_INBOX/002.msg&quot; &quot;$FM_TASK_INBOX/handled/&quot; &amp;&amp; ls &quot;$FM_TASK_INBOX/handled&quot;)
+  ⎿  001.msg
+     002.msg
+
+✻ Flowing… (8s · ↓ 391 tokens · thought for 1s)
+  ⎿  Tip: Want a side agent watching your back while Claude works? Turn on You should know:
+     /plugin enable cc-plugin-you-should-know@builtin
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on · 1 shell · esc to interrupt · ← for agents · ↓ to manage                ✔ Update installed · Restart to update
+
+</pre></section>
+<h2>Driver transcript</h2><pre>Launched 2.1.301 (Claude Code) in marked lab, private tmux socket, 140x42 grid.
+Claude finished a real turn; trusted Stop hook reports idle. Assistant transcript contains: Use esc to interrupt a running turn.
+Foreign draft ring 1: exit=1, durable record present=True
+Foreign draft ring 2: exit=1, durable record present=True
+Seeded an exact doorbell without Enter, retaining the same record after two unconsumed rings.
+Idle recovery ring exit=0
+Recovered: no literal retype, one action, same record moved into handled/.
+Duplicate doorbell ring exit=0
+Duplicate doorbell completed with an empty inbox; action remains exactly once.
+Direct fm-send to busy recipient exit=0; fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell &amp; for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell skipped (recipient busy or composer holds pending text); the steer is durably recorded at /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.lb49c1c0/state/live.inbox/002.msg and the watcher will re-ring
+Busy re-ring 1 exit=1
+Busy re-ring 2 exit=1
+Busy direct send and two re-rings emitted no send-keys; second message remains durable and unhandled.
+Busy exact-doorbell re-ring 1 exit=1
+Busy exact-doorbell re-ring 2 exit=1
+Two more busy re-rings preserved the same exact stranded doorbell and record without sending any keys.
+Busy recipient returned idle; re-ring delivered and worker acknowledged the second record.
+Private socket cleanup exit=0
+Disposable lab home removed.
+</pre>
+<h2>Herdr limitation</h2><pre>fm-herdr-lab: fleet-state tripwire requires exactly one running default session
+</pre>

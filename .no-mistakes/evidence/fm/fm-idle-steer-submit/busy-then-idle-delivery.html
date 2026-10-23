@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8"><title>busy-then-idle-delivery</title><style>body{background:#171717;color:#eee;padding:24px}pre{font:14px/1.4 monospace;white-space:pre-wrap}</style><pre>     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     drwxrwxr-x 2 cti cti 4096 Oct 23 05:01 handled
+
+● The inbox has no new records. 001.msg was already handled and is in handled/.
+
+✻ Sautéed for 6s · done 5:01 AM · 1 shell still running
+
+❯ Run exactly this shell command: sleep 30. Then reply BUSY-TURN-DONE. Do nothing else.
+
+● Bash(sleep 30)
+  ⎿  Error: Blocked: standalone sleep 30. To wait for a condition, use Monitor with an until-loop (e.g. `until &lt;check&gt;; do sleep 2; done`).
+     To wait for a command you started, use run_in_background: true. Do not chain shorter sleeps to work around this block.
+
+● Bash(sleep 30)
+  ⎿  Running in the background (↓ to manage)
+
+● The harness blocks a foreground sleep 30, so I started sleep 30 in the background. I&#x27;ll reply BUSY-TURN-DONE when it finishes.
+
+✻ Cooked for 10s · done 5:01 AM · 1 shell still running
+
+❯ : Firstmate instruction waiting: list &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;live.inbox&#x27; steering inbox, read and act on each in numeric order,
+  then mv each into its handled/.
+
+● Bash(ls -la &quot;$FM_TASK_INBOX&quot;; for f in &quot;$FM_TASK_INBOX&quot;/*.msg; do [ -e &quot;$f&quot; ] &amp;&amp; { echo &quot;== $f&quot;; cat &quot;$f&quot;; }; done; true)
+  ⎿  total 16
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 .
+     drwxrwxr-x 3 cti cti 4096 Oct 23 05:01 ..
+     … +7 lines (ctrl+o to expand)
+
+● Bash(mv &quot;$FM_TASK_INBOX/002.msg&quot; &quot;$FM_TASK_INBOX/handled/&quot; &amp;&amp; ls &quot;$FM_TASK_INBOX/handled&quot;)
+  ⎿  001.msg
+     002.msg
+
+✻ Flowing… (8s · ↓ 391 tokens · thought for 1s)
+  ⎿  Tip: Want a side agent watching your back while Claude works? Turn on You should know:
+     /plugin enable cc-plugin-you-should-know@builtin
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on · 1 shell · esc to interrupt · ← for agents · ↓ to manage                ✔ Update installed · Restart to update
+
+</pre>

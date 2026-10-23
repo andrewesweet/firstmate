@@ -1,0 +1,24 @@
+Launched 2.1.301 (Claude Code) in marked lab, private tmux socket, 140x42 grid.
+Claude finished a real turn; trusted Stop hook reports idle. Assistant transcript contains: Use esc to interrupt a running turn.
+Foreign draft ring 1: exit=1, durable record present=True
+Foreign draft ring 2: exit=1, durable record present=True
+Seeded an exact doorbell without Enter, retaining the same record after two unconsumed rings.
+Idle recovery ring exit=0
+Recovered: no literal retype, one action, same record moved into handled/.
+Duplicate doorbell ring exit=0
+Duplicate doorbell completed with an empty inbox; action remains exactly once.
+Direct fm-send to busy recipient exit=0; fm-gate-refuse: gate agent lifecycle permitted only against lab home /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.i97wmxq8
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell skipped (recipient busy or composer holds pending text); the steer is durably recorded at /home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5KCYDE9GQFZQRC6VG3JX2TM/.live-test-tmp/home.i97wmxq8/state/live.inbox/002.msg and the watcher will re-ring
+Busy re-ring 1 exit=1
+Busy re-ring 2 exit=1
+Busy direct send and two re-rings emitted no send-keys; second message remains durable and unhandled.
+Busy recipient returned idle; re-ring delivered and worker acknowledged the second record.
+Private socket cleanup exit=0
+Disposable lab home removed.

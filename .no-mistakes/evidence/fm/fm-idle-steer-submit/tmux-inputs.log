@@ -1,0 +1,162 @@
+show -Av mouse 
+show -gv focus-events 
+display-message -p \#\{client_termtype\} 
+display-message -p -t %0 \#\{session_name\}:#\{window_id\}.#\{pane_id\} 
+display-message -p \#\{client_termtype\} 
+-S /tmp/fml.oTl0vG/tmux-1001/fm-lab list-sessions 
+show -Av mouse 
+show -gv focus-events 
+display-message -p \#\{client_termtype\} 
+display-message -p -t %0 \#\{session_name\}:#\{window_id\}.#\{pane_id\} 
+display-message -p \#\{client_termtype\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t =primary -F \#\{window_name\} 
+send-keys -t primary:fm-worker Enter 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+capture-pane -p -t primary:fm-worker -S -40 
+send-keys -t primary:fm-worker -l :\ Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg\ in\ your\ \'live.inbox\'\ steering\ inbox\,\ read\ and\ act\ on\ each\ in\ numeric\ order\,\ then\ mv\ each\ into\ its\ handled/. 
+send-keys -t primary:fm-worker Enter 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+capture-pane -p -t primary:fm-worker -S -40 
+send-keys -t primary:fm-worker -l :\ Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg\ in\ your\ \'live.inbox\'\ steering\ inbox\,\ read\ and\ act\ on\ each\ in\ numeric\ order\,\ then\ mv\ each\ into\ its\ handled/. 
+send-keys -t primary:fm-worker Enter 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+-S /tmp/fml.0Bh87o/tmux-1001/fm-lab list-sessions 
+show -Av mouse 
+show -gv focus-events 
+display-message -p \#\{client_termtype\} 
+display-message -p -t %0 \#\{session_name\}:#\{window_id\}.#\{pane_id\} 
+display-message -p \#\{client_termtype\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t =primary -F \#\{window_name\} 
+send-keys -t primary:fm-worker Enter 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+capture-pane -p -t primary:fm-worker -S -40 
+send-keys -t primary:fm-worker -l :\ Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg\ in\ your\ \'live.inbox\'\ steering\ inbox\,\ read\ and\ act\ on\ each\ in\ numeric\ order\,\ then\ mv\ each\ into\ its\ handled/. 
+send-keys -t primary:fm-worker Enter 
+display-message -p -t primary:fm-worker \#\{cursor_y\} 
+capture-pane -e -p -t primary:fm-worker -S 0 -E - 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+display-message -p -t primary:fm-worker \#\{pane_current_command\} 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t primary -F \#\{window_name\} 
+display-message -p -t primary:fm-worker \#\{pane_tty\} 
+capture-pane -p -t primary:fm-worker -S -40 
+capture-pane -p -t primary:fm-worker -S -20 
+list-windows -t =primary -F \#\{window_name\} 
+send-keys -t primary:fm-worker Enter 
+capture-pane -p -t primary:fm-worker -S -20 
+-S /tmp/fml.5emcjm/tmux-1001/fm-lab list-sessions 
