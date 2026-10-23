@@ -1,6 +1,6 @@
 # Definition of done
 Delivery contract: mode=no-mistakes
-Ship branch: fm/fallback-id
+Ship branch: fm/standalone
 The task is complete only when committed on your branch.
 When you believe it is complete, append `done [at=<epoch>]: {summary}` to the status file and stop.
 Firstmate will then instruct you to run /no-mistakes to validate and ship a PR.

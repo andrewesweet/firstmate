@@ -1,17 +1,13 @@
-$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/github-worker-brief bash bin/fm-brief.sh github-worker-brief disposable-project --mode no-mistakes
-scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/github-worker-brief/data/github-worker-brief/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+$ bin/fm-brief.sh github-ci sample-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.no-mistakes/phase-test-tmp/brief-live-2whpi83p/data/github-ci/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
 
-exit: 0
+$ bin/fm-brief.sh holding-ci sample-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.no-mistakes/phase-test-tmp/brief-live-2whpi83p/data/holding-ci/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
 
-$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/holding-worker-brief FM_CLASSIFY_PAUSED_VERB=holding bash bin/fm-brief.sh holding-worker-brief disposable-project --mode no-mistakes
-scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/holding-worker-brief/data/holding-worker-brief/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
-
-exit: 0
-
-$  bash -uc '. bin/fm-dod-lib.sh; unset FM_CLASSIFY_PAUSED_VERB FM_CLASSIFY_PAUSED_VERB_DEFAULT; fm_dod_block no-mistakes fallback-worker'
+$ bash -uc . "$1"; fm_dod_block no-mistakes standalone _ bin/fm-dod-lib.sh
 # Definition of done
 Delivery contract: mode=no-mistakes
-Ship branch: fm/fallback-worker
+Ship branch: fm/standalone
 The task is complete only when committed on your branch.
 When you believe it is complete, append `done [at=<epoch>]: {summary}` to the status file and stop.
 Firstmate will then instruct you to run /no-mistakes to validate and ship a PR.
@@ -58,34 +54,11 @@ Then append `done [at=<epoch>]: PR {url} checks green` and stop. You are finishe
 That CI-ready `done:` is accepted only when this copy's HEAD - your latest commit - is one the /no-mistakes run pushed, so commit nothing after the run; the check tests that commit, not merely that a branch moved.
 If you deliberately keep the PR a draft, append `paused [at=<epoch>]: {why the draft is held}` instead of done.
 
-exit: 0
+$ bin/fm-brief.sh forgejo-ci sample-project --mode no-mistakes --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.no-mistakes/phase-test-tmp/brief-live-2whpi83p/data/forgejo-ci/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK} and {FIRSTMATE_SPEC})
 
-$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/forgejo-worker-brief bash bin/fm-brief.sh forgejo-worker-brief disposable-project --mode no-mistakes --forge forgejo
-scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/forgejo-worker-brief/data/forgejo-worker-brief/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK} and {FIRSTMATE_SPEC})
+$ bin/fm-brief.sh direct-pr sample-project --mode direct-PR
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.no-mistakes/phase-test-tmp/brief-live-2whpi83p/data/direct-pr/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
 
-exit: 0
-
-$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/direct-PR-worker-brief bash bin/fm-brief.sh direct-PR-worker-brief disposable-project --mode direct-PR
-scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/direct-PR-worker-brief/data/direct-PR-worker-brief/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
-
-exit: 0
-
-$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/local-only-worker-brief bash bin/fm-brief.sh local-only-worker-brief disposable-project --mode local-only
-scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5FE5ZKVMNS3FNH1ZE8SP1TQ/.gate-brief-cqxbs2f5/local-only-worker-brief/data/local-only-worker-brief/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
-
-exit: 0
-
-$  bash tests/.gate-selected-fm-brief.test.sh
-ok - fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else
-ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
-ok - fm-brief.sh: no-mistakes DOD reads and routes review feedback at the CI gate
-ok - fm-brief.sh: no-mistakes DOD declares the maintainer-only CI wait with the configured pause verb
-ok - fm-brief.sh: custom pause verb renders in every scaffold
-ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
-
-exit: 0
-
-$  bash tests/.gate-selected-fm-contributions.test.sh
-ok - generated checks enforce configured and inherited budgets at runtime
-
-exit: 0
+$ bin/fm-brief.sh local-only sample-project --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.no-mistakes/phase-test-tmp/brief-live-2whpi83p/data/local-only/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})

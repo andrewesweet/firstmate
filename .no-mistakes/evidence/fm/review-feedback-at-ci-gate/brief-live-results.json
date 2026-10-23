@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Generate GitHub CI instructions with bounded polling and all feedback reads",
+    "result": "pass",
+    "artifact": "github-ci.md"
+  },
+  {
+    "name": "Generate fix routing for failed bot checks and requested changes at a parked gate",
+    "result": "pass",
+    "artifact": "github-ci.md"
+  },
+  {
+    "name": "Generate the no-gate and green-before-reply paths without allowing premature done",
+    "result": "pass",
+    "artifact": "github-ci.md"
+  },
+  {
+    "name": "Generate keyed maintainer waits with default/custom verbs and standalone fallback",
+    "result": "pass",
+    "artifact": "holding-ci.md; standalone-dod.md"
+  },
+  {
+    "name": "Generate Forgejo polling with paginated per-review comments and no GitHub reads",
+    "result": "pass",
+    "artifact": "forgejo-ci.md"
+  },
+  {
+    "name": "Generate direct-PR and local-only briefs without no-mistakes CI instructions",
+    "result": "pass",
+    "artifact": "direct-pr.md; local-only.md"
+  }
+]
