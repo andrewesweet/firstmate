@@ -1,0 +1,8 @@
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: no-mistakes DOD reads and routes review feedback at the CI gate
+ok - fm-brief.sh: no-mistakes DOD declares the maintainer-only CI wait with the configured pause verb
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait

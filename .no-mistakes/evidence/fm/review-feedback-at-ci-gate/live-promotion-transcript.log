@@ -1,0 +1,35 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default
+~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default
+
+$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default bin/fm-promote.sh promote-default --mode no-mistakes --yolo off
+exit=0
+promoted promote-default to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default/data/promote-default/ship-instructions.md
+next: FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default bin/fm-send.sh fm-promote-default "$(cat ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-default/data/promote-default/ship-instructions.md)"
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASS default: real promotion persists ship contract, feedback routing, paused verb, and relaunch instructions.
+
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured
+~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured
+
+$ FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured bin/fm-promote.sh promote-configured --mode no-mistakes --yolo off
+exit=0
+promoted promote-configured to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured/data/promote-configured/ship-instructions.md
+next: FM_HOME=~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured bin/fm-send.sh fm-promote-configured "$(cat ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/fm-lab-promotion-configured/data/promote-configured/ship-instructions.md)"
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASS configured: real promotion persists ship contract, feedback routing, holding verb, and relaunch instructions.

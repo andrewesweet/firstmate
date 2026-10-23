@@ -13,23 +13,23 @@ If the task will start, stop, delete, restart, profile, or otherwise drive Herdr
 Do not add Herdr lifecycle commands to this unguarded brief by hand.
 
 # Setup
-You are in a disposable git worktree of isolated-project, at a detached HEAD on a clean default branch.
+You are in a disposable git worktree of disposable-project, at a detached HEAD on a clean default branch.
 
 **Verify isolation before anything else.** Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from.
 The path check is authoritative: `git rev-parse --git-dir` and `git rev-parse --git-common-dir` can help inspect the repo, but they do not prove you are outside the primary checkout.
 If the top-level path is the primary checkout or not the worktree you were launched in, STOP - do not branch or commit here - append `blocked [at=<epoch>]: launched in primary checkout, not an isolated worktree` to the status file and stop.
 
-1. First action: create your branch: `git checkout -b fm/github --`
+1. First action: create your branch: `git checkout -b fm/live-github --`
 2. Run `no-mistakes doctor`; if it reports the repo is not initialized here, run `no-mistakes init`.
 
 # Rules
 1. Never push to the default branch. Never merge a PR.
-2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/data/github/` or a temporary directory.
+2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/data/live-github/` or a temporary directory.
    Outside the worktree, write only that task material and the status and steering-inbox records authorized below.
    Leave the worktree clean before reporting done.
 3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations.
 4. Report status by appending one line:
-   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/config' '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.status' >/dev/null 2>&1 || true; }`
+   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/config' '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.status' >/dev/null 2>&1 || true; }`
    States: working, needs-decision, blocked, paused, done, failed.
    Substitute `<epoch>` with the current Unix time in seconds - run `date +%s` and write the number it printed; a stamp that is not plain digits records no time at all.
    Each append wakes firstmate, so report sparingly: only phase changes a supervisor
@@ -53,8 +53,8 @@ If the top-level path is the primary checkout or not the worktree you were launc
 5. If you hit the same obstacle twice, append `blocked [at=<epoch>]: {why}` and stop; firstmate will help.
 6. If a decision belongs above the implementation worker (product choices, destructive actions),
    append `needs-decision [at=<epoch>]: {summary of options}` and stop. Firstmate will reply with the decision.
-   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/data/github/nm-<run>-findings.txt`, then report the gate with
-   `needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/data/github/nm-<run>-findings.txt`
+   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/data/live-github/nm-<run>-findings.txt`, then report the gate with
+   `needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/data/live-github/nm-<run>-findings.txt`
    naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
    A decision or blocker you opened stays open until a `resolved` line carrying its exact key lands; a later `done:` or `working:` line never closes it, even when the answer is what started that work.
    Firstmate's reply normally writes that closing line at answer time; when a blocker or wait clears WITHOUT a firstmate reply, append `resolved [at=<epoch>]: {how it cleared}` yourself (same `[key=<slug>]` if you opened it with one) as you resume.
@@ -80,19 +80,22 @@ If the top-level path is the primary checkout or not the worktree you were launc
      that it is free, and returning your own worktree is firstmate's job at cleanup, not yours.
    If you genuinely need a second checkout, another slot, or the daemon touched, append
    `blocked [at=<epoch>]: {what you need}` and stop; firstmate arranges it.
+8. Never start a shell command with `cd`, and never run a search whose path depends on the current directory.
+   Use absolute paths, `git -C <abs>`, or a `( cd <abs> && ... )` subshell.
+   Pass this rule to every sub-agent you launch.
 
 # Firstmate instruction inbox
-Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.inbox'.
-When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.inbox'/*.msg, read and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/github/state/github.inbox'/handled/`.
+Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.inbox'.
+When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list them with `find '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.inbox' -maxdepth 1 -name '*.msg' 2>/dev/null | sort -V`, read and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.test-phase-tmp/live-briefs/github/state/live-github.inbox'/handled/`.
 The move IS the acknowledgement: without it firstmate rings again and eventually treats you as stuck. An empty or absent inbox needs no action.
 
 # Project memory
 A project's `AGENTS.md` or `CLAUDE.md` is loaded into every agent session in that project, so edit it only to correct information that is factually wrong - including information your own change made wrong - and never to add knowledge because it is missing.
-A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
+A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
 
 # Definition of done
 Delivery contract: mode=no-mistakes
-Ship branch: fm/github
+Ship branch: fm/live-github
 The task is complete only when committed on your branch.
 When you believe it is complete, append `done [at=<epoch>]: {summary}` to the status file and stop.
 Firstmate will then instruct you to run /no-mistakes to validate and ship a PR.
