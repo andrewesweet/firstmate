@@ -257,21 +257,16 @@ fm_fork_staged_norm() {
   printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
-# fm_fork_staged_rider_present <brief> <mode> <fork> - 0 when the brief
-# carries the machine-checkable core of the fork-staged rider for <mode>:
-# the `--skip pr,ci` start on no-mistakes, the `gh pr create -R <fork>`
-# command on direct-PR. bin/fm-spawn.sh's launch guard runs this so a
-# fork-staged ship never launches on the token alone, and its refusal names
-# regenerating the brief with the flag as the remedy.
 fm_fork_staged_rider_present() {
-  local brief=$1 mode=$2 fork=$3
+  local brief=$1 mode=$2 fork=$3 id=$4 branch=$5 base=${6:-} consent=${7:-} expected actual
   [ -f "$brief" ] || return 1
-  case "$mode" in
-    no-mistakes) grep -Fq -- '--skip pr,ci' "$brief" ;;
-    direct-PR)
-      grep -Fq -- 'gh pr create' "$brief" && grep -Fq -- "-R $fork" "$brief" ;;
-    *) return 1 ;;
-  esac
+  [ "$(grep -c '^Delivery contract:' "$brief")" = 1 ] || return 1
+  actual=$(awk '/^# Current delivery mode contract$/ {body=""} {body=body $0 ORS} END {printf "%s", body}' "$brief") || return 1
+  [ "$(printf '%s\n' "$actual" | grep -c '^# Definition of done$')" = 1 ] || return 1
+  expected=$(fm_dod_block "$mode" "$id" "$branch" none "$base" "$consent" '' "$fork") || return 1
+  expected=$(fm_brief_heading_parse - '# Definition of done' body <<<"$expected") || return 1
+  actual=$(fm_brief_heading_parse - '# Definition of done' body <<<"$actual") || return 1
+  [ "$actual" = "$expected" ]
 }
 
 # The task branch prefix: <branch> with its trailing <task-id> removed, or
@@ -688,6 +683,7 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<p
       echo "error: fm_dod_block: fork-staged retargets a gh pull request to a fork; forge=$forge has no gh pull request to retarget" >&2
       return 1
     fi
+    draft_check="(\`gh pr view <number> -R $fork --json isDraft --jq .isDraft\` must print \`false\`, where <number> is the PR number from your PR URL); if it is a draft, mark it ready with \`gh pr ready <number> -R $fork\`."
     contract_fork=" fork-staged=$fork"
     printf -v branch_q '%q' "$branch"
     [ -z "$base" ] || fork_base=" --base $base_q"
@@ -703,8 +699,13 @@ Before any publication command, including starting no-mistakes, run:
 $publication_pin
 \`\`\`
 Keep these values for every publication command and pass \`--repo $publication_target\` on every \`gh-axi\` repository command.
-
 EOF
+    if [ -n "$fork" ]; then
+      cat <<EOF
+For operations on this task's pull request, pass \`--repo github.com/$fork\` instead.
+EOF
+    fi
+    printf '\n'
   fi
   case "$mode:$forge" in
     direct-PR:gerrit)
@@ -854,6 +855,13 @@ EOF
       local ci_review_comments='.../pulls/<n>/comments' ci_issue_comments='.../issues/<n>/comments'
       local ci_ready="\`gh pr checks <n>\` shows every check passing or skipping (the two network-gated jobs skip by design)"
       local ci_approval_wait="GitHub's fork-workflow approval (\`action_required\` with no job run)"
+      if [ -n "$fork" ]; then
+        ci_checks="gh pr checks <n> -R $fork"
+        ci_ready="\`$ci_checks\` shows every check passing or skipping (the two network-gated jobs skip by design)"
+        ci_reviews="gh api repos/$fork/pulls/<n>/reviews"
+        ci_review_comments="gh api repos/$fork/pulls/<n>/comments"
+        ci_issue_comments="gh api repos/$fork/issues/<n>/comments"
+      fi
       if [ "$forge" = forgejo ]; then
         ci_checks="tea api --login <login> --repo <owner>/<repo> '/repos/{owner}/{repo}/commits/<head-sha>/status?limit=50&page=<page>'"
         ci_pr_read="\`tea api --login <login> --repo <owner>/<repo> /repos/{owner}/{repo}/pulls/<n>\` to read the current \`head.sha\` as \`<head-sha>\`, then "
