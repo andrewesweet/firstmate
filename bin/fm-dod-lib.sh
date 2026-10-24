@@ -490,8 +490,9 @@ FM_SIBLING_SITE_SWEEP='Sibling-site sweep: search the repository for other occur
 
 # The forge-independent middle of the no-mistakes contract: how a worker drives
 # the pipeline, what `--intent` may carry, and the firstmate-specific rules.
-# Written once; only the two sentences about a green PR depend on the forge,
-# because on gerrit the ci step is skipped and there is no PR to report.
+# Written once; the green-PR return instructions depend on the forge and fork:
+# gerrit has no PR to report, and fork-staged delivery assigns PR creation and
+# check monitoring to the worker.
 fm_nm_driving_block() {  # <forge> [fork]
   local pr_return_line='' pr_reattach_clause=';' drive_block wait_cfg
   if [ -n "${2:-}" ]; then
@@ -665,8 +666,14 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<p
     printf -v base_q '%q' "$base"
     pr_base=", against the base branch \`$base\` (\`--base $base_q\`), not the repository default"
     rebase_target="the base branch \`$base\`"
-    nm_base="This task's base branch is \`$base\`, not the repository default: pass \`--base-branch $base_q\` on every \`no-mistakes axi run\` that starts a run, so the pipeline rebases onto, opens its PR against, and watches CI for that branch.
+    if [ -n "$fork" ]; then
+      nm_base="This task's base branch is \`$base\`, not the repository default: pass \`--base-branch $base_q\` on every \`no-mistakes axi run\` that starts a run, so the pipeline rebases onto that branch.
+Open the fork PR yourself against that branch with the manual PR command's \`--base $base_q\` flag.
 "
+    else
+      nm_base="This task's base branch is \`$base\`, not the repository default: pass \`--base-branch $base_q\` on every \`no-mistakes axi run\` that starts a run, so the pipeline rebases onto, opens its PR against, and watches CI for that branch.
+"
+    fi
   fi
   # The fork-staged rider is refused where no gh pull request exists to
   # retarget, and its PR command carries the recorded base branch when the
