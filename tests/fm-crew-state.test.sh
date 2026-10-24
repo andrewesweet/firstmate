@@ -1481,6 +1481,85 @@ test_terminal_passed_with_skips() {
   pass "terminal passed-with-skips run reads done with the skip kept visible"
 }
 
+test_fork_staged_validation_waits_for_delivery() {
+  local route d out fork verb expected
+  for route in passed passed-with-override passed-with-skips checks-passed status selected coarse; do
+    reset_fakes
+    d=$(new_case "fork-delivery-$route")
+    make_repo_on_branch "$d/wt" fm/fork-delivery
+    make_fakebin "$d" >/dev/null
+    FM_FAKE_AXI_STATUS="$(run_passed_with_skips fm/fork-delivery)"
+    case "$route" in
+      passed|passed-with-override|checks-passed)
+        FM_FAKE_AXI_STATUS=${FM_FAKE_AXI_STATUS/outcome: passed-with-skips/outcome: $route}
+        ;;
+      status) FM_FAKE_AXI_STATUS=$(printf '%s\n' "$FM_FAKE_AXI_STATUS" | sed '/^outcome:/d') ;;
+      selected)
+        FM_FAKE_AXI_STATUS_RUN=$FM_FAKE_AXI_STATUS
+        FM_FAKE_AXI_HOME="count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  01RUN,fm/fork-delivery,completed,$FM_FAKE_RUN_HEAD,\"\""
+        ;;
+      coarse)
+        FM_FAKE_AXI_STATUS="$(run_running fm/other)"
+        FM_FAKE_RUNS_LIST="  completed  fm/fork-delivery $FM_FAKE_RUN_HEAD  2026-10-24 17:00"
+        ;;
+    esac
+    for fork in '' acme/widgets; do
+      fm_write_meta "$d/state/fork-delivery.meta" "window=fm:fm-fork-delivery" \
+        "worktree=$d/wt" "kind=ship" "mode=no-mistakes" "fork_staged=$fork"
+      out=$(run_crew_state "$d" fork-delivery)
+      expected=done
+      [ -z "$fork" ] || expected=working
+      assert_contains "$out" "state: $expected" "$route/$fork: validation alone has the correct completion state"
+      assert_contains "$out" "source: run-step" "$route/$fork: validation remains attributed"
+    done
+    printf 'done: validation passed\n' > "$d/state/fork-delivery.status"
+    out=$(run_crew_state "$d" fork-delivery)
+    assert_contains "$out" 'state: working' "$route: validation-only done does not report fork delivery"
+    assert_contains "$out" 'delivering fork PR' "$route: pending delivery remains visible"
+
+    printf 'done: PR https://github.com/acme/widgets/pull/17 checks green\n' > "$d/state/fork-delivery.status"
+    out=$(run_crew_state "$d" fork-delivery)
+    assert_contains "$out" 'state: done' "$route: worker delivery completes the task"
+    assert_contains "$out" 'source: status-log' "$route: worker delivery supplies completion"
+    assert_contains "$out" 'https://github.com/acme/widgets/pull/17' "$route: worker PR is reported"
+
+    for verb in needs-decision blocked paused failed working; do
+      printf '%s [key=pr-17-comment]: fork PR feedback\n' "$verb" >> "$d/state/fork-delivery.status"
+      out=$(run_crew_state "$d" fork-delivery)
+      expected=$verb
+      [ "$verb" != needs-decision ] || expected=parked
+      assert_contains "$out" "state: $expected" "$route/$verb: completed validation preserves worker delivery status"
+      assert_contains "$out" 'source: status-log' "$route/$verb: worker status supplies the verdict"
+      assert_contains "$out" 'fork PR feedback' "$route/$verb: delivery feedback remains visible"
+      assert_not_contains "$out" 'superseded' "$route/$verb: validation does not supersede delivery feedback"
+      printf 'done: PR https://github.com/acme/widgets/pull/17 checks green\n' >> "$d/state/fork-delivery.status"
+    done
+    out=$(run_crew_state "$d" fork-delivery)
+    assert_contains "$out" 'state: done' "$route: subsequent worker delivery completes again"
+    pass "$route: fork-staged validation yields to worker delivery and feedback"
+  done
+}
+
+test_fork_staged_delivery_still_checks_named_head() {
+  reset_fakes
+  local d out
+  d=$(new_case fork-delivery-unpushed)
+  make_repo_on_branch "$d/wt" fm/fork-delivery
+  git -C "$d/wt" commit -q --allow-empty -m 'unpushed work'
+  FM_FAKE_RUN_HEAD=$(git -C "$d/wt" rev-parse HEAD)
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/fork-delivery.meta" "window=fm:fm-fork-delivery" \
+    "worktree=$d/wt" "kind=ship" "mode=no-mistakes" "fork_staged=acme/widgets"
+  FM_FAKE_AXI_STATUS="$(run_passed_with_skips fm/fork-delivery)"
+  printf 'done: PR https://github.com/acme/widgets/pull/17 checks green\n' > "$d/state/fork-delivery.status"
+  out=$(run_crew_state "$d" fork-delivery)
+  assert_contains "$out" 'state: blocked' 'fork delivery cannot bypass named-head preservation'
+  assert_contains "$out" 'unreachable outside the worker copy' 'fork delivery keeps the preservation refusal'
+  pass 'fork-staged delivery still enforces named-head preservation'
+}
+
 test_terminal_passed_uses_matching_retirement_receipt_without_forge() {
   reset_fakes
   local d url read_log out
@@ -5813,6 +5892,8 @@ test_top_level_fixing_done_log_stays_working
 test_terminal_passed
 test_terminal_passed_with_override
 test_terminal_passed_with_skips
+test_fork_staged_validation_waits_for_delivery
+test_fork_staged_delivery_still_checks_named_head
 test_terminal_passed_uses_matching_retirement_receipt_without_forge
 test_terminal_passed_no_forge_switch_skips_read_but_keeps_receipt
 test_terminal_passed_with_open_pr_does_not_claim_merged

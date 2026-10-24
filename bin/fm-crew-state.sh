@@ -1218,6 +1218,19 @@ if [ "$HAVE_RUN" = 1 ]; then
     fi
   fi
 
+  if [ -n "$(meta_value fork_staged)" ] && [ "$RUN_STATE" = done ]; then
+    if log_reports_ci_ready; then
+      emit_ship_status_done
+    fi
+    LOG_STATE=$(map_log_state "$LOG_LINE")
+    case "$LOG_STATE" in
+      done|unknown)
+        emit working run-step "validation complete; delivering fork PR${SELECTED_RUN_ID:+${SEP}run: $SELECTED_RUN_ID}"
+        ;;
+      *) emit "$LOG_STATE" status-log "$(status_line_note "$LOG_LINE")" ;;
+    esac
+  fi
+
   if [ "$RUN_STATE" = working ] && log_reports_ci_ready; then
     if [ "$RUN_SOURCE" = coarse ]; then
       emit_ship_status_done "run still monitoring PR"
