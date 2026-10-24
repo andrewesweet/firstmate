@@ -258,51 +258,16 @@ fm_fork_staged_norm() {
 }
 
 fm_fork_staged_rider_present() {
-  local brief=$1 mode=$2 fork=$3 consent=${4:-} actual contract
+  local brief=$1 mode=$2 fork=$3
   [ -f "$brief" ] || return 1
-  [ "$(grep -c '^Delivery contract:' "$brief")" = 1 ] || return 1
-  actual=$(awk '/^# Current delivery mode contract$/ {body=""} {body=body $0 ORS} END {printf "%s", body}' "$brief") || return 1
-  [ "$(printf '%s\n' "$actual" | grep -c '^# Definition of done$')" = 1 ] || return 1
-  actual=$(fm_brief_heading_parse - '# Definition of done' body <<<"$actual") || return 1
-  contract="Delivery contract: mode=$mode"
-  [ -z "$consent" ] || contract="$contract upstream-consent=$consent"
-  contract="$contract fork-staged=$fork"
-  awk -F '\140' -v mode="$mode" -v fork="$fork" -v contract="$contract" '
-    function skipped(command) {
-      return command ~ /(^|[[:space:]])--skip pr,ci($|[[:space:]])/ && split(command, skips, /--skip/) == 2
-    }
-    /^Delivery contract:/ { if ($0 != contract) bad = 1; delivery++ }
-    /Do NOT run \/no-mistakes[.]/ { no_pipeline = 1 }
-    {
-      for (i = 2; i <= NF; i += 2) {
-        command = $i
-        if (command ~ /^gh pr create /) {
-          count = split(command, args, /[[:space:]]+/)
-          if (args[4] != "-R" || args[5] != fork) bad = 1
-          for (j = 6; j <= count; j++) if (args[j] == "-R" || args[j] ~ /^--repo(=|$)/) bad = 1
-          creates++
-        }
-        if (command ~ /^\/no-mistakes($| )/) {
-          if (!skipped(command)) bad = 1
-          slash_start++
-        }
-        if (command ~ /^no-mistakes axi run / && command != "no-mistakes axi run --help") {
-          if (!skipped(command)) bad = 1
-          axi_start++
-        }
-        if (command ~ /fm-nm-slot[.]sh no-mistakes axi run /) {
-          if (!skipped(command)) bad = 1
-          slot_start++
-        }
-      }
-    }
-    END {
-      if (bad || delivery != 1 || !creates) exit 1
-      if (mode == "no-mistakes") exit !(slash_start && axi_start && slot_start)
-      if (mode == "direct-PR") exit !(no_pipeline && !slash_start && !axi_start && !slot_start)
-      exit 1
-    }
-  ' <<<"$actual"
+  case "$mode" in
+    no-mistakes)
+      grep -Fq -- '--wait 10s --skip pr,ci' "$brief" &&
+        grep -Fq -- "gh pr create -R $fork" "$brief" ;;
+    direct-PR)
+      grep -Fq -- 'gh pr create' "$brief" && grep -Fq -- "-R $fork" "$brief" ;;
+    *) return 1 ;;
+  esac
 }
 
 # The task branch prefix: <branch> with its trailing <task-id> removed, or

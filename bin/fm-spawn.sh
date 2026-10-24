@@ -3924,7 +3924,7 @@ if [ "$KIND" = ship ]; then
     exit 1
   fi
   if [ -n "$FORK_STAGED" ]; then
-    fm_fork_staged_rider_present "$BRIEF" "$MODE" "$FORK_STAGED" "$UPSTREAM_CONSENT" || {
+    fm_fork_staged_rider_present "$BRIEF" "$MODE" "$FORK_STAGED" || {
       echo "error: fork-staged for $ID: $BRIEF records fork-staged=$FORK_STAGED but carries no rider that re-targets the pull request; regenerate the brief with fm-brief.sh $ID $PROJ_NAME --mode $MODE --fork-staged $FORK_STAGED before spawning" >&2
       exit 1
     }

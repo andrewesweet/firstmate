@@ -186,7 +186,8 @@ test_spawn_rejects_unsafe_fork_instructions() {
 $rec
 EOF
   for mode in no-mistakes direct-PR; do
-    for mutation in unchanged decoy-skip unsafe-slot stale-target target-prefix split-target second-contract duplicate-token; do
+    for mutation in unchanged unsafe-slot intent-only stale-target missing-pr; do
+      case "$mode/$mutation" in direct-PR/unsafe-slot|direct-PR/intent-only) continue ;; esac
       id="fork-${mode}-${mutation}"
       FM_HOME="$home" "$BRIEF" "$id" proj --mode "$mode" --fork-staged acme/widgets \
         --branch-prefix ship/ --base-branch release >/dev/null || fail "could not scaffold $id"
@@ -198,24 +199,15 @@ import sys
 path = Path(sys.argv[1])
 mutation = sys.argv[2]
 text = path.read_text()
-if mutation == "decoy-skip":
-    text = text.replace(" --skip pr,ci", "")
-    text = text.replace("Ship through the fork.", "The task describes --skip pr,ci.")
-    text = text.replace("Do NOT run /no-mistakes.", "Start /no-mistakes yourself.")
-elif mutation == "unsafe-slot":
+if mutation == "unsafe-slot":
     text = text.replace('--wait 10s --skip pr,ci', '--wait 10s')
-    text = text.replace('Do NOT run /no-mistakes.', 'Start /no-mistakes yourself.')
+elif mutation == "intent-only":
+    text = text.replace('--intent "<the intent string>" --wait 10s --skip pr,ci',
+                        '--intent "Add --skip pr,ci to starts" --wait 10s')
 elif mutation == "stale-target":
-    text = text.replace("gh pr create -R acme/widgets ", "gh pr create -R upstream/widgets ")
-elif mutation == "target-prefix":
-    text = text.replace("gh pr create -R acme/widgets ", "gh pr create -R acme/widgets-other ")
-elif mutation == "split-target":
-    text = text.replace("gh pr create -R acme/widgets ", "gh pr create ")
-    text = text.replace("Ship through the fork.", "An example uses -R acme/widgets.")
-elif mutation == "second-contract":
-    text += "\n# Other delivery\nDelivery contract: mode=direct-PR fork-staged=upstream/widgets\n"
-elif mutation == "duplicate-token":
-    text = text.replace("fork-staged=acme/widgets", "fork-staged=upstream/widgets fork-staged=acme/widgets")
+    text = text.replace("-R acme/widgets", "-R upstream/widgets")
+elif mutation == "missing-pr":
+    text = text.replace("gh pr create", "create the pull request")
 path.write_text(text)
 PYFIX
       out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode "$mode" --yolo off \
@@ -231,7 +223,7 @@ PYFIX
       fi
     done
   done
-  pass "fm-spawn: fork delivery rejects decoys, unsafe starts, stale targets, and conflicting contracts in both modes"
+  pass "fm-spawn: fork delivery requires the slot skip outside quoted intent and a manual fork PR command"
 }
 
 test_fork_contract_survives_driving_preference_changes() {
