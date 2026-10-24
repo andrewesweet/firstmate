@@ -40,6 +40,26 @@ test_fork_staged_rider_requires_slot_skip_and_fork_pr() {
       fail "$mode: a manual PR command targeting another repository was accepted"
     fi
 
+    changed=${body//'-R acme/widgets --head'/'-R acme/widgetsx --head'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the prefix-fork fixture"
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a rider naming the fork as a prefix of a longer fork name was accepted"
+    fi
+
+    changed=${body//'-R acme/widgets'/'-R ACME/WIDGETS'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the case-variant fixture"
+    printf '%s\n' "$changed" > "$brief"
+    fm_fork_staged_rider_present "$brief" "$mode" acme/widgets \
+      || fail "$mode: a rider whose fork differs only in case was refused"
+
+    changed=${body//'gh pr create -R acme/widgets'/'gh pr create'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the split-command fixture"
+    printf '%s\n%s\n' "$changed" '-R acme/widgets is recorded elsewhere.' > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a split command and fork target on unrelated lines was accepted"
+    fi
+
     changed=${body//'gh pr create'/'open the pull request'}
     printf '%s\n' "$changed" > "$brief"
     if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
@@ -61,7 +81,7 @@ test_fork_staged_rider_requires_slot_skip_and_fork_pr() {
       fail "a skip phrase inside the quoted intent was accepted as slot-start options"
     fi
   done
-  pass "fork rider: generated contracts pass; missing skip options, quoted-intent bypasses, and missing fork PR destinations fail"
+  pass "fork rider: generated contracts pass; missing skip options, quoted-intent bypasses, missing or prefix fork PR destinations, case variants, and split commands fail as they must"
 }
 
 test_scout_done_is_not_gated() {

@@ -124,6 +124,40 @@ EOF
     "the wrong-fork refusal did not name both forks"
   assert_absent "$home/state/fork-staged-s3.meta" "the refused spawn still recorded a task"
 
+  # Two contract lines carrying different forks never spawn: first-match
+  # collection would silently bless whichever line came first.
+  scaffold_fork_brief fork-staged-s10
+  printf 'Delivery contract: mode=no-mistakes fork-staged=other/widgets\n' >> "$home/data/fork-staged-s10/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s10 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a brief with disagreeing fork-staged contract lines was accepted"
+  assert_contains "$out" "disagreeing fork-staged tokens" \
+    "the disagreeing-contract-lines refusal did not name the disagreement"
+  assert_absent "$home/state/fork-staged-s10.meta" "the refused spawn still recorded a task"
+
+  # Identical tokens on every contract line agree, so the spawn proceeds.
+  scaffold_fork_brief fork-staged-s11
+  printf 'Delivery contract: mode=no-mistakes fork-staged=acme/widgets\n' >> "$home/data/fork-staged-s11/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s11 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  assert_present "$home/data/fork-staged-s11/launch-brief.md" "the agreeing duplicate contract lines never launched: $out"
+
+  # Case differences are normalized, not treated as disagreement or mismatch.
+  scaffold_fork_brief fork-staged-s12
+  sed -i 's/fork-staged=acme\/widgets/fork-staged=ACME\/WIDGETS/' "$home/data/fork-staged-s12/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s12 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  assert_present "$home/data/fork-staged-s12/launch-brief.md" "the case-variant contract never launched: $out"
+
+  # A hand-edited rider whose command names a prefix of the recorded fork is
+  # caught by the whole-token rider check even though the token still agrees.
+  scaffold_fork_brief fork-staged-s13
+  sed -i 's/-R acme\/widgets --head/-R acme\/bc --head/' "$home/data/fork-staged-s13/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s13 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a rider naming a prefix fork was accepted"
+  assert_contains "$out" "carries no rider that re-targets the pull request" \
+    "the prefix-fork rider refusal did not name the regeneration remedy"
+  assert_absent "$home/state/fork-staged-s13.meta" "the refused spawn still recorded a task"
+
   # The token alone is not enough: without the rider the pipeline still opens
   # the PR wherever its resolution points.
   write_brief "$home" fork-staged-s4 no-mistakes

@@ -253,15 +253,29 @@ fm_fork_staged_norm() {
   printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+# fm_fork_staged_rider_present <brief> <mode> <fork> - 0 when the brief
+# carries the machine-checkable core of the fork-staged rider for <mode>:
+# the `--skip pr,ci` slot-start options on no-mistakes, and in every mode the
+# manual PR command naming the fork as a whole token. The needle keeps the
+# rendered ` --` that follows the fork in both generated commands, so a
+# prefix of the fork (`-R a/b` inside `-R a/bc`) never matches, and matching
+# is case-insensitive, so a rider differing from fm_fork_staged_norm only in
+# case still passes. direct-PR requires
+# the joined `gh pr create -R <fork> --` command token, so a bare `gh pr
+# create` beside an unrelated `-R <fork>` line is refused. bin/fm-spawn.sh's
+# launch guard runs this so a fork-staged ship never launches on the token
+# alone, and its refusal names regenerating the brief with the flag as the
+# remedy.
 fm_fork_staged_rider_present() {
-  local brief=$1 mode=$2 fork=$3
+  local brief=$1 mode=$2 fork
+  fork=$(fm_fork_staged_norm "$3")
   [ -f "$brief" ] || return 1
   case "$mode" in
     no-mistakes)
-      grep -Fq -- '--wait 10s --skip pr,ci' "$brief" &&
-        grep -Fq -- "gh pr create -R $fork" "$brief" ;;
+      grep -Fqi -- '--wait 10s --skip pr,ci' "$brief" &&
+        grep -Fqi -- "gh pr create -R $fork --" "$brief" ;;
     direct-PR)
-      grep -Fq -- 'gh pr create' "$brief" && grep -Fq -- "-R $fork" "$brief" ;;
+      grep -Fqi -- "gh pr create -R $fork --" "$brief" ;;
     *) return 1 ;;
   esac
 }

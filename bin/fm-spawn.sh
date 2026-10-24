@@ -3913,8 +3913,15 @@ if [ "$KIND" = ship ]; then
   # and the brief must carry the rider that actually re-targets the PR: the
   # token alone never stops the pipeline's PR step from resolving the real
   # upstream repository, which is the exact accidental-upstream-PR hole this
-  # flag exists to close.
-  BRIEF_FORK=$(sed -n 's/^Delivery contract: mode=[^ ]*.*[[:space:]]fork-staged=\([^ ]*\).*$/\1/p' "$BRIEF" | head -n 1)
+  # flag exists to close. Every Delivery contract line is collected (tokens
+  # compared case-consistently, never first-match) and disagreeing tokens are
+  # refused instead of silently blessing whichever line came first.
+  BRIEF_FORKS=$(sed -n 's/^Delivery contract: mode=[^ ]*.*[[:space:]]fork-staged=\([^ ]*\).*$/\1/p' "$BRIEF" | tr '[:upper:]' '[:lower:]' | sort -u)
+  if [ "$(printf '%s\n' "$BRIEF_FORKS" | grep -c .)" -gt 1 ]; then
+    echo "error: fork-staged for $ID: $BRIEF records disagreeing fork-staged tokens on its Delivery contract lines (${BRIEF_FORKS//$'\n'/ }); re-scaffold the brief so one fork applies to every contract line, then spawn again" >&2
+    exit 1
+  fi
+  BRIEF_FORK=$BRIEF_FORKS
   if [ "$BRIEF_FORK" != "$FORK_STAGED" ]; then
     if [ -n "$BRIEF_FORK" ]; then
       echo "error: fork-staged mismatch for $ID: $BRIEF records fork-staged=$BRIEF_FORK but this spawn passed ${FORK_STAGED:-none}; correct the flag or re-scaffold the brief so the worker's contract and the task record agree" >&2
