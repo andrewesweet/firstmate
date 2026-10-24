@@ -1,0 +1,75 @@
+[
+  {
+    "scenario": "off-allowlist-0",
+    "ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_carrier": null,
+    "worker": {
+      "TRACEPARENT": null,
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved",
+      "TRACE_LIVE_SECRET": "must-not-cross-allowlist",
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-live-3000935-off-allowlist-0",
+      "pid": 3002199,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "off-relaunch",
+    "worker": {
+      "TRACEPARENT": null,
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved",
+      "TRACE_LIVE_SECRET": "must-not-cross-allowlist",
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-live-3000935-off-allowlist-0",
+      "pid": 3003484,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "off-allowlist-1",
+    "ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_carrier": null,
+    "worker": {
+      "TRACEPARENT": null,
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved",
+      "TRACE_LIVE_SECRET": null,
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-live-3000935-off-allowlist-1",
+      "pid": 3005774,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/pool/.treehouse/project-80264c/1/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "on-allowlist-0",
+    "ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_carrier": "00-e22ce772f81ced891d6be596be2ff117-776755c4ac60aab1-01",
+    "worker": {
+      "TRACEPARENT": "00-e22ce772f81ced891d6be596be2ff117-776755c4ac60aab1-01",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved",
+      "TRACE_LIVE_SECRET": "must-not-cross-allowlist",
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-live-3000935-on-allowlist-0",
+      "pid": 3007876,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/pool/.treehouse/project-554914/1/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "on-allowlist-1",
+    "ambient": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_carrier": "00-096fd4b8d5c602ffb3361ef77713c210-302b0e7371702ad9-01",
+    "worker": {
+      "TRACEPARENT": "00-096fd4b8d5c602ffb3361ef77713c210-302b0e7371702ad9-01",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved",
+      "TRACE_LIVE_SECRET": null,
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-live-3000935-on-allowlist-1",
+      "pid": 3009175,
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/pool/.treehouse/project-4b8b17/1/project"
+    },
+    "result": "pass"
+  }
+]

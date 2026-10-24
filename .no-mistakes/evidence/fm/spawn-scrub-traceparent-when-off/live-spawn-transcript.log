@@ -1,0 +1,403 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+/tmp/fml.Ym77HX
+
+exit=0
+$ git init -b main ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/project
+Initialized empty Git repository in ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/project/.git/
+
+exit=0
+$ git add README.md
+
+exit=0
+$ git -c 'user.name=Live Test' -c user.email=live@example.invalid commit -m fixture
+[main (root-commit) 5bdadaf] fixture
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+
+exit=0
+$ tmux -L fm-lab -f /dev/null new-session -d -s firstmate -x 120 -y 40 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/project '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab show-environment -g TRACEPARENT
+TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p -t firstmate:0 '#{socket_path},#{pid},#{session_id}'
+/tmp/fml.Ym77HX/tmux-1000/fm-lab,3000990,$0
+
+exit=0
+$ bin/fm-spawn.sh trace-live-3000935-off-allowlist-0 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/project --mode local-only --yolo off --backend tmux '~/.local/share/mise/installs/python/3.15.0/bin/python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/observe.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home/data/trace-live-3000935-off-allowlist-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-live-3000935-off-allowlist-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home/data/trace-live-3000935-off-allowlist-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-live-3000935-off-allowlist-0 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-live-3000935-off-allowlist-0 harness=python3 kind=ship mode=local-only yolo=off window=firstmate:fm-trace-live-3000935-off-allowlist-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-trace-live-3000935-off-allowlist-0 -S -100
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/o
+ff-allowlist-0/pool/.treehouse/project-b5de55/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat Oct 24 15:24:54 BST 2026
+
+  System load:  2.08                 Processes:             227
+  Usage of /:   39.8% of 1006.85GB   Users logged in:       2
+  Memory usage: 50%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   44%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/user/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SD
+Z9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$ export GOTMPDIR=/tmp/fm-trace-live-3000935-off-allowlist-0/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$ export FM_TASK_ID=trace-live-3000935-off-allowlist-0
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$ . '/tmp/fm-trace-live-3000935-off-allowlist-0+09acef76ba33572009efd7dae75
+1c20caaec988f1ef81b83323ed8fc3c344037/launch.s1792851896.3000997.28943.sh'
+WORKER_ENV {"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved", "TRAC
+E_LIVE_SECRET": "must-not-cross-allowlist", "COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "trace-live-3000935-off-allowl
+ist-0", "pid": 3002199, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-z
+hclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-0/pool/.treehouse/project-b5de55/1/project$
+
+exit=0
+$ tmux -L fm-lab send-keys -t firstmate:fm-trace-live-3000935-off-allowlist-0 'export TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' Enter
+
+exit=0
+$ bin/fm-spawn.sh trace-live-3000935-off-allowlist-0 --relaunch --harness '~/.local/share/mise/installs/python/3.15.0/bin/python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/observe.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home/data/trace-live-3000935-off-allowlist-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-live-3000935-off-allowlist-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home/data/trace-live-3000935-off-allowlist-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-live-3000935-off-allowlist-0 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-live-3000935-off-allowlist-0 harness=python3 kind=ship mode=local-only yolo=off window=firstmate:fm-trace-live-3000935-off-allowlist-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/pool/.treehouse/project-b5de55/1/project
+
+exit=0
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-0/home
+
+exit=0
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home
+/tmp/fml.ViI1Q5
+
+exit=0
+$ git init -b main ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/project
+Initialized empty Git repository in ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/project/.git/
+
+exit=0
+$ git add README.md
+
+exit=0
+$ git -c 'user.name=Live Test' -c user.email=live@example.invalid commit -m fixture
+[main (root-commit) 4d4ebd9] fixture
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+
+exit=0
+$ tmux -L fm-lab -f /dev/null new-session -d -s firstmate -x 120 -y 40 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/project '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab show-environment -g TRACEPARENT
+TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p -t firstmate:0 '#{socket_path},#{pid},#{session_id}'
+/tmp/fml.ViI1Q5/tmux-1000/fm-lab,3003553,$0
+
+exit=0
+$ bin/fm-spawn.sh trace-live-3000935-off-allowlist-1 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/project --mode local-only --yolo off --backend tmux '~/.local/share/mise/installs/python/3.15.0/bin/python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/observe.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home/data/trace-live-3000935-off-allowlist-1/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-live-3000935-off-allowlist-1
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home/data/trace-live-3000935-off-allowlist-1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-live-3000935-off-allowlist-1 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-live-3000935-off-allowlist-1 harness=python3 kind=ship mode=local-only yolo=off window=firstmate:fm-trace-live-3000935-off-allowlist-1 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/pool/.treehouse/project-80264c/1/project
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-trace-live-3000935-off-allowlist-1 -S -100
+bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/o
+ff-allowlist-1/pool/.treehouse/project-80264c/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SD
+Z9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/pool/.treehouse/project-80264c/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$ export GOTMPDIR=/tmp/fm-trace-live-3000935-off-allowlist-1/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$ export FM_TASK_ID=trace-live-3000935-off-allowlist-1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$ . '/tmp/fm-trace-live-3000935-off-allowlist-1+2fe16e387206f5048e829ee7830
+52511d39ca03385b221dd89e9ed70543e5c80/launch.s1792851903.3003560.3886.sh'
+WORKER_ENV {"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.attribute=preserved", "TRAC
+E_LIVE_SECRET": null, "COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "trace-live-3000935-off-allowlist-1", "pid": 3005774
+, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-
+1/pool/.treehouse/project-80264c/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowli
+st-1/pool/.treehouse/project-80264c/1/project$
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/off-allowlist-1/home
+
+exit=0
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home
+/tmp/fml.puPhh0
+
+exit=0
+$ git init -b main ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/project
+Initialized empty Git repository in ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/project/.git/
+
+exit=0
+$ git add README.md
+
+exit=0
+$ git -c 'user.name=Live Test' -c user.email=live@example.invalid commit -m fixture
+[main (root-commit) 1afa7c7] fixture
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+
+exit=0
+$ tmux -L fm-lab -f /dev/null new-session -d -s firstmate -x 120 -y 40 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/project '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab show-environment -g TRACEPARENT
+TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p -t firstmate:0 '#{socket_path},#{pid},#{session_id}'
+/tmp/fml.puPhh0/tmux-1000/fm-lab,3006061,$0
+
+exit=0
+$ bin/fm-spawn.sh trace-live-3000935-on-allowlist-0 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/project --mode local-only --yolo off --backend tmux '~/.local/share/mise/installs/python/3.15.0/bin/python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/observe.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home/data/trace-live-3000935-on-allowlist-0/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-live-3000935-on-allowlist-0
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home/data/trace-live-3000935-on-allowlist-0/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-live-3000935-on-allowlist-0 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-live-3000935-on-allowlist-0 harness=python3 kind=ship mode=local-only yolo=off window=firstmate:fm-trace-live-3000935-on-allowlist-0 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/pool/.treehouse/project-554914/1/project
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-trace-live-3000935-on-allowlist-0 -S -100
+bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/o
+n-allowlist-0/pool/.treehouse/project-554914/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ
+9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/pool/.treehouse/project-554914/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ export GOTMPDIR=/tmp/fm-trace-live-3000935-on-allowlist-0/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ export FM_TASK_ID=trace-live-3000935-on-allowlist-0
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ export TRACEPARENT=00-e22ce772f81ced891d6be596be2ff117-776755c4ac60aab1-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$ . '/tmp/fm-trace-live-3000935-on-allowlist-0+55d279e138cb5e0a9b1063002d42d
+3c039db6212f4bb28a92e359e39766c78d2/launch.s1792851907.3006091.7778.sh'
+WORKER_ENV {"TRACEPARENT": "00-e22ce772f81ced891d6be596be2ff117-776755c4ac60aab1-01", "OTEL_RESOURCE_ATTRIBUTES": "servi
+ce.name=trace-live,custom.attribute=preserved", "TRACE_LIVE_SECRET": "must-not-cross-allowlist", "COMPACT_ADVISER_DISABL
+E": "1", "FM_TASK_ID": "trace-live-3000935-on-allowlist-0", "pid": 3007876, "cwd": "~/.no-mistakes/worktrees/6
+5938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/pool/.treehouse/project-554914/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-0/pool/.treehouse/project-554914/1/project$
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-0/home
+
+exit=0
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home
+/tmp/fml.WvFwOn
+
+exit=0
+$ git init -b main ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/project
+Initialized empty Git repository in ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/project/.git/
+
+exit=0
+$ git add README.md
+
+exit=0
+$ git -c 'user.name=Live Test' -c user.email=live@example.invalid commit -m fixture
+[main (root-commit) 8867a9d] fixture
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+
+exit=0
+$ tmux -L fm-lab -f /dev/null new-session -d -s firstmate -x 120 -y 40 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/project '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab show-environment -g TRACEPARENT
+TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p -t firstmate:0 '#{socket_path},#{pid},#{session_id}'
+/tmp/fml.WvFwOn/tmux-1000/fm-lab,3007943,$0
+
+exit=0
+$ bin/fm-spawn.sh trace-live-3000935-on-allowlist-1 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/project --mode local-only --yolo off --backend tmux '~/.local/share/mise/installs/python/3.15.0/bin/python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/observe.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home/data/trace-live-3000935-on-allowlist-1/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-live-3000935-on-allowlist-1
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home/data/trace-live-3000935-on-allowlist-1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-live-3000935-on-allowlist-1 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-live-3000935-on-allowlist-1 harness=python3 kind=ship mode=local-only yolo=off window=firstmate:fm-trace-live-3000935-on-allowlist-1 worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/pool/.treehouse/project-4b8b17/1/project
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-trace-live-3000935-on-allowlist-1 -S -100
+bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/o
+n-allowlist-1/pool/.treehouse/project-4b8b17/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ
+9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/pool/.treehouse/project-4b8b17/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ export GOTMPDIR=/tmp/fm-trace-live-3000935-on-allowlist-1/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ export FM_TASK_ID=trace-live-3000935-on-allowlist-1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ export TRACEPARENT=00-096fd4b8d5c602ffb3361ef77713c210-302b0e7371702ad9-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$ . '/tmp/fm-trace-live-3000935-on-allowlist-1+c8273652fba694c592ca281b5c228
+1e771c61e6cf0441bb582d297c82ca0da29/launch.s1792851911.3007950.19187.sh'
+WORKER_ENV {"TRACEPARENT": "00-096fd4b8d5c602ffb3361ef77713c210-302b0e7371702ad9-01", "OTEL_RESOURCE_ATTRIBUTES": "servi
+ce.name=trace-live,custom.attribute=preserved", "TRACE_LIVE_SECRET": null, "COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID":
+ "trace-live-3000935-on-allowlist-1", "pid": 3009175, "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSV
+XWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/pool/.treehouse/project-4b8b17/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlis
+t-1/pool/.treehouse/project-4b8b17/1/project$
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live-zhclbofd/on-allowlist-1/home
+
+exit=0

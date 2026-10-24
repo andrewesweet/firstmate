@@ -1,0 +1,17 @@
+Live validation used the real bin/fm-spawn.sh public raw-command interface, real tmux servers with 120x40 panes, and real Treehouse worktree acquisition. The worker was a Python process recording its own environment; no multiplexer, launcher, or harness CLI was replaced with a fake. Each home was marked by bin/fm-lab-home.sh. No real primary, account, or fleet session was used.
+
+Independent oracle: with trace propagation off, the launched child must have no TRACEPARENT, even when the daemon environment has a valid stale value and the allowlist explicitly names TRACEPARENT. With propagation on, the child must receive the task metadata carrier and it must differ from the ambient trace. OTEL_RESOURCE_ATTRIBUTES must retain its exact value; the unrelated sentinel must survive without filtering and be absent with filtering. Relaunch must clear a stale carrier reseeded into the existing pane.
+
+All five observations passed. live-worker-environments.json contains the child observations and metadata carriers. live-spawn-transcript.log contains daemon TRACEPARENT inspection, public spawn/relaunch commands, pane captures, and successful private-server cleanup. live-spawn-driver.py reproduces the checks from the repository working directory.
+
+The targeted existing regression command FM_TEST_SKIP_ORPHAN_REAP=1 bash tests/fm-trace-context-spawn.test.sh also passed. It covers emitted launch contracts and failure handling with fake tmux; this supplemental check is not classified as live.
+
+The temporary driver, disposable project repositories, homes, and pools were removed from the working tree. Every private tmux server was stopped and its socket directory removed by the lab helper. No source changes were made. No visual UI behavior changed; CLI and child-environment evidence are the relevant surfaces.
+
+Removed generated per-task temporary launch directories from the live checks and corrected driver attempts:
+/tmp/fm-trace-live-2956357-off-allowlist-0
+/tmp/fm-trace-live-2978151-off-allowlist-0
+/tmp/fm-trace-live-3000935-off-allowlist-0
+/tmp/fm-trace-live-3000935-off-allowlist-1
+/tmp/fm-trace-live-3000935-on-allowlist-0
+/tmp/fm-trace-live-3000935-on-allowlist-1
