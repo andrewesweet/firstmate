@@ -234,6 +234,35 @@ PYFIX
   pass "fm-spawn: fork delivery rejects decoys, unsafe starts, stale targets, and conflicting contracts in both modes"
 }
 
+test_fork_contract_survives_driving_preference_changes() {
+  local rec home proj fakebin mode initial id out
+  rec=$(make_home fork-preferences "- proj [no-mistakes] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  for mode in no-mistakes direct-PR; do
+    for initial in foreground background; do
+      id="fork-pref-$mode-$initial"
+      if [ "$initial" = foreground ]; then
+        touch "$home/config/wait-no-turns"
+      else
+        rm -f "$home/config/wait-no-turns"
+      fi
+      FM_HOME="$home" "$BRIEF" "$id" proj --mode "$mode" --fork-staged acme/widgets >/dev/null \
+        || fail "could not scaffold $id"
+      fill_brief_subsections "$home/data/$id/brief.md" "Ship through the fork." "Ship it." "Deliver the fork change."
+      if [ "$initial" = foreground ]; then
+        rm "$home/config/wait-no-turns"
+      else
+        touch "$home/config/wait-no-turns"
+      fi
+      out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode "$mode" --yolo off --fork-staged acme/widgets)
+      assert_present "$home/data/$id/launch-brief.md" "$mode/$initial: changing drive preferences invalidated a safe fork contract: $out"
+    done
+  done
+  pass "fm-spawn: fork delivery remains valid after either driving preference change in both modes"
+}
+
 test_fork_pr_commands_address_the_created_pr() {
   local home mode output fakebin
   home="$TMP_ROOT/fork-pr-commands/home"
@@ -335,7 +364,7 @@ test_promotion_carries_the_fork_staged_contract() {
 
   (
     . "$ROOT/bin/fm-dod-lib.sh"
-    FM_HOME="$home" fm_fork_staged_rider_present "$home/data/$id/brief.md" no-mistakes acme/widgets "$id" "fm/$id"
+    FM_HOME="$home" fm_fork_staged_rider_present "$home/data/$id/brief.md" no-mistakes acme/widgets
   ) || fail "the promoted brief's superseded scout definition blocked its ship contract"
 
   # local-only publishes nothing, so a fork target has nowhere to point.
@@ -2078,6 +2107,7 @@ EOF
 test_ship_spawn_requires_a_valid_delivery_contract
 test_spawn_requires_the_fork_staged_contract
 test_spawn_rejects_unsafe_fork_instructions
+test_fork_contract_survives_driving_preference_changes
 test_fork_pr_commands_address_the_created_pr
 test_promotion_carries_the_fork_staged_contract
 test_scout_and_secondmate_refuse_delivery_flags
