@@ -1689,6 +1689,90 @@ test_base_branch_is_rendered_and_bounded() {
   pass "fm-brief.sh: --base-branch records the base, targets the PR at it, and is refused where no PR carries it"
 }
 
+# --fork-staged names the fork a fork-staged ship publishes its PR to, because
+# a fork-routed project's checkout would otherwise resolve the PR to upstream:
+# prose cannot stop the pipeline's PR step, so the rider must be mechanical.
+# The flag renders a fork-staged= token on the Delivery contract line (the
+# token fm-spawn.sh checks agreement against) plus the mode's rider in the
+# Definition of done: on no-mistakes every run starts with --skip pr,ci and
+# the worker opens and watches the fork PR itself; on direct-PR the worker
+# opens its PR on the fork. Refused wherever no gh PR exists to retarget.
+test_fork_staged_rider_is_rendered_and_bounded() {
+  local home out rc brief id
+  home="$TMP_ROOT/fork-staged-home"
+  mkdir -p "$home/data"
+
+  id="brief-fork-nm-c1"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes --fork-staged Acme/Widgets >/dev/null 2>&1 \
+    || fail "no-mistakes --fork-staged should scaffold"
+  brief="$home/data/$id/brief.md"
+  assert_grep 'Delivery contract: mode=no-mistakes fork-staged=acme/widgets' "$brief" \
+    "the no-mistakes brief did not record the normalized fork on its contract line"
+  # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+  assert_grep 'start every run with the PR and CI steps skipped: `/no-mistakes --skip pr,ci` (or `no-mistakes axi run --skip pr,ci`' "$brief" \
+    "the no-mistakes rider did not teach the --skip pr,ci start"
+  # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+  assert_grep 'open the fork PR yourself with `gh pr create -R acme/widgets --head fm/'"$id"'` and watch its checks to green yourself before reporting the PR' "$brief" \
+    "the no-mistakes rider did not hand the worker the fork PR command to open and watch"
+  assert_grep 'A run that is already live cannot skip its PR step afterwards' "$brief" \
+    "the no-mistakes rider did not warn that a live run cannot gain the skip"
+  assert_grep '--wait 10s --skip pr,ci' "$brief" \
+    "the validation-slot start did not carry the skip"
+
+  id="brief-fork-nm-base-c2"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes --fork-staged acme/widgets --base-branch 'release/1.2' >/dev/null 2>&1 \
+    || fail "no-mistakes --fork-staged with a base branch should scaffold"
+  assert_grep 'gh pr create -R acme/widgets --base release/1.2 --head' "$home/data/$id/brief.md" \
+    "the fork PR command did not target the recorded base branch"
+
+  id="brief-fork-dp-c3"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode direct-PR --fork-staged acme/widgets >/dev/null 2>&1 \
+    || fail "direct-PR --fork-staged should scaffold"
+  brief="$home/data/$id/brief.md"
+  assert_grep 'Delivery contract: mode=direct-PR fork-staged=acme/widgets' "$brief" \
+    "the direct-PR brief did not record the fork on its contract line"
+  # shellcheck disable=SC2016
+  assert_grep 'open the PR on the fork `acme/widgets` with `gh pr create -R acme/widgets --head fm/'"$id"'`, ready for review, not a draft' "$brief" \
+    "the direct-PR definition of done did not open its PR on the fork"
+
+  id="brief-fork-none-c4"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1 \
+    || fail "a brief without --fork-staged should scaffold"
+  brief="$home/data/$id/brief.md"
+  assert_no_grep 'fork-staged=' "$brief" "a brief without --fork-staged recorded a fork"
+  assert_no_grep '--skip pr,ci' "$brief" "a brief without --fork-staged taught the skip"
+  assert_no_grep 'gh pr create -R' "$brief" "a brief without --fork-staged named a fork PR command"
+
+  out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-fork-lo-c5 some-proj --mode local-only --fork-staged acme/widgets 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "local-only --fork-staged should be refused"
+  assert_contains "$out" "--fork-staged is meaningless on local-only, which publishes nothing; drop it" \
+    "the local-only refusal did not name the mode that publishes nothing"
+  out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-fork-scout-c6 some-proj --scout --fork-staged acme/widgets 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "a scout brief should refuse --fork-staged"
+  assert_contains "$out" "--fork-staged applies only to ship briefs" "the scout refusal did not name the flag it refused"
+  out=$(FM_HOME="$home" FM_SECONDMATE_CHARTER=charter "$ROOT/bin/fm-brief.sh" brief-fork-sm-c7 --secondmate --no-projects --fork-staged acme/widgets 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "a secondmate charter should refuse --fork-staged"
+  out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-fork-bad-c8 some-proj --mode no-mistakes --fork-staged acme 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "a single-segment --fork-staged value should be refused"
+  assert_contains "$out" "--fork-staged must be <owner>/<repo> (got 'acme')" \
+    "the shape refusal did not name the value it refused"
+  out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-fork-empty-c9 some-proj --mode no-mistakes --fork-staged '' 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "an empty --fork-staged value should be refused"
+  for forge in gerrit forgejo; do
+    out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "brief-fork-$forge-c10" some-proj --mode no-mistakes --forge "$forge" --fork-staged acme/widgets 2>&1); rc=$?
+    [ "$rc" -ne 0 ] || fail "--fork-staged with forge=$forge should be refused"
+    assert_contains "$out" "needs forge=none" "the forge=$forge refusal did not name the forge it needs"
+  done
+  # forge=external never ships no-mistakes at all, so the posture check refuses
+  # before the fork check fires; the scaffold must still stop and write nothing.
+  out=$(FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-fork-external-c10 some-proj --mode no-mistakes --forge external --fork-staged acme/widgets 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "--fork-staged with forge=external should be refused"
+  for id in brief-fork-lo-c5 brief-fork-scout-c6 brief-fork-sm-c7 brief-fork-bad-c8 brief-fork-empty-c9 brief-fork-gerrit-c10 brief-fork-forgejo-c10 brief-fork-external-c10; do
+    [ ! -e "$home/data/$id/brief.md" ] || fail "a refused --fork-staged scaffold wrote $id"
+  done
+  pass "fm-brief.sh: --fork-staged records the fork, rides the skip into the definition of done, and is refused where no gh PR exists"
+}
+
 # (a) An unregistered/default project - no --branch-prefix passed at all - must
 # keep every generated ship mode's branch on the legacy "fm/<task-id>" name, byte
 # for byte, so every existing firstmate installation is unaffected.
@@ -2016,6 +2100,7 @@ test_workers_wait_without_spending_turns
 test_wait_no_turns_absent_keeps_the_previous_brief
 test_home_brief_include_is_appended_last
 test_base_branch_is_rendered_and_bounded
+test_fork_staged_rider_is_rendered_and_bounded
 test_ship_branch_prefix_defaults_to_legacy_fm
 test_ship_branch_prefix_override_is_consistent_across_modes
 test_ship_branch_prefix_empty_override_yields_bare_task_id

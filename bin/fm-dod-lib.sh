@@ -25,6 +25,17 @@
 # captain-approved <host>/<owner>/<repo> publication scope for this one task,
 # rendered as an `upstream-consent=<scope>` suffix token on the Delivery
 # contract line so brief, spawn record, and worker instructions agree.
+# The optional eighth argument is the task's fork-staged fork from
+# bin/fm-brief.sh --fork-staged: the <owner>/<repo> GitHub fork a fork-staged
+# ship's pull request must open on instead of wherever the pipeline's PR step
+# would resolve. It renders as a `fork-staged=<owner>/<repo>` suffix token on
+# the Delivery contract line, so brief, spawn record, and worker instructions
+# agree, plus the mode's rider in the Definition of done: no-mistakes starts
+# every run with `--skip pr,ci` (a live run cannot skip its PR step
+# afterwards) and hands the PR open and its check watch to the worker;
+# direct-PR points the worker's PR at the fork. Refused on local-only, which
+# publishes nothing, and on every bound forge: a Gerrit change, an external
+# review upload, and a tea pull request have no gh -R target to retarget.
 # Callers of the gate are bin/fm-crew-state.sh (current-state done),
 # bin/fm-pr-check.sh (PR registration), and bin/fm-inactive-reconcile.sh
 # (secondmate ledger-first publish of a child done). A ship `done:` is not
@@ -216,6 +227,51 @@ fm_forge_valid_for_mode() {  # <forge> <mode> <caller>
     return 1
   fi
   return 0
+}
+
+# The fork-staged fork: the <owner>/<repo> GitHub fork a fork-staged ship's
+# pull request must open on. The value rides the brief's Delivery contract
+# line as a `fork-staged=` token, the task record's fork_staged= key, and the
+# rendered rider, so bin/fm-spawn.sh can refuse any disagreement (this file's
+# fm_dod_block header owns the contract). It is never inferred from a git
+# remote, a registry entry, or an authenticated identity: only an explicit
+# per-task flag turns it on.
+# fm_fork_staged_valid <value> - 0 when <value> is <owner>/<repo> over the
+# same conservative charset a repository slug allows.
+fm_fork_staged_valid() {
+  case $1 in
+  */*) ;;
+  *) return 1 ;;
+  esac
+  case $1 in
+  */*/*) return 1 ;;
+  esac
+  case $1 in
+  *[!A-Za-z0-9._/-]* | /* | .* | */ | *//* | *..*) return 1 ;;
+  esac
+  return 0
+}
+
+# fm_fork_staged_norm <value> - canonical comparison form.
+fm_fork_staged_norm() {
+  printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# fm_fork_staged_rider_present <brief> <mode> <fork> - 0 when the brief
+# carries the machine-checkable core of the fork-staged rider for <mode>:
+# the `--skip pr,ci` start on no-mistakes, the `gh pr create -R <fork>`
+# command on direct-PR. bin/fm-spawn.sh's launch guard runs this so a
+# fork-staged ship never launches on the token alone, and its refusal names
+# regenerating the brief with the flag as the remedy.
+fm_fork_staged_rider_present() {
+  local brief=$1 mode=$2 fork=$3
+  [ -f "$brief" ] || return 1
+  case "$mode" in
+    no-mistakes) grep -Fq -- '--skip pr,ci' "$brief" ;;
+    direct-PR)
+      grep -Fq -- 'gh pr create' "$brief" && grep -Fq -- "-R $fork" "$brief" ;;
+    *) return 1 ;;
+  esac
 }
 
 # The task branch prefix: <branch> with its trailing <task-id> removed, or
@@ -444,9 +500,14 @@ FM_SIBLING_SITE_SWEEP='Sibling-site sweep: search the repository for other occur
 # the pipeline, what `--intent` may carry, and the firstmate-specific rules.
 # Written once; only the two sentences about a green PR depend on the forge,
 # because on gerrit the ci step is skipped and there is no PR to report.
-fm_nm_driving_block() {  # <forge>
+fm_nm_driving_block() {  # <forge> [fork]
   local pr_return_line='' pr_reattach_clause=';' drive_block wait_cfg
-  if [ "$1" != gerrit ]; then
+  if [ -n "${2:-}" ]; then
+    # Fork-staged: the pipeline never opens or watches this task's pull
+    # request, so no drive call's return ever reports checks on one.
+    pr_return_line="The pipeline never opens or watches this task's pull request, so no drive call's return ever reports one: \`no-mistakes axi status\` shows progress only, so never wait on a status poll for the next gate or outcome.
+"
+  elif [ "$1" != gerrit ]; then
     pr_return_line="Only a drive call's return reports the green PR: \`no-mistakes axi status\` shows progress but never reports \`checks-passed\` while the ci step is still monitoring the PR for merge, so never wait on a status poll for the next gate or outcome.
 "
     pr_reattach_clause="; once checks are green it returns \`checks-passed\` immediately, and"
@@ -500,10 +561,11 @@ EOF
 # --wait keeps its slot lock held only across a start's own registration, and
 # the driving block owns every drive, reattach, and respond call, which never
 # claims a slot because none of them creates a new run.
-fm_nm_slot_block() {  # <forge>
+fm_nm_slot_block() {  # <forge> [fork]
   local slot_bin skip=''
   slot_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-nm-slot.sh"
   [ "${1:-}" = gerrit ] && skip=' --skip push,pr,ci'
+  [ -n "${2:-}" ] && skip=' --skip pr,ci'
   cat <<EOF
 Before starting a run, claim a validation slot under this host's concurrent-validation cap: run \`$slot_bin no-mistakes axi run --intent "<the intent string>" --wait 10s$skip\`.
 The script checks the host's counted validation count against the per-host limit (default 3, host-configurable) and runs the wrapped start only while a slot is free, holding the slot lock across that start so two workers cannot both squeeze in.
@@ -589,9 +651,9 @@ fm_dod_feedback_dir() {  # -> <data-dir>
   printf '%s\n' "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 }
 
-fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>]
-  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} publication_target=${7:-} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
-  local branch=${3:-fm/$id} data pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check rebase_target='the current default branch' adapter
+fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>] [<fork>]
+  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} publication_target=${7:-} fork=${8:-} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
+  local branch=${3:-fm/$id} data pr_base='' nm_base='' base_q branch_q contract_forge='' contract_consent='' contract_fork='' fork_base='' forge_cli=gh-axi draft_check rebase_target='the current default branch' adapter
   fm_forge_valid_for_mode "$forge" "$mode" fm_dod_block || return 1
   fm_base_branch_valid "$base" "$mode" "$forge" fm_dod_block || return 1
   if [ -n "$consent" ]; then
@@ -613,6 +675,22 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<p
     rebase_target="the base branch \`$base\`"
     nm_base="This task's base branch is \`$base\`, not the repository default: pass \`--base-branch $base_q\` on every \`no-mistakes axi run\` that starts a run, so the pipeline rebases onto, opens its PR against, and watches CI for that branch.
 "
+  fi
+  # The fork-staged rider is refused where no gh pull request exists to
+  # retarget, and its PR command carries the recorded base branch when the
+  # task names one; without a base gh targets the fork's default branch.
+  if [ -n "$fork" ]; then
+    if [ "$mode" = local-only ]; then
+      echo "error: fm_dod_block: fork-staged names a PR target that local-only never opens; drop it" >&2
+      return 1
+    fi
+    if [ "$forge" != none ]; then
+      echo "error: fm_dod_block: fork-staged retargets a gh pull request to a fork; forge=$forge has no gh pull request to retarget" >&2
+      return 1
+    fi
+    contract_fork=" fork-staged=$fork"
+    printf -v branch_q '%q' "$branch"
+    [ -z "$base" ] || fork_base=" --base $base_q"
   fi
   if [ -n "$publication_target" ]; then
     local publication_pin
@@ -722,7 +800,7 @@ EOF
     direct-PR:*)
       cat <<EOF
 # Definition of done
-Delivery contract: mode=direct-PR$contract_forge$contract_consent
+Delivery contract: mode=direct-PR$contract_forge$contract_consent$contract_fork
 Ship branch: $branch
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
@@ -731,7 +809,18 @@ EOF
       fm_implement_discipline_block "$branch"
       cat <<EOF
 
+EOF
+      if [ -n "$fork" ]; then
+        # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+        cat <<EOF
+When it is implemented and committed, push your branch and open the PR on the fork \`$fork\` with \`gh pr create -R $fork$fork_base --head $branch_q\`, ready for review, not a draft$pr_base.
+EOF
+      else
+        cat <<EOF
 When it is implemented and committed, push your branch and open a PR with \`$forge_cli\` that is ready for review, not a draft$pr_base.
+EOF
+      fi
+      cat <<EOF
 Before you report done, read the PR back from the forge and confirm it is not a draft $draft_check
 A draft cannot be merged, so a done report on one leaves the merge unasked.
 Then append \`done [at=<epoch>]: PR {url}\` to the status file and stop.
@@ -783,7 +872,7 @@ An HTTP error body or malformed response is unreadable CI; a head with no status
       fi
       cat <<EOF
 # Definition of done
-Delivery contract: mode=no-mistakes$contract_forge$contract_consent
+Delivery contract: mode=no-mistakes$contract_forge$contract_consent$contract_fork
 Ship branch: $branch
 The task is complete only when committed on your branch.
 
@@ -792,14 +881,26 @@ EOF
       fm_nm_implement_ordering_block
       cat <<EOF
 
-When your implementation is committed, rebase onto $rebase_target, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
-${nm_base}
 EOF
-      fm_nm_slot_block "$forge"
+      if [ -n "$fork" ]; then
+        # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+        cat <<EOF
+When your implementation is committed, rebase onto $rebase_target, then start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
+This task is fork-staged: the pull request must open on the fork \`$fork\`, never wherever the pipeline's PR step would resolve, so start every run with the PR and CI steps skipped: \`/no-mistakes --skip pr,ci\` (or \`no-mistakes axi run --skip pr,ci\`, and pass the same skip to the validation-slot start below).
+A run that is already live cannot skip its PR step afterwards: the skip belongs on the start command, and if a run ever opens a PR anyway, stop and escalate instead of publishing anything.
+The pipeline still pushes your branch but never opens or watches a pull request, so when the run's outcome is passed, open the fork PR yourself with \`gh pr create -R $fork$fork_base --head $branch_q\` and watch its checks to green yourself before reporting the PR.
+EOF
+      else
+        cat <<EOF
+When your implementation is committed, rebase onto $rebase_target, then start /no-mistakes yourself to validate and ship a PR; do not append \`done:\` and wait for firstmate's instruction.
+EOF
+      fi
+      printf '%s\n' "$nm_base"
+      fm_nm_slot_block "$forge" "$fork"
       cat <<EOF
 
 EOF
-      fm_nm_driving_block "$forge"
+      fm_nm_driving_block "$forge" "$fork"
       cat <<EOF
 
 At the CI gate, poll every 60 seconds with one poll per command, and never put a single wait longer than the ten-minute bound above into one command: \`sleep 3000; $ci_checks\` is one blocking hold, not a poll.
@@ -814,7 +915,6 @@ A wait only a maintainer can clear - $ci_approval_wait or a rerun of a flaky job
 Gate findings marked ask-user still follow rule 6 exactly, even when they only describe that external wait: choosing to wait them out is answering them yourself.
 
 When $ci_ready, validation is done - that is the CI-ready return point, so do not wait for the pipeline to keep monitoring the merge in the background. Append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
-Before that done report, read the PR back from the forge and confirm it is not a draft $draft_check
 Before that done report, read the PR back from the forge and confirm it is not a draft $draft_check
 A draft cannot be merged, so a done report on one leaves the merge unasked.
 That CI-ready \`done:\` is accepted only when this copy's HEAD - your latest commit - is one the /no-mistakes run pushed, so commit nothing after the run; the check tests that commit, not merely that a branch moved.

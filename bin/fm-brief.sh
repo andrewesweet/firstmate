@@ -115,6 +115,19 @@
 # authority and records it in the task record, and bin/fm-promote.sh honors it
 # the same way. Ship-only: a scout publishes nothing and a charter is not a
 # delivery contract.
+# --fork-staged <owner>/<repo> names the GitHub fork a fork-staged ship's pull
+# request must open on instead of wherever the pipeline's PR step would
+# resolve. It renders as a `fork-staged=` token on the Delivery contract line
+# plus the mode's rider in the Definition of done: no-mistakes starts every
+# run with `--skip pr,ci` (a live run cannot skip its PR step afterwards) and
+# hands the PR open and its check watch to the worker with `gh pr create -R
+# <owner>/<repo>`; direct-PR points the worker's PR at the fork the same way.
+# bin/fm-spawn.sh and bin/fm-promote.sh refuse a fork-staged ship whose brief
+# lacks the rider or whose contract disagrees, and the relaunch reuses the
+# recorded value. Ship-only, and refused on local-only, which publishes
+# nothing, and on every bound forge, which has no gh -R PR to retarget. The
+# fork is never inferred from a remote, registry entry, or authenticated
+# identity: only this flag turns it on.
 # --project <dir> is the task's project directory, used to detect when a ship
 # brief would publish to firstmate's own repository: for such a task this
 # scaffold refuses a publishing mode that the home's role or recorded consent
@@ -248,6 +261,8 @@ SHAPE=
 SHAPE_SET=0
 UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
+FORK_STAGED=
+FORK_STAGED_SET=0
 PROJECT_DIR=
 PROJECT_DIR_SET=0
 POS=()
@@ -264,6 +279,7 @@ for a in "$@"; do
       forge) FORGE=$a; FORGE_SET=1 ;;
       shape) SHAPE=$a; SHAPE_SET=1 ;;
       upstream-consent) UPSTREAM_CONSENT=$a; UPSTREAM_CONSENT_SET=1 ;;
+      fork-staged) FORK_STAGED=$a; FORK_STAGED_SET=1 ;;
       project) PROJECT_DIR=$a; PROJECT_DIR_SET=1 ;;
       *) echo "error: internal parser state for --$want_value" >&2; exit 1 ;;
     esac
@@ -287,6 +303,8 @@ for a in "$@"; do
     --shape=*) SHAPE=${a#--shape=}; SHAPE_SET=1 ;;
     --upstream-consent) want_value="upstream-consent" ;;
     --upstream-consent=*) UPSTREAM_CONSENT=${a#--upstream-consent=}; UPSTREAM_CONSENT_SET=1 ;;
+    --fork-staged) want_value="fork-staged" ;;
+    --fork-staged=*) FORK_STAGED=${a#--fork-staged=}; FORK_STAGED_SET=1 ;;
     --project) want_value="project" ;;
     --project=*) PROJECT_DIR=${a#--project=}; PROJECT_DIR_SET=1 ;;
     # yolo never reaches the worker: it is firstmate's merge authority, not a
@@ -370,6 +388,10 @@ if [ "$KIND" != ship ]; then
     echo "error: --upstream-consent applies only to ship briefs; a scout publishes nothing and a charter is not a delivery contract" >&2
     exit 1
   }
+  [ "$FORK_STAGED_SET" -eq 0 ] || {
+    echo "error: --fork-staged applies only to ship briefs; a scout publishes nothing and a charter is not a delivery contract" >&2
+    exit 1
+  }
   [ "$PROJECT_DIR_SET" -eq 0 ] || {
     echo "error: --project applies only to ship briefs" >&2
     exit 1
@@ -385,6 +407,25 @@ if [ "$UPSTREAM_CONSENT_SET" -eq 1 ]; then
     exit 1
   }
   UPSTREAM_CONSENT=$(fm_role_scope_norm "$UPSTREAM_CONSENT")
+fi
+if [ "$FORK_STAGED_SET" -eq 1 ]; then
+  [ -n "$FORK_STAGED" ] || {
+    echo "error: --fork-staged requires a non-empty <owner>/<repo> value" >&2
+    exit 1
+  }
+  fm_fork_staged_valid "$FORK_STAGED" || {
+    echo "error: --fork-staged must be <owner>/<repo> (got '$FORK_STAGED')" >&2
+    exit 1
+  }
+  FORK_STAGED=$(fm_fork_staged_norm "$FORK_STAGED")
+  if [ "$MODE" = local-only ]; then
+    echo "error: --fork-staged is meaningless on local-only, which publishes nothing; drop it" >&2
+    exit 1
+  fi
+  if [ "$FORGE" != none ]; then
+    echo "error: --fork-staged retargets a gh pull request to a fork, so it needs forge=none (got forge=$FORGE); drop it" >&2
+    exit 1
+  fi
 fi
 # Self-repository pre-gate for a publishing ship brief: detectable only when
 # --project was passed, so the check runs here only then. bin/fm-spawn.sh
@@ -808,7 +849,7 @@ esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
 # Hand the already-resolved absolute $DATA to the feedback-dir resolution so a
 # relative FM_DATA_OVERRIDE cannot render a worktree-relative snapshot path.
-DOD=$(FM_DATA_OVERRIDE="$DATA" fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET") || exit 1
+DOD=$(FM_DATA_OVERRIDE="$DATA" fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET" "$FORK_STAGED") || exit 1
 
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.

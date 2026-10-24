@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -55,6 +55,17 @@
 #   base_branch= in state/<id>.meta, which a relaunch reuses and later review and
 #   cleanup read; it is refused on secondmates and relaunches, and without it
 #   nothing changes.
+#   --fork-staged is the optional <owner>/<repo> GitHub fork a fork-staged
+#   ship's pull request must open on instead of wherever the pipeline's PR step
+#   would resolve. It must agree with the brief's fork-staged= contract token,
+#   and the brief must carry the rider that re-targets the PR (fm-brief.sh
+#   --fork-staged writes both): the token alone never stops the pipeline from
+#   opening the PR upstream, so the refusal names regenerating the brief as
+#   the remedy. It records fork_staged= in state/<id>.meta, which a relaunch
+#   reuses; it is refused on scouts, secondmates, local-only (which publishes
+#   nothing), bound forges (which have no gh -R PR to retarget), and
+#   relaunches. The fork is never inferred from a remote, registry entry, or
+#   authenticated identity: only this flag turns it on.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -890,6 +901,8 @@ BASE_BRANCH=
 BASE_BRANCH_SET=0
 UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
+FORK_STAGED=
+FORK_STAGED_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
@@ -941,6 +954,10 @@ for a in "$@"; do
     upstream-consent)
       UPSTREAM_CONSENT=$a
       UPSTREAM_CONSENT_SET=1
+      ;;
+    fork-staged)
+      FORK_STAGED=$a
+      FORK_STAGED_SET=1
       ;;
     traceparent)
       TRACEPARENT_ARG=$a
@@ -1010,6 +1027,11 @@ for a in "$@"; do
     UPSTREAM_CONSENT=${a#--upstream-consent=}
     UPSTREAM_CONSENT_SET=1
     ;;
+  --fork-staged) want_value="fork-staged" ;;
+  --fork-staged=*)
+    FORK_STAGED=${a#--fork-staged=}
+    FORK_STAGED_SET=1
+    ;;
   --traceparent) want_value=traceparent ;;
   --traceparent=*)
     TRACEPARENT_ARG=${a#--traceparent=}
@@ -1048,6 +1070,10 @@ done
 }
 [ "$UPSTREAM_CONSENT_SET" -eq 0 ] || [ -n "$UPSTREAM_CONSENT" ] || {
   echo "error: --upstream-consent requires a non-empty <host>/<owner>/<repo> value" >&2
+  exit 1
+}
+[ "$FORK_STAGED_SET" -eq 0 ] || [ -n "$FORK_STAGED" ] || {
+  echo "error: --fork-staged requires a non-empty <owner>/<repo> value" >&2
   exit 1
 }
 [ "$TRACEPARENT_SET" -eq 0 ] || [ -n "$TRACEPARENT_ARG" ] || {
@@ -1108,6 +1134,10 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: --relaunch reuses the task's recorded upstream consent; --upstream-consent cannot override it" >&2
     exit 1
   }
+  [ "$FORK_STAGED_SET" -eq 0 ] || {
+    echo "error: --relaunch reuses the task's recorded fork-staged fork; --fork-staged cannot override it" >&2
+    exit 1
+  }
 else
   # Delivery contract (AGENTS.md section 7). A ship task's mode and yolo are
   # firstmate's per-task decision, so they are required and closed-set validated
@@ -1151,6 +1181,17 @@ else
       }
       UPSTREAM_CONSENT=$(fm_role_scope_norm "$UPSTREAM_CONSENT")
     fi
+    if [ "$FORK_STAGED_SET" -eq 1 ]; then
+      if [ "$MODE" = local-only ]; then
+        echo "error: --fork-staged is meaningless on local-only, which publishes nothing; drop it" >&2
+        exit 1
+      fi
+      fm_fork_staged_valid "$FORK_STAGED" || {
+        echo "error: --fork-staged must be <owner>/<repo> (got '$FORK_STAGED')" >&2
+        exit 1
+      }
+      FORK_STAGED=$(fm_fork_staged_norm "$FORK_STAGED")
+    fi
   else
     [ "$MODE_SET" -eq 0 ] || {
       echo "error: --mode applies only to ship spawns; a scout delivers a report and a secondmate records its own fixed posture" >&2
@@ -1170,6 +1211,10 @@ else
     }
     [ "$UPSTREAM_CONSENT_SET" -eq 0 ] || {
       echo "error: --upstream-consent applies only to ship spawns; a scout publishes nothing and a secondmate records no delivery contract" >&2
+      exit 1
+    }
+    [ "$FORK_STAGED_SET" -eq 0 ] || {
+      echo "error: --fork-staged applies only to ship spawns; a scout publishes nothing and a secondmate records no delivery contract" >&2
       exit 1
     }
   fi
@@ -2273,6 +2318,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   MODE=$(fm_meta_get "$RELAUNCH_META" mode)
   YOLO=$(fm_meta_get "$RELAUNCH_META" yolo)
   UPSTREAM_CONSENT=$(fm_meta_get "$RELAUNCH_META" upstream_consent)
+  FORK_STAGED=$(fm_meta_get "$RELAUNCH_META" fork_staged)
   if [ "$KIND" = ship ]; then
     BRANCH=$(fm_meta_get "$RELAUNCH_META" branch)
     [ -n "$BRANCH" ] || BRANCH="fm/$ID"
@@ -3861,6 +3907,27 @@ if [ "$KIND" = ship ]; then
   if [ "$BRIEF_CONSENT" != "$UPSTREAM_CONSENT" ]; then
     echo "error: upstream-consent mismatch for $ID: $BRIEF records upstream-consent=${BRIEF_CONSENT:-none} but this spawn passed ${UPSTREAM_CONSENT:-none}; correct the flag or re-scaffold the brief so the worker's contract and the task record agree" >&2
     exit 1
+  fi
+  # A fork-staged ship records the fork its pull request must open on as a
+  # fork-staged= token on that same line. The flag and the brief must agree,
+  # and the brief must carry the rider that actually re-targets the PR: the
+  # token alone never stops the pipeline's PR step from resolving the real
+  # upstream repository, which is the exact accidental-upstream-PR hole this
+  # flag exists to close.
+  BRIEF_FORK=$(sed -n 's/^Delivery contract: mode=[^ ]*.*[[:space:]]fork-staged=\([^ ]*\).*$/\1/p' "$BRIEF" | head -n 1)
+  if [ "$BRIEF_FORK" != "$FORK_STAGED" ]; then
+    if [ -n "$BRIEF_FORK" ]; then
+      echo "error: fork-staged mismatch for $ID: $BRIEF records fork-staged=$BRIEF_FORK but this spawn passed ${FORK_STAGED:-none}; correct the flag or re-scaffold the brief so the worker's contract and the task record agree" >&2
+      exit 1
+    fi
+    echo "error: fork-staged for $ID: this spawn passed --fork-staged $FORK_STAGED but $SOURCE_BRIEF records no fork-staged rider; keep the filled ## Captain's intent and ## Firstmate spec bodies, remove $SOURCE_BRIEF, re-scaffold it with fm-brief.sh $ID $PROJ_NAME --mode $MODE --fork-staged $FORK_STAGED, re-fill those two subsections, then spawn again" >&2
+    exit 1
+  fi
+  if [ -n "$FORK_STAGED" ]; then
+    fm_fork_staged_rider_present "$BRIEF" "$MODE" "$FORK_STAGED" || {
+      echo "error: fork-staged for $ID: $BRIEF records fork-staged=$FORK_STAGED but carries no rider that re-targets the pull request; regenerate the brief with fm-brief.sh $ID $PROJ_NAME --mode $MODE --fork-staged $FORK_STAGED before spawning" >&2
+      exit 1
+    }
   fi
   # The registered forge is the captain's confirmed binding (bin/fm-project-mode.sh)
   # and is never inferred here from a remote, host, or protocol. A brief that
@@ -6136,7 +6203,7 @@ fi
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo branch tasktmp base_branch upstream_consent forge backup_remote backup_prefix model effort account account_provider busy_gen spawn_gen traceparent trace_started trace_link backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id paseo_terminal_id paseo_workspace_id home projects control_relaunch_tx polytoken_session polytoken_port polytoken_credential", keys, " ")
+      split("window endpoint_task_id worktree project harness kind mode yolo branch tasktmp base_branch upstream_consent fork_staged forge backup_remote backup_prefix model effort account account_provider busy_gen spawn_gen traceparent trace_started trace_link backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id paseo_terminal_id paseo_workspace_id home projects control_relaunch_tx polytoken_session polytoken_port polytoken_credential", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -6155,6 +6222,9 @@ preserve_relaunch_meta() {
   echo "tasktmp=$TASK_TMP"
   [ -z "$BASE_BRANCH" ] || echo "base_branch=$BASE_BRANCH"
   [ -z "$UPSTREAM_CONSENT" ] || echo "upstream_consent=$UPSTREAM_CONSENT"
+  # Read by the relaunch reuse and the fork-staged PR guard; the GitHub fork a
+  # fork-staged ship's pull request must open on (bin/fm-dod-lib.sh).
+  [ -z "$FORK_STAGED" ] || echo "fork_staged=$FORK_STAGED"
   # Read by bin/fm-dod-lib.sh's ready-report gate; absent on every other forge.
   [ "$EXTERNAL_REVIEW" = 0 ] || echo "forge=external"
   [ -z "$EXTERNAL_BACKUP_REMOTE" ] || echo "backup_remote=$EXTERNAL_BACKUP_REMOTE"
