@@ -1,0 +1,22 @@
+{
+  "public_contract": "Final generated instructions delivered to a worker; assertions use the supplied author intent and recorded human decisions as the oracle. This validates emitted instructions, not an LLM following them.",
+  "focused_brief_selectors": [
+    "test_forge_selection_renders_correct_cli",
+    "test_no_mistakes_dod_wording",
+    "test_no_mistakes_dod_green_detection",
+    "test_no_mistakes_dod_ci_gate_feedback",
+    "test_no_mistakes_dod_ci_wait_uses_configured_pause_verb",
+    "test_pr_based_dod_requires_non_draft",
+    "test_ask_user_escalation_format"
+  ],
+  "focused_contributions_selector": "test_arm_plumbs_a_configured_budget_into_the_check_shim",
+  "clone_command": "FM_TEST_PROVISION_ONLY=1 TMPDIR=\"$PWD/.no-mistakes/test-phase/tmp\" bash tests/fm-remote-secondmate-lifecycle-e2e.test.sh",
+  "setup_notes": [
+    "Temporary selected-function runners were created in tests/, executed with workspace-local TMPDIR, and removed afterward.",
+    "The first contributions selection accidentally retained its suite loop; it was interrupted, then replaced with the sole budget selector, which passed.",
+    "An exploratory complete remote-lifecycle file run passed the revised clone cases, then stopped at the gate lifecycle refusal. Its existing FM_TEST_PROVISION_ONLY selector was then run successfully to isolate the changed cases.",
+    "No Herdr lifecycle was driven; its diff changes test recovery flags and cleanup comments, not runtime product code.",
+    "No linter, formatter, full repository suite, pipeline control command, publication, or forge mutation was run."
+  ],
+  "cleanup": "All disposable homes and test runners removed. Product source unchanged."
+}

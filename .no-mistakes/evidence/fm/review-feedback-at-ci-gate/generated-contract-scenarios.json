@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Generate GitHub worker instructions: bounded minute polling reads checks, reviews, inline comments and issue comments",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-worker.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate review-routing instructions: parked gates receive fix work; absent gates retain keyed decisions through CI green",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-worker.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate maintainer-wait instructions: use a separate external-wait key, keep polling, and resolve without reporting a blocker",
+    "result": "pass",
+    "live": true,
+    "evidence": "github-worker.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate Forgejo worker instructions: use tea, read each review\u2019s inline comments, and exhaust list/status pages",
+    "result": "pass",
+    "live": true,
+    "evidence": "forgejo-worker.md",
+    "reason": ""
+  },
+  {
+    "name": "Configure a custom pause verb: fresh worker instructions use holding for the maintainer-only CI wait",
+    "result": "pass",
+    "live": true,
+    "evidence": "custom-wait-worker.md",
+    "reason": ""
+  },
+  {
+    "name": "Promote a scout: default paused fallback survives the alternate caller",
+    "result": "pass",
+    "live": true,
+    "evidence": "promoted-default.md",
+    "reason": ""
+  },
+  {
+    "name": "Promote a scout: custom holding verb survives the alternate caller",
+    "result": "pass",
+    "live": true,
+    "evidence": "promoted-custom.md",
+    "reason": ""
+  },
+  {
+    "name": "Call fm_dod_block with its existing minimal signature: default paused fallback renders under nounset",
+    "result": "pass",
+    "live": true,
+    "evidence": "standalone-dod.md",
+    "reason": ""
+  },
+  {
+    "name": "Generate non-pipeline deliveries: direct-PR and local-only omit CI-gate feedback instructions",
+    "result": "pass",
+    "live": true,
+    "evidence": "direct-pr-worker.md; local-only-worker.md",
+    "reason": ""
+  }
+]
