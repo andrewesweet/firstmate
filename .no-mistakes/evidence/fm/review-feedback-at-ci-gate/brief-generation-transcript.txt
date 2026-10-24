@@ -1,0 +1,50 @@
+$ FM_HOME=<disposable> bin/fm-brief.sh live-github disposable-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/github/data/live-github/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+$ FM_HOME=<disposable> bin/fm-brief.sh live-forgejo disposable-project --mode no-mistakes --forge forgejo
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/forgejo/data/live-forgejo/brief.md (ship, mode=no-mistakes forge=forgejo; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+$ FM_HOME=<disposable> FM_CLASSIFY_PAUSED_VERB=holding bin/fm-brief.sh live-holding disposable-project --mode no-mistakes
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/holding/data/live-holding/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+$ FM_HOME=<disposable> bin/fm-brief.sh live-direct disposable-project --mode direct-PR
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/data/live-direct/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+$ FM_HOME=<disposable> bin/fm-brief.sh live-local disposable-project --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/local/data/live-local/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+Verified generated contract: bounded polling
+
+Verified generated contract: all GitHub feedback channels
+
+Verified generated contract: parked feedback becomes pipeline work
+
+Verified generated contract: gateless keyed decision keeps polling and handles answers
+
+Verified generated contract: late fixes preserve pipeline commits
+
+Verified generated contract: done rereads feedback and waits for answers
+
+Verified generated contract: external wait has separate key and clear event
+
+Verified Forgejo generated contract: tea checks, per-review inline comments, all pages, no GitHub checks or unsupported pulls comments route.
+
+$ bash -eu -c '. bin/fm-dod-lib.sh; fm_dod_block no-mistakes live-standalone'
+exit=0
+
+Verified standalone fallback: paused, with no classifier variables or brief globals.
+
+Verified direct delivery: no CI-gate polling or feedback decision contract.
+
+Verified local delivery: no CI-gate polling or feedback decision contract.
+
+$ FM_HOME=<disposable> bin/fm-brief.sh live-invalid disposable-project --mode local-only --forge forgejo
+error: fm-brief.sh --forge: forge=forgejo cannot ship mode=local-only - that mode publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; ship no-mistakes or direct-PR, which publish through the forge
+exit=1
+
+Verified refused forge on local-only: no generated brief.

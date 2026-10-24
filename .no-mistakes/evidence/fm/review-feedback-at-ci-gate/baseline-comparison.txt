@@ -1,0 +1,9 @@
+Public interface regression comparison: fm_dod_block no-mistakes <id>.
+Base: 98f3bd84862b891773130b003f64c16ed08649fb; target: af0ae4bb33e3d85b31266d006ebbecf0407ab9c7.
+Oracle: authoritative intent and accepted fix decisions require the emitted CI guidance.
+Base omits / target emits: gh-axi pr view <n> --comments --reviews
+Base omits / target emits: poll about once a minute with one poll per command
+Base omits / target emits: no-mistakes axi respond --action fix
+Base omits / target emits: key=pr-<n>-<comment-id>
+Base omits / target emits: key=nm-<run>-ci-wait
+Base omits / target emits: branch_sync.next_action

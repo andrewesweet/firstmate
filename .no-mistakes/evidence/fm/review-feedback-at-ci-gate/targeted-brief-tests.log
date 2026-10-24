@@ -1,0 +1,21 @@
+Selected public generated-output contract tests:
+test_ship_modes_generate_clean_briefs
+test_forge_selection_renders_correct_cli
+test_no_mistakes_dod_wording
+test_no_mistakes_dod_green_detection
+test_no_mistakes_dod_ci_gate_feedback
+test_no_mistakes_dod_ci_wait_uses_configured_pause_verb
+test_pr_based_dod_requires_non_draft
+test_pause_verb_override_renders_all_brief_scaffolds
+
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: no-mistakes DOD reads and routes review feedback at the CI gate
+ok - fm-brief.sh: no-mistakes DOD declares the maintainer-only CI wait with the configured pause verb
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+
+exit=0

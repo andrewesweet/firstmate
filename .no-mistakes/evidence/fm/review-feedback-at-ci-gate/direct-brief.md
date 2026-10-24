@@ -13,22 +13,22 @@ If the task will start, stop, delete, restart, profile, or otherwise drive Herdr
 Do not add Herdr lifecycle commands to this unguarded brief by hand.
 
 # Setup
-You are in a disposable git worktree of isolated-project, at a detached HEAD on a clean default branch.
+You are in a disposable git worktree of disposable-project, at a detached HEAD on a clean default branch.
 
 **Verify isolation before anything else.** Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from.
 The path check is authoritative: `git rev-parse --git-dir` and `git rev-parse --git-common-dir` can help inspect the repo, but they do not prove you are outside the primary checkout.
 If the top-level path is the primary checkout or not the worktree you were launched in, STOP - do not branch or commit here - append `blocked [at=<epoch>]: launched in primary checkout, not an isolated worktree` to the status file and stop.
 
-1. First action: create your branch: `git checkout -b fm/direct --`
+1. First action: create your branch: `git checkout -b fm/live-direct --`
 
 # Rules
-1. Never push to the default branch (push only your `fm/direct` branch). Never merge a PR.
-2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/data/direct/` or a temporary directory.
+1. Never push to the default branch (push only your `fm/live-direct` branch). Never merge a PR.
+2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/data/live-direct/` or a temporary directory.
    Outside the worktree, write only that task material and the status and steering-inbox records authorized below.
    Leave the worktree clean before reporting done.
 3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations.
 4. Report status by appending one line:
-   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/config' '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.status' >/dev/null 2>&1 || true; }`
+   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/config' '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.status' >/dev/null 2>&1 || true; }`
    States: working, needs-decision, blocked, paused, done, failed.
    Substitute `<epoch>` with the current Unix time in seconds - run `date +%s` and write the number it printed; a stamp that is not plain digits records no time at all.
    Each append wakes firstmate, so report sparingly: only phase changes a supervisor
@@ -77,19 +77,22 @@ If the top-level path is the primary checkout or not the worktree you were launc
      that it is free, and returning your own worktree is firstmate's job at cleanup, not yours.
    If you genuinely need a second checkout, another slot, or the daemon touched, append
    `blocked [at=<epoch>]: {what you need}` and stop; firstmate arranges it.
+8. Never start a shell command with `cd`, and never run a search whose path depends on the current directory.
+   Use absolute paths, `git -C <abs>`, or a `( cd <abs> && ... )` subshell.
+   Pass this rule to every sub-agent you launch.
 
 # Firstmate instruction inbox
-Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.inbox'.
-When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.inbox'/*.msg, read and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/.no-mistakes/test-ci-feedback/live/direct/state/direct.inbox'/handled/`.
+Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.inbox'.
+When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list them with `find '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.inbox' -maxdepth 1 -name '*.msg' 2>/dev/null | sort -V`, read and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/.gate-generated-brief-4zpvli8y/direct/state/live-direct.inbox'/handled/`.
 The move IS the acknowledgement: without it firstmate rings again and eventually treats you as stuck. An empty or absent inbox needs no action.
 
 # Project memory
 A project's `AGENTS.md` or `CLAUDE.md` is loaded into every agent session in that project, so edit it only to correct information that is factually wrong - including information your own change made wrong - and never to add knowledge because it is missing.
-A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M53BPY6P9T8GV7XEW114R9Z0/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
+A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M5NDG7A89JX5FJNB7V36WM66/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
 
 # Definition of done
 Delivery contract: mode=direct-PR
-Ship branch: fm/direct
+Ship branch: fm/live-direct
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
 When it is implemented and committed, push your branch and open a PR with `gh-axi` that is ready for review, not a draft.
