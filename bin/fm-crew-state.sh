@@ -1226,7 +1226,7 @@ if [ "$HAVE_RUN" = 1 ]; then
     fi
   fi
 
-  if [ -n "$(meta_value fork_staged)" ] && [ "$RUN_STATE" = done ]; then
+  if [ -n "$(meta_value fork_staged)" ] && [ "$RUN_STATE" = 'done' ]; then
     if log_reports_ci_ready; then
       emit_ship_status_done
     fi

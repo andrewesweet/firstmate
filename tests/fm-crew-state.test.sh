@@ -1509,7 +1509,7 @@ runs[1]{id,branch,status,head,pr}:
       fm_write_meta "$d/state/fork-delivery.meta" "window=fm:fm-fork-delivery" \
         "worktree=$d/wt" "kind=ship" "mode=no-mistakes" "fork_staged=$fork"
       out=$(run_crew_state "$d" fork-delivery)
-      expected=done
+      expected='done'
       [ -z "$fork" ] || expected=working
       assert_contains "$out" "state: $expected" "$route/$fork: validation alone has the correct completion state"
       assert_contains "$out" "source: run-step" "$route/$fork: validation remains attributed"
