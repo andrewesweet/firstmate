@@ -3,27 +3,27 @@ A new version of treehouse is available: v3.1.4 → v3.1.5
 Run "treehouse update" to update
 
 🌳 Setting up worktree...
-🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/
-.treehouse/trace-project-fbcd0a/4/trace-project. Type 'exit' to return.
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/proje
+ct-7c6870/4/project. Type 'exit' to return.
 To run a command as administrator (user "root"), use "sudo <command>".
 See "man sudo_root" for details.
 
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T
-/.test-trace-live/pool/.treehouse/trace-project-fbcd0a/4/trace-project'
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ export GOTMPDIR=/tmp/fm-trace-live-on-allowlist/gotmp
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ export COMPACT_ADVISER_DISABLE=1
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ export FM_TASK_ID=trace-live-on-allowlist
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ export TRACEPARENT=00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1dfb1-01
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$ . '/tmp/fm-trace-live-on-allowlist+76d3e5086e504cbb9f1b385a26bee44536e65dbcdd8085
-5f302436ba44994eb8/launch.s1792656169.2569071.16166.sh'
-{"COMPACT_ADVISER_DISABLE": "1", "GOTMPDIR": "/tmp/fm-trace-live-on-allowlist/gotmp", "OTEL_RESOURCE_ATTRIBUTES": "servi
-ce.name=trace-lab,deployment.environment=disposable", "TRACEPARENT": "00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1df
-b1-01", "TRACE_ALLOWED_SENTINEL": "keep-me", "TRACE_BLOCKED_SENTINEL": null}
-andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5F15B7RERRAM3S6V266QF0T/.test-trace-live/pool/.treehouse
-/trace-project-fbcd0a/4/trace-project$
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c
+6870/4/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ export GOTMPDIR=/tmp/fm-trace-2344219-on-allowlist/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ export FM_TASK_ID=trace-2344219-on-allowlist
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ export TRACEPARENT=00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$ . '/tmp/fm-trace-2344219-on-allowlist+8d3cfa592a8226cdd9a3526ed12c62e2abef71d805ec96a1f0fe858f0012f355/launch.s1792813399.2349162
+.10440.sh'
+{"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "trace-2344219-on-allowlist", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.tes
+t=yes", "TRACEPARENT": "00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01", "TRACE_DROP": null, "TRACE_KEEP": "keep value", "cwd": "/h
+ome/andre/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/4/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/
+4/project$

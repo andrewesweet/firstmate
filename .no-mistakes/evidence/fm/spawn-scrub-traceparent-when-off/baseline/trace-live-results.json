@@ -1,0 +1,17 @@
+[
+  {
+    "scenario": "off-ambient",
+    "destination_server_ambient": "TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_traceparent": null,
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-2375881-off-ambient",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test=yes",
+      "TRACEPARENT": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "TRACE_DROP": "drop value",
+      "TRACE_KEEP": "keep value",
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/1/project"
+    },
+    "result": "baseline leak reproduced"
+  }
+]

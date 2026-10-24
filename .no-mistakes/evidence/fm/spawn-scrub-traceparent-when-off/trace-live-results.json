@@ -1,0 +1,62 @@
+[
+  {
+    "scenario": "off-ambient",
+    "destination_server_ambient": "TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_traceparent": null,
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-2344219-off-ambient",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test=yes",
+      "TRACEPARENT": null,
+      "TRACE_DROP": "drop value",
+      "TRACE_KEEP": "keep value",
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/1/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "on-ambient",
+    "destination_server_ambient": "TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_traceparent": "00-a52bc50791c8167b6c2f5e0a21c514a8-7029271ecac86ef6-01",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-2344219-on-ambient",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test=yes",
+      "TRACEPARENT": "00-a52bc50791c8167b6c2f5e0a21c514a8-7029271ecac86ef6-01",
+      "TRACE_DROP": "drop value",
+      "TRACE_KEEP": "keep value",
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/2/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "off-allowlist",
+    "destination_server_ambient": "TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_traceparent": null,
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-2344219-off-allowlist",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test=yes",
+      "TRACEPARENT": null,
+      "TRACE_DROP": null,
+      "TRACE_KEEP": "keep value",
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/3/project"
+    },
+    "result": "pass"
+  },
+  {
+    "scenario": "on-allowlist",
+    "destination_server_ambient": "TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "recorded_traceparent": "00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01",
+    "worker": {
+      "COMPACT_ADVISER_DISABLE": "1",
+      "FM_TASK_ID": "trace-2344219-on-allowlist",
+      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test=yes",
+      "TRACEPARENT": "00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01",
+      "TRACE_DROP": null,
+      "TRACE_KEEP": "keep value",
+      "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live._r7lqygi/pool/.treehouse/project-7c6870/4/project"
+    },
+    "result": "pass"
+  }
+]

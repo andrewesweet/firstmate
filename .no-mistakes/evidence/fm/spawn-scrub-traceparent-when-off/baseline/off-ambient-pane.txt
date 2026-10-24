@@ -1,0 +1,45 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/proje
+ct-021a95/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat Oct 24 04:43:55 BST 2026
+
+  System load:  1.16                 Processes:             207
+  Usage of /:   38.0% of 1006.85GB   Users logged in:       2
+  Memory usage: 57%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   37%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/user/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-02
+1a95/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export GOTMPDIR=/tmp/fm-trace-2375881-off-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export FM_TASK_ID=trace-2375881-off-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ . '/tmp/fm-trace-2375881-off-ambient+cf7569e7163f44ab2d9ceda6b206d2086b339d02541859f5509b208646a852fb/launch.s1792813437.2375986.
+8739.sh'
+{"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "trace-2375881-off-ambient", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test
+=yes", "TRACEPARENT": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01", "TRACE_DROP": "drop value", "TRACE_KEEP": "keep value", "cw
+d": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/1/projec
+t"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$

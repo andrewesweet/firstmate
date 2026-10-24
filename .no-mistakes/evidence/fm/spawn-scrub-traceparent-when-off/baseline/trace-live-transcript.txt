@@ -1,0 +1,81 @@
+$ ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home
+
+$ ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/bin/fm-lab-home.sh tmux-dir ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home
+/tmp/fml.DTaWnI
+
+$ git -C ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/project init -q -b main
+
+$ git -C ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/project add .
+
+$ git -C ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/project -c 'user.name=Trace Test' -c user.email=trace@example.invalid commit -qm fixture
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s fm-lab-trace -x 140 -y 40 -c ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/project '/bin/bash --noprofile --norc'
+
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+$ tmux -L fm-lab display-message -p '#{socket_path},#{pid},#{session_id}'
+/tmp/fml.DTaWnI/tmux-1000/fm-lab,2375957,$0
+
+$ tmux -L fm-lab show-environment -g TRACEPARENT
+TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+$ bash -c '. "$1/bin/fm-trace-context-lib.sh"; unset FM_TRACE_CONTEXT; fm_trace_context_session_start "$2/config" "$2/state/.trace-context-effective"' trace-session ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home
+
+$ ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/bin/.fm-trace-baseline.sh trace-2375881-off-ambient ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/project 'python3 ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/probe.py ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/off-ambient.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home/data/trace-2375881-off-ambient/launch-brief.md records no ship branch; defaulting to legacy branch fm/trace-2375881-off-ambient
+warning: ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/home/data/trace-2375881-off-ambient/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trace-2375881-off-ambient ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trace-2375881-off-ambient harness=python3 kind=ship mode=local-only yolo=off window=fm-lab-trace:fm-trace-2375881-off-ambient worktree=~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/1/project
+
+$ tmux -L fm-lab capture-pane -p -t fm-lab-trace:fm-trace-2375881-off-ambient -S -150
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/proje
+ct-021a95/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat Oct 24 04:43:55 BST 2026
+
+  System load:  1.16                 Processes:             207
+  Usage of /:   38.0% of 1006.85GB   Users logged in:       2
+  Memory usage: 57%                  IPv4 address for eth1: 192.168.1.19
+  Swap usage:   37%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/user/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-02
+1a95/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export GOTMPDIR=/tmp/fm-trace-2375881-off-ambient/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ export FM_TASK_ID=trace-2375881-off-ambient
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$ . '/tmp/fm-trace-2375881-off-ambient+cf7569e7163f44ab2d9ceda6b206d2086b339d02541859f5509b208646a852fb/launch.s1792813437.2375986.
+8739.sh'
+{"COMPACT_ADVISER_DISABLE": "1", "FM_TASK_ID": "trace-2375881-off-ambient", "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-live,custom.test
+=yes", "TRACEPARENT": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01", "TRACE_DROP": "drop value", "TRACE_KEEP": "keep value", "cw
+d": "~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/1/projec
+t"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5NZVNSVXWZ7G4SDZ9TAAX4Z/.trace-live.2ozywa9g/pool/.treehouse/project-021a95/
+1/project$
+
+Cleanup: private fm-lab tmux server stopped; disposable home, project, pool, and per-task launch files removed.

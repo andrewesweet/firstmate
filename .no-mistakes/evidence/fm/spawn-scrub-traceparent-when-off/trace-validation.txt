@@ -1,0 +1,14 @@
+Live validation: real bin/fm-spawn.sh, tmux, and treehouse; disposable raw Python worker observes its inherited process environment.
+Independent oracle: supplied author intent requires no TRACEPARENT with propagation off, a recorded fresh carrier with propagation on, and unchanged allowlist/OTEL_RESOURCE_ATTRIBUTES behavior.
+The observer is the worker payload, not a replacement for fm-spawn, tmux, or treehouse.
+
+Base d22640f478e3392313e27b04fb41de12bd25d2e7: off launch inherited 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+Target 99f4dbc6caa6b53cf35872ff484bb21e5fa3a2df:
+off-ambient: TRACEPARENT=None; recorded=None; TRACE_KEEP='keep value'; TRACE_DROP='drop value'; OTEL_RESOURCE_ATTRIBUTES='service.name=trace-live,custom.test=yes'
+on-ambient: TRACEPARENT='00-a52bc50791c8167b6c2f5e0a21c514a8-7029271ecac86ef6-01'; recorded='00-a52bc50791c8167b6c2f5e0a21c514a8-7029271ecac86ef6-01'; TRACE_KEEP='keep value'; TRACE_DROP='drop value'; OTEL_RESOURCE_ATTRIBUTES='service.name=trace-live,custom.test=yes'
+off-allowlist: TRACEPARENT=None; recorded=None; TRACE_KEEP='keep value'; TRACE_DROP=None; OTEL_RESOURCE_ATTRIBUTES='service.name=trace-live,custom.test=yes'
+on-allowlist: TRACEPARENT='00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01'; recorded='00-852ea2deb642c8c52cb6b48a75003efe-6617bbf55450504e-01'; TRACE_KEEP='keep value'; TRACE_DROP=None; OTEL_RESOURCE_ATTRIBUTES='service.name=trace-live,custom.test=yes'
+
+All four current scenarios passed. Base leak reproduced through the same live launch path.
+Targeted regression command: bash tests/fm-trace-context-spawn.test.sh (exit 0). This suite uses fake tmux; it is supporting regression coverage, not the live evidence.
+Private tmux servers and disposable homes, projects, treehouse pools, and task launch files were removed. No source changes retained.
