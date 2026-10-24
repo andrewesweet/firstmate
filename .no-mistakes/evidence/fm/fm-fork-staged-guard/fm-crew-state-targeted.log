@@ -1,0 +1,9 @@
+ok - terminal passed-with-skips run reads done with the skip kept visible
+ok - passed: fork-staged validation yields to worker delivery and feedback
+ok - passed-with-override: fork-staged validation yields to worker delivery and feedback
+ok - passed-with-skips: fork-staged validation yields to worker delivery and feedback
+ok - checks-passed: fork-staged validation yields to worker delivery and feedback
+ok - status: fork-staged validation yields to worker delivery and feedback
+ok - selected: fork-staged validation yields to worker delivery and feedback
+ok - coarse: fork-staged validation yields to worker delivery and feedback
+ok - fork-staged delivery still enforces named-head preservation

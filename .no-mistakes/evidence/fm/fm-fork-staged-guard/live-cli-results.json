@@ -1,27 +1,82 @@
 [
   {
-    "name": "Scaffold fork-staged validation and direct delivery with the named fork and release base",
-    "result": "pass",
-    "live": true
+    "case": "generated no-mistakes fork and release-base instructions",
+    "result": "pass"
   },
   {
-    "name": "Omit the per-task flag despite upstream origin and registry fork text; receive ordinary delivery instructions",
-    "result": "pass",
-    "live": true
+    "case": "generated direct-PR fork and release-base instructions",
+    "result": "pass"
   },
   {
-    "name": "Reject malformed forks and fork flags on scout, local-only, or bound-forge instructions without creating a brief",
-    "result": "pass",
-    "live": true
+    "case": "upstream origin plus registry does not infer a fork",
+    "result": "pass"
   },
   {
-    "name": "Spawn refuses missing or conflicting fork tokens, missing skip or PR command, stale target, and quoted-intent bypass before launching",
-    "result": "pass",
-    "live": true
+    "case": "local-only refused by scaffold",
+    "result": "pass"
   },
   {
-    "name": "Promote a scout in both delivery modes; persist the normalized fork and generate superseding instructions for the release base",
-    "result": "pass",
-    "live": true
+    "case": "scout refused by scaffold",
+    "result": "pass"
+  },
+  {
+    "case": "forge refused by scaffold",
+    "result": "pass"
+  },
+  {
+    "case": "empty refused by scaffold",
+    "result": "pass"
+  },
+  {
+    "case": "malformed refused by scaffold",
+    "result": "pass"
+  },
+  {
+    "case": "missing-skip refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "intent-only refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "stale-target refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "missing-command refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "conflicting-contracts refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "missing-flag refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "wrong-flag refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "direct-PR stale-target refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "direct-PR missing-command refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "direct-PR prefix-target refused before launch or task registration",
+    "result": "pass"
+  },
+  {
+    "case": "relaunch cannot override recorded fork",
+    "result": "pass"
+  },
+  {
+    "case": "promotion persists normalized fork and generates ship delivery instructions",
+    "result": "pass"
   }
 ]

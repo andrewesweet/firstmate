@@ -1,0 +1,5 @@
+Authenticated launch and replacement were not attempted: this run forbids user-level tool configuration changes, while a fresh Claude worker spawn pre-registers workspace trust in the user-level Claude store. A pre-trusted disposable worker environment or explicit authority for that trust mutation is needed. No claim about normal-login availability is made.
+
+The completed-validation-to-fork-delivery handoff was not driven live: this assigned test phase is forbidden from creating or controlling another no-mistakes pipeline, and no completed disposable run was supplied. Provide a completed disposable validation run and an authorized disposable fork PR to drive real delivery, CI feedback, and worker completion. Focused regression cases exercised these mappings with simulated validation responses and are not live evidence.
+
+No screenshot was captured because the changed end-user surface exercised here is CLI output and emitted instruction files. The CLI transcript and generated files are preserved. Both marked lab homes were removed after the evidence runs. No real worker or default backend session was started, steered, or stopped.

@@ -1,0 +1,9 @@
+window=fm-lab:scout
+worktree=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5QCM6HM4AJNV77EXMD4E8RR/.test-phase/live-home/projects/proj
+project=/home/cti/.no-mistakes/worktrees/f9a83591f83e/01M5QCM6HM4AJNV77EXMD4E8RR/.test-phase/live-home/projects/proj
+base_branch=release
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/live-promote
+fork_staged=acme/widgets
