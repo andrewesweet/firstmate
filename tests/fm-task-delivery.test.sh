@@ -293,6 +293,7 @@ PYGH
   for mode in no-mistakes direct-PR; do
     output="$home/data/$mode.md"
     (
+      # shellcheck source=/dev/null
       . "$ROOT/bin/fm-dod-lib.sh"
       FM_HOME="$home" fm_dod_block "$mode" fork-commands '' none '' '' github.com/upstream/widgets acme/widgets
     ) > "$output" || fail "could not render $mode fork delivery instructions"
@@ -333,7 +334,7 @@ test_promotion_carries_the_fork_staged_contract() {
   mkdir -p "$home/state" "$home/data" "$home/projects/proj"
   git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
   printf '%s\n' '- proj [no-mistakes] - fixture (added 2026-01-01)' > "$home/data/projects.md"
-  id=fork-promote-p1
+  id='fork-promote-p1'
   meta="$home/state/$id.meta"
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
@@ -356,12 +357,13 @@ test_promotion_carries_the_fork_staged_contract() {
     "the promoted instructions did not hand the worker the fork PR command"
 
   (
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-dod-lib.sh"
     FM_HOME="$home" fm_fork_staged_rider_present "$home/data/$id/brief.md" no-mistakes acme/widgets
   ) || fail "the promoted brief's superseded scout definition blocked its ship contract"
 
   # local-only publishes nothing, so a fork target has nowhere to point.
-  id=fork-promote-p2
+  id='fork-promote-p2'
   meta="$home/state/$id.meta"
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
@@ -373,7 +375,7 @@ test_promotion_carries_the_fork_staged_contract() {
 
   # A bound forge has no gh -R pull request to retarget, so the fork contract
   # is refused once the registry binding resolves.
-  id=fork-promote-p3
+  id='fork-promote-p3'
   meta="$home/state/$id.meta"
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
   printf '%s\n' '- proj [no-mistakes forge=gerrit] - fixture (added 2026-01-01)' > "$home/data/projects.md"
