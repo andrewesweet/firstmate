@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Scaffold fork-staged validation and direct delivery with the named fork and release base",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Omit the per-task flag despite upstream origin and registry fork text; receive ordinary delivery instructions",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Reject malformed forks and fork flags on scout, local-only, or bound-forge instructions without creating a brief",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Spawn refuses missing or conflicting fork tokens, missing skip or PR command, stale target, and quoted-intent bypass before launching",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Promote a scout in both delivery modes; persist the normalized fork and generate superseding instructions for the release base",
+    "result": "pass",
+    "live": true
+  }
+]
