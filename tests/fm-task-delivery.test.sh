@@ -82,6 +82,355 @@ run_spawn() {  # <home> <fakebin> <spawn-args...>
 
 # A ship spawn must stop when its delivery contract was never decided or cannot be
 # a task mode, and must leave no task metadata behind when it does.
+# --fork-staged rides the fork-staged contract exactly like the other delivery
+# flags: the spawn requires the brief to carry the same fork token AND the rider
+# that re-targets the pull request (the token alone never stops the pipeline's
+# PR step from opening it upstream), the refusals name the repair, and nothing
+# is recorded when the spawn stops. Promotion carries the fork into the ship
+# instructions and the task record; a bound forge has no gh PR to retarget.
+test_spawn_requires_the_fork_staged_contract() {
+  local rec home proj fakebin out status
+  rec=$(make_home fork-staged "- proj [no-mistakes] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+
+  scaffold_fork_brief() {  # <id>
+    FM_HOME="$home" "$BRIEF" "$1" proj --mode no-mistakes --fork-staged acme/widgets >/dev/null \
+      || fail "a fork-staged brief should scaffold"
+    fill_brief_subsections "$home/data/$1/brief.md" "Ship through the fork." "Ship it." "Deliver the fork change."
+  }
+
+  # An agreeing spawn is normalized and gets past every fork-staged check.
+  scaffold_fork_brief fork-staged-s1
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s1 "$proj" claude --mode no-mistakes --yolo off --fork-staged Acme/Widgets)
+  assert_not_contains "$out" "fork-staged mismatch" "an agreeing fork-staged spawn was refused as drift"
+  assert_not_contains "$out" "no fork-staged rider" "an agreeing fork-staged spawn was refused for its brief"
+  assert_present "$home/data/fork-staged-s1/launch-brief.md" "the agreeing fork-staged contract did not reach launch rendering: $out"
+
+  scaffold_fork_brief fork-staged-s2
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s2 "$proj" claude --mode no-mistakes --yolo off)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a spawn without the flag on a fork-staged brief was accepted"
+  assert_contains "$out" "fork-staged mismatch for fork-staged-s2: $home/data/fork-staged-s2/brief.md records fork-staged=acme/widgets but this spawn passed none" \
+    "the missing-flag refusal did not name both sides of the drift"
+  assert_absent "$home/state/fork-staged-s2.meta" "the refused spawn still recorded a task"
+
+  scaffold_fork_brief fork-staged-s3
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s3 "$proj" claude --mode no-mistakes --yolo off --fork-staged other/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a spawn naming a different fork than its brief records was accepted"
+  assert_contains "$out" "records fork-staged=acme/widgets but this spawn passed other/widgets" \
+    "the wrong-fork refusal did not name both forks"
+  assert_absent "$home/state/fork-staged-s3.meta" "the refused spawn still recorded a task"
+
+  # Two contract lines carrying different forks never spawn: first-match
+  # collection would silently bless whichever line came first.
+  scaffold_fork_brief fork-staged-s10
+  printf 'Delivery contract: mode=no-mistakes fork-staged=other/widgets\n' >> "$home/data/fork-staged-s10/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s10 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a brief with disagreeing fork-staged contract lines was accepted"
+  assert_contains "$out" "disagreeing fork-staged tokens" \
+    "the disagreeing-contract-lines refusal did not name the disagreement"
+  assert_absent "$home/state/fork-staged-s10.meta" "the refused spawn still recorded a task"
+
+  # Identical tokens on every contract line agree, so the spawn proceeds.
+  scaffold_fork_brief fork-staged-s11
+  printf 'Delivery contract: mode=no-mistakes fork-staged=acme/widgets\n' >> "$home/data/fork-staged-s11/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s11 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  assert_present "$home/data/fork-staged-s11/launch-brief.md" "the agreeing duplicate contract lines never launched: $out"
+
+  # Case differences are normalized, not treated as disagreement or mismatch.
+  scaffold_fork_brief fork-staged-s12
+  sed -i 's/fork-staged=acme\/widgets/fork-staged=ACME\/WIDGETS/' "$home/data/fork-staged-s12/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s12 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  assert_present "$home/data/fork-staged-s12/launch-brief.md" "the case-variant contract never launched: $out"
+
+  # A hand-edited rider whose command names a prefix of the recorded fork is
+  # caught by the whole-token rider check even though the token still agrees.
+  scaffold_fork_brief fork-staged-s13
+  sed -i 's/-R acme\/widgets --head/-R acme\/bc --head/' "$home/data/fork-staged-s13/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s13 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a rider naming a prefix fork was accepted"
+  assert_contains "$out" "carries no rider that re-targets the pull request" \
+    "the prefix-fork rider refusal did not name the regeneration remedy"
+  assert_absent "$home/state/fork-staged-s13.meta" "the refused spawn still recorded a task"
+
+  # The token alone is not enough: without the rider the pipeline still opens
+  # the PR wherever its resolution points.
+  write_brief "$home" fork-staged-s4 no-mistakes
+  sed -i 's/^Delivery contract: mode=no-mistakes$/Delivery contract: mode=no-mistakes fork-staged=acme\/widgets/' "$home/data/fork-staged-s4/brief.md"
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s4 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a spawn on a token-only brief was accepted"
+  assert_contains "$out" "records fork-staged=acme/widgets but carries no rider that re-targets the pull request" \
+    "the token-only refusal did not name the missing rider"
+  assert_contains "$out" "regenerate the brief with fm-brief.sh fork-staged-s4 proj --mode no-mistakes --fork-staged acme/widgets" \
+    "the token-only refusal did not name the remedy"
+  assert_absent "$home/state/fork-staged-s4.meta" "the refused spawn still recorded a task"
+
+  write_brief "$home" fork-staged-s5 no-mistakes
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s5 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a fork-staged spawn on a plain brief was accepted"
+  assert_contains "$out" "records no fork-staged rider; keep the filled ## Captain's intent and ## Firstmate spec bodies, remove $home/data/fork-staged-s5/brief.md" \
+    "the plain-brief refusal did not preserve the filled sections"
+  assert_absent "$home/state/fork-staged-s5.meta" "the refused spawn still recorded a task"
+
+  write_brief "$home" fork-staged-s6 no-mistakes
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s6 "$proj" claude --mode local-only --yolo off --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "local-only accepted --fork-staged"
+  assert_contains "$out" "--fork-staged is meaningless on local-only, which publishes nothing; drop it" \
+    "the local-only refusal did not name the mode that publishes nothing"
+
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s7 "$proj" claude --scout --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a scout spawn carrying --fork-staged was accepted"
+  assert_contains "$out" "--fork-staged applies only to ship spawns" \
+    "the scout refusal did not name the flag it refused"
+
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s8 "$home" --secondmate --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a secondmate spawn carrying --fork-staged was accepted"
+  assert_contains "$out" "--fork-staged applies only to ship spawns" \
+    "the secondmate refusal did not name the flag it refused"
+
+  out=$(run_spawn "$home" "$fakebin" fork-staged-s9 "$proj" claude --mode no-mistakes --yolo off --fork-staged acme)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a single-segment --fork-staged value was accepted"
+  assert_contains "$out" "--fork-staged must be <owner>/<repo> (got 'acme')" \
+    "the shape refusal did not name the value it refused"
+
+  out=$(run_spawn "$home" "$fakebin" fork-staged-r1 "$proj" claude --relaunch --fork-staged acme/widgets)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a relaunch carrying --fork-staged was accepted"
+  assert_contains "$out" "--relaunch reuses the task's recorded fork-staged fork; --fork-staged cannot override it" \
+    "the relaunch refusal did not name the immutability it protects"
+
+  pass "fm-spawn: a fork-staged ship needs its brief to carry the same fork and the retargeting rider, and refusals leave no task behind"
+}
+
+test_spawn_rejects_unsafe_fork_instructions() {
+  local rec home proj fakebin mode mutation id brief out status
+  rec=$(make_home fork-instructions "- proj [no-mistakes] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  for mode in no-mistakes direct-PR; do
+    for mutation in unchanged unsafe-slot intent-only stale-target missing-pr; do
+      case "$mode/$mutation" in direct-PR/unsafe-slot|direct-PR/intent-only) continue ;; esac
+      id="fork-${mode}-${mutation}"
+      FM_HOME="$home" "$BRIEF" "$id" proj --mode "$mode" --fork-staged acme/widgets \
+        --branch-prefix ship/ --base-branch release >/dev/null || fail "could not scaffold $id"
+      brief="$home/data/$id/brief.md"
+      fill_brief_subsections "$brief" "Ship through the fork." "Ship it." "Deliver the fork change."
+      python3 - "$brief" "$mutation" <<'PYFIX'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+mutation = sys.argv[2]
+text = path.read_text()
+if mutation == "unsafe-slot":
+    text = text.replace('--wait 10s --skip pr,ci', '--wait 10s')
+elif mutation == "intent-only":
+    text = text.replace('--intent "<the intent string>" --wait 10s --skip pr,ci',
+                        '--intent "Add --skip pr,ci to starts" --wait 10s')
+elif mutation == "stale-target":
+    text = text.replace("-R acme/widgets", "-R upstream/widgets")
+elif mutation == "missing-pr":
+    text = text.replace("gh pr create", "create the pull request")
+path.write_text(text)
+PYFIX
+      out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode "$mode" --yolo off \
+        --fork-staged acme/widgets --branch-prefix ship/ --base-branch release)
+      status=$?
+      if [ "$mutation" = unchanged ]; then
+        assert_present "$home/data/$id/launch-brief.md" "$mode: the valid base and branch contract was refused: $out"
+      else
+        [ "$status" -ne 0 ] || fail "$mode/$mutation: unsafe fork instructions were accepted"
+        assert_contains "$out" "carries no rider that re-targets the pull request" "$mode/$mutation: missing fork safety refusal"
+        assert_absent "$home/data/$id/launch-brief.md" "$mode/$mutation: unsafe instructions reached launch rendering"
+        assert_absent "$home/state/$id.meta" "$mode/$mutation: refused spawn recorded a task"
+      fi
+    done
+  done
+  pass "fm-spawn: fork delivery requires the slot skip outside quoted intent and a manual fork PR command"
+}
+
+test_fork_contract_survives_driving_preference_changes() {
+  local rec home proj fakebin mode initial id out
+  rec=$(make_home fork-preferences "- proj [no-mistakes] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  for mode in no-mistakes direct-PR; do
+    for initial in foreground background; do
+      id="fork-pref-$mode-$initial"
+      if [ "$initial" = foreground ]; then
+        touch "$home/config/wait-no-turns"
+      else
+        rm -f "$home/config/wait-no-turns"
+      fi
+      FM_HOME="$home" "$BRIEF" "$id" proj --mode "$mode" --fork-staged acme/widgets >/dev/null \
+        || fail "could not scaffold $id"
+      fill_brief_subsections "$home/data/$id/brief.md" "Ship through the fork." "Ship it." "Deliver the fork change."
+      if [ "$initial" = foreground ]; then
+        rm "$home/config/wait-no-turns"
+      else
+        touch "$home/config/wait-no-turns"
+      fi
+      out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode "$mode" --yolo off --fork-staged acme/widgets)
+      assert_present "$home/data/$id/launch-brief.md" "$mode/$initial: changing drive preferences invalidated a safe fork contract: $out"
+    done
+  done
+  pass "fm-spawn: fork delivery remains valid after either driving preference change in both modes"
+}
+
+test_fork_pr_commands_address_the_created_pr() {
+  local home mode output fakebin
+  home="$TMP_ROOT/fork-pr-commands/home"
+  fakebin="$TMP_ROOT/fork-pr-commands/bin"
+  mkdir -p "$home/data" "$fakebin"
+  cat > "$fakebin/gh" <<'PYGH'
+#!/usr/bin/env python3
+import json
+import os
+import sys
+args = sys.argv[1:]
+if args[0] == "api":
+    endpoint = args[1]
+    repo = "/".join(endpoint.split("/")[1:3])
+    operation = "/".join(endpoint.split("/")[3:])
+    if "/17/" not in endpoint:
+        sys.exit("wrong PR number")
+else:
+    operation = args[1]
+    repo = os.environ["GH_REPO"]
+    for flag in ("-R", "--repo"):
+        if flag in args:
+            repo = args[args.index(flag) + 1]
+    if repo.startswith("github.com/"):
+        repo = repo[len("github.com/"):]
+    if operation != "create" and args[2] != "17":
+        sys.exit("wrong PR number")
+if repo != "acme/widgets":
+    sys.exit("addressed upstream PR instead of fork PR")
+with open(os.environ["FM_PR_COMMAND_LOG"], "a") as log:
+    log.write(json.dumps([operation, repo]) + "\n")
+print("https://github.com/acme/widgets/pull/17" if operation == "create" else "false" if operation == "view" else "success")
+PYGH
+  chmod +x "$fakebin/gh"
+  cp "$fakebin/gh" "$fakebin/gh-axi"
+  for mode in no-mistakes direct-PR; do
+    output="$home/data/$mode.md"
+    (
+      # shellcheck source=/dev/null
+      . "$ROOT/bin/fm-dod-lib.sh"
+      FM_HOME="$home" fm_dod_block "$mode" fork-commands '' none '' '' github.com/upstream/widgets acme/widgets
+    ) > "$output" || fail "could not render $mode fork delivery instructions"
+    PATH="$fakebin:$PATH" GH_REPO=upstream/widgets FM_PR_COMMAND_LOG="$home/data/$mode.log" \
+      python3 - "$output" "$mode" <<'PYCOMMANDS' || fail "$mode: generated PR commands addressed the wrong PR"
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+text = Path(sys.argv[1]).read_text()
+pr_scope = re.search(r"For operations on this task's pull request, pass `([^`]+)` instead\.", text)
+assert pr_scope, "missing fork override for publication repository instructions"
+subprocess.run(["gh-axi", "pr", "view", "17", *shlex.split(pr_scope[1])], check=True, capture_output=True, text=True)
+for command in re.findall(r"`([^`\n]+)`", text):
+    if not command.startswith(("gh pr ", "gh api ", "gh-axi pr ")):
+        continue
+    command = command.replace("<number>", "17").replace("<n>", "17")
+    subprocess.run(shlex.split(command), check=True, capture_output=True, text=True)
+operations = {row[0] for row in map(json.loads, Path(os.environ["FM_PR_COMMAND_LOG"]).read_text().splitlines())}
+expected = {"create", "view", "ready"}
+if sys.argv[2] == "no-mistakes":
+    expected |= {"checks", "pulls/17/reviews", "pulls/17/comments", "issues/17/comments"}
+assert expected <= operations, (expected, operations)
+PYCOMMANDS
+  done
+  pass "fork PR instructions: creation, checks, feedback, and draft operations address the fork despite an upstream publication pin"
+}
+
+test_promotion_carries_the_fork_staged_contract() {
+  local home meta id out status
+
+  # A fork-staged promotion renders the rider into the ship instructions and
+  # records the fork like a fresh ship spawn.
+  home="$TMP_ROOT/fork-promote/home"
+  mkdir -p "$home/state" "$home/data" "$home/projects/proj"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
+  printf '%s\n' '- proj [no-mistakes] - fixture (added 2026-01-01)' > "$home/data/projects.md"
+  id='fork-promote-p1'
+  meta="$home/state/$id.meta"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
+  FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
+    || fail "scout brief generation should succeed"
+  fill_brief_subsections "$home/data/$id/brief.md" \
+    "Ship what the investigation found, through the fork." "Carry over only the fix." \
+    "Ship the investigated fix on the fork."
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    "$PROMOTE" "$id" --mode no-mistakes --yolo off --fork-staged Acme/Widgets 2>&1) \
+    || fail "a fork-staged promotion should succeed: $out"
+  assert_grep 'fork_staged=acme/widgets' "$meta" "promotion did not record the fork in the task record"
+  assert_grep 'Delivery contract: mode=no-mistakes fork-staged=acme/widgets' "$home/data/$id/ship-instructions.md" \
+    "the promoted instructions did not carry the fork on their contract line"
+  # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+  assert_grep 'This task is fork-staged: the pull request must open on the fork `acme/widgets`' "$home/data/$id/ship-instructions.md" \
+    "the promoted instructions did not carry the fork-staged rider"
+  assert_grep '--skip pr,ci' "$home/data/$id/ship-instructions.md" \
+    "the promoted instructions did not start every run with the skip"
+  assert_grep 'gh pr create -R acme/widgets' "$home/data/$id/ship-instructions.md" \
+    "the promoted instructions did not hand the worker the fork PR command"
+
+  (
+    # shellcheck source=/dev/null
+    . "$ROOT/bin/fm-dod-lib.sh"
+    FM_HOME="$home" fm_fork_staged_rider_present "$home/data/$id/brief.md" no-mistakes acme/widgets
+  ) || fail "the promoted brief's superseded scout definition blocked its ship contract"
+
+  # local-only publishes nothing, so a fork target has nowhere to point.
+  id='fork-promote-p2'
+  meta="$home/state/$id.meta"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    "$PROMOTE" "$id" --mode local-only --yolo off --fork-staged acme/widgets 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a local-only promotion accepted --fork-staged"
+  assert_contains "$out" "--fork-staged is meaningless on local-only, which publishes nothing; drop it" \
+    "the local-only refusal did not name the mode that publishes nothing"
+
+  # A bound forge has no gh -R pull request to retarget, so the fork contract
+  # is refused once the registry binding resolves.
+  id='fork-promote-p3'
+  meta="$home/state/$id.meta"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
+  printf '%s\n' '- proj [no-mistakes forge=gerrit] - fixture (added 2026-01-01)' > "$home/data/projects.md"
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    "$PROMOTE" "$id" --mode no-mistakes --yolo off --fork-staged acme/widgets 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a fork-staged promotion on a gerrit forge was accepted"
+  assert_contains "$out" "--fork-staged retargets a gh pull request to a fork; proj is registered forge=gerrit, which has no gh pull request to retarget" \
+    "the forge refusal did not name the binding it refused"
+  assert_grep 'kind=scout' "$meta" "the refused promotion still promoted the task"
+
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    "$PROMOTE" fork-promote-p1 --mode no-mistakes --yolo off --fork-staged acme 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a single-segment --fork-staged value was accepted"
+  assert_contains "$out" "--fork-staged must be <owner>/<repo> (got 'acme')" \
+    "the shape refusal did not name the value it refused"
+
+  pass "fm-promote: --fork-staged rides into the promoted ship instructions and task record, and is refused where no gh PR exists"
+}
+
 test_ship_spawn_requires_a_valid_delivery_contract() {
   local rec home proj fakebin label flags expect out status n=0
   rec=$(make_home required)
@@ -1785,6 +2134,11 @@ EOF
 }
 
 test_ship_spawn_requires_a_valid_delivery_contract
+test_spawn_requires_the_fork_staged_contract
+test_spawn_rejects_unsafe_fork_instructions
+test_fork_contract_survives_driving_preference_changes
+test_fork_pr_commands_address_the_created_pr
+test_promotion_carries_the_fork_staged_contract
 test_scout_and_secondmate_refuse_delivery_flags
 test_spawn_refuses_a_brief_mode_mismatch
 test_spawn_notices_a_rigor_downgrade_against_the_registry

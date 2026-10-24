@@ -1763,6 +1763,48 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract() {
 # adapter name. Retirement must resolve the same way, or a task recorded as
 # `grok-2` would have its turn-end token and hook pointer armed and never
 # retired - leaving a registry entry that outlives the agent that owned it.
+test_relaunch_preserves_the_recorded_fork_staged_fork() {
+  local dir home id brief launch out initial
+  for initial in foreground background; do
+    id="rl-fork-staged-$initial"
+    dir=$(new_case "fork-staged-ship-$initial" "$id")
+    home="$dir/home"
+    add_ship_task "$dir" "$id" claude
+    printf 'fork_staged=acme/widgets\n' >> "$home/state/$id.meta"
+    rm "$home/data/$id/brief.md"
+    mkdir -p "$home/config"
+    if [ "$initial" = foreground ]; then
+      touch "$home/config/wait-no-turns" || fail "could not set the initial driving preference"
+    fi
+    FM_HOME="$home" "$BRIEF" "$id" proj --mode no-mistakes --fork-staged acme/widgets >/dev/null \
+      || fail "the fork-staged ship brief should scaffold"
+    brief="$home/data/$id/brief.md"
+    perl -0pi -e 's/\{TASK\}/Fix the fork-staged relaunch contract./; s/\{FIRSTMATE_SPEC\}/Preserve the recorded fork./; s/\{PUBLISHED_INTENT\}/Restate the accepted change neutrally for the pipeline reviewer./' "$brief"
+    if [ "$initial" = foreground ]; then
+      rm "$home/config/wait-no-turns" || fail "could not switch to background driving"
+    else
+      touch "$home/config/wait-no-turns" || fail "could not switch to foreground driving"
+    fi
+    printf 'zsh' > "$dir/fake/command"
+
+    out=$(run_spawn "$dir" "$id" --relaunch) \
+      || fail "a fork-staged relaunch should succeed: $out"
+    assert_grep 'fork_staged=acme/widgets' "$home/state/$id.meta" \
+      "the relaunched task record lost the recorded fork"
+    [ "$(grep -c '^fork_staged=' "$home/state/$id.meta")" = 1 ] \
+      || fail "the relaunch duplicated the fork_staged line"
+    launch="$home/data/$id/launch-brief.md"
+    assert_grep 'Delivery contract: mode=no-mistakes fork-staged=acme/widgets' "$launch" \
+      "the replacement launch did not receive the recorded fork on its contract line"
+    # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+    assert_grep 'This task is fork-staged: the pull request must open on the fork `acme/widgets`' "$launch" \
+      "the replacement launch did not receive the rider that re-targets the PR"
+    assert_grep 'gh pr create -R acme/widgets' "$launch" \
+      "the replacement launch did not receive the fork PR command"
+  done
+  pass "fm-spawn --relaunch: the recorded fork and valid rider survive either driving preference change"
+}
+
 test_prefixed_prior_harness_wiring_is_still_retired() {
   local dir auth
   dir=$(new_case prefixwiring rl30)
@@ -3143,6 +3185,7 @@ test_ship_relaunch_ignores_the_crew_harness_config
 test_spawn_relaunch_without_a_harness_reuses_the_recorded_one
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
+test_relaunch_preserves_the_recorded_fork_staged_fork
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch

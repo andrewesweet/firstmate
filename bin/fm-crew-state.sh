@@ -107,8 +107,15 @@
 #      also a passing outcome (publication or CI verification was
 #      automatically skipped, no-mistakes' own vocabulary), read as done but
 #      with that skip kept visible in the detail, unlike a clean passed.
-#      EXCEPT: while
-#      the active step is ci, `axi status` alone cannot tell "still waiting on
+#      For a task whose meta records fork_staged=, any done mapping above,
+#      including completed in the coarse ledger or detailed status, yields to
+#      the worker's resolved status declaration instead. A CI-ready PR done
+#      report passes through the named-head reachability gate; a bare done or
+#      absent declaration reports working: validation complete, delivering fork
+#      PR. Other worker states, including feedback decisions, remain current
+#      and are not superseded by completed validation. Regression coverage:
+#      tests/fm-crew-state.test.sh.
+#      EXCEPT: while the active step is ci, `axi status` alone cannot tell "still waiting on
 #      checks" from "checks green, waiting on merge" (see nm_ci_checks_state) -
 #      a check of the full ci-step log overrides working -> done once checks read
 #      green, so a green PR is never silently read as still-validating. And a
@@ -129,7 +136,8 @@
 #      open decisions survive unrelated events and continuation prose cannot
 #      hide a declaration. Ship/scout terminal declarations supersede stale log
 #      decisions. If it says needs-decision/blocked but
-#      the run-step shows the run moved on, the log is deterministically stale and
+#      the run-step shows the run moved on (outside the fork-delivery handoff
+#      above), the log is deterministically stale and
 #      is flagged superseded. A genuinely parked run plus a needs-decision log
 #      agree, and are reported as parked. A `blocked:` line that reports a
 #      refused or missing daemon socket remains blocked even if an attributed
@@ -1216,6 +1224,19 @@ if [ "$HAVE_RUN" = 1 ]; then
         esac
       fi
     fi
+  fi
+
+  if [ -n "$(meta_value fork_staged)" ] && [ "$RUN_STATE" = 'done' ]; then
+    if log_reports_ci_ready; then
+      emit_ship_status_done
+    fi
+    LOG_STATE=$(map_log_state "$LOG_LINE")
+    case "$LOG_STATE" in
+      done|unknown)
+        emit working run-step "validation complete; delivering fork PR${SELECTED_RUN_ID:+${SEP}run: $SELECTED_RUN_ID}"
+        ;;
+      *) emit "$LOG_STATE" status-log "$(status_line_note "$LOG_LINE")" ;;
+    esac
   fi
 
   if [ "$RUN_STATE" = working ] && log_reports_ci_ready; then

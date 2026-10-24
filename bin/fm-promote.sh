@@ -44,11 +44,16 @@
 # binding and bin/fm-dod-lib.sh owns what it changes for the worker, including
 # the refusal of a forge on local-only. A forge=external project is refused
 # outright, because its push guard is installed only by a ship spawn.
-# Usage: fm-promote.sh <task-id> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--upstream-consent <host>/<owner>/<repo>]
+# Usage: fm-promote.sh <task-id> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--upstream-consent <host>/<owner>/<repo>] [--fork-staged <owner>/<repo>]
 # --upstream-consent records the captain's one-off approval for this task to
 # publish to firstmate's own upstream repository; promotion applies the same
 # self-repository publication gate as bin/fm-spawn.sh (bin/fm-role-lib.sh), so
 # a promoted scout cannot gain authority a fresh ship spawn would be refused.
+# --fork-staged names the GitHub fork a promoted fork-staged ship's pull request
+# must open on instead of wherever the pipeline's PR step would resolve; it
+# renders fm-brief.sh's fork-staged contract token and rider into the ship
+# instructions, is refused on local-only and on any registry-bound forge, and
+# records fork_staged= in the task record like a fresh ship spawn.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -87,6 +92,8 @@ YOLO_SET=0
 FORGE=none
 UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
+FORK_STAGED=
+FORK_STAGED_SET=0
 POS=()
 want_value=
 for a in "$@"; do
@@ -99,6 +106,7 @@ for a in "$@"; do
       yolo) YOLO=$a; YOLO_SET=1 ;;
       branch-prefix) BRANCH_PREFIX=$a ;;
       upstream-consent) UPSTREAM_CONSENT=$a; UPSTREAM_CONSENT_SET=1 ;;
+      fork-staged) FORK_STAGED=$a; FORK_STAGED_SET=1 ;;
     esac
     want_value=
     continue
@@ -112,6 +120,8 @@ for a in "$@"; do
     --branch-prefix=*) BRANCH_PREFIX=${a#--branch-prefix=} ;;
     --upstream-consent) want_value="upstream-consent" ;;
     --upstream-consent=*) UPSTREAM_CONSENT=${a#--upstream-consent=}; UPSTREAM_CONSENT_SET=1 ;;
+    --fork-staged) want_value="fork-staged" ;;
+    --fork-staged=*) FORK_STAGED=${a#--fork-staged=}; FORK_STAGED_SET=1 ;;
     *) POS+=("$a") ;;
   esac
 done
@@ -147,6 +157,18 @@ if [ "$UPSTREAM_CONSENT_SET" -eq 1 ]; then
     exit 1
   }
   UPSTREAM_CONSENT=$(fm_role_scope_norm "$UPSTREAM_CONSENT")
+fi
+if [ "$FORK_STAGED_SET" -eq 1 ]; then
+  [ -n "$FORK_STAGED" ] || { echo "error: --fork-staged requires a non-empty <owner>/<repo> value" >&2; exit 1; }
+  if [ "$MODE" = local-only ]; then
+    echo "error: --fork-staged is meaningless on local-only, which publishes nothing; drop it" >&2
+    exit 1
+  fi
+  fm_fork_staged_valid "$FORK_STAGED" || {
+    echo "error: --fork-staged must be <owner>/<repo> (got '$FORK_STAGED')" >&2
+    exit 1
+  }
+  FORK_STAGED=$(fm_fork_staged_norm "$FORK_STAGED")
 fi
 # A posture this forge cannot carry is refused once the registry binding has been
 # read. Merge authority on a Gerrit forge is refused rather than quietly dropped,
@@ -236,6 +258,14 @@ if [ -n "$PROMOTE_PROJECT" ]; then
   fi
   FORGE=${PROMOTE_STANDING_FORGE:-none}
   refuse_impossible_forge_posture || exit 1
+fi
+# A fork-staged PR retarget must sit on a forge whose pull requests gh can
+# address; every bound forge has none, so the promotion is refused once the
+# registry binding above has resolved. With no recorded project the forge
+# stays none and the fork contract renders unchanged.
+if [ -n "$FORK_STAGED" ] && [ "$FORGE" != none ]; then
+  echo "error: --fork-staged retargets a gh pull request to a fork; $PROMOTE_PROJECT_NAME is registered forge=$FORGE, which has no gh pull request to retarget" >&2
+  exit 1
 fi
 BASE_BRANCH=$(sed -n 's/^base_branch=//p' "$META" | head -n 1)
 fm_base_branch_valid "$BASE_BRANCH" "$MODE" "$FORGE" "fm-promote.sh $ID" || exit 1
@@ -349,7 +379,7 @@ EOF
     printf '%s\n' "$PROMOTION_ASK_USER_BLOCK"
   fi
   printf '\n'
-  fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET"
+  fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$PUBLICATION_TARGET" "$FORK_STAGED"
 }
 mkdir -p "$DATA/$ID"
 [ ! -d "$INSTRUCTIONS" ] || { echo "error: ship instructions path is a directory: $INSTRUCTIONS" >&2; exit 1; }
@@ -406,13 +436,14 @@ fi
 BRIEF_REPLACEMENT=
 
 TMP="$STATE/.$ID.meta.promote.${BASHPID:-$$}"
-grep -v -e '^kind=' -e '^mode=' -e '^yolo=' -e '^branch=' -e '^upstream_consent=' "$META" > "$TMP"
+grep -v -e '^kind=' -e '^mode=' -e '^yolo=' -e '^branch=' -e '^upstream_consent=' -e '^fork_staged=' "$META" > "$TMP"
 {
   echo "kind=ship"
   echo "mode=$MODE"
   echo "yolo=$YOLO"
   echo "branch=$BRANCH"
   [ -z "$UPSTREAM_CONSENT" ] || echo "upstream_consent=$UPSTREAM_CONSENT"
+  [ -z "$FORK_STAGED" ] || echo "fork_staged=$FORK_STAGED"
 } >> "$TMP"
 # The appended kind/mode/yolo/branch lines must not strand a pr= block armed
 # by bin/fm-pr-check.sh mid-record; re-seal it last (bin/fm-pr-lib.sh).

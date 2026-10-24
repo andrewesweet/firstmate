@@ -21,6 +21,69 @@ write_merge_marker() {  # <state> <id> <provider> <host> <path> <number>
   chmod 600 "$1/$2.pr-poll-merge-notified"
 }
 
+test_fork_staged_rider_requires_slot_skip_and_fork_pr() {
+  local mode body changed brief home
+  home="$TMP_ROOT/fork-rider-home"
+  brief="$home/brief.md"
+  mkdir -p "$home/data"
+  for mode in no-mistakes direct-PR; do
+    body=$(FM_HOME="$home" fm_dod_block "$mode" fork-rider '' none '' '' '' acme/widgets) \
+      || fail "could not render the $mode fork delivery contract"
+    printf '%s\n' "$body" > "$brief"
+    fm_fork_staged_rider_present "$brief" "$mode" acme/widgets \
+      || fail "$mode: the generated fork rider was refused"
+
+    changed=${body//'-R acme/widgets'/'-R upstream/widgets'}
+    [ "$changed" != "$body" ] || fail "$mode: the generated manual PR command was missing"
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a manual PR command targeting another repository was accepted"
+    fi
+
+    changed=${body//'-R acme/widgets --head'/'-R acme/widgetsx --head'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the prefix-fork fixture"
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a rider naming the fork as a prefix of a longer fork name was accepted"
+    fi
+
+    changed=${body//'-R acme/widgets'/'-R ACME/WIDGETS'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the case-variant fixture"
+    printf '%s\n' "$changed" > "$brief"
+    fm_fork_staged_rider_present "$brief" "$mode" acme/widgets \
+      || fail "$mode: a rider whose fork differs only in case was refused"
+
+    changed=${body//'gh pr create -R acme/widgets'/'gh pr create'}
+    [ "$changed" != "$body" ] || fail "$mode: could not construct the split-command fixture"
+    printf '%s\n%s\n' "$changed" '-R acme/widgets is recorded elsewhere.' > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a split command and fork target on unrelated lines was accepted"
+    fi
+
+    changed=${body//'gh pr create'/'open the pull request'}
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "$mode: a missing manual PR command was accepted"
+    fi
+
+    [ "$mode" = no-mistakes ] || continue
+    changed=${body//'--wait 10s --skip pr,ci'/'--wait 10s'}
+    [ "$changed" != "$body" ] || fail "the generated slot start was missing its skip options"
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "safe slash and CLI examples concealed a slot start without skip options"
+    fi
+
+    changed=${body//'--intent "<the intent string>" --wait 10s --skip pr,ci'/'--intent "Add --skip pr,ci to starts" --wait 10s'}
+    [ "$changed" != "$body" ] || fail "could not construct the quoted-intent bypass fixture"
+    printf '%s\n' "$changed" > "$brief"
+    if fm_fork_staged_rider_present "$brief" "$mode" acme/widgets; then
+      fail "a skip phrase inside the quoted intent was accepted as slot-start options"
+    fi
+  done
+  pass "fork rider: generated contracts pass; missing skip options, quoted-intent bypasses, missing or prefix fork PR destinations, case variants, and split commands fail as they must"
+}
+
 test_scout_done_is_not_gated() {
   local repo wt
   repo="$TMP_ROOT/scout-repo"
@@ -564,6 +627,7 @@ EOF
   pass "promotion keeps a scout's recorded base branch and refuses local-only for it"
 }
 
+test_fork_staged_rider_requires_slot_skip_and_fork_pr
 test_scout_done_is_not_gated
 test_unpushed_ship_done_is_refused
 test_no_mistakes_and_empty_bare_done_is_gated
