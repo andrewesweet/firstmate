@@ -6,7 +6,7 @@
 # receives. Both paths must hand the worker the same contract: a promoted
 # no-mistakes worker that never received the ask-user escalation rule or the
 # `--yes` ban is the exact delivery hole this single owner exists to close.
-# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>]
+# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>] [<fork>]
 # prints the block on stdout with no trailing blank line. The caller validates the
 # mode; an unknown mode is refused rather than silently rendered as the pipeline
 # contract.
@@ -36,6 +36,8 @@
 # direct-PR points the worker's PR at the fork. Refused on local-only, which
 # publishes nothing, and on every bound forge: a Gerrit change, an external
 # review upload, and a tea pull request have no gh -R target to retarget.
+# The fork is explicit per task, never inferred from a remote, registry entry,
+# or authenticated identity.
 # Callers of the gate are bin/fm-crew-state.sh (current-state done),
 # bin/fm-pr-check.sh (PR registration), and bin/fm-inactive-reconcile.sh
 # (secondmate ledger-first publish of a child done). A ship `done:` is not
@@ -229,13 +231,7 @@ fm_forge_valid_for_mode() {  # <forge> <mode> <caller>
   return 0
 }
 
-# The fork-staged fork: the <owner>/<repo> GitHub fork a fork-staged ship's
-# pull request must open on. The value rides the brief's Delivery contract
-# line as a `fork-staged=` token, the task record's fork_staged= key, and the
-# rendered rider, so bin/fm-spawn.sh can refuse any disagreement (this file's
-# fm_dod_block header owns the contract). It is never inferred from a git
-# remote, a registry entry, or an authenticated identity: only an explicit
-# per-task flag turns it on.
+# Fork-staged helpers for the delivery contract owned by this file's header.
 # fm_fork_staged_valid <value> - 0 when <value> is <owner>/<repo> over the
 # same conservative charset a repository slug allows.
 fm_fork_staged_valid() {

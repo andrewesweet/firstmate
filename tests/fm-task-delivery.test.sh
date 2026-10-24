@@ -331,6 +331,7 @@ test_promotion_carries_the_fork_staged_contract() {
   # records the fork like a fresh ship spawn.
   home="$TMP_ROOT/fork-promote/home"
   mkdir -p "$home/state" "$home/data" "$home/projects/proj"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
   printf '%s\n' '- proj [no-mistakes] - fixture (added 2026-01-01)' > "$home/data/projects.md"
   id=fork-promote-p1
   meta="$home/state/$id.meta"

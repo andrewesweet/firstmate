@@ -29,7 +29,7 @@
 # Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
-# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo|external> [--shape squash]] [--herdr-lab]
+# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--forge <none|gerrit|forgejo|external> [--shape squash]] [--herdr-lab]
 #        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab]
 #        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects}
 #   --scout writes the scout contract instead: the deliverable is a report at
@@ -66,7 +66,7 @@
 # For ship tasks, --mode is REQUIRED and shapes the definition of done. Firstmate
 # resolves it per task at intake (AGENTS.md section 7); data/projects.md holds the
 # captain's standing posture as context, and this script never reads it:
-#   no-mistakes  implement -> /no-mistakes pipeline -> PR -> configured merge authority
+#   no-mistakes  implement -> pipeline validation -> PR -> configured merge authority
 #   direct-PR    implement -> push + open PR via gh-axi (no pipeline) -> configured merge authority
 #   local-only   implement on branch, stop and report "ready in branch" (no push/PR);
 #                the configured merge authority approves, firstmate merges to local main
@@ -115,19 +115,12 @@
 # authority and records it in the task record, and bin/fm-promote.sh honors it
 # the same way. Ship-only: a scout publishes nothing and a charter is not a
 # delivery contract.
-# --fork-staged <owner>/<repo> names the GitHub fork a fork-staged ship's pull
-# request must open on instead of wherever the pipeline's PR step would
-# resolve. It renders as a `fork-staged=` token on the Delivery contract line
-# plus the mode's rider in the Definition of done: no-mistakes starts every
-# run with `--skip pr,ci` (a live run cannot skip its PR step afterwards) and
-# hands the PR open and its check watch to the worker with `gh pr create -R
-# <owner>/<repo>`; direct-PR points the worker's PR at the fork the same way.
-# bin/fm-spawn.sh and bin/fm-promote.sh refuse a fork-staged ship whose brief
-# lacks the rider or whose contract disagrees, and the relaunch reuses the
-# recorded value. Ship-only, and refused on local-only, which publishes
-# nothing, and on every bound forge, which has no gh -R PR to retarget. The
-# fork is never inferred from a remote, registry entry, or authenticated
-# identity: only this flag turns it on.
+# --fork-staged <owner>/<repo> selects this ship task's GitHub fork for PR
+# delivery. bin/fm-dod-lib.sh owns the delivery rider and supported modes and
+# forges. This scaffold writes the `fork-staged=` Delivery contract token and
+# rider; pass the same flag to a fresh ship spawn. bin/fm-spawn.sh's header
+# owns agreement checks, task metadata, and relaunch reuse; bin/fm-promote.sh
+# accepts the flag when generating a promoted scout's new ship contract.
 # --project <dir> is the task's project directory, used to detect when a ship
 # brief would publish to firstmate's own repository: for such a task this
 # scaffold refuses a publishing mode that the home's role or recorded consent
