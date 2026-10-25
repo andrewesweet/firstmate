@@ -936,23 +936,45 @@ The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_re
 
 ## Crew wiki (config/wiki)
 
-A home can publish its finished tasks' reusable lessons as immutable raw files to a private wiki repository. The feature is off unless `config/wiki` exists; an absent, unreadable, or `role=off` file makes every wiki path a silent no-op, and no brief, cleanup, or drain changes shape.
+A home can publish its finished ship and scout tasks' reusable lessons as immutable raw files to a private wiki repository.
+The feature is off unless `config/wiki` selects a contributing role.
+Configure a private repository that the home's existing Git credentials can push to on `main`; the module does not check repository visibility.
 
 The file's keys, one `key=value` per line:
 
-- `remote=` - the wiki repository's fetch URL (SSH or `file://`); required for any landing.
-- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader` and `off` contribute nothing (read-side tooling is a later slice).
-- `host=` - optional name stamped into each file's `wiki-host:` trailer; defaults to this machine's hostname.
-- `jev=` - accepted and held for a later slice's privacy advisory; it has no effect today.
+- `remote=` - the wiki repository's Git URL; required for publication, but local capture works without it.
+- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader`, `off`, an omitted role, or an unrecognized role contribute nothing.
+- `host=` - optional name for the raw file's `wiki-host:` stamp; defaults to this machine's hostname, sanitized for filenames.
+- `jev=` - accepted but unused; it has no effect.
 
 When the feature is on for a contributing role, two seams activate:
 
-- A ship or scout brief renders a `## Crew wiki` step (rendered by `bin/fm-dod-lib.sh`'s `fm_dod_wiki_step`, the same owner as the Definition of done) telling the worker to write scope, claim, and evidence to `data/<task-id>/lessons.md`. A nothing-to-teach first line keeps the file out of publication.
-- Closing a task runs `bin/fm-wiki.sh close <task-id>` (best-effort on both cleanup paths, after the task's final status is read and before the status file is retired, never blocking or failing cleanup): it reads that lesson file, stamps it, scans it for secrets (gitleaks when installed, plus a bundled regex pass; a hit is held locally in `state/wiki/held/` and never pushed), and only a clean scan renames the file atomically into `state/wiki/outbox/`. `close` never touches the network and never takes a lock; afterwards it spawns one detached `drain`, so cleanup triggers publication without waiting on it.
+- Ship and scout briefs include the lesson instructions owned by [`bin/fm-wiki.sh brief-snippet`](../bin/fm-wiki.sh), framed by `bin/fm-dod-lib.sh` with this task's lesson-file path.
+- Both ship and scout cleanup paths run `close` before retiring task status, so local capture can read the final outcome.
 
-`bin/fm-wiki.sh drain` is the only publisher. It is single-flight per home (a second drain exits 0 immediately through a non-blocking lock whose release removes only its own instance), bounds every git operation by a portable remaining-time wall clock, and lands one add-only commit per drain under `raw/YYYY/MM/<UTC-stamp>-<host>-<home-identity>-<task-id>-<nonce>.md` - the stable per-home identity and random nonce make filenames globally unique without coordination, so two homes never write the same path and concurrent commits rebase cleanly. Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical; an unreachable remote leaves lessons queued for the next drain. Publication is triggered off the cleanup path through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically by the supervision loop's own cycle calling `bin/fm-wiki.sh drain-if-due` (rate-limited by `state/wiki/.last-drain`, one config test per cycle when off).
+Capture stamps the lesson in private staging and secret-scans it with gitleaks when installed, plus an always-on bundled regex pass.
+Only a clean scan moves the file atomically into `state/wiki/outbox/`.
+A scan hit goes to `state/wiki/held/` and emits an actionable stderr diagnostic during cleanup; a failed hold retains the staging file and reports its path instead.
+Capture creates lesson files with owner-only permissions and keeps the wiki state, queue, staging, and publish-clone directories private.
+Held lessons and staging residue are never drained automatically.
+Capture failures do not fail cleanup, and cleanup never waits for network publication.
 
-Every close outcome (lesson, no lessons, nothing to teach, held) appends one line to the home's `state/wiki/ledger.jsonl` so a re-close is a recorded no-op; queued-but-unrecorded lessons are caught by reading only the generated stamp block, never lesson body text. Lessons are stamped with the task, project, worker runtime, and model as `wiki:` trailers; project visibility is stamped `unknown` until a forge lookup exists. The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
+`bin/fm-wiki.sh drain` is the only publisher.
+It is single-flight per home through a non-blocking kernel lock, released automatically when its holders exit; the lock file remains in place.
+Each Git operation shares the drain's remaining wall-clock budget, including on hosts without `timeout` or Perl.
+A drain creates at most one add-only commit under `raw/YYYY/MM/<UTC-stamp>-<host>-<home-identity>-<task-id>-<nonce>.md`.
+The home identity and random nonce reduce filename collisions; a differing-content collision leaves the lesson queued instead of overwriting a raw file.
+Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical.
+An unreachable remote leaves lessons queued for the next drain.
+Publication runs through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
+See the [script header](../bin/fm-wiki.sh) for verb syntax, state files, and watcher pacing mechanics.
+
+Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
+A recorded close skips recapture, including edits to the source lesson; queued-but-unrecorded lessons are detected from the generated stamp block, never lesson body text.
+Later closes still trigger a detached drain for existing queued lessons, including duplicate closes and tasks with no publishable lesson.
+Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.
+Project visibility comes from local task metadata and is empty when absent; no forge lookup occurs.
+The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
 
 ## Jev self-check record (data/jev-lint.jsonl)
 

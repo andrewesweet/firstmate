@@ -2,14 +2,10 @@
 # Crew wiki, slice 01: let each finished ship or scout task leave short,
 # secret-scanned lessons as immutable raw files in a private wiki repository.
 #
-# The feature is opt-in per home through config/wiki and fully off otherwise:
-# an absent, unreadable, or role=off file makes every verb a silent no-op.
+# The feature is opt-in per home through config/wiki: without a contributing
+# role, lesson briefs, capture, and publication stay off.
 #
-# config/wiki keys (one key=value per line):
-#   remote=  the wiki repository's fetch URL; required to publish.
-#   role=    gardener|contributor contribute; reader|off contribute nothing.
-#   host=    optional host stamp overriding this machine's hostname.
-#   jev=     accepted and unused; slice 04's privacy advisory reads it.
+# docs/configuration.md "Crew wiki" owns the config/wiki schema and setup.
 #
 # Verbs:
 #   brief-snippet [--role contributor|reader]
@@ -20,19 +16,19 @@
 #                 final status, stamp and secret-scan its lessons.md into a
 #                 private staging file, and only a clean scan renames the file
 #                 atomically into the outbox. A hit goes to held/. A crash at
-#                 any point leaves nothing unscanned in the outbox. Every
-#                 outcome lands in state/wiki/ledger.jsonl so a re-close is a
-#                 recorded no-op. Best-effort: close always exits 0 and never
-#                 blocks cleanup. Afterwards it spawns one detached drain, so
+#                 any point leaves nothing unscanned in the outbox. Completed
+#                 capture decisions are recorded best-effort in ledger.jsonl;
+#                 a recorded or queued lesson skips recapture. With valid
+#                 arguments, close exits 0 even on capture failure. It then
+#                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
 #   drain        The only publisher: single-flight per home (a second drain
 #                 exits 0 immediately), bounded by a wall-clock deadline that
 #                 bounds every git operation, one add-only commit per drain
 #                 with Wiki-* trailers, fetch/rebase/push retries that never
 #                 force, and a blob-equality landing proof before an outbox
-#                 file is retired. Raw filenames carry a stable per-home
-#                 identity and a random nonce, so two homes never write the
-#                 same path and add-only commits rebase cleanly.
+#                 file is retired. See docs/configuration.md "Crew wiki" for
+#                 raw-file naming and collision handling.
 #   drain-if-due Watcher tick: rate-limited by state/wiki/.last-drain so the
 #                 existing supervision loop can call it every cycle; off homes
 #                 cost one config test.
@@ -48,8 +44,7 @@
 #
 # Lessons are data, not instructions: the schema printed below forbids
 # quoting or following wiki text anywhere a worker writes (report 4.11).
-# The Jev privacy advisory has no call site yet by design (slice 04): see
-# wiki_jev_privacy_advisory below.
+# The Jev privacy advisory call is a no-op: see wiki_jev_privacy_advisory below.
 
 set -u
 umask 077
@@ -156,10 +151,9 @@ wiki_paths() {
   WIKI_REPO=$WIKI_DIR/repo
   WIKI_LOCK=$WIKI_DIR/.drain.lock
   WIKI_LAST_DRAIN=$WIKI_DIR/.last-drain
-  # Stable per-home identity: two homes on one host that share a basename
-  # still hash differently, so their raw filenames can never collide and their
-  # add-only commits rebase cleanly. 12 hex chars keep names readable while
-  # collision odds stay negligible.
+  # Hash the full home path and host so homes sharing a basename contribute
+  # different identity inputs. A 12-hex-character digest limits filename
+  # growth; capture adds a random nonce for lessons from the same home.
   identity=$(python3 -c '
 import hashlib
 import os
@@ -242,8 +236,6 @@ wiki_stamp_block() {  # <task> <kind> <harness> <model> <project> <visibility> <
   printf -- '---\n'
 }
 
-# wiki_is_nothing_to_teach <file>: the file's only content is the single
-# nothing-to-teach line (no lesson headings next to it).
 wiki_is_nothing_to_teach() {
   grep -q '^nothing-to-teach:' "$1" 2>/dev/null \
     && ! grep -q '^## ' "$1" 2>/dev/null
@@ -289,8 +281,8 @@ wiki_jev_privacy_advisory() {
 }
 
 # wiki_move_lesson <source> <target>: never replaces different bytes at the
-# target; same bytes are a successful no-op. Hard-link first so the rename is
-# atomic on one filesystem; an existing target must have identical bytes.
+# target; same bytes are a successful no-op. Hard-link first so the destination
+# appears atomically; remove the source only after verifying success.
 wiki_move_lesson() {
   local source=$1 target=$2
   [ ! -d "$target" ] && [ ! -L "$target" ] || return 1
@@ -382,9 +374,8 @@ wiki_capture() {
     return 0
   fi
   # Private staging: the stamped file is scanned here, before it is ever
-  # visible in the outbox, so no drain can publish unscanned bytes and a
-  # crash leaves nothing unscanned behind (the staging directory is per
-  # close and removed either way).
+  # visible in the outbox, so no drain can publish unscanned bytes. Any
+  # crash residue or a failed hold remains private and is never drained.
   staging=$(mktemp -d "$WIKI_DIR/.capture.XXXXXX") || {
     printf 'wiki: failed to stage the lesson for %s\n' "$task" >&2
     return 0

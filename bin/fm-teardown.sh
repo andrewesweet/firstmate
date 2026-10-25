@@ -4255,8 +4255,8 @@ fi
 [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" cleaned_up "$ID" || true
 # The crew-wiki lesson close (bin/fm-wiki.sh owns the feature) runs here too:
 # close reads the task's final status line, so it must come before the status
-# retirement below, and it is local-only and bounded, so cleanup never blocks
-# on it. Best-effort and silent when config/wiki has not opted this home in.
+# retirement below. Publication is detached, so cleanup never waits for the
+# remote. Best-effort and silent when config/wiki has not opted this home in.
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_DATA_OVERRIDE=$DATA FM_CONFIG_OVERRIDE=$CONFIG \
     "$SCRIPT_DIR/fm-wiki.sh" close "$ID" >/dev/null \
