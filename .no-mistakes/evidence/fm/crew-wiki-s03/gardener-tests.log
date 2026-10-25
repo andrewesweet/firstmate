@@ -1,0 +1,33 @@
+ok - absent config/wiki leaves the gardener verbs silent
+ok - only the gardener role runs the gardener verbs
+ok - due fires at 25 uncompiled lessons
+ok - due fires on age and stays quiet below threshold
+ok - due counts only lessons the log has not cited
+ok - due stays quiet while a gardener task is open
+ok - lint passes a well-formed checkout
+ok - lint blocks on header, link, and citation gaps
+ok - lint blocks over-budget pages and indexes
+ok - lint reports advisories without blocking
+ok - index regenerates from page headers
+ok - publish lands pages with a landing proof
+ok - publish refuses a raw edit
+ok - publish refuses a foreign page commit
+ok - due includes queued and in-flight backlog tasks
+ok - lint resolves raw citations and ordinary Markdown links
+ok - uncited lesson advisories consider pages only
+ok - generated commands publish a linked copy and refresh scheduling
+ok - publish refuses competing page commits on retry and accepts raw-only advances
+ok - publish retries its own unproved landing after an upstream raw addition
+ok - due reads adapter task state without a Markdown backlog
+ok - lint validates every citation and separates Markdown destinations from titles
+ok - publish refuses raw edit, deletion, and addition history even after restoration
+ok - publish refreshes scheduling from a separate clone
+ok - lint resolves rendered references and excludes code from all citation consumers
+ok - gardener verbs retain spaced options and reject equals-form aliases
+ok - idle gardener drains refresh upstream lessons and ingest logs without publishing local work
+ok - idle refresh preserves divergent local history
+ok - generated gardener commands bind absolute custom home paths without inherited settings
+ok - idle gardener fetches stay bounded and recover on the next drain
+ok - lint and publish require the exact parser version with one actionable error
+ok - quoted claims, metadata, complex destinations, and offline links use one parser
+ok - both publishers reject alternate, multiple, and rewritten push destinations before uploading

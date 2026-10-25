@@ -1,0 +1,22 @@
+$ fm-wiki.sh due # 6 days 23 hours old
+
+exit=1
+$ fm-wiki.sh due # seven days old
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2026-10-18)
+
+exit=0
+
+$ fm-wiki.sh index # 144 pages
+wiki: index.md regenerated (144 page(s), 150 line(s))
+exit=0; generated line count=150
+
+$ fm-wiki.sh index # 145 pages
+wiki: index.md regenerated (145 page(s), 151 line(s))
+wiki: index.md is over the 150-line budget
+exit=1; generated line count=151
+
+$ fm-spawn.sh boundary-g1 <isolated-project> claude --mode direct-push --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.YbNyJ6/spawn-lab
+error: direct-push for boundary-g1 is permitted only for a project whose registry entry opts in; crew-wiki is registered direct-PR; ship the registered posture, or register [direct-push] for this project before spawning direct-push
+exit=1
+No task metadata created.

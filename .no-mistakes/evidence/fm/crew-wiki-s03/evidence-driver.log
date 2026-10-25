@@ -1,0 +1,21 @@
+ok - 24 remains quiet; 25 schedules
+ok - absent config/wiki leaves the gardener verbs silent
+ok - only the gardener role runs the gardener verbs
+ok - due fires on age and stays quiet below threshold
+ok - due counts only lessons the log has not cited
+ok - due stays quiet while a gardener task is open
+ok - due includes queued and in-flight backlog tasks
+ok - lint blocks on header, link, and citation gaps
+ok - lint blocks over-budget pages and indexes
+ok - lint reports advisories without blocking
+ok - lint resolves rendered references and excludes code from all citation consumers
+ok - quoted claims, metadata, complex destinations, and offline links use one parser
+ok - index regenerates from page headers
+ok - publish lands pages with a landing proof
+ok - publish refuses a raw edit
+ok - publish refuses a foreign page commit
+ok - publish refuses competing page commits on retry and accepts raw-only advances
+ok - publish refuses raw edit, deletion, and addition history even after restoration
+ok - both publishers reject alternate, multiple, and rewritten push destinations before uploading
+ok - idle gardener drains refresh upstream lessons and ingest logs without publishing local work
+ok - generated commands publish a linked copy and refresh scheduling

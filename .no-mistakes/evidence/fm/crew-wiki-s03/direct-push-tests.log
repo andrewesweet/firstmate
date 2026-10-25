@@ -1,0 +1,3 @@
+ok - fm-spawn: direct-push requires a registry entry that opts in
+ok - direct-push renders a publish-ending DoD and refuses unknown modes
+ok - direct-push done: is gated on the named head

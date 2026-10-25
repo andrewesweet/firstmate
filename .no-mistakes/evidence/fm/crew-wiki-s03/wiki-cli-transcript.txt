@@ -1,0 +1,453 @@
+Real fm-wiki.sh against disposable local Git remotes; lychee 0.24.2.
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-25)
+exit=0
+
+SCENARIO: test_absent_config_keeps_gardener_verbs_silent
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh lint
+
+exit=0
+
+$ fm-wiki.sh index
+
+exit=0
+
+$ fm-wiki.sh publish --base HEAD
+
+exit=0
+
+SCENARIO: test_non_gardener_roles_cannot_run_the_gardener_verbs
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh lint --base HEAD
+fm-wiki: lint is gardener-only (config/wiki role=contributor)
+exit=1
+
+$ fm-wiki.sh index --base HEAD
+fm-wiki: index is gardener-only (config/wiki role=contributor)
+exit=1
+
+$ fm-wiki.sh publish --base HEAD
+fm-wiki: publish is gardener-only (config/wiki role=contributor)
+exit=1
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh publish --base HEAD
+
+exit=0
+
+SCENARIO: test_due_fires_on_a_seven_day_old_lesson
+
+$ fm-wiki.sh due
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+exit=0
+
+$ fm-wiki.sh due
+
+exit=1
+
+SCENARIO: test_due_counts_only_lessons_the_log_has_not_cited
+
+$ fm-wiki.sh due
+
+exit=1
+
+SCENARIO: test_due_stays_quiet_while_a_gardener_task_is_open
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-25)
+exit=0
+
+SCENARIO: test_due_includes_queued_backlog_tasks
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh due
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+exit=0
+
+SCENARIO: test_lint_blocks_on_header_link_budget_and_citation_gaps
+
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbad-repo
+wiki lint: pages/tools/bad.md is missing its summary header
+wiki lint advisory: orphan page not linked from index.md: pages/tools/bad.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbad-repo
+wiki lint: pages/tools/bad.md has invalid local links:
+Issues found in 1 input. Find details below.
+
+[~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbad-repo/pages/tools/bad.md]:
+[ERROR] file://~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbad-repo/pages/tools/missing.md (at 8:5) | File not found. Check if file exists and path is correct
+
+🔍 1 Total (in 1ms) 🔗 1 Unique ✅ 0 OK 🚫 1 Error
+wiki lint: pages/tools/bad.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/bad.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbad-repo
+wiki lint: pages/tools/bad.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/bad.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+SCENARIO: test_lint_blocks_over_budget_pages_and_indexes
+
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbudget-repo
+wiki lint: pages/tools/long.md cites no raw lesson
+wiki lint: pages/tools/long.md is over the 120-line page budget
+wiki lint advisory: orphan page not linked from index.md: pages/tools/long.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintbudget-repo
+wiki lint: index.md is over the 150-line budget
+wiki lint: pages/tools/long.md is missing its summary header
+wiki lint: pages/tools/long.md is missing its scope header
+wiki lint: pages/tools/long.md is missing its last-confirmed header
+wiki lint: pages/tools/long.md is missing its sources header
+wiki lint: pages/tools/long.md cites missing or invalid raw lesson 
+wiki lint: pages/tools/long.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/long.md
+wiki: lint blocked (2 problem(s), 1 page(s))
+exit=1
+
+SCENARIO: test_lint_reports_advisories_without_blocking
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/orphan.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+exit=0
+
+SCENARIO: test_lint_resolves_reference_links_and_excludes_code_examples
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md has invalid local links:
+Issues found in 1 input. Find details below.
+
+[~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/seed-page.md]:
+[ERROR] file://~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/missing.md (at 6:100) | File not found. Check if file exists and path is correct
+
+🔍 2 Total (in 0s) 🔗 2 Unique ✅ 1 OK 🚫 1 Error
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md has invalid local links:
+Issues found in 1 input. Find details below.
+
+[~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/seed-page.md]:
+[ERROR] file://~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/missing.md (at 6:100) | File not found. Check if file exists and path is correct
+
+🔍 2 Total (in 0s) 🔗 2 Unique ✅ 1 OK 🚫 1 Error
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md has invalid local links:
+Issues found in 1 input. Find details below.
+
+[~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/seed-page.md]:
+[ERROR] file://~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintmarkdown/state/wiki/repo/pages/tools/missing.md (at 6:100) | File not found. Check if file exists and path is correct
+
+🔍 2 Total (in 0s) 🔗 2 Unique ✅ 1 OK 🚫 1 Error
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: raw lesson no page cites after 30 days: raw/2020/01/20200101T000000Z-testhost-testhome-only-in-code-a1b2.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+SCENARIO: test_lint_includes_quoted_claims_and_checks_links_offline
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md has invalid local links:
+Issues found in 1 input. Find details below.
+
+[~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintquotes/state/wiki/repo/pages/tools/seed-page.md]:
+[ERROR] file://~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/lintquotes/state/wiki/repo/raw/missing.md (at 11:13) | File not found. Check if file exists and path is correct
+
+🔍 3 Total (in 0s) 🔗 3 Unique ✅ 1 OK 🚫 1 Error 👻 1 Excluded
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint: pages/tools/seed-page.md cites no raw lesson
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint blocked (1 problem(s), 1 page(s))
+exit=1
+
+$ fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+exit=0
+
+SCENARIO: test_index_regenerates_from_page_headers
+
+$ fm-wiki.sh index
+wiki: index.md regenerated (2 page(s), 11 line(s))
+exit=0
+
+$ fm-wiki.sh index
+wiki: index.md regenerated (2 page(s), 11 line(s))
+exit=0
+
+SCENARIO: test_publish_lands_pages_with_a_landing_proof
+
+$ fm-wiki.sh publish --base 4da1707d15e718fae9ae583372912309d2e33fb5
+wiki lint advisory: orphan page not linked from index.md: pages/tools/gardened.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published ba252d2
+exit=0
+
+$ fm-wiki.sh publish --base ba252d2656fe58c6beb45ba3b58118ed1db3c2d6
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: nothing to publish
+exit=0
+
+SCENARIO: test_publish_refuses_a_raw_edit
+
+$ fm-wiki.sh publish --base 78b48cb79ecdb505e84b726917f7dc4884b67d7e
+wiki lint advisory: orphan page not linked from index.md: pages/tools/gardened.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: publish refused: the run changed files under raw/; raw lessons are add-only
+exit=1
+
+$ fm-wiki.sh publish --base 78b48cb79ecdb505e84b726917f7dc4884b67d7e
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+exit=1
+
+SCENARIO: test_publish_refuses_a_foreign_page_commit
+
+$ fm-wiki.sh publish --base cc85640aa91ab1ee7d71315ba1e8dc87fefb7690
+wiki lint advisory: orphan page not linked from index.md: pages/tools/gardened.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: publish refused: a foreign page commit landed after the base (958e7f3b8348); re-run the gardener onto the new main and publish again
+exit=1
+
+SCENARIO: test_publish_checks_foreign_commits_on_push_retries
+
+$ fm-wiki.sh publish --base a0fbbddb8f84d1e161687498e26f343fe55bae19
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: publish refused: a foreign page commit landed after the base (f7b6f2bf25d7); re-run the gardener onto the new main and publish again
+exit=1
+
+$ fm-wiki.sh publish --base 8a793360f91bfb5645e2f9a8708ba458532f2051
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 4e7b3f8
+exit=0
+
+SCENARIO: test_publish_refuses_raw_changes_even_when_restored
+
+$ fm-wiki.sh publish --base 2e3fde4bee394dbfe29c0a4e296cc24769fab24c
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+exit=1
+
+$ fm-wiki.sh publish --base 2e3fde4bee394dbfe29c0a4e296cc24769fab24c
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+exit=1
+
+$ fm-wiki.sh publish --base a6724ea225fd6d3d4bb2ab08cd81dc28d02eedba
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+exit=1
+
+SCENARIO: test_publish_and_drain_refuse_other_effective_push_urls
+
+$ fm-wiki.sh publish --base a6724ea225fd6d3d4bb2ab08cd81dc28d02eedba
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=1
+
+$ fm-wiki.sh publish --base a6724ea225fd6d3d4bb2ab08cd81dc28d02eedba
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=1
+
+$ fm-wiki.sh publish --base 5b8d5e7cbaf0b13b6fa34873b4a097ddfcc68643
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=1
+
+$ fm-wiki.sh drain
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=0
+
+$ fm-wiki.sh drain
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=0
+
+$ fm-wiki.sh drain
+wiki: refusing to publish: an effective origin push URL differs from config/wiki remote
+exit=0
+
+SCENARIO: test_idle_gardener_drains_discover_upstream_lessons
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh drain-if-due
+wiki: nothing to publish
+exit=0
+
+$ fm-wiki.sh due
+wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-25)
+exit=0
+
+$ fm-wiki.sh drain
+wiki: nothing to publish
+exit=0
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh drain
+wiki: nothing to publish
+exit=0
+
+$ fm-wiki.sh due
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+exit=0
+
+SCENARIO: test_generated_gardener_commands_target_a_linked_worktree
+
+$ fm-wiki.sh due
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+exit=0
+
+$ fm-wiki.sh due
+
+exit=1
+
+$ fm-wiki.sh index
+wiki: index.md regenerated (1 page(s), 7 line(s))
+exit=0
+
+SCHEMA: shipped template used as disposable wiki AGENTS.md.
+direct-push off
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5TCVMDB06VFT51ANYBBV6BK/.test-gardener/tmp/fm-wiki-gardener.0DOl12/exact-boundary/data/evidence-g1/brief.md (ship, mode=direct-push; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
