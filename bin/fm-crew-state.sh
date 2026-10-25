@@ -151,14 +151,6 @@
 #      running/fixing with recent reported activity: a killed or timed-out drive
 #      call is not daemon death, so that claim is answered by steering the crew
 #      to reattach, not by escalating.
-#      A `done:` claim is superseded the same way when this branch's run is LIVE
-#      again at a different head: the pipeline re-pushed a new head (routinely
-#      one this copy never fetched) and parked at a later gate, so the claim is
-#      history about an older head while the run is what is happening now
-#      (nm_run_supersedes_done_claim owns the exact test). Such a run binds
-#      where the strict head rule rejected it, and the detail says so. A run at
-#      the claim's own head, a terminal run, a run behind the claim's head, and
-#      a claim with no comparable head all keep the reading they always had.
 #   4. No current run for this crew (pre-validation, uninitialized repository,
 #      proven historical head, or kind=scout): fall back to the recorded
 #      backend's pane busy state, then the resolved status declaration
@@ -995,40 +987,29 @@ nm_done_claim_head() {
   printf '%s' "$head"
 }
 
-# 0 when the captured run ($RUN_OUT) is a better witness than the log's latest
-# `done:` claim: it is LIVE - parked at a gate or executing, never terminal - on
-# this crew's branch, and its head is not the head that claim was made at.
-# The shape this exists for is a run that re-pushed a new head - routinely a
-# commit the task copy never fetched - and then parked again at a later gate.
-# The claim is then history about an older head, and the run is what is
-# happening now (2026-10-25 daily velocity audit: run 01M5NZVNSVXWZ7G4SDZ9TAAX4Z
-# re-pushed 79db746d, parked on `ci awaiting_approval`, while current state kept
-# reporting the earlier `done:` for 11.56 h).
-# A run BEHIND the claim's head (local work advanced past it) stays rejected, as
-# every other attribution rule here requires. A run head this copy cannot
-# resolve is still a DIFFERENT head from the claim's: the missing object is the
-# re-push itself, not a reason to keep reading a superseded claim.
-# No run head, or no head to compare it against, leaves nothing to compare, so
-# the claim stands exactly as it always has.
 nm_run_supersedes_done_claim() {
   local done_head run_head run_full
+  [ "$LOG_VERB" = done ] || return 1
   [ "$(strip_quotes "$(nm_field branch)")" = "$CREW_BRANCH" ] || return 1
-  fm_nm_run_is_active "$RUN_OUT" || return 1
+  fm_nm_run_is_active "$RUN_OUT" && fm_nm_run_is_parked "$RUN_OUT" || return 1
   run_head=$(strip_quotes "$(nm_field head)")
   [ -n "$run_head" ] || return 1
   done_head=$(nm_done_claim_head) || return 1
   run_full=$(fm_nm_resolve_commit "$WT" "$run_head")
-  if [ -z "$run_full" ]; then
-    case "$done_head" in
-      "$run_head"*) return 1 ;;
-    esac
-    return 0
+  if [ -n "$run_full" ]; then
+    [ "$run_full" != "$done_head" ] || return 1
+    git -C "$WT" merge-base --is-ancestor "$done_head" "$run_full" 2>/dev/null || return 1
+  else
+    case "$done_head" in "$run_head"*) return 1 ;; esac
+    fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+      || [ "$(fm_nm_runs_status_for_worktree "$WT" "$CREW_BRANCH" "$(nm_runs_list)" "$run_head")" = running ] \
+      || return 1
   fi
-  [ "$run_full" = "$done_head" ] && return 1
-  ! git -C "$WT" merge-base --is-ancestor "$run_full" "$done_head" 2>/dev/null
+  DONE_CLAIM_SUPERSEDED=1
 }
 
 HAVE_RUN=0
+DONE_CLAIM_SUPERSEDED=0
 # RUN_SOURCE distinguishes the two ways HAVE_RUN=1 can happen: "full" means
 # $RUN_OUT is real `axi status` TOON with step/gate detail (including a
 # same-branch run the strict head rule rejected but the ledger proved is this
@@ -1090,7 +1071,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
         if [ "$(fm_nm_run_status_class "$selected_status")" != "$current_class" ]; then
           emit unknown run-step "selected run status disagrees with inventory; run ids: $candidate_ids"
         fi
-        if nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+        if nm_run_supersedes_done_claim || nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
           || { fm_nm_run_is_executing "$RUN_OUT" && ! nm_daemon_answered_down; }; then
           HAVE_RUN=1
         elif [ -z "$(fm_nm_resolve_commit "$WT" "$(strip_quotes "$(nm_field head)")")" ]; then
@@ -1121,7 +1102,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
       # record left saying `running` by a dead daemon stops answering once the
       # worktree moves off the run head.
       if [ -n "$run_branch" ] && [ "$run_branch" = "$CREW_BRANCH" ] \
-        && { nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+        && { nm_run_supersedes_done_claim || nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
           || { fm_nm_run_is_executing "$RUN_OUT" && ! nm_daemon_answered_down; }; }; then
         HAVE_RUN=1
         # Without run ids, contradictory liveness cannot prove precedence.
@@ -1165,19 +1146,6 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
 fi
 
 # --- run-step authoritative path -------------------------------------------
-
-# A log `done:` is the crew's claim that its work is finished, made about the
-# head it was standing at. When this branch's run has since pushed a newer head
-# and is live again, that claim is superseded history rather than current state,
-# so the run binds even where the strict head rule rejected it - otherwise the
-# reader falls through to the log and reports the old done while the pipeline
-# waits at a gate nobody sees (nm_run_supersedes_done_claim above owns the
-# exact test, including the no-comparable-head case that keeps today's reading).
-DONE_CLAIM_SUPERSEDED=0
-if [ "$HAVE_RUN" = 0 ] && [ "$LOG_VERB" = "done" ] && nm_run_supersedes_done_claim; then
-  HAVE_RUN=1
-  DONE_CLAIM_SUPERSEDED=1
-fi
 
 if [ "$HAVE_RUN" = 1 ]; then
   RUN_STATE=working
@@ -1373,7 +1341,7 @@ if [ "$HAVE_RUN" = 1 ]; then
 
   [ -z "$SELECTED_RUN_ID" ] || RUN_DETAIL="$RUN_DETAIL${SEP}run: $SELECTED_RUN_ID"
   if [ "$DONE_CLAIM_SUPERSEDED" = 1 ]; then
-    RUN_DETAIL="$RUN_DETAIL${SEP}status-log superseded: run pushed a newer head and is still live"
+    RUN_DETAIL="$RUN_DETAIL${SEP}status-log superseded: run pushed a newer head and parked at a later gate"
   fi
   emit "$RUN_STATE" run-step "$RUN_DETAIL"
 fi
