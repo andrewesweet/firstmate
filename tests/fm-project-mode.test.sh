@@ -114,12 +114,6 @@ EOF
 
 [ "$(run_mode wiki)" = "direct-push on" ] || fail "a direct-push entry must resolve: $(run_mode wiki)"
 [ "$(run_forge wiki)" = "none" ] || fail "direct-push with no forge token must report forge none"
-FM_DATA_OVERRIDE="$DATA" "$PROJECT_MODE" --allows-direct-push wiki >/dev/null 2>&1 \
-  || fail "--allows-direct-push must exit 0 on an opted-in project"
-FM_DATA_OVERRIDE="$DATA" "$PROJECT_MODE" --allows-direct-push flagged >/dev/null 2>&1 \
-  && fail "--allows-direct-push must exit 1 on a project with another mode"
-FM_DATA_OVERRIDE="$DATA" "$PROJECT_MODE" --allows-direct-push missing-project >/dev/null 2>&1 \
-  && fail "--allows-direct-push must exit 1 on an unknown project"
 for flag in "" --forge; do
   # shellcheck disable=SC2086 # An empty flag must expand to nothing.
   out=$(FM_DATA_OVERRIDE="$DATA" "$PROJECT_MODE" $flag pushed 2>/dev/null)
@@ -127,6 +121,6 @@ for flag in "" --forge; do
   [ "$status" -eq 3 ] || fail "direct-push with forge=forgejo did not refuse${flag:+ under $flag} (status $status, got '$out')"
   [ -z "$out" ] || fail "a refused direct-push forge still handed the caller a posture: '$out'"
 done
-pass "fm-project-mode: direct-push binds, answers --allows-direct-push, and refuses any forge"
+pass "fm-project-mode: direct-push binds and refuses any forge"
 
 echo "# fm-project-mode.test.sh: all assertions passed"

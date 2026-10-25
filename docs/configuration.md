@@ -1002,10 +1002,11 @@ It owns the page taxonomy, header fields, citation rule, index rules, budgets, t
 
 ## Gardener delivery (direct-push)
 
-`direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `bin/fm-wiki.sh publish` instead of opening a pull request.
+`direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `"$FIRSTMATE_ROOT/bin/fm-wiki.sh" publish --repo "$PWD" --base <sha>` instead of opening a pull request.
+`FIRSTMATE_ROOT` names the installed Firstmate code directory.
 Its Definition of done (owned by `bin/fm-dod-lib.sh`) ends with `publish --base <sha>` and a `done: wiki pages published {commit}` report.
 The mode is permitted only for a project whose registry entry opts in by naming it; every other project and mode is unchanged.
-`bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode, and `bin/fm-project-mode.sh --allows-direct-push <project>` answers the opt-in (exit 0 when opted in, 1 otherwise).
+`bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode.
 A forge, a base branch, or a fork-staged fork is refused on direct-push, because it publishes through the wiki checkout rather than a forge, a task branch, or a pull request.
 The crew-wiki project owns the only such registry entry.
 

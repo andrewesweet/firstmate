@@ -44,7 +44,7 @@
 #   direct-push            gardener only: compile wiki pages and land them with
 #                          bin/fm-wiki.sh publish instead of a PR. Permitted only
 #                          for a project whose registry entry opts in by naming
-#                          this mode; query it with --allows-direct-push. The
+#                          this mode. The
 #                          crew-wiki project owns the only such entry.
 #   no-mistakes-prod-only  a conditional policy, not a task mode: firstmate
 #                          classifies each task's surface at intake (the
@@ -92,11 +92,6 @@
 # `forge=external` project reports yolo=off the same way, because firstmate can
 # neither observe nor perform the review tool's approval or merge.
 #
-# --allows-direct-push answers only the opt-in: exit 0 when the project's
-#   registry entry names direct-push, exit 1 otherwise (unknown project,
-#   absent registry, or any other mode), printing nothing either way.
-#   bin/fm-spawn.sh refuses a direct-push ship whose registry entry does not
-#   opt in, so a typo cannot silently reroute a task past review.
 # --raw prints the registered mode annotation unmapped, so a caller that must
 # tell a conditional policy apart from a flat mode sees "no-mistakes-prod-only"
 # itself. Not combined with --branch-prefix, which has no conditional-policy leg.
@@ -119,7 +114,7 @@
 # to the forge binding, so it prints even when the forge token is malformed;
 # every path that reads the forge binding (default, --forge, and spawn's
 # forge-agreement check) still refuses.
-# Usage: fm-project-mode.sh [--raw|--branch-prefix|--forge|--allows-direct-push] <project-name>
+# Usage: fm-project-mode.sh [--raw|--branch-prefix|--forge] <project-name>
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -130,18 +125,15 @@ REG="$DATA/projects.md"
 RAW=0
 BRANCH_PREFIX_QUERY=0
 WANT_FORGE=0
-ALLOW_DP=0
 case "${1:-}" in
   --raw) RAW=1; shift ;;
   --branch-prefix) BRANCH_PREFIX_QUERY=1; shift ;;
   --forge) WANT_FORGE=1; shift ;;
-  --allows-direct-push) ALLOW_DP=1; shift ;;
 esac
 NAME=${1:?usage: fm-project-mode.sh [--raw|--branch-prefix|--forge] <project-name>}
 
 if [ ! -f "$REG" ]; then
   echo "warn: no registry at $REG; defaulting $NAME to no-mistakes off" >&2
-  [ "$ALLOW_DP" -eq 1 ] && exit 1
   if [ "$BRANCH_PREFIX_QUERY" -eq 1 ]; then
     echo "fm/"
   elif [ "$WANT_FORGE" -eq 1 ]; then echo none; else echo "no-mistakes off"; fi
@@ -212,7 +204,6 @@ parsed=$(awk -v n="$NAME" '
 
 if [ -z "$parsed" ]; then
   echo "warn: project \"$NAME\" not in registry; defaulting to no-mistakes off" >&2
-  [ "$ALLOW_DP" -eq 1 ] && exit 1
   if [ "$BRANCH_PREFIX_QUERY" -eq 1 ]; then
     echo "fm/"
   elif [ "$WANT_FORGE" -eq 1 ]; then echo none; else echo "no-mistakes off"; fi
@@ -260,10 +251,6 @@ fi
 if [ "$forge" != none ] && [ "$mode" = direct-push ]; then
   echo "refused: $NAME is registered direct-push with forge=$forge in $REG; direct-push publishes through bin/fm-wiki.sh publish, not through a forge; drop the forge token to keep the project direct-push" >&2
   exit 3
-fi
-if [ "$ALLOW_DP" -eq 1 ]; then
-  [ "$mode" = direct-push ]
-  exit
 fi
 if [ "$WANT_FORGE" -eq 1 ]; then
   echo "$forge"

@@ -490,6 +490,178 @@ EOF
   pass "publish refuses a foreign page commit"
 }
 
+test_due_includes_queued_backlog_tasks() {
+  local home bare repo out status section
+  bare=$(wiki_bare duequeued)
+  seed_checkout "$bare" "$TMP_ROOT/duequeued-seed" >/dev/null
+  home=$(gardener_home_with_repo duequeued "$bare")
+  repo="$home/state/wiki/repo"
+  add_raw "$repo" 20200101T000000Z task-old >/dev/null
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: pending lesson"
+  for section in Queued 'In flight'; do
+    printf '## %s\n- [ ] garden-q1 - compile pending lessons (repo: crew-wiki)\n\n## Done\n' "$section" > "$home/data/backlog.md"
+    out=$(run_wiki "$home" due 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "due must suppress an open backlog task in $section"
+    assert_equals '' "$out" "open backlog task suppresses due silently"
+  done
+  printf '## Queued\n- [ ] other-q1 - unrelated task (repo: crew-wiki-other)\n\n## Done\n- [x] garden-q1 - compiled (repo: crew-wiki)\n' > "$home/data/backlog.md"
+  out=$(run_wiki "$home" due 2>&1) || fail "done and unrelated backlog tasks must release due: $out"
+  pass "due includes queued and in-flight backlog tasks"
+}
+
+test_lint_requires_existing_raw_lesson_citations() {
+  local home bare repo page out status source body
+  bare=$(wiki_bare lintcitations)
+  seed_checkout "$bare" "$TMP_ROOT/lintcitations-seed" >/dev/null
+  home=$(gardener_home_with_repo lintcitations "$bare")
+  repo="$home/state/wiki/repo"
+  page="$repo/pages/tools/seed-page.md"
+  for source in README.md raw/../../README.md raw/2026/10/missing.md; do
+    printf '> summary: citation fixture\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nKeep raw/ immutable.\n' "$source" > "$page"
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "lint accepted an invalid source $source"
+    assert_contains "$out" 'invalid raw lesson' "invalid header source blocks"
+    assert_contains "$out" 'cites no raw lesson' "raw prose does not count as a citation"
+  done
+  source=raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+  for body in 'Keep raw/ immutable.' '[missing](../../raw/2026/10/missing.md)' 'raw/2026/10/missing.md'; do
+    printf '> summary: citation fixture\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n' "$source" "$body" > "$page"
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "lint accepted a body without a real raw citation"
+    assert_contains "$out" 'cites no raw lesson' "header alone does not support the body"
+  done
+  printf '> summary: citation fixture\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n[lesson](../../%s#seed) and [readme](../../README.md).\n' "$source" "$source" > "$page"
+  out=$(run_wiki "$home" lint 2>&1) || fail "ordinary relative links and raw citations must pass: $out"
+  pass "lint resolves raw citations and ordinary Markdown links"
+}
+
+test_uncited_advisory_ignores_ingest_logs_and_indexes() {
+  local home bare repo lesson out
+  bare=$(wiki_bare lintcoverage)
+  seed_checkout "$bare" "$TMP_ROOT/lintcoverage-seed" >/dev/null
+  home=$(gardener_home_with_repo lintcoverage "$bare")
+  repo="$home/state/wiki/repo"
+  lesson=$(add_raw "$repo" 20200101T000000Z uncited)
+  printf '## [2020-01-02] ingest | 1 lesson | %s\n' "$(basename "$lesson")" >> "$repo/log.md"
+  printf '%s\n' "${lesson#"$repo/"}" >> "$repo/index.md"
+  out=$(run_wiki "$home" lint 2>&1) || fail "uncited advisory must not block lint: $out"
+  assert_contains "$out" "raw lesson no page cites after 30 days: ${lesson#"$repo/"}" "ingest records do not count as page citations"
+  printf '\nSource: %s\n' "${lesson#"$repo/"}" >> "$repo/pages/tools/seed-page.md"
+  out=$(run_wiki "$home" lint 2>&1) || fail "citing the lesson must keep lint clean: $out"
+  assert_not_contains "$out" 'raw lesson no page cites after 30 days:' "a page citation clears the advisory"
+  pass "uncited lesson advisories consider pages only"
+}
+
+test_generated_gardener_commands_target_a_linked_worktree() {
+  local home bare repo task_copy base brief commands out unchanged
+  bare=$(wiki_bare linkedpublish)
+  seed_checkout "$bare" "$TMP_ROOT/linkedpublish-seed" >/dev/null
+  home=$(gardener_home_with_repo linkedpublish "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  task_copy="$TMP_ROOT/linked task"
+  wgit -C "$repo" worktree add -q -b garden-linked "$task_copy" HEAD || fail "linked task copy failed"
+  printf '\nA compiled addition.\n' >> "$task_copy/pages/tools/seed-page.md"
+  unchanged=$(wgit -C "$repo" status --porcelain)
+  FM_HOME="$home" bash "$ROOT/bin/fm-brief.sh" garden-x1 crew-wiki --mode direct-push >/dev/null || fail "gardener brief failed"
+  brief="$home/data/garden-x1/brief.md"
+  assert_not_contains "$(cat "$brief")" 'no-mistakes doctor' "generated direct-push setup must not prescribe pipeline initialization"
+  assert_not_contains "$(cat "$brief")" 'no-mistakes init' "generated direct-push setup must not initialize a pipeline"
+  commands=$(python3 - "$brief" <<'PYTHON'
+import re
+import sys
+for line in open(sys.argv[1]):
+    if line.startswith(("Run `", "Then run `")):
+        for command in re.findall(r"`([^`]+)`", line):
+            if "fm-wiki.sh " in command:
+                print(command)
+PYTHON
+)
+  [ "$(printf '%s\n' "$commands" | wc -l | tr -d ' ')" = 3 ] || fail "generated contract must deliver lint, index, publish commands"
+  out=$(cd "$task_copy" && FM_HOME="$home" BASE="$base" bash -e -c "$commands" 2>&1) || fail "generated commands failed from the wiki task copy: $out"
+  assert_contains "$out" published "generated publish command lands the task copy"
+  wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A compiled addition' || fail "task page change did not land"
+  assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "shared clone stays at its original head"
+  assert_equals "$unchanged" "$(wgit -C "$repo" status --porcelain)" "generated commands leave shared files untouched"
+  pass "generated commands lint, index, and publish a linked task copy"
+}
+
+test_publish_checks_foreign_commits_on_push_retries() {
+  local home bare repo other base out status kind hook marker remote_before
+  for kind in pages raw; do
+    bare=$(wiki_bare "race-$kind")
+    seed_checkout "$bare" "$TMP_ROOT/race-$kind-seed" >/dev/null
+    home=$(gardener_home_with_repo "race-$kind" "$bare")
+    repo="$home/state/wiki/repo"
+    base=$(wgit -C "$repo" rev-parse HEAD)
+    other="$TMP_ROOT/race-$kind-other"
+    git clone -q "file://$bare" "$other" 2>/dev/null || fail "race clone failed"
+    if [ "$kind" = pages ]; then
+      printf '\nA competing page change.\n' >> "$other/pages/tools/seed-page.md"
+    else
+      add_raw "$other" 20200101T000000Z competing-raw >/dev/null
+    fi
+    wgit -C "$other" add -A
+    wgit -C "$other" commit -q -m "wiki: competing $kind change"
+    remote_before=$(wgit -C "$other" rev-parse HEAD)
+    hook="$repo/.git/hooks/pre-push"
+    marker="$TMP_ROOT/race-$kind-fired"
+    {
+      printf '#!/usr/bin/env bash\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR\n'
+      printf '[ -f %q ] && exit 0\n' "$marker"
+      printf 'touch %q\n' "$marker"
+      printf 'git -C %q push -q origin main\n' "$other"
+    } > "$hook"
+    chmod +x "$hook"
+    printf '\nOur compiled addition.\n' >> "$repo/pages/tools/seed-page.md"
+    out=$(run_wiki "$home" publish --base "$base" 2>&1); status=$?
+    [ -f "$marker" ] || fail "push race never ran"
+    if [ "$kind" = pages ]; then
+      [ "$status" -ne 0 ] || fail "publish rebased a competing page commit on retry"
+      assert_contains "$out" 'foreign page commit' "retry fetch enforces foreign-page refusal"
+      assert_equals "$remote_before" "$(wgit -C "$bare" rev-parse main)" "refused retry leaves only the competing commit remote"
+      assert_equals "$base" "$(wgit -C "$repo" merge-base HEAD "$remote_before")" "foreign page commit was never rebased into our branch"
+    else
+      [ "$status" -eq 0 ] || fail "raw-only race must allow rebase and publish: $out"
+      wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'Our compiled addition' || fail "retry failed to land compiled page"
+      wgit -C "$bare" cat-file -e main:raw/2020/01/20200101T000000Z-testhost-testhome-competing-raw-a1b2.md || fail "retry lost the competing raw lesson"
+    fi
+  done
+  pass "publish refuses competing page commits on retry and accepts raw-only advances"
+}
+
+test_publish_retries_its_own_unproved_landing() {
+  local home bare repo base out status fakebin real_git marker landed
+  bare=$(wiki_bare publishunproved)
+  seed_checkout "$bare" "$TMP_ROOT/publishunproved-seed" >/dev/null
+  home=$(gardener_home_with_repo publishunproved "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  printf '\nA compiled addition.\n' >> "$repo/pages/tools/seed-page.md"
+  fakebin="$TMP_ROOT/proof-bin"
+  marker="$TMP_ROOT/proof-fetch-failed"
+  mkdir -p "$fakebin"
+  real_git=$(command -v git)
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'if [ "${3:-}" = fetch ] && [ "${6:-}" = main ] && [ ! -f %q ]; then\n' "$marker"
+    printf '  touch %q; exit 1\nfi\n' "$marker"
+    printf 'exec %q "$@"\n' "$real_git"
+  } > "$fakebin/git"
+  chmod +x "$fakebin/git"
+  out=$(PATH="$fakebin:$PATH" run_wiki "$home" publish --base "$base" 2>&1); status=$?
+  [ -f "$marker" ] || fail "landing-proof fetch failure was not injected"
+  [ "$status" -ne 0 ] || fail "failed proof fetch must leave landing unproved"
+  assert_contains "$out" unproved "publish reports the missing landing proof"
+  landed=$(wgit -C "$bare" rev-parse main)
+  assert_not_equals "$base" "$landed" "the first push landed before proof fetch failed"
+  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "retry must accept this run's own landed commit: $out"
+  assert_not_contains "$out" 'foreign page commit' "own commit is not foreign"
+  assert_equals "$landed" "$(wgit -C "$bare" rev-parse main)" "retry does not create a duplicate commit"
+  pass "publish retries its own unproved landing"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -504,3 +676,10 @@ test_index_regenerates_from_page_headers
 test_publish_lands_pages_with_a_landing_proof
 test_publish_refuses_a_raw_edit
 test_publish_refuses_a_foreign_page_commit
+
+test_due_includes_queued_backlog_tasks
+test_lint_requires_existing_raw_lesson_citations
+test_uncited_advisory_ignores_ingest_logs_and_indexes
+test_generated_gardener_commands_target_a_linked_worktree
+test_publish_checks_foreign_commits_on_push_retries
+test_publish_retries_its_own_unproved_landing

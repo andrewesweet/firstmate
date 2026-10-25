@@ -499,7 +499,7 @@ wiki_drain() {
   # missing or points somewhere other than the configured remote.
   local origin
   origin=$(wiki_git "$WIKI_REPO" remote get-url origin 2>/dev/null || printf '')
-  if [ ! -d "$WIKI_REPO/.git" ] || [ "$origin" != "$CFG_REMOTE" ]; then
+  if [ "$(wiki_git "$WIKI_REPO" rev-parse --is-inside-work-tree 2>/dev/null)" != true ] || [ "$origin" != "$CFG_REMOTE" ]; then
     rm -rf "$WIKI_REPO" 2>/dev/null || true
     if ! wiki_git_clone "$CFG_REMOTE" "$WIKI_REPO" >/dev/null 2>&1; then
       printf 'wiki: %s lesson(s) still queued (remote unreachable)\n' "$n"
@@ -669,6 +669,13 @@ wiki_gardener_open() {
       *) return 0 ;;
     esac
   done
+  if [ -f "$WIKI_DATA/backlog.md" ] && awk '
+    /^##[[:space:]]+/ { open = ($0 ~ /^## (Queued|In flight)[[:space:]]*$/); next }
+    open && /^[-*][[:space:]]+\[[^xX]\]/ && /\(repo: crew-wiki([,)]|[[:space:]])/ { found=1 }
+    END { exit !found }
+  ' "$WIKI_DATA/backlog.md"; then
+    return 0
+  fi
   return 1
 }
 
@@ -681,7 +688,7 @@ wiki_due() {
   wiki_gardener_ready || return 1
   wiki_paths >/dev/null 2>&1 || return 1
   WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_DUE_CAP:-20} ))
-  [ -d "$WIKI_REPO/.git" ] || return 1
+  [ "$(wiki_git "$WIKI_REPO" rev-parse --is-inside-work-tree 2>/dev/null)" = true ] || return 1
   [ "$(wiki_git "$WIKI_REPO" remote get-url origin 2>/dev/null || printf '')" = "$CFG_REMOTE" ] || return 1
   local raw_list log_text
   raw_list=$(wiki_git "$WIKI_REPO" ls-tree -r --name-only HEAD -- raw 2>/dev/null) || return 1
@@ -792,11 +799,9 @@ wiki_lint_page() {
     grep -qE '^> last-confirmed: [0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$' "$page" 2>/dev/null \
       || { printf 'wiki lint: %s has a malformed last-confirmed date (want YYYY-MM-DD)\n' "$rel"; blocked=1; }
   fi
-  wiki_lint_sources "$repo" "$page" "$rel" || blocked=1
   # Citations live in the body, not the header: the `> sources:` provenance
   # line alone does not support a claim.
-  grep -v '^>' "$page" 2>/dev/null | grep -q 'raw/' \
-    || { printf 'wiki lint: %s cites no raw lesson\n' "$rel"; blocked=1; }
+  wiki_lint_sources "$repo" "$page" "$rel" || blocked=1
   wiki_lint_links "$page" "$rel" || blocked=1
   if [ "$(wc -l < "$page" | tr -d ' ')" -gt 120 ]; then
     printf 'wiki lint: %s is over the 120-line page budget\n' "$rel"
@@ -808,17 +813,38 @@ wiki_lint_page() {
 # wiki_lint_sources <repo> <page> <rel>: every `> sources:` entry names an
 # existing file. Exit 1 with the reason printed when one dangles.
 wiki_lint_sources() {
-  local repo=$1 page=$2 rel=$3 entry tmp blocked=0
-  tmp=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-lint.XXXXXX") || return 1
-  sed -n 's/^> sources: *//p' "$page" 2>/dev/null | head -n 1 | tr ';' '\n' > "$tmp"
-  while IFS= read -r entry; do
-    entry=$(printf '%s' "$entry" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-    [ -n "$entry" ] || continue
-    [ -e "$repo/$entry" ] \
-      || { printf 'wiki lint: %s cites missing %s\n' "$rel" "$entry"; blocked=1; }
-  done < "$tmp"
-  rm -f "$tmp"
-  return "$blocked"
+  python3 - "$1" "$2" "$3" <<'PYTHON'
+import pathlib
+import re
+import sys
+
+repo, page, rel = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]), sys.argv[3]
+raw = repo / "raw"
+
+def lesson(path):
+    target = path.resolve()
+    return target.is_relative_to(raw) and target.is_file() and target.suffix == ".md"
+
+text = page.read_text()
+headers = re.findall(r"^> sources: *(.*)$", text, re.M)
+blocked = False
+for entry in (headers[0].split(";") if headers else []):
+    entry = entry.strip()
+    if not entry.startswith("raw/") or not lesson(repo / entry):
+        print(f"wiki lint: {rel} cites missing or invalid raw lesson {entry}")
+        blocked = True
+body = "\n".join(line for line in text.splitlines() if not line.startswith(">"))
+links = re.findall(r"\]\(([^)]+)\)", body)
+cited = any(lesson(page.parent / target.split("#", 1)[0]) for target in links
+            if not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not target.startswith(("/", "#")))
+plain = re.sub(r"!?\[[^\]]*\]\([^)]+\)", "", body)
+cited = cited or any(lesson(repo / target) for target in
+                     re.findall(r"(?<![\w./-])raw/[A-Za-z0-9._/-]+\.md", plain))
+if not cited:
+    print(f"wiki lint: {rel} cites no raw lesson")
+    blocked = True
+sys.exit(int(blocked))
+PYTHON
 }
 
 # wiki_lint_links <page> <rel>: every relative markdown link resolves inside
@@ -827,7 +853,7 @@ wiki_lint_links() {
   local page=$1 rel=$2 target dir tmp bad=
   dir=$(dirname "$page")
   tmp=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-lint.XXXXXX") || return 1
-  grep -Eo '\]\([^)]+\)' "$page" 2>/dev/null | sed -e 's/^](//' > "$tmp" || true
+  grep -Eo '\]\([^)]+\)' "$page" 2>/dev/null | sed -e 's/^](//' -e 's/)$//' > "$tmp" || true
   while IFS= read -r target; do
     [ -n "$target" ] || continue
     case $target in
@@ -856,7 +882,7 @@ wiki_lint_advisories() {
   while IFS= read -r raw; do
     [ -n "$raw" ] || continue
     base=$(basename "$raw")
-    if grep -rqF -- "$base" "$repo/pages" "$repo/index.md" "$repo/log.md" 2>/dev/null; then
+    if grep -rqF -- "$base" "$repo/pages" 2>/dev/null; then
       continue
     fi
     stamp=${base%%-*}; epoch=
@@ -997,6 +1023,15 @@ wiki_index() {
   wiki_index_generate "$repo"
 }
 
+wiki_publish_guard() {
+  local repo=$1 base=$2 foreign
+  foreign=$(wiki_git "$repo" log --format=%H "$base..origin/$WIKI_BRANCH" --not HEAD -- pages index.md log.md) || return 1
+  if [ -n "$foreign" ]; then
+    printf 'wiki: publish refused: a foreign page commit landed after the base (%s); re-run the gardener onto the new main and publish again\n' "$(printf '%s' "$foreign" | head -n 1 | cut -c1-12)" >&2
+    return 1
+  fi
+}
+
 # wiki_publish: the gardener run's Definition of done. Lint, regenerate the
 # index, refuse any change under raw/ and any page commit made by someone else
 # after the run's base, then commit the compiled pages and push with the same
@@ -1032,8 +1067,8 @@ wiki_publish() {
   if [ "$task" != unknown ]; then
     fm_task_id_creation_valid "$task" || die_usage "invalid task id '$task'"
   fi
-  [ -d "$repo/.git" ] || { printf 'fm-wiki: publish: no wiki checkout at %s; run drain once or clone the wiki remote there\n' "$repo" >&2; return 1; }
   WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_PUBLISH_CAP:-20} ))
+  [ "$(wiki_git "$repo" rev-parse --is-inside-work-tree 2>/dev/null)" = true ] || { printf 'fm-wiki: publish: no wiki checkout at %s; run drain once or clone the wiki remote there\n' "$repo" >&2; return 1; }
   if [ "$(wiki_git "$repo" remote get-url origin 2>/dev/null || printf '')" != "$CFG_REMOTE" ]; then
     printf 'fm-wiki: publish: %s points at another remote; refusing rather than publishing elsewhere\n' "$repo" >&2
     return 1
@@ -1086,12 +1121,7 @@ wiki_publish() {
     return 1
   fi
   if wiki_git "$repo" rev-parse -q --verify "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
-    local foreign
-    foreign=$(wiki_git "$repo" log --format=%H "$base..origin/$WIKI_BRANCH" -- pages index.md log.md 2>/dev/null)
-    if [ -n "$foreign" ]; then
-      printf 'wiki: publish refused: a foreign page commit landed after the base (%s); re-run the gardener onto the new main and publish again\n' "$(printf '%s' "$foreign" | head -n 1 | cut -c1-12)" >&2
-      return 1
-    fi
+    wiki_publish_guard "$repo" "$base" || return 1
     if ! wiki_git "$repo" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
       wiki_git "$repo" rebase --abort >/dev/null 2>&1 || true
       printf 'wiki: publish refused: rebase onto the remote failed; re-run the gardener\n' >&2
@@ -1114,7 +1144,8 @@ wiki_publish() {
       pushed=1
       break
     fi
-    wiki_git "$repo" fetch -q origin >/dev/null 2>&1 || true
+    wiki_git "$repo" fetch -q origin >/dev/null 2>&1 || break
+    wiki_publish_guard "$repo" "$base" || return 1
     if ! wiki_git "$repo" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
       wiki_git "$repo" rebase --abort >/dev/null 2>&1 || true
       break
@@ -1122,7 +1153,8 @@ wiki_publish() {
     wiki_jitter_sleep
   done
   if [ "$pushed" = 1 ]; then
-    wiki_git "$repo" fetch -q origin "$WIKI_BRANCH" >/dev/null 2>&1 || true
+    wiki_git "$repo" fetch -q origin "$WIKI_BRANCH" >/dev/null 2>&1 || { printf 'wiki: publish: landing is unproved; retry\n' >&2; return 1; }
+    wiki_publish_guard "$repo" "$base" || return 1
     if wiki_git "$repo" merge-base --is-ancestor HEAD "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
       printf 'wiki: published %s\n' "$(wiki_git "$repo" rev-parse --short HEAD 2>/dev/null)"
       return 0

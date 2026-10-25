@@ -841,7 +841,7 @@ fi
 # bin/fm-spawn.sh checks against its own explicit --mode and the project's
 # registered forge before launching.
 case "$MODE" in
-  direct-PR)
+  direct-PR|direct-push)
     SETUP2=""
     ;;
   local-only)
