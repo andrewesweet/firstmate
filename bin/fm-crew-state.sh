@@ -996,7 +996,7 @@ nm_done_claim_head() {
 
 nm_run_supersedes_done_claim() {
   local done_head run_head run_full
-  [ "$LOG_VERB" = done ] || return 1
+  [ "$LOG_VERB" = "done" ] || return 1
   [ "$(strip_quotes "$(nm_field branch)")" = "$CREW_BRANCH" ] || return 1
   fm_nm_run_is_active "$RUN_OUT" && fm_nm_run_is_parked "$RUN_OUT" || return 1
   run_head=$(strip_quotes "$(nm_field head)")
