@@ -934,6 +934,26 @@ The query itself never blocks a task and makes no model calls; capture is a loca
 `bin/fm-spend-query.sh --unmeasured <reason> <task-id>` emits the unmeasured shape for a task without measuring, so the producer's own rare fallback - the query failing outright rather than answering unmeasured - reuses this one shell definition of that shape instead of building a second.
 The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_ref` naming the PR URL, `local-main`, `report` with the report path, or none).
 
+## Crew wiki (config/wiki)
+
+A home can publish its finished tasks' reusable lessons as immutable raw files to a private wiki repository. The feature is off unless `config/wiki` exists; an absent, unreadable, or `role=off` file makes every wiki path a silent no-op, and no brief, cleanup, or drain changes shape.
+
+The file's keys, one `key=value` per line:
+
+- `remote=` - the wiki repository's fetch URL (SSH or `file://`); required for any landing.
+- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader` and `off` contribute nothing (read-side tooling is a later slice).
+- `host=` - optional name stamped into each file's `wiki-host:` trailer; defaults to this machine's hostname.
+- `jev=` - accepted and held for a later slice's privacy advisory; it has no effect today.
+
+When the feature is on for a contributing role, two seams activate:
+
+- A ship or scout brief renders a `## Crew wiki` step (rendered by `bin/fm-dod-lib.sh`'s `fm_dod_wiki_step`, the same owner as the Definition of done) telling the worker to write scope, claim, and evidence to `data/<task-id>/lessons.md`. A nothing-to-teach first line keeps the file out of publication.
+- Closing a task runs `bin/fm-wiki.sh close <task-id>` (best-effort on both cleanup paths, after the task's final status is read and before the status file is retired, never blocking or failing cleanup): it reads that lesson file, stamps it, scans it for secrets (gitleaks when installed, plus a bundled regex pass; a hit is held locally in `state/wiki/held/` and never pushed), and only a clean scan renames the file atomically into `state/wiki/outbox/`. `close` never touches the network and never takes a lock; afterwards it spawns one detached `drain`, so cleanup triggers publication without waiting on it.
+
+`bin/fm-wiki.sh drain` is the only publisher. It is single-flight per home (a second drain exits 0 immediately through a non-blocking lock whose release removes only its own instance), bounds every git operation by a portable remaining-time wall clock, and lands one add-only commit per drain under `raw/YYYY/MM/<UTC-stamp>-<host>-<home-identity>-<task-id>-<nonce>.md` - the stable per-home identity and random nonce make filenames globally unique without coordination, so two homes never write the same path and concurrent commits rebase cleanly. Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical; an unreachable remote leaves lessons queued for the next drain. Publication is triggered off the cleanup path through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically by the supervision loop's own cycle calling `bin/fm-wiki.sh drain-if-due` (rate-limited by `state/wiki/.last-drain`, one config test per cycle when off).
+
+Every close outcome (lesson, no lessons, nothing to teach, held) appends one line to the home's `state/wiki/ledger.jsonl` so a re-close is a recorded no-op; queued-but-unrecorded lessons are caught by reading only the generated stamp block, never lesson body text. Lessons are stamped with the task, project, worker runtime, and model as `wiki:` trailers; project visibility is stamped `unknown` until a forge lookup exists. The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
+
 ## Jev self-check record (data/jev-lint.jsonl)
 
 The advisory self-check is an optional hand-run tool, excluded from ship definitions of done.
