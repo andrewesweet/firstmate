@@ -675,6 +675,7 @@ test_publish_retries_its_own_unproved_landing() {
   real_git=$(command -v git)
   {
     printf '#!/usr/bin/env bash\n'
+    # shellcheck disable=SC2016 # Positional parameters expand in the generated script.
     printf 'if [ "${3:-}" = fetch ] && [ "${6:-}" = main ] && [ ! -f %q ]; then\n' "$marker"
     printf '  touch %q; exit 1\nfi\n' "$marker"
     printf 'exec %q "$@"\n' "$real_git"
@@ -829,7 +830,9 @@ test_lint_resolves_reference_links_and_excludes_code_examples() {
   lesson=$(add_raw "$repo" 20200101T000000Z only-in-code)
   {
     printf '> summary: code examples\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n[real][src]\n\n[src]: ../../%s\n\n' "$source" "$source"
+    # shellcheck disable=SC2016 # Backticks are literal Markdown code delimiters.
     printf 'Inline `[fake](missing.md) raw/missing.md` and ``[fake](missing.md) ` raw/missing.md``.\n\n'
+    # shellcheck disable=SC2016 # Backticks are literal Markdown code delimiters.
     printf '```markdown\n[fake](missing.md)\nraw/missing.md\n[fake-ref]: missing.md\n%s\n```\n\n' "${lesson#"$repo/"}"
     printf '~~~markdown\n[fake][fake-ref]\nraw/missing.md\n~~~\n\n'
     printf '    [fake](missing.md)\n    raw/missing.md\n\n'
@@ -958,6 +961,7 @@ test_gardener_commands_bind_custom_home_paths() {
   bare=$(wiki_bare boundhome)
   seed_checkout "$bare" "$TMP_ROOT/boundhome-seed" >/dev/null
   home=$(wiki_home 'bound home')
+  # shellcheck disable=SC2016 # The fixture path intentionally contains a literal dollar sign.
   config="$home/"'custom config $literal'
   state="$home/custom state"
   data="$home/custom data"
@@ -1014,6 +1018,7 @@ test_idle_gardener_refresh_is_bounded_and_recovers() {
   mkdir -p "$fakebin"
   {
     printf '#!/usr/bin/env bash\n'
+    # shellcheck disable=SC2016 # Positional parameters expand in the generated script.
     printf 'if [ "${3:-}" = fetch ]; then\n  touch %q\n  sleep 30\n  exit 1\nfi\n' "$marker"
     printf 'exec %q "$@"\n' "$real_git"
   } > "$fakebin/git"
