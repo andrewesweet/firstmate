@@ -115,8 +115,8 @@ FM_CLASSIFY_PAUSED_VERB_DEFAULT='paused'
 # default: a declared wait is by definition expected to clear on its own, so a
 # recheck is a backstop, not progress, and an hourly one only produced nagging
 # (the 2026-09-07 away-window audit). A worker that knows when its wait clears
-# names it with `until` (status_paused_until below) and is rechecked at that
-# time or this cadence bound, whichever comes first. Both consumers read
+# names it with a deadline keyword (status_paused_until below) and is rechecked
+# at that time or this cadence bound, whichever comes first. Both consumers read
 # FM_PAUSE_RESURFACE_SECS with this default so
 # the cadence has one owner. An item held for the captain is not rechecked at all
 # while the away-posture record exists (bin/fm-watch.sh owns that rule).
@@ -416,18 +416,35 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
 }
 
 # A condition-aware declared wait: a `paused:` line may say WHEN it expects to
-# clear with `until <YYYY-MM-DDTHH:MM[:SS]Z>` anywhere in its text (UTC only, so
-# no local-zone guess is ever recorded). Prints that time as epoch seconds so a
-# supervisor rechecks the wait when the worker said it would clear instead of on
-# the flat cadence; returns 1 when the line is not a pause or declares no time,
-# or the time is malformed, so a bad token falls back to the cadence rather than
-# silencing the wait.
+# clear with `until <YYYY-MM-DDTHH:MM[:SS]Z>` or `by <YYYY-MM-DDTHH:MM[:SS]Z>`
+# anywhere in its text (UTC only, so no local-zone guess is ever recorded; the
+# keyword is case-insensitive and workers use both spellings). Prints that time
+# as epoch seconds so a supervisor rechecks the wait when the worker said it
+# would clear instead of on the flat cadence; `until` wins when one line carries
+# both. Returns 1 when the line is not a pause, declares no time, or the time is
+# malformed, so a bad token falls back to the cadence rather than silencing the
+# wait.
 status_paused_until() {  # <status-line> -> epoch on stdout
   local line=$1 token
   status_is_paused "$line" || return 1
-  token=$(printf '%s' "$line" \
-    | sed -n 's/.*[[:space:]][Uu][Nn][Tt][Ii][Ll][[:space:]]\{1,\}\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]Z\).*/\1/p; s/.*[[:space:]][Uu][Nn][Tt][Ii][Ll][[:space:]]\{1,\}\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z\).*/\1/p' \
-    | head -1)
+  # One token scan, so the two spellings cannot drift. The keyword is compared
+  # case-insensitively; the ISO time keeps its own exact shape (upper-case T and
+  # Z), read from the start of the following word so trailing punctuation such
+  # as a comma does not hide it.
+  token=$(printf '%s' "$line" | awk '
+    {
+      until_tok = ""; by_tok = ""
+      for (i = 1; i < NF; i++) {
+        tok = $(i + 1)
+        if (!match(tok, /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9](:[0-9][0-9])?Z/)) continue
+        tok = substr(tok, 1, RLENGTH)
+        keyword = toupper($i)
+        if (keyword == "UNTIL" && until_tok == "") until_tok = tok
+        else if (keyword == "BY" && by_tok == "") by_tok = tok
+      }
+    }
+    END { if (until_tok != "") print until_tok; else if (by_tok != "") print by_tok }
+  ')
   [ -n "$token" ] || return 1
   fm_utc_iso_to_epoch "$token"
 }
