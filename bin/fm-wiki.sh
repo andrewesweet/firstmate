@@ -846,12 +846,59 @@ def lesson(path):
         return True
     return False
 
-link = re.compile(r"""!?\[[^\]]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)""")
+def prose(text):
+    lines = []
+    fence = None
+    indented = False
+    blank = True
+    for line in text.splitlines(keepends=True):
+        logical = re.sub(r"^(?: {0,3}>[ \t]?)+", "", line)
+        marker = re.match(r" {0,3}(`{3,}|~{3,})", logical)
+        if fence:
+            if re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", logical):
+                fence = None
+            lines.append("\n")
+        elif marker:
+            fence = marker.group(1)
+            lines.append("\n")
+        elif re.match(r"(?: {4}|\t)", logical) and (blank or indented):
+            indented = True
+            lines.append("\n")
+        elif indented and not logical.strip():
+            lines.append("\n")
+        else:
+            indented = False
+            lines.append(line)
+        blank = not logical.strip()
+    return re.sub(r"(?<!\\)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", "".join(lines), flags=re.S)
 
-def destination(match):
-    return (match.group(1) or match.group(2)).split("#", 1)[0]
+link = re.compile(r"""(?<!\\)!?\[[^\]]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)""")
+definition = re.compile(r"""^ {0,3}\[([^\]\n]+)\]:[ \t]*(?:<([^>\n]+)>|(\S+))(?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?[ \t]*$""", re.M)
+reference = re.compile(r"(?<!\\)!?\[([^\]]+)\](?:\[([^\]]*)\])?")
 
-text = page.read_text()
+def label(value):
+    return " ".join(value.split()).casefold()
+
+text = prose(page.read_text())
+references = {}
+for match in definition.finditer(text):
+    references.setdefault(label(match.group(1)), match.group(2) or match.group(3))
+text = definition.sub("", text)
+
+def rendered_links(value):
+    targets = []
+    def inline(match):
+        targets.append(match.group(1) or match.group(2))
+        return ""
+    def indirect(match):
+        key = label(match.group(2) or match.group(1))
+        if key not in references:
+            return match.group(0)
+        targets.append(references[key])
+        return ""
+    plain = reference.sub(indirect, link.sub(inline, value))
+    return targets, plain
+
 headers = re.findall(r"^> sources: *(.*)$", text, re.M)
 blocked = False
 for entry in (headers[0].split(";") if headers else []):
@@ -859,8 +906,8 @@ for entry in (headers[0].split(";") if headers else []):
     if not entry.startswith("raw/") or not lesson(repo / entry):
         print(f"wiki lint: {rel} cites missing or invalid raw lesson {entry}")
         blocked = True
-for match in link.finditer(text):
-    target = destination(match)
+for target in rendered_links(text)[0]:
+    target = target.split("#", 1)[0]
     if not target or re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target):
         continue
     path = (page.parent / target).resolve()
@@ -872,11 +919,11 @@ for match in link.finditer(text):
         blocked = True
 body = "\n".join(line for line in text.splitlines() if not line.startswith(">"))
 cited = False
-for match in link.finditer(body):
-    target = destination(match)
+targets, plain = rendered_links(body)
+for target in targets:
+    target = target.split("#", 1)[0]
     if target and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not target.startswith("/"):
         cited = lesson(page.parent / target) or cited
-plain = link.sub("", body)
 for target in re.findall(r"(?<![\w./-])raw/[A-Za-z0-9._/-]+\.md\b", plain):
     if lesson(repo / target):
         cited = True
@@ -959,7 +1006,6 @@ wiki_lint() {
   while [ "$#" -gt 0 ]; do
     case $1 in
       --repo) [ -n "${2:-}" ] || die_usage 'lint --repo needs a directory'; repo=$2; shift 2 ;;
-      --repo=*) repo=${1#--repo=}; shift ;;
       *) die_usage "unknown lint flag '$1'" ;;
     esac
   done
@@ -1032,7 +1078,6 @@ wiki_index() {
   while [ "$#" -gt 0 ]; do
     case $1 in
       --repo) [ -n "${2:-}" ] || die_usage 'index --repo needs a directory'; repo=$2; shift 2 ;;
-      --repo=*) repo=${1#--repo=}; shift ;;
       *) die_usage "unknown index flag '$1'" ;;
     esac
   done
@@ -1089,13 +1134,10 @@ wiki_publish() {
   fi
   while [ "$#" -gt 0 ]; do
     case $1 in
-      --repo) [ -n "${2:-}" ] || die_usage 'publish --repo needs a directory'; repo=$2; shift 2; continue ;;
-      --base) [ -n "${2:-}" ] || die_usage 'publish --base needs a commit'; base=$2; shift 2; continue ;;
-      --repo=*) repo=${1#--repo=} ;;
-      --base=*) base=${1#--base=} ;;
+      --repo) [ -n "${2:-}" ] || die_usage 'publish --repo needs a directory'; repo=$2; shift 2 ;;
+      --base) [ -n "${2:-}" ] || die_usage 'publish --base needs a commit'; base=$2; shift 2 ;;
       *) die_usage "unknown publish flag '$1'" ;;
     esac
-    shift
   done
   wiki_paths >/dev/null 2>&1 || return 1
   repo=${repo:-$WIKI_REPO}

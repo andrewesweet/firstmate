@@ -802,6 +802,80 @@ test_publish_refreshes_scheduling_from_a_separate_clone() {
   pass "publish refreshes scheduling from a separate clone"
 }
 
+test_lint_resolves_reference_links_and_excludes_code_examples() {
+  local home bare repo page source body out status lesson
+  bare=$(wiki_bare lintmarkdown)
+  seed_checkout "$bare" "$TMP_ROOT/lintmarkdown-seed" >/dev/null
+  home=$(gardener_home_with_repo lintmarkdown "$bare")
+  repo="$home/state/wiki/repo"
+  page="$repo/pages/tools/seed-page.md"
+  source=raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+  for body in '[lesson][src]' '[src][]' '[src]' '[lesson][ SRC ]'; do
+    printf '> summary: reference citation\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n\n[src]: <../../%s#seed> "source"\n[unused]: missing.md\n' "$source" "$body" "$source" > "$page"
+    out=$(run_wiki "$home" lint 2>&1) || fail "rendered reference citation $body must pass: $out"
+    assert_contains "$out" '1 raw lesson(s) cited' "references resolve to the same raw lesson as inline citations"
+  done
+  for body in '[missing][ref]' '[ref][]' '[ref]'; do
+    printf '> summary: dangling reference\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nA real citation: %s. Also %s.\n\n[ref]: missing.md\n' "$source" "$source" "$body" > "$page"
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "lint must reject dangling reference $body"
+    assert_contains "$out" 'dangling link: missing.md' "all rendered reference forms validate their destinations"
+  done
+  lesson=$(add_raw "$repo" 20200101T000000Z only-in-code)
+  {
+    printf '> summary: code examples\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n[real][src]\n\n[src]: ../../%s\n\n' "$source" "$source"
+    printf 'Inline `[fake](missing.md) raw/missing.md` and ``[fake](missing.md) ` raw/missing.md``.\n\n'
+    printf '```markdown\n[fake](missing.md)\nraw/missing.md\n[fake-ref]: missing.md\n%s\n```\n\n' "${lesson#"$repo/"}"
+    printf '~~~markdown\n[fake][fake-ref]\nraw/missing.md\n~~~\n\n'
+    printf '    [fake](missing.md)\n    raw/missing.md\n\n'
+    printf '> ~~~markdown\n> [fake](missing.md)\n> raw/missing.md\n> ~~~\n'
+  } > "$page"
+  out=$(run_wiki "$home" lint 2>&1) || fail "code examples must not create dangling links or citations: $out"
+  assert_contains "$out" '1 raw lesson(s) cited' "code examples do not inflate citation counts"
+  assert_contains "$out" "raw lesson no page cites after 30 days: ${lesson#"$repo/"}" "code-only raw paths do not suppress uncited advisories"
+  for body in "\`$source\`" "\`\`$source\`\`"; do
+    printf '> summary: code-only citation\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n' "$source" "$body" > "$page"
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "inline code must not satisfy the body citation requirement"
+    assert_contains "$out" 'cites no raw lesson' "code-only page remains uncited"
+  done
+  for body in '```' '~~~' '    '; do
+    printf '> summary: block-code-only citation\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n' "$source" > "$page"
+    if [ "$body" = '    ' ]; then
+      printf '    %s\n' "$source" >> "$page"
+    else
+      printf '%s\n%s\n%s\n' "$body" "$source" "$body" >> "$page"
+    fi
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "code blocks must not satisfy the body citation requirement"
+    assert_contains "$out" 'cites no raw lesson' "block-code-only page remains uncited"
+  done
+  printf '> summary: unused reference\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nNo rendered citation.\n\n[src]: ../../%s\n' "$source" "$source" > "$page"
+  out=$(run_wiki "$home" lint 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "an unused definition must not count as a body citation"
+  assert_contains "$out" 'cites no raw lesson' "unused reference definitions do not establish citations"
+  pass "lint resolves rendered references and excludes code from all citation consumers"
+}
+
+test_gardener_verbs_reject_equals_form_options() {
+  local home bare repo base out status verb
+  bare=$(wiki_bare spacedoptions)
+  seed_checkout "$bare" "$TMP_ROOT/spacedoptions-seed" >/dev/null
+  home=$(gardener_home_with_repo spacedoptions "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  for verb in lint index publish; do
+    out=$(run_wiki "$home" "$verb" "--repo=$repo" 2>&1); status=$?
+    [ "$status" -eq 2 ] || fail "$verb must reject equals-form --repo"
+    assert_contains "$out" "unknown $verb flag" "equals-form options report usage errors"
+  done
+  out=$(run_wiki "$home" publish --repo "$repo" "--base=$base" 2>&1); status=$?
+  [ "$status" -eq 2 ] || fail "publish must reject equals-form --base"
+  assert_contains "$out" 'unknown publish flag' "equals-form base reports a usage error"
+  assert_equals "$base" "$(wgit -C "$bare" rev-parse main)" "rejected options do not publish anything"
+  pass "gardener verbs retain spaced options and reject equals-form aliases"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -828,3 +902,6 @@ test_due_reads_adapter_backlogs_without_markdown
 test_lint_checks_every_citation_and_parses_markdown_titles
 test_publish_refuses_raw_changes_even_when_restored
 test_publish_refreshes_scheduling_from_a_separate_clone
+
+test_lint_resolves_reference_links_and_excludes_code_examples
+test_gardener_verbs_reject_equals_form_options
