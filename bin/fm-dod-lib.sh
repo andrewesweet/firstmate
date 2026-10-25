@@ -658,6 +658,34 @@ fm_dod_feedback_dir() {  # -> <data-dir>
   printf '%s\n' "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 }
 
+# The crew-wiki lesson step for a rendered Definition of done, or nothing
+# when this home has not opted in through config/wiki with a contributing
+# role. bin/fm-wiki.sh owns the lesson-schema text; this helper owns only the
+# insertion framing and this task's lesson-file path. Silence (feature off,
+# reader role, missing home) is a supported outcome, never an error: a brief
+# must render with or without the wiki.
+fm_dod_wiki_step() {  # <task-id> -> <wiki step text>
+  local id=$1 root snippet data home
+  root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+  home=${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-$root}}}
+  snippet=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
+    "$root/bin/fm-wiki.sh" brief-snippet --role contributor 2>/dev/null) || return 0
+  [ -n "$snippet" ] || return 0
+  data=${DATA:-${FM_DATA_OVERRIDE:-$home/data}}
+  printf '## Crew wiki\n\n'
+  printf "This task's lesson file: \`%s/%s/lessons.md\`.\n\n" "$data" "$id"
+  printf '%s\n' "$snippet"
+}
+
+# fm_dod_wiki_print_step <task-id>: the framed step, or nothing at all when
+# the home is not a contributing wiki home, so opt-out briefs render exactly
+# as they did before this step existed.
+fm_dod_wiki_print_step() {  # <task-id>
+  local step
+  step=$(fm_dod_wiki_step "$1") || return 0
+  [ -n "$step" ] || return 0
+  printf '\n%s\n\n' "$step"
+}
 fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>] [<fork>]
   local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} publication_target=${7:-} fork=${8:-} paused=${PAUSED_VERB:-${FM_CLASSIFY_PAUSED_VERB:-paused}}
   local branch=${3:-fm/$id} data pr_base='' nm_base='' base_q branch_q contract_forge='' contract_consent='' contract_fork='' fork_base='' forge_cli=gh-axi draft_check rebase_target='the current default branch' adapter
@@ -737,6 +765,7 @@ The task is complete only when committed on your branch.
 
 EOF
       fm_implement_discipline_block "$branch"
+      fm_dod_wiki_print_step "$id"
       cat <<EOF
 
 When it is implemented and committed, publish it.
@@ -759,6 +788,7 @@ The task is complete only when committed on your branch.
 EOF
       fm_implement_discipline_block "$branch"
       fm_nm_implement_ordering_block
+      fm_dod_wiki_print_step "$id"
       cat <<EOF
 
 When your implementation is committed, start /no-mistakes yourself to validate; do not append \`done:\` and wait for firstmate's instruction.
@@ -799,6 +829,7 @@ EOF
       if [ -n "$FM_REVIEW_BACKUP_REMOTE" ]; then
         printf '%s\n' "Before uploading, push a durable copy to the backup remote as your first rule names; your done is accepted only when that copy holds your HEAD."
       fi
+      fm_dod_wiki_print_step "$id"
       cat <<EOF
 Follow the review tool instructions below to validate, upload, and bring the review to the stopping point they name.
 Write the review title and description in plain English for a reviewer who lacks your context, with no direct address.
@@ -829,6 +860,7 @@ EOF
       cat <<EOF
 
 EOF
+      fm_dod_wiki_print_step "$id"
       if [ -n "$fork" ]; then
         # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
         cat <<EOF
@@ -858,6 +890,7 @@ The task is complete only when committed on your branch \`$branch\`. Do NOT push
 
 EOF
       fm_implement_discipline_block "$branch"
+      fm_dod_wiki_print_step "$id"
       cat <<EOF
 
 A \`done:\` is accepted when the named head is on this project's shared local branch, not only on a detached copy; the check tests that head, not merely that a branch moved.
@@ -905,6 +938,7 @@ The task is complete only when committed on your branch.
 EOF
       fm_implement_discipline_block "$branch"
       fm_nm_implement_ordering_block
+      fm_dod_wiki_print_step "$id"
       cat <<EOF
 
 EOF

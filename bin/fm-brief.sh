@@ -765,6 +765,10 @@ if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
 else
   LAVISH_LINE='Lavish is unavailable (lavish-axi is missing or below its supported version floor), so deliver your findings as a text report without Lavish, even for a visual deliverable.'
 fi
+# The crew-wiki lesson step for scout reports: fm-dod-lib's helper renders the
+# framed step when this home opts in through config/wiki, and nothing at all
+# when it does not, so opt-out scouts keep the exact prior scaffold.
+WIKI_STEP=$(fm_dod_wiki_print_step "$ID")
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
@@ -813,6 +817,7 @@ The report must stand alone: what you did, what you found, the evidence (command
 Grade every finding with one evidence grade: Direct (seen firsthand), Supported (backed by a cited source), Inferred (reasoned from the evidence), Speculative (plausible but untested), or Unknown (could not be established).
 $LAVISH_LINE
 Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\` and pass its shared completion gate for the report and any visual review.
+$WIKI_STEP
 When the report is complete, append \`done [at=<epoch>]: {one-line conclusion}\` to the status file and stop.
 If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
 EOF

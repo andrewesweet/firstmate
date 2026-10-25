@@ -3883,6 +3883,12 @@ teardown_legacy_stamp_rollback() {
       [ -n "$TEARDOWN_SPEND_LINE" ] \
         || echo "error: could not append $ID's spend ledger entry; continuing cleanup" >&2
     fi
+    # Crew-wiki lesson close (bin/fm-wiki.sh owns the feature): best-effort and
+    # silent when config/wiki has not opted this home in. The data dir this
+    # reads is still in hand here; the record removal below is the closure.
+    FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_DATA_OVERRIDE=$DATA FM_CONFIG_OVERRIDE=$CONFIG \
+      "$SCRIPT_DIR/fm-wiki.sh" close "$ID" >/dev/null \
+      || echo "warning: could not close $ID's crew-wiki lessons; continuing cleanup" >&2
   fi
   BACKLOG_CLOSED=1
   META_SPAWN_GEN=$TEARDOWN_META_SPAWN_GEN
@@ -4247,6 +4253,15 @@ fi
 # Opt-in fleet activity ledger (docs/fleet-ledger.md), before the status log is
 # retired so its last lines are captured; off costs one file test.
 [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" cleaned_up "$ID" || true
+# The crew-wiki lesson close (bin/fm-wiki.sh owns the feature) runs here too:
+# close reads the task's final status line, so it must come before the status
+# retirement below. Publication is detached, so cleanup never waits for the
+# remote. Best-effort and silent when config/wiki has not opted this home in.
+if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_DATA_OVERRIDE=$DATA FM_CONFIG_OVERRIDE=$CONFIG \
+    "$SCRIPT_DIR/fm-wiki.sh" close "$ID" >/dev/null \
+    || echo "warning: could not close $ID's crew-wiki lessons; continuing cleanup" >&2
+fi
 status_retire_presentation_task "$STATE" "$ID" || exit 1
 # The no-backlog-transition close (see above) records its line here: every
 # refusal that could still abort this teardown has passed, the task record

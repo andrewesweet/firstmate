@@ -3414,6 +3414,14 @@ while :; do
   # Opt-in Herdr project groups (docs/herdr-backend.md "Project groups"):
   # display-only tags and agents view, never a wake. Off costs one file test.
   [ ! -e "$CONFIG/herdr-project-groups" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-herdr-groups.sh" sync || true
+  # Opt-in crew wiki (docs/configuration.md "Crew wiki"): drain-if-due paces
+  # itself by its own stamp, exits after one config test when the feature is
+  # off, and is single-flight, so the periodic detached spawn here only ever
+  # publishes queued lessons; it never wakes and never blocks this loop.
+  if [ -e "$CONFIG/wiki" ]; then
+    FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG \
+      "$SCRIPT_DIR/fm-wiki.sh" drain-if-due </dev/null >/dev/null 2>&1 &
+  fi
 
   if [ "$(age_of "$STATE/home-summary.json")" -ge "$HOME_SUMMARY_INTERVAL" ]; then
     home_summary_refresh_detached

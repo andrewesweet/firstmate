@@ -939,6 +939,10 @@ tests/fm-watch-wedge-cap.test.sh 374225
 tests/fm-watch-wedge-cap-unconfigured-parity.test.sh 27763
 tests/fm-watch-wedge-cap-live.test.sh 74
 tests/fm-watcher-lock.test.sh 108940
+# Measured 2026-10-25 on the fm/crew-wiki-s01 branch (simplified design):
+# 10-15 s standalone, weighted up for the 30-close concurrency burst under
+# CI load.
+tests/fm-wiki.test.sh 40000
 tests/fm-worker-account-live-e2e.test.sh 3388
 tests/fm-worker-account.test.sh 29925
 EOF
