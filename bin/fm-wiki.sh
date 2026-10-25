@@ -22,16 +22,43 @@
 #                 arguments, close exits 0 even on capture failure. It then
 #                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
-#   drain        The only publisher: single-flight per home (a second drain
-#                 exits 0 immediately), bounded by a wall-clock deadline that
-#                 bounds every git operation, one add-only commit per drain
-#                 with Wiki-* trailers, fetch/rebase/push retries that never
-#                 force, and a blob-equality landing proof before an outbox
+#   drain        The only publisher of raw lessons: single-flight per home (a
+#                 second drain exits 0 immediately), bounded by a wall-clock
+#                 deadline that bounds every git operation, one add-only commit
+#                 per drain with Wiki-* trailers, fetch/rebase/push retries that
+#                 never force, and a blob-equality landing proof before an outbox
 #                 file is retired. See docs/configuration.md "Crew wiki" for
 #                 raw-file naming and collision handling.
 #   drain-if-due Watcher tick: rate-limited by state/wiki/.last-drain so the
 #                 existing supervision loop can call it every cycle; off homes
 #                 cost one config test.
+#   due          Gardener only, no arguments: exit 0 with one line when at
+#                 least 25 raw lessons are uncompiled or the oldest uncompiled
+#                 one is 7 days old, and no crew-wiki project task is open in
+#                 this home. Otherwise exit 1, silently. A home without the
+#                 feature, or with any role but gardener, never fires. Reads
+#                 only the home's own clone and task records; never the network.
+#                 Register it with bin/fm-procevent-when.sh (docs/configuration.md
+#                 "Crew wiki") so firstmate is woken once to file a gardener
+#                 task; the watch fires at most once and firstmate re-arms it.
+#   lint [--repo <dir>]
+#                 Gardener only: run the deterministic page checks (report 4.6)
+#                 over a wiki checkout, defaulting to this home's clone. Blocking
+#                 problems exit 1; advisory ones (orphans, stale signals,
+#                 unconfirmed pages) are reported and never block.
+#   index [--repo <dir>]
+#                 Gardener only: regenerate index.md from page headers within
+#                 the 150-line budget, atomically. Over budget still writes the
+#                 file but exits 1 so publish refuses to land it.
+#   publish [--repo <dir>] --base <sha> [--task <id>]
+#                 Gardener only, the direct-push Definition of done: lint, then
+#                 refuse any change under raw/ and any page commit made by someone
+#                 else after the run's base, then commit the compiled pages,
+#                 rebase and push with the same fetch-rebase-push loop (never
+#                 force) and landing proof as drain. Refusals and push failures
+#                 exit 1 with a retryable message; only a proven landing exits 0.
+#                 Never rebuilds or switches the checkout: a mismatched origin is
+#                 refused, never destroyed.
 #
 # State layout under $FM_HOME/state/wiki/:
 #   outbox/       clean lessons waiting for the next drain (the only queue).
@@ -612,6 +639,501 @@ wiki_drain_if_due() {
   wiki_drain
 }
 
+# wiki_gardener_ready: 0 when this home may run the gardener verbs (due,
+# lint, index, publish): role=gardener with a remote. Anything else stays out:
+# a home without the feature, or with any other role, never compiles pages.
+wiki_gardener_ready() {
+  wiki_feature_on 1 >/dev/null 2>&1 || return 1
+  [ "$CFG_ROLE" = gardener ]
+}
+
+# wiki_gardener_open: 0 when a crew-wiki project task is still open in this
+# home. The scan is conservative: a task record whose final status is not a
+# terminal verb (done, failed) counts as open, including a missing status file,
+# so due never files a second gardener while one is still under way.
+wiki_gardener_open() {
+  local meta id base final kind
+  for meta in "$WIKI_STATE"/*.meta; do
+    [ -f "$meta" ] || continue
+    kind=$(wiki_sanitize "$(wiki_meta_get "$meta" kind)")
+    case $kind in
+      secondmate) continue ;;
+    esac
+    base=$(basename "$(wiki_meta_get "$meta" project)" 2>/dev/null)
+    [ "$base" = crew-wiki ] || continue
+    id=$(basename "$meta")
+    id=${id%.meta}
+    final=$(wiki_final_verb "$id")
+    case $final in
+      done|failed) continue ;;
+      *) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# wiki_due: the procevent condition. Exit 0 with one line only when the run
+# thresholds hold in this gardener home; exit 1 silently otherwise. Reads the
+# home's own clone at HEAD (what its drains maintain) and its task records;
+# never the network, never a lock.
+wiki_due() {
+  [ "$#" -eq 0 ] || die_usage 'due takes no arguments'
+  wiki_gardener_ready || return 1
+  wiki_paths >/dev/null 2>&1 || return 1
+  WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_DUE_CAP:-20} ))
+  [ -d "$WIKI_REPO/.git" ] || return 1
+  [ "$(wiki_git "$WIKI_REPO" remote get-url origin 2>/dev/null || printf '')" = "$CFG_REMOTE" ] || return 1
+  local raw_list log_text
+  raw_list=$(wiki_git "$WIKI_REPO" ls-tree -r --name-only HEAD -- raw 2>/dev/null) || return 1
+  log_text=$(wiki_git "$WIKI_REPO" show HEAD:log.md 2>/dev/null || printf '')
+  local pending=0 stamps name stamp
+  stamps=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-due.XXXXXX") || return 1
+  : > "$stamps"
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    case $name in
+      *.md) ;;
+      *) continue ;;
+    esac
+    if printf '%s' "$log_text" | grep -qF -- "$(basename "$name")"; then
+      continue
+    fi
+    pending=$(( pending + 1 ))
+    stamp=$(basename "$name" .md)
+    stamp=${stamp%%-*}
+    case $stamp in
+      [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z)
+        printf '%s\n' "$stamp" >> "$stamps" ;;
+    esac
+  done <<EOF
+$raw_list
+EOF
+  local oldest=
+  if [ -s "$stamps" ]; then
+    oldest=$(python3 -c '
+import sys, datetime
+best = None
+for line in open(sys.argv[1]):
+    line = line.strip()
+    try:
+        dt = datetime.datetime.strptime(line, "%Y%m%dT%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        continue
+    epoch = int(dt.timestamp())
+    if best is None or epoch < best[0]:
+        best = (epoch, "%s-%s-%s" % (line[0:4], line[4:6], line[6:8]))
+if best is not None:
+    print("%d %s" % best)
+' "$stamps" 2>/dev/null || printf '')
+  fi
+  rm -f "$stamps"
+  local fire=0 oldest_epoch='' oldest_day='unknown'
+  case $oldest in
+    *' '*) oldest_epoch=${oldest%% *}; oldest_day=${oldest#* } ;;
+  esac
+  if [ "$pending" -ge 25 ]; then
+    fire=1
+  elif [ "$pending" -gt 0 ] && [ -n "$oldest_epoch" ] && [ "$(( ($(date +%s) - oldest_epoch) / 86400 ))" -ge 7 ]; then
+    fire=1
+  fi
+  [ "$fire" -eq 1 ] || return 1
+  wiki_gardener_open && return 1
+  printf 'wiki: gardener due (%s uncompiled raw lesson(s), oldest %s)\n' "$pending" "$oldest_day"
+}
+
+# wiki_lint_repo <repo>: the deterministic page checks (report 4.6). Blocking
+# problems print as `wiki lint:` lines; advisory ones print as
+# `wiki lint advisory:` lines and never block. The outcome lands in
+# WIKI_LINT_BLOCKED/PAGES/CITED; the caller renders the verdict. Jev
+# contradiction and duplicate candidates are a slice-04 seam: no call happens
+# here.
+wiki_lint_repo() {
+  local repo=$1 page rel fails=0
+  WIKI_LINT_PAGES=0
+  WIKI_LINT_CITED=$(grep -rhoE 'raw/[A-Za-z0-9._/-]+\.md' "$repo/pages" 2>/dev/null | LC_ALL=C sort -u | wc -l | tr -d ' ')
+  [ -n "$WIKI_LINT_CITED" ] || WIKI_LINT_CITED=0
+  if [ ! -d "$repo/pages" ]; then
+    printf 'wiki lint: no pages/ directory in %s\n' "$repo"
+    WIKI_LINT_BLOCKED=1
+    return 0
+  fi
+  if [ ! -f "$repo/index.md" ]; then
+    printf 'wiki lint: no index.md in %s\n' "$repo"
+    fails=$(( fails + 1 ))
+  elif [ "$(wc -l < "$repo/index.md" | tr -d ' ')" -gt 150 ]; then
+    printf 'wiki lint: index.md is over the 150-line budget\n'
+    fails=$(( fails + 1 ))
+  fi
+  while IFS= read -r page; do
+    [ -n "$page" ] || continue
+    WIKI_LINT_PAGES=$(( WIKI_LINT_PAGES + 1 ))
+    rel=${page#"$repo/"}
+    wiki_lint_page "$repo" "$page" "$rel" || fails=$(( fails + 1 ))
+    if [ -f "$repo/index.md" ] && ! grep -qF -- "$rel" "$repo/index.md" 2>/dev/null; then
+      printf 'wiki lint advisory: orphan page not linked from index.md: %s\n' "$rel"
+    fi
+  done <<EOF
+$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  wiki_lint_advisories "$repo"
+  WIKI_LINT_BLOCKED=$fails
+  return 0
+}
+
+# wiki_lint_page <repo> <page> <rel>: blocking checks for one page. Exit 0
+# when clean, 1 with the reasons printed when blocked.
+wiki_lint_page() {
+  local repo=$1 page=$2 rel=$3 blocked=0 field
+  for field in summary scope last-confirmed sources; do
+    grep -q "^> $field: ." "$page" 2>/dev/null \
+      || { printf 'wiki lint: %s is missing its %s header\n' "$rel" "$field"; blocked=1; }
+  done
+  if grep -q '^> last-confirmed: ' "$page" 2>/dev/null; then
+    grep -qE '^> last-confirmed: [0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$' "$page" 2>/dev/null \
+      || { printf 'wiki lint: %s has a malformed last-confirmed date (want YYYY-MM-DD)\n' "$rel"; blocked=1; }
+  fi
+  wiki_lint_sources "$repo" "$page" "$rel" || blocked=1
+  # Citations live in the body, not the header: the `> sources:` provenance
+  # line alone does not support a claim.
+  grep -v '^>' "$page" 2>/dev/null | grep -q 'raw/' \
+    || { printf 'wiki lint: %s cites no raw lesson\n' "$rel"; blocked=1; }
+  wiki_lint_links "$page" "$rel" || blocked=1
+  if [ "$(wc -l < "$page" | tr -d ' ')" -gt 120 ]; then
+    printf 'wiki lint: %s is over the 120-line page budget\n' "$rel"
+    blocked=1
+  fi
+  return "$blocked"
+}
+
+# wiki_lint_sources <repo> <page> <rel>: every `> sources:` entry names an
+# existing file. Exit 1 with the reason printed when one dangles.
+wiki_lint_sources() {
+  local repo=$1 page=$2 rel=$3 entry tmp blocked=0
+  tmp=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-lint.XXXXXX") || return 1
+  sed -n 's/^> sources: *//p' "$page" 2>/dev/null | head -n 1 | tr ';' '\n' > "$tmp"
+  while IFS= read -r entry; do
+    entry=$(printf '%s' "$entry" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    [ -n "$entry" ] || continue
+    [ -e "$repo/$entry" ] \
+      || { printf 'wiki lint: %s cites missing %s\n' "$rel" "$entry"; blocked=1; }
+  done < "$tmp"
+  rm -f "$tmp"
+  return "$blocked"
+}
+
+# wiki_lint_links <page> <rel>: every relative markdown link resolves inside
+# the checkout. Exit 1 with the reason printed on the first dangling target.
+wiki_lint_links() {
+  local page=$1 rel=$2 target dir tmp bad=
+  dir=$(dirname "$page")
+  tmp=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-lint.XXXXXX") || return 1
+  grep -Eo '\]\([^)]+\)' "$page" 2>/dev/null | sed -e 's/^](//' > "$tmp" || true
+  while IFS= read -r target; do
+    [ -n "$target" ] || continue
+    case $target in
+      '#'*|http://*|https://*|mailto:*) continue ;;
+    esac
+    target=${target%%#*}
+    [ -n "$target" ] || continue
+    case $target in
+      /*) printf 'wiki lint: %s links outside the checkout: %s\n' "$rel" "$target"; bad=1; break ;;
+    esac
+    if [ ! -e "$dir/$target" ]; then
+      printf 'wiki lint: %s has a dangling link: %s\n' "$rel" "$target"
+      bad=1
+      break
+    fi
+  done < "$tmp"
+  rm -f "$tmp"
+  [ -z "$bad" ]
+}
+
+# wiki_lint_advisories <repo>: the never-blocking findings (report 4.6).
+# Bounded output: the two unbounded scans cap at 20 lines each.
+wiki_lint_advisories() {
+  local repo=$1 raw base stamp epoch cutoff shown=0
+  cutoff=$(( $(date +%s) - 30 * 86400 ))
+  while IFS= read -r raw; do
+    [ -n "$raw" ] || continue
+    base=$(basename "$raw")
+    if grep -rqF -- "$base" "$repo/pages" "$repo/index.md" "$repo/log.md" 2>/dev/null; then
+      continue
+    fi
+    stamp=${base%%-*}; epoch=
+    case $stamp in
+      [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z)
+        epoch=$(python3 -c 'import sys, datetime; print(int(datetime.datetime.strptime(sys.argv[1], "%Y%m%dT%H%M%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()))' "$stamp" 2>/dev/null || printf '') ;;
+    esac
+    if [ -z "$epoch" ] || [ "$epoch" -gt "$cutoff" ]; then
+      continue
+    fi
+    printf 'wiki lint advisory: raw lesson no page cites after 30 days: %s\n' "${raw#"$repo/"}"
+    shown=$(( shown + 1 ))
+    [ "$shown" -ge 20 ] && break
+  done <<EOF
+$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  grep -rhE -- '^used: .+ (stale|wrong)$' "$repo/raw" 2>/dev/null | head -n 20 \
+    | while IFS= read -r line; do
+        printf 'wiki lint advisory: usage signal needs the gardener: %s\n' "$line"
+      done
+  wiki_lint_stale_pages "$repo"
+}
+
+# wiki_lint_stale_pages <repo>: pages unconfirmed for 90 days. Advisory only:
+# freshness is date arithmetic, the wrong tool for a blocking verdict.
+wiki_lint_stale_pages() {
+  local repo=$1 page rel confirmed epoch
+  while IFS= read -r page; do
+    [ -n "$page" ] || continue
+    rel=${page#"$repo/"}
+    confirmed=$(sed -n 's/^> last-confirmed: *//p' "$page" 2>/dev/null | head -n 1)
+    case $confirmed in
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+      *) continue ;;
+    esac
+    epoch=$(python3 -c 'import sys, datetime; print(int(datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp()))' "$confirmed" 2>/dev/null || printf '')
+    [ -n "$epoch" ] || continue
+    if [ "$(( ($(date +%s) - epoch) / 86400 ))" -ge 90 ]; then
+      printf 'wiki lint advisory: page unconfirmed for 90 days: %s\n' "$rel"
+    fi
+  done <<EOF
+$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+}
+
+wiki_lint() {
+  local repo=
+  if ! wiki_feature_on 1 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$CFG_ROLE" != gardener ]; then
+    printf 'fm-wiki: lint is gardener-only (config/wiki role=%s)\n' "$CFG_ROLE" >&2
+    return 1
+  fi
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --repo) [ -n "${2:-}" ] || die_usage 'lint --repo needs a directory'; repo=$2; shift 2 ;;
+      --repo=*) repo=${1#--repo=}; shift ;;
+      *) die_usage "unknown lint flag '$1'" ;;
+    esac
+  done
+  wiki_paths >/dev/null 2>&1 || return 1
+  repo=${repo:-$WIKI_REPO}
+  [ -d "$repo" ] || { printf 'fm-wiki: lint: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
+  wiki_lint_repo "$repo"
+  if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
+    printf 'wiki: lint blocked (%s problem(s), %s page(s))\n' "$WIKI_LINT_BLOCKED" "$WIKI_LINT_PAGES"
+    return 1
+  fi
+  printf 'wiki: lint clean (%s page(s), %s raw lesson(s) cited)\n' "$WIKI_LINT_PAGES" "$WIKI_LINT_CITED"
+  return 0
+}
+
+# wiki_index_generate <repo>: rewrite index.md from page headers, atomically,
+# so an interrupted run never leaves a half-written file where a reader would
+# see it. Prints the page and line counts; exit 1 when over budget.
+wiki_index_generate() {
+  local repo=$1 tmp page rel title summary cat heading pages
+  tmp=$(mktemp "$repo/.index.XXXXXX") || { printf 'fm-wiki: index: cannot stage in %s\n' "$repo" >&2; return 1; }
+  {
+    printf '# Crew wiki index\n\n'
+    printf '<!-- GENERATED by bin/fm-wiki.sh index from page headers; do not edit by hand. -->\n'
+    for cat in projects tools harnesses fleet; do
+      case $cat in
+        projects) heading='Projects' ;;
+        tools) heading='Tools' ;;
+        harnesses) heading='Harnesses' ;;
+        fleet) heading='Fleet' ;;
+      esac
+      pages=$(find "$repo/pages/$cat" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+      [ -n "$pages" ] || continue
+      printf '\n## %s\n\n' "$heading"
+      while IFS= read -r page; do
+        [ -n "$page" ] || continue
+        rel=${page#"$repo/"}
+        title=$(sed -n 's/^# //p' "$page" 2>/dev/null | head -n 1)
+        if [ -z "$title" ]; then
+          title=$(basename "$page" .md)
+        fi
+        summary=$(sed -n 's/^> summary: *//p' "$page" 2>/dev/null | head -n 1)
+        [ -n "$summary" ] || summary='(no summary)'
+        printf -- '- [%s](%s) - %s\n' "$title" "$rel" "$summary"
+      done <<EOF
+$pages
+EOF
+    done
+  } > "$tmp"
+  lines=$(wc -l < "$tmp" | tr -d ' ')
+  mv "$tmp" "$repo/index.md"
+  printf 'wiki: index.md regenerated (%s page(s), %s line(s))\n' "$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')" "$lines"
+  if [ "$lines" -gt 150 ]; then
+    printf 'wiki: index.md is over the 150-line budget\n'
+    return 1
+  fi
+  return 0
+}
+
+wiki_index() {
+  local repo=
+  if ! wiki_feature_on 1 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$CFG_ROLE" != gardener ]; then
+    printf 'fm-wiki: index is gardener-only (config/wiki role=%s)\n' "$CFG_ROLE" >&2
+    return 1
+  fi
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --repo) [ -n "${2:-}" ] || die_usage 'index --repo needs a directory'; repo=$2; shift 2 ;;
+      --repo=*) repo=${1#--repo=}; shift ;;
+      *) die_usage "unknown index flag '$1'" ;;
+    esac
+  done
+  wiki_paths >/dev/null 2>&1 || return 1
+  repo=${repo:-$WIKI_REPO}
+  [ -d "$repo" ] || { printf 'fm-wiki: index: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  wiki_index_generate "$repo"
+}
+
+# wiki_publish: the gardener run's Definition of done. Lint, regenerate the
+# index, refuse any change under raw/ and any page commit made by someone else
+# after the run's base, then commit the compiled pages and push with the same
+# fetch-rebase-push loop (never force) and landing proof as drain. Refusals
+# and push failures exit 1 with a retryable message; only a proven landing
+# exits 0. Takes the drain's single-flight lock so a concurrent drain cannot
+# interleave git operations on the shared clone. Never rebuilds the checkout:
+# a missing clone or a mismatched origin is refused, never destroyed.
+wiki_publish() {
+  local repo base task=unknown
+  if ! wiki_feature_on 1 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$CFG_ROLE" != gardener ]; then
+    printf 'fm-wiki: publish is gardener-only (config/wiki role=%s)\n' "$CFG_ROLE" >&2
+    return 1
+  fi
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --repo) [ -n "${2:-}" ] || die_usage 'publish --repo needs a directory'; repo=$2; shift 2; continue ;;
+      --base) [ -n "${2:-}" ] || die_usage 'publish --base needs a commit'; base=$2; shift 2; continue ;;
+      --task) [ -n "${2:-}" ] || die_usage 'publish --task needs a task id'; task=$2; shift 2; continue ;;
+      --repo=*) repo=${1#--repo=} ;;
+      --base=*) base=${1#--base=} ;;
+      --task=*) task=${1#--task=} ;;
+      *) die_usage "unknown publish flag '$1'" ;;
+    esac
+    shift
+  done
+  wiki_paths >/dev/null 2>&1 || return 1
+  repo=${repo:-$WIKI_REPO}
+  [ -n "$base" ] || die_usage 'publish requires --base <sha>'
+  if [ "$task" != unknown ]; then
+    fm_task_id_creation_valid "$task" || die_usage "invalid task id '$task'"
+  fi
+  [ -d "$repo/.git" ] || { printf 'fm-wiki: publish: no wiki checkout at %s; run drain once or clone the wiki remote there\n' "$repo" >&2; return 1; }
+  WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_PUBLISH_CAP:-20} ))
+  if [ "$(wiki_git "$repo" remote get-url origin 2>/dev/null || printf '')" != "$CFG_REMOTE" ]; then
+    printf 'fm-wiki: publish: %s points at another remote; refusing rather than publishing elsewhere\n' "$repo" >&2
+    return 1
+  fi
+  wiki_git "$repo" cat-file -e "${base}^{commit}" >/dev/null 2>&1 \
+    || { printf 'fm-wiki: publish: unknown base %s in %s\n' "$base" "$repo" >&2; return 1; }
+  if ! wiki_drain_lock; then
+    printf 'fm-wiki: publish: another drain or publish holds the lock; retry\n' >&2
+    return 1
+  fi
+  wiki_git "$repo" config user.name firstmate-wiki >/dev/null 2>&1 || true
+  wiki_git "$repo" config user.email "wiki@$CFG_HOST" >/dev/null 2>&1 || true
+  WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
+  wiki_lint_repo "$repo" || true
+  if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
+    printf 'wiki: publish refused: lint blocked (%s problem(s))\n' "$WIKI_LINT_BLOCKED" >&2
+    return 1
+  fi
+  wiki_index_generate "$repo" \
+    || { printf 'wiki: publish refused: index over budget\n' >&2; return 1; }
+  if [ -n "$(wiki_git "$repo" status --porcelain -- raw 2>/dev/null)" ]; then
+    printf 'wiki: publish refused: the run changed files under raw/; raw lessons are add-only\n' >&2
+    return 1
+  fi
+  if [ -n "$(wiki_git "$repo" diff --name-only "$base" HEAD -- raw 2>/dev/null)" ]; then
+    printf 'wiki: publish refused: commits after the base changed files under raw/; raw lessons are add-only\n' >&2
+    return 1
+  fi
+  wiki_git "$repo" add -- pages index.md >/dev/null 2>&1 || true
+  if [ -f "$repo/log.md" ]; then
+    wiki_git "$repo" add -- log.md >/dev/null 2>&1 || true
+  fi
+  local committed=0
+  if ! wiki_git "$repo" diff --cached --quiet >/dev/null 2>&1; then
+    local msg staged_pages
+    msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pub.XXXXXX") || { printf 'fm-wiki: publish: cannot stage the commit message\n' >&2; return 1; }
+    staged_pages=$(wiki_git "$repo" diff --cached --name-only -- pages 2>/dev/null | wc -l | tr -d ' ')
+    {
+      printf 'wiki: gardener compile from %s (%s page file(s))\n\n' "$(wiki_git "$repo" rev-parse --short "$base" 2>/dev/null || printf '%s' "$base")" "$staged_pages"
+      printf 'Wiki-Task: %s\n' "$task"
+      printf 'Wiki-Home: %s\n' "$WIKI_HOME_NAME"
+      printf 'Wiki-Host: %s\n' "$CFG_HOST"
+    } > "$msg"
+    wiki_git "$repo" commit -q -F "$msg" >/dev/null 2>&1 || true
+    rm -f "$msg"
+    committed=1
+  fi
+  if ! wiki_git "$repo" fetch -q origin >/dev/null 2>&1; then
+    printf 'wiki: publish: remote unreachable; retry\n' >&2
+    return 1
+  fi
+  if wiki_git "$repo" rev-parse -q --verify "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+    local foreign
+    foreign=$(wiki_git "$repo" log --format=%H "$base..origin/$WIKI_BRANCH" -- pages index.md log.md 2>/dev/null)
+    if [ -n "$foreign" ]; then
+      printf 'wiki: publish refused: a foreign page commit landed after the base (%s); re-run the gardener onto the new main and publish again\n' "$(printf '%s' "$foreign" | head -n 1 | cut -c1-12)" >&2
+      return 1
+    fi
+    if ! wiki_git "$repo" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+      wiki_git "$repo" rebase --abort >/dev/null 2>&1 || true
+      printf 'wiki: publish refused: rebase onto the remote failed; re-run the gardener\n' >&2
+      return 1
+    fi
+    if [ -n "$(wiki_git "$repo" diff --name-only "origin/$WIKI_BRANCH" HEAD -- raw 2>/dev/null)" ]; then
+      printf 'wiki: publish refused: the rebased run would change published raw lessons\n' >&2
+      return 1
+    fi
+    if [ "$committed" = 0 ] && [ "$(wiki_git "$repo" rev-parse HEAD 2>/dev/null)" = "$(wiki_git "$repo" rev-parse "origin/$WIKI_BRANCH" 2>/dev/null)" ]; then
+      printf 'wiki: nothing to publish\n'
+      return 0
+    fi
+  fi
+  local tries=0 pushed=0
+  while [ "$tries" -lt "$WIKI_PUSH_TRIES" ]; do
+    tries=$(( tries + 1 ))
+    [ "$(date +%s)" -lt "$WIKI_DEADLINE" ] || break
+    if wiki_git "$repo" push -q origin "HEAD:$WIKI_BRANCH" >/dev/null 2>&1; then
+      pushed=1
+      break
+    fi
+    wiki_git "$repo" fetch -q origin >/dev/null 2>&1 || true
+    if ! wiki_git "$repo" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+      wiki_git "$repo" rebase --abort >/dev/null 2>&1 || true
+      break
+    fi
+    wiki_jitter_sleep
+  done
+  if [ "$pushed" = 1 ]; then
+    wiki_git "$repo" fetch -q origin "$WIKI_BRANCH" >/dev/null 2>&1 || true
+    if wiki_git "$repo" merge-base --is-ancestor HEAD "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+      printf 'wiki: published %s\n' "$(wiki_git "$repo" rev-parse --short HEAD 2>/dev/null)"
+      return 0
+    fi
+    printf 'wiki: publish: push reported success but the landing is unproved; retry\n' >&2
+    return 1
+  fi
+  printf 'wiki: publish: push failed; retry\n' >&2
+  return 1
+}
+
 case ${1:-} in
   -h|--help|help)
     usage
@@ -632,6 +1154,22 @@ case ${1:-} in
   drain-if-due)
     shift
     wiki_drain_if_due "$@"
+    ;;
+  due)
+    shift
+    wiki_due "$@"
+    ;;
+  lint)
+    shift
+    wiki_lint "$@"
+    ;;
+  index)
+    shift
+    wiki_index "$@"
+    ;;
+  publish)
+    shift
+    wiki_publish "$@"
     ;;
   '')
     die_usage 'no verb given'

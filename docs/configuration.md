@@ -959,7 +959,7 @@ Capture creates lesson files with owner-only permissions and keeps the wiki stat
 Held lessons and staging residue are never drained automatically.
 Capture failures do not fail cleanup, and cleanup never waits for network publication.
 
-`bin/fm-wiki.sh drain` is the only publisher.
+`bin/fm-wiki.sh drain` is the only publisher of raw lessons.
 It is single-flight per home through a non-blocking kernel lock, released automatically when its holders exit; the lock file remains in place.
 Each Git operation shares the drain's remaining wall-clock budget, including on hosts without `timeout` or Perl.
 A drain creates at most one add-only commit under `raw/YYYY/MM/<UTC-stamp>-<host>-<home-identity>-<task-id>-<nonce>.md`.
@@ -975,6 +975,39 @@ Later closes still trigger a detached drain for existing queued lessons, includi
 Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.
 Project visibility comes from local task metadata and is empty when absent; no forge lookup occurs.
 The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
+
+## The gardener compiles pages
+
+One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
+`bin/fm-wiki.sh due` exits 0 with one line only when at least 25 raw lessons are uncompiled or the oldest uncompiled one is 7 days old, and no crew-wiki project task is open in that home; otherwise it exits 1 silently.
+It reads only the home's own clone and task records, never the network.
+`bin/fm-wiki.sh lint` runs the deterministic page checks and `bin/fm-wiki.sh index` regenerates `index.md` from page headers within the 150-line budget.
+`bin/fm-wiki.sh publish --base <sha>` lints, refuses any change under `raw/` and any page commit made by someone else after the run's base, then commits the compiled pages and pushes with the same fetch-rebase-push loop (never force) and landing proof as `drain`.
+See the [script header](../bin/fm-wiki.sh) for verb syntax and exit codes.
+
+Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.
+The registration command, run once in the gardener home, is:
+
+```sh
+bin/fm-procevent-when.sh arm wiki-gardener-due --interval 3600 --stable 2 \
+  --condition "$PWD/bin/fm-wiki.sh" due \
+  --action /usr/bin/printf 'wiki: gardener due; file one gardener task on the crew-wiki project'
+```
+
+The condition carries no network and no lock, so the watcher's poll stays cheap; the action only wakes firstmate, and firstmate's routing, dispatch, and re-arm decisions stay judgment calls.
+Do not arm this condition in any real home until the crew-wiki project is provisioned and its first raw lessons have landed.
+
+The wiki repository's own schema lives in [`assets/crew-wiki-AGENTS.md`](../assets/crew-wiki-AGENTS.md) and is seeded into the repository as `AGENTS.md` (with `CLAUDE.md` symlinked to it) when the repository is created.
+It owns the page taxonomy, header fields, citation rule, index rules, budgets, the add-only `raw/` contract, and the gardener's run steps.
+
+## Gardener delivery (direct-push)
+
+`direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `bin/fm-wiki.sh publish` instead of opening a pull request.
+Its Definition of done (owned by `bin/fm-dod-lib.sh`) ends with `publish --base <sha>` and a `done: wiki pages published {commit}` report.
+The mode is permitted only for a project whose registry entry opts in by naming it; every other project and mode is unchanged.
+`bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode, and `bin/fm-project-mode.sh --allows-direct-push <project>` answers the opt-in (exit 0 when opted in, 1 otherwise).
+A forge, a base branch, or a fork-staged fork is refused on direct-push, because it publishes through the wiki checkout rather than a forge, a task branch, or a pull request.
+The crew-wiki project owns the only such registry entry.
 
 ## Jev self-check record (data/jev-lint.jsonl)
 

@@ -29,7 +29,7 @@
 # Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
-# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--forge <none|gerrit|forgejo|external> [--shape squash]] [--herdr-lab]
+# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only|direct-push> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--forge <none|gerrit|forgejo|external> [--shape squash]] [--herdr-lab]
 #        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab]
 #        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects}
 #   --scout writes the scout contract instead: the deliverable is a report at
@@ -70,8 +70,11 @@
 #   direct-PR    implement -> push + open PR via gh-axi (no pipeline) -> configured merge authority
 #   local-only   implement on branch, stop and report "ready in branch" (no push/PR);
 #                the configured merge authority approves, firstmate merges to local main
+#   direct-push  compile wiki pages and land them with bin/fm-wiki.sh publish
+#                (gardener only, on a project whose registry entry opts in);
+#                the configured merge authority decided this standing posture
 # no-mistakes-prod-only is a registry policy, not a task mode; resolve it to one of
-# the three concrete modes at intake before calling this script.
+# the four concrete modes at intake before calling this script.
 # --branch-prefix <prefix> optionally overrides the ship branch's "fm/" prefix, so
 # the resolved branch is "<prefix><task-id>" instead of the default "fm/<task-id>".
 # Pass an empty prefix ("--branch-prefix ''") for a bare "<task-id>" branch, or a
@@ -101,8 +104,9 @@
 # `forgejo`, and `external` change in the Definition of done. On `forgejo` this
 # script also names tea instead of gh-axi in the ship brief's forge-CLI rule, and
 # on `external` that rule names no forge CLI, because the home's review tool is
-# the only publishing tool. A forge on --mode local-only is refused, because that
-# mode publishes nothing, and `external` also refuses no-mistakes.
+# the only publishing tool. A forge on --mode local-only or --mode direct-push is
+# refused, because neither mode publishes through a forge; `external` also
+# refuses no-mistakes.
 # --shape names how a forge=gerrit task is published, and only `squash` - one
 # change - is accepted: `stack` is refused until a stack can be watched by its
 # membership pinned when its watch is armed, because the merge watch follows one
@@ -313,15 +317,15 @@ done
 # missing or invalid value stops the scaffold rather than silently defaulting.
 if [ "$KIND" = ship ]; then
   [ "$MODE_SET" -eq 1 ] || {
-    echo "error: ship briefs require --mode <no-mistakes|direct-PR|local-only>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md" >&2
+    echo "error: ship briefs require --mode <no-mistakes|direct-PR|local-only|direct-push>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md" >&2
     exit 1
   }
   case "$MODE" in
-    no-mistakes|direct-PR|local-only) ;;
+    no-mistakes|direct-PR|local-only|direct-push) ;;
     no-mistakes-prod-only)
       echo "error: no-mistakes-prod-only is a registry policy, not a task mode; classify this task's surface and resolve it to no-mistakes or direct-PR at intake" >&2
       exit 1 ;;
-    *) echo "error: --mode must be one of no-mistakes, direct-PR, local-only (got '$MODE')" >&2; exit 1 ;;
+    *) echo "error: --mode must be one of no-mistakes, direct-PR, local-only, direct-push (got '$MODE')" >&2; exit 1 ;;
   esac
 elif [ "$MODE_SET" -eq 1 ]; then
   echo "error: --mode applies only to ship briefs; a scout delivers a report and a secondmate charter is not a delivery contract" >&2
@@ -413,6 +417,10 @@ if [ "$FORK_STAGED_SET" -eq 1 ]; then
   FORK_STAGED=$(fm_fork_staged_norm "$FORK_STAGED")
   if [ "$MODE" = local-only ]; then
     echo "error: --fork-staged is meaningless on local-only, which publishes nothing; drop it" >&2
+    exit 1
+  fi
+  if [ "$MODE" = direct-push ]; then
+    echo "error: --fork-staged is meaningless on direct-push, which publishes through bin/fm-wiki.sh publish instead of a pull request; drop it" >&2
     exit 1
   fi
   if [ "$FORGE" != none ]; then

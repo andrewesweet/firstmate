@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only|direct-push> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--fork-staged <owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -38,6 +38,9 @@
 #   loud one-line deviation notice is printed and the spawn continues.
 #   no-mistakes-prod-only is a registry policy rather than a task mode and is
 #   refused as a flag value.
+#   direct-push publishes past every review, so the spawn additionally refuses
+#   it unless the project's registry entry opts in by naming direct-push
+#   (bin/fm-project-mode.sh --allows-direct-push answers that opt-in).
 #   --branch-prefix is the optional prefix selected at intake for this ship's
 #   immutable branch, defaulting to "fm/". It must agree with the branch recorded
 #   in the brief, and is refused on scouts, secondmates, and relaunches. When the
@@ -1145,7 +1148,7 @@ else
   # and record no delivery posture; secondmate spawns hardcode theirs.
   if [ "$KIND" = ship ]; then
     [ "$MODE_SET" -eq 1 ] || {
-      echo "error: ship spawns require --mode <no-mistakes|direct-PR|local-only>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md" >&2
+      echo "error: ship spawns require --mode <no-mistakes|direct-PR|local-only|direct-push>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md" >&2
       exit 1
     }
     [ "$YOLO_SET" -eq 1 ] || {
@@ -1153,13 +1156,13 @@ else
       exit 1
     }
     case "$MODE" in
-    no-mistakes | direct-PR | local-only) ;;
+    no-mistakes | direct-PR | local-only | direct-push) ;;
     no-mistakes-prod-only)
       echo "error: no-mistakes-prod-only is a registry policy, not a task mode; classify this task's surface and resolve it to no-mistakes or direct-PR at intake" >&2
       exit 1
       ;;
     *)
-      echo "error: --mode must be one of no-mistakes, direct-PR, local-only (got '$MODE')" >&2
+      echo "error: --mode must be one of no-mistakes, direct-PR, local-only, direct-push (got '$MODE')" >&2
       exit 1
       ;;
     esac
@@ -1184,6 +1187,10 @@ else
     if [ "$FORK_STAGED_SET" -eq 1 ]; then
       if [ "$MODE" = local-only ]; then
         echo "error: --fork-staged is meaningless on local-only, which publishes nothing; drop it" >&2
+        exit 1
+      fi
+      if [ "$MODE" = direct-push ]; then
+        echo "error: --fork-staged is meaningless on direct-push, which publishes through bin/fm-wiki.sh publish instead of a pull request; drop it" >&2
         exit 1
       fi
       fm_fork_staged_valid "$FORK_STAGED" || {
@@ -3846,6 +3853,7 @@ delivery_rigor_rank() { # <mode> -> 3 (most rigor) .. 1 (least); 0 = not a task 
   case "$1" in
   no-mistakes) echo 3 ;;
   direct-PR) echo 2 ;;
+  direct-push) echo 2 ;;
   local-only) echo 1 ;;
   *) echo 0 ;;
   esac
@@ -3871,6 +3879,14 @@ if [ "$KIND" = ship ]; then
   fi
   [ -n "$STANDING_FORGE" ] || STANDING_FORGE=none
   STANDING_MODE=$("$FM_ROOT/bin/fm-project-mode.sh" --raw "$PROJ_NAME" 2>/dev/null | cut -d' ' -f1) || STANDING_MODE=
+  # direct-push publishes past every review, so it is permitted only for a
+  # project whose registry entry opts in by naming this mode. The refusal
+  # names the standing posture so the remedy (ship the registered mode,
+  # or register direct-push for this project) is explicit.
+  if [ "$MODE" = direct-push ] && [ "$STANDING_MODE" != direct-push ]; then
+    echo "error: direct-push for $ID is permitted only for a project whose registry entry opts in; $PROJ_NAME is registered ${STANDING_MODE:-unknown}; ship the registered posture, or register [direct-push] for this project before spawning direct-push" >&2
+    exit 1
+  fi
   BRIEF_MODE=$(sed -n 's/^Delivery contract: mode=\([^ ]*\).*$/\1/p' "$BRIEF" | head -n 1)
   BRIEF_FORGE=$(sed -n 's/^Delivery contract: mode=[^ ]*.*[[:space:]]forge=\([^ ]*\).*$/\1/p' "$BRIEF" | head -n 1)
   [ -n "$BRIEF_FORGE" ] || BRIEF_FORGE=none
