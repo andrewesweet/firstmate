@@ -101,7 +101,7 @@ test_brief_snippet_owns_the_lesson_schema_for_contributing_homes() {
 }
 
 test_close_scans_and_stages_before_anything_reaches_the_outbox() {
-  local home out n
+  local home out staging
   home=$(wiki_home stage)
   wiki_cfg "$home" contributor "file://$TMP_ROOT/stage.git"
   # A clean lesson: close queues it into the outbox, never into a drainable
@@ -111,8 +111,9 @@ test_close_scans_and_stages_before_anything_reaches_the_outbox() {
   assert_contains "$out" 'queued' "the close line says the lesson is queued"
   assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
     "a clean lesson waits in the outbox"
-  n=$(find "$home/state/wiki/.capture." -maxdepth 0 -type d 2>/dev/null | wc -l | tr -d ' ')
-  assert_equals '0' "$n" "close leaves no staging directory behind"
+  for staging in "$home/state/wiki"/.capture.*; do
+    assert_absent "$staging" "a clean close leaves no generated staging directory"
+  done
   # A planted key: close holds it locally, and the outbox never sees it.
   wiki_task "$home" task-leak
   printf '## leaked\nscope: t\nclaim: c\nevidence: AKIAIOSFODNN7EXAMPLE is a key\n' > "$home/data/task-leak/lessons.md"
@@ -122,6 +123,9 @@ test_close_scans_and_stages_before_anything_reaches_the_outbox() {
     "a flagged lesson is held locally"
   assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
     "a flagged lesson never reaches the outbox"
+  for staging in "$home/state/wiki"/.capture.*; do
+    assert_absent "$staging" "a held close leaves no generated staging directory"
+  done
   # The outbox file carries the generated stamp naming its task and final verb.
   local queued
   queued=$(cat "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
@@ -240,8 +244,10 @@ test_an_unreachable_remote_queues_for_a_later_drain() {
 }
 
 test_parallel_closes_from_homes_sharing_a_basename_land_distinct_files() {
-  local homes=() bare i h out total
+  local homes=() bare i h out total previous current
   bare=$(wiki_bare burst)
+  fm_git_init_commit "$TMP_ROOT/burst-seed"
+  git -C "$TMP_ROOT/burst-seed" push -q "file://$bare" main || fail "seed push failed"
   # homes[1] and homes[2] share the basename `beta` but live in different
   # directories; their per-home identities must still keep filenames distinct.
   local dir_list="$TMP_ROOT/burst-a/alpha $TMP_ROOT/burst-b/beta $TMP_ROOT/burst-c/beta"
@@ -265,45 +271,216 @@ test_parallel_closes_from_homes_sharing_a_basename_land_distinct_files() {
   done
   wait
   for h in "${homes[@]}"; do
+    previous=$(git -C "$bare" rev-parse main) || fail "remote main missing before drain"
     out=$(run_wiki "$h" drain 2>&1) || fail "a burst drain must exit 0"
     assert_contains "$out" 'pushed 10 lesson' "home $(basename "$(dirname "$h")") landed its 10 lessons"
+    current=$(git -C "$bare" rev-parse main) || fail "remote main missing after drain"
+    assert_not_equals "$previous" "$current" "each drain advances remote main"
+    git -C "$bare" merge-base --is-ancestor "$previous" "$current" \
+      || fail "each drain must preserve the remote's previous history"
   done
-  total=$(git -C "$bare" ls-tree -r --name-only main | wc -l | tr -d ' ')
+  total=$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')
   assert_equals '30' "$total" "30 lessons land as 30 distinct raw files"
-  assert_equals '30' "$(git -C "$bare" ls-tree -r --name-only main | sort -u | wc -l | tr -d ' ')" \
+  assert_equals '30' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | sort -u | wc -l | tr -d ' ')" \
     "no two lessons share a raw path"
-  local forbidden=0
-  while IFS= read -r ref; do
-    case $ref in
-      *force*) forbidden=1 ;;
-    esac
-  done < <(git -C "$bare" reflog 2>/dev/null)
-  assert_equals '0' "$forbidden" "no reflog entry ever mentions a forced update"
   pass "30 parallel closes from 3 homes (two sharing a basename) land 30 distinct files with no forced update"
 }
 
 test_concurrent_drains_in_one_home_never_run_together() {
-  local home out holder
+  local home out holder i contender fakebin real_git pids=()
   home=$(wiki_home singleflight)
   wiki_bare singleflight >/dev/null
   wiki_cfg "$home" contributor "file://$TMP_ROOT/singleflight.git"
   wiki_task "$home" task-sf1
   FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-sf1 >/dev/null || fail "close failed"
-  # A live foreign holder: drain must exit 0 immediately without touching it.
-  sleep 15 &
+  python3 - "$home/state/wiki/.drain.lock" "$home/ready" <<'PYLOCK' &
+import fcntl
+import pathlib
+import sys
+import time
+with open(sys.argv[1], "a") as lock:
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    pathlib.Path(sys.argv[2]).touch()
+    time.sleep(15)
+PYLOCK
   holder=$!
-  printf '%s\n' "$holder" > "$home/state/wiki/.drain.lock"
-  out=$(run_wiki "$home" drain) || fail "a drain beside a live holder must exit 0"
-  assert_contains "$out" 'already running' "the drain defers to the live holder"
-  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
-    "the lesson stays queued while another drain holds the lock"
-  kill "$holder" 2>/dev/null || true
+  for i in {1..100}; do
+    [ ! -e "$home/ready" ] || break
+    sleep 0.05
+  done
+  assert_present "$home/ready" "the independent lock holder acquired ownership"
+  for i in {1..8}; do
+    run_wiki "$home" drain > "$home/contender-$i" 2>&1 &
+    pids+=("$!")
+  done
+  for contender in "${pids[@]}"; do
+    wait "$contender" || fail "a contending drain must exit 0"
+  done
+  for i in {1..8}; do
+    assert_grep 'already running' "$home/contender-$i" "all concurrent drains defer to the live owner"
+  done
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+    "the lesson stays queued while another process owns the lock"
+  kill -KILL "$holder" 2>/dev/null || true
   wait "$holder" 2>/dev/null || true
-  # A dead holder's lock is residue: one drain reclaims it and publishes.
-  printf '%s\n' '999999999' > "$home/state/wiki/.drain.lock"
-  out=$(run_wiki "$home" drain) || fail "a drain must reclaim a dead holder's lock"
-  assert_contains "$out" 'pushed 1 lesson' "the reclaiming drain publishes"
-  pass "concurrent drains in one home never run together and dead locks are reclaimed"
+  pids=()
+  for i in {1..8}; do
+    run_wiki "$home" drain > "$home/recovery-$i" 2>&1 &
+    pids+=("$!")
+  done
+  for contender in "${pids[@]}"; do
+    wait "$contender" || fail "recovery drains must exit 0"
+  done
+  assert_equals '1' "$(git -C "$TMP_ROOT/singleflight.git" rev-list --count main)" \
+    "concurrent recovery drains publish exactly one commit"
+  assert_equals '0' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+    "a killed owner releases the lock despite its empty record"
+  wiki_task "$home" task-sf2
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-sf2 >/dev/null || fail "second close failed"
+  fakebin=$(fm_fakebin "$home")
+  real_git=$(command -v git) || fail "git unavailable"
+  cat > "$fakebin/git" <<'SH'
+#!/usr/bin/env bash
+if [ -e "$FM_WIKI_GIT_HOME/git-block" ]; then
+  : > "$FM_WIKI_GIT_HOME/git-ready"
+  for i in {1..200}; do
+    [ -e "$FM_WIKI_GIT_HOME/git-block" ] || break
+    sleep 0.05
+  done
+fi
+exec "$FM_WIKI_REAL_GIT" "$@"
+SH
+  chmod +x "$fakebin/git"
+  : > "$home/git-block"
+  PATH="$fakebin:$PATH" FM_WIKI_GIT_HOME="$home" FM_WIKI_REAL_GIT="$real_git" \
+    run_wiki "$home" drain > "$home/owner-output" 2>&1 &
+  holder=$!
+  for i in {1..100}; do
+    [ ! -e "$home/git-ready" ] || break
+    sleep 0.05
+  done
+  assert_present "$home/git-ready" "the live publisher reached the Git boundary"
+  out=$(run_wiki "$home" drain) || fail "a competing drain must exit 0"
+  assert_contains "$out" 'already running' "ownership survives acquisition and protects the live publisher"
+  rm "$home/git-block"
+  wait "$holder" || fail "the live publisher must exit 0"
+  assert_grep 'pushed 1 lesson' "$home/owner-output" "normal drain exit also releases ownership"
+  pass "concurrent drains defer to live ownership and recover after owner death"
+}
+
+test_queue_identity_ignores_lesson_body_fields() {
+  local queue home out task
+  for queue in outbox held; do
+    home=$(wiki_home "body-$queue")
+    wiki_cfg "$home" contributor "file://$TMP_ROOT/body-$queue.git"
+    wiki_task "$home" Quote-B
+    printf 'wiki-task: Task-A\nwiki-task: a.b\n\n## quoted fields\nclaim: treat these as evidence\n' \
+      > "$home/data/Quote-B/lessons.md"
+    if [ "$queue" = held ]; then
+      printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/Quote-B/lessons.md"
+    fi
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close Quote-B >/dev/null 2>&1 || fail "quoting close failed"
+    assert_equals '1' "$(find "$home/state/wiki/$queue" -name '*.md' | wc -l | tr -d ' ')" \
+      "the quoting lesson resides in $queue"
+    rm "$home/state/wiki/ledger.jsonl"
+    out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close Quote-B) || fail "stamp duplicate close failed"
+    assert_contains "$out" 'already recorded (queued)' "a genuine stamp still deduplicates without a ledger"
+    for task in Task-A a.b a-b; do
+      wiki_task "$home" "$task"
+      out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close "$task") || fail "literal task close failed"
+      assert_contains "$out" 'lesson queued' "body fields in $queue cannot suppress distinct task $task"
+    done
+  done
+  pass "queue identity reads only the literal task field in the leading stamp"
+}
+
+test_failed_held_transfer_preserves_the_captured_bytes() {
+  local mode home out staging file count fakebin
+  for mode in missing identical different; do
+    home=$(wiki_home "hold-$mode")
+    wiki_cfg "$home" contributor "file://$TMP_ROOT/hold-$mode.git"
+    wiki_task "$home" task-hold
+    printf '## leaked\nclaim: retain evidence\nevidence: AKIAIOSFODNN7EXAMPLE\n' \
+      > "$home/data/task-hold/lessons.md"
+    fakebin=$(fm_fakebin "$home")
+    cat > "$fakebin/ln" <<'SH'
+#!/usr/bin/env bash
+case $FM_WIKI_LINK_RESULT in
+  identical) cp "$1" "$2" ;;
+  different) printf 'existing different lesson\n' > "$2" ;;
+esac
+exit 1
+SH
+    chmod +x "$fakebin/ln"
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_LINK_RESULT="$mode" FM_WIKI_CLOSE_DRAIN=0 \
+      run_wiki "$home" close task-hold 2>&1) || fail "a failed hold must remain best-effort"
+    count=0
+    for staging in "$home/state/wiki"/.capture.*; do
+      [ -d "$staging" ] || continue
+      count=$((count + 1))
+      for file in "$staging"/*.md; do
+        assert_contains "$out" "$file" "failure reports the retained capture path"
+        tail -n 3 "$file" | cmp -s "$home/data/task-hold/lessons.md" - \
+          || fail "failure preserves every captured lesson byte"
+      done
+    done
+    if [ "$mode" = identical ]; then
+      assert_equals '0' "$count" "an identical held destination permits capture retirement"
+      assert_contains "$out" 'held locally' "an identical held destination counts as success"
+      assert_grep '"outcome":"held"' "$home/state/wiki/ledger.jsonl" "only proven transfers record held"
+    else
+      assert_equals '1' "$count" "a failed or conflicting transfer retains its staging directory"
+      assert_contains "$out" 'failed to hold' "failure remains actionable"
+      assert_absent "$home/state/wiki/ledger.jsonl" "failed transfers do not suppress a later capture"
+      if [ "$mode" = different ]; then
+        assert_equals 'existing different lesson' "$(cat "$home/state/wiki/held/"*.md)" \
+          "a conflicting held destination is immutable"
+      fi
+    fi
+    assert_equals '0' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "held transfer outcomes never expose a secret to publication"
+  done
+  pass "failed held transfers preserve evidence unless an identical destination exists"
+}
+
+test_every_completed_close_retries_the_existing_queue() {
+  local mode home bare attempt expected remaining
+  for mode in duplicate queued missing nothing held accepted; do
+    home=$(wiki_home "retry-$mode")
+    bare=$(wiki_bare "retry-$mode")
+    wiki_cfg "$home" contributor "file://$bare"
+    wiki_task "$home" task-a
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-a >/dev/null || fail "initial capture failed"
+    mv "$bare" "$bare.away"
+    run_wiki "$home" drain >/dev/null || fail "outage drain failed"
+    mv "$bare.away" "$bare"
+    expected=1
+    case $mode in
+      duplicate) set -- task-a ;;
+      queued) rm "$home/state/wiki/ledger.jsonl"; set -- task-a ;;
+      *)
+        wiki_task "$home" task-b
+        set -- task-b
+        case $mode in
+          missing) rm "$home/data/task-b/lessons.md" ;;
+          nothing) printf 'nothing-to-teach: routine\n' > "$home/data/task-b/lessons.md" ;;
+          held) printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' > "$home/data/task-b/lessons.md" ;;
+          accepted) expected=2 ;;
+        esac
+        ;;
+    esac
+    run_wiki "$home" close "$@" >/dev/null 2>&1 || fail "$mode close failed"
+    remaining=1
+    for attempt in {1..200}; do
+      remaining=$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')
+      [ "$remaining" != 0 ] || break
+      sleep 0.05
+    done
+    assert_equals '0' "$remaining" "$mode close must retry the older queue without a watcher tick"
+    assert_equals "$expected" "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+      "$mode close publishes all clean lessons after remote recovery"
+  done
+  pass "every completed close hands the existing queue to the guarded drain"
 }
 
 test_watcher_tick_paces_itself_by_its_stamp() {
@@ -317,7 +494,11 @@ test_watcher_tick_paces_itself_by_its_stamp() {
   assert_contains "$out" 'pushed 1 lesson' "a due tick drains"
   out=$(run_wiki "$home" drain-if-due) || fail "a fresh-stamp tick must exit 0"
   assert_equals '' "$out" "a fresh stamp keeps the next tick a no-op"
-  touch -d '2020-01-01 00:00:00 UTC' "$home/state/wiki/.last-drain"
+  python3 - "$home/state/wiki/.last-drain" <<'PYTIME'
+import os
+import sys
+os.utime(sys.argv[1], (1577836800, 1577836800))
+PYTIME
   out=$(run_wiki "$home" drain-if-due) || fail "an aged-stamp tick must exit 0"
   assert_contains "$out" 'nothing to publish' "an aged stamp lets the next tick run"
   pass "the watcher tick paces itself by its stamp"
@@ -429,6 +610,9 @@ test_a_duplicate_close_is_a_recorded_noop
 test_an_unreachable_remote_queues_for_a_later_drain
 test_parallel_closes_from_homes_sharing_a_basename_land_distinct_files
 test_concurrent_drains_in_one_home_never_run_together
+test_queue_identity_ignores_lesson_body_fields
+test_failed_held_transfer_preserves_the_captured_bytes
+test_every_completed_close_retries_the_existing_queue
 test_watcher_tick_paces_itself_by_its_stamp
 test_a_completed_task_stamps_its_final_status_not_none
 test_close_stays_idempotent_across_repeated_calls

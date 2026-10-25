@@ -43,7 +43,7 @@
 #   ledger.jsonl  one JSON line per close outcome
 #                 (lesson|no-lessons|nothing-to-teach|held; supervisor=none).
 #   repo/         this home's local clone of the configured remote.
-#   .drain.lock   single-flight marker naming the owning drain's pid.
+#   .drain.lock   persistent single-flight lock file with the drain's pid.
 #   .last-drain   stamp for the watcher's drain-if-due cadence.
 #
 # Lessons are data, not instructions: the schema printed below forbids
@@ -185,12 +185,27 @@ wiki_recorded_outcome() {
   printf '%s' "$(sed -n 's/.*"outcome":"\([^"]*\)".*/\1/p' <<<"$line")"
 }
 
+wiki_stamp_field() {
+  awk -v key="$2: " '
+    NR == 1 { if ($0 != "---") exit; next }
+    $0 == "---" || $0 == "" { exit }
+    index($0, key) == 1 { print substr($0, length(key) + 1); exit }
+  ' "$1"
+}
+
 # wiki_queued_for <task>: non-empty when a stamp block naming the task sits in
 # a queue already (the crash window between the outbox rename and the ledger
 # append). Only the generated leading stamp's task field is read, never lesson
 # body text, and the match is literal.
 wiki_queued_for() {
-  grep -Fxl -- "wiki-task: $1" "$WIKI_OUTBOX"/*.md "$WIKI_HELD"/*.md 2>/dev/null | head -n 1
+  local file
+  for file in "$WIKI_OUTBOX"/*.md "$WIKI_HELD"/*.md; do
+    [ -f "$file" ] || continue
+    if [ "$(wiki_stamp_field "$file" wiki-task)" = "$1" ]; then
+      printf '%s\n' "$file"
+      return 0
+    fi
+  done
 }
 
 # wiki_final_verb <task>: first word of the last non-empty status line.
@@ -268,12 +283,12 @@ wiki_jev_privacy_advisory() {
 
 # wiki_move_lesson <source> <target>: never replaces different bytes at the
 # target; same bytes are a successful no-op. Hard-link first so the rename is
-# atomic on one filesystem, then fall back to a verified copy.
+# atomic on one filesystem; an existing target must have identical bytes.
 wiki_move_lesson() {
   local source=$1 target=$2
   [ ! -d "$target" ] && [ ! -L "$target" ] || return 1
   if ! ln "$source" "$target" 2>/dev/null; then
-    [ ! -e "$target" ] || { cmp -s "$source" "$target" || return 1; }
+    [ -f "$target" ] && cmp -s "$source" "$target" || return 1
   fi
   rm -f "$source"
 }
@@ -316,7 +331,7 @@ EOF
 }
 
 wiki_close() {
-  local task staging file
+  local task
   [ "${1:-}" != '' ] || die_usage 'close <task-id>'
   [ "$#" -eq 1 ] || die_usage 'close takes exactly one task id'
   task=$1
@@ -328,7 +343,20 @@ wiki_close() {
     secondmate) return 0 ;;   # second mates contribute from slice 05.
   esac
   mkdir -p "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null || return 0
-  local recorded
+  wiki_capture "$task"
+  # Hand publication off without touching the network here: one detached
+  # drain, single-flight inside, so overlapping closes spawn harmless no-ops.
+  # Teardown stays non-blocking whatever the remote does.
+  if [ "${FM_WIKI_CLOSE_DRAIN:-1}" = 1 ]; then
+    env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$WIKI_STATE" FM_DATA_OVERRIDE="$WIKI_DATA" \
+      FM_CONFIG_OVERRIDE="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$SCRIPT_DIR/fm-wiki.sh" drain </dev/null >/dev/null 2>&1 &
+  fi
+  return 0
+}
+
+wiki_capture() {
+  local task=$1 staging file recorded
   recorded=$(wiki_recorded_outcome "$task")
   if [ -n "$recorded" ] || [ -n "$(wiki_queued_for "$task")" ]; then
     printf 'wiki: close %s already recorded (%s)\n' "$task" "${recorded:-queued}"
@@ -390,14 +418,6 @@ wiki_close() {
   rm -rf "$staging"
   wiki_ledger_append lesson "$task" "$final" 1
   printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
-  # Hand publication off without touching the network here: one detached
-  # drain, single-flight inside, so overlapping closes spawn harmless no-ops.
-  # Teardown stays non-blocking whatever the remote does.
-  if [ "${FM_WIKI_CLOSE_DRAIN:-1}" = 1 ]; then
-    env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$WIKI_STATE" FM_DATA_OVERRIDE="$WIKI_DATA" \
-      FM_CONFIG_OVERRIDE="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-      "$SCRIPT_DIR/fm-wiki.sh" drain </dev/null >/dev/null 2>&1 &
-  fi
   return 0
 }
 
@@ -439,24 +459,13 @@ wiki_jitter_sleep() {
   sleep "0.$(( (RANDOM % 8) + 2 ))" 2>/dev/null || sleep 1
 }
 
-# wiki_drain_lock: non-blocking single-flight. Acquire writes this drain's pid
-# with noclobber; release removes the file only when it still names us, so a
-# live drain's lock is never deleted by anyone else. A lock naming a dead pid
-# is a crashed drain's residue: it is reclaimed exactly once, and two
-# concurrent reclaims still let only one drain win the noclobber retry.
 wiki_drain_lock() {
-  local owner
-  if ! ( set -o noclobber; printf '%s\n' "$$" > "$WIKI_LOCK" ) 2>/dev/null; then
-    owner=$(cat "$WIKI_LOCK" 2>/dev/null || printf x)
-    case $owner in
-      ''|*[!0-9]*) return 1 ;;
-    esac
-    kill -0 "$owner" 2>/dev/null && return 1
-    rm -f "$WIKI_LOCK" 2>/dev/null || return 1
-    ( set -o noclobber; printf '%s\n' "$$" > "$WIKI_LOCK" ) 2>/dev/null || return 1
+  exec 9>>"$WIKI_LOCK" || return 1
+  if ! python3 -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null; then
+    exec 9>&-
+    return 1
   fi
-  WIKI_LOCK_OWNER=$$
-  trap 'owner=$(cat "$WIKI_LOCK" 2>/dev/null || true); [ "$owner" = "$WIKI_LOCK_OWNER" ] && rm -f "$WIKI_LOCK"' EXIT
+  printf '%s\n' "$$" > "$WIKI_LOCK"
 }
 
 wiki_drain() {
@@ -526,8 +535,8 @@ wiki_drain() {
       while IFS= read -r f; do
         [ -n "$f" ] || continue
         # Read identity only from the generated stamp block, never body text.
-        task_id=$(sed -n 's/^wiki-task: //p' "$f" | head -n 1)
-        harness_id=$(sed -n 's/^wiki-harness: //p' "$f" | head -n 1)
+        task_id=$(wiki_stamp_field "$f" wiki-task)
+        harness_id=$(wiki_stamp_field "$f" wiki-harness)
         [ -n "$task_id" ] || task_id=unknown
         [ -n "$harness_id" ] || harness_id=unknown
         {
