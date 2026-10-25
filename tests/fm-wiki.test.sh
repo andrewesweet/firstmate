@@ -483,6 +483,113 @@ test_every_completed_close_retries_the_existing_queue() {
   pass "every completed close hands the existing queue to the guarded drain"
 }
 
+test_lesson_copies_remain_owner_only_under_a_permissive_umask() {
+  local home bare fakebin task
+  home=$(wiki_home permissions)
+  bare=$(wiki_bare permissions)
+  wiki_cfg "$home" contributor "file://$bare"
+  mkdir -p "$home/state/wiki/outbox" "$home/state/wiki/held"
+  chmod 755 "$home/state/wiki" "$home/state/wiki/outbox" "$home/state/wiki/held"
+  for task in task-clean task-held task-retained; do
+    wiki_task "$home" "$task"
+    if [ "$task" != task-clean ]; then
+      printf '## private evidence\nclaim: retain locally\nevidence: AKIAIOSFODNN7EXAMPLE\n' \
+        > "$home/data/$task/lessons.md"
+    fi
+    chmod 600 "$home/data/$task/lessons.md"
+  done
+  (umask 022; FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-clean >/dev/null) \
+    || fail "clean capture failed"
+  (umask 022; FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-held >/dev/null 2>&1) \
+    || fail "held capture failed"
+  fakebin=$(fm_fakebin "$home")
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$fakebin/ln"
+  chmod +x "$fakebin/ln"
+  (umask 022; PATH="$fakebin:$PATH" FM_WIKI_CLOSE_DRAIN=0 \
+    run_wiki "$home" close task-retained >/dev/null 2>&1) || fail "retained capture failed"
+  python3 - "$home/state/wiki" <<'PYPERMS' || fail "lesson captures must remain owner-only"
+import pathlib
+import stat
+import sys
+root = pathlib.Path(sys.argv[1])
+assert len(list((root / "outbox").glob("*.md"))) == 1
+assert len(list((root / "held").glob("*.md"))) == 1
+captures = list(root.glob(".capture.*"))
+assert len(captures) == 1
+assert len(list(captures[0].glob("*.md"))) == 1
+for path in [root, root / "outbox", root / "held", *captures]:
+    assert stat.S_IMODE(path.stat().st_mode) == 0o700, str(path)
+for path in root.rglob("*.md"):
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600, str(path)
+PYPERMS
+  git clone -q "file://$bare" "$home/state/wiki/repo" 2>/dev/null || fail "fixture clone failed"
+  chmod 755 "$home/state/wiki/repo"
+  (umask 022; run_wiki "$home" drain >/dev/null) || fail "private clone drain failed"
+  python3 - "$home/state/wiki" <<'PYPUBLISH' || fail "publication must preserve local privacy"
+import pathlib
+import stat
+import sys
+root = pathlib.Path(sys.argv[1])
+assert stat.S_IMODE((root / "repo").stat().st_mode) == 0o700
+raw = list((root / "repo" / "raw").rglob("*.md"))
+assert len(raw) == 1
+for path in root.rglob("*.md"):
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600, str(path)
+PYPUBLISH
+  pass "queued, held, retained, and cloned lessons stay owner-only under umask 022"
+}
+
+test_git_calls_are_bounded_without_timeout_or_perl() {
+  local fakebin real_git tool operation home bare out started elapsed
+  fakebin="$TMP_ROOT/bounded-bin"
+  mkdir -p "$fakebin"
+  real_git=$(command -v git) || fail "git unavailable"
+  for tool in bash python3 date uname tr sed awk head tail mkdir chmod basename dirname \
+    mktemp cp rm find wc cat sleep mv ln cmp cut grep; do
+    ln -s "$(command -v "$tool")" "$fakebin/$tool" || fail "cannot expose test tool $tool"
+  done
+  cat > "$fakebin/git" <<'SH'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "$FM_WIKI_STALL_OPERATION" ]; then
+    printf '%s\n' "$$" > "$FM_WIKI_STALL_MARKER"
+    exec sleep 15
+  fi
+done
+exec "$FM_WIKI_REAL_GIT" "$@"
+SH
+  chmod +x "$fakebin/git"
+  for tool in timeout gtimeout perl; do
+    if PATH="$fakebin" command -v "$tool" >/dev/null 2>&1; then
+      fail "$tool must be absent from the bounded-Git fixture"
+    fi
+  done
+  for operation in clone fetch push; do
+    home=$(wiki_home "bounded-$operation")
+    bare=$(wiki_bare "bounded-$operation")
+    wiki_cfg "$home" contributor "file://$bare"
+    wiki_task "$home" task-bounded
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-bounded >/dev/null || fail "bounded capture failed"
+    if [ "$operation" != clone ]; then
+      git clone -q "file://$bare" "$home/state/wiki/repo" 2>/dev/null || fail "fixture clone failed"
+    fi
+    started=$(date +%s)
+    out=$(PATH="$fakebin" FM_TIMEOUT_MECHANISM_OVERRIDE='' FM_WIKI_DRAIN_CAP=3 \
+      FM_WIKI_REAL_GIT="$real_git" FM_WIKI_STALL_OPERATION="$operation" \
+      FM_WIKI_STALL_MARKER="$home/stalled" run_wiki "$home" drain 2>&1) \
+      || fail "a bounded $operation must remain best-effort"
+    elapsed=$(( $(date +%s) - started ))
+    assert_present "$home/stalled" "the drain reached the stalled $operation boundary"
+    [ "$elapsed" -le 7 ] || fail "stalled $operation exceeded its drain budget ($elapsed seconds)"
+    assert_contains "$out" 'still queued' "a timed-out $operation leaves the lesson queued"
+    assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "a timed-out $operation cannot retire the lesson"
+    out=$(run_wiki "$home" drain) || fail "recovery from stalled $operation failed"
+    assert_contains "$out" 'pushed 1 lesson' "publication recovers after the $operation timeout releases ownership"
+  done
+  pass "clone, fetch, and push stay bounded without timeout or Perl and recover afterward"
+}
+
 test_watcher_tick_paces_itself_by_its_stamp() {
   local home out
   home=$(wiki_home tick)
@@ -613,6 +720,8 @@ test_concurrent_drains_in_one_home_never_run_together
 test_queue_identity_ignores_lesson_body_fields
 test_failed_held_transfer_preserves_the_captured_bytes
 test_every_completed_close_retries_the_existing_queue
+test_lesson_copies_remain_owner_only_under_a_permissive_umask
+test_git_calls_are_bounded_without_timeout_or_perl
 test_watcher_tick_paces_itself_by_its_stamp
 test_a_completed_task_stamps_its_final_status_not_none
 test_close_stays_idempotent_across_repeated_calls

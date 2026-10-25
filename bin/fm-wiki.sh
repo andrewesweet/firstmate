@@ -52,6 +52,7 @@
 # wiki_jev_privacy_advisory below.
 
 set -u
+umask 077
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 FM_ROOT=$(cd "$SCRIPT_DIR/.." && pwd -P)
@@ -59,6 +60,8 @@ FM_HOME=${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}
 
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$SCRIPT_DIR/fm-timeout-lib.sh"
 
 export FM_ROOT  # the Jev privacy-advisory seam (slice 04) and callers read it
 
@@ -171,8 +174,12 @@ print(hashlib.sha256(identity).hexdigest()[:12])
   esac
 }
 
+wiki_prepare() {
+  mkdir -p "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null \
+    && chmod 700 "$WIKI_DIR" "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null
+}
+
 wiki_ledger_append() {  # <outcome> <task> <final> <files>
-  mkdir -p "$WIKI_DIR" 2>/dev/null || return 0
   printf '{"ts":%s,"outcome":"%s","task":"%s","final":"%s","files":%s,"supervisor":"none"}\n' \
     "$(date +%s)" "$1" "$2" "$3" "$4" >> "$WIKI_LEDGER" 2>/dev/null || true
 }
@@ -342,7 +349,7 @@ wiki_close() {
   case $(wiki_sanitize "$(wiki_meta_get "$WIKI_STATE/$task.meta" kind)") in
     secondmate) return 0 ;;   # second mates contribute from slice 05.
   esac
-  mkdir -p "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null || return 0
+  wiki_prepare || return 0
   wiki_capture "$task"
   # Hand publication off without touching the network here: one detached
   # drain, single-flight inside, so overlapping closes spawn harmless no-ops.
@@ -422,21 +429,14 @@ wiki_capture() {
 }
 
 # wiki_git <repo-dir> <git args...>: every git operation runs under the
-# drain's remaining wall-clock budget, with a portable bound - coreutils
-# timeout when present, a perl alarm otherwise - so a stalled clone or push
+# drain's remaining wall-clock budget, so a stalled clone or push
 # can never hold a drain (or the cleanup that spawned it) indefinitely.
 wiki_git() {  # <repo-dir> <git args...>
   local dir=$1 remaining
   shift
   remaining=$(( WIKI_DEADLINE - $(date +%s) ))
   [ "$remaining" -ge 1 ] || return 124
-  if command -v timeout >/dev/null 2>&1; then
-    timeout "$remaining" git -C "$dir" "$@"
-  elif command -v perl >/dev/null 2>&1; then
-    perl -e 'alarm shift; exec @ARGV' "$remaining" git -C "$dir" "$@"
-  else
-    git -C "$dir" "$@"   # documented residual: no bounding tool on this host
-  fi
+  fm_run_timed "$remaining" git -C "$dir" "$@"
 }
 
 # wiki_git_clone <url> <dir>: the one git call with no repo to -C into; the
@@ -445,13 +445,7 @@ wiki_git_clone() {
   local remaining
   remaining=$(( WIKI_DEADLINE - $(date +%s) ))
   [ "$remaining" -ge 1 ] || return 124
-  if command -v timeout >/dev/null 2>&1; then
-    timeout "$remaining" git clone -q "$1" "$2"
-  elif command -v perl >/dev/null 2>&1; then
-    perl -e 'alarm shift; exec @ARGV' "$remaining" git clone -q "$1" "$2"
-  else
-    git clone -q "$1" "$2"   # documented residual: no bounding tool on this host
-  fi
+  fm_run_timed "$remaining" git clone -q "$1" "$2"
 }
 
 wiki_jitter_sleep() {
@@ -471,7 +465,7 @@ wiki_drain_lock() {
 wiki_drain() {
   wiki_feature_on 1 || return 0
   wiki_paths || return 0
-  mkdir -p "$WIKI_OUTBOX" 2>/dev/null || return 0
+  wiki_prepare || return 0
   local n
   n=$(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   if [ "$n" = 0 ]; then
@@ -494,6 +488,7 @@ wiki_drain() {
       return 0
     fi
   fi
+  chmod 700 "$WIKI_REPO" 2>/dev/null || return 0
   wiki_git "$WIKI_REPO" checkout -q -B "$WIKI_BRANCH" >/dev/null 2>&1 || true
   # Repo-local commit identity: the rebase below writes commits too, and the
   # clone must not depend on the caller's global git config. The trailers
@@ -614,7 +609,7 @@ wiki_drain() {
 wiki_drain_if_due() {
   wiki_feature_on 1 || return 0
   wiki_paths || return 0
-  mkdir -p "$WIKI_DIR" 2>/dev/null || return 0
+  wiki_prepare || return 0
   local now age
   now=$(date +%s)
   # A missing stamp reads as due (epoch 0), never as just-drained.
