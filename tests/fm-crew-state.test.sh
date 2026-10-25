@@ -3960,6 +3960,95 @@ outcome: failed"
   pass "the exemption never applies to a terminal run"
 }
 
+# --- a stale `done:` claim loses to a live run at a newer head ---------------
+# 2026-10-25 daily velocity audit: run 01M5NZVNSVXWZ7G4SDZ9TAAX4Z re-pushed the
+# head 79db746d - a commit the task copy never fetched - and then parked on
+# `ci awaiting_approval`. The task's status log still held its earlier `done:`
+# claim, and current state kept reporting that done for 11.56 h while the run sat
+# at a gate nobody answered. A done claim is about the head it was made at, so a
+# later live run at a different head is the better witness.
+run_parked_ci_awaiting_approval() {  # <branch>
+  cat <<EOF
+run:
+  id: "01RUN"
+  branch: $1
+  status: ci
+  awaiting_agent: parked 1h02m
+  head: "${FM_FAKE_RUN_HEAD:-abc1234}"
+  pr: "https://github.com/o/r/pull/2"
+  findings: none
+gate: ci
+EOF
+}
+
+# <name> <branch-tag> <id>: a ship whose status log's latest event is a CI-ready
+# done claim, with an idle pane so the log would otherwise answer. Echoes the
+# case dir.
+seed_repushed_done_case() {  # <name> <branch-tag> <id>
+  local name=$1 tag=$2 id=$3 d
+  d=$(new_case "$name")
+  make_repo_on_branch "$d/wt" "fm/feat-$tag"
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/$id.meta" "window=fm:fm-$tag" "worktree=$d/wt" "kind=ship" "harness=claude"
+  printf 'done: PR https://github.com/o/r/pull/2 checks 20/20 green, merge_state clean\n' \
+    > "$d/state/$id.status"
+  FM_FAKE_BUSY=0
+  arm_idle_record "$d/state" "$id"
+  printf '%s\n' "$d"
+}
+
+test_done_log_yields_to_a_repushed_parked_run() {
+  reset_fakes
+  local d h1 h2 out
+  d=$(seed_repushed_done_case done-repushed-parked repush repush)
+  h1=$(git -C "$d/wt" rev-parse HEAD)
+  h2=$(mint_unfetched_fix_head "$d/wt")
+  [ "$h1" != "$h2" ] || fail 'fixture broken: the re-pushed head equals the done head'
+  FM_FAKE_RUN_HEAD="$h2"
+  FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval fm/feat-repush)
+branch_sync:
+  state: synced"
+  FM_FAKE_RUNS_LIST=""
+  out=$(run_crew_state "$d" repush)
+  assert_contains "$out" 'state: parked' 'a run re-parked at a later gate outranks the stale done claim'
+  assert_contains "$out" 'source: run-step' 'the live run is the authoritative source'
+  assert_contains "$out" 'parked at ci' 'the later gate is reported'
+  assert_not_contains "$out" 'state: done' 'the stale done claim must not answer for the re-pushed run'
+  pass 'a re-pushed run parked at a later gate outranks a stale done claim'
+}
+
+# Guard in the other direction: a done claim the branch's run agrees with keeps
+# its reading, so the new rule never reopens a genuinely finished task.
+test_done_log_with_a_matching_head_run_stays_done() {
+  reset_fakes
+  local d out
+  d=$(seed_repushed_done_case done-matching-head matching matching)
+  FM_FAKE_RUN_HEAD=$(git -C "$d/wt" rev-parse HEAD)
+  FM_FAKE_AXI_STATUS="$(run_passed fm/feat-matching)"
+  FM_FAKE_RUNS_LIST=""
+  out=$(run_crew_state "$d" matching)
+  assert_contains "$out" 'state: done' 'a run at the done head keeps the done reading'
+  assert_contains "$out" 'source: run-step' 'the matching run remains the source'
+  pass 'a done claim the run agrees with stays done'
+}
+
+# A run record that names no head leaves nothing to compare against, so the
+# claim stands exactly as it does today.
+test_done_log_with_no_run_head_stays_done() {
+  reset_fakes
+  local d out
+  d=$(seed_repushed_done_case done-no-run-head nohead nohead)
+  FM_FAKE_RUN_HEAD=f0f0f0f0
+  FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval fm/feat-nohead | grep -v '^  head:')
+branch_sync:
+  state: synced"
+  FM_FAKE_RUNS_LIST=""
+  out=$(run_crew_state "$d" nohead)
+  assert_contains "$out" 'state: done' 'a done claim with no comparable run head keeps today behaviour'
+  assert_contains "$out" 'source: status-log' 'the log remains the source when nothing can be compared'
+  pass 'a done claim with no comparable head stays done'
+}
+
 test_missing_run_head_falls_back_to_current_state() {
   reset_fakes
   local d out
@@ -5975,6 +6064,9 @@ test_non_pipeline_owned_parked_unresolvable_head_not_attributed
 test_gate_parked_run_with_live_status_word_not_attributed
 test_pipeline_owned_terminal_run_not_exempt
 test_missing_run_head_falls_back_to_current_state
+test_done_log_yields_to_a_repushed_parked_run
+test_done_log_with_a_matching_head_run_stays_done
+test_done_log_with_no_run_head_stays_done
 test_active_fix_round_unfetched_pipeline_head_reports_current
 test_unanchored_unfetched_active_row_still_binds
 test_unresolved_terminal_row_is_history_not_current

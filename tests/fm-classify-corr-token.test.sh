@@ -327,6 +327,64 @@ test_consumer_verdicts_read_through_the_token() {
   pass "captain-relevance, terminal-verb, pause and captain-held all read through the token"
 }
 
+# --- declared-wait deadlines: `until <ISO>` and `by <ISO>` --------------------
+# A pause line names when the wait clears in the words its worker writes, and
+# "by <ISO>" is at least as common as "until <ISO>" (a worker waiting on a
+# pipeline gate writes "... drive return by 2026-10-24T23:02Z"). An unread
+# deadline is not an error any reader can see: it silently falls back to the
+# flat recheck cadence, so the wait is rechecked hours late (2026-10-25 daily
+# velocity audit, PR 1597). Both spellings must resolve to the same epoch,
+# `until` wins when a line carries both, and a malformed time still falls back
+# to the cadence rather than silencing the wait.
+test_paused_deadline_accepts_until_and_by() {
+  local expected late
+  expected=$(fm_utc_iso_to_epoch '2026-10-24T23:02Z') || fail 'fixture ISO did not convert'
+  late=$(fm_utc_iso_to_epoch '2026-10-25T01:00Z') || fail 'fixture ISO did not convert'
+
+  [ "$(status_paused_until 'paused: drive return until 2026-10-24T23:02Z')" = "$expected" ] \
+    || fail 'until <ISO> regressed'
+  [ "$(status_paused_until 'paused: drive return by 2026-10-24T23:02Z')" = "$expected" ] \
+    || fail 'by <ISO> is not read as a declared deadline'
+  [ "$(status_paused_until 'paused: drive return BY 2026-10-24T23:02Z')" = "$expected" ] \
+    || fail 'an upper-case BY deadline is not read'
+  [ "$(status_paused_until 'paused: drive return By 2026-10-24T23:02Z')" = "$expected" ] \
+    || fail 'a mixed-case By deadline is not read'
+  [ "$(status_paused_until 'paused: drive return by 2026-10-24T23:02:30Z')" = "$(fm_utc_iso_to_epoch '2026-10-24T23:02:30Z')" ] \
+    || fail 'the seconds form is not read under by'
+
+  # Both spellings on one line: `until` is the deadline the worker stated. The
+  # solo comparisons first prove each spelling maps to its own epoch, so the
+  # both-keyword assertions below cannot pass on an empty answer.
+  [ "$(status_paused_until 'paused: return by 2026-10-25T01:00Z')" = "$late" ] \
+    || fail 'a solo by deadline did not resolve to its own time'
+  [ "$(status_paused_until 'paused: return until 2026-10-25T01:00Z')" = "$late" ] \
+    || fail 'a solo until deadline did not resolve to its own time'
+  [ "$(status_paused_until 'paused: return by 2026-10-25T01:00Z, until 2026-10-24T23:02Z')" = "$expected" ] \
+    || fail 'a later by deadline displaced the earlier until deadline'
+  [ "$(status_paused_until 'paused: return until 2026-10-24T23:02Z, or by 2026-10-25T01:00Z')" = "$expected" ] \
+    || fail 'a later by deadline displaced the earlier until deadline'
+
+  # Malformed and absent deadlines fall back to the flat cadence, never to a
+  # wrong time and never to a silenced wait.
+  if status_paused_until 'paused: drive return by 2026-13-99T99:99Z' >/dev/null; then
+    fail 'a malformed by time was read as a deadline'
+  fi
+  if status_paused_until 'paused: drive return by tomorrow' >/dev/null; then
+    fail 'a non-ISO by token was read as a deadline'
+  fi
+  if status_paused_until 'paused: drive return by 2026-10-24 23:02Z' >/dev/null; then
+    fail 'a by token without the T separator was read as a deadline'
+  fi
+  if status_paused_until 'paused: waiting on the vendor release' >/dev/null; then
+    fail 'a pause declaring no deadline produced one'
+  fi
+  if status_paused_until 'working: drive return by 2026-10-24T23:02Z' >/dev/null; then
+    fail 'a non-pause line produced a deadline'
+  fi
+
+  pass 'a declared wait reads both until <ISO> and by <ISO>, with until preferred'
+}
+
 test_daemon_and_crew_state_case_arms_read_through_the_token() {
   # Two consumers switch on the verb STRING rather than on a helper, so they
   # cannot be proven through status_is_*: bin/fm-supervise-daemon.sh matches
@@ -798,6 +856,7 @@ test_prose_and_malformed_tokens_never_become_transitions
 test_token_first_word_never_impersonates_a_transition
 test_captain_relevance_and_pause_are_unchanged_without_a_token
 test_consumer_verdicts_read_through_the_token
+test_paused_deadline_accepts_until_and_by
 test_daemon_and_crew_state_case_arms_read_through_the_token
 test_pending_reply_escalation_matching_is_unaffected
 test_incremental_and_whole_file_folds_agree_over_correlated_lines

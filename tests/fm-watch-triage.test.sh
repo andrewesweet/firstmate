@@ -7008,18 +7008,20 @@ test_afk_one_shot_never_hands_off_captain_held_under_away_record() {
   pass "the daemon-owned one-shot never hands off a captain-held pane while the away-posture record exists"
 }
 
-# --- declared waits are condition-aware: `until <UTC ISO 8601>` --------------
+# --- declared waits are condition-aware: `until`/`by` <UTC ISO 8601> ---------
 # A paused: line naming when the wait clears is rechecked at that time when it
 # falls within the flat cadence, but a distant or mistyped time cannot extend
-# the cadence, and a time that has passed is rechecked at once.
-paused_until_fixture() {  # <name> <until-epoch> <status-age-secs>
-  local name=$1 until=$2 age=$3 dir state statusf window key back
+# the cadence, and a time that has passed is rechecked at once. `by <ISO>` is
+# the same deadline in the words a worker most often writes; it must reach the
+# same schedule, because an unread deadline is silently a flat-cadence wait.
+paused_until_fixture() {  # <name> <until-epoch> <status-age-secs> [<keyword>]
+  local name=$1 until=$2 age=$3 keyword=${4:-until} dir state statusf window key back
   dir=$(make_case "$name"); state="$dir/state"
   window="test:fm-until"
   statusf="$state/until.status"
   printf 'idle, waiting for the reset\n' > "$dir/pane.txt"
   printf 'window=%s\nkind=secondmate\n' "$window" > "$state/until.meta"
-  printf 'paused: rate limit resets, until %s, then resuming\n' "$(iso_utc_at "$until")" > "$statusf"
+  printf 'paused: rate limit resets, %s %s, then resuming\n' "$keyword" "$(iso_utc_at "$until")" > "$statusf"
   back=$(( $(date +%s) - age ))
   if [ "$(uname)" = Darwin ]; then touch -mt "$(date -r "$back" '+%Y%m%d%H%M.%S')" "$statusf"
   else touch -m -d "@$back" "$statusf"; fi
@@ -7088,6 +7090,24 @@ test_paused_until_that_passed_is_rechecked_before_the_cadence() {
   fi
   reap "$UNTIL_PID"
   pass "a declared wait whose until time has passed is rechecked at once, then held to the cadence"
+}
+
+# The `by <ISO>` spelling is the same declaration: a worker waiting on a
+# pipeline gate writes "... drive return by 2026-10-24T23:02Z", and while that
+# deadline went unread the watcher only reached the wait on the flat cadence
+# (2026-10-25 daily velocity audit, PR 1597).
+test_paused_by_deadline_is_rechecked_like_until() {
+  local dir state
+  dir=$(paused_until_fixture by-passed "$(( $(date +%s) - 30 ))" 60 by); state="$dir/state"
+  until_watch "$dir" 999
+  wait_for_exit "$UNTIL_PID" 100 \
+    || { reap "$UNTIL_PID"; fail "a declared wait whose by time passed was not rechecked ahead of the cadence"; }
+  grep -F 'stale: test:fm-until' "$dir/watch.out" >/dev/null \
+    || fail "the by-deadline recheck did not print a stale wake: $(cat "$dir/watch.out")"
+  grep -F 'declared clearing time has passed' "$dir/watch.out" >/dev/null \
+    || fail "the by-deadline recheck did not say the declared time passed: $(cat "$dir/watch.out")"
+  reap "$UNTIL_PID"
+  pass "a paused wait naming its deadline with by is rechecked at that time, not on the flat cadence"
 }
 
 # --- a live worker paused on its own background job --------------------------
@@ -7517,6 +7537,7 @@ test_captain_held_rechecked_under_a_quiet_record
 test_paused_until_near_future_is_quiet_before_the_cadence
 test_paused_until_wrong_year_is_bounded_by_the_cadence
 test_paused_until_that_passed_is_rechecked_before_the_cadence
+test_paused_by_deadline_is_rechecked_like_until
 test_paused_bg_job_without_until_stays_silent_after_the_job_ends
 test_paused_bg_job_until_timeout_rechecks_after_the_job_ends
 
