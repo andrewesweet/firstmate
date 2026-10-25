@@ -215,6 +215,16 @@ jobs:
           set -eu
           bin/fm-install-actionlint.sh "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install pinned lychee for crew wiki tests
+        run: |
+          set -eu
+          lychee_dir="$RUNNER_TEMP/lychee"
+          mkdir -p "$lychee_dir"
+          archive=lychee-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSL "https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/$archive" -o "$lychee_dir/$archive"
+          printf '1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a  %s\n' "$lychee_dir/$archive" | sha256sum -c -
+          tar -xzf "$lychee_dir/$archive" -C "$lychee_dir"
+          echo "$lychee_dir/lychee-x86_64-unknown-linux-gnu" >> "$GITHUB_PATH"
       - name: Require tmux for e2e tests
         run: |
           set -eu

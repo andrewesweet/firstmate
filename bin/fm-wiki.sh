@@ -470,6 +470,20 @@ wiki_git_clone() {
   fm_run_timed "$remaining" git clone -q "$1" "$2"
 }
 
+wiki_push_destination_valid() {
+  local urls url
+  urls=$(wiki_git "$1" remote get-url --push --all origin 2>/dev/null) || return 1
+  [ -n "$urls" ] || return 1
+  while IFS= read -r url; do
+    if [ "$url" != "$CFG_REMOTE" ]; then
+      printf 'wiki: refusing to publish: an effective origin push URL differs from config/wiki remote\n' >&2
+      return 1
+    fi
+  done <<EOF
+$urls
+EOF
+}
+
 wiki_jitter_sleep() {
   [ "$(date +%s)" -lt "$WIKI_DEADLINE" ] || return 0
   sleep "0.$(( (RANDOM % 8) + 2 ))" 2>/dev/null || sleep 1
@@ -516,6 +530,7 @@ wiki_drain() {
   fi
   chmod 700 "$WIKI_REPO" 2>/dev/null || return 0
   if [ "$n" -gt 0 ]; then
+    wiki_push_destination_valid "$WIKI_REPO" || return 0
     wiki_git "$WIKI_REPO" checkout -q -B "$WIKI_BRANCH" >/dev/null 2>&1 || true
     # Repo-local commit identity: the rebase below writes commits too, and the
     # clone must not depend on the caller's global git config. The trailers
@@ -702,7 +717,7 @@ wiki_gardener_open() {
   local rows remaining
   remaining=$(( WIKI_DEADLINE - $(date +%s) ))
   [ "$remaining" -ge 1 ] || return 0
-  rows=$(unset TASKS_AXI_FILE; FM_TASKS_AXI_TIMEOUT="$remaining" fm_backlog_row_list "$WIKI_DATA" --repo crew-wiki 2>/dev/null) || return 0
+  rows=$(FM_HOME="$FM_HOME" FM_DATA_OVERRIDE="$WIKI_DATA" fm_run_timed "$remaining" "$SCRIPT_DIR/fm-tasks-axi.sh" list --repo crew-wiki 2>/dev/null) || return 0
   printf '%s\n' "$rows" | awk -F, '
     /^  [A-Za-z0-9._-]+,/ && $2 != "done" { found=1 }
     END { exit !found }
@@ -820,6 +835,13 @@ EOF
   return 0
 }
 
+wiki_require_lychee() {
+  if [ "$(lychee --version 2>/dev/null)" != 'lychee 0.24.2' ]; then
+    printf 'fm-wiki: lychee 0.24.2 is required; install the official release binary from https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2 and put it on PATH\n' >&2
+    return 1
+  fi
+}
+
 # wiki_lint_page <repo> <page> <rel> <citations>: blocking checks for one page. Exit 0
 # when clean, 1 with the reasons printed when blocked.
 wiki_lint_page() {
@@ -848,104 +870,55 @@ wiki_lint_references() {
   python3 - "$1" "$2" "$3" "$4" <<'PYTHON'
 import pathlib
 import re
+import subprocess
 import sys
+from urllib.parse import unquote, urlsplit
 
-repo, page, rel = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]), sys.argv[3]
+repo, page, rel = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve(), sys.argv[3]
 raw = repo / "raw"
 citations = set()
 
 def lesson(path):
     target = path.resolve()
-    if target.is_relative_to(raw) and target.is_file() and target.suffix == ".md":
-        citations.add(target.relative_to(repo).as_posix())
-        return True
-    return False
+    return target.is_relative_to(raw) and target.is_file() and target.suffix == ".md"
 
-def prose(text):
-    lines = []
-    fence = None
-    indented = False
-    blank = True
-    for line in text.splitlines(keepends=True):
-        logical = re.sub(r"^(?: {0,3}>[ \t]?)+", "", line)
-        marker = re.match(r" {0,3}(`{3,}|~{3,})", logical)
-        if fence:
-            if re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", logical):
-                fence = None
-            lines.append("\n")
-        elif marker:
-            fence = marker.group(1)
-            lines.append("\n")
-        elif re.match(r"(?: {4}|\t)", logical) and (blank or indented):
-            indented = True
-            lines.append("\n")
-        elif indented and not logical.strip():
-            lines.append("\n")
-        else:
-            indented = False
-            lines.append(line)
-        blank = not logical.strip()
-    return re.sub(r"(?<!\\)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", "".join(lines), flags=re.S)
-
-link = re.compile(r"""(?<!\\)!?\[[^\]]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)""")
-definition = re.compile(r"""^ {0,3}\[([^\]\n]+)\]:[ \t]*(?:<([^>\n]+)>|(\S+))(?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?[ \t]*$""", re.M)
-reference = re.compile(r"(?<!\\)!?\[([^\]]+)\](?:\[([^\]]*)\])?")
-
-def label(value):
-    return " ".join(value.split()).casefold()
-
-text = prose(page.read_text())
-references = {}
-for match in definition.finditer(text):
-    references.setdefault(label(match.group(1)), match.group(2) or match.group(3))
-text = definition.sub("", text)
-
-def rendered_links(value):
-    targets = []
-    def inline(match):
-        targets.append(match.group(1) or match.group(2))
-        return ""
-    def indirect(match):
-        key = label(match.group(2) or match.group(1))
-        if key not in references:
-            return match.group(0)
-        targets.append(references[key])
-        return ""
-    plain = reference.sub(indirect, link.sub(inline, value))
-    return targets, plain
-
-headers = re.findall(r"^> sources: *(.*)$", text, re.M)
+lines = page.read_text().splitlines(keepends=True)
+headers = {}
+while lines:
+    match = re.match(r"^> (summary|scope|last-confirmed|sources|aliases): *(.*)$", lines[0].rstrip("\n"))
+    if not match:
+        break
+    headers.setdefault(match[1], match[2])
+    lines.pop(0)
 blocked = False
-for entry in (headers[0].split(";") if headers else []):
+for entry in headers.get("sources", "").split(";"):
     entry = entry.strip()
     if not entry.startswith("raw/") or not lesson(repo / entry):
         print(f"wiki lint: {rel} cites missing or invalid raw lesson {entry}")
         blocked = True
-for target in rendered_links(text)[0]:
-    target = target.split("#", 1)[0]
-    if not target or re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target):
+options = ["lychee", "--config", "/dev/null", "--offline", "--scheme", "file",
+           "--no-progress", "--mode", "plain", "--cache=false", "--no-ignore", "--hidden",
+           "--include-verbatim=false", "--threads", "1"]
+checked = subprocess.run(options + ["--", str(page)], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+if checked.returncode:
+    print(f"wiki lint: {rel} has invalid local links:\n{checked.stdout.strip()}")
+    blocked = True
+dumped = subprocess.run(options + ["--dump", "--default-extension", "md", "--base-url", page.as_uri(), "--", "-"],
+                        input="".join(lines), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+if dumped.returncode:
+    print(f"wiki lint: {rel}: lychee could not extract links: {dumped.stderr.strip()}")
+    sys.exit(1)
+for link in dumped.stdout.splitlines():
+    url = urlsplit(link)
+    if url.scheme != "file":
         continue
-    path = (page.parent / target).resolve()
-    if target.startswith("/") or not path.is_relative_to(repo):
-        print(f"wiki lint: {rel} links outside the checkout: {target}")
+    target = pathlib.Path(unquote(url.path)).resolve()
+    if url.netloc not in ("", "localhost") or not target.is_relative_to(repo):
+        print(f"wiki lint: {rel} links outside the checkout: {link}")
         blocked = True
-    elif not path.exists():
-        print(f"wiki lint: {rel} has a dangling link: {target}")
-        blocked = True
-body = "\n".join(line for line in text.splitlines() if not line.startswith(">"))
-cited = False
-targets, plain = rendered_links(body)
-for target in targets:
-    target = target.split("#", 1)[0]
-    if target and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not target.startswith("/"):
-        cited = lesson(page.parent / target) or cited
-for target in re.findall(r"(?<![\w./-])raw/[A-Za-z0-9._/-]+\.md\b", plain):
-    if lesson(repo / target):
-        cited = True
-    else:
-        print(f"wiki lint: {rel} cites missing or invalid raw lesson {target}")
-        blocked = True
-if not cited:
+    elif lesson(target):
+        citations.add(target.relative_to(repo).as_posix())
+if not citations:
     print(f"wiki lint: {rel} cites no raw lesson")
     blocked = True
 with open(sys.argv[4], "a") as output:
@@ -1027,6 +1000,7 @@ wiki_lint() {
   wiki_paths >/dev/null 2>&1 || return 1
   repo=${repo:-$WIKI_REPO}
   [ -d "$repo" ] || { printf 'fm-wiki: lint: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  wiki_require_lychee || return 1
   WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
   wiki_lint_repo "$repo"
   if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
@@ -1163,6 +1137,8 @@ wiki_publish() {
     printf 'fm-wiki: publish: %s points at another remote; refusing rather than publishing elsewhere\n' "$repo" >&2
     return 1
   fi
+  wiki_push_destination_valid "$repo" || return 1
+  wiki_require_lychee || return 1
   wiki_git "$repo" cat-file -e "${base}^{commit}" >/dev/null 2>&1 \
     || { printf 'fm-wiki: publish: unknown base %s in %s\n' "$base" "$repo" >&2; return 1; }
   if ! wiki_drain_lock; then

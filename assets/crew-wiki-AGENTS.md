@@ -36,7 +36,8 @@ Every page opens with these `>` lines, which `index` reads and `lint` enforces.
 
 ## Claims and citations
 
-Every claim on a page cites the raw lesson it came from, inline where the claim is made.
+Every claim on a page cites the raw lesson it came from with a Markdown link, inline where the claim is made; use a path relative to the page, such as `[lesson](../../raw/2026/10/example.md)` from `pages/tools/`.
+Header provenance, bare paths, and code examples do not satisfy the body citation rule.
 Supersession cites the newer raw lesson and strikes the old claim; the old text stays readable under the strike.
 Raw files are never edited to fix a page: a correction is a new raw lesson compiled by a later run.
 A `used: <page> ok|stale|wrong` line in a raw lesson is a usage signal from a worker that consulted the page.

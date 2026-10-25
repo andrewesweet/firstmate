@@ -980,6 +980,8 @@ The wiki repository is captain-configured and captain-owned; firstmate pushes on
 ## The gardener compiles pages
 
 One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
+Gardener lint and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
+Checks use lychee offline for local Markdown links only; external links never trigger network requests.
 `bin/fm-wiki.sh due` exits 0 with one line only when at least 25 raw lessons are uncompiled or the oldest uncompiled one is 7 days old, and no crew-wiki project task is open in that home; otherwise it exits 1 silently.
 It reads only the home's own clone and task records, never the network.
 `bin/fm-wiki.sh lint` runs the deterministic page checks and `bin/fm-wiki.sh index` regenerates `index.md` from page headers within the 150-line budget.

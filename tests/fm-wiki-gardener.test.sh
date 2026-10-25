@@ -12,6 +12,8 @@ ROOT=${FM_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}
 . "$ROOT/tests/lib.sh"
 WIKI="$ROOT/bin/fm-wiki.sh"
 
+[ "$(lychee --version 2>/dev/null)" = 'lychee 0.24.2' ] || fail 'lychee 0.24.2 is required; install the official release binary from https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2 and put it on PATH'
+
 TMP_ROOT=$(fm_test_tmproot fm-wiki-gardener)
 
 # wiki_home <name>: one fake FM_HOME with config/, state/, data/, and a
@@ -71,7 +73,7 @@ seed_checkout() {
 
 # Seed page
 
-A body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+A body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   cat > "$dir/raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md" <<'EOF'
 ---
@@ -289,7 +291,7 @@ test_lint_blocks_on_header_link_budget_and_citation_gaps() {
 
 # Bad page
 
-Body citing raw/2026/10/20261025T000000Z-testhost-testhome-task-a-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261025T000000Z-testhost-testhome-task-a-a1b2.md).
 EOF
   out=$(run_wiki "$home" lint --repo "$dir" 2>&1); status=$?
   [ "$status" -ne 0 ] || fail "lint must block a page missing its summary header"
@@ -364,7 +366,7 @@ test_lint_reports_advisories_without_blocking() {
 
 # Orphan
 
-Body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   out=$(run_wiki "$home" lint 2>&1) || fail "lint must exit 0 when only advisories fire"
   assert_contains "$out" 'advisory' "lint labels the non-blocking finding"
@@ -387,7 +389,7 @@ test_index_regenerates_from_page_headers() {
 
 # Pi turn-end
 
-Body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   printf 'stale hand-written index\n' > "$repo/index.md"
   out=$(run_wiki "$home" index 2>&1) || fail "index must exit 0"
@@ -417,7 +419,7 @@ test_publish_lands_pages_with_a_landing_proof() {
 
 # Gardened
 
-Body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   printf '## [2026-10-25] ingest | 1 lesson | 20261024T000000Z-testhost-testhome-seed-a1b2.md\n' >> "$repo/log.md"
   out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "publish must exit 0: $out"
@@ -455,7 +457,7 @@ test_publish_refuses_a_raw_edit() {
 
 # Gardened
 
-Body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   out=$(run_wiki "$home" publish --base "$base" 2>&1); status=$?
   [ "$status" -ne 0 ] || fail "publish must refuse a raw edit"
@@ -496,7 +498,7 @@ test_publish_refuses_a_foreign_page_commit() {
 
 # Gardened
 
-Body citing raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md.
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
 EOF
   remote_before=$foreign
   out=$(run_wiki "$home" publish --base "$base" 2>&1); status=$?
@@ -567,7 +569,7 @@ test_uncited_advisory_ignores_ingest_logs_and_indexes() {
   printf '\nThe ingest record names %s.\n' "$(basename "$lesson")" >> "$repo/pages/tools/seed-page.md"
   out=$(run_wiki "$home" lint 2>&1) || fail "uncited advisory must not block lint: $out"
   assert_contains "$out" "raw lesson no page cites after 30 days: ${lesson#"$repo/"}" "ingest records do not count as page citations"
-  printf '\nSource: %s\n' "${lesson#"$repo/"}" >> "$repo/pages/tools/seed-page.md"
+  printf '\nSource: [lesson](../../%s)\n' "${lesson#"$repo/"}" >> "$repo/pages/tools/seed-page.md"
   out=$(run_wiki "$home" lint 2>&1) || fail "citing the lesson must keep lint clean: $out"
   assert_not_contains "$out" 'raw lesson no page cites after 30 days:' "a page citation clears the advisory"
   pass "uncited lesson advisories consider pages only"
@@ -740,7 +742,7 @@ test_lint_checks_every_citation_and_parses_markdown_titles() {
     out=$(run_wiki "$home" lint 2>&1) || fail "valid Markdown title $title must pass: $out"
     assert_contains "$out" '1 raw lesson(s) cited' "titles and duplicate citations do not inflate coverage"
   done
-  for body in "$source then raw/missing.md" "raw/missing.md then $source" "[lesson](../../$source) then [missing](../../raw/missing.md \"source\")"; do
+  for body in "[lesson](../../$source) then [missing](../../raw/missing.md)" "[missing](../../raw/missing.md) then [lesson](../../$source)" "[lesson](../../$source) then [missing](../../raw/missing.md \"source\")"; do
     printf '> summary: mixed citations\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n' "$source" "$body" > "$page"
     out=$(run_wiki "$home" lint 2>&1); status=$?
     [ "$status" -ne 0 ] || fail "one valid citation must not hide another missing citation"
@@ -819,10 +821,10 @@ test_lint_resolves_reference_links_and_excludes_code_examples() {
     assert_contains "$out" '1 raw lesson(s) cited' "references resolve to the same raw lesson as inline citations"
   done
   for body in '[missing][ref]' '[ref][]' '[ref]'; do
-    printf '> summary: dangling reference\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nA real citation: %s. Also %s.\n\n[ref]: missing.md\n' "$source" "$source" "$body" > "$page"
+    printf '> summary: dangling reference\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nA real citation: [lesson](../../%s). Also %s.\n\n[ref]: missing.md\n' "$source" "$source" "$body" > "$page"
     out=$(run_wiki "$home" lint 2>&1); status=$?
     [ "$status" -ne 0 ] || fail "lint must reject dangling reference $body"
-    assert_contains "$out" 'dangling link: missing.md' "all rendered reference forms validate their destinations"
+    assert_contains "$out" 'missing.md' "all rendered reference forms validate their destinations"
   done
   lesson=$(add_raw "$repo" 20200101T000000Z only-in-code)
   {
@@ -1028,6 +1030,103 @@ test_idle_gardener_refresh_is_bounded_and_recovers() {
   pass "idle gardener fetches stay bounded and recover on the next drain"
 }
 
+test_lint_and_publish_require_pinned_lychee() {
+  local bare home repo base hidden fakebin out status verb mode
+  bare=$(wiki_bare lycheerequired)
+  seed_checkout "$bare" "$TMP_ROOT/lycheerequired-seed" >/dev/null
+  home=$(gardener_home_with_repo lycheerequired "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  hidden=$(fm_test_base_path_sans "$PATH" lychee)
+  fakebin="$TMP_ROOT/wrong-lychee-bin"
+  mkdir -p "$fakebin"
+  printf '#!/usr/bin/env bash\nprintf "lychee 0.24.1\\n"\n' > "$fakebin/lychee"
+  chmod +x "$fakebin/lychee"
+  for mode in "$hidden" "$fakebin:$PATH"; do
+    for verb in lint publish; do
+      if [ "$verb" = publish ]; then
+        out=$(PATH="$mode" run_wiki "$home" publish --base "$base" 2>&1); status=$?
+      else
+        out=$(PATH="$mode" run_wiki "$home" lint 2>&1); status=$?
+      fi
+      [ "$status" -ne 0 ] || fail "$verb must fail without lychee 0.24.2"
+      assert_contains "$out" 'lychee 0.24.2 is required' "missing or wrong parser names the required version"
+      assert_contains "$out" 'https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2' "parser error provides installation instructions"
+      assert_equals 1 "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" "one parser error stops the command"
+      assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "missing parser cannot commit pages"
+    done
+  done
+  pass "lint and publish require the exact parser version with one actionable error"
+}
+
+test_lint_includes_quoted_claims_and_checks_links_offline() {
+  local bare home repo page source out status body
+  bare=$(wiki_bare lintquotes)
+  seed_checkout "$bare" "$TMP_ROOT/lintquotes-seed" >/dev/null
+  home=$(gardener_home_with_repo lintquotes "$bare")
+  repo="$home/state/wiki/repo"
+  page="$repo/pages/tools/seed-page.md"
+  source=raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+  for body in "> A quoted [lesson](../../$source)." "> > [quoted][src]"; do
+    printf '> summary: quoted claim\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n\n[src]: ../../%s "source"\n\n[external](http://127.0.0.1:1/never-connect)\n' "$source" "$body" "$source" > "$page"
+    out=$(run_wiki "$home" lint 2>&1) || fail "quoted citations and unreachable external links must pass offline: $out"
+    assert_contains "$out" '1 raw lesson(s) cited' "quoted citations count as page coverage"
+  done
+  printf '> A missing [lesson](../../raw/missing.md).\n' >> "$page"
+  out=$(run_wiki "$home" lint 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "another valid citation cannot hide a missing quoted link"
+  assert_contains "$out" 'missing.md' "quoted dangling links remain blocking"
+  printf '> summary: [header citation](../../%s)\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\nNo body citation.\n' "$source" "$source" > "$page"
+  out=$(run_wiki "$home" lint 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "rendered metadata links cannot substitute for body citations"
+  assert_contains "$out" 'cites no raw lesson' "metadata stays separate from body coverage"
+  printf 'raw fixture\n' > "$repo/raw/2026/10/space (lesson).md"
+  printf '> summary: parser syntax\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: raw/2026/10/space (lesson).md\n\n[lesson](<../../raw/2026/10/space (lesson).md> "source")\n' > "$page"
+  out=$(run_wiki "$home" lint 2>&1) || fail "Markdown destinations with spaces and parentheses must pass: $out"
+  assert_contains "$out" '1 raw lesson(s) cited' "resolved destinations identify existing raw lessons"
+  pass "quoted claims, metadata, complex destinations, and offline links use one parser"
+}
+
+test_publish_and_drain_refuse_other_effective_push_urls() {
+  local verb mode bare other home repo base out status queued urls
+  for verb in publish drain; do
+    for mode in single multiple rewrite; do
+      bare=$(wiki_bare "pushurl-$verb-$mode")
+      other=$(wiki_bare "pushurl-other-$verb-$mode")
+      seed_checkout "$bare" "$TMP_ROOT/pushurl-seed-$verb-$mode" >/dev/null
+      home=$(gardener_home_with_repo "pushurl-$verb-$mode" "$bare")
+      repo="$home/state/wiki/repo"
+      base=$(wgit -C "$repo" rev-parse HEAD)
+      case $mode in
+        single) wgit -C "$repo" config remote.origin.pushurl "file://$other" ;;
+        multiple)
+          wgit -C "$repo" config --add remote.origin.pushurl "file://$bare"
+          wgit -C "$repo" config --add remote.origin.pushurl "file://$other"
+          ;;
+        rewrite) wgit -C "$repo" config "url.file://$other.pushInsteadOf" "file://$bare" ;;
+      esac
+      urls=$(wgit -C "$repo" remote get-url --push --all origin)
+      assert_contains "$urls" "file://$other" "fixture redirects at least one effective push URL"
+      if [ "$verb" = publish ]; then
+        printf '\nA private compiled claim.\n' >> "$repo/pages/tools/seed-page.md"
+        out=$(run_wiki "$home" publish --base "$base" 2>&1); status=$?
+        [ "$status" -ne 0 ] || fail "publish must refuse $mode push redirection"
+      else
+        mkdir -p "$home/state/wiki/outbox"
+        queued="$home/state/wiki/outbox/20261025T000000Z-testhost-testhome-pushurl-a1b2.md"
+        printf 'private raw lesson\n' > "$queued"
+        out=$(run_wiki "$home" drain 2>&1) || fail "drain refusal remains best effort"
+        [ -f "$queued" ] || fail "refused drain must keep the lesson queued"
+      fi
+      assert_contains "$out" 'effective origin push URL' "both publishers explain the destination refusal"
+      assert_equals "$base" "$(wgit -C "$bare" rev-parse main)" "preflight prevents even the approved URL from receiving a multi-push"
+      [ -z "$(wgit -C "$other" for-each-ref --format='%(refname)')" ] || fail "private wiki history reached an unapproved remote"
+      assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "destination refusal precedes local commits"
+    done
+  done
+  pass "both publishers reject alternate, multiple, and rewritten push destinations before uploading"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -1063,3 +1162,7 @@ test_idle_gardener_refresh_preserves_divergent_local_history
 test_gardener_commands_bind_custom_home_paths
 
 test_idle_gardener_refresh_is_bounded_and_recovers
+
+test_lint_and_publish_require_pinned_lychee
+test_lint_includes_quoted_claims_and_checks_links_offline
+test_publish_and_drain_refuse_other_effective_push_urls
