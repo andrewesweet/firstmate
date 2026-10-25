@@ -336,6 +336,23 @@ fm_brief_base_branches() {  # <brief>
   ' "$1"
 }
 
+fm_dod_wiki_command() {
+  local root home config state data key
+  root=$(cd "$_FM_DOD_LIB_DIR/.." && pwd -P)
+  home=${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-$root}}}
+  config=${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}
+  state=${STATE:-${FM_STATE_OVERRIDE:-$home/state}}
+  data=${DATA:-${FM_DATA_OVERRIDE:-$home/data}}
+  for key in home config state data; do
+    case ${!key} in
+      /*) ;;
+      *) printf -v "$key" '%s/%s' "$PWD" "${!key}" ;;
+    esac
+  done
+  printf 'env FM_HOME=%q FM_CONFIG_OVERRIDE=%q FM_STATE_OVERRIDE=%q FM_DATA_OVERRIDE=%q %q' \
+    "$home" "$config" "$state" "$data" "$_FM_DOD_LIB_DIR/fm-wiki.sh"
+}
+
 fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only|direct-push> <task-id> [branch] [<forge>] [<base>]
   local mode=$1 id=$2 forge=${4:-none} base=${5:-}
   local branch=${3:-fm/$id} target='the default branch'
@@ -369,9 +386,9 @@ fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only|direct-push> <task-id>
       printf '%s\n' "1. Never push to $target. Never merge a PR."
       ;;
     direct-push)
-      local wiki_bin
-      printf -v wiki_bin '%q' "$_FM_DOD_LIB_DIR/fm-wiki.sh"
-      printf '%s\n' "1. Never push to any remote except through the \`$wiki_bin publish --repo \"\$PWD\"\` your Definition of done names, and never open a PR. Never merge anything: publish lands the pages itself with a landing proof."
+      local wiki_command
+      wiki_command=$(fm_dod_wiki_command) || return 1
+      printf '%s\n' "1. Never push to any remote except through the \`$wiki_command publish --repo \"\$PWD\"\` your Definition of done names, and never open a PR. Never merge anything: publish lands the pages itself with a landing proof."
       ;;
     *)
       echo "error: fm_ship_rule_one: unknown delivery mode '$mode'" >&2
@@ -996,14 +1013,14 @@ If you deliberately keep the PR a draft, append \`paused [at=<epoch>]: {why the 
 EOF
       ;;
     direct-push:*)
-      local wiki_bin
-      printf -v wiki_bin '%q' "$_FM_DOD_LIB_DIR/fm-wiki.sh"
+      local wiki_command
+      wiki_command=$(fm_dod_wiki_command) || return 1
       cat <<EOF
 # Definition of done
 Delivery contract: mode=direct-push$contract_consent
 Ship branch: $branch
 This task ships **direct-push** to the crew wiki: there is no pull request and no pipeline.
-Your task worktree is the wiki checkout for this run: compile the pages there, then land them with \`$wiki_bin publish --repo "\$PWD"\`, which lints the pages, refuses raw edits and foreign page commits, and pushes with a landing proof.
+Your task worktree is the wiki checkout for this run: compile the pages there, then land them with \`$wiki_command publish --repo "\$PWD"\`, which lints the pages, refuses raw edits and foreign page commits, and pushes with a landing proof.
 The task is complete only when committed on your branch \`$branch\`. Do NOT push except through \`publish\`, do NOT open a PR, do NOT merge.
 
 EOF
@@ -1014,8 +1031,8 @@ EOF
 At the start of the run, record BASE as \`git rev-parse origin/main\` in the checkout.
 Compile at most 25 of the oldest uncompiled raw lessons into pages under \`pages/\`, following the wiki repository's own \`AGENTS.md\` schema; cite every claim with the raw lesson it came from, and append one \`## [YYYY-MM-DD] ingest\` line per batch to \`log.md\`.
 Never create, modify, or delete anything under \`raw/\`: raw lessons are add-only and arrive only through each home's cleanup.
-Run \`$wiki_bin lint --repo "\$PWD"\` until it reports clean and \`$wiki_bin index --repo "\$PWD"\` until the index is within its 150-line budget.
-Then run \`$wiki_bin publish --repo "\$PWD" --base "\$BASE"\`: on a foreign-commit refusal, re-read the new \`origin/main\`, recompile what is still uncompiled, and publish again.
+Run \`$wiki_command lint --repo "\$PWD"\` until it reports clean and \`$wiki_command index --repo "\$PWD"\` until the index is within its 150-line budget.
+Then run \`$wiki_command publish --repo "\$PWD" --base "\$BASE"\`: on a foreign-commit refusal, re-read the new \`origin/main\`, recompile what is still uncompiled, and publish again.
 When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}\` to the status file and stop, with the commit publish printed.
 Commit nothing after publishing.
 Do NOT run /no-mistakes. The configured merge authority decided this standing posture; firstmate relays the outcome.

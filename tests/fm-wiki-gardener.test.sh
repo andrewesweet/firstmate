@@ -126,6 +126,18 @@ gardener_home_with_repo() {  # <name> <bare>: gardener home cloned to the remote
   printf '%s\n' "$home"
 }
 
+wiki_brief_commands() {
+  python3 - "$1" <<'PYTHON'
+import re
+import sys
+for line in open(sys.argv[1]):
+    if line.startswith(("Run `", "Then run `")):
+        for command in re.findall(r"`([^`]+)`", line):
+            if "fm-wiki.sh " in command:
+                print(command)
+PYTHON
+}
+
 test_absent_config_keeps_gardener_verbs_silent() {
   local home out status
   home=$(wiki_home absent)
@@ -582,18 +594,9 @@ test_generated_gardener_commands_target_a_linked_worktree() {
   brief="$home/data/garden-x1/brief.md"
   assert_not_contains "$(cat "$brief")" 'no-mistakes doctor' "generated direct-push setup must not prescribe pipeline initialization"
   assert_not_contains "$(cat "$brief")" 'no-mistakes init' "generated direct-push setup must not initialize a pipeline"
-  commands=$(python3 - "$brief" <<'PYTHON'
-import re
-import sys
-for line in open(sys.argv[1]):
-    if line.startswith(("Run `", "Then run `")):
-        for command in re.findall(r"`([^`]+)`", line):
-            if "fm-wiki.sh " in command:
-                print(command)
-PYTHON
-)
+  commands=$(wiki_brief_commands "$brief")
   [ "$(printf '%s\n' "$commands" | wc -l | tr -d ' ')" = 3 ] || fail "generated contract must deliver lint, index, publish commands"
-  out=$(cd "$task_copy" && FM_HOME="$home" BASE="$base" bash -e -c "$commands" 2>&1) || fail "generated commands failed from the wiki task copy: $out"
+  out=$(cd "$task_copy" && unset FM_HOME FM_ROOT_OVERRIDE FM_CONFIG_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE && BASE="$base" bash -e -c "$commands" 2>&1) || fail "generated commands failed without inherited home settings: $out"
   assert_contains "$out" published "generated publish command lands the task copy"
   wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A compiled addition' || fail "task page change did not land"
   assert_equals "$(wgit -C "$bare" rev-parse main)" "$(wgit -C "$repo" rev-parse HEAD)" "scheduling clone advances to the proved landing"
@@ -876,6 +879,155 @@ test_gardener_verbs_reject_equals_form_options() {
   pass "gardener verbs retain spaced options and reject equals-form aliases"
 }
 
+test_idle_gardener_drains_discover_upstream_lessons() {
+  local bare seed home repo out status i stamp remote_before lesson ids
+  bare=$(wiki_bare idlerefresh)
+  seed="$TMP_ROOT/idlerefresh-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  home=$(gardener_home_with_repo idlerefresh "$bare")
+  repo="$home/state/wiki/repo"
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  ids=
+  for i in $(seq 1 25); do
+    lesson=$(add_raw "$seed" "$stamp" "upstream-$i")
+    ids="$ids $(basename "$lesson")"
+  done
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m "wiki: 25 incoming lessons"
+  wgit -C "$seed" push -q origin main || fail "upstream lessons push failed"
+  remote_before=$(wgit -C "$bare" rev-parse main)
+  out=$(run_wiki "$home" due 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "due must not fetch upstream lessons itself"
+  assert_equals '' "$out" "stale scheduling view remains silent before a drain"
+  printf 'A local staged note.\n' >> "$repo/README.md"
+  wgit -C "$repo" add README.md
+  out=$(run_wiki "$home" drain-if-due 2>&1) || fail "idle gardener tick failed: $out"
+  assert_contains "$out" 'nothing to publish' "empty gardener drain refreshes without publication"
+  assert_equals "$remote_before" "$(wgit -C "$bare" rev-parse main)" "idle refresh never advances remote main"
+  assert_equals "$remote_before" "$(wgit -C "$repo" rev-parse HEAD)" "idle gardener discovers the upstream commit"
+  assert_contains "$(wgit -C "$repo" show :README.md)" 'A local staged note.' "idle refresh preserves staged local work"
+  assert_equals README.md "$(wgit -C "$repo" diff --cached --name-only)" "idle refresh does not commit unrelated staged files"
+  out=$(run_wiki "$home" due 2>&1) || fail "25 upstream lessons must make gardener due after refresh: $out"
+  assert_contains "$out" '25 uncompiled' "incoming lessons reach the scheduling view"
+  printf '## [2026-10-25] ingest | 25 lessons |%s\n' "$ids" >> "$seed/log.md"
+  wgit -C "$seed" commit -q -am "wiki: compile incoming lessons"
+  wgit -C "$seed" push -q origin main || fail "compiled log push failed"
+  out=$(run_wiki "$home" drain 2>&1) || fail "idle direct refresh failed: $out"
+  out=$(run_wiki "$home" due 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "upstream ingest log must clear scheduling after refresh"
+  assert_equals '' "$out" "fully compiled upstream lessons leave due silent"
+  home=$(wiki_home idlefirstclone)
+  wiki_cfg "$home" gardener "file://$bare"
+  add_raw "$seed" 20200101T000000Z upstream-old >/dev/null
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m "wiki: one old incoming lesson"
+  wgit -C "$seed" push -q origin main || fail "old lesson push failed"
+  remote_before=$(wgit -C "$bare" rev-parse main)
+  out=$(run_wiki "$home" drain 2>&1) || fail "first idle clone failed: $out"
+  out=$(run_wiki "$home" due 2>&1) || fail "first idle clone must discover an aged lesson: $out"
+  assert_contains "$out" '1 uncompiled' "initial empty drain discovers upstream lesson age"
+  assert_equals "$remote_before" "$(wgit -C "$bare" rev-parse main)" "initial empty drain pushes no commits"
+  pass "idle gardener drains refresh upstream lessons and ingest logs without publishing local work"
+}
+
+test_idle_gardener_refresh_preserves_divergent_local_history() {
+  local bare seed home repo local_head out
+  bare=$(wiki_bare idlediverged)
+  seed="$TMP_ROOT/idlediverged-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  home=$(gardener_home_with_repo idlediverged "$bare")
+  repo="$home/state/wiki/repo"
+  printf '\nA local unlanded change.\n' >> "$repo/README.md"
+  wgit -C "$repo" commit -q -am "wiki: local unlanded work"
+  local_head=$(wgit -C "$repo" rev-parse HEAD)
+  add_raw "$seed" 20200101T000000Z incoming-divergence >/dev/null
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m "wiki: incoming remote work"
+  wgit -C "$seed" push -q origin main || fail "divergent fixture push failed"
+  out=$(run_wiki "$home" drain 2>&1) || fail "divergent idle drain must remain nonfatal: $out"
+  assert_contains "$out" 'cannot fast-forward' "idle refresh refuses to rewrite divergent history"
+  assert_equals "$local_head" "$(wgit -C "$repo" rev-parse HEAD)" "idle refresh preserves unlanded commits"
+  assert_not_equals "$local_head" "$(wgit -C "$bare" rev-parse main)" "idle refresh never pushes unlanded local work"
+  pass "idle refresh preserves divergent local history"
+}
+
+test_gardener_commands_bind_custom_home_paths() {
+  local home bare repo config state data task_copy base brief commands out rule
+  bare=$(wiki_bare boundhome)
+  seed_checkout "$bare" "$TMP_ROOT/boundhome-seed" >/dev/null
+  home=$(wiki_home 'bound home')
+  config="$home/"'custom config $literal'
+  state="$home/custom state"
+  data="$home/custom data"
+  mkdir -p "$config" "$state" "$data"
+  printf 'remote=file://%s\nrole=gardener\n' "$bare" > "$config/wiki"
+  repo="$state/wiki/repo"
+  git clone -q "file://$bare" "$repo" 2>/dev/null || fail "custom state clone failed"
+  task_copy="$TMP_ROOT/bound-task"
+  wgit -C "$repo" worktree add -q -b garden-bound "$task_copy" HEAD || fail "custom task worktree failed"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  printf '\nA home-bound compilation.\n' >> "$task_copy/pages/tools/seed-page.md"
+  (cd "$home" && FM_HOME=. FM_CONFIG_OVERRIDE='custom config $literal' \
+    FM_STATE_OVERRIDE='custom state' FM_DATA_OVERRIDE='custom data' \
+    bash "$ROOT/bin/fm-brief.sh" bound-x1 crew-wiki --mode direct-push >/dev/null) || fail "custom home brief failed"
+  brief="$data/bound-x1/brief.md"
+  commands=$(wiki_brief_commands "$brief")
+  out=$(cd "$task_copy" && unset FM_HOME FM_ROOT_OVERRIDE FM_CONFIG_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE && BASE="$base" bash -e -c "$commands" 2>&1) || fail "custom home commands failed without inherited settings: $out"
+  assert_contains "$out" published "home-bound commands report actual publication"
+  wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A home-bound compilation' || fail "home-bound command never published the task page"
+  assert_present "$state/wiki/.drain.lock" "publication uses the supervising home's configured state path"
+  assert_absent "$home/state/wiki" "publication must not substitute the home's default state path"
+  rule=$(python3 - "$brief" <<'PYTHON'
+import re
+import sys
+for line in open(sys.argv[1]):
+    if line.startswith("1. Never push"):
+        for command in re.findall(r"`([^`]+)`", line):
+            if "fm-wiki.sh publish " in command:
+                print(command)
+PYTHON
+)
+  [ -n "$rule" ] || fail "home-bound safety rule did not provide its publication command"
+  out=$(cd "$task_copy" && unset FM_HOME FM_ROOT_OVERRIDE FM_CONFIG_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE && BASE="$base" bash -e -c "$rule --base \"\$BASE\"" 2>&1) || fail "home-bound safety-rule command failed: $out"
+  assert_contains "$out" 'nothing to publish' "safety rule binds the same home as the Definition of done"
+  pass "generated gardener commands bind absolute custom home paths without inherited settings"
+}
+
+test_idle_gardener_refresh_is_bounded_and_recovers() {
+  local bare seed home repo base incoming fakebin real_git marker out before elapsed
+  bare=$(wiki_bare idletimeout)
+  seed="$TMP_ROOT/idletimeout-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  home=$(gardener_home_with_repo idletimeout "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  add_raw "$seed" 20200101T000000Z idle-after-stall >/dev/null
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m "wiki: incoming lesson after stall"
+  wgit -C "$seed" push -q origin main || fail "idle stall fixture push failed"
+  incoming=$(wgit -C "$bare" rev-parse main)
+  fakebin="$TMP_ROOT/idle-stall-bin"
+  marker="$TMP_ROOT/idle-fetch-stalled"
+  real_git=$(command -v git)
+  mkdir -p "$fakebin"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'if [ "${3:-}" = fetch ]; then\n  touch %q\n  sleep 30\n  exit 1\nfi\n' "$marker"
+    printf 'exec %q "$@"\n' "$real_git"
+  } > "$fakebin/git"
+  chmod +x "$fakebin/git"
+  before=$(date +%s)
+  out=$(FM_WIKI_DRAIN_CAP=2 PATH="$fakebin:$PATH" run_wiki "$home" drain 2>&1) || fail "stalled idle refresh must remain nonfatal: $out"
+  elapsed=$(( $(date +%s) - before ))
+  assert_present "$marker" "idle refresh reaches the bounded fetch boundary"
+  [ "$elapsed" -le 7 ] || fail "idle fetch exceeded its drain budget ($elapsed seconds)"
+  assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "timed-out refresh preserves the last scheduling snapshot"
+  assert_equals "$incoming" "$(wgit -C "$bare" rev-parse main)" "timed-out idle refresh publishes nothing"
+  out=$(run_wiki "$home" drain 2>&1) || fail "idle refresh must recover after a stalled fetch: $out"
+  assert_equals "$incoming" "$(wgit -C "$repo" rev-parse HEAD)" "next idle drain recovers incoming lessons"
+  pass "idle gardener fetches stay bounded and recover on the next drain"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -905,3 +1057,9 @@ test_publish_refreshes_scheduling_from_a_separate_clone
 
 test_lint_resolves_reference_links_and_excludes_code_examples
 test_gardener_verbs_reject_equals_form_options
+
+test_idle_gardener_drains_discover_upstream_lessons
+test_idle_gardener_refresh_preserves_divergent_local_history
+test_gardener_commands_bind_custom_home_paths
+
+test_idle_gardener_refresh_is_bounded_and_recovers

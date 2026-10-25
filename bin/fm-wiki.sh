@@ -490,7 +490,7 @@ wiki_drain() {
   wiki_prepare || return 0
   local n
   n=$(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$n" = 0 ]; then
+  if [ "$n" = 0 ] && [ "$CFG_ROLE" != gardener ]; then
     printf 'wiki: nothing to publish\n'
     return 0
   fi
@@ -504,6 +504,10 @@ wiki_drain() {
   local origin
   origin=$(wiki_git "$WIKI_REPO" remote get-url origin 2>/dev/null || printf '')
   if [ "$(wiki_git "$WIKI_REPO" rev-parse --is-inside-work-tree 2>/dev/null)" != true ] || [ "$origin" != "$CFG_REMOTE" ]; then
+    if [ "$n" = 0 ] && { [ -e "$WIKI_REPO" ] || [ -L "$WIKI_REPO" ]; }; then
+      printf 'wiki: gardener refresh refused: existing checkout does not match the configured remote\n' >&2
+      return 0
+    fi
     rm -rf "$WIKI_REPO" 2>/dev/null || true
     if ! wiki_git_clone "$CFG_REMOTE" "$WIKI_REPO" >/dev/null 2>&1; then
       printf 'wiki: %s lesson(s) still queued (remote unreachable)\n' "$n"
@@ -511,65 +515,67 @@ wiki_drain() {
     fi
   fi
   chmod 700 "$WIKI_REPO" 2>/dev/null || return 0
-  wiki_git "$WIKI_REPO" checkout -q -B "$WIKI_BRANCH" >/dev/null 2>&1 || true
-  # Repo-local commit identity: the rebase below writes commits too, and the
-  # clone must not depend on the caller's global git config. The trailers
-  # carry the real attribution; this is the machine identity of the publisher.
-  wiki_git "$WIKI_REPO" config user.name firstmate-wiki >/dev/null 2>&1 || true
-  wiki_git "$WIKI_REPO" config user.email "wiki@$CFG_HOST" >/dev/null 2>&1 || true
-  # Copy the outbox snapshot into the clone. Existing targets are accepted
-  # only with identical bytes: raw lessons are immutable, so any differing
-  # content is a collision to surface, never an overwrite.
-  local f raw_dir stamp target
-  while IFS= read -r f; do
-    [ -n "$f" ] || continue
-    stamp=$(basename "$f" .md)
-    stamp=${stamp%%-*}
-    case $stamp in
-      [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z) : ;;
-      *) continue ;;
-    esac
-    raw_dir="raw/${stamp:0:4}/${stamp:4:2}"
-    mkdir -p "$WIKI_REPO/$raw_dir" 2>/dev/null || continue
-    target="$WIKI_REPO/$raw_dir/$(basename "$f")"
-    if [ -e "$target" ] || [ -L "$target" ]; then
-      if [ -L "$target" ] || ! cmp -s "$f" "$target"; then
-        printf 'wiki: refusing to replace raw lesson %s; lesson stays queued\n' "$(basename "$target")" >&2
+  if [ "$n" -gt 0 ]; then
+    wiki_git "$WIKI_REPO" checkout -q -B "$WIKI_BRANCH" >/dev/null 2>&1 || true
+    # Repo-local commit identity: the rebase below writes commits too, and the
+    # clone must not depend on the caller's global git config. The trailers
+    # carry the real attribution; this is the machine identity of the publisher.
+    wiki_git "$WIKI_REPO" config user.name firstmate-wiki >/dev/null 2>&1 || true
+    wiki_git "$WIKI_REPO" config user.email "wiki@$CFG_HOST" >/dev/null 2>&1 || true
+    # Copy the outbox snapshot into the clone. Existing targets are accepted
+    # only with identical bytes: raw lessons are immutable, so any differing
+    # content is a collision to surface, never an overwrite.
+    local f raw_dir stamp target
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      stamp=$(basename "$f" .md)
+      stamp=${stamp%%-*}
+      case $stamp in
+        [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z) : ;;
+        *) continue ;;
+      esac
+      raw_dir="raw/${stamp:0:4}/${stamp:4:2}"
+      mkdir -p "$WIKI_REPO/$raw_dir" 2>/dev/null || continue
+      target="$WIKI_REPO/$raw_dir/$(basename "$f")"
+      if [ -e "$target" ] || [ -L "$target" ]; then
+        if [ -L "$target" ] || ! cmp -s "$f" "$target"; then
+          printf 'wiki: refusing to replace raw lesson %s; lesson stays queued\n' "$(basename "$target")" >&2
+          continue
+        fi
+      elif ! cp "$f" "$target"; then
         continue
       fi
-    elif ! cp "$f" "$target"; then
-      continue
-    fi
-  done < <(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null)
-  wiki_git "$WIKI_REPO" add -A raw >/dev/null 2>&1 || true
-  if ! wiki_git "$WIKI_REPO" diff --cached --quiet >/dev/null 2>&1; then
-    local msg trailers task_id harness_id
-    msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-msg.XXXXXX") || msg=
-    if [ -n "$msg" ]; then
-      trailers=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-tr.XXXXXX") || trailers=
-      : > "$msg"
-      : > "$trailers"
-      while IFS= read -r f; do
-        [ -n "$f" ] || continue
-        # Read identity only from the generated stamp block, never body text.
-        task_id=$(wiki_stamp_field "$f" wiki-task)
-        harness_id=$(wiki_stamp_field "$f" wiki-harness)
-        [ -n "$task_id" ] || task_id=unknown
-        [ -n "$harness_id" ] || harness_id=unknown
+    done < <(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null)
+    wiki_git "$WIKI_REPO" add -A raw >/dev/null 2>&1 || true
+    if ! wiki_git "$WIKI_REPO" diff --cached --quiet >/dev/null 2>&1; then
+      local msg trailers task_id harness_id
+      msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-msg.XXXXXX") || msg=
+      if [ -n "$msg" ]; then
+        trailers=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-tr.XXXXXX") || trailers=
+        : > "$msg"
+        : > "$trailers"
+        while IFS= read -r f; do
+          [ -n "$f" ] || continue
+          # Read identity only from the generated stamp block, never body text.
+          task_id=$(wiki_stamp_field "$f" wiki-task)
+          harness_id=$(wiki_stamp_field "$f" wiki-harness)
+          [ -n "$task_id" ] || task_id=unknown
+          [ -n "$harness_id" ] || harness_id=unknown
+          {
+            printf 'Wiki-Task: %s\n' "$task_id"
+            printf 'Wiki-Home: %s\n' "$WIKI_HOME_NAME"
+            printf 'Wiki-Host: %s\n' "$CFG_HOST"
+            printf 'Wiki-Harness: %s\n' "$harness_id"
+          } >> "$trailers"
+        done < <(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null)
         {
-          printf 'Wiki-Task: %s\n' "$task_id"
-          printf 'Wiki-Home: %s\n' "$WIKI_HOME_NAME"
-          printf 'Wiki-Host: %s\n' "$CFG_HOST"
-          printf 'Wiki-Harness: %s\n' "$harness_id"
-        } >> "$trailers"
-      done < <(find "$WIKI_OUTBOX" -maxdepth 1 -name '*.md' -type f 2>/dev/null)
-      {
-        printf 'wiki: add %s raw lesson(s) from %s@%s\n\n' "$n" "$WIKI_HOME_NAME" "$CFG_HOST"
-        cat "$trailers"
-      } > "$msg"
-      rm -f "$trailers"
-      wiki_git "$WIKI_REPO" commit -q -F "$msg" >/dev/null 2>&1 || true
-      rm -f "$msg"
+          printf 'wiki: add %s raw lesson(s) from %s@%s\n\n' "$n" "$WIKI_HOME_NAME" "$CFG_HOST"
+          cat "$trailers"
+        } > "$msg"
+        rm -f "$trailers"
+        wiki_git "$WIKI_REPO" commit -q -F "$msg" >/dev/null 2>&1 || true
+        rm -f "$msg"
+      fi
     fi
   fi
   local tries=0 pushed=0
@@ -581,7 +587,12 @@ wiki_drain() {
       continue
     fi
     if wiki_git "$WIKI_REPO" rev-parse -q --verify "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
-      if ! wiki_git "$WIKI_REPO" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+      if [ "$n" = 0 ]; then
+        if ! wiki_git "$WIKI_REPO" merge --ff-only "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
+          printf 'wiki: gardener refresh refused: checkout cannot fast-forward\n' >&2
+          return 0
+        fi
+      elif ! wiki_git "$WIKI_REPO" rebase -q "origin/$WIKI_BRANCH" >/dev/null 2>&1; then
         wiki_git "$WIKI_REPO" rebase --abort >/dev/null 2>&1 || true
         wiki_jitter_sleep
         continue
@@ -592,6 +603,10 @@ wiki_drain() {
         printf 'wiki: refusing to change published raw lessons; lessons stay queued\n' >&2
         return 0
       fi
+    fi
+    if [ "$n" = 0 ]; then
+      printf 'wiki: nothing to publish\n'
+      return 0
     fi
     if wiki_git "$WIKI_REPO" push -q origin "$WIKI_BRANCH" >/dev/null 2>&1; then
       pushed=1

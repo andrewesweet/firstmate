@@ -967,6 +967,7 @@ The home identity and random nonce reduce filename collisions; a differing-conte
 Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical.
 An unreachable remote leaves lessons queued for the next drain.
 Publication runs through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
+Gardener drains fetch and fast-forward the scheduling clone even with an empty outbox; they publish nothing on that path.
 See the [script header](../bin/fm-wiki.sh) for verb syntax, state files, and watcher pacing mechanics.
 
 Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
@@ -1006,6 +1007,7 @@ It owns the page taxonomy, header fields, citation rule, index rules, budgets, t
 `direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `"$FIRSTMATE_ROOT/bin/fm-wiki.sh" publish --repo "$PWD" --base <sha>` instead of opening a pull request.
 `FIRSTMATE_ROOT` names the installed Firstmate code directory.
 Its Definition of done (owned by `bin/fm-dod-lib.sh`) ends with `publish --base <sha>` and a `done: wiki pages published {commit}` report.
+The generated commands bind the supervising home's paths explicitly.
 The mode is permitted only for a project whose registry entry opts in by naming it; every other project and mode is unchanged.
 `bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode.
 A forge, a base branch, or a fork-staged fork is refused on direct-push, because it publishes through the wiki checkout rather than a forge, a task branch, or a pull request.
