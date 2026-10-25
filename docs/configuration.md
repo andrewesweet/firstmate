@@ -983,6 +983,7 @@ One gardener task at a time compiles raw lessons into pages, in the home whose `
 It reads only the home's own clone and task records, never the network.
 `bin/fm-wiki.sh lint` runs the deterministic page checks and `bin/fm-wiki.sh index` regenerates `index.md` from page headers within the 150-line budget.
 `bin/fm-wiki.sh publish --base <sha>` lints, refuses any change under `raw/` and any page commit made by someone else after the run's base, then commits the compiled pages and pushes with the same fetch-rebase-push loop (never force) and landing proof as `drain`.
+After proving the landing, it fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
 See the [script header](../bin/fm-wiki.sh) for verb syntax and exit codes.
 
 Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.

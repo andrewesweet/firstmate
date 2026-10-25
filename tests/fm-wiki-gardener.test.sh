@@ -391,7 +391,7 @@ EOF
 }
 
 test_publish_lands_pages_with_a_landing_proof() {
-  local home bare repo out base landed
+  local home bare repo out base landed trailers
   bare=$(wiki_bare publishok)
   seed_checkout "$bare" "$TMP_ROOT/publishok-seed" >/dev/null
   home=$(gardener_home_with_repo publishok "$bare")
@@ -411,6 +411,10 @@ EOF
   out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "publish must exit 0: $out"
   assert_contains "$out" 'published' "publish reports the landing"
   landed=$(wgit -C "$bare" rev-parse main)
+  trailers=$(wgit -C "$bare" show -s --format=%B main | git interpret-trailers --parse)
+  assert_contains "$trailers" 'Wiki-Home: ' "publish retains home attribution"
+  assert_contains "$trailers" 'Wiki-Host: ' "publish retains host attribution"
+  assert_not_contains "$trailers" 'Wiki-Task: ' "publish carries no unused task attribution"
   assert_not_equals "$base" "$landed" "publish advances the remote main"
   wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -q 'pages/tools/gardened.md' \
     || fail "the gardened page landed on the remote"
@@ -491,7 +495,7 @@ EOF
 }
 
 test_due_includes_queued_backlog_tasks() {
-  local home bare repo out status section
+  local home bare repo out status section backend
   bare=$(wiki_bare duequeued)
   seed_checkout "$bare" "$TMP_ROOT/duequeued-seed" >/dev/null
   home=$(gardener_home_with_repo duequeued "$bare")
@@ -499,11 +503,14 @@ test_due_includes_queued_backlog_tasks() {
   add_raw "$repo" 20200101T000000Z task-old >/dev/null
   wgit -C "$repo" add -A
   wgit -C "$repo" commit -q -m "wiki: pending lesson"
-  for section in Queued 'In flight'; do
-    printf '## %s\n- [ ] garden-q1 - compile pending lessons (repo: crew-wiki)\n\n## Done\n' "$section" > "$home/data/backlog.md"
-    out=$(run_wiki "$home" due 2>&1); status=$?
-    [ "$status" -ne 0 ] || fail "due must suppress an open backlog task in $section"
-    assert_equals '' "$out" "open backlog task suppresses due silently"
+  for backend in manual tasks-axi; do
+    printf '%s\n' "$backend" > "$home/config/backlog-backend"
+    for section in Queued 'In flight'; do
+      printf '## %s\n- [ ] garden-q1 - compile pending lessons (repo: crew-wiki)\n\n## Done\n' "$section" > "$home/data/backlog.md"
+      out=$(run_wiki "$home" due 2>&1); status=$?
+      [ "$status" -ne 0 ] || fail "due must suppress an open $backend backlog task in $section"
+      assert_equals '' "$out" "open backlog task suppresses due silently"
+    done
   done
   printf '## Queued\n- [ ] other-q1 - unrelated task (repo: crew-wiki-other)\n\n## Done\n- [x] garden-q1 - compiled (repo: crew-wiki)\n' > "$home/data/backlog.md"
   out=$(run_wiki "$home" due 2>&1) || fail "done and unrelated backlog tasks must release due: $out"
@@ -545,6 +552,7 @@ test_uncited_advisory_ignores_ingest_logs_and_indexes() {
   lesson=$(add_raw "$repo" 20200101T000000Z uncited)
   printf '## [2020-01-02] ingest | 1 lesson | %s\n' "$(basename "$lesson")" >> "$repo/log.md"
   printf '%s\n' "${lesson#"$repo/"}" >> "$repo/index.md"
+  printf '\nThe ingest record names %s.\n' "$(basename "$lesson")" >> "$repo/pages/tools/seed-page.md"
   out=$(run_wiki "$home" lint 2>&1) || fail "uncited advisory must not block lint: $out"
   assert_contains "$out" "raw lesson no page cites after 30 days: ${lesson#"$repo/"}" "ingest records do not count as page citations"
   printf '\nSource: %s\n' "${lesson#"$repo/"}" >> "$repo/pages/tools/seed-page.md"
@@ -554,15 +562,21 @@ test_uncited_advisory_ignores_ingest_logs_and_indexes() {
 }
 
 test_generated_gardener_commands_target_a_linked_worktree() {
-  local home bare repo task_copy base brief commands out unchanged
+  local home bare repo task_copy base brief commands out unchanged lesson status
   bare=$(wiki_bare linkedpublish)
   seed_checkout "$bare" "$TMP_ROOT/linkedpublish-seed" >/dev/null
   home=$(gardener_home_with_repo linkedpublish "$bare")
   repo="$home/state/wiki/repo"
+  lesson=$(add_raw "$repo" 20200101T000000Z pending)
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: pending raw lesson"
+  wgit -C "$repo" push -q origin main || fail "pending lesson push failed"
+  out=$(run_wiki "$home" due 2>&1) || fail "pending lesson must make gardener due: $out"
   base=$(wgit -C "$repo" rev-parse HEAD)
   task_copy="$TMP_ROOT/linked task"
   wgit -C "$repo" worktree add -q -b garden-linked "$task_copy" HEAD || fail "linked task copy failed"
   printf '\nA compiled addition.\n' >> "$task_copy/pages/tools/seed-page.md"
+  printf '## [2026-10-25] ingest | 1 lesson | %s\n' "$(basename "$lesson")" >> "$task_copy/log.md"
   unchanged=$(wgit -C "$repo" status --porcelain)
   FM_HOME="$home" bash "$ROOT/bin/fm-brief.sh" garden-x1 crew-wiki --mode direct-push >/dev/null || fail "gardener brief failed"
   brief="$home/data/garden-x1/brief.md"
@@ -582,9 +596,12 @@ PYTHON
   out=$(cd "$task_copy" && FM_HOME="$home" BASE="$base" bash -e -c "$commands" 2>&1) || fail "generated commands failed from the wiki task copy: $out"
   assert_contains "$out" published "generated publish command lands the task copy"
   wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A compiled addition' || fail "task page change did not land"
-  assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "shared clone stays at its original head"
+  assert_equals "$(wgit -C "$bare" rev-parse main)" "$(wgit -C "$repo" rev-parse HEAD)" "scheduling clone advances to the proved landing"
   assert_equals "$unchanged" "$(wgit -C "$repo" status --porcelain)" "generated commands leave shared files untouched"
-  pass "generated commands lint, index, and publish a linked task copy"
+  out=$(run_wiki "$home" due 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "published ingest log must suppress repeat scheduling"
+  assert_equals '' "$out" "completed compilation leaves due silent"
+  pass "generated commands publish a linked copy and refresh scheduling"
 }
 
 test_publish_checks_foreign_commits_on_push_retries() {
@@ -632,13 +649,21 @@ test_publish_checks_foreign_commits_on_push_retries() {
 }
 
 test_publish_retries_its_own_unproved_landing() {
-  local home bare repo base out status fakebin real_git marker landed
+  local home bare repo base out status fakebin real_git marker landed other task_copy
   bare=$(wiki_bare publishunproved)
   seed_checkout "$bare" "$TMP_ROOT/publishunproved-seed" >/dev/null
   home=$(gardener_home_with_repo publishunproved "$bare")
   repo="$home/state/wiki/repo"
   base=$(wgit -C "$repo" rev-parse HEAD)
-  printf '\nA compiled addition.\n' >> "$repo/pages/tools/seed-page.md"
+  task_copy="$TMP_ROOT/proof-task"
+  git clone -q "file://$bare" "$task_copy" 2>/dev/null || fail "proof task clone failed"
+  other="$TMP_ROOT/proof-other"
+  git clone -q "file://$bare" "$other" 2>/dev/null || fail "proof competing clone failed"
+  add_raw "$other" 20200101T000000Z upstream-before-proof >/dev/null
+  wgit -C "$other" add -A
+  wgit -C "$other" commit -q -m "wiki: upstream raw addition"
+  wgit -C "$other" push -q origin main || fail "proof raw push failed"
+  printf '\nA compiled addition.\n' >> "$task_copy/pages/tools/seed-page.md"
   fakebin="$TMP_ROOT/proof-bin"
   marker="$TMP_ROOT/proof-fetch-failed"
   mkdir -p "$fakebin"
@@ -650,16 +675,131 @@ test_publish_retries_its_own_unproved_landing() {
     printf 'exec %q "$@"\n' "$real_git"
   } > "$fakebin/git"
   chmod +x "$fakebin/git"
-  out=$(PATH="$fakebin:$PATH" run_wiki "$home" publish --base "$base" 2>&1); status=$?
+  out=$(PATH="$fakebin:$PATH" run_wiki "$home" publish --repo "$task_copy" --base "$base" 2>&1); status=$?
   [ -f "$marker" ] || fail "landing-proof fetch failure was not injected"
   [ "$status" -ne 0 ] || fail "failed proof fetch must leave landing unproved"
   assert_contains "$out" unproved "publish reports the missing landing proof"
   landed=$(wgit -C "$bare" rev-parse main)
   assert_not_equals "$base" "$landed" "the first push landed before proof fetch failed"
-  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "retry must accept this run's own landed commit: $out"
+  assert_equals "$base" "$(wgit -C "$repo" rev-parse HEAD)" "unproved publication leaves scheduling unchanged"
+  out=$(run_wiki "$home" publish --repo "$task_copy" --base "$base" 2>&1) || fail "retry must accept this run's own landed commit: $out"
   assert_not_contains "$out" 'foreign page commit' "own commit is not foreign"
   assert_equals "$landed" "$(wgit -C "$bare" rev-parse main)" "retry does not create a duplicate commit"
-  pass "publish retries its own unproved landing"
+  assert_equals "$landed" "$(wgit -C "$repo" rev-parse HEAD)" "no-op proof retry refreshes the scheduling clone"
+  wgit -C "$bare" cat-file -e main:raw/2020/01/20200101T000000Z-testhost-testhome-upstream-before-proof-a1b2.md || fail "retry lost upstream raw lesson"
+  pass "publish retries its own unproved landing after an upstream raw addition"
+}
+
+test_due_reads_adapter_backlogs_without_markdown() {
+  local home bare repo out status fakebin state
+  bare=$(wiki_bare dueadapter)
+  seed_checkout "$bare" "$TMP_ROOT/dueadapter-seed" >/dev/null
+  home=$(gardener_home_with_repo dueadapter "$bare")
+  repo="$home/state/wiki/repo"
+  add_raw "$repo" 20200101T000000Z adapter-pending >/dev/null
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: pending adapter lesson"
+  printf 'backend = "beads"\n\n[beads]\npath = "graph/.beads"\n' > "$home/.tasks.toml"
+  fakebin="$TMP_ROOT/adapter-bin"
+  mkdir -p "$fakebin"
+  cat > "$fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$PWD" = "$FM_HOME" ] || exit 8
+[ "$*" = 'list --repo crew-wiki' ] || exit 9
+[ -z "${TASKS_AXI_FILE:-}" ] || exit 10
+cat adapter-list
+SH
+  chmod +x "$fakebin/tasks-axi"
+  for state in queued in_flight held; do
+    printf 'tasks[1]{id,state,kind,repo,title}:\n  garden-q1,%s,ship,crew-wiki,Garden lessons\n' "$state" > "$home/adapter-list"
+    out=$(TASKS_AXI_FILE="$TMP_ROOT/unrelated-backlog.md" PATH="$fakebin:$PATH" run_wiki "$home" due 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "adapter-backed $state gardener must suppress due"
+    assert_equals '' "$out" "adapter-backed open gardener suppresses due silently"
+  done
+  printf 'tasks[1]{id,state,kind,repo,title}:\n  garden-q1,done,ship,crew-wiki,Garden lessons\n' > "$home/adapter-list"
+  out=$(PATH="$fakebin:$PATH" run_wiki "$home" due 2>&1) || fail "closed adapter task must release due: $out"
+  printf 'tasks[0]{id,state,kind,repo,title}:\n' > "$home/adapter-list"
+  out=$(PATH="$fakebin:$PATH" run_wiki "$home" due 2>&1) || fail "empty adapter backlog must release due: $out"
+  assert_absent "$home/data/backlog.md" "adapter-backed scheduling must not create a Markdown backlog"
+  pass "due reads adapter task state without a Markdown backlog"
+}
+
+test_lint_checks_every_citation_and_parses_markdown_titles() {
+  local home bare repo page source body title out status
+  bare=$(wiki_bare lintallrefs)
+  seed_checkout "$bare" "$TMP_ROOT/lintallrefs-seed" >/dev/null
+  home=$(gardener_home_with_repo lintallrefs "$bare")
+  repo="$home/state/wiki/repo"
+  page="$repo/pages/tools/seed-page.md"
+  source=raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+  for title in '"source"' "'source'" '(source)' '"raw/missing.md"'; do
+    printf '> summary: titled citation\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n[lesson](../../%s %s) and [readme](../../README.md "orientation").\n' "$source" "$source" "$title" > "$page"
+    out=$(run_wiki "$home" lint 2>&1) || fail "valid Markdown title $title must pass: $out"
+    assert_contains "$out" '1 raw lesson(s) cited' "titles and duplicate citations do not inflate coverage"
+  done
+  for body in "$source then raw/missing.md" "raw/missing.md then $source" "[lesson](../../$source) then [missing](../../raw/missing.md \"source\")"; do
+    printf '> summary: mixed citations\n> scope: tool:seed\n> last-confirmed: 2026-10-24\n> sources: %s\n\n%s\n' "$source" "$body" > "$page"
+    out=$(run_wiki "$home" lint 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "one valid citation must not hide another missing citation"
+    assert_contains "$out" 'raw/missing.md' "lint names the missing citation"
+  done
+  pass "lint validates every citation and separates Markdown destinations from titles"
+}
+
+test_publish_refuses_raw_changes_even_when_restored() {
+  local home bare repo base out status kind raw
+  for kind in edit delete add; do
+    bare=$(wiki_bare "raw-history-$kind")
+    seed_checkout "$bare" "$TMP_ROOT/raw-history-$kind-seed" >/dev/null
+    home=$(gardener_home_with_repo "raw-history-$kind" "$bare")
+    repo="$home/state/wiki/repo"
+    base=$(wgit -C "$repo" rev-parse HEAD)
+    raw=raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+    case $kind in
+      edit) printf '\nAn illegal edit.\n' >> "$repo/$raw" ;;
+      delete) rm "$repo/$raw" ;;
+      add) add_raw "$repo" 20200101T000000Z forbidden-history >/dev/null ;;
+    esac
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: forbidden raw $kind"
+    if [ "$kind" = add ]; then
+      rm "$repo/raw/2020/01/20200101T000000Z-testhost-testhome-forbidden-history-a1b2.md"
+    else
+      wgit -C "$repo" show "$base:$raw" > "$repo/$raw"
+    fi
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: restore raw tree"
+    out=$(run_wiki "$home" publish --base "$base" 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "publish must refuse restored raw $kind history"
+    assert_contains "$out" 'run-owned commits changed files under raw/' "raw history is checked independently of final tree equality"
+    assert_equals "$base" "$(wgit -C "$bare" rev-parse main)" "forbidden raw history never reaches remote"
+  done
+  pass "publish refuses raw edit, deletion, and addition history even after restoration"
+}
+
+test_publish_refreshes_scheduling_from_a_separate_clone() {
+  local home bare repo task_copy base lesson out status
+  bare=$(wiki_bare separatepublish)
+  seed_checkout "$bare" "$TMP_ROOT/separatepublish-seed" >/dev/null
+  home=$(gardener_home_with_repo separatepublish "$bare")
+  repo="$home/state/wiki/repo"
+  lesson=$(add_raw "$repo" 20200101T000000Z separate-pending)
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: pending separate lesson"
+  wgit -C "$repo" push -q origin main || fail "separate lesson push failed"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$home" due 2>&1) || fail "uncompiled separate lesson must make gardener due: $out"
+  task_copy="$TMP_ROOT/separate-task"
+  git clone -q "file://$bare" "$task_copy" 2>/dev/null || fail "separate task clone failed"
+  printf '## [2026-10-25] ingest | 1 lesson | %s\n' "$(basename "$lesson")" >> "$task_copy/log.md"
+  out=$(cd "$TMP_ROOT" && run_wiki "$home" publish --repo separate-task --base "$base" 2>&1) || fail "separate task publish failed: $out"
+  assert_equals "$(wgit -C "$bare" rev-parse main)" "$(wgit -C "$repo" rev-parse HEAD)" "separate scheduling clone advances to proved commit"
+  out=$(run_wiki "$home" due 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "separate task publication must clear pending scheduling"
+  assert_equals '' "$out" "completed separate compilation leaves due silent"
+  out=$(run_wiki "$home" publish --repo "$task_copy" --base "$base" 2>&1) || fail "separate no-op publish must succeed: $out"
+  assert_contains "$out" 'nothing to publish' "already landed separate compile remains idempotent"
+  pass "publish refreshes scheduling from a separate clone"
 }
 
 test_absent_config_keeps_gardener_verbs_silent
@@ -683,3 +823,8 @@ test_uncited_advisory_ignores_ingest_logs_and_indexes
 test_generated_gardener_commands_target_a_linked_worktree
 test_publish_checks_foreign_commits_on_push_retries
 test_publish_retries_its_own_unproved_landing
+
+test_due_reads_adapter_backlogs_without_markdown
+test_lint_checks_every_citation_and_parses_markdown_titles
+test_publish_refuses_raw_changes_even_when_restored
+test_publish_refreshes_scheduling_from_a_separate_clone
