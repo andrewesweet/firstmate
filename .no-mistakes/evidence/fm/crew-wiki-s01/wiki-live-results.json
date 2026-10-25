@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Absent, off and reader homes stay silent; contributor ship and scout briefs receive the lesson contract",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Close and drain preserve task identity, provenance, exact lesson bytes and duplicate suppression",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Synthetic secrets stay private and absent from the remote; empty and nothing-to-teach tasks remain local",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Every later close outcome retries queued lessons after an actual remote outage",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Concurrent homes add distinct immutable files without losing history; one-home contention and owner death recover safely",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A differing-content raw-path collision cannot overwrite published bytes or retire unlanded bytes",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A real stalled SSH connection respects the portable drain deadline and subsequently recovers",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Due watcher ticks publish, fresh ticks leave queued work alone, and an aged tick publishes again",
+    "result": "pass",
+    "live": true
+  }
+]

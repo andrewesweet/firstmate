@@ -1,0 +1,97 @@
+Previously passed live: Absent, off and reader homes stay silent; contributor ship and scout briefs receive the lesson contract
+Previously passed live: Close and drain preserve task identity, provenance, exact lesson bytes and duplicate suppression
+Previously passed live: Synthetic secrets stay private and absent from the remote; empty and nothing-to-teach tasks remain local
+Previously passed live: Every later close outcome retries queued lessons after an actual remote outage
+
+SCENARIO: Concurrent homes add distinct immutable files without losing history; one-home contention and owner death recover safely
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-0
+wiki: lesson queued for task-0 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-1
+wiki: lesson queued for task-1 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-2
+wiki: lesson queued for task-2 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-0
+wiki: lesson queued for task-0 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-1
+wiki: lesson queued for task-1 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close task-2
+wiki: lesson queued for task-2 (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: pushed 3 lesson(s)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: pushed 3 lesson(s)
+$ git -C <lab>/parallel.git log --oneline main
+bb8fdbf wiki: add 3 raw lesson(s) from same-name-d4b308b52ab8@validator
+b0df911 wiki: add 3 raw lesson(s) from same-name-18298a8a3d3e@validator
+aed67f9 Initialize disposable wiki
+$ git -C <lab>/parallel.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261025T183901Z-validator-same-name-18298a8a3d3e-task-0-6cb1.md
+raw/2026/10/20261025T183902Z-validator-same-name-18298a8a3d3e-task-1-84bc.md
+raw/2026/10/20261025T183902Z-validator-same-name-18298a8a3d3e-task-2-f282.md
+raw/2026/10/20261025T183903Z-validator-same-name-d4b308b52ab8-task-0-2ff8.md
+raw/2026/10/20261025T183903Z-validator-same-name-d4b308b52ab8-task-1-921a.md
+raw/2026/10/20261025T183904Z-validator-same-name-d4b308b52ab8-task-2-7845.md
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close blocked-push
+wiki: lesson queued for blocked-push (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+Live owner: wiki: pushed 1 lesson(s)
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close killed-owner
+wiki: lesson queued for killed-owner (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: drain already running; 1 lesson(s) stay queued
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+Single-flight ownership survives a live push and recovers after owner process-group death.
+RESULT: pass
+
+SCENARIO: A differing-content raw-path collision cannot overwrite published bytes or retire unlanded bytes
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close collision-task
+wiki: lesson queued for collision-task (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: 1 lesson(s) still queued (landing unproved)
+wiki: refusing to replace raw lesson 20261025T183911Z-validator-collision-home-48dd9da6a16e-collision-task-6f53.md; lesson stays queued
+Published raw bytes unchanged; conflicting queued bytes retained.
+RESULT: pass
+
+SCENARIO: A real stalled SSH connection respects the portable drain deadline and subsequently recovers
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close bounded-task
+wiki: lesson queued for bounded-task (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: 1 lesson(s) still queued (remote unreachable)
+Real SSH handshake stalled; Bash timeout returned after 3.28s with a 3s budget.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+RESULT: pass
+
+SCENARIO: Due watcher ticks publish, fresh ticks leave queued work alone, and an aged tick publishes again
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close first
+wiki: lesson queued for first (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain-if-due
+wiki: pushed 1 lesson(s)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh close second
+wiki: lesson queued for second (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain-if-due
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5T2V71K97JYBSKSWMPW9XW4/bin/fm-wiki.sh drain-if-due
+wiki: pushed 1 lesson(s)
+RESULT: pass
+
+Disposed isolated homes, bare remotes and Git hooks.
