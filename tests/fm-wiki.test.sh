@@ -471,7 +471,7 @@ test_every_completed_close_retries_the_existing_queue() {
     esac
     run_wiki "$home" close "$@" >/dev/null 2>&1 || fail "$mode close failed"
     remaining=1
-    for attempt in {1..200}; do
+    for ((attempt = 1; attempt <= 200; attempt++)); do
       remaining=$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')
       [ "$remaining" != 0 ] || break
       sleep 0.05
