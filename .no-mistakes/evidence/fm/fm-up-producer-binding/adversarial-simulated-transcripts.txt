@@ -1,0 +1,110 @@
+Real merge CLI with simulated GitHub responses; not live GitHub evidence.
+
+
+=== adversarial-classic-case-sensitive-waiver; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+=== adversarial-classic-unreadable-statuses-waived; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+  - required status producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+=== adversarial-classic-stale-checks-waived; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+=== adversarial-ruleset-case-sensitive-waiver; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+  - required check 'license/cla' has not reported at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+error: these required checks have not reported: license/cla
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+=== adversarial-ruleset-unreadable-statuses-waived; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+  - required status producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+
+=== adversarial-ruleset-stale-checks-waived; exit=1 ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://github.com/example/repo/pull/111
+  - required check producers at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 could not be read
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses

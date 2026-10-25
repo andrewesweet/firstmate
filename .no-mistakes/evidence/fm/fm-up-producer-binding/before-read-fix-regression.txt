@@ -1,0 +1,27 @@
+Real merge CLI with simulated GitHub responses; not live GitHub evidence.
+
+EXPECTED REGRESSION FAILURE: app-producer-read-classic-timeout: unreadable producer evidence must not be waived: expected exit 1, got 0
+
+Case: app-producer-read-classic-timeout
+--- stderr ---
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/111 is open and mergeable, with every unwaived required check reported and every unwaived check green at head a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+--- stdout ---
+armed: state/task-x1.check.sh
+verified: https://github.com/example/repo/pull/111 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+--- gh.log ---
+pr view https://github.com/example/repo/pull/111 --json headRefOid -q .headRefOid
+pr view https://github.com/example/repo/pull/111 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup
+api repos/example/repo/branches/main
+api --paginate repos/example/repo/rules/branches/main
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/check-runs
+api --paginate repos/example/repo/commits/a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7/statuses
+api apps/cla-bot --jq .id
+pr merge 111 --repo example/repo --match-head-commit a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7 --squash --admin
+api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=example -F repo=repo -F number=111 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")

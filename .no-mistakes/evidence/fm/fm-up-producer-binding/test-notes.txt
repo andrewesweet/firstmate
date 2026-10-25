@@ -1,0 +1,11 @@
+Scope: merge producer binding and the approved unreadable-App-response correction.
+Oracle: authoritative user intent and accepted review decision. Bound requirements require matching producer evidence at the verified head. Unbound requirements match context. Exact attended missing-check waivers cannot waive unreadable responses or unrelated merge conditions.
+Wrong behaviors rejected: accepting name-only status or wrong App; merging after App timeout/403/500 or malformed App IDs with a waiver; accepting incorrect waiver casing or stale producer evidence.
+
+Selected functions from tests/fm-pr-merge.test.sh executed through disposable drivers, omitting standalone full-suite invocations. All fixture repositories and homes were under .test-phase/ in the run worktree. No source-string assertions were added.
+Every selected behavioral test passed initially. The final artifact-export snippet failed due to quoting. After correcting export, the three producer tests passed again and generated simulated-merge-transcripts.txt. The initial focused-tests.log remains unchanged.
+Six additional cases passed: classic protection and rulesets each refused incorrectly cased waivers, unreadable statuses with a waiver, and stale check evidence with a waiver.
+Historical regression assertions failed as expected: base 147b26729acfdadb75bb81c3f11354734bf28d40 reached the simulated merge on a name-only status; target parent reached the simulated administrator merge after an App timeout with a named waiver. Both assertions pass at target ec1232a88617f9e2f503dda76c464f748b0e728c.
+
+No live GitHub mutations occurred. Local fixtures and HTTP replacements cannot establish GitHub producer semantics. Live proof requires an authorized disposable GitHub repository, permission for protection/ruleset/status/check-run/merge mutations, and suitable App credentials, outside this workspace boundary. The same evidence gap was previously declined; no duplicate finding is raised. Fixture transcripts are not live evidence.
+This is a CLI change with no rendered UI; CLI transcripts are the applicable artifacts.
