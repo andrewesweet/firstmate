@@ -138,7 +138,14 @@
 #      decisions. If it says needs-decision/blocked but
 #      the run-step shows the run moved on (outside the fork-delivery handoff
 #      above), the log is deterministically stale and
-#      is flagged superseded. A genuinely parked run plus a needs-decision log
+#      is flagged superseded. A ship `done:` claim is also flagged superseded
+#      when an active same-branch run has advanced beyond the claim's head and
+#      parked at a later gate. A locally resolvable run head must descend from
+#      that head; an unfetched head needs pipeline custody or the ledger-anchored
+#      continuation proof above. A different or unresolvable head alone is not
+#      proof of advancement, and this rule does not admit executing records.
+#      Tests: tests/fm-crew-state.test.sh.
+#      A genuinely parked run plus a needs-decision log
 #      agree, and are reported as parked. A `blocked:` line that reports a
 #      refused or missing daemon socket remains blocked even if an attributed
 #      run record is stale or terminal, for as long as that blocker is still the
