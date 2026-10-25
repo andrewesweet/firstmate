@@ -1000,7 +1000,7 @@ github_read_required_contexts() {
 # its creator is an app bot whose slug the apps API resolves; an unresolvable
 # slug leaves that status unattributed rather than failing the read.
 github_status_producers() {
-  local statuses=$1 required=$2 candidates slug app_id resolved='[]'
+  local statuses=$1 required=$2 candidates slug app_response app_id resolved='[]'
   candidates=$(printf '%s' "$statuses" | jq -sc --argjson required "$required" '
     [ .[] | if type == "array" then .[] else error("invalid statuses") end
       | if type == "object" and (.context | type) == "string" then . else error("invalid status") end ]
@@ -1010,8 +1010,15 @@ github_status_producers() {
         | {context, slug: (.creator.login | rtrimstr("[bot]"))} ]' 2>/dev/null) || return 1
   while IFS= read -r slug; do
     [ -n "$slug" ] || continue
-    app_id=$(gh api "apps/$slug" --jq '.id' 2>/dev/null) || continue
-    case "$app_id" in '' | *[!0-9]*) continue ;; esac
+    if ! app_response=$(gh api "apps/$slug" --include 2>/dev/null); then
+      case "${app_response%%$'\n'*}" in
+        HTTP/*' 404 '*) continue ;;
+        *) return 1 ;;
+      esac
+    fi
+    app_id=$(printf '%s' "$app_response" | sed '1,/^[[:space:]]*$/d' | jq -ser '
+      if length == 1 then .[0].id else null end
+      | select(type == "number" and . > 0 and floor == .)' 2>/dev/null) || return 1
     resolved=$(printf '%s' "$resolved" | jq -c --arg slug "$slug" --argjson id "$app_id" '. + [{slug: $slug, id: $id}]')
   done <<EOF
 $(printf '%s' "$candidates" | jq -r '[.[].slug] | unique[]')

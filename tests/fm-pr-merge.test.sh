@@ -275,10 +275,18 @@ case "${1:-} ${2:-}" in
         ;;
       *" apps/"*)
         # One "<slug> <id>" line per app the apps API knows; others are 404.
+        if [ -f "$FM_TEST_GH_APPS.response" ]; then
+          cat "$FM_TEST_GH_APPS.response"
+          exit "$(cat "$FM_TEST_GH_APPS.rc")"
+        fi
         slug=${2#apps/}
         app_id=$(awk -v s="$slug" '$1 == s { print $2 }' "$FM_TEST_GH_APPS" 2>/dev/null)
-        [ -n "$app_id" ] || { echo 'gh: Not Found (HTTP 404)' >&2; exit 1; }
-        printf '%s\n' "$app_id"
+        [ -n "$app_id" ] || {
+          printf 'HTTP/2.0 404 Not Found\r\n\r\n{"message":"Not Found"}\n'
+          echo 'gh: Not Found (HTTP 404)' >&2
+          exit 1
+        }
+        printf 'HTTP/2.0 200 OK\r\n\r\n{"id":%s}\n' "$app_id"
         exit 0
         ;;
       *" repos/"*"/rules/branches/"*merge_queue*) ;;
@@ -4128,7 +4136,8 @@ test_app_bound_required_status_requires_producer_evidence() {
   for spec in classic:status ruleset:status classic:absent ruleset:absent \
     classic:unbound ruleset:unbound classic:wrong-app classic:correct-app classic:waived \
     classic:bot-status ruleset:bot-status classic:other-bot-status classic:user-status \
-    classic:superseded-bot-status classic:unresolved-bot-status classic:statuses-unreadable; do
+    classic:superseded-bot-status classic:unresolved-bot-status classic:statuses-unreadable \
+    classic:unresolved-bot-status-waived ruleset:unresolved-bot-status-waived; do
     kind=${spec%%:*}
     variant=${spec#*:}
     case_dir=$(make_case "required-app-evidence-$kind-$variant")
@@ -4181,11 +4190,11 @@ test_app_bound_required_status_requires_producer_evidence() {
       other-bot-status) status_creators 'other-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
       user-status) status_creators 'cla-bot User' > "$case_dir/github-statuses.json" ;;
       superseded-bot-status) status_creators 'someone User' 'cla-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
-      unresolved-bot-status) status_creators 'unknown-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
+      unresolved-bot-status|unresolved-bot-status-waived) status_creators 'unknown-bot[bot] Bot' > "$case_dir/github-statuses.json" ;;
       statuses-unreadable) printf '{}' > "$case_dir/github-statuses.json" ;;
     esac
     case "$variant" in
-      waived)
+      waived|unresolved-bot-status-waived)
         run_required_case "$case_dir" 111 --attended-override --allow-missing license/cla -- --admin
         expect_code 0 "$RC" "app-evidence-$kind-$variant: the named waiver must merge: $(cat "$case_dir/stderr")"
         assert_logged_gh_merge "$case_dir" 111 example/repo --squash --admin
@@ -4210,6 +4219,54 @@ test_app_bound_required_status_requires_producer_evidence() {
     esac
   done
   pass "fm-pr-merge requires producer evidence for app-bound required checks"
+}
+
+test_app_producer_read_errors_cannot_be_waived() {
+  local case_dir head kind variant response code
+  head=a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+  for kind in classic ruleset; do
+    for variant in timeout forbidden server-error missing-id null-id string-id zero-id fractional-id malformed-json; do
+      case_dir=$(make_case "app-producer-read-$kind-$variant")
+      add_gh_mocks "$case_dir" "$head"
+      write_github_rollup_json "$case_dir" "$head" \
+        "$(check_run ci COMPLETED SUCCESS)" \
+        "$(status_context 'license/cla' SUCCESS)"
+      write_github_required "$case_dir" "$kind:license/cla"
+      if [ "$kind" = classic ]; then
+        jq '.protection.required_status_checks.checks[0].app_id = 865473' \
+          "$case_dir/github-branch.json" > "$case_dir/updated.json"
+        mv "$case_dir/updated.json" "$case_dir/github-branch.json"
+      else
+        jq '.[1].parameters.required_status_checks[0].integration_id = 865473' \
+          "$case_dir/github-required-rules.json" > "$case_dir/updated.json"
+        mv "$case_dir/updated.json" "$case_dir/github-required-rules.json"
+      fi
+      printf '{"check_runs":[{"name":"ci","app":{"id":42},"head_sha":"%s"}]}\n' \
+        "$head" > "$case_dir/github-runs.json"
+      status_creators 'cla-bot[bot] Bot' > "$case_dir/github-statuses.json"
+      code=0
+      case "$variant" in
+        timeout) response=''; code=1 ;;
+        forbidden) response=$'HTTP/2.0 403 Forbidden\r\n\r\n{"message":"Forbidden"}'; code=1 ;;
+        server-error) response=$'HTTP/2.0 500 Internal Server Error\r\n\r\n{"message":"Internal Server Error"}'; code=1 ;;
+        missing-id) response=$'HTTP/2.0 200 OK\r\n\r\n{}' ;;
+        null-id) response=$'HTTP/2.0 200 OK\r\n\r\n{"id":null}' ;;
+        string-id) response=$'HTTP/2.0 200 OK\r\n\r\n{"id":"865473"}' ;;
+        zero-id) response=$'HTTP/2.0 200 OK\r\n\r\n{"id":0}' ;;
+        fractional-id) response=$'HTTP/2.0 200 OK\r\n\r\n{"id":865473.5}' ;;
+        malformed-json) response=$'HTTP/2.0 200 OK\r\n\r\n{' ;;
+      esac
+      printf '%s\n' "$response" > "$case_dir/github-apps.response"
+      printf '%s\n' "$code" > "$case_dir/github-apps.rc"
+      run_required_case "$case_dir" 111 --attended-override --allow-missing license/cla -- --admin
+      expect_code 1 "$RC" "app-producer-read-$kind-$variant: unreadable producer evidence must not be waived"
+      assert_grep 'required status producers at head' "$case_dir/stderr" \
+        "app-producer-read-$kind-$variant: the producer read failure was not reported"
+      assert_no_grep 'pr merge' "$case_dir/gh.log" \
+        "app-producer-read-$kind-$variant: gh pr merge ran with unreadable producer evidence"
+    done
+  done
+  pass "fm-pr-merge never waives unreadable App producer evidence"
 }
 
 test_required_partial_reads_report_all_failures() {
@@ -4701,6 +4758,7 @@ test_allow_missing_follows_the_allow_red_rules
 
 test_required_producer_identity
 test_app_bound_required_status_requires_producer_evidence
+test_app_producer_read_errors_cannot_be_waived
 test_required_partial_reads_report_all_failures
 test_allow_red_refused_on_forgejo
 test_allow_missing_refused_on_forgejo
