@@ -982,12 +982,8 @@ The wiki repository is captain-configured and captain-owned; firstmate pushes on
 One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
 Gardener lint and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
 Checks use lychee offline for local Markdown links only; external links never trigger network requests.
-`bin/fm-wiki.sh due` exits 0 with one line only when at least 25 raw lessons are uncompiled or the oldest uncompiled one is 7 days old, and no crew-wiki project task is open in that home; otherwise it exits 1 silently.
-It reads only the home's own clone and task records, never the network.
-`bin/fm-wiki.sh lint` runs the deterministic page checks and `bin/fm-wiki.sh index` regenerates `index.md` from page headers within the 150-line budget.
-`bin/fm-wiki.sh publish --base <sha>` lints, refuses any change under `raw/` and any page commit made by someone else after the run's base, then commits the compiled pages and pushes with the same fetch-rebase-push loop (never force) and landing proof as `drain`.
-After proving the landing, it fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
-See the [script header](../bin/fm-wiki.sh) for verb syntax and exit codes.
+The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
+After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
 
 Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.
 The registration command, run once in the gardener home, is:
@@ -1008,8 +1004,7 @@ It owns the page taxonomy, header fields, citation rule, index rules, budgets, t
 
 `direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `"$FIRSTMATE_ROOT/bin/fm-wiki.sh" publish --repo "$PWD" --base <sha>` instead of opening a pull request.
 `FIRSTMATE_ROOT` names the installed Firstmate code directory.
-Its Definition of done (owned by `bin/fm-dod-lib.sh`) ends with `publish --base <sha>` and a `done: wiki pages published {commit}` report.
-The generated commands bind the supervising home's paths explicitly.
+Its generated [Definition of done](../bin/fm-dod-lib.sh) owns the run commands and completion report, binding the supervising home's paths explicitly.
 The mode is permitted only for a project whose registry entry opts in by naming it; every other project and mode is unchanged.
 `bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode.
 A forge, a base branch, or a fork-staged fork is refused on direct-push, because it publishes through the wiki checkout rather than a forge, a task branch, or a pull request.

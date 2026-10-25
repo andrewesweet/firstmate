@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resolve a project's REGISTERED delivery posture from the data/projects.md registry.
-# Default usage prints two words to stdout: "<mode> <yolo>" where mode is one of
-# no-mistakes|direct-PR|local-only and yolo is on|off.
+# Default usage prints two words to stdout: "<mode> <yolo>" using the registered
+# modes listed below, with conditional policies mapped as described; yolo is on|off.
 # --branch-prefix instead prints one value: the project's registered ship-branch
 # prefix, "fm/" when the project registers none, is unregistered, or the registry
 # is absent, so every existing installation keeps its current "fm/<task-id>"
@@ -44,8 +44,8 @@
 #   direct-push            gardener only: compile wiki pages and land them with
 #                          bin/fm-wiki.sh publish instead of a PR. Permitted only
 #                          for a project whose registry entry opts in by naming
-#                          this mode. The
-#                          crew-wiki project owns the only such entry.
+#                          this mode. The crew-wiki project owns the only such
+#                          entry.
 #   no-mistakes-prod-only  a conditional policy, not a task mode: firstmate
 #                          classifies each task's surface at intake (the
 #                          project-management skill owns that classification).
@@ -109,7 +109,8 @@
 # on stdout, exit status 3, the token named. Resolving it to "no registered
 # forge" would hand a Gerrit project the pull-request contract the binding
 # exists to prevent.
-# local-only with a forge is refused the same way. --branch-prefix does not make
+# local-only or direct-push with a forge is refused the same way.
+# --branch-prefix does not make
 # that check: it answers only the registered prefix, and a prefix is orthogonal
 # to the forge binding, so it prints even when the forge token is malformed;
 # every path that reads the forge binding (default, --forge, and spawn's

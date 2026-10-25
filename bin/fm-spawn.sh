@@ -40,7 +40,7 @@
 #   refused as a flag value.
 #   direct-push publishes past every review, so the spawn additionally refuses
 #   it unless the project's registry entry opts in by naming direct-push
-#   (bin/fm-project-mode.sh --allows-direct-push answers that opt-in).
+#   (read the registered mode with bin/fm-project-mode.sh --raw).
 #   --branch-prefix is the optional prefix selected at intake for this ship's
 #   immutable branch, defaulting to "fm/". It must agree with the branch recorded
 #   in the brief, and is refused on scouts, secondmates, and relaunches. When the

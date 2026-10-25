@@ -36,7 +36,7 @@ Every page opens with these `>` lines, which `index` reads and `lint` enforces.
 
 ## Claims and citations
 
-Every claim on a page cites the raw lesson it came from with a Markdown link, inline where the claim is made; use a path relative to the page, such as `[lesson](../../raw/2026/10/example.md)` from `pages/tools/`.
+Every claim on a page cites the raw lesson it came from with a Markdown link, inline where the claim is made; use a destination relative to the page, such as `../../raw/2026/10/example.md` from `pages/tools/`.
 Header provenance, bare paths, and code examples do not satisfy the body citation rule.
 Supersession cites the newer raw lesson and strikes the old claim; the old text stays readable under the strike.
 Raw files are never edited to fix a page: a correction is a new raw lesson compiled by a later run.
@@ -53,7 +53,8 @@ Nothing here is loaded at any session start: the wiki costs zero startup budget.
 
 ## Deterministic lint
 
-A gardener run fails without publishing when any page misses a header field, a link dangles, the index or a page is over budget, a claim cites no raw lesson, or anything under `raw/` changed.
+Lint blocks publication when any page misses a header field, a local link dangles or leaves the checkout, a source names a missing or invalid raw lesson, the index or a page is over budget, or a page has no body citation to a raw lesson.
+Lint checks for a body citation on each page; the gardener must still verify the claim-by-claim citation rule.
 Orphan pages, raw lessons no page cites after 30 days, `stale` or `wrong` usage signals, and pages unconfirmed for 90 days are reported but never block.
 
 ## Gardener run steps

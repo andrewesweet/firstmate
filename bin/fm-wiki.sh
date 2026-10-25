@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Crew wiki, slice 01: let each finished ship or scout task leave short,
-# secret-scanned lessons as immutable raw files in a private wiki repository.
+# Crew wiki: capture secret-scanned lessons as immutable raw files in a private
+# repository, then let the gardener compile, check, and publish cited pages.
 #
 # The feature is opt-in per home through config/wiki: without a contributing
 # role, lesson briefs, capture, and publication stay off.

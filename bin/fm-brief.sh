@@ -73,8 +73,8 @@
 #   direct-push  compile wiki pages and land them with bin/fm-wiki.sh publish
 #                (gardener only, on a project whose registry entry opts in);
 #                the configured merge authority decided this standing posture
-# no-mistakes-prod-only is a registry policy, not a task mode; resolve it to one of
-# the four concrete modes at intake before calling this script.
+# no-mistakes-prod-only is a registry policy, not a task mode; resolve it to
+# no-mistakes or direct-PR at intake before calling this script.
 # --branch-prefix <prefix> optionally overrides the ship branch's "fm/" prefix, so
 # the resolved branch is "<prefix><task-id>" instead of the default "fm/<task-id>".
 # Pass an empty prefix ("--branch-prefix ''") for a bare "<task-id>" branch, or a
