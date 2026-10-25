@@ -1,0 +1,47 @@
+$ no-mistakes axi
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/feb37d45d9da/01M5TGPKQG05DTN4S16W4Y3YY3/.test-live/wt
+current_branch: fm/lab
+daemon: stopped
+active_run:
+  id: "01LAB"
+  branch: fm/lab
+  status: running
+  awaiting_agent: parked 1h0m
+  head: d8795771
+  head_sha: d8795771d78a6c9a641dc4e5cebd14f220c208e1
+  verification_plan: none
+  findings: none
+  steps[1]{step,status,findings,duration_ms}:
+    ci,awaiting_approval,0,0
+gate:
+  step: ci
+  status: awaiting_approval
+  findings[0]:
+help[6]: Run `no-mistakes axi respond --action approve` to accept this step and continue,"Run `no-mistakes axi respond --action fix --findings <ids> [--ignore <ids>]` to have the pipeline fix the selected findings (do not edit files yourself); list every finding below in `--findings` or `--ignore`, unless an earlier round of this step already decided it, and a finding that round chose to fix cannot be declined by a later response",Run `no-mistakes axi respond --action skip` to skip this step,Run `no-mistakes axi logs --step ci --full` to read the complete step summary and log,"A long-running call is working, not stalled - background it if your harness needs to, but the run never advances past a gate on its own. Read every return; on a `gate:`, respond; loop until an `outcome:`.","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits."
+count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  "01LAB",fm/lab,running,d8795771,""
+help[4]: Run `no-mistakes axi respond --action approve` to clear the current gate,"Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+
+$ no-mistakes axi status --run 01LAB
+run:
+  id: "01LAB"
+  branch: fm/lab
+  status: running
+  awaiting_agent: parked 1h0m
+  head: d8795771
+  head_sha: d8795771d78a6c9a641dc4e5cebd14f220c208e1
+  verification_plan: none
+  findings: none
+  steps[1]{step,status,findings,duration_ms}:
+    ci,awaiting_approval,0,0
+gate:
+  step: ci
+  status: awaiting_approval
+  findings[0]:
+help[2]: The explicitly selected gate for run 01LAB is inspection-only here; respond with `no-mistakes axi respond --run 01LAB --action approve|fix|skip`,Run `no-mistakes axi logs --run 01LAB --step ci --full` to read the complete step summary and log
+
+$ no-mistakes runs --limit 10
+running      fm/lab               d8795771  2026-10-25 22:24

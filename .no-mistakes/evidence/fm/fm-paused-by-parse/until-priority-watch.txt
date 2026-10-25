@@ -1,0 +1,8 @@
+
+TRIAGE:
+[2026-10-25T23:27:15+0000] absorbed stale (paused until 2303595285s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:18+0000] absorbed stale (paused until 2303595283s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:19+0000] absorbed stale (paused until 2303595281s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:21+0000] absorbed stale (paused until 2303595280s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:22+0000] absorbed stale (paused until 2303595278s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:23+0000] absorbed stale (paused until 2303595277s from now, declared time not reached): fm-lab:fm-wait

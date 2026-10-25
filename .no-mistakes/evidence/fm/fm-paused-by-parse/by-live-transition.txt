@@ -1,0 +1,11 @@
+status: paused: drive return By 2026-10-25T23:28:21Z
+started_epoch: 1792970894.005783
+deadline_epoch: 1792970901
+exit_observed_epoch: 1792970902.5185761
+stale: fm-lab:fm-wait (paused 69s, awaiting external - the declared clearing time has passed, rechecked on a long cadence not a wedge; confirm the wait cleared)
+
+TRIAGE:
+[2026-10-25T23:28:15+0000] absorbed stale (paused until 6s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:17+0000] absorbed stale (paused until 4s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:19+0000] absorbed stale (paused until 2s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:20+0000] absorbed stale (paused until 1s from now, declared time not reached): fm-lab:fm-wait

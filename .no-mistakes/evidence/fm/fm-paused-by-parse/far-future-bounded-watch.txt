@@ -1,0 +1,3 @@
+stale: fm-lab:fm-wait (paused 301s, awaiting external - the declared time is beyond the recheck cadence; confirm the wait still holds)
+
+TRIAGE:

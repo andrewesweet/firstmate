@@ -1,0 +1,118 @@
+Newer descendant parked at CI replaces done
+{"done_head": "11ba2ea940d5a74d2981dadc230146324b4dba67", "run_head": "d8795771d78a6c9a641dc4e5cebd14f220c208e1"}
+state: parked · source: run-step · parked at ci: 0 finding(s) · run: 01LAB · status-log superseded: run pushed a newer head and parked at a later gate
+
+Ledger ties unfetched newer parked gate to done head
+{"done_head": "11ba2ea940d5a74d2981dadc230146324b4dba67", "unfetched_head": "83fba88ba11752c4d9abf6fa7074414bdeba2d1c"}
+state: parked · source: run-step · parked at ci: 0 finding(s) · run: 01LAB · status-log superseded: run pushed a newer head and parked at a later gate
+
+Unfetched parked head without task attribution stays unverified
+{"run_head": "83fba88ba11752c4d9abf6fa7074414bdeba2d1c", "anchor": "none"}
+state: unknown · source: run-step · selected run code identity unverified; run ids: 01LAB
+
+Historical parked run on reused branch leaves current task done
+{"done_head": "6c64119338f6c3dd4ef1eb97d1ec300a033e633f", "old_run_head": "11ba2ea940d5a74d2981dadc230146324b4dba67"}
+state: done · source: status-log · PR https://example.invalid/lab/repo/pull/1 checks 20/20 green, merge_state clean
+
+Dead divergent executing record cannot revive working
+{"done_head": "6c64119338f6c3dd4ef1eb97d1ec300a033e633f", "run_head": "11ba2ea940d5a74d2981dadc230146324b4dba67", "daemon": "stopped"}
+state: done · source: status-log · PR https://example.invalid/lab/repo/pull/1 checks 20/20 green, merge_state clean
+
+Matching completed run keeps task done
+{"done_head": "6c64119338f6c3dd4ef1eb97d1ec300a033e633f", "run_head": "6c64119338f6c3dd4ef1eb97d1ec300a033e633f"}
+state: done · source: run-step · run passed: PR state unknown (no PR identity) · run: 01LAB
+
+Real watcher by-expired
+{"status": "paused: drive return by 2026-10-24T23:02:30Z", "status_age": 60, "cadence": 999}
+stale: fm-lab:fm-wait (paused 61s, awaiting external - the declared clearing time has passed, rechecked on a long cadence not a wedge; confirm the wait cleared)
+
+TRIAGE:
+
+
+Real watcher until-expired
+{"status": "paused: drive return until 2026-10-24T23:02Z", "status_age": 60, "cadence": 999}
+stale: fm-lab:fm-wait (paused 60s, awaiting external - the declared clearing time has passed, rechecked on a long cadence not a wedge; confirm the wait cleared)
+
+TRIAGE:
+
+
+Real watcher BY-future
+{"status": "paused: drive return BY 2099-10-24T23:02Z", "status_age": 60, "cadence": 999}
+
+TRIAGE:
+[2026-10-25T23:27:03+0000] absorbed stale (paused until 2303595297s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:06+0000] absorbed stale (paused until 2303595294s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:08+0000] absorbed stale (paused until 2303595292s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:10+0000] absorbed stale (paused until 2303595291s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:11+0000] absorbed stale (paused until 2303595289s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:13+0000] absorbed stale (paused until 2303595287s from now, declared time not reached): fm-lab:fm-wait
+
+
+Real watcher until-priority
+{"status": "paused: drive by 2026-10-24T23:02Z, until 2099-10-24T23:02Z", "status_age": 60, "cadence": 999}
+
+TRIAGE:
+[2026-10-25T23:27:15+0000] absorbed stale (paused until 2303595285s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:18+0000] absorbed stale (paused until 2303595283s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:19+0000] absorbed stale (paused until 2303595281s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:21+0000] absorbed stale (paused until 2303595280s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:22+0000] absorbed stale (paused until 2303595278s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:27:23+0000] absorbed stale (paused until 2303595277s from now, declared time not reached): fm-lab:fm-wait
+
+
+Real watcher malformed
+{"status": "paused: drive return by 2026-13-99T99:99Z", "status_age": 60, "cadence": 999}
+
+TRIAGE:
+[2026-10-25T23:27:26+0000] absorbed stale (paused, awaiting external, age 61s): fm-lab:fm-wait
+[2026-10-25T23:27:28+0000] absorbed stale (paused, awaiting external, age 63s): fm-lab:fm-wait
+[2026-10-25T23:27:30+0000] absorbed stale (paused, awaiting external, age 65s): fm-lab:fm-wait
+[2026-10-25T23:27:31+0000] absorbed stale (paused, awaiting external, age 66s): fm-lab:fm-wait
+[2026-10-25T23:27:33+0000] absorbed stale (paused, awaiting external, age 68s): fm-lab:fm-wait
+[2026-10-25T23:27:34+0000] absorbed stale (paused, awaiting external, age 69s): fm-lab:fm-wait
+[2026-10-25T23:27:36+0000] absorbed stale (paused, awaiting external, age 71s): fm-lab:fm-wait
+
+
+Real watcher malformed-cadence
+{"status": "paused: drive return by tomorrow", "status_age": 300, "cadence": 240}
+stale: fm-lab:fm-wait (paused 301s, awaiting external - declared pause, rechecked on a long cadence not a wedge; confirm the wait still holds)
+
+TRIAGE:
+
+
+Real watcher far-future-bounded
+{"status": "paused: drive return by 2099-10-24T23:02Z", "status_age": 300, "cadence": 240}
+stale: fm-lab:fm-wait (paused 301s, awaiting external - the declared time is beyond the recheck cadence; confirm the wait still holds)
+
+TRIAGE:
+
+
+
+BASELINE AND REAL-TIME TRANSITION
+
+status: paused: drive return By 2026-10-25T23:26:59Z
+started_epoch: 1792970879.8694503
+deadline_epoch: 1792970819
+exit_observed_epoch: 1792970893.9142094
+
+TRIAGE:
+[2026-10-25T23:28:02+0000] absorbed stale (paused, awaiting external, age 63s): fm-lab:fm-wait
+[2026-10-25T23:28:05+0000] absorbed stale (paused, awaiting external, age 66s): fm-lab:fm-wait
+[2026-10-25T23:28:06+0000] absorbed stale (paused, awaiting external, age 67s): fm-lab:fm-wait
+[2026-10-25T23:28:08+0000] absorbed stale (paused, awaiting external, age 69s): fm-lab:fm-wait
+[2026-10-25T23:28:09+0000] absorbed stale (paused, awaiting external, age 70s): fm-lab:fm-wait
+[2026-10-25T23:28:11+0000] absorbed stale (paused, awaiting external, age 72s): fm-lab:fm-wait
+[2026-10-25T23:28:12+0000] absorbed stale (paused, awaiting external, age 73s): fm-lab:fm-wait
+
+
+status: paused: drive return By 2026-10-25T23:28:21Z
+started_epoch: 1792970894.005783
+deadline_epoch: 1792970901
+exit_observed_epoch: 1792970902.5185761
+stale: fm-lab:fm-wait (paused 69s, awaiting external - the declared clearing time has passed, rechecked on a long cadence not a wedge; confirm the wait cleared)
+
+TRIAGE:
+[2026-10-25T23:28:15+0000] absorbed stale (paused until 6s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:17+0000] absorbed stale (paused until 4s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:19+0000] absorbed stale (paused until 2s from now, declared time not reached): fm-lab:fm-wait
+[2026-10-25T23:28:20+0000] absorbed stale (paused until 1s from now, declared time not reached): fm-lab:fm-wait

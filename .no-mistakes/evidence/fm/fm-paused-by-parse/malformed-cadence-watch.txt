@@ -1,0 +1,3 @@
+stale: fm-lab:fm-wait (paused 301s, awaiting external - declared pause, rechecked on a long cadence not a wedge; confirm the wait still holds)
+
+TRIAGE:

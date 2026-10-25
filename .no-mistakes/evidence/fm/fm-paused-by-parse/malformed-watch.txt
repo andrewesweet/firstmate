@@ -1,0 +1,9 @@
+
+TRIAGE:
+[2026-10-25T23:27:26+0000] absorbed stale (paused, awaiting external, age 61s): fm-lab:fm-wait
+[2026-10-25T23:27:28+0000] absorbed stale (paused, awaiting external, age 63s): fm-lab:fm-wait
+[2026-10-25T23:27:30+0000] absorbed stale (paused, awaiting external, age 65s): fm-lab:fm-wait
+[2026-10-25T23:27:31+0000] absorbed stale (paused, awaiting external, age 66s): fm-lab:fm-wait
+[2026-10-25T23:27:33+0000] absorbed stale (paused, awaiting external, age 68s): fm-lab:fm-wait
+[2026-10-25T23:27:34+0000] absorbed stale (paused, awaiting external, age 69s): fm-lab:fm-wait
+[2026-10-25T23:27:36+0000] absorbed stale (paused, awaiting external, age 71s): fm-lab:fm-wait

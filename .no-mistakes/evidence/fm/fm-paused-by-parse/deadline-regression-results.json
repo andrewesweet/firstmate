@@ -1,0 +1,12 @@
+[
+  {
+    "name": "baseline-by-expired",
+    "pass": true,
+    "evidence": "status: paused: drive return By 2026-10-25T23:26:59Z\nstarted_epoch: 1792970879.8694503\ndeadline_epoch: 1792970819\nexit_observed_epoch: 1792970893.9142094\n\nTRIAGE:\n[2026-10-25T23:28:02+0000] absorbed stale (paused, awaiting external, age 63s): fm-lab:fm-wait\n[2026-10-25T23:28:05+0000] absorbed stale (paused, awaiting external, age 66s): fm-lab:fm-wait\n[2026-10-25T23:28:06+0000] absorbed stale (paused, awaiting external, age 67s): fm-lab:fm-wait\n[2026-10-25T23:28:08+0000] absorbed stale (paused, awaiting external, age 69s): fm-lab:fm-wait\n[2026-10-25T23:28:09+0000] absorbed stale (paused, awaiting external, age 70s): fm-lab:fm-wait\n[2026-10-25T23:28:11+0000] absorbed stale (paused, awaiting external, age 72s): fm-lab:fm-wait\n[2026-10-25T23:28:12+0000] absorbed stale (paused, awaiting external, age 73s): fm-lab:fm-wait\n"
+  },
+  {
+    "name": "by-live-transition",
+    "pass": true,
+    "evidence": "status: paused: drive return By 2026-10-25T23:28:21Z\nstarted_epoch: 1792970894.005783\ndeadline_epoch: 1792970901\nexit_observed_epoch: 1792970902.5185761\nstale: fm-lab:fm-wait (paused 69s, awaiting external - the declared clearing time has passed, rechecked on a long cadence not a wedge; confirm the wait cleared)\n\nTRIAGE:\n[2026-10-25T23:28:15+0000] absorbed stale (paused until 6s from now, declared time not reached): fm-lab:fm-wait\n[2026-10-25T23:28:17+0000] absorbed stale (paused until 4s from now, declared time not reached): fm-lab:fm-wait\n[2026-10-25T23:28:19+0000] absorbed stale (paused until 2s from now, declared time not reached): fm-lab:fm-wait\n[2026-10-25T23:28:20+0000] absorbed stale (paused until 1s from now, declared time not reached): fm-lab:fm-wait\n"
+  }
+]

@@ -1,0 +1,5 @@
+ok - both run-selection routes expose attributed later gates over stale done claims
+ok - done claims never attribute unproven or historical parked records
+ok - done claims do not revive dead executing records on either selection route
+ok - a done claim the run agrees with stays done
+ok - a done claim with no comparable head stays done
