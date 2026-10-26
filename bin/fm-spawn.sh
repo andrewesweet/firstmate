@@ -4911,12 +4911,24 @@ spawn_send_key() { # <target> <key>
 }
 
 # Enter the exact copy recorded for this task immediately before trust setup and
-# launch. Herdr restores a pane's shell cwd from its durable tab layout, so a
-# treehouse subshell's foreground cwd is not enough to keep a later pane restart
-# out of the primary checkout. The same explicit cd gives every backend one
+# launch. The same explicit cd gives every backend one
 # launch boundary and makes a dropped or ignored cwd change a refusal.
 spawn_enter_recorded_worktree() {
+  local proj_cd_path wt_cd_path
   [ "$KIND" = secondmate ] && return 0
+  if [ "$BACKEND" = herdr ]; then
+    proj_cd_path=${PROJ_ABS//\'/\'\\\'\'}
+    spawn_send_text_line "$WT_TARGET" "cd -- '$proj_cd_path' && exec \"\${SHELL:-/bin/sh}\"" || {
+      echo "error: task $ID's endpoint could not be told to enter the project shell; returning the lease and refusing to launch" >&2
+      exit 1
+    }
+    wt_cd_path=${WT//\'/\'\\\'\'}
+    spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
+      echo "error: task $ID's endpoint could not be told to enter its recorded worktree '$WT'; returning the lease and refusing to launch" >&2
+      exit 1
+    }
+    return 0
+  fi
   spawn_send_text_line "$WT_TARGET" "cd -- $(shell_quote "$WT")" || {
     echo "error: task $ID's endpoint could not be moved into its recorded worktree '$WT'; refusing to launch outside the copy holding its work" >&2
     exit 1
@@ -5338,6 +5350,7 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   # proven instead is that the adopted endpoint's shell is actually sitting in
   # that worktree, so the replacement agent starts where the work is rather
   # than wherever the pane happened to drift.
+  [ "$BACKEND" != herdr ] || spawn_enter_recorded_worktree
   relaunch_wt_real=$(real_path_or_raw "$WT")
   relaunch_seen=
   for _ in $(seq 1 10); do
@@ -5346,24 +5359,8 @@ elif [ "$RELAUNCH" -eq 1 ]; then
     sleep 0.5
   done
   if [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ]; then
-    if [ "$BACKEND" != herdr ]; then
-      echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}', not its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
-      exit 1
-    fi
-    relaunch_cd_path=${WT//\'/\'\\\'\'}
-    spawn_send_text_line "$WT_TARGET" "cd -- '$relaunch_cd_path'" || {
-      echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}' and could not be told to return to its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
-      exit 1
-    }
-    for _ in $(seq 1 10); do
-      relaunch_seen=$(spawn_current_path "$WT_TARGET" || true)
-      [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ] || break
-      sleep 0.5
-    done
-    if [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ]; then
-      echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}' and did not return to its recorded worktree '$WT' when told to; refusing to relaunch an agent outside the copy holding its work" >&2
-      exit 1
-    fi
+    echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}', not its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
+    exit 1
   fi
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
@@ -5381,17 +5378,14 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # shell and the pane falls back to its own shell in the project, still alive
   # for the locked close.
   if [ "$BACKEND" = herdr ]; then
-    proj_cd_path=${PROJ_ABS//\'/\'\\\'\'}
-    spawn_send_text_line "$WT_TARGET" "(cd -- '$proj_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
-      echo "error: task $ID leased $WT but its endpoint could not be told to enter the project shell; returning the lease and refusing to launch" >&2
+    spawn_enter_recorded_worktree
+  else
+    wt_cd_path=${WT//\'/\'\\\'\'}
+    spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
+      echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
       exit 1
     }
   fi
-  wt_cd_path=${WT//\'/\'\\\'\'}
-  spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
-    echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
-    exit 1
-  }
 
   # Wait for the pane to settle in the leased copy: on every backend the
   # pane's cwd must read as the worktree (herdr's tab is born there, tmux and
@@ -5467,10 +5461,8 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
 fi
 
 # Re-assert the durable task copy after either treehouse acquisition or endpoint
-# adoption. This also updates Herdr's restored pane shell before any harness is
-# started, so a later host restart inherits the task worktree rather than the
-# tab's original project directory.
-spawn_enter_recorded_worktree
+# adoption.
+[ "$BACKEND" = herdr ] || spawn_enter_recorded_worktree
 spawn_assert_agent_worktree
 
 # Pre-register Claude's workspace trust for the directory this launch starts in,

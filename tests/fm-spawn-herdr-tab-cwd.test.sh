@@ -89,7 +89,7 @@ commit() {  # <updated-json>
 }
 
 next_pane_id() {
-  printf 'p%s' "$(jq '[.workspaces[].tabs | length] | add // 0' "$state")"
+  printf 'p%s' "$(jq '[.workspaces[].tabs[].pane_id | ltrimstr("p") | tonumber] | (max // -1) + 1' "$state")"
 }
 
 case "$cmd" in
@@ -147,7 +147,7 @@ case "$cmd" in
       get)
         tid=${args[2]:-}
         jq -r --arg t "$tid" '
-          [.workspaces[] | (.tabs // [])[] | select(.tab_id == $t)]
+          [.workspaces[] | .workspace_id as $w | (.tabs // [])[] | select(.tab_id == $t) | . + {workspace_id: $w}]
           | if length == 1 then ({result:{tab:.[0]}} | tostring) else empty end' "$state"
         exit 0
         ;;
@@ -170,7 +170,7 @@ case "$cmd" in
         flag_value --label || exit 0
         label=$FLAG_VALUE
         seq=$(jq --arg w "$wsid" \
-          '[.workspaces[] | select(.workspace_id == $w) | (.tabs // []) | length] | add // 0' "$state")
+          '[.workspaces[] | select(.workspace_id == $w) | (.tabs // [])[] | .tab_id | split(":")[-1] | tonumber] | max // 0' "$state")
         [ -n "$seq" ] || exit 0
         tid="${wsid}:$((seq + 1))"
         pane=$(next_pane_id)
@@ -198,6 +198,13 @@ case "$cmd" in
           sent=$(awk -F '\x1f' '$2 == "pane" && $3 == "run" { count++ } END { print count + 0 }' "$log")
           [ "$sent" != "$FM_FAKE_FAIL_SEND" ] || exit 1
         fi
+        case "${args[3]:-}" in
+          'cd -- '*|'(cd -- '*)
+            live=$(SHELL=pwd bash -c "${args[3]}") || exit 1
+            commit "$(jq --arg p "${args[2]}" --arg cwd "$live" \
+              '(.workspaces[].tabs[] | select(.pane_id == $p) | .foreground_cwd) = $cwd' "$state")"
+            ;;
+        esac
         exit 0
         ;;
       list)
@@ -219,7 +226,7 @@ case "$cmd" in
             | {result:{pane:{
                 pane_id: .pane_id, tab_id: .tab_id, workspace_id: $ws.workspace_id,
                 cwd: .cwd,
-                foreground_cwd: (if $live == "" then .cwd else $live end)
+                foreground_cwd: (.foreground_cwd // (if $live == "" then .cwd else $live end))
               }}}]
           | if length == 1 then .[0] | tostring else empty end' "$state")
         if [ -n "$hit" ]; then
@@ -338,16 +345,78 @@ assert_no_tab_create_at() {  # <case-dir> <cwd> <label>
 
 assert_shell_entry_order() {
   local case_dir=$1 project=$2 wt=$3 label=$4 first second escaped_project escaped_wt
-  first=$(awk -F "$ESC" '$2 == "tab" && $3 == "create" { created = 1 }
-    created && $2 == "pane" && $3 == "run" { print $5; exit }' "$case_dir/herdr-calls.log")
-  second=$(awk -F "$ESC" '$2 == "tab" && $3 == "create" { created = 1 }
-    created && $2 == "pane" && $3 == "run" { if (++sent == 2) { print $5; exit } }' "$case_dir/herdr-calls.log")
+  first=$(awk -F "$ESC" '$2 == "pane" && $3 == "run" { print $5; exit }' "$case_dir/herdr-calls.log")
+  second=$(awk -F "$ESC" '$2 == "pane" && $3 == "run" { if (++sent == 2) { print $5; exit } }' "$case_dir/herdr-calls.log")
   escaped_project=${project//\'/\'\\\'\'}
   escaped_wt=${wt//\'/\'\\\'\'}
-  [ "$first" = "(cd -- '$escaped_project' && exec \"\${SHELL:-/bin/sh}\")" ] ||
+  [ "$first" = "cd -- '$escaped_project' && exec \"\${SHELL:-/bin/sh}\"" ] ||
     fail "$label: first typed command must enter the project shell, got: $first"
   [ "$second" = "(cd -- '$escaped_wt' && exec \"\${SHELL:-/bin/sh}\")" ] ||
     fail "$label: second typed command must enter the worktree child shell, got: $second"
+  python3 - "$case_dir" "$project" "$wt" "$first" "$second" <<'PY' || fail "$label: shell cwd or survival invariant failed"
+import os
+import pty
+import re
+import select
+import shutil
+import signal
+import subprocess
+import sys
+import termios
+import time
+
+case_dir, project, worktree, unwind, enter = sys.argv[1:]
+master, slave = pty.openpty()
+settings = termios.tcgetattr(slave)
+settings[3] &= ~termios.ECHO
+termios.tcsetattr(slave, termios.TCSANOW, settings)
+bash = shutil.which("bash")
+env = dict(os.environ, HOME=case_dir, SHELL=bash, HISTFILE="/dev/null",
+           PS1="", PS2="", PROMPT_COMMAND="", BASH_ENV="")
+shell = subprocess.Popen([bash, "--noprofile", "--norc", "-i"], cwd=worktree,
+                         stdin=slave, stdout=slave, stderr=slave,
+                         start_new_session=True, env=env)
+os.close(slave)
+
+def send(command):
+    os.write(master, command.encode() + b"\n")
+
+def probe(tag):
+    send("printf '" + tag + "%s\\t%s\\t%s\\n' \"$$\" \"$PPID\" \"$PWD\"")
+    pattern = re.compile(re.escape(tag.encode()) + rb"(\d+)\t(\d+)\t([^\r\n]+)")
+    output = b""
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        ready, _, _ = select.select([master], [], [], max(0, deadline - time.monotonic()))
+        if not ready:
+            break
+        output += os.read(master, 65536)
+        hit = pattern.search(output)
+        if hit:
+            return int(hit[1]), int(hit[2]), os.fsdecode(hit[3])
+    raise AssertionError(f"shell probe {tag} timed out: {output!r}")
+
+try:
+    send(unwind)
+    top, _, top_cwd = probe("FM_TOP:")
+    assert top == shell.pid, "project unwind must replace the original shell in place"
+    assert os.path.realpath(top_cwd) == os.path.realpath(project), top_cwd
+    send(enter)
+    child, parent, child_cwd = probe("FM_CHILD:")
+    assert child != top and parent == top, (top, child, parent)
+    assert os.path.realpath(child_cwd) == os.path.realpath(worktree), child_cwd
+    os.kill(child, signal.SIGKILL)
+    survivor, _, survivor_cwd = probe("FM_SURVIVOR:")
+    assert survivor == top and shell.poll() is None, "outer shell must survive worktree child reaping"
+    assert os.path.realpath(survivor_cwd) == os.path.realpath(project), survivor_cwd
+finally:
+    try:
+        os.killpg(shell.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    shell.wait(timeout=5)
+    os.close(master)
+PY
 }
 
 # --- case 1: ordinary flat layout (presentation off) ------------------------
@@ -387,6 +456,29 @@ $WS_CREATE_LINE"
 }
 
 pass "flat layout: task tab created in the task worktree, container in the project"
+
+for ENDPOINT_STATE in restored drifted missing; do
+  jq 'del(.workspaces[].tabs[].foreground_cwd)' "$CASE_DIR/herdr-state.json" > "$CASE_DIR/herdr-state.tmp"
+  mv "$CASE_DIR/herdr-state.tmp" "$CASE_DIR/herdr-state.json"
+  if [ "$ENDPOINT_STATE" = missing ]; then
+    jq '.workspaces[].tabs = []' "$CASE_DIR/herdr-state.json" > "$CASE_DIR/herdr-state.tmp"
+    mv "$CASE_DIR/herdr-state.tmp" "$CASE_DIR/herdr-state.json"
+  fi
+  : > "$CASE_DIR/herdr-calls.log"
+  PANE_CWD=$WT_DIR
+  [ "$ENDPOINT_STATE" != drifted ] || PANE_CWD=$PROJECT_DIR
+  OUT=$(run_spawn_herdr "$HOME_DIR" "$PANE_CWD" "$FAKEBIN_DIR" \
+    flat-task --relaunch --harness 'sh -c "while :; do sleep 60; done"')
+  SPAWN_STATUS=$?
+  [ "$SPAWN_STATUS" -eq 0 ] || fail "$ENDPOINT_STATE endpoint relaunch failed: $OUT"
+  assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "$ENDPOINT_STATE relaunch"
+  if [ "$ENDPOINT_STATE" = missing ]; then
+    assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "missing endpoint rebind"
+  else
+    [ -z "$(herdr_tab_create_lines "$CASE_DIR")" ] || fail "$ENDPOINT_STATE relaunch created another endpoint"
+  fi
+  pass "$ENDPOINT_STATE relaunch: outer shell survives reaping its worktree child"
+done
 
 # --- case 2: projection layout (presentation on) -----------------------------
 
@@ -435,6 +527,22 @@ assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection layout
 assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful projection spawn keeps its published lease"
 
 pass "projection layout: projected workspace and task tab both created in the task worktree"
+
+OLD_PANE=$(meta_field "$HOME_DIR" proj-task herdr_pane_id)
+OLD_WORKSPACE=$(meta_field "$HOME_DIR" proj-task herdr_workspace_id)
+: > "$CASE_DIR/herdr-calls.log"
+OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
+  proj-task "$PROJECT_DIR" 'sh -c "while :; do sleep 60; done"' \
+  --backend herdr --mode no-mistakes --yolo off)
+SPAWN_STATUS=$?
+[ "$SPAWN_STATUS" -eq 0 ] || fail "projection reclaim failed: $OUT"
+[ "$(meta_field "$HOME_DIR" proj-task herdr_workspace_id)" = "$OLD_WORKSPACE" ] ||
+  fail "projection reclaim must keep the existing projected workspace"
+[ "$(meta_field "$HOME_DIR" proj-task herdr_pane_id)" != "$OLD_PANE" ] ||
+  fail "projection reclaim must replace the restored pane"
+assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "projection reclaim"
+assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection reclaim"
+pass "projection reclaim: replacement tab keeps its saved cwd and outer shell survives child reaping"
 
 for GET_STATUS in 0 1; do
   IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
