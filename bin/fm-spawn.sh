@@ -674,10 +674,9 @@
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
 # docs/configuration.md and bin/fm-trace-context-lib.sh), the meta also records
-# one W3C traceparent= carrier, the same value injected into the pane as
-# TRACEPARENT; the default-off path writes neither and instead prefixes the
-# launch command with `unset TRACEPARENT;`, so an inherited ambient carrier
-# never reaches the worker.
+# one W3C traceparent= carrier, the same value delivered to the worker as
+# TRACEPARENT; the default-off path records no carrier. Backend-specific
+# suppression of inherited TRACEPARENT is described in docs/trace-context.md.
 #   --traceparent <carrier> delivers a carrier that a REMOTE parent already
 #   resolved and will record, instead of resolving one from this home's frozen
 #   decision. It is accepted only for --secondmate spawns, only as a strictly
