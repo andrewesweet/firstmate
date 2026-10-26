@@ -10,15 +10,16 @@
 # Verbs:
 #   brief-snippet [--role contributor|gardener|reader]
 #                 The only owner of the worker-facing text printed into ship
-#                 and scout briefs. Contributor and gardener roles print the
-#                 lesson schema; the reader role prints only the consult
-#                 paragraph (mirror path plus the cheap-search method), and
-#                 so does every role asked for through --role reader.
+#                 and scout briefs. --role contributor or gardener prints the
+#                 lesson schema only for a contributing home. --role reader
+#                 prints the consult paragraph (mirror path plus cheap-search
+#                 method) for any active home with a configured remote.
 #   consult <command> [args...]
 #                 Run a local read command inside the mirror with the drain
-#                 lock shared until it exits. Missing mirrors and busy drains
-#                 skip the command silently with exit 0; otherwise return the
-#                 command's exit status. Use this for every mirror read.
+#                 lock shared until it exits, allowing concurrent readers.
+#                 Missing mirrors or lock files and an exclusive drain or
+#                 publish lock skip the command silently with exit 0; otherwise
+#                 return the command's exit status. Use this for every mirror read.
 #   close <task-id>
 #                 Local only, never the network, never a lock: read the task's
 #                 final status, stamp and secret-scan its lessons.md into a
@@ -30,8 +31,9 @@
 #                 arguments, close exits 0 even on capture failure. It then
 #                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
-#   drain        The only publisher of raw lessons: single-flight per home (a
-#                 second drain exits 0 immediately), bounded by a wall-clock
+#   drain        The only publisher of raw lessons: single-flight per home
+#                 (exits 0 immediately when another drain, publish, or active
+#                 consultation holds the lock), bounded by a wall-clock
 #                 deadline that bounds every git operation, one add-only commit
 #                 per drain with Wiki-* trailers, fetch/rebase/push retries that
 #                 never force, and a blob-equality landing proof before an outbox
@@ -39,7 +41,8 @@
 #                 there was nothing to publish, it refreshes the read-only
 #                 mirror of the wiki's default branch (any active role with a
 #                 remote). The refresh clones into scratch, strips the clone
-#                 metadata, and swaps the complete tree into place, so a
+#                 metadata, and atomically replaces the mirror symlink before
+#                 retiring the old snapshot under the exclusive lock, so a
 #                 reader never sees a half-updated mirror; a failed or
 #                 offline refresh keeps the last good mirror. Nothing ever
 #                 writes into the mirror except this refresh. See the
@@ -79,7 +82,7 @@
 # State layout under $FM_HOME/state/wiki/:
 #   outbox/       clean lessons waiting for the next drain (the only queue).
 #   held/         lessons the secret scan flagged; kept locally, never pushed.
-#   mirror/       atomic symlink to the read-only tree of the wiki's default branch (no .git
+#   mirror/       atomic symlink to the read-only default-branch tree (no .git
 #                 inside, so nothing can commit or push from it); rebuilt only
 #                 by drain's refresh, swapped in whole, read by workers.
 #   .mirror.*     mirror snapshots and refresh scratch; reached through mirror/.
@@ -411,9 +414,8 @@ wiki_brief_snippet() {
     reader) [ "$consult" = 1 ] || return 0 ;;
   esac
   if [ "$role" = reader ]; then
-    # A reader home contributes nothing: consult paragraph only, no lesson
-    # step. The mirror path needs the home layout; without it the paragraph
-    # cannot name its target, so it stays silent rather than half-printed.
+    # Resolve the mirror path before printing anything; without the home
+    # layout, stay silent rather than emit a paragraph with no target.
     wiki_paths || return 0
     wiki_consult_paragraph "$WIKI_DIR/mirror"
     return 0
@@ -576,12 +578,10 @@ wiki_drain_lock() {
 }
 
 # wiki_mirror_refresh: rebuild the read-only mirror from the configured
-# remote after every drain, including drains with nothing to publish. The
-# complete tree is cloned into scratch, stripped of its .git directory so
-# nothing can commit or push from inside it, and swapped into place whole:
-# readers see the old complete tree or the new complete tree, never a
-# half-written one. An unreachable or slow remote keeps the last good
-# mirror, and every path exits 0 without touching the publish queue.
+# remote as described in the drain header. The caller must hold the exclusive
+# drain lock through snapshot replacement and retirement, so active consult
+# commands cannot lose files in their working directory. Every path exits 0
+# without touching the publish queue.
 wiki_mirror_refresh() {
   local mirror tmp new refs
   [ -n "$CFG_REMOTE" ] || return 0

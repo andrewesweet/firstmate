@@ -773,7 +773,7 @@ if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
 else
   LAVISH_LINE='Lavish is unavailable (lavish-axi is missing or below its supported version floor), so deliver your findings as a text report without Lavish, even for a visual deliverable.'
 fi
-# The crew-wiki lesson step for scout reports: fm-dod-lib's helper renders the
+# The crew-wiki step for scout reports: fm-dod-lib's helper renders the
 # framed step when this home opts in through config/wiki, and nothing at all
 # when it does not, so opt-out scouts keep the exact prior scaffold.
 WIKI_STEP=$(fm_dod_wiki_print_step "$ID")
