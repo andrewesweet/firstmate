@@ -361,7 +361,7 @@ wiki_consult_paragraph() {
   cat <<EOF
 The crew-wiki mirror lives at \`$1\`: consult it at will when you hit a tool or project you have not seen, or a failure you do not understand; consulting is optional, never required.
 Use the consult wrapper for every mirror read so refresh cannot remove files during that read; it skips silently while drain is busy.
-1. \`$reader grep -ril '<term>' pages | head\` first.
+1. \`$reader grep -ril -- '<term>' pages | head\` first.
 2. Then read \`index.md\` by category section (\`$reader grep -A40 '^## Tools' index.md\`), never the whole file.
 3. Then open at most three pages with \`$reader cat 'pages/<page>.md'\`, replacing the page path with a match.
 4. \`raw/\` matches are unreviewed lessons; weigh them accordingly and read them through the same wrapper.

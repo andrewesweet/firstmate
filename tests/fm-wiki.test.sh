@@ -854,7 +854,7 @@ test_consult_commands_resolve_relative_state_and_quoted_paths() {
   wiki_cfg "$home" gardener "file://$TMP_ROOT/consult.git"
   mkdir -p "$mirror/pages/tools"
   : > "$home/state/wiki/.drain.lock"
-  printf '# Retry flags\n> summary: retry settings\nneedle\n' > "$mirror/pages/tools/retry.md"
+  printf '# Retry flags\n> summary: retry settings\nneedle --help -timeout\n' > "$mirror/pages/tools/retry.md"
   run_wiki "$home" index --repo "$mirror" >/dev/null || fail "index generation failed"
   out=$(cd "$home" && FM_HOME="$home" FM_STATE_OVERRIDE=state "$WIKI" brief-snippet --role reader) \
     || fail "standalone consult snippet failed"
@@ -883,8 +883,9 @@ for output in [home / 'snippet.md', *(home / f'data/consult-{kind}/brief.md' for
     text = output.read_text()
     commands = re.findall(r'`(env [^`]+ consult grep [^`]+)`', text)
     assert len(commands) == 2, (output, commands)
-    pages = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[0].replace('<term>', 'needle')], cwd=cwd, text=True)
-    assert page in pages.splitlines(), (output, pages)
+    for term in ('needle', '--help', '-timeout'):
+        pages = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[0].replace('<term>', term)], cwd=cwd, text=True)
+        assert pages.splitlines() == [page], (output, term, pages)
     section = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[1]], cwd=cwd, text=True)
     assert '[Retry flags](pages/tools/retry.md)' in section, (output, section)
     command, = re.findall(r'`(env [^`]+ consult cat [^`]+)`', text)
