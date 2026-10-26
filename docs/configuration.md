@@ -954,6 +954,10 @@ Briefs and cleanup follow the configured role:
 - With a `remote=`, all active roles' ship and scout briefs also include the consult paragraph owned by `brief-snippet --role reader`; reader homes receive only that paragraph, never a lesson file.
 - Both ship and scout cleanup paths run `close` before retiring task status, so contributing homes' local capture can read the final outcome.
 
+Secondmate provisioning seeds each secondmate's `config/wiki` from the primary's own wiki settings through the inherited-local-material path: same `remote=`, `role=contributor` for every secondmate (never the primary's `gardener` role), and the primary's `host=` stamp dropped.
+A primary without an active crew-wiki config - the file absent, its role `off` or unrecognized, or the file not a regular file - seeds nothing and never removes a mate's existing copy.
+A remote secondmate receives the same file over the provisioning transport; provisioning never creates a credential for it, and the captain provisions a write credential for the wiki remote on that host before the mate's drain can publish - until then its lessons stay saved locally.
+
 Capture stamps the lesson in private staging and secret-scans it with gitleaks when installed, plus an always-on bundled regex pass.
 Only a clean scan moves the file atomically into `state/wiki/outbox/`.
 A scan hit goes to `state/wiki/held/` and emits an actionable stderr diagnostic during cleanup; a failed hold retains the staging file and reports its path instead.

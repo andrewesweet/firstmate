@@ -108,6 +108,7 @@ The declared `config/supervision-host-off` opt-out follows the same primary-auth
 `config/supervision-host` itself is not inherited; each home selects its own engine.
 `config/secondmate-harness` is not inherited because it is only the primary's knob for launching secondmate agents.
 `config/firstmate-role` is inherited under the additional [resolved-role and receipt policy](../../../docs/configuration.md#firstmate-role-configfirstmate-role), not as a raw copy of the primary file.
+`config/wiki` is inherited by transform, not raw copy: the primary's own wiki settings seed every secondmate's copy with the same `remote=` and `role=contributor` (never the primary's `gardener` role), `host=` dropped, so the mate's own briefs capture lessons and its drain publishes them; a primary without an active crew-wiki config seeds nothing and never removes a mate's existing copy. Remote secondmates receive the same file over the provisioning transport with no credential creation - the captain provisions a write credential for the wiki remote on that host before the mate's drain can publish, and until then lessons stay saved locally.
 Account pins are not inherited.
 [`docs/configuration.md` "Per-secondmate account pins"](../../../docs/configuration.md#per-secondmate-account-pins) owns the explicit `config/secondmate-accounts/<id>/` override and the independent worker pins inside each mate's home.
 `data/captain-shared.md` is main-authoritative in the primary home and read-only in secondmate homes.
