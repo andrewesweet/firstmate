@@ -37,6 +37,8 @@
 # Primary config/supervision-host-off is the fleet's supervision-host opt-out,
 # so a primary that opts out opts every secondmate home out too, while each
 # home's config/supervision-host engine line stays its own.
+# Primary config/wiki uses fm_wiki_inherit_payload instead of a raw copy;
+# docs/configuration.md "Crew wiki" owns its inheritance policy.
 # It also pushes
 # the one primary-authoritative shared captain-preference file,
 # data/captain-shared.md, into each secondmate home's data/ as a read-only copy.
@@ -58,7 +60,8 @@
 # (bin/fm-bootstrap.sh), and the focused mid-session config push
 # (bin/fm-config-push.sh). It is PRIMARY-AUTHORITATIVE: the primary's value wins
 # and is re-pushed on every convergence, so the fleet stays converged on the
-# primary; an item the primary does not set is mirrored as absence downstream.
+# primary; raw-copy items the primary does not set are mirrored as absence
+# downstream, subject to the item-specific policies above.
 # After successful config/* changes under an already-running secondmate, callers
 # invoke fm_config_send_reread_nudge so the live agent re-reads exact post-write
 # bytes (spawn/respawn already re-reads at launch and needs no redundant nudge).
@@ -93,7 +96,7 @@ FM_SHARED_CAPTAIN_MODE="444"
 # The declared inheritable set (space-separated, config-dir-relative item paths).
 # Extend here to inherit more of the primary's local config; override via the
 # environment only in tests. Items must not contain whitespace.
-FM_INHERITABLE_CONFIG="${FM_INHERITABLE_CONFIG:-crew-dispatch.json dispatch-never-send crew-harness backlog-backend backend herdr-presentation-spaces herdr-project-groups startup-memory-budget trace-context launch-env-allowlist claude-permission-mode claude-function-hooks lavish-axi-host keep-ai-trailers supervision-host-off firstmate-role}"
+FM_INHERITABLE_CONFIG="${FM_INHERITABLE_CONFIG:-crew-dispatch.json dispatch-never-send crew-harness backlog-backend backend herdr-presentation-spaces herdr-project-groups startup-memory-budget trace-context launch-env-allowlist claude-permission-mode claude-function-hooks lavish-axi-host keep-ai-trailers supervision-host-off firstmate-role wiki}"
 
 # firstmate-role additionally carries a proof-of-state receipt: a scoped role
 # grant (or its recorded absence) authorizes a secondmate home only while
@@ -143,6 +146,43 @@ fm_config_source_present() {
     elsif ($! == ENOENT) { print 0 }
     else { die "error: cannot inspect configuration source at $ARGV[0]: $!\n" }
   ' -- "$1"
+}
+
+# fm_wiki_inherit_payload <src-config-dir> <out-file>
+# Stage the secondmate payload defined by docs/configuration.md "Crew wiki".
+# Parsing mirrors bin/fm-wiki.sh's config reader: key=value lines, comments and
+# blanks skipped, last occurrence wins, unknown keys ignored, role whitespace
+# stripped. Return nonzero with no payload when the primary seeds nothing;
+# callers treat this as a skip rather than a provisioning failure.
+fm_wiki_inherit_payload() {  # <src-config-dir> <out-file>
+  local src=$1/wiki out=$2 line key value remote='' jev='' role=''
+  rm -f "$out" 2>/dev/null || return 1
+  [ -f "$src" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    case $line in ''|'#'*) continue ;; esac
+    case $line in
+      *=*) key=${line%%=*}; value=${line#*=} ;;
+      *) continue ;;
+    esac
+    case $key in
+      remote) remote=$value ;;
+      role) role=$(printf '%s' "$value" | tr -d '[:space:]') ;;
+      jev) jev=$value ;;
+      *) : ;;
+    esac
+  done < "$src" || return 1
+  case $role in
+    gardener|contributor|reader) : ;;
+    *) return 1 ;;
+  esac
+  {
+    printf 'remote=%s\n' "$remote"
+    printf 'role=contributor\n'
+    if [ -n "$jev" ]; then
+      printf 'jev=%s\n' "$jev"
+    fi
+  } > "$out" || return 1
+  return 0
 }
 
 fm_inherit_file_mode() {
@@ -228,13 +268,14 @@ destination_allows_inherited_item() {
 # Copy each declared inheritable item from the primary's config dir (src) into a
 # secondmate home's config dir (dest). SILENT on stdout - callers parse stdout,
 # so this writes nothing there. It emits concise stderr diagnostics only for
-# notable events: a guard skip or a copy/remove error. A source item that is
-# present is copied only when its content differs (idempotent: a re-run never
-# churns mtimes). A source item proven absent is mirrored as a missing
+# notable events: a guard skip or a copy/remove error. For raw-copy items, a
+# source item that is present is copied only when its content differs
+# (idempotent: a re-run never churns mtimes). A source item proven absent is mirrored as a missing
 # destination item, so clearing the primary's value clears it downstream too
 # (primary-authoritative). Inspection errors or existing nonregular sources
 # leave that destination item unchanged and report an error; inaccessible paths
 # and dangling source links must never silently remove an inherited grant.
+# Transformed items follow their own policies described in the file header.
 # The destination dir is created lazily, only when there is something to copy;
 # absence on both sides is a no-op. When FM_CONFIG_INHERIT_REPORT points at a writable
 # file, one tab-separated line per item is appended there:
@@ -674,7 +715,7 @@ propagate_secondmate_inheritance() {
 
 propagate_inheritable_config() {
   local src_config=$1 dest_config=$2 src_home=${3:-${1%/*}} item src dest source_present reason rc
-  local prior_dest_config=${FM_INHERIT_DEST_CONFIG-} role_stage=
+  local prior_dest_config=${FM_INHERIT_DEST_CONFIG-} role_stage='' wiki_stage=''
   [ -n "$src_config" ] || return 1
   [ -n "$dest_config" ] || return 1
   rc=0
@@ -687,6 +728,7 @@ propagate_inheritable_config() {
       ''|/*|.|..|../*|*/../*|*/..)
         FM_INHERIT_DEST_CONFIG=$prior_dest_config
         [ -z "$role_stage" ] || rm -rf "$role_stage"
+        [ -z "$wiki_stage" ] || rm -rf "$wiki_stage"
         return 1
         ;;
     esac
@@ -706,6 +748,34 @@ propagate_inheritable_config() {
         continue
       fi
       src="$role_stage/$item"
+    fi
+    if [ "$item" = wiki ]; then
+      if ! source_present=$(fm_config_source_present "$src"); then
+        reason="cannot inspect primary source"
+        warn_inheritable_config_error "$item" "$src" "$reason"
+        record_inheritable_config_result "$item" error "$reason"
+        rc=1
+        continue
+      fi
+      if [ "$source_present" = 0 ]; then
+        # A primary with no crew-wiki config seeds nothing and never removes
+        # the destination: the feature is opt-in per home, so absence is not
+        # mirrored downstream for this one item.
+        record_inheritable_config_result "$item" unchanged "primary has no crew-wiki config"
+        continue
+      fi
+      if ! wiki_stage=$(mktemp -d "${TMPDIR:-/tmp}/fm-inherit-wiki.XXXXXX" 2>/dev/null) \
+        || ! fm_wiki_inherit_payload "$src_config" "$wiki_stage/$item"; then
+        [ -z "$wiki_stage" ] || rm -rf "$wiki_stage"
+        wiki_stage=
+        # A malformed or inactive primary config/wiki seeds nothing and never
+        # fails provisioning; the destination copy is left untouched.
+        warn_inheritable_config_skip "$item" "$dest_config" \
+          "primary config/wiki is not an active crew-wiki configuration"
+        record_inheritable_config_result "$item" unchanged "primary crew-wiki config seeds nothing"
+        continue
+      fi
+      src="$wiki_stage/$item"
     fi
     if ! source_present=$(fm_config_source_present "$src"); then
       reason="cannot inspect primary source"
@@ -801,6 +871,7 @@ propagate_inheritable_config() {
   done
   FM_INHERIT_DEST_CONFIG=$prior_dest_config
   [ -z "$role_stage" ] || rm -rf "$role_stage"
+  [ -z "$wiki_stage" ] || rm -rf "$wiki_stage"
   [ -z "${FM_INHERIT_ROLE_RECEIPT_FAILED:-}" ] || rc=1
   return "$rc"
 }

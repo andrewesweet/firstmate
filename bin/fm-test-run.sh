@@ -353,7 +353,7 @@ family_for_basename() {
     fm-secondmate-restart.test.sh|fm-remote-secondmate-relaunch.test.sh|\
     fm-secondmate-safety.test.sh|fm-secondmate-sync.test.sh|\
     fm-startup-memory-budget.test.sh|fm-stow-cascade.test.sh|\
-    fm-send-secondmate-marker.test.sh|fm-shared-captain-inheritance.test.sh)
+    fm-send-secondmate-marker.test.sh|fm-shared-captain-inheritance.test.sh|fm-wiki-inherit.test.sh)
       printf '%s\n' secondmate
       ;;
     fm-backlog-atomicity.test.sh|\
@@ -947,6 +947,10 @@ tests/fm-wiki.test.sh 40000
 # landing. The publish foreign-commit case drives two clones against one bare
 # remote, so it costs more than the lint/index-only cases.
 tests/fm-wiki-gardener.test.sh 40000
+# Slice 05 secondmate wiki seeding: local propagate plus remote sender/receiver
+# fixtures over a fake ssh, so no network; initial hint, re-measure after
+# landing.
+tests/fm-wiki-inherit.test.sh 15000
 tests/fm-worker-account-live-e2e.test.sh 3388
 tests/fm-worker-account.test.sh 29925
 EOF

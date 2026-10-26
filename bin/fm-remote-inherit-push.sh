@@ -72,6 +72,19 @@ while IFS= read -r rel; do
       source="$TMP/firstmate-role.resolved"
       fm_role_inherit_payload "$FM_HOME" "$CONFIG" "$source" || die "cannot resolve the primary role"
       ;;
+    config/wiki)
+      source="$TMP/wiki.payload"
+      if ! fm_wiki_inherit_payload "$CONFIG" "$source"; then
+        # A primary with no active crew-wiki config seeds nothing remotely
+        # either: the remote home's own copy is never removed, and the replay
+        # reports the skip like any other session-scoped unchanged item.
+        if [ -e "$CONFIG/wiki" ]; then
+          echo "fm-config-inherit: warning: skipped config/wiki: primary config/wiki is not an active crew-wiki configuration" >&2
+        fi
+        printf 'skip\n' > "$TMP/item.$N.plan"
+        continue
+      fi
+      ;;
     config/*) source="$CONFIG/${rel#config/}" ;;
     data/*) source="$DATA/${rel#data/}" ;;
   esac
