@@ -7100,6 +7100,8 @@ if [ "$BACKEND" = t3code ]; then
   fi
   if [ -n "$SPAWN_TRACEPARENT" ] && spawn_record_traceparent; then
     T3CODE_ENV+=("TRACEPARENT=$SPAWN_TRACEPARENT")
+  else
+    T3CODE_ENV+=(TRACEPARENT=)
   fi
   if [ "$KIND" = secondmate ]; then
     # The secondmate launch prefix above, value for value, plus the supervisor
