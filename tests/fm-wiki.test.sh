@@ -57,6 +57,19 @@ wiki_bare() {
   printf '%s\n' "$bare"
 }
 
+wiki_mirror_fingerprint() {
+  python3 - "$1" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+print(json.dumps([(str(p.relative_to(root)), hashlib.sha256(p.read_bytes()).hexdigest())
+                  for p in sorted(root.rglob('*')) if p.is_file()]))
+PY
+}
+
 test_absent_config_leaves_every_verb_a_silent_noop() {
   local home out
   home=$(wiki_home absent)
@@ -787,12 +800,12 @@ test_offline_drain_keeps_the_last_good_mirror() {
   wiki_task "$home" task-m3
   FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m3 >/dev/null || fail "close failed"
   run_wiki "$home" drain >/dev/null || fail "first drain failed"
-  before=$(find "$home/state/wiki/mirror" -type f -exec md5sum {} + 2>/dev/null | sort)
-  [ -n "$before" ] || fail "the first drain populated the mirror"
+  before=$(wiki_mirror_fingerprint "$home/state/wiki/mirror") || fail "cannot fingerprint the mirror"
+  [ "$before" != '[]' ] || fail "the first drain populated the mirror"
   mv "$bare" "$bare.away"
   out=$(run_wiki "$home" drain 2>&1) || fail "an offline drain must exit 0"
   assert_contains "$out" 'keeping the last good mirror' "the offline drain names the kept mirror"
-  after=$(find "$home/state/wiki/mirror" -type f -exec md5sum {} + 2>/dev/null | sort)
+  after=$(wiki_mirror_fingerprint "$home/state/wiki/mirror") || fail "cannot fingerprint the mirror"
   assert_equals "$before" "$after" "an offline refresh never leaves a half-updated mirror"
   grep -rl 'wiki-task: task-m3' "$home/state/wiki/mirror" 2>/dev/null | grep -q . \
     || fail "the last good mirror still serves the lesson while offline"
@@ -832,6 +845,149 @@ test_absent_config_creates_no_mirror() {
   pass "an absent config leaves every verb a silent no-op with no mirror"
 }
 
+test_consult_commands_resolve_relative_state_and_quoted_paths() {
+  local home mirror out mode id
+  home=$(wiki_home "consult ' \$ home")
+  mirror="$home/state/wiki/mirror"
+  wiki_cfg "$home" gardener "file://$TMP_ROOT/consult.git"
+  mkdir -p "$mirror/pages/tools"
+  printf '# Retry flags\n> summary: retry settings\nneedle\n' > "$mirror/pages/tools/retry.md"
+  run_wiki "$home" index --repo "$mirror" >/dev/null || fail "index generation failed"
+  out=$(cd "$home" && FM_HOME="$home" FM_STATE_OVERRIDE=state "$WIKI" brief-snippet --role reader) \
+    || fail "standalone consult snippet failed"
+  printf '%s\n' "$out" > "$home/snippet.md"
+  for mode in ship scout; do
+    id="consult-$mode"
+    if [ "$mode" = ship ]; then
+      (cd "$home" && FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE=state \
+        HOME="$home/home" "$BRIEF" "$id" some-proj --mode no-mistakes >/dev/null 2>&1) \
+        || fail "ship consult brief failed"
+    else
+      (cd "$home" && FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE=state \
+        HOME="$home/home" "$BRIEF" "$id" some-proj --scout >/dev/null 2>&1) \
+        || fail "scout consult brief failed"
+    fi
+  done
+  python3 - "$home" "$TMP_ROOT" <<'PY' || fail "emitted consult commands failed"
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+home, cwd = map(Path, sys.argv[1:])
+page = home / 'state/wiki/mirror/pages/tools/retry.md'
+for output in [home / 'snippet.md', *(home / f'data/consult-{kind}/brief.md' for kind in ('ship', 'scout'))]:
+    text = output.read_text()
+    commands = re.findall(r'`(grep [^`]+)`', text)
+    assert len(commands) == 2, (output, commands)
+    pages = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[0].replace('<term>', 'needle')], cwd=cwd, text=True)
+    assert str(page) in pages.splitlines(), (output, pages)
+    section = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[1]], cwd=cwd, text=True)
+    assert '[Retry flags](pages/tools/retry.md)' in section, (output, section)
+PY
+  pass "standalone, ship, and scout consult commands work across directories with quoted paths"
+}
+
+test_checkout_failure_never_publishes_an_incomplete_mirror() {
+  local home bare seed fakebin real_git out before operation
+  home=$(wiki_home checkout-failure)
+  bare=$(wiki_bare checkout-failure)
+  git -C "$bare" symbolic-ref HEAD refs/heads/unborn
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(run_wiki "$home" drain) || fail "empty remote drain failed"
+  assert_contains "$out" 'mirror refreshed' "a genuinely empty repository has a complete empty snapshot"
+  assert_absent "$home/state/wiki/mirror/.git" "empty snapshots contain no clone metadata"
+  seed="$TMP_ROOT/checkout-seed"
+  git init -q "$seed"
+  printf 'complete old tree\n' > "$seed/page.md"
+  git -C "$seed" add page.md
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "remote seed commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote seed failed"
+  run_wiki "$home" drain >/dev/null || fail "dangling HEAD checkout failed"
+  assert_equals 'complete old tree' "$(cat "$home/state/wiki/mirror/page.md")" "main is checked out when remote HEAD dangles"
+  before=$(wiki_mirror_fingerprint "$home/state/wiki/mirror")
+  fakebin="$TMP_ROOT/checkout-bin"
+  mkdir -p "$fakebin"
+  real_git=$(command -v git)
+  cat > "$fakebin/git" <<'SH'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "$FM_WIKI_FAIL_OPERATION" ]; then exit 124; fi
+done
+exec "$FM_WIKI_REAL_GIT" "$@"
+SH
+  chmod +x "$fakebin/git"
+  for operation in checkout for-each-ref; do
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_GIT="$real_git" FM_WIKI_FAIL_OPERATION="$operation" \
+      run_wiki "$home" drain) || fail "failed checkout drain must stay best-effort"
+    assert_contains "$out" 'checkout failed' "a failed or timed-out checkout cannot report success"
+    assert_equals "$before" "$(wiki_mirror_fingerprint "$home/state/wiki/mirror")" "failed checkout preserves the old complete tree"
+  done
+  home=$(wiki_home checkout-first)
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_GIT="$real_git" FM_WIKI_FAIL_OPERATION=checkout \
+    run_wiki "$home" drain) || fail "first checkout failure must stay best-effort"
+  assert_absent "$home/state/wiki/mirror" "a first failed checkout publishes no snapshot"
+  git -C "$seed" checkout -qb trunk
+  printf 'remote default tree\n' > "$seed/page.md"
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam default || fail "default branch commit failed"
+  git -C "$seed" push -q "$bare" HEAD:trunk || fail "default branch seed failed"
+  git -C "$bare" symbolic-ref HEAD refs/heads/trunk
+  run_wiki "$home" drain >/dev/null || fail "default branch refresh failed"
+  assert_equals 'remote default tree' "$(cat "$home/state/wiki/mirror/page.md")" "a valid remote HEAD selects the default branch"
+  pass "empty remotes, dangling HEAD, and checkout failures preserve complete snapshots"
+}
+
+test_mirror_swap_keeps_the_published_tree_until_atomic_replacement() {
+  local home bare seed hooks out
+  home=$(wiki_home atomic-mirror)
+  bare=$(wiki_bare atomic-mirror)
+  seed="$TMP_ROOT/atomic-seed"
+  git init -q "$seed"
+  printf 'old\n' > "$seed/page.md"
+  git -C "$seed" add page.md
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "remote seed commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote seed failed"
+  wiki_cfg "$home" reader "file://$bare"
+  run_wiki "$home" drain >/dev/null || fail "first mirror refresh failed"
+  printf 'new\n' > "$seed/page.md"
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam update || fail "remote update commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote update failed"
+  hooks="$TMP_ROOT/atomic-hooks"
+  mkdir -p "$hooks"
+  cat > "$hooks/sitecustomize.py" <<'PY'
+import os
+from pathlib import Path
+
+replace = os.replace
+def observe_replace(src, dst, *args, **kwargs):
+    if Path(dst) != Path(os.environ['FM_WIKI_OBSERVE_MIRROR']):
+        return replace(src, dst, *args, **kwargs)
+    mirror = Path(dst)
+    assert (mirror / 'page.md').read_text() == 'old\n'
+    mirror.with_name('observed').write_text('old tree reachable at replacement')
+    if os.environ.get('FM_WIKI_REJECT_SWAP') == '1':
+        raise OSError('injected publication failure')
+    result = replace(src, dst, *args, **kwargs)
+    assert (mirror / 'page.md').read_text() == 'new\n'
+    return result
+os.replace = observe_replace
+PY
+  out=$(PYTHONPATH="$hooks" FM_WIKI_OBSERVE_MIRROR="$home/state/wiki/mirror" FM_WIKI_REJECT_SWAP=1 \
+    run_wiki "$home" drain) || fail "failed swap must stay best-effort"
+  assert_present "$home/state/wiki/observed" "the old tree remains reachable at the publication boundary"
+  assert_contains "$out" 'swap failed' "publication failure retains the mirror"
+  assert_equals 'old' "$(cat "$home/state/wiki/mirror/page.md")" "failed publication preserves old content"
+  out=$(PYTHONPATH="$hooks" FM_WIKI_OBSERVE_MIRROR="$home/state/wiki/mirror" run_wiki "$home" drain) \
+    || fail "atomic refresh failed"
+  assert_contains "$out" 'mirror refreshed' "replacement succeeds after a failed swap"
+  assert_equals 'new' "$(cat "$home/state/wiki/mirror/page.md")" "successful publication serves the new complete tree"
+  assert_absent "$home/state/wiki/mirror/.git" "the refreshed tree has no clone metadata"
+  assert_equals '1' "$(find "$home/state/wiki" -maxdepth 1 -type d -name '.mirror.*' | wc -l | tr -d ' ')" \
+    "superseded snapshots and failed refresh scratch are removed"
+  pass "mirror replacement is atomic and failed publication preserves the old tree"
+}
+
 test_close_stays_idempotent_across_repeated_calls
 test_dod_insertion_follows_the_opt_in
 test_drain_refreshes_a_read_only_mirror_after_publish
@@ -839,3 +995,6 @@ test_empty_drain_still_refreshes_the_mirror
 test_offline_drain_keeps_the_last_good_mirror
 test_reader_home_drain_refreshes_mirror_without_publishing
 test_absent_config_creates_no_mirror
+test_consult_commands_resolve_relative_state_and_quoted_paths
+test_checkout_failure_never_publishes_an_incomplete_mirror
+test_mirror_swap_keeps_the_published_tree_until_atomic_replacement

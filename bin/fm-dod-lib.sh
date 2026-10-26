@@ -703,8 +703,10 @@ fm_dod_wiki_step() {  # <task-id> -> <wiki step text>
   root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   home=${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-$root}}}
   lesson=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
+    FM_STATE_OVERRIDE="${STATE:-${FM_STATE_OVERRIDE:-$home/state}}" \
     "$root/bin/fm-wiki.sh" brief-snippet --role contributor 2>/dev/null) || lesson=
   consult=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
+    FM_STATE_OVERRIDE="${STATE:-${FM_STATE_OVERRIDE:-$home/state}}" \
     "$root/bin/fm-wiki.sh" brief-snippet --role reader 2>/dev/null) || consult=
   [ -n "$lesson" ] || [ -n "$consult" ] || return 0
   data=${DATA:-${FM_DATA_OVERRIDE:-$home/data}}
