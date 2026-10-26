@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # Regression tests for the cwd a Herdr task tab is created in.
 #
-# Herdr persists each workspace's and tab's CREATION cwd and resumes workers
-# in it after a server restore, so a task tab created in the project's primary
-# checkout comes back as a plain shell sitting in that checkout - outside the
-# task's isolated worktree. Both fresh spawn layouts therefore must hand the
-# task's own worktree to the tab creation calls: the ordinary flat layout
-# (`fm_backend_herdr_create_task`) and the default-on projection layout
-# (`fm_backend_herdr_projection_create_task`). The per-home workspace
-# container stays keyed on the project in the flat layout - only the task tab
-# moves into the worktree.
+# Herdr persists the pane's live cwd and resumes shells there after restore.
+# Both layouts must create task tabs in their leased copy and keep every
+# subsequent shell-entry command in that copy. The flat workspace container
+# remains keyed on the project.
 #
 # These tests drive the real bin/fm-spawn.sh against a stateful fake herdr
 # client and the fake Treehouse pool lease, then assert the `--cwd` every
@@ -199,8 +194,8 @@ case "$cmd" in
           [ "$sent" != "$FM_FAKE_FAIL_SEND" ] || exit 1
         fi
         case "${args[3]:-}" in
-          'cd -- '*|'(cd -- '*)
-            live=$(SHELL=pwd bash -c "${args[3]}") || exit 1
+          'cd -- '*)
+            live=$(SHELL=pwd bash -c "${args[3]} && pwd") || exit 1
             commit "$(jq --arg p "${args[2]}" --arg cwd "$live" \
               '(.workspaces[].tabs[] | select(.pane_id == $p) | .foreground_cwd) = $cwd' "$state")"
             ;;
@@ -343,80 +338,16 @@ assert_no_tab_create_at() {  # <case-dir> <cwd> <label>
   fi
 }
 
-assert_shell_entry_order() {
-  local case_dir=$1 project=$2 wt=$3 label=$4 first second escaped_project escaped_wt
-  first=$(awk -F "$ESC" '$2 == "pane" && $3 == "run" { print $5; exit }' "$case_dir/herdr-calls.log")
-  second=$(awk -F "$ESC" '$2 == "pane" && $3 == "run" { if (++sent == 2) { print $5; exit } }' "$case_dir/herdr-calls.log")
+# The emitted Herdr command stream is a public runtime boundary. The accepted
+# restore contract requires every pane shell to remain in the task copy; a
+# project-directory unwind would change the live cwd Herdr saves on shutdown.
+assert_shell_stays_in_worktree() {
+  local case_dir=$1 project=$2 wt=$3 label=$4 commands escaped_project
+  commands=$(awk -F "$ESC" '$2 == "pane" && $3 == "run" { print $5 }' "$case_dir/herdr-calls.log")
   escaped_project=${project//\'/\'\\\'\'}
-  escaped_wt=${wt//\'/\'\\\'\'}
-  [ "$first" = "cd -- '$escaped_project' && exec \"\${SHELL:-/bin/sh}\"" ] ||
-    fail "$label: first typed command must enter the project shell, got: $first"
-  [ "$second" = "(cd -- '$escaped_wt' && exec \"\${SHELL:-/bin/sh}\")" ] ||
-    fail "$label: second typed command must enter the worktree child shell, got: $second"
-  python3 - "$case_dir" "$project" "$wt" "$first" "$second" <<'PY' || fail "$label: shell cwd or survival invariant failed"
-import os
-import pty
-import re
-import select
-import shutil
-import signal
-import subprocess
-import sys
-import termios
-import time
-
-case_dir, project, worktree, unwind, enter = sys.argv[1:]
-master, slave = pty.openpty()
-settings = termios.tcgetattr(slave)
-settings[3] &= ~termios.ECHO
-termios.tcsetattr(slave, termios.TCSANOW, settings)
-bash = shutil.which("bash")
-env = dict(os.environ, HOME=case_dir, SHELL=bash, HISTFILE="/dev/null",
-           PS1="", PS2="", PROMPT_COMMAND="", BASH_ENV="")
-shell = subprocess.Popen([bash, "--noprofile", "--norc", "-i"], cwd=worktree,
-                         stdin=slave, stdout=slave, stderr=slave,
-                         start_new_session=True, env=env)
-os.close(slave)
-
-def send(command):
-    os.write(master, command.encode() + b"\n")
-
-def probe(tag):
-    send("printf '" + tag + "%s\\t%s\\t%s\\n' \"$$\" \"$PPID\" \"$PWD\"")
-    pattern = re.compile(re.escape(tag.encode()) + rb"(\d+)\t(\d+)\t([^\r\n]+)")
-    output = b""
-    deadline = time.monotonic() + 5
-    while time.monotonic() < deadline:
-        ready, _, _ = select.select([master], [], [], max(0, deadline - time.monotonic()))
-        if not ready:
-            break
-        output += os.read(master, 65536)
-        hit = pattern.search(output)
-        if hit:
-            return int(hit[1]), int(hit[2]), os.fsdecode(hit[3])
-    raise AssertionError(f"shell probe {tag} timed out: {output!r}")
-
-try:
-    send(unwind)
-    top, _, top_cwd = probe("FM_TOP:")
-    assert top == shell.pid, "project unwind must replace the original shell in place"
-    assert os.path.realpath(top_cwd) == os.path.realpath(project), top_cwd
-    send(enter)
-    child, parent, child_cwd = probe("FM_CHILD:")
-    assert child != top and parent == top, (top, child, parent)
-    assert os.path.realpath(child_cwd) == os.path.realpath(worktree), child_cwd
-    os.kill(child, signal.SIGKILL)
-    survivor, _, survivor_cwd = probe("FM_SURVIVOR:")
-    assert survivor == top and shell.poll() is None, "outer shell must survive worktree child reaping"
-    assert os.path.realpath(survivor_cwd) == os.path.realpath(project), survivor_cwd
-finally:
-    try:
-        os.killpg(shell.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    shell.wait(timeout=5)
-    os.close(master)
-PY
+  assert_not_contains "$commands" "$project" "$label: a typed send moved the pane into the project"
+  assert_not_contains "$commands" "$escaped_project" "$label: a typed send moved the pane into the project"
+  assert_contains "$commands" "${wt//\'/\'\\\'\'}" "$label: no worktree entry was sent"
 }
 
 # --- case 1: ordinary flat layout (presentation off) ------------------------
@@ -444,7 +375,7 @@ $(cat "$HOME_DIR/state/flat-task.meta" 2>/dev/null)"
 
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "flat layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "flat layout"
-assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "flat layout"
+assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "flat layout"
 assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful flat spawn keeps its published lease"
 
 # The per-home workspace container stays keyed on the project: the flat
@@ -471,13 +402,13 @@ for ENDPOINT_STATE in restored drifted missing; do
     flat-task --relaunch --harness 'sh -c "while :; do sleep 60; done"')
   SPAWN_STATUS=$?
   [ "$SPAWN_STATUS" -eq 0 ] || fail "$ENDPOINT_STATE endpoint relaunch failed: $OUT"
-  assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "$ENDPOINT_STATE relaunch"
+  assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "$ENDPOINT_STATE relaunch"
   if [ "$ENDPOINT_STATE" = missing ]; then
     assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "missing endpoint rebind"
   else
     [ -z "$(herdr_tab_create_lines "$CASE_DIR")" ] || fail "$ENDPOINT_STATE relaunch created another endpoint"
   fi
-  pass "$ENDPOINT_STATE relaunch: outer shell survives reaping its worktree child"
+  pass "$ENDPOINT_STATE relaunch: pane shells stay in the task worktree"
 done
 
 # --- case 2: projection layout (presentation on) -----------------------------
@@ -509,8 +440,8 @@ $(cat "$HOME_DIR/state/proj-task.meta" 2>/dev/null)"
 }
 
 # The projected child workspace itself must be created in the worktree, not
-# just its task tab: a server restore resumes the workspace shell from the
-# workspace's own creation cwd.
+# just its task tab: the workspace shell also needs to keep its live cwd there
+# for a server restore.
 PROJ_WS_LINE=$(herdr_projected_workspace_create_line "$CASE_DIR") || {
   fail "projection layout: no projected workspace create call was logged
 $(head -30 "$CASE_DIR/herdr-calls.log" 2>/dev/null)"
@@ -523,7 +454,7 @@ $PROJ_WS_LINE"
 
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "projection layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "projection layout"
-assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection layout"
+assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection layout"
 assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful projection spawn keeps its published lease"
 
 pass "projection layout: projected workspace and task tab both created in the task worktree"
@@ -541,8 +472,8 @@ SPAWN_STATUS=$?
 [ "$(meta_field "$HOME_DIR" proj-task herdr_pane_id)" != "$OLD_PANE" ] ||
   fail "projection reclaim must replace the restored pane"
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "projection reclaim"
-assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection reclaim"
-pass "projection reclaim: replacement tab keeps its saved cwd and outer shell survives child reaping"
+assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection reclaim"
+pass "projection reclaim: replacement tab and pane shells stay in the task worktree"
 
 for GET_STATUS in 0 1; do
   IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
@@ -593,7 +524,7 @@ SH
 done
 unset FM_FAKE_LEASE_FILE FM_FAKE_GET_STATUS
 
-for FAIL_SEND in 1 2; do
+for FAIL_SEND in 1; do
   IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
 $(make_herdr_tab_cwd_case "failed-send-$FAIL_SEND" off)
 EOF
@@ -618,7 +549,7 @@ SH
     --backend herdr --mode no-mistakes --yolo off)
   SPAWN_STATUS=$?
   [ "$SPAWN_STATUS" -ne 0 ] || fail "typed-send failure $FAIL_SEND unexpectedly succeeded"
-  assert_contains "$OUT" 'returning the lease and refusing to launch' "typed-send failure refuses the worker launch"
+  assert_contains "$OUT" 'refusing to launch outside the copy holding its work' "typed-send failure refuses the worker launch"
   [ ! -e "$FM_FAKE_LEASE_FILE" ] || fail "typed-send failure $FAIL_SEND stranded its lease"
   [ ! -e "$HOME_DIR/state/failed-send-task.meta" ] || fail "typed-send failure published a task record"
   pass "typed-send failure $FAIL_SEND: spawn refuses and returns its lease"

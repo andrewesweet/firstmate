@@ -3485,6 +3485,10 @@ case "\${1:-} \${2:-}" in
     fi
     ;;
   "pane close")
+    if [ -n "\${FM_FAKE_HERDR_PROCESS:-}" ]; then
+      kill -0 "\$FM_FAKE_HERDR_PROCESS" 2>/dev/null || exit 1
+      : > "\${FM_FAKE_HERDR_PROCESS_SEEN:?}"
+    fi
     : > "\${FM_FAKE_HERDR_CLOSED:?}"
     ;;
   "pane get")
@@ -4125,6 +4129,10 @@ case "${1:-} ${2:-}" in
     printf '%s\n' '{"sessions":[{"name":"fmtest","running":true,"socket_path":"/tmp/fmtest.sock"}]}'
     ;;
   "pane close")
+    if [ -n "${FM_FAKE_HERDR_PROCESS:-}" ]; then
+      kill -0 "$FM_FAKE_HERDR_PROCESS" 2>/dev/null || exit 1
+      : > "${FM_FAKE_HERDR_PROCESS_SEEN:?}"
+    fi
     if [ "${FM_FAKE_HERDR_CLOSE_FAIL:-0}" = 1 ]; then
       exit 1
     fi
@@ -5842,6 +5850,98 @@ test_retained_sources_still_reach_the_ordinary_refusal() {
     "retained-sources: the ordinary refusal was replaced"
   pass "present required sources still reach the ordinary teardown refusal"
 }
+
+# The accepted lifecycle contract requires a guarded Herdr close before either
+# process reaping or Treehouse return. A real process in the copy must still be
+# alive at the external close boundary, and a refused close must leave it alive.
+# This rejects the former reap-before-close order without reading source text.
+test_herdr_close_precedes_process_reap_and_pool_return() {
+  local layout ownership case_dir wt log closed restored pid rc
+  for layout in flat projection; do
+    for ownership in ordinary claimed legacy unleased foreign parked refused; do
+      case_dir=$(make_case "herdr-order-$layout-$ownership")
+      wt=$case_dir/wt
+      if [ "$ownership" = claimed ] || [ "$ownership" = legacy ] || [ "$ownership" = foreign ] || [ "$ownership" = unleased ]; then
+        wt=$(move_case_to_pool_slot "$case_dir" 1)
+      fi
+      write_meta "$case_dir" local-only ship "$wt"
+      if [ "$ownership" = claimed ]; then
+        printf 'task=task-x1\nhome=%s\n' "$case_dir" > "$case_dir/pool/1/.fm-slot-owner"
+      fi
+      if [ "$layout" = flat ]; then
+        configure_flat_herdr_teardown_case "$case_dir"
+      else
+        configure_herdr_projection_teardown_case "$case_dir"
+      fi
+      log=$case_dir/herdr.log; closed=$case_dir/closed; restored=$case_dir/restored
+      : > "$log"
+      cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+if [ "$1" = status ]; then
+  jq -n --arg path "$FM_TEST_ORDER_WT" --arg holder "$FM_TEST_ORDER_HOLDER" \
+    '[{path:$path, lease_id:(if $holder == "" then "" else "lease-1" end), lease_holder:$holder}]'
+else
+  [ -e "$FM_FAKE_HERDR_CLOSED" ] || exit 1
+  : > "$FM_TEST_ORDER_RETURNED"
+fi
+SH
+      if [ "$ownership" = refused ]; then
+        # A failed external close leaves structured presence intact.
+        sed -i.bak '/^  "pane close")/a\
+    exit 1' "$case_dir/fakebin/herdr"
+        rm -f "$case_dir/fakebin/herdr.bak"
+      fi
+      (cd "$wt" && exec sleep 60) &
+      pid=$!
+      rc=0
+      (
+        export FM_HOME="$case_dir"
+        export FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_RESTORED="$restored"
+        export FM_FAKE_HERDR_PROCESS="$pid" FM_FAKE_HERDR_PROCESS_SEEN="$case_dir/process-seen-at-close"
+        export FM_TEST_ORDER_WT="$wt" FM_TEST_ORDER_HOLDER=task-x1 FM_TEST_ORDER_RETURNED="$case_dir/returned"
+        export FM_BACKEND_HERDR_IDLE_SHELL_PROOF_POLLS=1
+        if [ "$ownership" = foreign ]; then
+          export FM_TEST_ORDER_HOLDER=another-task
+        elif [ "$ownership" = unleased ]; then
+          export FM_TEST_ORDER_HOLDER=
+        elif [ "$ownership" = parked ]; then
+          export FM_FAKE_AXI_STATUS="$(parked_axi_status_toon fm/task-x1 "$(git -C "$wt" rev-parse HEAD)")"
+          export FM_FAKE_NM_ABORT_LOG="$case_dir/abort.log" FM_FAKE_NM_ABORT_NOOP=1
+        fi
+        run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+      ) || rc=$?
+      if [ "$ownership" = refused ] || [ "$ownership" = foreign ] || [ "$ownership" = parked ]; then
+        if [ "$rc" -eq 0 ] || ! kill -0 "$pid" 2>/dev/null; then
+          kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true
+          fail "$layout/$ownership: refusal killed a worktree process or reported success: $(cat "$case_dir/stderr")"
+        fi
+        kill "$pid"; wait "$pid" 2>/dev/null || true
+        assert_absent "$case_dir/returned" "$layout/$ownership: refusal returned the worktree"
+        assert_absent "$closed" "$layout/$ownership: refusal closed the endpoint"
+        assert_present "$case_dir/state/task-x1.meta" "$layout/$ownership: refusal removed the record"
+      else
+        if [ "$rc" -ne 0 ]; then
+          kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true
+          fail "$layout/$ownership: cleanup failed: $(cat "$case_dir/stderr")"
+        fi
+        wait "$pid" 2>/dev/null || true
+        assert_present "$case_dir/process-seen-at-close" "$layout/$ownership: reap preceded the guarded close"
+        assert_present "$case_dir/returned" "$layout/$ownership: cleanup did not return the copy"
+      fi
+    done
+  done
+  pass "Herdr closes before reaping or returning copies, while refusals preserve live processes"
+}
+
+# Run a focused set of the cases defined above without walking the suite.
+if [ "$#" -gt 0 ]; then
+  for test_case in "$@"; do
+    "$test_case"
+  done
+  exit
+fi
+
+test_herdr_close_precedes_process_reap_and_pool_return
 
 test_teardown_preserves_opencode_busy_plugin_on_pool_return
 test_missing_startup_source_refuses_before_cleanup

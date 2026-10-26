@@ -4446,15 +4446,12 @@ if [ -e "$STATE/$ID.backlog-close" ] || [ -L "$STATE/$ID.backlog-close" ]; then
   echo "error: task $ID has a pending authoritative backlog close at $STATE/$ID.backlog-close; finish or repair that close before dispatching a new worker" >&2
   exit 1
 fi
-# Fresh crewmate worktree lease. This must resolve BEFORE the endpoint exists,
-# not only before the pane enters the copy: the herdr adapter creates its task
-# tab directly in $WT, because herdr persists a workspace's and tab's CREATION
-# cwd and resumes workers in it after a server restore, so a tab created in
-# the project's primary checkout would come back outside the task's copy. The
-# lease still runs under the Treehouse project lock held since capacity
-# admission, so an abort between here and the record returns the slot through
-# the exit trap; the pane-entering cd and its settle poll stay after endpoint
-# creation below.
+# Fresh crewmate worktree lease. Resolve it before endpoint creation so Herdr's
+# top shell lives in $WT throughout the task. Herdr persists that live cwd for
+# restore; teardown's guarded close precedes every process-killing step.
+# The lease runs under the Treehouse project lock held since capacity admission,
+# so an abort before publication returns the slot through the exit trap.
+# The pane-entering cd and its settle poll stay after endpoint creation below.
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # Durably lease the pooled copy under this task's id before the pane ever
   # enters it, so the pool never reissues the slot while the task exists even
@@ -4914,21 +4911,7 @@ spawn_send_key() { # <target> <key>
 # launch. The same explicit cd gives every backend one
 # launch boundary and makes a dropped or ignored cwd change a refusal.
 spawn_enter_recorded_worktree() {
-  local proj_cd_path wt_cd_path
   [ "$KIND" = secondmate ] && return 0
-  if [ "$BACKEND" = herdr ]; then
-    proj_cd_path=${PROJ_ABS//\'/\'\\\'\'}
-    spawn_send_text_line "$WT_TARGET" "cd -- '$proj_cd_path' && exec \"\${SHELL:-/bin/sh}\"" || {
-      echo "error: task $ID's endpoint could not be told to enter the project shell; returning the lease and refusing to launch" >&2
-      exit 1
-    }
-    wt_cd_path=${WT//\'/\'\\\'\'}
-    spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
-      echo "error: task $ID's endpoint could not be told to enter its recorded worktree '$WT'; returning the lease and refusing to launch" >&2
-      exit 1
-    }
-    return 0
-  fi
   spawn_send_text_line "$WT_TARGET" "cd -- $(shell_quote "$WT")" || {
     echo "error: task $ID's endpoint could not be moved into its recorded worktree '$WT'; refusing to launch outside the copy holding its work" >&2
     exit 1
@@ -5364,19 +5347,10 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   fi
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
-  # The pooled copy was leased and resolved in $WT before the endpoint existed
-  # (the herdr adapter creates its task tab there directly), so the pane now
-  # unwinds Herdr's initial cwd with a project-shell pre-send, then changes
-  # into the copy. The endpoint enters the leased copy in a CHILD
-  # shell, exactly as the pre-lease `treehouse get` did, never with a builtin
-  # cd in the pane's own top-level shell. Teardown reaps (and treehouse return
-  # terminates) every process whose cwd is inside the worktree BEFORE it
-  # closes the endpoint, so a top-level shell sitting in the copy is killed
-  # with the agent and the pane dies out of band - which on herdr takes the
-  # projected workspace with it before the presentation-journal close, leaving
-  # the journal quarantined. With the child shell, that reap ends the agent's
-  # shell and the pane falls back to its own shell in the project, still alive
-  # for the locked close.
+  # The pooled copy was leased before endpoint creation. Herdr's top shell
+  # lives in $WT so its persisted live cwd restores into the task's copy;
+  # teardown's guarded close precedes every process-killing step. Other
+  # backends keep their child-shell entry into the leased copy.
   if [ "$BACKEND" = herdr ]; then
     spawn_enter_recorded_worktree
   else
