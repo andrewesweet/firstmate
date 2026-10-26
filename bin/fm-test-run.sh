@@ -943,6 +943,10 @@ tests/fm-watcher-lock.test.sh 108940
 # 10-15 s standalone, weighted up for the 30-close concurrency burst under
 # CI load.
 tests/fm-wiki.test.sh 40000
+# Slice 03 gardener verbs: initial hint at the slice-01 weight; re-measure after
+# landing. The publish foreign-commit case drives two clones against one bare
+# remote, so it costs more than the lint/index-only cases.
+tests/fm-wiki-gardener.test.sh 40000
 tests/fm-worker-account-live-e2e.test.sh 3388
 tests/fm-worker-account.test.sh 29925
 EOF

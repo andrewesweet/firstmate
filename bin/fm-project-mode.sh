@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resolve a project's REGISTERED delivery posture from the data/projects.md registry.
-# Default usage prints two words to stdout: "<mode> <yolo>" where mode is one of
-# no-mistakes|direct-PR|local-only and yolo is on|off.
+# Default usage prints two words to stdout: "<mode> <yolo>" using the registered
+# modes listed below, with conditional policies mapped as described; yolo is on|off.
 # --branch-prefix instead prints one value: the project's registered ship-branch
 # prefix, "fm/" when the project registers none, is unregistered, or the registry
 # is absent, so every existing installation keeps its current "fm/<task-id>"
@@ -41,6 +41,11 @@
 #   no-mistakes            full pipeline -> PR -> configured merge authority (default)
 #   direct-PR              push + PR via gh-axi, no pipeline
 #   local-only             local branch, no remote/PR, guarded local merge
+#   direct-push            gardener only: compile wiki pages and land them with
+#                          bin/fm-wiki.sh publish instead of a PR. Permitted only
+#                          for a project whose registry entry opts in by naming
+#                          this mode. The crew-wiki project owns the only such
+#                          entry.
 #   no-mistakes-prod-only  a conditional policy, not a task mode: firstmate
 #                          classifies each task's surface at intake (the
 #                          project-management skill owns that classification).
@@ -104,7 +109,8 @@
 # on stdout, exit status 3, the token named. Resolving it to "no registered
 # forge" would hand a Gerrit project the pull-request contract the binding
 # exists to prevent.
-# local-only with a forge is refused the same way. --branch-prefix does not make
+# local-only or direct-push with a forge is refused the same way.
+# --branch-prefix does not make
 # that check: it answers only the registered prefix, and a prefix is orthogonal
 # to the forge binding, so it prints even when the forge token is malformed;
 # every path that reads the forge binding (default, --forge, and spawn's
@@ -221,7 +227,7 @@ $posture
 EOF
 forge=${rest_forge:-none}
 case "$mode" in
-  no-mistakes|direct-PR|local-only|no-mistakes-prod-only) ;;
+  no-mistakes|direct-PR|local-only|direct-push|no-mistakes-prod-only) ;;
   *) echo "warn: unknown mode \"$mode\" for $NAME; defaulting to no-mistakes off" >&2; mode=no-mistakes; yolo=off; branch=fm/ ;;
 esac
 case "$yolo" in on|off) ;; *) yolo=off ;; esac
@@ -241,6 +247,10 @@ case "$forge" in
 esac
 if [ "$forge" != none ] && [ "$mode" = local-only ]; then
   echo "refused: $NAME is registered local-only with forge=$forge in $REG; local-only publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; register no-mistakes or direct-PR to publish through the forge, or drop the forge token to keep the project local" >&2
+  exit 3
+fi
+if [ "$forge" != none ] && [ "$mode" = direct-push ]; then
+  echo "refused: $NAME is registered direct-push with forge=$forge in $REG; direct-push publishes through bin/fm-wiki.sh publish, not through a forge; drop the forge token to keep the project direct-push" >&2
   exit 3
 fi
 if [ "$WANT_FORGE" -eq 1 ]; then

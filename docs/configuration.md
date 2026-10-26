@@ -959,7 +959,7 @@ Capture creates lesson files with owner-only permissions and keeps the wiki stat
 Held lessons and staging residue are never drained automatically.
 Capture failures do not fail cleanup, and cleanup never waits for network publication.
 
-`bin/fm-wiki.sh drain` is the only publisher.
+`bin/fm-wiki.sh drain` is the only publisher of raw lessons.
 It is single-flight per home through a non-blocking kernel lock, released automatically when its holders exit; the lock file remains in place.
 Each Git operation shares the drain's remaining wall-clock budget, including on hosts without `timeout` or Perl.
 A drain creates at most one add-only commit under `raw/YYYY/MM/<UTC-stamp>-<host>-<home-identity>-<task-id>-<nonce>.md`.
@@ -967,6 +967,7 @@ The home identity and random nonce reduce filename collisions; a differing-conte
 Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical.
 An unreachable remote leaves lessons queued for the next drain.
 Publication runs through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
+Gardener drains fetch and fast-forward the scheduling clone even with an empty outbox; they publish nothing on that path.
 See the [script header](../bin/fm-wiki.sh) for verb syntax, state files, and watcher pacing mechanics.
 
 Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
@@ -975,6 +976,39 @@ Later closes still trigger a detached drain for existing queued lessons, includi
 Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.
 Project visibility comes from local task metadata and is empty when absent; no forge lookup occurs.
 The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
+
+## The gardener compiles pages
+
+One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
+Gardener lint and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
+Checks use lychee offline for local Markdown links only; external links never trigger network requests.
+The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
+After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
+
+Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.
+The registration command, run once in the gardener home, is:
+
+```sh
+bin/fm-procevent-when.sh arm wiki-gardener-due --interval 3600 --stable 2 \
+  --condition "$PWD/bin/fm-wiki.sh" due \
+  --action /usr/bin/printf 'wiki: gardener due; file one gardener task on the crew-wiki project'
+```
+
+The condition carries no network and no lock, so the watcher's poll stays cheap; the action only wakes firstmate, and firstmate's routing, dispatch, and re-arm decisions stay judgment calls.
+Do not arm this condition in any real home until the crew-wiki project is provisioned and its first raw lessons have landed.
+
+The wiki repository's own schema lives in [`assets/crew-wiki-AGENTS.md`](../assets/crew-wiki-AGENTS.md) and is seeded into the repository as `AGENTS.md` (with `CLAUDE.md` symlinked to it) when the repository is created.
+It owns the page taxonomy, header fields, citation rule, index rules, budgets, the add-only `raw/` contract, and the gardener's run steps.
+
+## Gardener delivery (direct-push)
+
+`direct-push` is the gardener-only ship mode: the worker compiles pages in its task worktree, which is the wiki checkout for the run, and lands them with `"$FIRSTMATE_ROOT/bin/fm-wiki.sh" publish --repo "$PWD" --base <sha>` instead of opening a pull request.
+`FIRSTMATE_ROOT` names the installed Firstmate code directory.
+Its generated [Definition of done](../bin/fm-dod-lib.sh) owns the run commands and completion report, binding the supervising home's paths explicitly.
+The mode is permitted only for a project whose registry entry opts in by naming it; every other project and mode is unchanged.
+`bin/fm-spawn.sh` refuses a direct-push ship whose registry entry names another mode.
+A forge, a base branch, or a fork-staged fork is refused on direct-push, because it publishes through the wiki checkout rather than a forge, a task branch, or a pull request.
+The crew-wiki project owns the only such registry entry.
 
 ## Jev self-check record (data/jev-lint.jsonl)
 

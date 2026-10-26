@@ -651,6 +651,54 @@ test_upstream_shaped_calls_render_upstream_contracts
 test_feedback_snapshot_dir_resolves_from_the_home
 test_promotion_keeps_the_recorded_base_branch
 
+# direct-push is the gardener-only delivery value: its Definition of done ends
+# with bin/fm-wiki.sh publish instead of a pull request, and its done report
+# is gated on the named head like every other ship mode.
+test_direct_push_renders_a_publish_ending_dod() {
+  local body rule home
+  home="$TMP_ROOT/direct-push-home"
+  mkdir -p "$home/data"
+  body=$(FM_HOME="$home" fm_dod_block direct-push dp-x1 fm/dp-x1 none) \
+    || fail "could not render the direct-push delivery contract"
+  assert_contains "$body" 'Delivery contract: mode=direct-push' "the direct-push contract line names the mode"
+  assert_contains "$body" 'bin/fm-wiki.sh publish' "the direct-push DoD ends with publish instead of a PR"
+  assert_contains "$body" 'wiki pages published' "the direct-push DoD names its ready report"
+  assert_not_contains "$body" 'gh pr create' "a direct-push DoD must not open a pull request"
+  assert_not_contains "$body" 'open a pull request' "a direct-push DoD must not name a pull request to open"
+  assert_not_contains "$body" 'no-mistakes axi run' "a direct-push DoD must not invoke the pipeline"
+  rule=$(fm_ship_rule_one direct-push t1 fm/t1 none) \
+    || fail "the direct-push ship rule did not render"
+  assert_contains "$rule" 'bin/fm-wiki.sh publish' "the direct-push rule names the only permitted push path"
+  assert_not_contains "$rule" 'merge a PR' "the direct-push rule forbids merging"
+  if FM_HOME="$home" fm_dod_block bogus dp-x1 fm/dp-x1 none >/dev/null 2>&1; then
+    fail "an unknown delivery mode was rendered instead of refused"
+  fi
+  pass "direct-push renders a publish-ending DoD and refuses unknown modes"
+}
+
+test_direct_push_done_is_gated_on_the_named_head() {
+  local repo wt sha reason rc
+  repo="$TMP_ROOT/dp-repo"
+  wt="$TMP_ROOT/dp-wt"
+  fm_git_worktree "$repo" "$wt" fm/dp
+  git -C "$wt" commit -q --allow-empty -m 'gardened pages'
+  sha=$(git -C "$wt" rev-parse HEAD)
+  reason=$(accept_done ship direct-push "$wt" "$repo" "done: wiki pages published $sha")
+  rc=$?
+  [ "$rc" -eq 1 ] || fail "unpushed direct-push done: was accepted (exit $rc)"
+  case "$reason" in
+    *"named head $sha is unreachable outside the worker copy") ;;
+    *) fail "unpushed refusal did not name the commit: $reason" ;;
+  esac
+  git -C "$wt" update-ref refs/remotes/origin/fm/dp "$sha"
+  accept_done ship direct-push "$wt" "$repo" "done: wiki pages published $sha" \
+    || fail "a direct-push done: with the named head on a remote-tracking ref was refused"
+  pass "direct-push done: is gated on the named head"
+}
+
+test_direct_push_renders_a_publish_ending_dod
+test_direct_push_done_is_gated_on_the_named_head
+
 # The launch role is the generated text a worker receives. It must keep the
 # skill name, so a session that registers the skill loads it by name, and must
 # name the skill file as the fallback for a session where the name does not

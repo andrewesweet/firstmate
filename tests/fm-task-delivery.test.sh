@@ -451,7 +451,7 @@ EOF
 missing both flags||ship spawns require --mode
 missing --yolo|--mode no-mistakes|ship spawns require --yolo
 missing --mode|--yolo off|ship spawns require --mode
-unknown mode|--mode nope --yolo off|must be one of no-mistakes, direct-PR, local-only
+unknown mode|--mode nope --yolo off|must be one of no-mistakes, direct-PR, local-only, direct-push
 unknown yolo|--mode no-mistakes --yolo maybe|--yolo must be on or off
 conditional policy as a task mode|--mode no-mistakes-prod-only --yolo off|classify this task's surface
 ROWS
@@ -548,6 +548,7 @@ no-mistakes project shipped local-only|- proj [no-mistakes] - fixture (added 202
 no-mistakes project shipped no-mistakes|- proj [no-mistakes] - fixture (added 2026-01-01)|no-mistakes|quiet|no-mistakes
 local-only project shipped no-mistakes|- proj [local-only] - fixture (added 2026-01-01)|no-mistakes|quiet|local-only
 conditional policy shipped direct-PR|- proj [no-mistakes-prod-only] - fixture (added 2026-01-01)|direct-PR|quiet|no-mistakes-prod-only
+direct-push project shipped direct-push|- proj [direct-push] - fixture (added 2026-01-01)|direct-push|quiet|direct-push
 unregistered project resolves to the no-mistakes standing default|- other [no-mistakes] - fixture (added 2026-01-01)|direct-PR|notice|no-mistakes
 ROWS
   pass "fm-spawn: a rigor downgrade against the registered posture is announced, never blocked"
@@ -951,6 +952,55 @@ EOF
 
 # Spawn and promotion refuse leftover Task-subsection placeholders through the
 # public brief/spawn/promote path. Filling both subsections lets the spawn
+# direct-push publishes past every review, so the mode is refused unless the
+# project's registry entry opts in by naming it; an opted-in project scaffolds
+# a publish-ending brief and clears the spawn's delivery checks.
+test_direct_push_requires_an_opted_in_registry() {
+  local rec home proj fakebin out status
+  rec=$(make_home dp-ok "- proj [direct-push +yolo] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  FM_HOME="$home" "$BRIEF" dp-ok-a1 proj --mode direct-push >/dev/null \
+    || fail "a direct-push brief should scaffold on an opted-in project"
+  fill_brief_subsections "$home/data/dp-ok-a1/brief.md" "Compile the wiki." "Compile it."
+  assert_grep 'Delivery contract: mode=direct-push' "$home/data/dp-ok-a1/brief.md" \
+    "the scaffolded brief did not record the direct-push contract"
+  assert_grep 'bin/fm-wiki.sh publish' "$home/data/dp-ok-a1/brief.md" \
+    "the scaffolded brief did not end its DoD with publish"
+  out=$(run_spawn "$home" "$fakebin" dp-ok-a1 "$proj" claude --mode direct-push --yolo on)
+  assert_not_contains "$out" "permitted only for a project" "an opted-in direct-push spawn was refused"
+  assert_present "$home/data/dp-ok-a1/launch-brief.md" "the opted-in direct-push contract did not reach launch rendering: $out"
+
+  rec=$(make_home dp-no "- proj [direct-PR] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  FM_HOME="$home" "$BRIEF" dp-no-a1 proj --mode direct-push >/dev/null \
+    || fail "a direct-push brief scaffolds before the spawn checks the registry"
+  fill_brief_subsections "$home/data/dp-no-a1/brief.md" "Compile the wiki." "Compile it."
+  out=$(run_spawn "$home" "$fakebin" dp-no-a1 "$proj" claude --mode direct-push --yolo off)
+  status=$?
+  [ "$status" -ne 0 ] || fail "direct-push on a project without the opt-in was accepted"
+  assert_contains "$out" "permitted only for a project whose registry entry opts in" \
+    "the opt-in refusal did not name the rule it enforces"
+  assert_absent "$home/state/dp-no-a1.meta" "the refused direct-push spawn still recorded a task"
+
+  out=$(FM_HOME="$home" "$BRIEF" dp-no-a2 proj --mode direct-push --forge gerrit 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a forge on direct-push was accepted"
+  assert_contains "$out" "cannot ship mode=direct-push" "the forge refusal did not name the direct-push mode"
+  out=$(FM_HOME="$home" "$BRIEF" dp-no-a3 proj --mode direct-push --base-branch main 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a base branch on direct-push was accepted"
+  assert_contains "$out" "cannot ship mode=direct-push" "the base-branch refusal did not name the direct-push mode"
+  out=$(FM_HOME="$home" "$BRIEF" dp-no-a4 proj --mode direct-push --fork-staged acme/widgets 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a fork-staged direct-push was accepted"
+  assert_contains "$out" "meaningless on direct-push" "the fork-staged refusal did not name the direct-push mode"
+  pass "fm-spawn: direct-push requires a registry entry that opts in"
+}
+
 # delivery checks proceed (the fake tmux still fails later).
 test_spawn_and_promote_require_filled_task_subsections() {
   local rec home proj fakebin out status id brief meta intent_body spec_body authorized
@@ -2164,5 +2214,6 @@ test_spawn_refuses_a_registry_forge_it_cannot_read
 test_promotion_carries_the_forge_binding
 test_forge_forgejo_rides_the_same_binding
 test_spawn_and_promote_require_filled_task_subsections
+test_direct_push_requires_an_opted_in_registry
 test_project_mode_resolves_branch_prefix
 echo "# all fm-task-delivery tests passed"

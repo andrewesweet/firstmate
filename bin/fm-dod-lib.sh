@@ -6,7 +6,7 @@
 # receives. Both paths must hand the worker the same contract: a promoted
 # no-mistakes worker that never received the ask-user escalation rule or the
 # `--yes` ban is the exact delivery hole this single owner exists to close.
-# fm_dod_block <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>] [<fork>]
+# fm_dod_block <no-mistakes|direct-PR|local-only|direct-push> <task-id> [branch] [<forge>] [<base>] [<consent>] [<publication-target>] [<fork>]
 # prints the block on stdout with no trailing blank line. The caller validates the
 # mode; an unknown mode is refused rather than silently rendered as the pipeline
 # contract.
@@ -224,6 +224,10 @@ fm_forge_valid_for_mode() {  # <forge> <mode> <caller>
     echo "error: $caller: forge=$forge cannot ship mode=local-only - that mode publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; ship no-mistakes or direct-PR, which publish through the forge" >&2
     return 1
   fi
+  if [ "$forge" != none ] && [ "$mode" = direct-push ]; then
+    echo "error: $caller: forge=$forge cannot ship mode=direct-push - that mode publishes through bin/fm-wiki.sh publish, not through a forge" >&2
+    return 1
+  fi
   if [ "$forge" = external ] && [ "$mode" != direct-PR ]; then
     echo "error: $caller: forge=external ships direct-PR only for now; the pipeline's push, pr, and ci steps would push to the shared origin" >&2
     return 1
@@ -296,8 +300,9 @@ fm_ship_branch_prefix() {  # <branch> <task-id>
 # bin/fm-spawn.sh takes it as --base-branch, refuses a brief whose Base branch
 # lines (fm_brief_base_branches) disagree, and records base_branch= in the task
 # metadata, and every later consumer reads that metadata field. It is
-# refused on local-only, whose landing fast-forwards local main, and on a Gerrit
-# forge, whose publish path targets the change's own branch.
+# refused on local-only, whose landing fast-forwards local main, on direct-push,
+# whose publish path is the wiki checkout rather than a task branch, and on a
+# Gerrit forge, whose publish path targets the change's own branch.
 fm_base_branch_valid() {  # <base> <mode> <forge> <caller>
   local base=$1 mode=$2 forge=$3 caller=$4
   [ -n "$base" ] || return 0
@@ -307,6 +312,10 @@ fm_base_branch_valid() {  # <base> <mode> <forge> <caller>
   fi
   if [ "$mode" = local-only ]; then
     echo "error: $caller: a base branch cannot ship mode=local-only, whose landing fast-forwards local main; ship no-mistakes or direct-PR, which open a pull request against the base" >&2
+    return 1
+  fi
+  if [ "$mode" = direct-push ]; then
+    echo "error: $caller: a base branch cannot ship mode=direct-push, whose publish path is the wiki checkout rather than a task branch" >&2
     return 1
   fi
   if [ "$forge" != none ]; then
@@ -327,7 +336,24 @@ fm_brief_base_branches() {  # <brief>
   ' "$1"
 }
 
-fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only> <task-id> [branch] [<forge>] [<base>]
+fm_dod_wiki_command() {
+  local root home config state data key
+  root=$(cd "$_FM_DOD_LIB_DIR/.." && pwd -P)
+  home=${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-$root}}}
+  config=${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}
+  state=${STATE:-${FM_STATE_OVERRIDE:-$home/state}}
+  data=${DATA:-${FM_DATA_OVERRIDE:-$home/data}}
+  for key in home config state data; do
+    case ${!key} in
+      /*) ;;
+      *) printf -v "$key" '%s/%s' "$PWD" "${!key}" ;;
+    esac
+  done
+  printf 'env FM_HOME=%q FM_CONFIG_OVERRIDE=%q FM_STATE_OVERRIDE=%q FM_DATA_OVERRIDE=%q %q' \
+    "$home" "$config" "$state" "$data" "$_FM_DOD_LIB_DIR/fm-wiki.sh"
+}
+
+fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only|direct-push> <task-id> [branch] [<forge>] [<base>]
   local mode=$1 id=$2 forge=${4:-none} base=${5:-}
   local branch=${3:-fm/$id} target='the default branch'
   fm_forge_valid_for_mode "$forge" "$mode" fm_ship_rule_one || return 1
@@ -358,6 +384,11 @@ fm_ship_rule_one() {  # <no-mistakes|direct-PR|local-only> <task-id> [branch] [<
       ;;
     no-mistakes)
       printf '%s\n' "1. Never push to $target. Never merge a PR."
+      ;;
+    direct-push)
+      local wiki_command
+      wiki_command=$(fm_dod_wiki_command) || return 1
+      printf '%s\n' "1. Never push to any remote except through the \`$wiki_command publish --repo \"\$PWD\"\` your Definition of done names, and never open a PR. Never merge anything: publish lands the pages itself with a landing proof."
       ;;
     *)
       echo "error: fm_ship_rule_one: unknown delivery mode '$mode'" >&2
@@ -981,6 +1012,32 @@ That CI-ready \`done:\` is accepted only when this copy's HEAD - your latest com
 If you deliberately keep the PR a draft, append \`paused [at=<epoch>]: {why the draft is held}\` instead of done.
 EOF
       ;;
+    direct-push:*)
+      local wiki_command
+      wiki_command=$(fm_dod_wiki_command) || return 1
+      cat <<EOF
+# Definition of done
+Delivery contract: mode=direct-push$contract_consent
+Ship branch: $branch
+This task ships **direct-push** to the crew wiki: there is no pull request and no pipeline.
+Your task worktree is the wiki checkout for this run: compile the pages there, then land them with \`$wiki_command publish --repo "\$PWD"\`, which lints the pages, refuses raw edits and foreign page commits, and pushes with a landing proof.
+The task is complete only when committed on your branch \`$branch\`. Do NOT push except through \`publish\`, do NOT open a PR, do NOT merge.
+
+EOF
+      fm_implement_discipline_block "$branch"
+      fm_dod_wiki_print_step "$id"
+      cat <<EOF
+
+At the start of the run, record BASE as \`git rev-parse origin/main\` in the checkout.
+Compile at most 25 of the oldest uncompiled raw lessons into pages under \`pages/\`, following the wiki repository's own \`AGENTS.md\` schema; cite every claim with the raw lesson it came from, and append one \`## [YYYY-MM-DD] ingest\` line per batch to \`log.md\`.
+Never create, modify, or delete anything under \`raw/\`: raw lessons are add-only and arrive only through each home's cleanup.
+Run \`$wiki_command lint --repo "\$PWD"\` until it reports clean and \`$wiki_command index --repo "\$PWD"\` until the index is within its 150-line budget.
+Then run \`$wiki_command publish --repo "\$PWD" --base "\$BASE"\`: on a foreign-commit refusal, re-read the new \`origin/main\`, recompile what is still uncompiled, and publish again.
+When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}\` to the status file and stop, with the commit publish printed.
+Commit nothing after publishing.
+Do NOT run /no-mistakes. The configured merge authority decided this standing posture; firstmate relays the outcome.
+EOF
+      ;;
     *)
       echo "error: fm_dod_block: unknown delivery mode '$mode'" >&2
       return 1 ;;
@@ -1088,7 +1145,7 @@ fm_dod_should_gate_ship_done() {  # <kind> <mode> <line>
   [ "$1" = ship ] || return 1
   [ "$(status_line_verb "$3")" = "done" ] || return 1
   case "$2" in
-    direct-PR|local-only|no-mistakes|'') return 0 ;;
+    direct-PR|local-only|no-mistakes|direct-push|'') return 0 ;;
     *) return 1 ;;
   esac
 }
