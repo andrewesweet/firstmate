@@ -1,0 +1,17 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.t3-trace-live-bt5q6hvq/home
+~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.t3-trace-live-bt5q6hvq/home
+exit=0
+$ git init -q -b main
+exit=0
+$ git add .
+exit=0
+$ git -c user.name=Trace Lab -c user.email=trace@example.invalid commit -qm seed
+exit=0
+$ bin/fm-spawn.sh trace-t3-probe ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.t3-trace-live-bt5q6hvq/project --scout --harness codex --backend t3code
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.t3-trace-live-bt5q6hvq/home
+fm-t3-mcp: no T3 credential at ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.t3-trace-live-bt5q6hvq/home/config/t3code-token; the captain signs in with: bin/fm-t3-mcp.mjs login --access full-access
+exit=1
+T3 CLI on PATH: None
+Repository-supplied T3 server: none; only client and explicitly fake test server are present.
+No production credentials or services accessed. Signing in or minting a credential is forbidden by this test prompt.
+Disposable lab removed.

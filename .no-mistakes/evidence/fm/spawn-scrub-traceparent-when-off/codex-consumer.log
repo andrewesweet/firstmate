@@ -1,0 +1,23 @@
+$ git init -q -b main
+exit=0
+$ git add .
+exit=0
+$ git -c user.name=Trace Lab -c user.email=trace@example.invalid commit -qm seed
+exit=0
+$ ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/bin/fm-t3code-codex-env.sh install ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.codex-trace-consumer-3d2llwwe/project TRACEPARENT= FM_TASK_ID=trace-consumer
+exit=0
+Generated public TOML contract:
+model = "gpt-5.6-sol"
+
+[shell_environment_policy]
+set = { "TRACEPARENT" = "", "FM_TASK_ID" = "trace-consumer" }
+
+$ codex --version
+codex-cli 0.162.1
+exit=0
+Real Codex config/read shell_environment_policy.set: {"TRACEPARENT": "", "FM_TASK_ID": "trace-consumer"}
+Real Codex command/exec printenv TRACEPARENT FM_TASK_ID: {"exitCode": 0, "stdout": "\ntrace-consumer\n", "stderr": ""}
+$ ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/bin/fm-t3code-codex-env.sh cleanup ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.codex-trace-consumer-3d2llwwe/project
+exit=0
+PASS: trusted real Codex child replaced the stale ambient carrier with an empty value.
+Disposable project and Codex home removed.

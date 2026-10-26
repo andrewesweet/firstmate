@@ -1,0 +1,40 @@
+bash-5.2$ treehouse get
+A new version of treehouse is available: v3.1.4 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/p
+ool/.treehouse/project-1d3a13/4/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-
+live-dv3qhw_8/pool/.treehouse/project-1d3a13/4/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ export GOTMPDIR=/tmp/fm-trace-on-allowlist-4/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ export FM_TASK_ID=trace-on-allowlist-4
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ export TRACEPARENT=00-e098d0e046e53191135503533947c541-24423ab438f4ef13-01
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$ . '/tmp/fm-trace-on-allowlist-4+364930587425251a5378feea9c2965b4e2c5f9f4c6ba2c13bf22f29e7
+daa2460/launch.s1793036543.1078205.4012.sh'
+{"TRACEPARENT": "00-e098d0e046e53191135503533947c541-24423ab438f4ef13-01", "OTEL_RESOURCE_ATTRIBUTES": "service.name=tra
+ce-lab,custom.marker=kept", "LAB_KEEP": "allowed", "LAB_DROP": null, "FM_TASK_ID": "trace-on-allowlist-4", "COMPACT_ADVI
+SER_DISABLE": "1", "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw
+_8/pool/.treehouse/project-1d3a13/4/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/4/project$
+
+
+
+
+
+
+
+
+
+

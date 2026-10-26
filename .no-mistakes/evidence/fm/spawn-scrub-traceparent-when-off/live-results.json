@@ -1,54 +1,37 @@
 [
   {
-    "scenario": "off-ambient",
-    "result": "pass",
-    "worker": {
-      "COMPACT_ADVISER_DISABLE": "1",
-      "GOTMPDIR": "/tmp/fm-trace-live-off-ambient/gotmp",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACEPARENT": null,
-      "TRACE_ALLOWED_SENTINEL": "keep-me",
-      "TRACE_BLOCKED_SENTINEL": "drop-me"
-    },
-    "recorded_traceparent": null
+    "case": "off-ambient-1",
+    "traceparent": null,
+    "recorded": null,
+    "allowlist": false,
+    "result": "pass"
   },
   {
-    "scenario": "on-ambient",
-    "result": "pass",
-    "worker": {
-      "COMPACT_ADVISER_DISABLE": "1",
-      "GOTMPDIR": "/tmp/fm-trace-live-on-ambient/gotmp",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACEPARENT": "00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc-01",
-      "TRACE_ALLOWED_SENTINEL": "keep-me",
-      "TRACE_BLOCKED_SENTINEL": "drop-me"
-    },
-    "recorded_traceparent": "00-2983329679aef49e55f833a8137adf5e-4c9dd36f4fc981fc-01"
+    "case": "off-allowlist-2",
+    "traceparent": null,
+    "recorded": null,
+    "allowlist": true,
+    "result": "pass"
   },
   {
-    "scenario": "off-allowlist",
-    "result": "pass",
-    "worker": {
-      "COMPACT_ADVISER_DISABLE": "1",
-      "GOTMPDIR": "/tmp/fm-trace-live-off-allowlist/gotmp",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACEPARENT": null,
-      "TRACE_ALLOWED_SENTINEL": "keep-me",
-      "TRACE_BLOCKED_SENTINEL": null
-    },
-    "recorded_traceparent": null
+    "case": "on-ambient-3",
+    "traceparent": "00-f54cc2e086b7752f5ac0c23011b1402c-3e94d490d9c95443-01",
+    "recorded": "00-f54cc2e086b7752f5ac0c23011b1402c-3e94d490d9c95443-01",
+    "allowlist": false,
+    "result": "pass"
   },
   {
-    "scenario": "on-allowlist",
-    "result": "pass",
-    "worker": {
-      "COMPACT_ADVISER_DISABLE": "1",
-      "GOTMPDIR": "/tmp/fm-trace-live-on-allowlist/gotmp",
-      "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,deployment.environment=disposable",
-      "TRACEPARENT": "00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1dfb1-01",
-      "TRACE_ALLOWED_SENTINEL": "keep-me",
-      "TRACE_BLOCKED_SENTINEL": null
-    },
-    "recorded_traceparent": "00-a9db8b2071c0b6ffece064deba5a2e56-911b05a068d1dfb1-01"
+    "case": "on-allowlist-4",
+    "traceparent": "00-e098d0e046e53191135503533947c541-24423ab438f4ef13-01",
+    "recorded": "00-e098d0e046e53191135503533947c541-24423ab438f4ef13-01",
+    "allowlist": true,
+    "result": "pass"
+  },
+  {
+    "case": "on-ambient-5",
+    "traceparent": "00-b86bb2dee3b514930a9df666ceb91437-e58ce3380e417acb-01",
+    "recorded": "00-b86bb2dee3b514930a9df666ceb91437-e58ce3380e417acb-01",
+    "allowlist": false,
+    "result": "pass"
   }
 ]

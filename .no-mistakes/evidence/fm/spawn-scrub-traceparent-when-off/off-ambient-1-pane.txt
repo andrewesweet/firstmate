@@ -1,0 +1,44 @@
+bash-5.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/p
+ool/.treehouse/project-1d3a13/1/project. Type 'exit' to return.
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Mon Oct 26 17:42:09 GMT 2026
+
+  System load:  6.47                 Processes:             238
+  Usage of /:   43.5% of 1006.85GB   Users logged in:       2
+  Memory usage: 54%                  IPv4 address for eth0: 192.168.1.19
+  Swap usage:   29%
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+This message is shown once a day. To disable it please create the
+~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/user/.hushlogin file.
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$ cd -- '~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-
+live-dv3qhw_8/pool/.treehouse/project-1d3a13/1/project'
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$ export GOTMPDIR=/tmp/fm-trace-off-ambient-1/gotmp
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$ export COMPACT_ADVISER_DISABLE=1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$ export FM_TASK_ID=trace-off-ambient-1
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$ . '/tmp/fm-trace-off-ambient-1+364930587425251a5378feea9c2965b4e2c5f9f4c6ba2c13bf22f29e7d
+aa2460/launch.s1793036531.1057676.28347.sh'
+{"TRACEPARENT": null, "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,custom.marker=kept", "LAB_KEEP": "allowed", "L
+AB_DROP": "filtered", "FM_TASK_ID": "trace-off-ambient-1", "COMPACT_ADVISER_DISABLE": "1", "cwd": "~/.no-mista
+kes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treehouse/project-1d3a13/1/project"}
+andre@laptop:~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treeh
+ouse/project-1d3a13/1/project$

@@ -1,0 +1,9 @@
+{
+  "TRACEPARENT": "00-f54cc2e086b7752f5ac0c23011b1402c-3e94d490d9c95443-01",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=trace-lab,custom.marker=kept",
+  "LAB_KEEP": "allowed",
+  "LAB_DROP": "filtered",
+  "FM_TASK_ID": "trace-on-ambient-3",
+  "COMPACT_ADVISER_DISABLE": "1",
+  "cwd": "~/.no-mistakes/worktrees/65938fb6b121/01M5WJV0PFF30JVSQ3GW5P8YPV/.trace-live-dv3qhw_8/pool/.treehouse/project-1d3a13/3/project"
+}
