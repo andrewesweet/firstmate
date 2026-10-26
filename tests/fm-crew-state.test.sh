@@ -3960,6 +3960,193 @@ outcome: failed"
   pass "the exemption never applies to a terminal run"
 }
 
+run_parked_ci_awaiting_approval() {  # <branch>
+  cat <<EOF
+run:
+  id: "01RUN"
+  branch: $1
+  status: ci
+  awaiting_agent: parked 1h02m
+  head: "${FM_FAKE_RUN_HEAD:-abc1234}"
+  pr: "https://github.com/o/r/pull/2"
+  findings: none
+gate: ci
+EOF
+}
+
+# <name> <branch-tag> <id>: a ship whose status log's latest event is a CI-ready
+# done claim, with an idle pane so the log would otherwise answer. Echoes the
+# case dir.
+seed_repushed_done_case() {  # <name> <branch-tag> <id>
+  local name=$1 tag=$2 id=$3 d
+  d=$(new_case "$name")
+  make_repo_on_branch "$d/wt" "fm/feat-$tag"
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/$id.meta" "window=fm:fm-$tag" "worktree=$d/wt" "kind=ship" "harness=claude"
+  printf 'done: PR https://github.com/o/r/pull/2 checks 20/20 green, merge_state clean\n' \
+    > "$d/state/$id.status"
+  FM_FAKE_BUSY=0
+  arm_idle_record "$d/state" "$id"
+  printf '%s\n' "$d"
+}
+
+test_done_log_yields_to_a_repushed_parked_run() {
+  local surface evidence d h1 h2 out
+  for surface in legacy selected; do
+    for evidence in custody ledger ancestry; do
+      reset_fakes
+      d=$(seed_repushed_done_case "done-repushed-$surface-$evidence" repush repush)
+      h1=$(git -C "$d/wt" rev-parse HEAD)
+      if [ "$evidence" = ancestry ]; then
+        git -C "$d/wt" commit -q --allow-empty -m 'pipeline fix round'
+        h2=$(git -C "$d/wt" rev-parse HEAD)
+        git -C "$d/wt" reset -q --hard "$h1"
+      else
+        h2=$(mint_unfetched_fix_head "$d/wt")
+      fi
+      [ "$h1" != "$h2" ] || fail 'fixture broken: the re-pushed head equals the done head'
+      FM_FAKE_RUN_HEAD="$h2"
+      FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval fm/feat-repush)
+branch_sync:
+  state: synced"
+      case "$evidence" in
+        custody) FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval fm/feat-repush)
+branch_sync:
+  state: pipeline_owned" ;;
+        ledger) FM_FAKE_RUNS_LIST="running fm/feat-repush ${h2:0:8} 2026-10-25 13:00
+completed fm/feat-repush ${h1:0:8} 2026-10-25 12:00" ;;
+      esac
+      if [ "$surface" = selected ]; then
+        FM_FAKE_AXI_HOME="count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  \"01RUN\",fm/feat-repush,running,$h2,\"\""
+        FM_FAKE_AXI_STATUS_RUN="$FM_FAKE_AXI_STATUS"
+      fi
+      FM_FAKE_DAEMON_DOWN=1
+      out=$(run_crew_state "$d" repush)
+      assert_contains "$out" 'state: parked' "$surface/$evidence: an attributed later gate outranks the stale done claim"
+      assert_contains "$out" 'source: run-step' "$surface/$evidence: the attributed run is authoritative"
+      assert_contains "$out" 'parked at ci' "$surface/$evidence: the later gate is reported"
+      assert_contains "$out" 'status-log superseded:' "$surface/$evidence: the superseded claim is identified"
+      assert_not_contains "$out" 'state: done' "$surface/$evidence: the stale done claim must not answer"
+      if [ "$surface" = selected ]; then
+        assert_contains "$out" 'run: 01RUN' 'the selected gate names its run'
+      fi
+    done
+  done
+  pass 'both run-selection routes expose attributed later gates over stale done claims'
+}
+
+test_done_log_rejects_unproven_parked_heads() {
+  local surface identity d h1 run_head run_branch out
+  for surface in legacy selected; do
+    for identity in unfetched rewritten ancestor foreign; do
+      reset_fakes
+      d=$(seed_repushed_done_case "done-unproven-$surface-$identity" unproven unproven)
+      h1=$(git -C "$d/wt" rev-parse HEAD)
+      run_branch=fm/feat-unproven
+      case "$identity" in
+        unfetched) run_head=$(mint_unfetched_fix_head "$d/wt") ;;
+        rewritten)
+          run_head=$h1
+          git -C "$d/wt" checkout -q --orphan rewritten
+          git -C "$d/wt" commit -q --allow-empty -m 'new task history'
+          git -C "$d/wt" branch -q -M fm/feat-unproven
+          git -C "$d/wt" update-ref refs/remotes/origin/main HEAD
+          ;;
+        ancestor)
+          run_head=$h1
+          git -C "$d/wt" commit -q --allow-empty -m 'new task work'
+          git -C "$d/wt" update-ref refs/remotes/origin/main HEAD
+          ;;
+        foreign)
+          run_head=$h1
+          run_branch=fm/other-task
+          ;;
+      esac
+      FM_FAKE_RUN_HEAD=$run_head
+      FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval "$run_branch")
+branch_sync:
+  state: synced"
+      if [ "$surface" = selected ]; then
+        FM_FAKE_AXI_HOME="count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  \"01RUN\",$run_branch,running,$run_head,\"\""
+        FM_FAKE_AXI_STATUS_RUN="$FM_FAKE_AXI_STATUS"
+      fi
+      out=$(run_crew_state "$d" unproven)
+      assert_not_contains "$out" 'state: parked' "$surface/$identity: an unproven record cannot replace done"
+      assert_not_contains "$out" 'parked at ci' "$surface/$identity: no gate detail from an unproven record"
+      assert_not_contains "$out" 'superseded' "$surface/$identity: no claim of advancement without evidence"
+      if [ "$surface/$identity" = selected/unfetched ]; then
+        assert_contains "$out" 'code identity unverified' 'an unfetched head without attribution evidence remains unverified'
+        assert_contains "$out" '01RUN' 'the unverified run remains identifiable'
+      else
+        assert_contains "$out" 'state: done' "$surface/$identity: the current published task stays done"
+      fi
+    done
+  done
+  pass 'done claims never attribute unproven or historical parked records'
+}
+
+test_done_log_does_not_revive_dead_executing_record() {
+  local surface d rebased out
+  for surface in legacy selected; do
+    reset_fakes
+    d=$(seed_repushed_done_case "done-dead-executing-$surface" dead dead)
+    rebased=$(make_rebased_head "$d/wt")
+    FM_FAKE_RUN_HEAD=$rebased
+    FM_FAKE_AXI_STATUS="$(run_fixing fm/feat-dead)
+branch_sync:
+  state: synced"
+    if [ "$surface" = selected ]; then
+      FM_FAKE_AXI_HOME="count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  \"01RUN\",fm/feat-dead,running,$rebased,\"\""
+      FM_FAKE_AXI_STATUS_RUN="$FM_FAKE_AXI_STATUS"
+    fi
+    FM_FAKE_DAEMON_DOWN=1
+    out=$(run_crew_state "$d" dead)
+    assert_contains "$out" 'state: done' "$surface: a dead divergent fixing record does not replace done"
+    assert_contains "$out" 'source: status-log' "$surface: the current published claim remains authoritative"
+    assert_not_contains "$out" 'state: working' "$surface: a done claim cannot revive a dead executing record"
+    assert_not_contains "$out" 'superseded' "$surface: a dead executing record cannot supersede done"
+  done
+  pass 'done claims do not revive dead executing records on either selection route'
+}
+
+# Guard in the other direction: a done claim the branch's run agrees with keeps
+# its reading, so the new rule never reopens a genuinely finished task.
+test_done_log_with_a_matching_head_run_stays_done() {
+  reset_fakes
+  local d out
+  d=$(seed_repushed_done_case done-matching-head matching matching)
+  FM_FAKE_RUN_HEAD=$(git -C "$d/wt" rev-parse HEAD)
+  FM_FAKE_AXI_STATUS="$(run_passed fm/feat-matching)"
+  FM_FAKE_RUNS_LIST=""
+  out=$(run_crew_state "$d" matching)
+  assert_contains "$out" 'state: done' 'a run at the done head keeps the done reading'
+  assert_contains "$out" 'source: run-step' 'the matching run remains the source'
+  pass 'a done claim the run agrees with stays done'
+}
+
+# A run record that names no head leaves nothing to compare against, so the
+# claim stands exactly as it does today.
+test_done_log_with_no_run_head_stays_done() {
+  reset_fakes
+  local d out
+  d=$(seed_repushed_done_case done-no-run-head nohead nohead)
+  FM_FAKE_RUN_HEAD=f0f0f0f0
+  FM_FAKE_AXI_STATUS="$(run_parked_ci_awaiting_approval fm/feat-nohead | grep -v '^  head:')
+branch_sync:
+  state: synced"
+  FM_FAKE_RUNS_LIST=""
+  out=$(run_crew_state "$d" nohead)
+  assert_contains "$out" 'state: done' 'a done claim with no comparable run head keeps today behaviour'
+  assert_contains "$out" 'source: status-log' 'the log remains the source when nothing can be compared'
+  pass 'a done claim with no comparable head stays done'
+}
+
 test_missing_run_head_falls_back_to_current_state() {
   reset_fakes
   local d out
@@ -5975,6 +6162,11 @@ test_non_pipeline_owned_parked_unresolvable_head_not_attributed
 test_gate_parked_run_with_live_status_word_not_attributed
 test_pipeline_owned_terminal_run_not_exempt
 test_missing_run_head_falls_back_to_current_state
+test_done_log_yields_to_a_repushed_parked_run
+test_done_log_rejects_unproven_parked_heads
+test_done_log_does_not_revive_dead_executing_record
+test_done_log_with_a_matching_head_run_stays_done
+test_done_log_with_no_run_head_stays_done
 test_active_fix_round_unfetched_pipeline_head_reports_current
 test_unanchored_unfetched_active_row_still_binds
 test_unresolved_terminal_row_is_history_not_current

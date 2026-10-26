@@ -138,7 +138,14 @@
 #      decisions. If it says needs-decision/blocked but
 #      the run-step shows the run moved on (outside the fork-delivery handoff
 #      above), the log is deterministically stale and
-#      is flagged superseded. A genuinely parked run plus a needs-decision log
+#      is flagged superseded. A ship `done:` claim is also flagged superseded
+#      when an active same-branch run has advanced beyond the claim's head and
+#      parked at a later gate. A locally resolvable run head must descend from
+#      that head; an unfetched head needs pipeline custody or the ledger-anchored
+#      continuation proof above. A different or unresolvable head alone is not
+#      proof of advancement, and this rule does not admit executing records.
+#      Tests: tests/fm-crew-state.test.sh.
+#      A genuinely parked run plus a needs-decision log
 #      agree, and are reported as parked. A `blocked:` line that reports a
 #      refused or missing daemon socket remains blocked even if an attributed
 #      run record is stale or terminal, for as long as that blocker is still the
@@ -974,7 +981,42 @@ nm_run_head_matches_worktree() {
   fm_nm_head_matches_worktree "$WT" "$run_head"
 }
 
+# The head a ship `done:` claim is about: the worker copy's HEAD, which is what
+# bin/fm-dod-lib.sh gates that claim against, or - when this copy cannot produce
+# one - the task's recorded pr_head= (bin/fm-pr-check.sh records the forge's head
+# when it arms the pull request). Returns 1 when neither exists, so a claim with
+# no comparable head keeps the reading its own log states.
+nm_done_claim_head() {
+  local head
+  head=$(git -C "$WT" rev-parse --verify HEAD 2>/dev/null) && { printf '%s' "$head"; return 0; }
+  head=$(meta_value pr_head)
+  [ -n "$head" ] || return 1
+  printf '%s' "$head"
+}
+
+nm_run_supersedes_done_claim() {
+  local done_head run_head run_full
+  [ "$LOG_VERB" = "done" ] || return 1
+  [ "$(strip_quotes "$(nm_field branch)")" = "$CREW_BRANCH" ] || return 1
+  fm_nm_run_is_active "$RUN_OUT" && fm_nm_run_is_parked "$RUN_OUT" || return 1
+  run_head=$(strip_quotes "$(nm_field head)")
+  [ -n "$run_head" ] || return 1
+  done_head=$(nm_done_claim_head) || return 1
+  run_full=$(fm_nm_resolve_commit "$WT" "$run_head")
+  if [ -n "$run_full" ]; then
+    [ "$run_full" != "$done_head" ] || return 1
+    git -C "$WT" merge-base --is-ancestor "$done_head" "$run_full" 2>/dev/null || return 1
+  else
+    case "$done_head" in "$run_head"*) return 1 ;; esac
+    fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+      || [ "$(fm_nm_runs_status_for_worktree "$WT" "$CREW_BRANCH" "$(nm_runs_list)" "$run_head")" = running ] \
+      || return 1
+  fi
+  DONE_CLAIM_SUPERSEDED=1
+}
+
 HAVE_RUN=0
+DONE_CLAIM_SUPERSEDED=0
 # RUN_SOURCE distinguishes the two ways HAVE_RUN=1 can happen: "full" means
 # $RUN_OUT is real `axi status` TOON with step/gate detail (including a
 # same-branch run the strict head rule rejected but the ledger proved is this
@@ -1036,7 +1078,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
         if [ "$(fm_nm_run_status_class "$selected_status")" != "$current_class" ]; then
           emit unknown run-step "selected run status disagrees with inventory; run ids: $candidate_ids"
         fi
-        if nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+        if nm_run_supersedes_done_claim || nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
           || { fm_nm_run_is_executing "$RUN_OUT" && ! nm_daemon_answered_down; }; then
           HAVE_RUN=1
         elif [ -z "$(fm_nm_resolve_commit "$WT" "$(strip_quotes "$(nm_field head)")")" ]; then
@@ -1067,7 +1109,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
       # record left saying `running` by a dead daemon stops answering once the
       # worktree moves off the run head.
       if [ -n "$run_branch" ] && [ "$run_branch" = "$CREW_BRANCH" ] \
-        && { nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
+        && { nm_run_supersedes_done_claim || nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
           || { fm_nm_run_is_executing "$RUN_OUT" && ! nm_daemon_answered_down; }; }; then
         HAVE_RUN=1
         # Without run ids, contradictory liveness cannot prove precedence.
@@ -1305,6 +1347,9 @@ if [ "$HAVE_RUN" = 1 ]; then
   esac
 
   [ -z "$SELECTED_RUN_ID" ] || RUN_DETAIL="$RUN_DETAIL${SEP}run: $SELECTED_RUN_ID"
+  if [ "$DONE_CLAIM_SUPERSEDED" = 1 ]; then
+    RUN_DETAIL="$RUN_DETAIL${SEP}status-log superseded: run pushed a newer head and parked at a later gate"
+  fi
   emit "$RUN_STATE" run-step "$RUN_DETAIL"
 fi
 
