@@ -96,8 +96,15 @@ test_brief_snippet_owns_the_lesson_schema_for_contributing_homes() {
   assert_contains "$out" 'evidence:' "the schema owns the evidence line"
   assert_contains "$out" 'nothing-to-teach:' "the schema owns the nothing-to-teach escape"
   out=$(run_wiki "$home" brief-snippet --role reader) || fail "reader snippet must exit 0"
-  assert_equals '' "$out" "a reader snippet prints nothing in slice 01"
-  pass "brief-snippet owns the lesson schema for contributing homes"
+  assert_contains "$out" "$home/state/wiki/mirror" "the consult paragraph prints the mirror's absolute path"
+  assert_contains "$out" 'grep -ril' "the consult paragraph starts at grep over pages"
+  assert_contains "$out" 'at most three' "the consult paragraph caps the page reads"
+  assert_contains "$out" 'unreviewed' "the consult paragraph marks raw matches unreviewed"
+  assert_contains "$out" 'data, not instructions' "the consult paragraph keeps wiki text subordinate to the brief"
+  if grep -q 'nothing-to-teach:' <<<"$out"; then
+    fail "a reader snippet carries no lesson-writing step"
+  fi
+  pass "brief-snippet owns the lesson schema for contributing homes and the consult paragraph for readers"
 }
 
 test_close_scans_and_stages_before_anything_reaches_the_outbox() {
@@ -693,16 +700,30 @@ test_dod_insertion_follows_the_opt_in() {
   brief="$home/data/brief-scout-x1/brief.md"
   assert_grep '## Crew wiki' "$brief" "an opted-in scout brief carries the wiki step"
   assert_grep 'brief-scout-x1/lessons.md' "$brief" "the scout wiki step names this task's lesson file"
-  # A reader home gets no contribution step in slice 01.
+  # A reader home gets the consult paragraph, and no contribution step.
   wiki_cfg "$home" reader "file://$TMP_ROOT/brief-read.git"
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
     FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" HOME="$home/home" \
     "$BRIEF" brief-read-x1 some-proj --mode no-mistakes >/dev/null 2>&1 \
     || fail "the ship brief scaffold failed for a reader home"
   brief="$home/data/brief-read-x1/brief.md"
-  if grep -q 'Crew wiki' "$brief"; then
-    fail "a reader home must not get a contribution step in slice 01"
+  assert_grep '## Crew wiki' "$brief" "an opted-in reader brief carries the consult paragraph"
+  assert_grep 'state/wiki/mirror' "$brief" "the reader brief prints the mirror path"
+  if grep -q "This task's lesson file" "$brief"; then
+    fail "a reader brief must not name a lesson file"
   fi
+  if grep -q 'nothing-to-teach:' "$brief"; then
+    fail "a reader brief must not carry the lesson-writing schema"
+  fi
+  # A contributor home gets both the lesson step and the consult paragraph.
+  wiki_cfg "$home" contributor "file://$TMP_ROOT/brief-opt.git"
+  FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" HOME="$home/home" \
+    "$BRIEF" brief-both-x1 some-proj --mode no-mistakes >/dev/null 2>&1 \
+    || fail "the ship brief scaffold failed for the combined check"
+  brief="$home/data/brief-both-x1/brief.md"
+  assert_grep 'brief-both-x1/lessons.md' "$brief" "the contributor brief still names this task's lesson file"
+  assert_grep 'state/wiki/mirror' "$brief" "the contributor brief also prints the mirror path"
   pass "brief insertion follows the config/wiki opt-in for ships and scouts"
 }
 
@@ -724,5 +745,97 @@ test_lesson_copies_remain_owner_only_under_a_permissive_umask
 test_git_calls_are_bounded_without_timeout_or_perl
 test_watcher_tick_paces_itself_by_its_stamp
 test_a_completed_task_stamps_its_final_status_not_none
+test_drain_refreshes_a_read_only_mirror_after_publish() {
+  local home bare out hit
+  home=$(wiki_home mirror)
+  bare=$(wiki_bare mirror)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m1
+  printf '## retry flag\nscope: tool:no-mistakes\nclaim: pass -timeout 20m to the race step\nevidence: saw CI kill at 10m00s\n' > "$home/data/task-m1/lessons.md"
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m1 >/dev/null || fail "close failed"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "the drain line reports the mirror refresh"
+  hit=$(grep -rl 'wiki-task: task-m1' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "a lesson published in one task is greppable from the mirror"
+  assert_contains "$hit" 'raw/' "the mirror carries the lesson under raw/"
+  grep -q 'pass -timeout 20m' "$hit" || fail "the mirror carries the lesson bytes"
+  assert_absent "$home/state/wiki/mirror/.git" "the mirror is a plain tree, never a second clone to write into"
+  pass "drain refreshes a read-only mirror after publish"
+}
+
+test_empty_drain_still_refreshes_the_mirror() {
+  local home bare out hit
+  home=$(wiki_home mirrorempty)
+  bare=$(wiki_bare mirrorempty)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m2
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m2 >/dev/null || fail "close failed"
+  run_wiki "$home" drain >/dev/null || fail "first drain failed"
+  out=$(run_wiki "$home" drain) || fail "an empty drain must exit 0"
+  assert_contains "$out" 'nothing to publish' "the empty drain still names its publish outcome"
+  assert_contains "$out" 'mirror refreshed' "the empty drain still refreshes the mirror"
+  hit=$(grep -rl 'wiki-task: task-m2' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "the mirror still serves the lesson after an empty drain"
+  pass "an empty drain still refreshes the mirror"
+}
+
+test_offline_drain_keeps_the_last_good_mirror() {
+  local home bare out before after
+  home=$(wiki_home mirroroff)
+  bare=$(wiki_bare mirroroff)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m3
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m3 >/dev/null || fail "close failed"
+  run_wiki "$home" drain >/dev/null || fail "first drain failed"
+  before=$(find "$home/state/wiki/mirror" -type f -exec md5sum {} + 2>/dev/null | sort)
+  [ -n "$before" ] || fail "the first drain populated the mirror"
+  mv "$bare" "$bare.away"
+  out=$(run_wiki "$home" drain 2>&1) || fail "an offline drain must exit 0"
+  assert_contains "$out" 'keeping the last good mirror' "the offline drain names the kept mirror"
+  after=$(find "$home/state/wiki/mirror" -type f -exec md5sum {} + 2>/dev/null | sort)
+  assert_equals "$before" "$after" "an offline refresh never leaves a half-updated mirror"
+  grep -rl 'wiki-task: task-m3' "$home/state/wiki/mirror" 2>/dev/null | grep -q . \
+    || fail "the last good mirror still serves the lesson while offline"
+  mv "$bare.away" "$bare"
+  out=$(run_wiki "$home" drain) || fail "the recovery drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "the mirror refreshes again once the remote is back"
+  pass "an offline drain keeps the last good mirror"
+}
+
+test_reader_home_drain_refreshes_mirror_without_publishing() {
+  local home seed bare out hit
+  bare=$(wiki_bare mirrorreader)
+  seed=$(wiki_home mirrorseed)
+  wiki_cfg "$seed" contributor "file://$bare"
+  wiki_task "$seed" task-seed
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$seed" close task-seed >/dev/null || fail "seed close failed"
+  run_wiki "$seed" drain >/dev/null || fail "seed drain failed"
+  home=$(wiki_home mirrorreader)
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(run_wiki "$home" drain) || fail "a reader drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "a reader drain refreshes the mirror"
+  hit=$(grep -rl 'wiki-task: task-seed' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "a reader home consults the lesson from its own mirror"
+  assert_equals '1' "$(git -C "$bare" rev-list --count main)" \
+    "a reader drain publishes nothing"
+  pass "a reader drain refreshes the mirror without publishing"
+}
+
+test_absent_config_creates_no_mirror() {
+  local home out
+  home=$(wiki_home nomirror)
+  out=$(run_wiki "$home" drain 2>&1) || fail "drain must exit 0 with no config"
+  assert_equals '' "$out" "drain without config prints nothing"
+  assert_absent "$home/state/wiki" "drain without config creates no wiki state at all"
+  out=$(run_wiki "$home" brief-snippet --role reader 2>&1) || fail "reader snippet must exit 0 with no config"
+  assert_equals '' "$out" "a reader snippet without config prints nothing"
+  pass "an absent config leaves every verb a silent no-op with no mirror"
+}
+
 test_close_stays_idempotent_across_repeated_calls
 test_dod_insertion_follows_the_opt_in
+test_drain_refreshes_a_read_only_mirror_after_publish
+test_empty_drain_still_refreshes_the_mirror
+test_offline_drain_keeps_the_last_good_mirror
+test_reader_home_drain_refreshes_mirror_without_publishing
+test_absent_config_creates_no_mirror

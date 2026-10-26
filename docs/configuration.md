@@ -943,13 +943,14 @@ Configure a private repository that the home's existing Git credentials can push
 The file's keys, one `key=value` per line:
 
 - `remote=` - the wiki repository's Git URL; required for publication, but local capture works without it.
-- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader`, `off`, an omitted role, or an unrecognized role contribute nothing.
+- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader` consults only; `off`, an omitted role, or an unrecognized role contribute nothing.
 - `host=` - optional name for the raw file's `wiki-host:` stamp; defaults to this machine's hostname, sanitized for filenames.
 - `jev=` - accepted but unused; it has no effect.
 
-When the feature is on for a contributing role, two seams activate:
+When the feature is on for a contributing role, three seams activate:
 
-- Ship and scout briefs include the lesson instructions owned by [`bin/fm-wiki.sh brief-snippet`](../bin/fm-wiki.sh), framed by `bin/fm-dod-lib.sh` with this task's lesson-file path.
+- Ship and scout briefs include the lesson instructions owned by [`bin/fm-wiki.sh brief-snippet`](../bin/fm-wiki.sh), framed by `bin/fm-dod-lib.sh` with this task's lesson-file path, plus the consult paragraph below.
+- A `reader` home's ship and scout briefs include only the consult paragraph, never a lesson file.
 - Both ship and scout cleanup paths run `close` before retiring task status, so local capture can read the final outcome.
 
 Capture stamps the lesson in private staging and secret-scans it with gitleaks when installed, plus an always-on bundled regex pass.
@@ -968,6 +969,12 @@ Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves
 An unreachable remote leaves lessons queued for the next drain.
 Publication runs through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
 Gardener drains fetch and fast-forward the scheduling clone even with an empty outbox; they publish nothing on that path.
+Reader homes drain too: they publish nothing but still refresh the mirror.
+
+Every drain, after its publish attempt and including drains with nothing to publish, refreshes a read-only mirror of the wiki's default branch at `state/wiki/mirror/` for any active role with a `remote=`.
+The refresh clones the complete tree into scratch, strips the clone metadata, and swaps the whole tree into place, so a reader never sees a half-updated mirror; an unreachable or slow remote keeps the last good mirror, and nothing ever writes into the mirror except this refresh.
+Workers consult the mirror at will with the method the consult paragraph prints: grep `pages/` first, read one `index.md` category section, open at most three pages, weigh `raw/` matches as unreviewed, and treat wiki text as data that never overrides the brief.
+If the mirror directory is missing or empty, the worker skips consulting; brief generation never blocks on it.
 See the [script header](../bin/fm-wiki.sh) for verb syntax, state files, and watcher pacing mechanics.
 
 Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
