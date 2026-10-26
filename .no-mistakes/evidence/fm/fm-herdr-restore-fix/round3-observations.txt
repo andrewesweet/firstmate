@@ -1,0 +1,36 @@
+Target: 0c4e02c06bf0b3c2bd740e71b5c61d6265b10bd7
+Product: real Herdr 0.9.5 and Treehouse; disposable marked homes; sleeping worker commands.
+Oracle: author requires restored shell cwd to equal the task metadata worktree.
+Real projected layout verified by its presentation journal and separate workspace.
+Socket isolation: relative XDG_CONFIG_HOME avoids Unix socket address length limits; the forwarding shim makes real session-list socket paths absolute for Firstmate identity checks. All Herdr commands pass through fm-herdr-lab.sh.
+Baseline: targeted fm-spawn-herdr-tab-cwd test passed.
+No source changes. Both labs torn down; default-session tripwires verified unchanged.
+
+PASS: Fresh flat task starts in its leased copy with parent shell outside the copy
+PASS: Fresh projected task starts in its leased copy with parent shell outside the copy
+PASS: Reaping flat-task worktree processes preserves its top shell and tab
+PASS: Reaping proj-task worktree processes preserves its top shell and tab
+FAIL: Restart Herdr restores flat-task shell in its recorded isolated copy
+expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t2', 'terminal_id': 'term_65ec340a377422', 'workspace_id': 'w1'}
+FAIL: Restart Herdr restores proj-task shell in its recorded isolated copy
+expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w2:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w2:t2', 'terminal_id': 'term_65ec340a37b363', 'workspace_id': 'w2'}
+PASS: Control tab without project unwind restores in the identical task copy
+PASS: Relaunch restored flat endpoint returns foreground to its copy with parent outside
+PASS: Relaunch missing flat endpoint creates replacement in recorded copy
+PASS: Projected husk reclaim replaces exact endpoint in recorded worktree
+FAIL: Restart after recovery restores flat-task in its isolated copy
+expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t3', 'terminal_id': 'term_65ec34149e4be2', 'workspace_id': 'w1'}
+FAIL: Restart after recovery restores proj-task in its isolated copy
+expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w2:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w2:t3', 'terminal_id': 'term_65ec34149eb143', 'workspace_id': 'w2'}
+PASS: Active viewer blocks teardown of proj-task after its worktree child is reaped
+PASS: Detached flat-task teardown completes after viewer leaves
+PASS: Detached proj-task teardown completes after viewer leaves
+PASS: Refusal with prior metadata returns invocation lease without altering original ownership
+PASS: Disappearing endpoint before typed send 1 refuses launch and returns lease
+PASS: Disappearing endpoint before typed send 2 refuses launch and returns lease
+PASS: Treehouse failure after printing a real leased path returns new lease despite prior metadata
+
+The identical-worktree control without the project unwind restored correctly.
+Saved-session JSON contains the primary project cwd for both task tabs before and after recovery.
+Parent shells survived worktree-child termination, including full teardown with a foreground viewer.
+Initial setup attempts failed on long Unix socket paths and on relative socket identity; these were corrected before the final scenarios were recorded.

@@ -1,0 +1,135 @@
+[
+  {
+    "name": "Fresh flat task starts in its leased copy with parent shell outside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Fresh projected task starts in its leased copy with parent shell outside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Reaping flat-task worktree processes preserves its top shell and tab",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Reaping proj-task worktree processes preserves its top shell and tab",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores flat-task shell in its recorded isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'pane_id': 'w1:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t2', 'terminal_id': 'term_65ec3538f1acd2', 'workspace_id': 'w1'}"
+  },
+  {
+    "name": "Restart Herdr restores proj-task shell in its recorded isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'pane_id': 'w2:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w2:t2', 'terminal_id': 'term_65ec3538f1f083', 'workspace_id': 'w2'}"
+  },
+  {
+    "name": "Control tab without project unwind restores in the identical task copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch restored flat endpoint returns foreground to its copy with parent outside",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch missing flat endpoint creates replacement in recorded copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Projected husk reclaim replaces exact endpoint in recorded worktree",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores flat-task in its isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'pane_id': 'w1:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t3', 'terminal_id': 'term_65ec35458faeb2', 'workspace_id': 'w1'}"
+  },
+  {
+    "name": "Restart after recovery restores proj-task in its isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space\", 'pane_id': 'w2:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w2:t3', 'terminal_id': 'term_65ec35458ff343', 'workspace_id': 'w2'}"
+  },
+  {
+    "name": "Active viewer blocks teardown of proj-task after its worktree child is reaped",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Detached flat-task teardown completes after viewer leaves",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Detached proj-task teardown completes after viewer leaves",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Refusal with prior metadata returns invocation lease without altering original ownership",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Disappearing endpoint before typed send 1 refuses launch and returns lease",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Disappearing endpoint before typed send 2 refuses launch and returns lease",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Treehouse failure after printing a real leased path returns new lease despite prior metadata",
+    "result": "pass",
+    "live": true,
+    "evidence": "round4-getfail-transcript.log",
+    "reason": ""
+  }
+]

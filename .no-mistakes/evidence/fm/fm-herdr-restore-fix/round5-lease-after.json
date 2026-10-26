@@ -1,0 +1,59 @@
+[
+  {
+    "name": "1",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "4efdcc97c011a2872b14cc15e1b4d40c",
+    "lease_holder": "prior-task",
+    "leased_at": "2026-10-26T19:42:51.271523861Z",
+    "processes": []
+  },
+  {
+    "name": "2",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "7e7065d300d651dfea507ffcce92b794",
+    "lease_holder": "proj-task",
+    "leased_at": "2026-10-26T19:42:24.594317319Z",
+    "processes": []
+  },
+  {
+    "name": "3",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "e35f51acdb2c0a1efc681d13ff23efa6",
+    "lease_holder": "proj-task",
+    "leased_at": "2026-10-26T19:42:34.488089793Z",
+    "processes": [
+      {
+        "pid": 568996,
+        "name": "bash"
+      },
+      {
+        "pid": 576394,
+        "name": "sleep"
+      }
+    ]
+  },
+  {
+    "name": "4",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space",
+    "status": "available",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  }
+]

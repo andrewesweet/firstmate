@@ -1,0 +1,26 @@
+[
+  {
+    "name": "1",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "aef267887ad3e45e3f352d7aa294a6a4",
+    "lease_holder": "prior-failed-get",
+    "leased_at": "2026-10-26T19:14:38.6024708Z",
+    "processes": []
+  },
+  {
+    "name": "2",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space",
+    "status": "available",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  }
+]

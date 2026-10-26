@@ -1,0 +1,13 @@
+Herdr 0.9.5, target 0c4e02c06bf0b3c2bd740e71b5c61d6265b10bd7.
+Live tests used real fm-spawn.sh, fm-teardown.sh, Herdr and Treehouse in disposable worktree-local homes.
+A sleep foreground process exercised the runtime lifecycle without model work.
+All Herdr calls routed through bin/fm-herdr-lab.sh; both teardown calls exited 0 and verified the default-session tripwire.
+Observed persisted session state after first stop:
+workspace='firstmate'; tab=None; persisted cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space
+workspace='firstmate'; tab='fm-flat-task'; persisted cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space
+workspace='└ proj-task · p:z7-L5XKJVxacR2mNfMqu-Q'; tab='fm-proj-task'; persisted cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space
+workspace='no-unwind-control'; tab=None; persisted cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space
+Observed outcome: both task shells restored in the primary project directory; the no-unwind control restored in the same leased task copy.
+Recovery did not fix persistence: flat replacement and projected reclaim also restored in the primary project directory.
+Expected outcome comes from author intent: restored task shells must start in the recorded isolated worktree.
+Live scenario results: 15 pass, 4 fail.

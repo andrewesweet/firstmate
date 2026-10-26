@@ -1,0 +1,10 @@
+ok - flat layout: task tab created in the task worktree, container in the project
+ok - restored relaunch: outer shell survives reaping its worktree child
+ok - drifted relaunch: outer shell survives reaping its worktree child
+ok - missing relaunch: outer shell survives reaping its worktree child
+ok - projection layout: projected workspace and task tab both created in the task worktree
+ok - projection reclaim: replacement tab keeps its saved cwd and outer shell survives child reaping
+ok - get exit 0: aborted spawn returns its new lease and preserves the prior record and lease
+ok - get exit 1: aborted spawn returns its new lease and preserves the prior record and lease
+ok - typed-send failure 1: spawn refuses and returns its lease
+ok - typed-send failure 2: spawn refuses and returns its lease

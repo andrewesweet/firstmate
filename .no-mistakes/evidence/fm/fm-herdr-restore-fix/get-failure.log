@@ -1,0 +1,29 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-get
+
+$ treehouse status --json
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"84069528522552c0ff487c173e24f458","lease_holder":"prior-task","leased_at":"2026-10-26T19:00:56.148046378Z","processes":[]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"445b47545d2bf195e3dedb61e41c728f","lease_holder":"proj-task","leased_at":"2026-10-26T19:00:12.718020305Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/3/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh prior-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space sleep 600 --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/prior
+warning: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/prior/data/prior-task/brief.md records no ship branch; defaulting to legacy branch fm/prior-task
+warning: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/prior/data/prior-task/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: prior-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/3/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/3/project's space' to release it.
+error: task prior-task could not lease a Treehouse pool slot for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space; refusing to launch a worker without a reserved copy
+
+$ treehouse status --json
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"84069528522552c0ff487c173e24f458","lease_holder":"prior-task","leased_at":"2026-10-26T19:00:56.148046378Z","processes":[]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"445b47545d2bf195e3dedb61e41c728f","lease_holder":"proj-task","leased_at":"2026-10-26T19:00:12.718020305Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/3/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+
+PROOF post-allocation failure: newly acquired lease returned despite prior record; original leases and record preserved
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh teardown fm-lab-get
+

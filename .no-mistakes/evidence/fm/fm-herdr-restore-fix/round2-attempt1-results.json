@@ -1,0 +1,135 @@
+[
+  {
+    "name": "Fresh flat task starts in its leased copy with parent shell outside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Fresh projected task starts in its leased copy with parent shell outside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Reaping flat-task worktree processes preserves its top shell and tab",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Reaping proj-task worktree processes preserves its top shell and tab",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores flat-task shell in its recorded isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'focused': True, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'pane_id': 'w1:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t2', 'terminal_id': 'term_65ec31cd112821', 'workspace_id': 'w1'}"
+  },
+  {
+    "name": "Restart Herdr restores proj-task shell in its recorded isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'pane_id': 'w2:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w2:t2', 'terminal_id': 'term_65ec31cd116a52', 'workspace_id': 'w2'}"
+  },
+  {
+    "name": "Control tab without project unwind restores in the identical task copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch restored flat endpoint returns foreground to its copy with parent outside",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch missing flat endpoint creates replacement in recorded copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Projected husk reclaim replaces exact endpoint in recorded worktree",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores flat-task in its isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'pane_id': 'w4:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w4:t2', 'terminal_id': 'term_65ec31d7bcc4e3', 'workspace_id': 'w4'}"
+  },
+  {
+    "name": "Restart after recovery restores proj-task in its isolated copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/3/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space; pane={'agent_status': 'unknown', 'cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'focused': False, 'foreground_cwd': \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space\", 'pane_id': 'w4:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w4:t3', 'terminal_id': 'term_65ec31d7bd9564', 'workspace_id': 'w4'}"
+  },
+  {
+    "name": "Active viewer blocks teardown of flat-task after its worktree child is reaped",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/flat\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 24s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nteardown: reaping leaked worktree process(es) for flat-task: 3212628 3214245 3216275 3218306\nteardown: force-killing leaked worktree process(es) for flat-task: 3212628 3214245\nA new version of treehouse is available: v3.1.5 \u2192 v3.1.6\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\nteardown flat-task complete (window fm-lab-a:w4:p2, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space)\nBacklog: flat-task just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/flat/data/backlog.md). Update ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/flat/data/backlog.md - move flat-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.\n"
+  },
+  {
+    "name": "Active viewer blocks teardown of proj-task after its worktree child is reaped",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/projection\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 28s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nteardown: reaping leaked worktree process(es) for proj-task: 3221965 3223920 3226480\nteardown: force-killing leaked worktree process(es) for proj-task: 3221965\nA new version of treehouse is available: v3.1.5 \u2192 v3.1.6\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\nwarning: herdr presentation journal for proj-task was not retired by its close; no workspace cleanup was attempted\nwarning: retaining herdr presentation journal for proj-task; it still names a projected workspace the session-start sweep owns, not the closed endpoint\nteardown proj-task complete (window fm-lab-a:w4:p3, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/3/project's space)\nBacklog: proj-task just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/projection/data/backlog.md). Update ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/projection/data/backlog.md - move proj-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.\n"
+  },
+  {
+    "name": "Detached flat-task teardown completes after viewer leaves",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "[PosixPath('~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh'), 'flat-task']: exit 1: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/flat\nerror: teardown refused: task record is not a regular file at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/flat/state/flat-task.meta\n"
+  },
+  {
+    "name": "Detached proj-task teardown completes after viewer leaves",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "[PosixPath('~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh'), 'proj-task']: exit 1: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/projection\nerror: teardown refused: task record is not a regular file at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/projection/state/proj-task.meta\n"
+  },
+  {
+    "name": "Refusal with prior metadata returns invocation lease without altering original ownership",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "name": "Disappearing endpoint before typed send 1 refuses launch and returns lease",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "name": "Disappearing endpoint before typed send 2 refuses launch and returns lease",
+    "result": "fail",
+    "live": true,
+    "evidence": "round2-live-transcript.log",
+    "reason": "Expecting value: line 1 column 1 (char 0)"
+  }
+]

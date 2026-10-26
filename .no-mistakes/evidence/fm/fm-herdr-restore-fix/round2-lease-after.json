@@ -1,0 +1,38 @@
+[
+  {
+    "name": "1",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "f33f8726375bc46938fe8b7ca6d7926a",
+    "lease_holder": "prior-task",
+    "leased_at": "2026-10-26T19:14:05.911615294Z",
+    "processes": []
+  },
+  {
+    "name": "2",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space",
+    "status": "leased",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "bd64598cb77ed1e87e8a3a37fac42c17",
+    "lease_holder": "proj-task",
+    "leased_at": "2026-10-26T19:13:34.033848281Z",
+    "processes": []
+  },
+  {
+    "name": "3",
+    "path": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/3/project's space",
+    "status": "available",
+    "branch": "",
+    "detached": true,
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  }
+]

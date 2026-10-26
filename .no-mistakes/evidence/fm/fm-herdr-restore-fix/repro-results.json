@@ -1,0 +1,14 @@
+[
+  {
+    "task": "flat-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.restore-repro/pool/.treehouse/project's space-7c0774/1/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.restore-repro/project's space",
+    "result": "fail"
+  },
+  {
+    "task": "proj-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.restore-repro/pool/.treehouse/project's space-7c0774/2/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.restore-repro/project's space",
+    "result": "fail"
+  }
+]

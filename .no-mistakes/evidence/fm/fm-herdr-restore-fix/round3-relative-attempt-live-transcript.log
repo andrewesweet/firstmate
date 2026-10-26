@@ -1,0 +1,341 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-c
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c status --json
+{"client":{"version":"0.9.5","channel":"stable","protocol":22,"endpoint_protocol_generation":1,"endpoint_capabilities":["surface_interest","presentation_effects_fence","health_check"],"remote_host_bridge":true,"remote_bridge_idle_timeout":true,"binary":"~/.local/bin/herdr","session":"fm-lab-c"},"server":{"status":"running","running":true,"version":"0.9.5","protocol":22,"capabilities":{"live_handoff":true,"detached_server_daemon":false,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true,"ssh_agent_registration":true},"compatible":true,"endpoint_compatible":true,"socket":".h/x/herdr/sessions/fm-lab-c/herdr.sock","session":"fm-lab-c","restart_needed":false,"server_binary_stale":false},"update":{"restart_needed":false,"server_binary_stale":false}}
+
+$ git init -q -b main ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space
+
+$ git add seed
+
+$ git commit -qm seed
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c workspace create --cwd ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --label firstmate --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":true,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65ec33c410ca31","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-brief.sh flat-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --mode local-only --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat/data/flat-task/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh flat-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+spawned flat-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p2 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+notice: flat-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space' to release it.
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33c4c0fe52","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3806465,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3806465}],"pane_id":"w1:p2","shell_pid":3801849},"type":"pane_process_info"}}
+
+PASS: Fresh flat task starts in its leased copy with parent shell outside the copy: {'pane': 'w1:p2', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space", 'top': 3801849, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-brief.sh proj-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --mode local-only --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection/data/proj-task/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh proj-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+spawned proj-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p3 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+notice: proj-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space' to release it.
+warning: herdr presentation focus lock unavailable; using the ordinary flat layout without projection
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p3
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","pane_id":"w1:p3","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t3","terminal_id":"term_65ec33c791c363","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p3
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3814097,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","name":"sleep","pid":3814097}],"pane_id":"w1:p3","shell_pid":3809473},"type":"pane_process_info"}}
+
+PASS: Fresh projected task starts in its leased copy with parent shell outside the copy: {'pane': 'w1:p3', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space", 'top': 3809473, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33c4c0fe52","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3806465,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3806465}],"pane_id":"w1:p2","shell_pid":3801849},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3806465,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3806465}],"pane_id":"w1:p2","shell_pid":3801849},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33c4c0fe52","workspace_id":"w1"},"type":"pane_info"}}
+
+PASS: Reaping flat-task worktree processes preserves its top shell and tab: {'pane': 'w1:p2', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space", 'top': 3801849, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p3
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","pane_id":"w1:p3","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t3","terminal_id":"term_65ec33c791c363","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p3
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3814097,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","name":"sleep","pid":3814097}],"pane_id":"w1:p3","shell_pid":3809473},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p3
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3814097,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","name":"sleep","pid":3814097}],"pane_id":"w1:p3","shell_pid":3809473},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p3
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","pane_id":"w1:p3","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t3","terminal_id":"term_65ec33c791c363","workspace_id":"w1"},"type":"pane_info"}}
+
+PASS: Reaping proj-task worktree processes preserves its top shell and tab: {'pane': 'w1:p3', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space", 'top': 3809473, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c workspace create --cwd ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space --label no-unwind-control --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65ec33cb02b834","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"no-unwind-control","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh stop fm-lab-c
+{"session":{"default":false,"name":"fm-lab-c","running":false,"session_dir":".h/x/herdr/sessions/fm-lab-c","socket_path":".h/x/herdr/sessions/fm-lab-c/herdr.sock"},"stopped":true}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-c
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33cb6380a2","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3818045,"foreground_processes":[{"argv":["/bin/bash"],"cmdline":"/bin/bash","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","name":"bash","pid":3818045}],"pane_id":"w1:p2","shell_pid":3818045},"type":"pane_process_info"}}
+
+FAIL: Restart Herdr restores flat-task shell in its recorded isolated copy: expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p2', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t2', 'terminal_id': 'term_65ec33cb6380a2', 'workspace_id': 'w1'}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p3
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","pane_id":"w1:p3","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t3","terminal_id":"term_65ec33cb63d1c3","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p3
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3818049,"foreground_processes":[{"argv":["/bin/bash"],"cmdline":"/bin/bash","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","name":"bash","pid":3818049}],"pane_id":"w1:p3","shell_pid":3818049},"type":"pane_process_info"}}
+
+FAIL: Restart Herdr restores proj-task shell in its recorded isolated copy: expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p3', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t3', 'terminal_id': 'term_65ec33cb63d1c3', 'workspace_id': 'w1'}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w2:p1
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65ec33cb642e04","workspace_id":"w2"},"type":"pane_info"}}
+
+PASS: Control tab without project unwind restores in the identical task copy: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh flat-task --relaunch --harness sleep 600
+spawned flat-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p2 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+notice: flat-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33cb6380a2","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3821791,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3821791}],"pane_id":"w1:p2","shell_pid":3818045},"type":"pane_process_info"}}
+
+PASS: Relaunch restored flat endpoint returns foreground to its copy with parent outside: {'pane': 'w1:p2', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space", 'top': 3818045, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33cb6380a2","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3821791,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3821791}],"pane_id":"w1:p2","shell_pid":3818045},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p2
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3821791,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3821791}],"pane_id":"w1:p2","shell_pid":3818045},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p2
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ec33cb6380a2","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane close w1:p2
+{"id":"cli:pane:close","result":{"type":"ok"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh flat-task --relaunch --harness sleep 600
+spawned flat-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p4 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+notice: flat-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p4
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","pane_id":"w1:p4","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t4","terminal_id":"term_65ec33cfca2b45","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p4
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3826421,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","name":"sleep","pid":3826421}],"pane_id":"w1:p4","shell_pid":3823853},"type":"pane_process_info"}}
+
+PASS: Relaunch missing flat endpoint creates replacement in recorded copy: {'pane': 'w1:p4', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space", 'top': 3823853, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh proj-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+spawned proj-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p5 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+notice: proj-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space' to release it.
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p5
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","pane_id":"w1:p5","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t5","terminal_id":"term_65ec33d2963ec6","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p5
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3831677,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","name":"sleep","pid":3831677}],"pane_id":"w1:p5","shell_pid":3828694},"type":"pane_process_info"}}
+
+PASS: Projected husk reclaim replaces exact endpoint in recorded worktree: {'pane': 'w1:p5', 'worktree': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space", 'top': 3828694, 'topcwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh stop fm-lab-c
+{"session":{"default":false,"name":"fm-lab-c","running":false,"session_dir":".h/x/herdr/sessions/fm-lab-c","socket_path":".h/x/herdr/sessions/fm-lab-c/herdr.sock"},"stopped":true}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-c
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p4
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","pane_id":"w1:p4","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t4","terminal_id":"term_65ec33d525d762","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p4
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3832243,"foreground_processes":[{"argv":["/bin/bash"],"cmdline":"/bin/bash","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","name":"bash","pid":3832243}],"pane_id":"w1:p4","shell_pid":3832243},"type":"pane_process_info"}}
+
+FAIL: Restart after recovery restores flat-task in its isolated copy: expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p4', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t4', 'terminal_id': 'term_65ec33d525d762', 'workspace_id': 'w1'}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p5
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","pane_id":"w1:p5","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t5","terminal_id":"term_65ec33d5263fe3","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p5
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3832248,"foreground_processes":[{"argv":["/bin/bash"],"cmdline":"/bin/bash","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","name":"bash","pid":3832248}],"pane_id":"w1:p5","shell_pid":3832248},"type":"pane_process_info"}}
+
+FAIL: Restart after recovery restores proj-task in its isolated copy: expected isolated copy=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space; restored shell cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space; pane={'agent_status': 'unknown', 'cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'focused': False, 'foreground_cwd': "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space", 'pane_id': 'w1:p5', 'revision': 0, 'scroll': {'max_offset_from_bottom': 0, 'offset_from_bottom': 0, 'viewport_rows': 40}, 'tab_id': 'w1:t5', 'terminal_id': 'term_65ec33d5263fe3', 'workspace_id': 'w1'}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh viewer start fm-lab-c
+viewer attached to fm-lab-c (pid 3833063)
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh proj-task --relaunch --harness sleep 600
+spawned proj-task harness=sleep kind=ship mode=local-only yolo=off window=fm-lab-c:w1:p5 worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+notice: proj-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane get w1:p5
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space","focused":false,"foreground_cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","pane_id":"w1:p5","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":39},"tab_id":"w1:t5","terminal_id":"term_65ec33d5263fe3","workspace_id":"w1"},"type":"pane_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c pane process-info --pane w1:p5
+{"id":"cli:pane:process_info","result":{"process_info":{"foreground_process_group_id":3838461,"foreground_processes":[{"argv":["sleep","600"],"cmdline":"sleep 600","cwd":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","name":"sleep","pid":3838461}],"pane_id":"w1:p5","shell_pid":3832248},"type":"pane_process_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-c tab focus w1:t5
+{"id":"cli:tab:focus","result":{"tab":{"agent_status":"unknown","focused":true,"label":"fm-proj-task","number":5,"pane_count":1,"tab_id":"w1:t5","workspace_id":"w1"},"type":"tab_info"}}
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh proj-task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 20s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: herdr session presentation lock could not be resolved for proj-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+FAIL: Active viewer blocks teardown of proj-task after its worktree child is reaped: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 20s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: herdr session presentation lock could not be resolved for proj-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh viewer stop fm-lab-c
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh flat-task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 24s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: herdr session presentation lock could not be resolved for flat-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+FAIL: Detached flat-task teardown completes after viewer leaves: [PosixPath('~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh'), 'flat-task']: exit 1: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 24s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: herdr session presentation lock could not be resolved for flat-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh proj-task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+WARNING: watcher still down (same stale episode; last beat: 22s ago, grace 300s) - full banner already printed this episode.
+error: herdr session presentation lock could not be resolved for proj-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+FAIL: Detached proj-task teardown completes after viewer leaves: [PosixPath('~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-teardown.sh'), 'proj-task']: exit 1: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/projection
+WARNING: watcher still down (same stale episode; last beat: 22s ago, grace 300s) - full banner already printed this episode.
+error: herdr session presentation lock could not be resolved for proj-task; nothing was changed - rerun teardown once the session is reachable and unambiguous
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/prior
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/prior
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-brief.sh prior-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --mode local-only --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/prior/data/prior-task/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+$ treehouse get --lease --lease-holder prior-task
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space' to release it.
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"d0a66d9603b8d0b6356147cfc07946b8","lease_holder":"flat-task","leased_at":"2026-10-26T19:21:23.345486446Z","processes":[{"pid":3832254,"name":"bash"}]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"a57eeea0167ae00251cabddfc4e1b65d","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:26.216732809Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"637275bdb745e375f0e208b7263a31a2","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:37.691256204Z","processes":[{"pid":3835087,"name":"bash"},{"pid":3838461,"name":"sleep"}]},{"name":"4","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"efed89899639bcbdd54beda169eb94f6","lease_holder":"prior-task","leased_at":"2026-10-26T19:21:48.161321572Z","processes":[]}]
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh prior-task ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/prior
+notice: prior-task ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space' to release it.
+error: herdr presentation recovery could not acquire its session lock; refusing a concurrent resume
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"d0a66d9603b8d0b6356147cfc07946b8","lease_holder":"flat-task","leased_at":"2026-10-26T19:21:23.345486446Z","processes":[{"pid":3832254,"name":"bash"}]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"a57eeea0167ae00251cabddfc4e1b65d","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:26.216732809Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"637275bdb745e375f0e208b7263a31a2","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:37.691256204Z","processes":[{"pid":3835087,"name":"bash"},{"pid":3838461,"name":"sleep"}]},{"name":"4","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"efed89899639bcbdd54beda169eb94f6","lease_holder":"prior-task","leased_at":"2026-10-26T19:21:48.161321572Z","processes":[]},{"name":"5","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+
+PASS: Refusal with prior metadata returns invocation lease without altering original ownership: new lease returned; prior record and all existing leases unchanged
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-1
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-1
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-brief.sh drop-1 ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --mode local-only --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-1/data/drop-1/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh drop-1 ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-1
+notice: drop-1 ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space' to release it.
+error: task drop-1's endpoint could not be told to enter the project shell; returning the lease and refusing to launch
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"d0a66d9603b8d0b6356147cfc07946b8","lease_holder":"flat-task","leased_at":"2026-10-26T19:21:23.345486446Z","processes":[{"pid":3832254,"name":"bash"}]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"a57eeea0167ae00251cabddfc4e1b65d","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:26.216732809Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"637275bdb745e375f0e208b7263a31a2","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:37.691256204Z","processes":[{"pid":3835087,"name":"bash"},{"pid":3838461,"name":"sleep"}]},{"name":"4","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"efed89899639bcbdd54beda169eb94f6","lease_holder":"prior-task","leased_at":"2026-10-26T19:21:48.161321572Z","processes":[]},{"name":"5","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+
+PASS: Disappearing endpoint before typed send 1 refuses launch and returns lease: real pane closed at typed-send boundary; launch refused; lease returned
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-2
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-2
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-brief.sh drop-2 ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space --mode local-only --herdr-lab
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-2/data/drop-2/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh drop-2 ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/project's space sleep 600 --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/drop-2
+notice: drop-2 ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space' to release it.
+error: task drop-2's endpoint could not be told to enter its recorded worktree '~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space'; returning the lease and refusing to launch
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"d0a66d9603b8d0b6356147cfc07946b8","lease_holder":"flat-task","leased_at":"2026-10-26T19:21:23.345486446Z","processes":[{"pid":3832254,"name":"bash"}]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/2/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"a57eeea0167ae00251cabddfc4e1b65d","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:26.216732809Z","processes":[]},{"name":"3","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"637275bdb745e375f0e208b7263a31a2","lease_holder":"proj-task","leased_at":"2026-10-26T19:21:37.691256204Z","processes":[{"pid":3835087,"name":"bash"},{"pid":3838461,"name":"sleep"}]},{"name":"4","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/4/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"efed89899639bcbdd54beda169eb94f6","lease_holder":"prior-task","leased_at":"2026-10-26T19:21:48.161321572Z","processes":[]},{"name":"5","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/5/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+
+PASS: Disappearing endpoint before typed send 2 refuses launch and returns lease: real pane closed at typed-send boundary; launch refused; lease returned
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh teardown fm-lab-c
+
+Lab teardown exit=0; default-session tripwire verified

@@ -1,0 +1,128 @@
+[
+  {
+    "name": "Fresh flat task starts in its leased copy with top shell inside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Fresh projected task starts in its leased copy with top shell inside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores flat-task shell in its recorded isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores proj-task shell in its recorded isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Control tab restores in the identical task copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch restored flat endpoint keeps top shell and foreground inside its copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch missing flat endpoint creates replacement in recorded copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Projected husk reclaim replaces exact endpoint in recorded worktree",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores flat-task in its isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores proj-task in its isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Active viewer blocks teardown of flat-task before any worktree process is killed",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": "A new version of treehouse is available: v3.1.5 \u2192 v3.1.6\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\nteardown flat-task complete (window fm-lab-r5:w1:p3, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/1/project's space)\nBacklog: flat-task just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat/data/backlog.md). Update ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat/data/backlog.md - move flat-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.\nfm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 22s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nteardown: reaping leaked worktree process(es) for flat-task: 569003 572905\nteardown: force-killing leaked worktree process(es) for flat-task: 569003\n"
+  },
+  {
+    "name": "Active viewer blocks teardown of proj-task before any worktree process is killed",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Foreign slot ownership preserves flat-task endpoint and worktree processes",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": "[Errno 2] No such file or directory: '~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat/state/flat-task.meta'"
+  },
+  {
+    "name": "Foreign slot ownership preserves proj-task endpoint and worktree processes",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": "[Errno 2] No such file or directory: \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space/.fm-slot-owner\""
+  },
+  {
+    "name": "Detached flat-task teardown closes endpoint before returning its copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": "[Errno 2] No such file or directory: '~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/flat/state/flat-task.meta'"
+  },
+  {
+    "name": "Detached proj-task teardown closes endpoint before returning its copy",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": "[Errno 2] No such file or directory: \"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.h/pool/.treehouse/project's space-406eed/3/project's space/.fm-slot-owner\""
+  },
+  {
+    "name": "Refusal with prior metadata returns invocation lease without altering original ownership",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Disappearing endpoint before typed send 1 refuses launch and returns lease",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5-live-transcript.log",
+    "reason": ""
+  }
+]

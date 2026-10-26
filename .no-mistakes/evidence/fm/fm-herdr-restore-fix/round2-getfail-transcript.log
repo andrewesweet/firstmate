@@ -1,0 +1,44 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-b
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh run fm-lab-b status --json
+{"client":{"version":"0.9.5","channel":"stable","protocol":22,"endpoint_protocol_generation":1,"endpoint_capabilities":["surface_interest","presentation_effects_fence","health_check"],"remote_host_bridge":true,"remote_bridge_idle_timeout":true,"binary":"~/.local/bin/herdr","session":"fm-lab-b"},"server":{"status":"running","running":true,"version":"0.9.5","protocol":22,"capabilities":{"live_handoff":true,"detached_server_daemon":false,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true,"ssh_agent_registration":true},"compatible":true,"endpoint_compatible":true,"socket":"~/.no-mistakes/evidence/01M5WPVPGAQ2W73QCTVDNTVVJY/x/herdr/sessions/fm-lab-b/herdr.sock","session":"fm-lab-b","restart_needed":false,"server_binary_stale":false},"update":{"restart_needed":false,"server_binary_stale":false}}
+
+$ git init -q -b main ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space
+
+$ git add seed
+
+$ git commit -qm seed
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/prior-failed-get
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/prior-failed-get
+
+$ treehouse get --lease --lease-holder prior-failed-get
+~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space' to release it.
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"aef267887ad3e45e3f352d7aa294a6a4","lease_holder":"prior-failed-get","leased_at":"2026-10-26T19:14:38.6024708Z","processes":[]}]
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-spawn.sh prior-failed-get ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space sleep 600 --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/prior-failed-get
+warning: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/prior-failed-get/data/prior-failed-get/brief.md records no ship branch; defaulting to legacy branch fm/prior-failed-get
+warning: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/prior-failed-get/data/prior-failed-get/brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: prior-failed-get ships mode=local-only while the standing posture for project's space is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space. Run 'treehouse return ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space' to release it.
+error: task prior-failed-get could not lease a Treehouse pool slot for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/project's space; refusing to launch a worker without a reserved copy
+
+$ treehouse status --json
+[{"name":"1","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/1/project's space","status":"leased","branch":"","detached":true,"flavor":"git","lease_id":"aef267887ad3e45e3f352d7aa294a6a4","lease_holder":"prior-failed-get","leased_at":"2026-10-26T19:14:38.6024708Z","processes":[]},{"name":"2","path":"~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.herdr-phase-lab/pool/.treehouse/project's space-16f3f5/2/project's space","status":"available","branch":"","detached":true,"flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+A new version of treehouse is available: v3.1.5 → v3.1.6
+Run "treehouse update" to update
+
+
+PASS: Treehouse failure after printing a real leased path returns new lease despite prior metadata: real Treehouse allocated and printed a second lease; injected failing exit triggered rollback; original metadata and lease unchanged
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh teardown fm-lab-b
+
+Lab teardown exit=0; default-session tripwire verified

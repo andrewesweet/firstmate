@@ -1,0 +1,26 @@
+[
+  {
+    "task": "flat-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/1/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space",
+    "result": "fail"
+  },
+  {
+    "task": "proj-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/2/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space",
+    "result": "fail"
+  },
+  {
+    "task": "flat-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/1/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space",
+    "result": "fail"
+  },
+  {
+    "task": "proj-task",
+    "expected": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/pool/.treehouse/project's space-c7c092/3/project's space",
+    "actual": "~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/.test-lab/project's space",
+    "result": "fail"
+  }
+]

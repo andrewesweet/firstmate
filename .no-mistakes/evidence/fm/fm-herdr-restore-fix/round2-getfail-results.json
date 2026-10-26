@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Treehouse failure after printing a real leased path returns new lease despite prior metadata",
+    "result": "pass",
+    "live": true,
+    "evidence": "round2-getfail-transcript.log",
+    "reason": ""
+  }
+]

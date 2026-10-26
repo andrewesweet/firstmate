@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Active viewer blocks projected teardown before any worktree process is killed",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5d-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Detached projected teardown closes endpoint and retires journal before returning owned copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5d-live-transcript.log",
+    "reason": ""
+  }
+]

@@ -1,0 +1,7 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh provision fm-lab-c
+fm-herdr-lab: fleet-state tripwire requires exactly one running default session
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WPVPGAQ2W73QCTVDNTVVJY/bin/fm-herdr-lab.sh teardown fm-lab-c
+fm-herdr-lab: missing fleet-state tripwire for 'fm-lab-c'; refusing destructive calls
+
+Lab teardown exit=1; default-session tripwire verified

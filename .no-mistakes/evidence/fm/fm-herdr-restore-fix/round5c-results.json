@@ -1,0 +1,121 @@
+[
+  {
+    "name": "Fresh flat task starts in its leased copy with top shell inside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Fresh projected task starts in its leased copy with top shell inside the copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores flat-task shell in its recorded isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart Herdr restores proj-task shell in its recorded isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Control tab restores in the identical task copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch restored flat endpoint keeps top shell and foreground inside its copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Relaunch missing flat endpoint creates replacement in recorded copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Projected husk reclaim replaces exact endpoint in recorded worktree",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores flat-task in its isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Restart after recovery restores proj-task in its isolated copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Active viewer blocks teardown of proj-task before any worktree process is killed",
+    "result": "fail",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": "Traceback (most recent call last):\n  File \"~/.no-mistakes/evidence/01M5WPVPGAQ2W73QCTVDNTVVJY/round5c-live-driver.py\", line 77, in scenario\n    detail=fn(); result='pass'\n  File \"~/.no-mistakes/evidence/01M5WPVPGAQ2W73QCTVDNTVVJY/round5c-live-driver.py\", line 145, in active\n    assert json.loads(run(['treehouse','status','--json'],cwd=project).stdout)==leases_before\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+  },
+  {
+    "name": "Foreign slot ownership preserves flat-task endpoint and worktree processes",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Foreign slot ownership preserves proj-task endpoint and worktree processes",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Detached flat-task teardown closes endpoint before returning its copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Detached proj-task teardown closes endpoint before returning its copy",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Refusal with prior metadata returns invocation lease without altering original ownership",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Disappearing endpoint before typed send 1 refuses launch and returns lease",
+    "result": "pass",
+    "live": true,
+    "evidence": "round5c-live-transcript.log",
+    "reason": ""
+  }
+]
