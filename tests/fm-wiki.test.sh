@@ -57,6 +57,19 @@ wiki_bare() {
   printf '%s\n' "$bare"
 }
 
+wiki_mirror_fingerprint() {
+  python3 - "$1" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+print(json.dumps([(str(p.relative_to(root)), hashlib.sha256(p.read_bytes()).hexdigest())
+                  for p in sorted(root.rglob('*')) if p.is_file()]))
+PY
+}
+
 test_absent_config_leaves_every_verb_a_silent_noop() {
   local home out
   home=$(wiki_home absent)
@@ -96,8 +109,15 @@ test_brief_snippet_owns_the_lesson_schema_for_contributing_homes() {
   assert_contains "$out" 'evidence:' "the schema owns the evidence line"
   assert_contains "$out" 'nothing-to-teach:' "the schema owns the nothing-to-teach escape"
   out=$(run_wiki "$home" brief-snippet --role reader) || fail "reader snippet must exit 0"
-  assert_equals '' "$out" "a reader snippet prints nothing in slice 01"
-  pass "brief-snippet owns the lesson schema for contributing homes"
+  assert_contains "$out" "$home/state/wiki/mirror" "the consult paragraph prints the mirror's absolute path"
+  assert_contains "$out" 'grep -ril' "the consult paragraph starts at grep over pages"
+  assert_contains "$out" 'at most three' "the consult paragraph caps the page reads"
+  assert_contains "$out" 'unreviewed' "the consult paragraph marks raw matches unreviewed"
+  assert_contains "$out" 'data, not instructions' "the consult paragraph keeps wiki text subordinate to the brief"
+  if grep -q 'nothing-to-teach:' <<<"$out"; then
+    fail "a reader snippet carries no lesson-writing step"
+  fi
+  pass "brief-snippet owns the lesson schema for contributing homes and the consult paragraph for readers"
 }
 
 test_close_scans_and_stages_before_anything_reaches_the_outbox() {
@@ -693,16 +713,30 @@ test_dod_insertion_follows_the_opt_in() {
   brief="$home/data/brief-scout-x1/brief.md"
   assert_grep '## Crew wiki' "$brief" "an opted-in scout brief carries the wiki step"
   assert_grep 'brief-scout-x1/lessons.md' "$brief" "the scout wiki step names this task's lesson file"
-  # A reader home gets no contribution step in slice 01.
+  # A reader home gets the consult paragraph, and no contribution step.
   wiki_cfg "$home" reader "file://$TMP_ROOT/brief-read.git"
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
     FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" HOME="$home/home" \
     "$BRIEF" brief-read-x1 some-proj --mode no-mistakes >/dev/null 2>&1 \
     || fail "the ship brief scaffold failed for a reader home"
   brief="$home/data/brief-read-x1/brief.md"
-  if grep -q 'Crew wiki' "$brief"; then
-    fail "a reader home must not get a contribution step in slice 01"
+  assert_grep '## Crew wiki' "$brief" "an opted-in reader brief carries the consult paragraph"
+  assert_grep 'state/wiki/mirror' "$brief" "the reader brief prints the mirror path"
+  if grep -q "This task's lesson file" "$brief"; then
+    fail "a reader brief must not name a lesson file"
   fi
+  if grep -q 'nothing-to-teach:' "$brief"; then
+    fail "a reader brief must not carry the lesson-writing schema"
+  fi
+  # A contributor home gets both the lesson step and the consult paragraph.
+  wiki_cfg "$home" contributor "file://$TMP_ROOT/brief-opt.git"
+  FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" HOME="$home/home" \
+    "$BRIEF" brief-both-x1 some-proj --mode no-mistakes >/dev/null 2>&1 \
+    || fail "the ship brief scaffold failed for the combined check"
+  brief="$home/data/brief-both-x1/brief.md"
+  assert_grep 'brief-both-x1/lessons.md' "$brief" "the contributor brief still names this task's lesson file"
+  assert_grep 'state/wiki/mirror' "$brief" "the contributor brief also prints the mirror path"
   pass "brief insertion follows the config/wiki opt-in for ships and scouts"
 }
 
@@ -724,5 +758,342 @@ test_lesson_copies_remain_owner_only_under_a_permissive_umask
 test_git_calls_are_bounded_without_timeout_or_perl
 test_watcher_tick_paces_itself_by_its_stamp
 test_a_completed_task_stamps_its_final_status_not_none
+test_drain_refreshes_a_read_only_mirror_after_publish() {
+  local home bare out hit
+  home=$(wiki_home mirror)
+  bare=$(wiki_bare mirror)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m1
+  printf '## retry flag\nscope: tool:no-mistakes\nclaim: pass -timeout 20m to the race step\nevidence: saw CI kill at 10m00s\n' > "$home/data/task-m1/lessons.md"
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m1 >/dev/null || fail "close failed"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "the drain line reports the mirror refresh"
+  hit=$(grep -rl 'wiki-task: task-m1' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "a lesson published in one task is greppable from the mirror"
+  assert_contains "$hit" 'raw/' "the mirror carries the lesson under raw/"
+  grep -q 'pass -timeout 20m' "$hit" || fail "the mirror carries the lesson bytes"
+  assert_absent "$home/state/wiki/mirror/.git" "the mirror is a plain tree, never a second clone to write into"
+  pass "drain refreshes a read-only mirror after publish"
+}
+
+test_empty_drain_still_refreshes_the_mirror() {
+  local home bare out hit
+  home=$(wiki_home mirrorempty)
+  bare=$(wiki_bare mirrorempty)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m2
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m2 >/dev/null || fail "close failed"
+  run_wiki "$home" drain >/dev/null || fail "first drain failed"
+  out=$(run_wiki "$home" drain) || fail "an empty drain must exit 0"
+  assert_contains "$out" 'nothing to publish' "the empty drain still names its publish outcome"
+  assert_contains "$out" 'mirror refreshed' "the empty drain still refreshes the mirror"
+  hit=$(grep -rl 'wiki-task: task-m2' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "the mirror still serves the lesson after an empty drain"
+  pass "an empty drain still refreshes the mirror"
+}
+
+test_offline_drain_keeps_the_last_good_mirror() {
+  local home bare out before after
+  home=$(wiki_home mirroroff)
+  bare=$(wiki_bare mirroroff)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-m3
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-m3 >/dev/null || fail "close failed"
+  run_wiki "$home" drain >/dev/null || fail "first drain failed"
+  before=$(wiki_mirror_fingerprint "$home/state/wiki/mirror") || fail "cannot fingerprint the mirror"
+  [ "$before" != '[]' ] || fail "the first drain populated the mirror"
+  mv "$bare" "$bare.away"
+  out=$(run_wiki "$home" drain 2>&1) || fail "an offline drain must exit 0"
+  assert_contains "$out" 'keeping the last good mirror' "the offline drain names the kept mirror"
+  after=$(wiki_mirror_fingerprint "$home/state/wiki/mirror") || fail "cannot fingerprint the mirror"
+  assert_equals "$before" "$after" "an offline refresh never leaves a half-updated mirror"
+  grep -rl 'wiki-task: task-m3' "$home/state/wiki/mirror" 2>/dev/null | grep -q . \
+    || fail "the last good mirror still serves the lesson while offline"
+  mv "$bare.away" "$bare"
+  out=$(run_wiki "$home" drain) || fail "the recovery drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "the mirror refreshes again once the remote is back"
+  pass "an offline drain keeps the last good mirror"
+}
+
+test_reader_home_drain_refreshes_mirror_without_publishing() {
+  local home seed bare out hit
+  bare=$(wiki_bare mirrorreader)
+  seed=$(wiki_home mirrorseed)
+  wiki_cfg "$seed" contributor "file://$bare"
+  wiki_task "$seed" task-seed
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$seed" close task-seed >/dev/null || fail "seed close failed"
+  run_wiki "$seed" drain >/dev/null || fail "seed drain failed"
+  home=$(wiki_home mirrorreader)
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(run_wiki "$home" drain) || fail "a reader drain must exit 0"
+  assert_contains "$out" 'mirror refreshed' "a reader drain refreshes the mirror"
+  hit=$(grep -rl 'wiki-task: task-seed' "$home/state/wiki/mirror" 2>/dev/null | head -n 1)
+  [ -n "$hit" ] || fail "a reader home consults the lesson from its own mirror"
+  assert_equals '1' "$(git -C "$bare" rev-list --count main)" \
+    "a reader drain publishes nothing"
+  pass "a reader drain refreshes the mirror without publishing"
+}
+
+test_absent_config_creates_no_mirror() {
+  local home out
+  home=$(wiki_home nomirror)
+  out=$(run_wiki "$home" drain 2>&1) || fail "drain must exit 0 with no config"
+  assert_equals '' "$out" "drain without config prints nothing"
+  assert_absent "$home/state/wiki" "drain without config creates no wiki state at all"
+  out=$(run_wiki "$home" brief-snippet --role reader 2>&1) || fail "reader snippet must exit 0 with no config"
+  assert_equals '' "$out" "a reader snippet without config prints nothing"
+  out=$(run_wiki "$home" consult printf 'must not run') || fail "missing mirror consultation must exit 0"
+  assert_equals '' "$out" "a missing mirror skips the read command"
+  pass "an absent config leaves every verb a silent no-op with no mirror"
+}
+
+test_consult_commands_resolve_relative_state_and_quoted_paths() {
+  local home mirror out mode id
+  home=$(wiki_home "consult ' \$ home")
+  mirror="$home/state/wiki/mirror"
+  wiki_cfg "$home" gardener "file://$TMP_ROOT/consult.git"
+  mkdir -p "$mirror/pages/tools"
+  : > "$home/state/wiki/.drain.lock"
+  printf '# Retry flags\n> summary: retry settings\nneedle --help -timeout\n' > "$mirror/pages/tools/retry.md"
+  run_wiki "$home" index --repo "$mirror" >/dev/null || fail "index generation failed"
+  out=$(cd "$home" && FM_HOME="$home" FM_STATE_OVERRIDE=state "$WIKI" brief-snippet --role reader) \
+    || fail "standalone consult snippet failed"
+  printf '%s\n' "$out" > "$home/snippet.md"
+  for mode in ship scout; do
+    id="consult-$mode"
+    if [ "$mode" = ship ]; then
+      (cd "$home" && FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE=state \
+        HOME="$home/home" "$BRIEF" "$id" some-proj --mode no-mistakes >/dev/null 2>&1) \
+        || fail "ship consult brief failed"
+    else
+      (cd "$home" && FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE=state \
+        HOME="$home/home" "$BRIEF" "$id" some-proj --scout >/dev/null 2>&1) \
+        || fail "scout consult brief failed"
+    fi
+  done
+  python3 - "$home" "$TMP_ROOT" <<'PY' || fail "emitted consult commands failed"
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+home, cwd = map(Path, sys.argv[1:])
+page = 'pages/tools/retry.md'
+for output in [home / 'snippet.md', *(home / f'data/consult-{kind}/brief.md' for kind in ('ship', 'scout'))]:
+    text = output.read_text()
+    commands = re.findall(r'`(env [^`]+ consult grep [^`]+)`', text)
+    assert len(commands) == 2, (output, commands)
+    for term in ('needle', '--help', '-timeout'):
+        pages = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[0].replace('<term>', term)], cwd=cwd, text=True)
+        assert pages.splitlines() == [page], (output, term, pages)
+    section = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[1]], cwd=cwd, text=True)
+    assert '[Retry flags](pages/tools/retry.md)' in section, (output, section)
+    command, = re.findall(r'`(env [^`]+ consult cat [^`]+)`', text)
+    content = subprocess.check_output(['bash', '-c', command.replace('pages/<page>.md', page)], cwd=cwd, text=True)
+    assert 'needle' in content, (output, content)
+PY
+  pass "standalone, ship, and scout consult commands work across directories with quoted paths"
+}
+
+test_checkout_failure_never_publishes_an_incomplete_mirror() {
+  local home bare seed fakebin real_git out before operation
+  home=$(wiki_home checkout-failure)
+  bare=$(wiki_bare checkout-failure)
+  git -C "$bare" symbolic-ref HEAD refs/heads/unborn
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(run_wiki "$home" drain) || fail "empty remote drain failed"
+  assert_contains "$out" 'mirror refreshed' "a genuinely empty repository has a complete empty snapshot"
+  assert_absent "$home/state/wiki/mirror/.git" "empty snapshots contain no clone metadata"
+  seed="$TMP_ROOT/checkout-seed"
+  git init -q "$seed"
+  printf 'complete old tree\n' > "$seed/page.md"
+  git -C "$seed" add page.md
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "remote seed commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote seed failed"
+  run_wiki "$home" drain >/dev/null || fail "dangling HEAD checkout failed"
+  assert_equals 'complete old tree' "$(cat "$home/state/wiki/mirror/page.md")" "main is checked out when remote HEAD dangles"
+  before=$(wiki_mirror_fingerprint "$home/state/wiki/mirror")
+  fakebin="$TMP_ROOT/checkout-bin"
+  mkdir -p "$fakebin"
+  real_git=$(command -v git)
+  cat > "$fakebin/git" <<'SH'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "$FM_WIKI_FAIL_OPERATION" ]; then exit 124; fi
+done
+exec "$FM_WIKI_REAL_GIT" "$@"
+SH
+  chmod +x "$fakebin/git"
+  for operation in checkout for-each-ref; do
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_GIT="$real_git" FM_WIKI_FAIL_OPERATION="$operation" \
+      run_wiki "$home" drain) || fail "failed checkout drain must stay best-effort"
+    assert_contains "$out" 'checkout failed' "a failed or timed-out checkout cannot report success"
+    assert_equals "$before" "$(wiki_mirror_fingerprint "$home/state/wiki/mirror")" "failed checkout preserves the old complete tree"
+  done
+  home=$(wiki_home checkout-first)
+  wiki_cfg "$home" reader "file://$bare"
+  out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_GIT="$real_git" FM_WIKI_FAIL_OPERATION=checkout \
+    run_wiki "$home" drain) || fail "first checkout failure must stay best-effort"
+  assert_absent "$home/state/wiki/mirror" "a first failed checkout publishes no snapshot"
+  git -C "$seed" checkout -qb trunk
+  printf 'remote default tree\n' > "$seed/page.md"
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam default || fail "default branch commit failed"
+  git -C "$seed" push -q "$bare" HEAD:trunk || fail "default branch seed failed"
+  git -C "$bare" symbolic-ref HEAD refs/heads/trunk
+  run_wiki "$home" drain >/dev/null || fail "default branch refresh failed"
+  assert_equals 'remote default tree' "$(cat "$home/state/wiki/mirror/page.md")" "a valid remote HEAD selects the default branch"
+  pass "empty remotes, dangling HEAD, and checkout failures preserve complete snapshots"
+}
+
+test_mirror_swap_keeps_the_published_tree_until_atomic_replacement() {
+  local home bare seed hooks out
+  home=$(wiki_home atomic-mirror)
+  bare=$(wiki_bare atomic-mirror)
+  seed="$TMP_ROOT/atomic-seed"
+  git init -q "$seed"
+  printf 'old\n' > "$seed/page.md"
+  git -C "$seed" add page.md
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "remote seed commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote seed failed"
+  wiki_cfg "$home" reader "file://$bare"
+  run_wiki "$home" drain >/dev/null || fail "first mirror refresh failed"
+  printf 'new\n' > "$seed/page.md"
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam update || fail "remote update commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "remote update failed"
+  hooks="$TMP_ROOT/atomic-hooks"
+  mkdir -p "$hooks"
+  cat > "$hooks/sitecustomize.py" <<'PY'
+import os
+from pathlib import Path
+
+replace = os.replace
+def observe_replace(src, dst, *args, **kwargs):
+    if Path(dst) != Path(os.environ['FM_WIKI_OBSERVE_MIRROR']):
+        return replace(src, dst, *args, **kwargs)
+    mirror = Path(dst)
+    assert (mirror / 'page.md').read_text() == 'old\n'
+    mirror.with_name('observed').write_text('old tree reachable at replacement')
+    if os.environ.get('FM_WIKI_REJECT_SWAP') == '1':
+        raise OSError('injected publication failure')
+    result = replace(src, dst, *args, **kwargs)
+    assert (mirror / 'page.md').read_text() == 'new\n'
+    return result
+os.replace = observe_replace
+PY
+  out=$(PYTHONPATH="$hooks" FM_WIKI_OBSERVE_MIRROR="$home/state/wiki/mirror" FM_WIKI_REJECT_SWAP=1 \
+    run_wiki "$home" drain) || fail "failed swap must stay best-effort"
+  assert_present "$home/state/wiki/observed" "the old tree remains reachable at the publication boundary"
+  assert_contains "$out" 'swap failed' "publication failure retains the mirror"
+  assert_equals 'old' "$(cat "$home/state/wiki/mirror/page.md")" "failed publication preserves old content"
+  out=$(PYTHONPATH="$hooks" FM_WIKI_OBSERVE_MIRROR="$home/state/wiki/mirror" run_wiki "$home" drain) \
+    || fail "atomic refresh failed"
+  assert_contains "$out" 'mirror refreshed' "replacement succeeds after a failed swap"
+  assert_equals 'new' "$(cat "$home/state/wiki/mirror/page.md")" "successful publication serves the new complete tree"
+  assert_absent "$home/state/wiki/mirror/.git" "the refreshed tree has no clone metadata"
+  assert_equals '1' "$(find "$home/state/wiki" -maxdepth 1 -type d -name '.mirror.*' | wc -l | tr -d ' ')" \
+    "superseded snapshots and failed refresh scratch are removed"
+  pass "mirror replacement is atomic and failed publication preserves the old tree"
+}
+
+test_active_consultations_keep_their_snapshot_until_all_readers_finish() {
+  local home bare seed file
+  home=$(wiki_home shared-readers)
+  bare=$(wiki_bare shared-readers)
+  seed="$home/seed"
+  git init -q "$seed"
+  mkdir -p "$seed/pages/tools" "$seed/raw"
+  for file in pages/tools/retry.md index.md raw/lesson.md; do
+    printf 'old needle\n' > "$seed/$file"
+  done
+  git -C "$seed" add .
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "reader fixture commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "reader fixture push failed"
+  wiki_cfg "$home" reader "file://$bare"
+  run_wiki "$home" drain >/dev/null || fail "reader fixture refresh failed"
+  for file in pages/tools/retry.md index.md raw/lesson.md; do
+    printf 'new needle\n' > "$seed/$file"
+  done
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam update || fail "reader fixture update failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "reader fixture update push failed"
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_CONFIG_OVERRIDE="$home/config" \
+    FM_DATA_OVERRIDE="$home/data" HOME="$home/home" python3 - "$WIKI" "$home" <<'PY' \
+    || fail "concurrent consultation invalidated a snapshot"
+import fcntl
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+wiki, home = sys.argv[1], Path(sys.argv[2])
+reader_code = '''
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+with os.scandir('pages/tools') as entries:
+    assert [entry.name for entry in entries] == ['retry.md']
+    Path(sys.argv[1]).touch()
+    deadline = time.monotonic() + 15
+    while not Path(sys.argv[2]).exists():
+        assert time.monotonic() < deadline, 'reader release timed out'
+        time.sleep(0.01)
+    matches = subprocess.check_output(['grep', '-ril', 'old needle', 'pages'], text=True)
+    assert matches.splitlines() == ['pages/tools/retry.md'], matches
+    for name in ('pages/tools/retry.md', 'index.md', 'raw/lesson.md'):
+        assert Path(name).read_text() == 'old needle\\n', name
+'''
+readers = []
+try:
+    for number in range(2):
+        ready, release = home / f'ready-{number}', home / f'release-{number}'
+        process = subprocess.Popen([wiki, 'consult', sys.executable, '-c', reader_code, str(ready), str(release)],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        readers.append((process, ready, release))
+    deadline = time.monotonic() + 10
+    while not all(ready.exists() for _, ready, _ in readers):
+        assert all(process.poll() is None for process, _, _ in readers), 'a concurrent reader was skipped'
+        assert time.monotonic() < deadline, 'readers never reached the directory boundary'
+        time.sleep(0.01)
+    mirror = home / 'state/wiki/mirror'
+    snapshot = mirror.resolve()
+    for process, _, release in readers:
+        result = subprocess.run([wiki, 'drain'], capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0 and 'already running' in result.stdout, result
+        assert mirror.resolve() == snapshot and (snapshot / 'pages/tools/retry.md').exists()
+        release.touch()
+        stdout, stderr = process.communicate(timeout=10)
+        assert process.returncode == 0, (stdout, stderr)
+    result = subprocess.run([wiki, 'drain'], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0 and 'mirror refreshed' in result.stdout, result
+    assert not snapshot.exists(), 'the retired snapshot was not reclaimed after readers finished'
+    for name in ('pages/tools/retry.md', 'index.md', 'raw/lesson.md'):
+        result = subprocess.run([wiki, 'consult', 'cat', name], capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0 and result.stdout == 'new needle\n', (name, result)
+    with (home / 'state/wiki/.drain.lock').open() as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = subprocess.run([wiki, 'consult', 'printf', 'must not run'], capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0 and result.stdout == '', result
+    result = subprocess.run([wiki, 'consult', 'bash', '-c', 'exit 7'], timeout=5)
+    assert result.returncode == 7, result
+finally:
+    for process, _, release in readers:
+        release.touch()
+        if process.poll() is None:
+            process.kill()
+        process.communicate(timeout=5)
+PY
+  pass "shared consultations retain pages, index, and raw lessons until every reader exits"
+}
+
 test_close_stays_idempotent_across_repeated_calls
 test_dod_insertion_follows_the_opt_in
+test_drain_refreshes_a_read_only_mirror_after_publish
+test_empty_drain_still_refreshes_the_mirror
+test_offline_drain_keeps_the_last_good_mirror
+test_reader_home_drain_refreshes_mirror_without_publishing
+test_absent_config_creates_no_mirror
+test_consult_commands_resolve_relative_state_and_quoted_paths
+test_checkout_failure_never_publishes_an_incomplete_mirror
+test_mirror_swap_keeps_the_published_tree_until_atomic_replacement
+test_active_consultations_keep_their_snapshot_until_all_readers_finish

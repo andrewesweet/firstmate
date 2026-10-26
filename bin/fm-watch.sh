@@ -3417,8 +3417,8 @@ while :; do
   [ ! -e "$CONFIG/herdr-project-groups" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-herdr-groups.sh" sync || true
   # Opt-in crew wiki (docs/configuration.md "Crew wiki"): drain-if-due paces
   # itself by its own stamp, exits after one config test when the feature is
-  # off, and is single-flight, so the periodic detached spawn here only ever
-  # publishes queued lessons; it never wakes and never blocks this loop.
+  # off, and is single-flight. The periodic detached spawn publishes queued
+  # lessons and refreshes the mirror; it never wakes and never blocks this loop.
   if [ -e "$CONFIG/wiki" ]; then
     FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG \
       "$SCRIPT_DIR/fm-wiki.sh" drain-if-due </dev/null >/dev/null 2>&1 &

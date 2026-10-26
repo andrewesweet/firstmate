@@ -689,27 +689,40 @@ fm_dod_feedback_dir() {  # -> <data-dir>
   printf '%s\n' "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 }
 
-# The crew-wiki lesson step for a rendered Definition of done, or nothing
-# when this home has not opted in through config/wiki with a contributing
-# role. bin/fm-wiki.sh owns the lesson-schema text; this helper owns only the
-# insertion framing and this task's lesson-file path. Silence (feature off,
-# reader role, missing home) is a supported outcome, never an error: a brief
-# must render with or without the wiki.
+# The crew-wiki step for a rendered Definition of done: the lesson
+# instructions for contributing homes, the consult paragraph for every opted-in
+# role (readers get the consult paragraph only, never a lesson file), or
+# nothing when this home has not opted in through config/wiki with an active
+# role and, for the consult part, a remote. bin/fm-wiki.sh owns both texts
+# through brief-snippet; this helper owns only the insertion framing and this
+# task's lesson-file path. Silence (feature off, missing home) is a
+# supported outcome, never an error: a brief must render with or without
+# the wiki.
 fm_dod_wiki_step() {  # <task-id> -> <wiki step text>
-  local id=$1 root snippet data home
+  local id=$1 root lesson consult data home
   root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   home=${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-$root}}}
-  snippet=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
-    "$root/bin/fm-wiki.sh" brief-snippet --role contributor 2>/dev/null) || return 0
-  [ -n "$snippet" ] || return 0
+  lesson=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
+    FM_STATE_OVERRIDE="${STATE:-${FM_STATE_OVERRIDE:-$home/state}}" \
+    "$root/bin/fm-wiki.sh" brief-snippet --role contributor 2>/dev/null) || lesson=
+  consult=$(FM_HOME="$home" FM_CONFIG_OVERRIDE="${CONFIG:-${FM_CONFIG_OVERRIDE:-$home/config}}" \
+    FM_STATE_OVERRIDE="${STATE:-${FM_STATE_OVERRIDE:-$home/state}}" \
+    "$root/bin/fm-wiki.sh" brief-snippet --role reader 2>/dev/null) || consult=
+  [ -n "$lesson" ] || [ -n "$consult" ] || return 0
   data=${DATA:-${FM_DATA_OVERRIDE:-$home/data}}
   printf '## Crew wiki\n\n'
-  printf "This task's lesson file: \`%s/%s/lessons.md\`.\n\n" "$data" "$id"
-  printf '%s\n' "$snippet"
+  if [ -n "$lesson" ]; then
+    printf "This task's lesson file: \`%s/%s/lessons.md\`.\n\n" "$data" "$id"
+    printf '%s\n' "$lesson"
+    [ -n "$consult" ] && printf '\n'
+  fi
+  if [ -n "$consult" ]; then
+    printf '%s\n' "$consult"
+  fi
 }
 
 # fm_dod_wiki_print_step <task-id>: the framed step, or nothing at all when
-# the home is not a contributing wiki home, so opt-out briefs render exactly
+# the home is not an opted-in wiki home, so opt-out briefs render exactly
 # as they did before this step existed.
 fm_dod_wiki_print_step() {  # <task-id>
   local step
