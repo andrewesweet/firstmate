@@ -241,7 +241,10 @@ A local skill exists only in this home, so offloading an entry out of `data/capt
      Use `--archive-body` when recoverability matters.
      Never append.
    - File each undone next step as a queued backlog item with a genuine `blocked-by` dependency when applicable.
-4. **Use inspect-then-update.**
+4. **File unfiled supervision lessons with the crew wiki when this home contributes.**
+   When `config/wiki` exists and selects a contributing role, write any unfiled supervision craft from this session to a file under `data/wiki-supervision/` and run `bin/fm-wiki.sh file <path>` on it; the verb stamps, secret-scans, and queues it for the wiki's own drain, and is idempotent for the same content.
+   A home without `config/wiki` skips this step.
+5. **Use inspect-then-update.**
    For every retained fact, ask which current statement it supersedes, whether it can be a one-sentence rewrite, and whether a stale entry should be refreshed, archived, or routed to an existing stronger owner.
    The only graduation moves are promotion to tracked shared material through a PR, folding a learning into the captain-preference destination selected by AGENTS.md, archiving a stale entry to `data/memory-archive.md`, autonomous offload of an eligible non-pinned conditional entry to an already-existing allowed owner through the reduce flow above, captain-approved offload of a pinned durable conditional entry to a JIT-loaded owner executed through the migration step above, or deletion of an entry that is a duplicate or already preserved through a stronger existing owner.
    A stale unique fact is never deleted, only archived.

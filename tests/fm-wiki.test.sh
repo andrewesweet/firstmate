@@ -81,6 +81,10 @@ test_absent_config_leaves_every_verb_a_silent_noop() {
   assert_equals '' "$out" "brief-snippet without config prints nothing"
   out=$(run_wiki "$home" drain-if-due 2>&1) || fail "drain-if-due must exit 0 with no config"
   assert_equals '' "$out" "drain-if-due without config prints nothing"
+  printf '## a lesson nobody files\nscope: t\nclaim: c\n\nevidence: e\n' > "$home/data/sup.md"
+  out=$(run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0 with no config"
+  assert_equals '' "$out" "file without config prints nothing"
+  [ ! -e "$home/state/wiki" ] || fail "file without config creates no wiki state"
   pass "absent config/wiki leaves every verb a silent no-op"
 }
 
@@ -95,6 +99,9 @@ test_role_off_keeps_the_feature_fully_off() {
     "an off home never queues a lesson"
   out=$(run_wiki "$home" drain 2>&1) || fail "drain must exit 0 with role=off"
   assert_equals '' "$out" "drain with role=off prints nothing"
+  printf '## a lesson nobody files\nscope: t\nclaim: c\n\nevidence: e\n' > "$home/data/sup.md"
+  out=$(run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0 with role=off"
+  assert_equals '' "$out" "file with role=off prints nothing"
   pass "role=off keeps the feature fully off"
 }
 
@@ -204,6 +211,167 @@ test_missing_and_nothing_to_teach_lessons_record_without_pushing() {
   assert_contains "$out" 'nothing to publish' "drain reports an empty outbox"
   [ -z "$(git -C "$bare" log --format=%H main 2>/dev/null)" ] || fail "nothing was pushed"
   pass "missing and nothing-to-teach lessons record without pushing"
+}
+
+# wiki_sup_task <home> <task-id> <lessons-text|-> <supervision-text|->: stage a
+# finished task's lesson and supervision files; - omits the file.
+wiki_sup_task() {
+  local home=$1 task=$2 lessons=$3 supervision=$4
+  printf 'kind=ship\nharness=pi\nmodel=test-model\nproject=/tmp/proj\n' > "$home/state/$task.meta"
+  printf 'done [at=1]: PR https://example.test/pull/1\n' > "$home/state/$task.status"
+  mkdir -p "$home/data/$task"
+  if [ "$lessons" != - ]; then
+    printf '%s\n' "$lessons" > "$home/data/$task/lessons.md"
+  fi
+  if [ "$supervision" != - ]; then
+    printf '%s\n' "$supervision" > "$home/data/$task/supervision.md"
+  fi
+}
+
+test_close_collects_a_supervision_file_as_one_supervisor_lesson() {
+  local home bare out queued body path
+  home=$(wiki_home supclose)
+  bare=$(wiki_bare supclose)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_sup_task "$home" task-s1 - '## steer through the durable inbox\nscope: harness:pi\nclaim: send text with fm-send\n\nevidence: the doorbell rang\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s1 2>&1) || fail "close with only supervision.md must exit 0"
+  assert_contains "$out" 'queued' "the supervision close reports its queued lesson"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a task with only supervision.md queues exactly one lesson"
+  queued=$(cat "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
+  assert_contains "$queued" 'wiki-role: supervisor' "the stamp marks a supervisor lesson"
+  assert_contains "$queued" 'wiki-kind: supervision' "the stamp kinds the lesson as supervision"
+  assert_contains "$queued" 'wiki-agent: firstmate' "the stamp names the supervisor agent"
+  assert_contains "$queued" 'wiki-task: task-s1' "the stamp names the supervised task"
+  assert_contains "$queued" 'wiki-harness: pi' "the stamp keeps the task's harness"
+  assert_grep '"outcome":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger records the capture"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger names the supervision capture"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'pushed 1 lesson' "the drain lands the supervision lesson"
+  path=$(git -C "$bare" ls-tree -r --name-only main | head -n 1)
+  body=$(git -C "$bare" show "main:$path")
+  assert_contains "$body" 'wiki-role: supervisor' "the raw file keeps the supervisor stamp"
+  assert_contains "$body" 'evidence: the doorbell rang' "the raw file keeps the lesson body"
+  pass "close collects a supervision.md as one supervisor-stamped lesson"
+}
+
+test_file_verb_scans_holds_and_stays_idempotent() {
+  local home bare out path body sup leak
+  home=$(wiki_home supfile)
+  bare=$(wiki_bare supfile)
+  wiki_cfg "$home" contributor "file://$bare"
+  mkdir -p "$home/data"
+  sup="$home/data/wiki-supervision/20261025T000000Z.md"
+  mkdir -p "$home/data/wiki-supervision"
+  printf '## recovery recipe\nscope: harness:claude\nclaim: resume the session\n\nevidence: the window came back\n' > "$sup"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$sup" 2>&1) || fail "file must exit 0"
+  assert_contains "$out" 'queued' "file reports its queued lesson"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "file queues exactly one lesson"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger records the filed lesson"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$sup" 2>&1) || fail "a repeated file must exit 0"
+  assert_contains "$out" 'already recorded' "a repeated file names its recorded outcome"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a repeated file queues nothing new"
+  leak="$home/data/wiki-supervision/leak.md"
+  printf 'evidence: AKIAIOSFODNN7EXAMPLE is a key\n' > "$leak"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$leak" 2>&1) || fail "a flagged file must still exit 0"
+  assert_contains "$out" 'held' "file names the held outcome"
+  case $out in *queued*) fail "a held file must never report queued" ;; esac
+  assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a flagged supervision file is held locally"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a flagged supervision file never reaches the outbox"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'pushed 1 lesson' "the drain lands the filed lesson"
+  path=$(git -C "$bare" ls-tree -r --name-only main | head -n 1)
+  body=$(git -C "$bare" show "main:$path")
+  assert_contains "$body" 'wiki-role: supervisor' "the raw file keeps the supervisor stamp"
+  assert_contains "$body" 'wiki-task: session' "a filed lesson stamps the session task id"
+  assert_contains "$body" 'wiki-agent: firstmate' "the raw file names the supervisor agent"
+  pass "file scans, holds planted keys, and is idempotent per content"
+}
+
+test_close_records_supervisor_none_without_a_supervision_file() {
+  local home bare
+  home=$(wiki_home supnone)
+  bare=$(wiki_bare supnone)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-s2
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s2 >/dev/null || fail "close failed"
+  assert_grep '"supervisor":"none"' "$home/state/wiki/ledger.jsonl" \
+    "a task with no supervision file records supervisor none"
+  pass "close records supervisor none without a supervision file"
+}
+
+test_close_collects_worker_and_supervision_lessons_together() {
+  local home bare out queued
+  home=$(wiki_home supboth)
+  bare=$(wiki_bare supboth)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_sup_task "$home" task-s3 \
+    '## share the retry rule\nscope: tool:no-mistakes\nclaim: rerun after fix\n\nevidence: saw it land\n' \
+    '## steer early\nscope: harness:pi\nclaim: brief before spawn\n\nevidence: less rework\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s3 2>&1) || fail "close must exit 0"
+  assert_equals '2' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a close with both files queues both lessons"
+  assert_grep '"files":2' "$home/state/wiki/ledger.jsonl" "the ledger counts both captured files"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger names the supervision capture"
+  assert_equals '1' "$(grep -l '^wiki-role: supervisor$' "$home/state/wiki/outbox"/*.md | wc -l | tr -d ' ')" \
+    "exactly one queued file is the supervision half"
+  # A nothing-to-teach worker lesson does not block the supervision half.
+  wiki_sup_task "$home" task-s4 'nothing-to-teach: routine work\n' \
+    '## steer with questions\nscope: intake\nclaim: ask one question\n\nevidence: clearer specs\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s4 2>&1) || fail "close task-s4 must exit 0"
+  assert_contains "$out" 'supervision lesson queued' "the supervision half reports itself"
+  assert_equals '3' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "the nothing-to-teach close queues only the supervision lesson"
+  local s4
+  s4=$(grep -rl '^wiki-task: task-s4$' "$home/state/wiki/outbox" 2>/dev/null | head -n 1)
+  [ -n "$s4" ] || fail "the task-s4 close queues its supervision lesson"
+  grep -q '^wiki-kind: supervision$' "$s4" || fail "the task-s4 lesson is stamped as supervision"
+  assert_grep '"outcome":"lesson"' "$home/state/wiki/ledger.jsonl" "the close still records a lesson"
+  pass "close collects worker and supervision lessons through one ledger line"
+}
+
+test_secondmate_home_stamps_its_own_supervisor_agent() {
+  local home queued id verb queue prefix expected source case_number=0
+  prefix=$(printf '%063d' 0)
+  for id in selfimprove Research.A research.a "${prefix}A" "${prefix}B" \
+    'invalid/id' "${prefix}AB" $'Research.A\nforged'; do
+    case $id in
+      'invalid/id'|"${prefix}AB"|$'Research.A\nforged') expected=firstmate ;;
+      *) expected="secondmate:$id" ;;
+    esac
+    for verb in close file; do
+      for queue in outbox held; do
+        case_number=$((case_number + 1))
+        home=$(wiki_home "supmate-$case_number")
+        wiki_cfg "$home" contributor ''
+        printf '%s\n' "$id" > "$home/.fm-secondmate-home"
+        if [ "$verb" = close ]; then
+          wiki_sup_task "$home" task-supervisor - '## charter note'
+          source="$home/data/task-supervisor/supervision.md"
+          set -- close task-supervisor
+        else
+          source="$home/data/sup.md"
+          printf '## charter note\nclaim: route by scope\n' > "$source"
+          set -- file "$source"
+        fi
+        if [ "$queue" = held ]; then
+          printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$source"
+        fi
+        FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" "$@" >/dev/null 2>&1 || fail "$verb must exit 0"
+        assert_equals '1' "$(find "$home/state/wiki/$queue" -name '*.md' | wc -l | tr -d ' ')" \
+          "$verb saves one supervisor lesson in $queue"
+        for queued in "$home/state/wiki/$queue/"*.md; do
+          assert_equals "wiki-agent: $expected" "$(sed -n '/^wiki-agent:/p' "$queued")" \
+            "$verb preserves valid secondmate identities and rejects invalid markers in $queue"
+        done
+      done
+    done
+  done
+  pass "close and file preserve literal secondmate identities in queued and held supervisor stamps"
 }
 
 test_task_ids_are_compared_literally() {
@@ -404,7 +572,8 @@ test_queue_identity_ignores_lesson_body_fields() {
       "the quoting lesson resides in $queue"
     rm "$home/state/wiki/ledger.jsonl"
     out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close Quote-B) || fail "stamp duplicate close failed"
-    assert_contains "$out" 'already recorded (queued)' "a genuine stamp still deduplicates without a ledger"
+    assert_grep '"files":1' "$home/state/wiki/ledger.jsonl" \
+      "a genuine stamp still deduplicates without a ledger"
     for task in Task-A a.b a-b; do
       wiki_task "$home" "$task"
       out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close "$task") || fail "literal task close failed"
@@ -463,6 +632,66 @@ SH
   pass "failed held transfers preserve evidence unless an identical destination exists"
 }
 
+test_outbox_insertions_preserve_existing_lessons_on_collision() {
+  local mode home fakebin real_basename original out
+  real_basename=$(command -v basename) || fail "basename unavailable"
+  for mode in worker supervisor file; do
+    home=$(wiki_home "outbox-collision-$mode")
+    wiki_cfg "$home" contributor ''
+    fakebin=$(fm_fakebin "$home")
+    cat > "$fakebin/basename" <<'SH'
+#!/usr/bin/env bash
+case ${1:-} in
+  */.capture.*/*.md) printf 'collision.md\n' ;;
+  *) exec "$FM_WIKI_REAL_BASENAME" "$@" ;;
+esac
+SH
+    chmod +x "$fakebin/basename"
+    case $mode in
+      worker)
+        wiki_task "$home" task-original
+        original="$home/data/task-original/lessons.md"
+        PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+          run_wiki "$home" close task-original >/dev/null || fail "initial capture failed"
+        wiki_task "$home" task-collision
+        set -- close task-collision
+        ;;
+      supervisor)
+        wiki_task "$home" task-collision
+        original="$home/data/task-collision/lessons.md"
+        printf '## supervision\nclaim: preserve the worker lesson\n' > "$home/data/task-collision/supervision.md"
+        set -- close task-collision
+        ;;
+      file)
+        original="$home/data/first.md"
+        printf '## first\nclaim: retain the first standalone lesson\n' > "$original"
+        PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+          run_wiki "$home" file "$original" >/dev/null || fail "initial file failed"
+        printf '## second\nclaim: retry the second standalone lesson\n' > "$home/data/second.md"
+        set -- file "$home/data/second.md"
+        ;;
+    esac
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+      run_wiki "$home" "$@" 2>&1) || fail "a collision must remain best effort"
+    assert_contains "$out" 'failed to queue' "a $mode collision must remain retryable"
+    tail -n "$(wc -l < "$original")" "$home/state/wiki/outbox/collision.md" | cmp -s "$original" - \
+      || fail "a $mode collision must preserve the existing lesson body"
+    assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "a failed $mode insertion cannot count as another queued file"
+    assert_equals '1' "$(wc -l < "$home/state/wiki/ledger.jsonl" | tr -d ' ')" \
+      "a failed $mode insertion cannot record completed capture"
+    if [ "$mode" = supervisor ]; then
+      assert_grep '"supervisor":"failed"' "$home/state/wiki/ledger.jsonl" "the missing supervisor remains retryable"
+      assert_grep '"files":1' "$home/state/wiki/ledger.jsonl" "partial progress counts only the worker"
+    fi
+    out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" "$@" 2>&1) || fail "collision retry failed"
+    assert_contains "$out" 'lesson queued' "the $mode contribution can be filed after the collision"
+    assert_equals '2' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "retry keeps both distinct contributions"
+  done
+  pass "worker, supervisor, and standalone outbox collisions preserve existing lessons and allow retry"
+}
+
 test_every_completed_close_retries_the_existing_queue() {
   local mode home bare attempt expected remaining
   for mode in duplicate queued missing nothing held accepted; do
@@ -501,6 +730,190 @@ test_every_completed_close_retries_the_existing_queue() {
       "$mode close publishes all clean lessons after remote recovery"
   done
   pass "every completed close hands the existing queue to the guarded drain"
+}
+
+test_partial_close_retries_only_the_missing_contribution() {
+  local mode home bare out fakebin real_cat
+  real_cat=$(command -v cat) || fail "cat unavailable"
+  for mode in lesson held supervisor-held; do
+    home=$(wiki_home "partial-$mode")
+    bare=$(wiki_bare "partial-$mode")
+    wiki_cfg "$home" contributor "file://$bare"
+    wiki_task "$home" task-partial
+    printf '## supervision\nclaim: preserve both contributions\n' > "$home/data/task-partial/supervision.md"
+    if [ "$mode" = held ]; then
+      printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-partial/lessons.md"
+    fi
+    fakebin=$(fm_fakebin "$home")
+    cat > "$fakebin/cat" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = "$FM_WIKI_BLOCKED_SOURCE" ]; then exit 1; fi
+exec "$FM_WIKI_REAL_CAT" "$@"
+SH
+    chmod +x "$fakebin/cat"
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_CAT="$real_cat" \
+      FM_WIKI_BLOCKED_SOURCE="$home/data/task-partial/supervision.md" FM_WIKI_CLOSE_DRAIN=0 \
+      run_wiki "$home" close task-partial 2>&1) || fail "partial capture must be best effort"
+    assert_contains "$out" 'failed to stamp' "the supervisor failure is observable"
+    case $out in *'recorded for'*|*'lesson queued'*) fail "partial capture must not announce completion" ;; esac
+    assert_grep '"supervisor":"failed"' "$home/state/wiki/ledger.jsonl" "partial progress remains retryable"
+    run_wiki "$home" drain >/dev/null || fail "an independent drain failed"
+    if [ "$mode" = supervisor-held ]; then
+      printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-partial/supervision.md"
+    fi
+    out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-partial 2>&1) || fail "retry failed"
+    if [ "$mode" = supervisor-held ]; then
+      assert_contains "$out" 'held locally' "retry holds the secret-bearing supervisor contribution"
+      assert_contains "$out" 'lesson recorded' "the published worker remains recorded"
+      case $out in *queued*) fail "a held-only queue must not report a publishable lesson" ;; esac
+      assert_equals '0' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+        "the published worker and held supervisor leave no publishable lesson"
+    else
+      assert_contains "$out" 'supervision lesson queued' "retry captures the missing supervisor contribution"
+    fi
+    assert_contains "$(tail -n 1 "$home/state/wiki/ledger.jsonl")" '"files":2' "completion counts both contributions"
+    run_wiki "$home" drain >/dev/null || fail "completion drain failed"
+    if [ "$mode" = lesson ]; then
+      assert_equals '2' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+        "a published worker is not duplicated by the retry"
+    elif [ "$mode" = held ]; then
+      assert_equals '1' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+        "only the supervisor lesson is published"
+      assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' | wc -l | tr -d ' ')" \
+        "the held worker is not duplicated by the retry"
+    else
+      assert_equals '1' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+        "only the previously captured worker is published"
+      assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' | wc -l | tr -d ' ')" \
+        "the secret-bearing supervisor remains held"
+    fi
+  done
+  pass "partial closes retry missing contributions even after publication"
+}
+
+test_queued_contributions_are_deduplicated_separately() {
+  local role queue home queued
+  for role in worker supervisor; do
+    for queue in outbox held; do
+      home=$(wiki_home "queued-$role-$queue")
+      wiki_cfg "$home" contributor ''
+      wiki_task "$home" task-retry
+      printf '## supervision\nclaim: capture independently\n' > "$home/data/task-retry/supervision.md"
+      if [ "$queue" = held ]; then
+        printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-retry/lessons.md"
+        printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-retry/supervision.md"
+      fi
+      FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-retry >/dev/null 2>&1 || fail "initial close failed"
+      rm "$home/state/wiki/ledger.jsonl"
+      for queued in "$home/state/wiki/$queue/"*.md; do
+        if grep -q '^wiki-role: supervisor$' "$queued"; then
+          [ "$role" = worker ] || rm "$queued"
+        else
+          [ "$role" = supervisor ] || rm "$queued"
+        fi
+      done
+      FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-retry >/dev/null 2>&1 || fail "retry failed"
+      assert_equals '2' "$(find "$home/state/wiki/$queue" -name '*.md' | wc -l | tr -d ' ')" \
+        "an existing contribution cannot suppress its missing sibling"
+      assert_grep '"files":2' "$home/state/wiki/ledger.jsonl" "recovered completion counts both files"
+    done
+  done
+  pass "queued worker and supervisor contributions have distinct identities"
+}
+
+test_standalone_and_task_identities_do_not_collide() {
+  local order home path hash
+  for order in file-first task-first; do
+    home=$(wiki_home "identity-$order")
+    wiki_cfg "$home" contributor ''
+    path="$home/data/standalone.md"
+    printf '## standalone\nclaim: keep identities separate\n' > "$path"
+    hash=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:12])' "$path")
+    wiki_task "$home" "file-$hash"
+    wiki_sup_task "$home" session - '## task supervisor'
+    if [ "$order" = file-first ]; then
+      FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$path" >/dev/null || fail "file failed"
+    fi
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close "file-$hash" >/dev/null || fail "digest-named task failed"
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close session >/dev/null || fail "session task failed"
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$path" >/dev/null || fail "file failed"
+    assert_equals '3' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "standalone content and both valid task identities remain independent"
+  done
+  pass "standalone identities cannot collide with session or digest-named tasks"
+}
+
+test_close_reports_completed_capture_outcomes() {
+  local worker supervisor home out expected files
+  for worker in missing nothing lesson held; do
+    for supervisor in lesson held; do
+      home=$(wiki_home "report-$worker-$supervisor")
+      wiki_cfg "$home" contributor ''
+      wiki_task "$home" task-report
+      case $worker in
+        missing) rm "$home/data/task-report/lessons.md" ;;
+        nothing) printf 'nothing-to-teach: routine\n' > "$home/data/task-report/lessons.md" ;;
+        held) printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' > "$home/data/task-report/lessons.md" ;;
+      esac
+      printf '## supervision\nclaim: report saved outcomes\n' > "$home/data/task-report/supervision.md"
+      if [ "$supervisor" = held ]; then
+        printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-report/supervision.md"
+      fi
+      case "$worker:$supervisor" in
+        lesson:*|*:lesson) expected=lesson ;;
+        *) expected=held ;;
+      esac
+      case $worker in lesson|held) files=2 ;; *) files=1 ;; esac
+      out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-report 2>&1) || fail "close failed"
+      case $out in *'no-lessons recorded'*|*'nothing-to-teach recorded'*) fail "report ignores captured supervision" ;; esac
+      if [ "$expected" = held ]; then
+        assert_contains "$out" 'held recorded' "a held-only close reports held"
+        case $out in *queued*) fail "held-only capture must never report queued" ;; esac
+      else
+        assert_contains "$out" 'lesson queued' "a clean contribution reports a lesson"
+      fi
+      python3 - "$home/state/wiki/ledger.jsonl" "$expected" "$supervisor" "$files" <<'PY' || fail "ledger must match completed captures"
+import json, sys
+record = json.loads(open(sys.argv[1]).read())
+assert record["outcome"] == sys.argv[2]
+assert record["supervisor"] == sys.argv[3]
+assert record["files"] == int(sys.argv[4])
+PY
+    done
+  done
+  pass "close reports and records aggregate completed capture outcomes"
+}
+
+test_refiling_retries_publication_without_a_watcher() {
+  local mode home bare path remaining attempt
+  for mode in recorded queued held; do
+    home=$(wiki_home "refile-$mode")
+    bare=$(wiki_bare "refile-$mode")
+    wiki_cfg "$home" contributor "file://$bare"
+    path="$home/data/standalone.md"
+    printf '## standalone\nclaim: retry publication\n' > "$path"
+    FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$path" >/dev/null || fail "initial file failed"
+    mv "$bare" "$bare.away"
+    run_wiki "$home" drain >/dev/null || fail "outage drain failed"
+    mv "$bare.away" "$bare"
+    if [ "$mode" = queued ]; then rm "$home/state/wiki/ledger.jsonl"; fi
+    if [ "$mode" = held ]; then
+      path="$home/data/held.md"
+      printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' > "$path"
+      FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$path" >/dev/null 2>&1 || fail "held file failed"
+    fi
+    run_wiki "$home" file "$path" >/dev/null 2>&1 || fail "refile failed"
+    remaining=1
+    for ((attempt = 1; attempt <= 200; attempt++)); do
+      remaining=$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')
+      [ "$remaining" != 0 ] || break
+      sleep 0.05
+    done
+    assert_equals '0' "$remaining" "refiling $mode content retries the existing queue"
+    assert_equals '1' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+      "refiling publishes exactly the original clean lesson"
+  done
+  pass "refiling recorded, queued, or held content retries publication without a watcher"
 }
 
 test_lesson_copies_remain_owner_only_under_a_permissive_umask() {
@@ -746,6 +1159,11 @@ test_brief_snippet_owns_the_lesson_schema_for_contributing_homes
 test_close_scans_and_stages_before_anything_reaches_the_outbox
 test_close_and_drain_publish_one_raw_file_with_trailers
 test_missing_and_nothing_to_teach_lessons_record_without_pushing
+test_close_collects_a_supervision_file_as_one_supervisor_lesson
+test_file_verb_scans_holds_and_stays_idempotent
+test_close_records_supervisor_none_without_a_supervision_file
+test_close_collects_worker_and_supervision_lessons_together
+test_secondmate_home_stamps_its_own_supervisor_agent
 test_task_ids_are_compared_literally
 test_a_duplicate_close_is_a_recorded_noop
 test_an_unreachable_remote_queues_for_a_later_drain
@@ -753,7 +1171,13 @@ test_parallel_closes_from_homes_sharing_a_basename_land_distinct_files
 test_concurrent_drains_in_one_home_never_run_together
 test_queue_identity_ignores_lesson_body_fields
 test_failed_held_transfer_preserves_the_captured_bytes
+test_outbox_insertions_preserve_existing_lessons_on_collision
 test_every_completed_close_retries_the_existing_queue
+test_partial_close_retries_only_the_missing_contribution
+test_queued_contributions_are_deduplicated_separately
+test_standalone_and_task_identities_do_not_collide
+test_close_reports_completed_capture_outcomes
+test_refiling_retries_publication_without_a_watcher
 test_lesson_copies_remain_owner_only_under_a_permissive_umask
 test_git_calls_are_bounded_without_timeout_or_perl
 test_watcher_tick_paces_itself_by_its_stamp

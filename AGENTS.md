@@ -151,6 +151,7 @@ Route durable knowledge to its most specific owner:
 - Home-domain captain preferences and working style belong in `data/captain.md` after inspect-then-update.
 - Captain preferences shared across secondmate domains belong in the primary home's `data/captain-shared.md` under the `secondmate-provisioning` contract.
 - Fleet-local operational facts no declared tier owns belong in curated, home-local `data/learnings.md`.
+- Supervision craft another home's supervisor would act on belongs in the crew wiki, `data/learnings.md` keeping only what is true of this home: write `data/<task-id>/supervision.md` beside the task's lessons before closing a supervised task, or file unfiled lessons with `bin/fm-wiki.sh file` when going idle with an empty fleet or at `/stow`; consult the wiki mirror before unfamiliar intake, routing, recovery, and finding-review calls.
 - Task-scoped notes belong with the backlog item, and investigation findings belong in the scout report.
 - Knowledge useful to almost every contributor to one project belongs in that project's committed `AGENTS.md`, which only deliberate human edits extend.
 - Knowledge general to every firstmate user belongs in this repo's shared tracked surface, which a user/operator home can only reach through an authorized contribution - otherwise it stays in `data/learnings.md` or a local draft for the captain.
