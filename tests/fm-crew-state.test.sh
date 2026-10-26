@@ -796,6 +796,34 @@ run:
 EOF
 }
 
+# The 2026-10-26 daemon-restart shape, copied from the five stuck runs: every
+# substantive step completed, the ci monitor skipped, and no-mistakes itself
+# ended the run as ci_monitor_interrupted with its own ci-monitor-interrupted
+# outcome and explanatory error line.
+run_ci_monitor_interrupted() {  # <branch>
+  cat <<EOF
+run:
+  id: "01RUN"
+  branch: $1
+  status: ci_monitor_interrupted
+  head: "${FM_FAKE_RUN_HEAD:-abc1234}"
+  pr: "https://github.com/o/r/pull/205"
+  findings: none
+outcome: ci-monitor-interrupted
+error: ci monitor interrupted by daemon restart; PR remains open
+steps[9]{step,status,findings,duration_ms}:
+  intent,completed,0,0
+  rebase,completed,0,0
+  review,completed,0,0
+  test,completed,0,0
+  document,completed,0,0
+  lint,completed,0,0
+  push,completed,0,0
+  pr,completed,0,0
+  ci,skipped,0,0
+EOF
+}
+
 run_fixing_ci_running() {  # <branch>
   cat <<EOF
 run:
@@ -2146,6 +2174,99 @@ daemon shutting down"
   assert_contains "$out" "state: failed" "a second failed step keeps the run failed"
   assert_not_contains "$out" "state: done" "a second failed step must not reclassify to done"
   pass "a second failed step disqualifies the orphaned-monitor reclassification"
+}
+
+# The 2026-10-26 daemon-restart incident: five runs ended by no-mistakes as
+# ci_monitor_interrupted (its own terminal word, outcome set, abort an
+# idempotent no-op). firstmate used to read them as unknown ("unrecognized run
+# status"), firing stale-worker alerts and steering workers into refused
+# reattach attempts. The run's real state: work finished, PR awaiting the
+# merge decision that reads the PR's actual checks.
+test_terminal_ci_monitor_interrupted_reads_done() {
+  local scenario
+  for scenario in outcome-only status-only pr-merged no-forge; do
+    (
+      reset_fakes
+      local d out
+      d=$(new_case "ci-interrupted-$scenario")
+      make_repo_on_branch "$d/wt" fm/feat-interrupted
+      make_fakebin "$d" >/dev/null
+      fm_write_meta "$d/state/feat-interrupted.meta" "window=fm:fm-feat-interrupted" "worktree=$d/wt" "kind=ship"
+      FM_FAKE_AXI_STATUS="$(run_ci_monitor_interrupted fm/feat-interrupted)"
+      FM_FAKE_PR_STATE=OPEN
+      FM_FAKE_PR_MERGED=false
+      FM_FAKE_PR_STATE_AXI=open
+      case "$scenario" in
+        status-only) FM_FAKE_AXI_STATUS=$(printf '%s\n' "$FM_FAKE_AXI_STATUS" | sed '/^outcome:/d') ;;
+        pr-merged)
+          FM_FAKE_PR_STATE=MERGED
+          FM_FAKE_PR_MERGED=true
+          FM_FAKE_PR_STATE_AXI=merged
+          ;;
+        no-forge) export FM_CREW_STATE_NO_FORGE=1 ;;
+      esac
+      out=$(run_crew_state "$d" feat-interrupted)
+      assert_contains "$out" "state: done" "$scenario: interrupted monitor run reads done, not unknown: $out"
+      assert_contains "$out" "ci monitor interrupted" "$scenario: the interruption is named in the detail"
+      assert_contains "$out" "https://github.com/o/r/pull/205" "$scenario: PR URL surfaced from the run"
+      assert_not_contains "$out" "unrecognized run status" "$scenario: no unrecognized-status verdict"
+      case "$scenario" in
+        pr-merged) assert_contains "$out" "PR merged" "$scenario: merged disposition read from the forge" ;;
+        *) assert_not_contains "$out" "state: unknown" "$scenario: no unknown verdict" ;;
+      esac
+      pass "$scenario: interrupted monitor run reads as its real state"
+    ) || return 1
+  done
+}
+
+# The overview-selection route (a foreign-branch bare answer makes crew-state
+# pick this branch's run from the runs table) used to report "unrecognized run
+# status" for the interrupted word before even reading the run's detail.
+test_selected_ci_monitor_interrupted_reads_done() {
+  reset_fakes
+  local d out
+  d=$(new_case selected-ci-interrupted)
+  make_repo_on_branch "$d/wt" fm/feat-selected-int
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-selected-int.meta" "window=fm:fm-feat-selected-int" "worktree=$d/wt" "kind=ship"
+  FM_FAKE_AXI_STATUS="$(run_running fm/other-crew)"
+  FM_FAKE_AXI_HOME="count: 1 of 1 total
+runs[1]{id,branch,status,head,pr}:
+  01RUN,fm/feat-selected-int,ci_monitor_interrupted,$FM_FAKE_RUN_HEAD,\"https://github.com/o/r/pull/205\""
+  FM_FAKE_AXI_STATUS_RUN="$(run_ci_monitor_interrupted fm/feat-selected-int)"
+  FM_FAKE_PR_STATE=OPEN
+  FM_FAKE_PR_MERGED=false
+  FM_FAKE_PR_STATE_AXI=open
+  out=$(run_crew_state "$d" feat-selected-int)
+  assert_contains "$out" "state: done" "selected interrupted run reads done: $out"
+  assert_contains "$out" "ci monitor interrupted" "selected route names the interruption"
+  assert_not_contains "$out" "unrecognized run status" "selected route never reports unrecognized status"
+  assert_contains "$out" "source: run-step" "selected route stays run-step sourced"
+  pass "overview-selected interrupted run reads done through its id-addressed detail"
+}
+
+# The coarse runs-ledger route (foreign bare answer, no overview table) has no
+# steps table and no detail object, but the interrupted word still must not
+# read as an unrecognized live wait.
+test_coarse_ci_monitor_interrupted_reads_done() {
+  reset_fakes
+  local d short out
+  d=$(new_case coarse-ci-interrupted)
+  make_repo_on_branch "$d/wt" fm/feat-coarse-int
+  short=$(git -C "$d/wt" rev-parse --short=7 HEAD)
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-coarse-int.meta" "window=fm:fm-feat-coarse-int" "worktree=$d/wt" "kind=ship"
+  FM_FAKE_AXI_STATUS="$(run_running fm/other-crew)"
+  FM_FAKE_RUNS_LIST="$(cat <<EOF
+  running    fm/other-crew aaaaaaa  2026-10-26 09:00
+  ci_monitor_interrupted fm/feat-coarse-int ${short}  2026-10-25 22:00
+EOF
+)"
+  out=$(run_crew_state "$d" feat-coarse-int)
+  assert_contains "$out" "state: done" "coarse interrupted ledger row reads done: $out"
+  assert_contains "$out" "ci monitor interrupted" "coarse route names the interruption"
+  assert_not_contains "$out" "runs list status: ci_monitor_interrupted" "coarse route never reports the raw word as unknown"
+  pass "coarse runs-ledger interrupted row reads done"
 }
 
 # (e) cross-branch attribution: `axi status` returns ANOTHER branch's run (the
@@ -6097,6 +6218,9 @@ test_terminal_failed
 test_terminal_failed_ci_orphan_after_green_reads_done
 test_terminal_failed_ci_orphan_status_only_reads_done
 test_terminal_failed_ci_genuine_red_stays_failed
+test_terminal_ci_monitor_interrupted_reads_done
+test_selected_ci_monitor_interrupted_reads_done
+test_coarse_ci_monitor_interrupted_reads_done
 test_terminal_failed_ci_orphan_second_failed_step_stays_failed
 test_cross_branch_attribution_via_runs_list
 test_coarse_socket_refusal_reports_blocked

@@ -98,7 +98,12 @@
 #      awaiting_approval/fix_review -> parked (with gate findings), terminal
 #      passed/checks-passed/passed-with-override/passed-with-skips -> done,
 #      failed -> failed, cancelled -> unknown (no verdict unless the green
-#      delivery safeguard below applies). A cancelled outcome takes precedence
+#      delivery safeguard below applies), and a ci-monitor-interrupted
+#      outcome (daemon-restart interrupted monitor, no-mistakes' own
+#      terminal word) -> done with the run's bounded forge PR disposition,
+#      without claiming a checks verdict. An unavailable forge still yields
+#      done with PR state unknown; the coarse ledger cannot read PR disposition.
+#      A cancelled outcome takes precedence
 #      over an interrupted step's failed status or outstanding gate findings;
 #      it does not rewrite historical events or backlog records.
 #      passed-with-override is a passing outcome
@@ -834,6 +839,24 @@ nm_reclassify_failed_run_as_held_green() {
   return 0
 }
 
+# Apply the header's interrupted-monitor mapping using passed_pr_detail only
+# for PR disposition; its "run passed" prefix is not a checks verdict for this
+# run. Regression coverage: tests/fm-crew-state.test.sh.
+nm_reclassify_interrupted_run() {
+  local disposition pr_url
+  disposition=$(passed_pr_detail)
+  case "$disposition" in
+    "run passed: PR open")   RUN_DETAIL="ci monitor interrupted: PR open (no checks verdict)" ;;
+    "run passed: PR merged") RUN_DETAIL="ci monitor interrupted: PR merged" ;;
+    "run passed: PR closed") RUN_DETAIL="ci monitor interrupted: PR closed" ;;
+    *)                       RUN_DETAIL="ci monitor interrupted (PR state unknown)" ;;
+  esac
+  RUN_STATE="done"
+  pr_url=$(strip_quotes "$(nm_field pr)")
+  [ -n "$pr_url" ] && RUN_DETAIL="$RUN_DETAIL: $pr_url"
+  return 0
+}
+
 # 0 when an explicit probe proves the shared daemon down: `no-mistakes daemon
 # status` is the canonical down-probe (the same one fm-brief.sh hands crews
 # before a blocked append) and exits non-zero when the daemon is not running.
@@ -1071,7 +1094,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
           emit unknown run-step "selected run unavailable or mismatched; run ids: $candidate_ids"
         fi
         case "$(strip_quotes "$(nm_field status)")" in
-          pending|running|fixing|ci|awaiting_approval|fix_review|completed|failed|cancelled) ;;
+          pending|running|fixing|ci|awaiting_approval|fix_review|completed|failed|cancelled|ci_monitor_interrupted) ;;
           *) emit unknown run-step "selected run status unverified; run ids: $candidate_ids" ;;
         esac
         if fm_nm_run_is_active "$RUN_OUT"; then current_class=live; else current_class=terminal; fi
@@ -1186,6 +1209,11 @@ if [ "$HAVE_RUN" = 1 ]; then
           RUN_STATE=failed; RUN_DETAIL="run failed"
         fi ;;
       cancelled) RUN_STATE=unknown; RUN_DETAIL="run cancelled: no verdict" ;;
+      ci_monitor_interrupted)
+        # The coarse path has no steps table and no run detail object, so the
+        # PR disposition cannot be read here; the run itself is still terminal
+        # and must not read as an unrecognized live wait.
+        RUN_STATE="done" && RUN_DETAIL="ci monitor interrupted (PR state unreadable here)" ;;
       *)         RUN_STATE=unknown; RUN_DETAIL="runs list status: $COARSE_STATUS" ;;
     esac
   else
@@ -1210,6 +1238,8 @@ if [ "$HAVE_RUN" = 1 ]; then
           if nm_reclassify_failed_run_as_held_green; then :; else
             RUN_STATE=unknown; RUN_DETAIL="run cancelled: no verdict"
           fi ;;
+        ci-monitor-interrupted)
+          nm_reclassify_interrupted_run ;;
         *)             RUN_STATE=unknown; RUN_DETAIL="outcome: $outcome" ;;
       esac
     elif [ -n "$awaiting" ] || [ "$status" = awaiting_approval ] || [ "$status" = fix_review ] || [ -n "$gate_status" ] || [ "$has_gate" = 1 ]; then
@@ -1243,6 +1273,12 @@ if [ "$HAVE_RUN" = 1 ]; then
           if nm_reclassify_failed_run_as_held_green; then :; else
             RUN_STATE=unknown; RUN_DETAIL="run cancelled: no verdict"
           fi ;;
+        ci_monitor_interrupted)
+          # A daemon restart interrupted this run's forge CI monitor after
+          # every substantive step had finished. no-mistakes ended the run
+          # (outcome present in the healthy shape), so read its real state
+          # rather than "run active (ci_monitor_interrupted)".
+          nm_reclassify_interrupted_run ;;
         "")             RUN_STATE=working; RUN_DETAIL="run active" ;;
         *)              RUN_STATE=working; RUN_DETAIL="run active ($status)" ;;
       esac
