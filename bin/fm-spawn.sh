@@ -1550,6 +1550,7 @@ SPAWN_TREEHOUSE_PROJECT_LOCK=
 SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
 SPAWN_SLOT_CLAIMED=0
 SPAWN_LEASE_HELD=0
+SPAWN_LEASE_THIS_RUN=0
 SPAWN_FRESH_ENDPOINT_OPENED=0
 SPAWN_FRESH_WIRING_PENDING=0
 SPAWN_TASK_TMP_CREATED=0
@@ -1790,7 +1791,8 @@ spawn_abort_cleanup() {
   # that lock is still held; an abort after its release says so instead of
   # racing a concurrent spawn's own allocation.
   if [ "$SPAWN_LEASE_HELD" = 1 ] &&
-    [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
+    { [ "$SPAWN_LEASE_THIS_RUN" = 1 ] ||
+      { [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; }; }; then
     SPAWN_LEASE_HELD=0
     spawn_leased_slot=${WT:-${WT_LEASED:-}}
     if [ -z "$spawn_leased_slot" ]; then
@@ -4471,6 +4473,7 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ];
     # than stranding one silently.
     if [ -n "$WT_LEASED" ]; then
       SPAWN_LEASE_HELD=1
+      SPAWN_LEASE_THIS_RUN=1
     else
       echo "warning: task $ID's failed treehouse get may have recorded a lease before it failed; check with (cd $PROJ_ABS && treehouse status), and release any slot still leased to $ID with: (cd $PROJ_ABS && treehouse return --force --if-lease-holder $ID <slot-path>)" >&2
     fi
@@ -4479,6 +4482,7 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ];
   # The lease is held from this point on, so every refusal below returns it
   # through the abort trap.
   SPAWN_LEASE_HELD=1
+  [ -z "$WT_LEASED" ] || SPAWN_LEASE_THIS_RUN=1
   [ -n "$WT_LEASED" ] || {
     echo "error: task $ID leased a Treehouse pool slot for $PROJ_ABS but treehouse reported no worktree path; refusing to launch" >&2
     exit 1
@@ -4649,7 +4653,7 @@ else
           FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_reclaim_task \
             "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_LABEL_HOME" \
             "$HERDR_RECOVERY_WORKSPACE_ID" "$HERDR_RECOVERY_TAB_ID" "$HERDR_RECOVERY_PANE_ID" \
-            "$HERDR_PARENT_LABEL" "$W" "$PROJ_ABS"
+            "$HERDR_PARENT_LABEL" "$W" "$WT"
           HERDR_RECLAIM_STATUS=$?
           set -e
           case "$HERDR_RECLAIM_STATUS" in
@@ -5365,7 +5369,8 @@ elif [ "$RELAUNCH" -eq 1 ]; then
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # The pooled copy was leased and resolved in $WT before the endpoint existed
   # (the herdr adapter creates its task tab there directly), so the pane now
-  # only changes into it. The endpoint enters the leased copy in a CHILD
+  # unwinds Herdr's initial cwd with a project-shell pre-send, then changes
+  # into the copy. The endpoint enters the leased copy in a CHILD
   # shell, exactly as the pre-lease `treehouse get` did, never with a builtin
   # cd in the pane's own top-level shell. Teardown reaps (and treehouse return
   # terminates) every process whose cwd is inside the worktree BEFORE it
@@ -5375,6 +5380,13 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # the journal quarantined. With the child shell, that reap ends the agent's
   # shell and the pane falls back to its own shell in the project, still alive
   # for the locked close.
+  if [ "$BACKEND" = herdr ]; then
+    proj_cd_path=${PROJ_ABS//\'/\'\\\'\'}
+    spawn_send_text_line "$WT_TARGET" "(cd -- '$proj_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
+      echo "error: task $ID leased $WT but its endpoint could not be told to enter the project shell; returning the lease and refusing to launch" >&2
+      exit 1
+    }
+  fi
   wt_cd_path=${WT//\'/\'\\\'\'}
   spawn_send_text_line "$WT_TARGET" "(cd -- '$wt_cd_path' && exec \"\${SHELL:-/bin/sh}\")" || {
     echo "error: task $ID leased $WT but its endpoint could not be told to enter it; returning the lease and refusing to launch" >&2
@@ -6343,6 +6355,7 @@ if [ "$RELAUNCH" -eq 0 ]; then
     echo "error: task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
     exit 1
   fi
+  SPAWN_LEASE_THIS_RUN=0
   SPAWN_META_TMP=
 fi
 

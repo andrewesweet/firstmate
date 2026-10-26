@@ -193,6 +193,13 @@ case "$cmd" in
     ;;
   pane)
     case "$sub" in
+      run)
+        if [ -n "${FM_FAKE_FAIL_SEND:-}" ]; then
+          sent=$(awk -F '\x1f' '$2 == "pane" && $3 == "run" { count++ } END { print count + 0 }' "$log")
+          [ "$sent" != "$FM_FAKE_FAIL_SEND" ] || exit 1
+        fi
+        exit 0
+        ;;
       list)
         flag_value --workspace || exit 0
         jq --arg w "$FLAG_VALUE" '
@@ -329,10 +336,24 @@ assert_no_tab_create_at() {  # <case-dir> <cwd> <label>
   fi
 }
 
+assert_shell_entry_order() {
+  local case_dir=$1 project=$2 wt=$3 label=$4 first second escaped_project escaped_wt
+  first=$(awk -F "$ESC" '$2 == "tab" && $3 == "create" { created = 1 }
+    created && $2 == "pane" && $3 == "run" { print $5; exit }' "$case_dir/herdr-calls.log")
+  second=$(awk -F "$ESC" '$2 == "tab" && $3 == "create" { created = 1 }
+    created && $2 == "pane" && $3 == "run" { if (++sent == 2) { print $5; exit } }' "$case_dir/herdr-calls.log")
+  escaped_project=${project//\'/\'\\\'\'}
+  escaped_wt=${wt//\'/\'\\\'\'}
+  [ "$first" = "(cd -- '$escaped_project' && exec \"\${SHELL:-/bin/sh}\")" ] ||
+    fail "$label: first typed command must enter the project shell, got: $first"
+  [ "$second" = "(cd -- '$escaped_wt' && exec \"\${SHELL:-/bin/sh}\")" ] ||
+    fail "$label: second typed command must enter the worktree child shell, got: $second"
+}
+
 # --- case 1: ordinary flat layout (presentation off) ------------------------
 
 IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
-$(make_herdr_tab_cwd_case flat off)
+$(make_herdr_tab_cwd_case "flat's space" off)
 EOF
 export FM_HERDR_FAKE_STATE="$CASE_DIR/herdr-state.json" \
   FM_HERDR_LOG="$CASE_DIR/herdr-calls.log" \
@@ -354,6 +375,8 @@ $(cat "$HOME_DIR/state/flat-task.meta" 2>/dev/null)"
 
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "flat layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "flat layout"
+assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "flat layout"
+assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful flat spawn keeps its published lease"
 
 # The per-home workspace container stays keyed on the project: the flat
 # layout's workspace create runs in the project directory, never the worktree.
@@ -408,5 +431,88 @@ $PROJ_WS_LINE"
 
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "projection layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "projection layout"
+assert_shell_entry_order "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection layout"
+assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful projection spawn keeps its published lease"
 
 pass "projection layout: projected workspace and task tab both created in the task worktree"
+
+for GET_STATUS in 0 1; do
+  IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
+$(make_herdr_tab_cwd_case "prior-record-$GET_STATUS" on)
+EOF
+  export FM_HERDR_FAKE_STATE="$CASE_DIR/herdr-state.json" \
+    FM_HERDR_LOG="$CASE_DIR/herdr-calls.log" \
+    FM_HERDR_FAKE_SOCKET="$TMP_ROOT/herdr-sock/default.sock" \
+    FM_FAKE_LEASE_FILE="$CASE_DIR/leases" FM_FAKE_GET_STATUS="$GET_STATUS"
+  fm_test_spawn_brief "$HOME_DIR" prior-task
+  git -C "$PROJECT_DIR" worktree add --quiet --detach "$CASE_DIR/prior-copy" HEAD
+  printf 'worktree=%s\nproject=%s\nbackend=herdr\n' "$CASE_DIR/prior-copy" "$PROJECT_DIR" \
+    > "$HOME_DIR/state/prior-task.meta"
+  cp "$HOME_DIR/state/prior-task.meta" "$CASE_DIR/prior.meta"
+  touch "$HOME_DIR/state/prior-task.herdr-presentation"
+  printf '%s\n' "$CASE_DIR/prior-copy" > "$FM_FAKE_LEASE_FILE"
+  cat > "$FAKEBIN_DIR/treehouse" <<'SH'
+#!/usr/bin/env bash
+set -eu
+case "${1:-}" in
+  get)
+    printf '%s\n' "$FM_FAKE_PANE_PATH" >> "$FM_FAKE_LEASE_FILE"
+    printf '%s\n' "$FM_FAKE_PANE_PATH"
+    exit "$FM_FAKE_GET_STATUS"
+    ;;
+  return)
+    [ "${2:-}" = --force ] || exit 1
+    awk -v target="$3" '$0 != target' "$FM_FAKE_LEASE_FILE" > "$FM_FAKE_LEASE_FILE.tmp"
+    mv "$FM_FAKE_LEASE_FILE.tmp" "$FM_FAKE_LEASE_FILE"
+    ;;
+esac
+SH
+  OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
+    prior-task "$PROJECT_DIR" 'sh -c "while :; do sleep 60; done"' \
+    --backend herdr --mode no-mistakes --yolo off)
+  SPAWN_STATUS=$?
+  [ "$SPAWN_STATUS" -ne 0 ] || fail "prior-record spawn unexpectedly succeeded"
+  if [ "$GET_STATUS" = 0 ]; then
+    assert_contains "$OUT" 'existing metadata for prior-task has no endpoint' "refusal occurs after acquiring the new lease"
+  else
+    assert_contains "$OUT" 'could not lease a Treehouse pool slot' "failed get reports its refusal"
+  fi
+  [ "$(cat "$FM_FAKE_LEASE_FILE")" = "$CASE_DIR/prior-copy" ] ||
+    fail "refused spawn must return only its new lease, preserving the prior copy's lease: $OUT"
+  cmp -s "$CASE_DIR/prior.meta" "$HOME_DIR/state/prior-task.meta" ||
+    fail "refused spawn changed the prior task record"
+  pass "get exit $GET_STATUS: aborted spawn returns its new lease and preserves the prior record and lease"
+done
+unset FM_FAKE_LEASE_FILE FM_FAKE_GET_STATUS
+
+for FAIL_SEND in 1 2; do
+  IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
+$(make_herdr_tab_cwd_case "failed-send-$FAIL_SEND" off)
+EOF
+  export FM_HERDR_FAKE_STATE="$CASE_DIR/herdr-state.json" \
+    FM_HERDR_LOG="$CASE_DIR/herdr-calls.log" \
+    FM_HERDR_FAKE_SOCKET="$TMP_ROOT/herdr-sock/default.sock" \
+    FM_FAKE_FAIL_SEND="$FAIL_SEND" FM_FAKE_LEASE_FILE="$CASE_DIR/lease"
+  fm_test_spawn_brief "$HOME_DIR" failed-send-task
+  cat > "$FAKEBIN_DIR/treehouse" <<'SH'
+#!/usr/bin/env bash
+set -eu
+case "${1:-}" in
+  get) printf '%s\n' "$FM_FAKE_PANE_PATH" | tee "$FM_FAKE_LEASE_FILE" ;;
+  return)
+    [ "${2:-}" = --force ] && [ "${3:-}" = "$(cat "$FM_FAKE_LEASE_FILE")" ] || exit 1
+    rm "$FM_FAKE_LEASE_FILE"
+    ;;
+esac
+SH
+  OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
+    failed-send-task "$PROJECT_DIR" 'sh -c "while :; do sleep 60; done"' \
+    --backend herdr --mode no-mistakes --yolo off)
+  SPAWN_STATUS=$?
+  [ "$SPAWN_STATUS" -ne 0 ] || fail "typed-send failure $FAIL_SEND unexpectedly succeeded"
+  assert_contains "$OUT" 'returning the lease and refusing to launch' "typed-send failure refuses the worker launch"
+  [ ! -e "$FM_FAKE_LEASE_FILE" ] || fail "typed-send failure $FAIL_SEND stranded its lease"
+  [ ! -e "$HOME_DIR/state/failed-send-task.meta" ] || fail "typed-send failure published a task record"
+  pass "typed-send failure $FAIL_SEND: spawn refuses and returns its lease"
+done
+unset FM_FAKE_FAIL_SEND FM_FAKE_LEASE_FILE
