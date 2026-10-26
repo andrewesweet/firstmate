@@ -28,7 +28,12 @@
 #                 file, and only a clean scan renames the file atomically into
 #                 the outbox. A supervision file is stamped as a supervisor
 #                 lesson (wiki-role: supervisor, wiki-agent: firstmate or
-#                 secondmate:<id>) through the same scan-and-save path; a task
+#                 secondmate:<id>, preserving the validated marker id literally).
+#                 Its wiki-kind is supervision and wiki-harness comes from the
+#                 task; model, project, and project visibility are empty.
+#                 Worker stamps retain the task's kind, harness, model,
+#                 project basename, and project visibility from local metadata.
+#                 Both use the same scan-and-save path; a task
 #                 with only supervision.md yields one saved raw lesson, and a
 #                 task with no supervision file records "supervisor": "none"
 #                 in its ledger line. A hit goes to held/. A crash at any
@@ -40,15 +45,19 @@
 #                 the cleanup path triggers publication without waiting on it.
 #   file <path>
 #                 The close capture pipeline for one supervision lesson not
-#                 tied to a task: firstmate and second mates file their own
-#                 idle-moment supervision files (an empty fleet, or /stow)
-#                 this way; workers are never told about it. Stamps the file
-#                 as a supervisor lesson with the session task id, secret-
-#                 scans it, queues a clean scan in the outbox, holds a hit in
+#                 tied to a task; workers are never told about it. AGENTS.md
+#                 section 6 owns supervisors' contribution triggers.
+#                 Uses close's supervisor attribution with wiki-task=session,
+#                 wiki-harness=unknown, wiki-final=none, and wiki-content set
+#                 to the first 12 hex characters of the content's SHA-256.
+#                 Secret-scans it, queues a clean scan in the outbox, holds a hit in
 #                 held/ exactly as close holds one, and hands off to one
-#                 detached drain like close. Best effort: exits 0 with one
-#                 line. Idempotent for the same file content; a missing or
-#                 empty path reports and exits 0. The detached drain is
+#                 detached drain like close, including on repeated content.
+#                 Content deduplication is independent of task identities.
+#                 With exactly one path argument, capture is best effort and
+#                 exits 0, reporting queued, held, recorded, or failed capture;
+#                 a missing file or empty file reports and exits 0.
+#                 Invalid argument counts exit 2. The detached drain is
 #                 disabled with FM_WIKI_CLOSE_DRAIN=0, like close's.
 #   drain        The only publisher of raw lessons: single-flight per home
 #                 (exits 0 immediately when another drain, publish, or active
@@ -103,7 +112,8 @@
 #   held/         lessons the secret scan flagged; kept locally, never pushed.
 #   mirror/       atomic symlink to the read-only default-branch tree (no .git
 #                 inside, so nothing can commit or push from it); rebuilt only
-#                 by drain's refresh, swapped in whole, read by workers.
+#                 by drain's refresh, swapped in whole, read by workers and
+#                 supervisors.
 #   .mirror.*     mirror snapshots and refresh scratch; reached through mirror/.
 #   ledger.jsonl  capture outcomes (lesson|no-lessons|nothing-to-teach|held),
 #                 with worker and supervisor outcomes. supervisor=none when

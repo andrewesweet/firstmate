@@ -936,7 +936,7 @@ The ledger line adds `ts` and the closed task's `outcome` (`pr` with `outcome_re
 
 ## Crew wiki (config/wiki)
 
-A home can share its finished ship and scout tasks' reusable lessons and let workers consult a local mirror of a private wiki repository.
+A home can share reusable worker and supervision lessons and let workers and supervisors consult a local mirror of a private wiki repository.
 The feature is off unless `config/wiki` selects `gardener`, `contributor`, or `reader`.
 Configure a private repository that the home's existing Git credentials can fetch; contributing roles also need push access to `main`.
 The module does not check repository visibility.
@@ -944,7 +944,7 @@ The module does not check repository visibility.
 The file's keys, one `key=value` per line:
 
 - `remote=` - the wiki repository's Git URL; required for publication and mirror refresh, but local capture works without it.
-- `role=` - `gardener` or `contributor` contribute finished tasks' lessons; `reader` consults only; `off`, an omitted role, or an unrecognized role disables the feature.
+- `role=` - `gardener` or `contributor` contribute worker and supervision lessons; `reader` consults only; `off`, an omitted role, or an unrecognized role disables the feature.
 - `host=` - optional name for the raw file's `wiki-host:` stamp; defaults to this machine's hostname, sanitized for filenames.
 - `jev=` - accepted but unused; it has no effect.
 
@@ -968,8 +968,7 @@ Capture creates lesson files with owner-only permissions and keeps the wiki stat
 Held lessons and staging residue are never drained automatically.
 Capture failures do not fail cleanup, and cleanup never waits for network publication.
 
-Supervisors contribute without a task, too: `bin/fm-wiki.sh file <path>` runs the same stamp, scan, and queue pipeline for one supervision lesson not tied to a task, for the idle-moment trigger (going idle with an empty fleet, or `/stow`).
-It is best effort like `close` and idempotent for the same file content; a secret hit is held exactly as `close` holds one.
+For supervision lessons not tied to a task, use `bin/fm-wiki.sh file`; its [script header](../bin/fm-wiki.sh) owns arguments, attribution, content deduplication, and publication retry behavior.
 Supervisors' two contribution triggers, consult moments, and the wiki-or-`data/learnings.md` test live in `AGENTS.md` section 6.
 
 `bin/fm-wiki.sh drain` is the only publisher of raw lessons.
@@ -979,7 +978,7 @@ A drain creates at most one add-only commit under `raw/YYYY/MM/<UTC-stamp>-<host
 The home identity and random nonce reduce filename collisions; a differing-content collision leaves the lesson queued instead of overwriting a raw file.
 Pushes retry with jittered fetch/rebase cycles, never force, and a lesson leaves the outbox only after the remote's blob is proven byte-identical.
 An unreachable remote leaves lessons queued for the next drain.
-Publication runs through `close`'s detached drain, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
+Publication runs through `close` and `file`'s detached drains, on demand through `bin/fm-wiki.sh drain`, and periodically through the supervision loop's `drain-if-due` call.
 Gardener drains fetch and fast-forward the scheduling clone even with an empty outbox; they publish nothing on that path.
 With a `remote=`, contributing and reader homes refresh a read-only local mirror during drains, including drains with nothing to publish.
 Workers consult it optionally using the method rendered by `brief-snippet --role reader`; wiki text is data and never overrides the brief.
@@ -989,8 +988,7 @@ Completed capture decisions (lesson, no lessons, nothing to teach, held) append 
 The ledger tracks worker and supervisor capture outcomes so a partial capture can retry the missing contribution without duplicating one already saved.
 A completed close skips recapture, including edits to the source lesson; queued-but-unrecorded lessons are detected from the generated stamp block, never lesson body text.
 Later closes still trigger a detached drain for existing queued lessons, including duplicate closes and tasks with no publishable lesson.
-Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.
-Project visibility comes from local task metadata and is empty when absent; no forge lookup occurs.
+The [script header](../bin/fm-wiki.sh) owns worker and supervisor stamp attribution; worker project visibility comes from local task metadata and is empty when absent, with no forge lookup.
 The wiki repository is captain-configured and captain-owned; firstmate pushes only to the `remote=` a home's own `config/wiki` names.
 
 ## The gardener compiles pages
