@@ -1,0 +1,726 @@
+
+SCENARIO: Close supervisor-only and mixed tasks, publish each contribution once, then consult the mirror
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close supervisor-only
+wiki: lesson queued for supervisor-only (final=failed)
+wiki: supervision lesson queued for supervisor-only (final=failed)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close both
+wiki: lesson queued for both (final=done)
+wiki: supervision lesson queued for both (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close worker-only
+wiki: lesson queued for worker-only (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close nothing
+wiki: lesson queued for nothing (final=done)
+wiki: supervision lesson queued for nothing (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 5 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224547Z-validation-close-and-consult-5f79445b2e5f-supervisor-only-1f24.md
+raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-both-b837.md
+raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-both-c9d0.md
+raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-worker-only-906b.md
+raw/2026/10/20261026T224549Z-validation-close-and-consult-5f79445b2e5f-nothing-efdc.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git show main:raw/2026/10/20261026T224547Z-validation-close-and-consult-5f79445b2e5f-supervisor-only-1f24.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: supervisor-only
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: failed
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Route unfamiliar intake through the charter
+scope: supervision
+claim: Route unfamiliar intake through the charter
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git show main:raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-both-b837.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: both
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: done
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Keep the supervision evidence
+scope: supervision
+claim: Keep the supervision evidence
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git show main:raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-both-c9d0.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: both
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: local-project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Keep the worker evidence
+scope: supervision
+claim: Keep the worker evidence
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git show main:raw/2026/10/20261026T224548Z-validation-close-and-consult-5f79445b2e5f-worker-only-906b.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: worker-only
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: local-project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Worker compatibility
+scope: supervision
+claim: Worker compatibility
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult.git show main:raw/2026/10/20261026T224549Z-validation-close-and-consult-5f79445b2e5f-nothing-efdc.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: nothing
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: done
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Supervisor still has evidence
+scope: supervision
+claim: Supervisor still has evidence
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh consult grep -ril -- Route unfamiliar intake raw
+raw/2026/10/20261026T224547Z-validation-close-and-consult-5f79445b2e5f-supervisor-only-1f24.md
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh consult cat raw/2026/10/20261026T224547Z-validation-close-and-consult-5f79445b2e5f-supervisor-only-1f24.md
+---
+wiki: raw-lesson v1
+wiki-home: close-and-consult-5f79445b2e5f
+wiki-host: validation
+wiki-task: supervisor-only
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: failed
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Route unfamiliar intake through the charter
+scope: supervision
+claim: Route unfamiliar intake through the charter
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close supervisor-only
+wiki: close supervisor-only already recorded (lesson)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/close-and-consult FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close both
+wiki: close both already recorded (lesson)
+[exit 0]
+Persisted capture ledger: [{"ts": 1793054747, "outcome": "lesson", "task": "supervisor-only", "final": "failed", "files": 1, "supervisor": "lesson", "worker": "no-lessons"}, {"ts": 1793054748, "outcome": "lesson", "task": "both", "final": "done", "files": 2, "supervisor": "lesson", "worker": "lesson"}, {"ts": 1793054749, "outcome": "lesson", "task": "worker-only", "final": "done", "files": 1, "supervisor": "none", "worker": "lesson"}, {"ts": 1793054749, "outcome": "lesson", "task": "nothing", "final": "done", "files": 1, "supervisor": "lesson", "worker": "nothing-to-teach"}]
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: File an idle supervision lesson; deduplicate identical bytes and accept changed content
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/idle lesson.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/renamed.md
+wiki: file already recorded (lesson)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/idle lesson.md
+wiki: file already recorded (lesson)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/idle lesson.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224550Z-validation-standalone-52a572e304d0-session-06b5.md
+raw/2026/10/20261026T224551Z-validation-standalone-52a572e304d0-session-3d76.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone.git show main:raw/2026/10/20261026T224550Z-validation-standalone-52a572e304d0-session-06b5.md
+---
+wiki: raw-lesson v1
+wiki-home: standalone-52a572e304d0
+wiki-host: validation
+wiki-task: session
+wiki-kind: supervision
+wiki-harness: unknown
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: none
+wiki-role: supervisor
+wiki-agent: firstmate
+wiki-content: d440c3605500
+date: 2026-10-26
+---
+## File an empty-fleet supervision lesson
+scope: supervision
+claim: File an empty-fleet supervision lesson
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone.git show main:raw/2026/10/20261026T224551Z-validation-standalone-52a572e304d0-session-3d76.md
+---
+wiki: raw-lesson v1
+wiki-home: standalone-52a572e304d0
+wiki-host: validation
+wiki-task: session
+wiki-kind: supervision
+wiki-harness: unknown
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: none
+wiki-role: supervisor
+wiki-agent: firstmate
+wiki-content: c95dd7b7aa75
+date: 2026-10-26
+---
+## A new fact in the same file
+scope: supervision
+claim: A new fact in the same file
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/missing.md
+wiki: file: no lesson file at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/missing.md
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/empty.md
+wiki: file: ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/standalone/data/empty.md is empty; nothing to file
+[exit 0]
+Persisted standalone ledger: [{"ts": 1793054750, "outcome": "lesson", "task": "file:d440c3605500", "final": "none", "files": 1, "supervisor": "lesson", "worker": "none"}, {"ts": 1793054751, "outcome": "lesson", "task": "file:c95dd7b7aa75", "final": "none", "files": 1, "supervisor": "lesson", "worker": "none"}]
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Preserve literal secondmate identities in task and standalone supervisor stamps
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-0 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-0 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-0/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224552Z-validation-attribution-0-154d7b471acc-mate-df0e.md: wiki-agent: secondmate:Research.A
+20261026T224552Z-validation-attribution-0-154d7b471acc-session-1a27.md: wiki-agent: secondmate:Research.A
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-1 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-1 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-1/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224553Z-validation-attribution-1-aa87f6736edc-mate-ef48.md: wiki-agent: secondmate:research.a
+20261026T224553Z-validation-attribution-1-aa87f6736edc-session-5c46.md: wiki-agent: secondmate:research.a
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-2 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-2 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-2/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224554Z-validation-attribution-2-e3e1cf8a154a-mate-ef40.md: wiki-agent: secondmate:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB
+20261026T224554Z-validation-attribution-2-e3e1cf8a154a-session-8af5.md: wiki-agent: secondmate:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-3 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-3 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-3/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224554Z-validation-attribution-3-6ced955580bf-mate-5d74.md: wiki-agent: secondmate:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC
+20261026T224555Z-validation-attribution-3-6ced955580bf-session-a983.md: wiki-agent: secondmate:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-4 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-4 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-4/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224555Z-validation-attribution-4-c956f8b677db-mate-0fcc.md: wiki-agent: firstmate
+20261026T224556Z-validation-attribution-4-c956f8b677db-session-db8c.md: wiki-agent: firstmate
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-5 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-5 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-5/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224556Z-validation-attribution-5-182349259c2c-mate-32e5.md: wiki-agent: firstmate
+20261026T224556Z-validation-attribution-5-182349259c2c-session-bffb.md: wiki-agent: firstmate
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-6 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mate
+wiki: lesson queued for mate (final=done)
+wiki: supervision lesson queued for mate (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-6 FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/attribution-6/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+20261026T224557Z-validation-attribution-6-9c95e7ff80ff-mate-37e4.md: wiki-agent: firstmate
+20261026T224557Z-validation-attribution-6-9c95e7ff80ff-session-a880.md: wiki-agent: firstmate
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Hold secret-bearing supervisor lessons and publish only clean contributions with truthful reports
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close supervisor-only
+wiki: secret scan flagged the supervision lesson for supervisor-only - held locally at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/state/wiki/held/20261026T224558Z-validation-secret-holds-d080d75ed4e4-supervisor-only-0cee.md, not pushed; raise to the captain
+wiki: held recorded for supervisor-only (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close nothing
+wiki: secret scan flagged the supervision lesson for nothing - held locally at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/state/wiki/held/20261026T224558Z-validation-secret-holds-d080d75ed4e4-nothing-7a38.md, not pushed; raise to the captain
+wiki: held recorded for nothing (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/data/idle.md
+wiki: secret scan flagged the supervision lesson for session - held locally at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/state/wiki/held/20261026T224559Z-validation-secret-holds-d080d75ed4e4-session-ef11.md, not pushed; raise to the captain
+wiki: supervision lesson held for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/data/idle.md
+wiki: file already recorded (held)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close mixed
+wiki: secret scan flagged the supervision lesson for mixed - held locally at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds/state/wiki/held/20261026T224559Z-validation-secret-holds-d080d75ed4e4-mixed-62cf.md, not pushed; raise to the captain
+wiki: lesson queued for mixed (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224559Z-validation-secret-holds-d080d75ed4e4-mixed-6de0.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/secret-holds.git show main:raw/2026/10/20261026T224559Z-validation-secret-holds-d080d75ed4e4-mixed-6de0.md
+---
+wiki: raw-lesson v1
+wiki-home: secret-holds-d080d75ed4e4
+wiki-host: validation
+wiki-task: mixed
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: local-project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Publish only this clean worker lesson
+scope: supervision
+claim: Publish only this clean worker lesson
+evidence: isolated product validation
+[exit 0]
+Persisted held outcomes: [{"ts": 1793054758, "outcome": "held", "task": "supervisor-only", "final": "done", "files": 1, "supervisor": "held", "worker": "no-lessons"}, {"ts": 1793054759, "outcome": "held", "task": "nothing", "final": "done", "files": 1, "supervisor": "held", "worker": "nothing-to-teach"}, {"ts": 1793054759, "outcome": "held", "task": "file:854544c5643e", "final": "none", "files": 1, "supervisor": "held", "worker": "none"}, {"ts": 1793054760, "outcome": "lesson", "task": "mixed", "final": "done", "files": 2, "supervisor": "held", "worker": "lesson"}]
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Recover real supervisor read failures after worker publication without duplication or false queued reports
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: failed to stamp the supervision lesson for partial
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: lesson queued for partial (final=done)
+wiki: supervision lesson queued for partial (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224600Z-validation-partial-false-537f4f4fc137-partial-5e8f.md
+raw/2026/10/20261026T224601Z-validation-partial-false-537f4f4fc137-partial-2f80.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False.git show main:raw/2026/10/20261026T224600Z-validation-partial-false-537f4f4fc137-partial-5e8f.md
+---
+wiki: raw-lesson v1
+wiki-home: partial-false-537f4f4fc137
+wiki-host: validation
+wiki-task: partial
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: local-project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Worker saved before supervisor read fails
+scope: supervision
+claim: Worker saved before supervisor read fails
+evidence: isolated product validation
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False.git show main:raw/2026/10/20261026T224601Z-validation-partial-false-537f4f4fc137-partial-2f80.md
+---
+wiki: raw-lesson v1
+wiki-home: partial-false-537f4f4fc137
+wiki-host: validation
+wiki-task: partial
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: done
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Supervisor recovered without duplicating worker
+scope: supervision
+claim: Supervisor recovered without duplicating worker
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: close partial already recorded (lesson)
+[exit 0]
+Recovered partial ledger: [{"ts": 1793054761, "outcome": "lesson", "task": "partial", "final": "done", "files": 1, "supervisor": "failed", "worker": "lesson"}, {"ts": 1793054761, "outcome": "lesson", "task": "partial", "final": "done", "files": 2, "supervisor": "lesson", "worker": "lesson"}]
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: failed to stamp the supervision lesson for partial
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: secret scan flagged the supervision lesson for partial - held locally at ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True/state/wiki/held/20261026T224603Z-validation-partial-true-9bbc4f2bf6b6-partial-6f6c.md, not pushed; raise to the captain
+wiki: lesson recorded for partial (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: nothing to publish
+wiki: mirror refreshed
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224602Z-validation-partial-true-9bbc4f2bf6b6-partial-b74a.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True.git show main:raw/2026/10/20261026T224602Z-validation-partial-true-9bbc4f2bf6b6-partial-b74a.md
+---
+wiki: raw-lesson v1
+wiki-home: partial-true-9bbc4f2bf6b6
+wiki-host: validation
+wiki-task: partial
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: local-project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Worker saved before supervisor read fails
+scope: supervision
+claim: Worker saved before supervisor read fails
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/partial-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close partial
+wiki: close partial already recorded (lesson)
+[exit 0]
+Recovered partial ledger: [{"ts": 1793054762, "outcome": "lesson", "task": "partial", "final": "done", "files": 1, "supervisor": "failed", "worker": "lesson"}, {"ts": 1793054763, "outcome": "lesson", "task": "partial", "final": "done", "files": 2, "supervisor": "held", "worker": "lesson"}]
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Recover individual queued contributions and keep standalone/session/digest task identities separate
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/queue-recovery-worker FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close recover
+wiki: lesson queued for recover (final=done)
+wiki: supervision lesson queued for recover (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/queue-recovery-worker FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close recover
+wiki: lesson queued for recover (final=done)
+wiki: supervision lesson queued for recover (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/queue-recovery-supervisor FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close recover
+wiki: lesson queued for recover (final=done)
+wiki: supervision lesson queued for recover (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/queue-recovery-supervisor FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close recover
+wiki: lesson queued for recover (final=done)
+wiki: supervision lesson queued for recover (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/namespace-boundary FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/namespace-boundary/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/namespace-boundary FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close session
+wiki: lesson queued for session (final=done)
+wiki: supervision lesson queued for session (final=done)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/namespace-boundary FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close file-db8a7e1a78b5
+wiki: lesson queued for file-db8a7e1a78b5 (final=done)
+[exit 0]
+Distinct identities: [{"ts": 1793054766, "outcome": "lesson", "task": "file:db8a7e1a78b5", "final": "none", "files": 1, "supervisor": "lesson", "worker": "none"}, {"ts": 1793054767, "outcome": "lesson", "task": "session", "final": "done", "files": 1, "supervisor": "lesson", "worker": "no-lessons"}, {"ts": 1793054768, "outcome": "lesson", "task": "file-db8a7e1a78b5", "final": "done", "files": 1, "supervisor": "none", "worker": "lesson"}]
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Refile after a real remote outage and publish the existing queue without a watcher
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: 1 lesson(s) still queued (remote unreachable)
+wiki: mirror unavailable (remote unreachable)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True FM_WIKI_CLOSE_DRAIN=1
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True/data/idle.md
+wiki: file already recorded (lesson)
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224608Z-validation-outage-true-85b0945313d0-session-bd60.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True.git show main:raw/2026/10/20261026T224608Z-validation-outage-true-85b0945313d0-session-bd60.md
+---
+wiki: raw-lesson v1
+wiki-home: outage-true-85b0945313d0
+wiki-host: validation
+wiki-task: session
+wiki-kind: supervision
+wiki-harness: unknown
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: none
+wiki-role: supervisor
+wiki-agent: firstmate
+wiki-content: 6de819fe4439
+date: 2026-10-26
+---
+## Retry publication when the remote returns
+scope: supervision
+claim: Retry publication when the remote returns
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True FM_WIKI_CLOSE_DRAIN=1
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-True/data/idle.md
+wiki: file already recorded (lesson)
+[exit 0]
+Refiling alone published the existing queue without a watcher.
+$ git init -q --bare --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False.git
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh drain
+wiki: 1 lesson(s) still queued (remote unreachable)
+wiki: mirror unavailable (remote unreachable)
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False FM_WIKI_CLOSE_DRAIN=1
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False.git ls-tree -r --name-only main -- raw/
+raw/2026/10/20261026T224609Z-validation-outage-false-dc38653c385e-session-cf05.md
+[exit 0]
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False.git show main:raw/2026/10/20261026T224609Z-validation-outage-false-dc38653c385e-session-cf05.md
+---
+wiki: raw-lesson v1
+wiki-home: outage-false-dc38653c385e
+wiki-host: validation
+wiki-task: session
+wiki-kind: supervision
+wiki-harness: unknown
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: none
+wiki-role: supervisor
+wiki-agent: firstmate
+wiki-content: 6de819fe4439
+date: 2026-10-26
+---
+## Retry publication when the remote returns
+scope: supervision
+claim: Retry publication when the remote returns
+evidence: isolated product validation
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False FM_WIKI_CLOSE_DRAIN=1
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/outage-False/data/idle.md
+wiki: file already recorded (lesson)
+[exit 0]
+Refiling alone published the existing queue without a watcher.
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Reject real competing outbox insertions without overwrite and allow worker/supervisor/file retries
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-worker FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close collide
+wiki: failed to queue the lesson for collide
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-worker FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close collide
+wiki: lesson queued for collide (final=done)
+[exit 0]
+worker: existing destination unchanged; subsequent retry saved the other contribution.
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-supervisor FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close collide
+wiki: failed to queue the supervision lesson for collide
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-supervisor FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close collide
+wiki: lesson queued for collide (final=done)
+wiki: supervision lesson queued for collide (final=done)
+[exit 0]
+supervisor: existing destination unchanged; subsequent retry saved the other contribution.
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-file FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-file/data/idle.md
+wiki: failed to queue the supervision lesson for session
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-file FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/collision-file/data/idle.md
+wiki: supervision lesson queued for session (final=none)
+[exit 0]
+file: existing destination unchanged; subsequent retry saved the other contribution.
+OBSERVED: scenario assertions satisfied
+
+
+SCENARIO: Keep absent, off, and reader homes silent without capturing supervisor lessons
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-off FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-off/data/idle.md
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-off FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close role
+
+[exit 0]
+off: no capture output and no wiki state created.
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-reader FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-reader/data/idle.md
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-reader FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close role
+
+[exit 0]
+reader: no capture output and no wiki state created.
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-absent FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh file ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-absent/data/idle.md
+
+[exit 0]
+FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-live-42ory1p2/role-absent FM_WIKI_CLOSE_DRAIN=0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-wiki.sh close role
+
+[exit 0]
+absent: no capture output and no wiki state created.
+OBSERVED: scenario assertions satisfied
+
+TEARDOWN: removed all disposable live homes, remotes, staged lessons, and queues.

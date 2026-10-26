@@ -1,0 +1,180 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship
+~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship
+[exit 0]
+$ git init -q --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship/projects/local
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh add wiki-live-cleanup-ship Isolated wiki cleanup task --kind ship
+ok: added wiki-live-cleanup-ship (ship) -> Queued
+task:
+  id: wiki-live-cleanup-ship
+  title: Isolated wiki cleanup task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-26
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start wiki-live-cleanup-ship` to move it to in flight
+  - Run `tasks-axi block wiki-live-cleanup-ship --by <other>` to record a dependency
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh start wiki-live-cleanup-ship
+ok: start wiki-live-cleanup-ship -> In flight
+help[1]:
+  - Run `tasks-axi done wiki-live-cleanup-ship --pr <url>` when it ships
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-teardown.sh wiki-live-cleanup-ship
+teardown wiki-live-cleanup-ship complete (window none, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship/missing-worktree, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261026T224748Z-4003736)
+Backlog: wiki-live-cleanup-ship is closed in ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/ship
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[exit 0]
+Saved raw lesson after metadata/status retirement:
+---
+wiki: raw-lesson v1
+wiki-home: ship-df5f85a1c989
+wiki-host: laptop
+wiki-task: wiki-live-cleanup-ship
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: done
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Capture ship supervision before cleanup
+scope: supervision
+claim: retain the final outcome
+evidence: real marked-lab task teardown
+Saved capture ledger:
+{"ts":1793054869,"outcome":"lesson","task":"wiki-live-cleanup-ship","final":"done","files":1,"supervisor":"lesson","worker":"no-lessons"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh show wiki-live-cleanup-ship
+task:
+  id: wiki-live-cleanup-ship
+  title: Isolated wiki cleanup task
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-26
+  deps: none
+  links: none
+  body: local main
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout
+~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout
+[exit 0]
+$ git init -q --initial-branch=main ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout/projects/local
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh add wiki-live-cleanup-scout Isolated wiki cleanup task --kind scout
+ok: added wiki-live-cleanup-scout (scout) -> Queued
+task:
+  id: wiki-live-cleanup-scout
+  title: Isolated wiki cleanup task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: "-"
+  priority: "-"
+  created: 2026-10-26
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start wiki-live-cleanup-scout` to move it to in flight
+  - Run `tasks-axi block wiki-live-cleanup-scout --by <other>` to record a dependency
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh start wiki-live-cleanup-scout
+ok: start wiki-live-cleanup-scout -> In flight
+help[1]:
+  - Run `tasks-axi done wiki-live-cleanup-scout --pr <url>` when it ships
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-captain-hold.sh complete wiki-live-cleanup-scout --none
+complete: wiki-live-cleanup-scout captain-call inventory reviewed
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-teardown.sh wiki-live-cleanup-scout
+teardown wiki-live-cleanup-scout complete (window none, worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout/missing-worktree, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261026T224752Z-4006225)
+Backlog: wiki-live-cleanup-scout is closed in ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-rfkcgyhy/scout
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[exit 0]
+Saved raw lesson after metadata/status retirement:
+---
+wiki: raw-lesson v1
+wiki-home: scout-d386aabd795f
+wiki-host: laptop
+wiki-task: wiki-live-cleanup-scout
+wiki-kind: supervision
+wiki-harness: codex
+wiki-model: 
+wiki-project: 
+wiki-project-visibility: 
+wiki-final: done
+wiki-role: supervisor
+wiki-agent: firstmate
+date: 2026-10-26
+---
+## Capture scout supervision before cleanup
+scope: supervision
+claim: retain the final outcome
+evidence: real marked-lab task teardown
+Saved capture ledger:
+{"ts":1793054873,"outcome":"lesson","task":"wiki-live-cleanup-scout","final":"done","files":1,"supervisor":"lesson","worker":"no-lessons"}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-tasks-axi.sh show wiki-live-cleanup-scout
+task:
+  id: wiki-live-cleanup-scout
+  title: Isolated wiki cleanup task data/wiki-live-cleanup-scout/report.md
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-26
+  deps: none
+  links: "report:data/wiki-live-cleanup-scout/report.md"
+  body: ""
+[exit 0]
+TEARDOWN: removed marked lab homes and all task data. No backend endpoint was used.

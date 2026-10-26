@@ -1,0 +1,35 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/ship
+~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/ship
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-teardown.sh wiki-live-cleanup-ship
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/ship
+REFUSED: task wiki-live-cleanup-ship has a missing, empty, or ambiguous window endpoint; preserving task state.
+[exit 1]
+Traceback (most recent call last):
+  File "~/.no-mistakes/evidence/01M5X410KFS4SEYWSEKPVXT197/wiki-cleanup-driver.py", line 53, in <module>
+    run([root/'bin/fm-teardown.sh',task], local_env)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~/.no-mistakes/evidence/01M5X410KFS4SEYWSEKPVXT197/wiki-cleanup-driver.py", line 34, in run
+    assert p.returncode == 0, p.stdout+p.stderr
+           ^^^^^^^^^^^^^^^^^
+AssertionError: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/ship
+REFUSED: task wiki-live-cleanup-ship has a missing, empty, or ambiguous window endpoint; preserving task state.
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/scout
+~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/scout
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/bin/fm-teardown.sh wiki-live-cleanup-scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/scout
+REFUSED: task wiki-live-cleanup-scout has a missing, empty, or ambiguous window endpoint; preserving task state.
+[exit 1]
+Traceback (most recent call last):
+  File "~/.no-mistakes/evidence/01M5X410KFS4SEYWSEKPVXT197/wiki-cleanup-driver.py", line 53, in <module>
+    run([root/'bin/fm-teardown.sh',task], local_env)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~/.no-mistakes/evidence/01M5X410KFS4SEYWSEKPVXT197/wiki-cleanup-driver.py", line 34, in run
+    assert p.returncode == 0, p.stdout+p.stderr
+           ^^^^^^^^^^^^^^^^^
+AssertionError: fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M5X410KFS4SEYWSEKPVXT197/.test-tmp/wiki-validation/wiki-cleanup-w8s82t7w/scout
+REFUSED: task wiki-live-cleanup-scout has a missing, empty, or ambiguous window endpoint; preserving task state.
+
+TEARDOWN: removed marked lab homes and all task data. No backend endpoint was used.

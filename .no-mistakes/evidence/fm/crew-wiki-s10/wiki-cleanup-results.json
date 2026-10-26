@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Retire a finished ship and retain its supervisor lesson with final-status attribution",
+    "result": "pass",
+    "live": true,
+    "evidence": "wiki-cleanup-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Retire a finished scout and retain its supervisor lesson with final-status attribution",
+    "result": "pass",
+    "live": true,
+    "evidence": "wiki-cleanup-transcript.log",
+    "reason": ""
+  }
+]

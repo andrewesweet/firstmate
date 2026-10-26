@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Close supervisor-only and mixed tasks, publish each contribution once, then consult the mirror",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "File an idle supervision lesson; deduplicate identical bytes and accept changed content",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Preserve literal secondmate identities in task and standalone supervisor stamps",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Hold secret-bearing supervisor lessons and publish only clean contributions with truthful reports",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Recover real supervisor read failures after worker publication without duplication or false queued reports",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Recover individual queued contributions and keep standalone/session/digest task identities separate",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Refile after a real remote outage and publish the existing queue without a watcher",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Reject real competing outbox insertions without overwrite and allow worker/supervisor/file retries",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  },
+  {
+    "name": "Keep absent, off, and reader homes silent without capturing supervisor lessons",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "evidence": "wiki-live-transcript.log"
+  }
+]
