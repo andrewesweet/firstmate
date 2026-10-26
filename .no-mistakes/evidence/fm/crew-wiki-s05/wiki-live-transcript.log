@@ -1,0 +1,188 @@
+$ git init -q --bare -b main ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+Observed parent gardener: child config = {"jev": "on", "remote": "file://~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git", "role": "contributor"}
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+Observed parent reader: child config = {"jev": "on", "remote": "file://~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git", "role": "contributor"}
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+Observed parent contributor: child config = {"jev": "on", "remote": "file://~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git", "role": "contributor"}
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+Observed unchanged propagation preserves file mtime.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+Observed divergent child converges to primary remote and contributor role.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-brief.sh ship-proof demo --mode local-only
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/data/ship-proof/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+Observed emitted ship-proof brief: task-specific lesson path and local mirror consult contract.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-brief.sh scout-proof demo --scout
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/data/scout-proof/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+Observed emitted scout-proof brief: task-specific lesson path and local mirror consult contract.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh close ship-proof
+wiki: lesson queued for ship-proof (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh close scout-proof
+wiki: lesson queued for scout-proof (final=done)
+Observed two clean captured lessons in child outbox before publication.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh drain
+wiki: pushed 2 lesson(s)
+wiki: mirror refreshed
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git ls-tree -r --name-only main
+raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-scout-proof-21a8.md
+raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-ship-proof-173b.md
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git show main:raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-scout-proof-21a8.md
+---
+wiki: raw-lesson v1
+wiki-home: child-1c8b72fbf6d0
+wiki-host: laptop
+wiki-task: scout-proof
+wiki-kind: scout
+wiki-harness: codex
+wiki-model: validation
+wiki-project: demo
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Preserve wiki lessons from scout cleanup
+scope: tool:firstmate
+claim: A child home captures lessons before task status is retired.
+
+evidence: Live scout cleanup-boundary capture in an isolated child home.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh consult cat raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-scout-proof-21a8.md
+---
+wiki: raw-lesson v1
+wiki-home: child-1c8b72fbf6d0
+wiki-host: laptop
+wiki-task: scout-proof
+wiki-kind: scout
+wiki-harness: codex
+wiki-model: validation
+wiki-project: demo
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Preserve wiki lessons from scout cleanup
+scope: tool:firstmate
+claim: A child home captures lessons before task status is retired.
+
+evidence: Live scout cleanup-boundary capture in an isolated child home.
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git show main:raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-ship-proof-173b.md
+---
+wiki: raw-lesson v1
+wiki-home: child-1c8b72fbf6d0
+wiki-host: laptop
+wiki-task: ship-proof
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: demo
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Preserve wiki lessons from ship cleanup
+scope: tool:firstmate
+claim: A child home captures lessons before task status is retired.
+
+evidence: Live ship cleanup-boundary capture in an isolated child home.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh consult cat raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-ship-proof-173b.md
+---
+wiki: raw-lesson v1
+wiki-home: child-1c8b72fbf6d0
+wiki-host: laptop
+wiki-task: ship-proof
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: validation
+wiki-project: demo
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Preserve wiki lessons from ship cleanup
+scope: tool:firstmate
+claim: A child home captures lessons before task status is retired.
+
+evidence: Live ship cleanup-boundary capture in an isolated child home.
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/wiki.git log -1 --format=full
+commit 850f4b44b4cb90e135ddc5af2688e4886b9b5a45
+Author: Wiki live validation <wiki@example.test>
+Commit: Wiki live validation <wiki@example.test>
+
+    wiki: add 2 raw lesson(s) from child-1c8b72fbf6d0@laptop
+    
+    Wiki-Task: scout-proof
+    Wiki-Home: child-1c8b72fbf6d0
+    Wiki-Host: laptop
+    Wiki-Harness: codex
+    Wiki-Task: ship-proof
+    Wiki-Home: child-1c8b72fbf6d0
+    Wiki-Host: laptop
+    Wiki-Harness: codex
+Observed both tasks landed in real Git remote; outbox retired only after landing; consult returns exact remote blobs.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh close offline-proof
+wiki: lesson queued for offline-proof (final=done)
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh drain
+wiki: 1 lesson(s) still queued (remote unreachable)
+wiki: mirror unchanged (remote unreachable); keeping the last good mirror
+Observed unavailable remote preserves exact queued lesson bytes.
+$ git init -q --bare -b main ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/not-yet-provisioned.git
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/not-yet-provisioned.git ls-tree -r --name-only main
+raw/2026/10/20261026T205539Z-laptop-child-1c8b72fbf6d0-offline-proof-dd57.md
+Observed later drain publishes retained lesson after remote becomes available.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh
+Observed absent primary: existing child bytes preserved; fresh child stays unconfigured.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/config: primary config/wiki is not an active crew-wiki configuration
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh/config: primary config/wiki is not an active crew-wiki configuration
+Observed off primary: existing child bytes preserved; fresh child stays unconfigured.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/config: primary config/wiki is not an active crew-wiki configuration
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh/config: primary config/wiki is not an active crew-wiki configuration
+Observed unknown primary: existing child bytes preserved; fresh child stays unconfigured.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/config: primary config/wiki is not an active crew-wiki configuration
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh/config: primary config/wiki is not an active crew-wiki configuration
+Observed missing-role primary: existing child bytes preserved; fresh child stays unconfigured.
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/child/config: primary config/wiki is not an active crew-wiki configuration
+$ bash -c . "$1/bin/fm-config-inherit-lib.sh"; propagate_secondmate_inheritance "$2" "$3" inherit ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/parent ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh
+stderr: fm-config-inherit: warning: skipped wiki for ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-live-2vm8kl5g/fresh/config: primary config/wiki is not an active crew-wiki configuration
+Observed directory primary: existing child bytes preserved; fresh child stays unconfigured.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit.sh put config/wiki 142 4ec30176be119b8b4afa5976f3ede10ad96d74695174636902836135d75c13e1 1
+pushed: config/wiki
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit.sh put config/wiki 142 0000000000000000000000000000000000000000000000000000000000000000 2
+stderr: error: inherited material digest does not match its commitment
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit.sh put ../escape 142 4ec30176be119b8b4afa5976f3ede10ad96d74695174636902836135d75c13e1 3
+stderr: error: path is not inherited material: ../escape
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh drain
+wiki: nothing to publish
+wiki: mirror refreshed
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-wiki.sh consult cat raw/2026/10/20261026T205538Z-laptop-child-1c8b72fbf6d0-scout-proof-21a8.md
+---
+wiki: raw-lesson v1
+wiki-home: child-1c8b72fbf6d0
+wiki-host: laptop
+wiki-task: scout-proof
+wiki-kind: scout
+wiki-harness: codex
+wiki-model: validation
+wiki-project: demo
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-10-26
+---
+## Preserve wiki lessons from scout cleanup
+scope: tool:firstmate
+claim: A child home captures lessons before task status is retired.
+
+evidence: Live scout cleanup-boundary capture in an isolated child home.
+Observed real remote receiver accepts wiki, rejects corrupted/traversal payloads without overwriting, and activates mirror consultation.
+LIVE SCENARIOS COMPLETED
+Disposable homes and Git repositories removed.

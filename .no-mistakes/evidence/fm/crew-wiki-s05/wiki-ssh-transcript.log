@@ -1,0 +1,26 @@
+$ ssh-keygen -q -t ed25519 -N  -f ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-ssh-cy_1xeiq/host-key
+$ ssh-keygen -q -t ed25519 -N  -f ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/.wiki-ssh-cy_1xeiq/client-key
+$ id -un
+andre
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit-push.sh sm 1
+pushed: config/wiki
+unchanged: data/captain-shared.md
+Observed remote child config:
+remote=file:///isolated-wiki.git
+role=contributor
+jev=on
+
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit-push.sh sm 2
+unchanged: config/wiki
+unchanged: data/captain-shared.md
+Observed repeat remote push unchanged.
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit-push.sh sm 3
+unchanged: config/wiki
+unchanged: data/captain-shared.md
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WZCZRG3KA8DZ7CFB1NDK3P/bin/fm-remote-inherit-push.sh sm 4
+unchanged: config/wiki
+unchanged: data/captain-shared.md
+stderr: fm-config-inherit: warning: skipped config/wiki: primary config/wiki is not an active crew-wiki configuration
+Observed absent and inactive primary leave exact remote child config bytes unchanged.
+LIVE SSH SENDER/RECEIVER SCENARIO COMPLETED
+Disposable SSH server, keys, homes and transport adapter removed.
