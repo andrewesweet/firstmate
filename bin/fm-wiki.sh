@@ -278,13 +278,15 @@ wiki_stamp_field() {
   ' "$1"
 }
 
-# wiki_queued_with <field> <value> [role]: non-empty when a stamp block carrying
+# wiki_queued_with <field> <value> [role] [outbox]: non-empty when a stamp block carrying
 # <field>: <value> sits in a queue already (the crash window between the
 # outbox rename and the ledger append). Only the generated leading stamp's
 # fields are read, never lesson body text, and the match is literal.
 wiki_queued_with() {
   local file
-  for file in "$WIKI_OUTBOX"/*.md "$WIKI_HELD"/*.md; do
+  local files=("$WIKI_OUTBOX"/*.md)
+  if [ "${4:-}" != outbox ]; then files+=("$WIKI_HELD"/*.md); fi
+  for file in "${files[@]}"; do
     [ -f "$file" ] || continue
     if [ "$1" = wiki-task ]; then
       [ -z "$(wiki_stamp_field "$file" wiki-content)" ] || continue
@@ -602,7 +604,7 @@ wiki_capture_one() {
     return 0
   fi
   wiki_jev_privacy_advisory "$file"
-  if ! mv "$file" "$WIKI_OUTBOX/$(basename "$file")"; then
+  if ! wiki_move_lesson "$file" "$WIKI_OUTBOX/$(basename "$file")"; then
     rm -rf "$staging"
     printf 'wiki: failed to queue the %s for %s\n' "$noun" "$task" >&2
     return 0
@@ -659,14 +661,14 @@ wiki_capture() {
   esac
   wiki_ledger_append "$outcome" "$task" "$final" "$files" "$supervisor" "$worker"
   if [ "$outcome" = lesson ] && {
-    [ -n "$(wiki_queued_with wiki-task "$task")" ] \
-      || [ -n "$(wiki_queued_with wiki-task "$task" supervisor)" ];
+    [ -n "$(wiki_queued_with wiki-task "$task" '' outbox)" ] \
+      || [ -n "$(wiki_queued_with wiki-task "$task" supervisor outbox)" ];
   }; then
     printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
   else
     printf 'wiki: %s recorded for %s (final=%s)\n' "$outcome" "$task" "$final"
   fi
-  if [ "$supervisor" = lesson ] && [ -n "$(wiki_queued_with wiki-task "$task" supervisor)" ]; then
+  if [ "$supervisor" = lesson ] && [ -n "$(wiki_queued_with wiki-task "$task" supervisor outbox)" ]; then
     printf 'wiki: supervision lesson queued for %s (final=%s)\n' "$task" "$final"
   fi
   return 0

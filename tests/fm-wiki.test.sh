@@ -607,6 +607,66 @@ SH
   pass "failed held transfers preserve evidence unless an identical destination exists"
 }
 
+test_outbox_insertions_preserve_existing_lessons_on_collision() {
+  local mode home fakebin real_basename original out
+  real_basename=$(command -v basename) || fail "basename unavailable"
+  for mode in worker supervisor file; do
+    home=$(wiki_home "outbox-collision-$mode")
+    wiki_cfg "$home" contributor ''
+    fakebin=$(fm_fakebin "$home")
+    cat > "$fakebin/basename" <<'SH'
+#!/usr/bin/env bash
+case ${1:-} in
+  */.capture.*/*.md) printf 'collision.md\n' ;;
+  *) exec "$FM_WIKI_REAL_BASENAME" "$@" ;;
+esac
+SH
+    chmod +x "$fakebin/basename"
+    case $mode in
+      worker)
+        wiki_task "$home" task-original
+        original="$home/data/task-original/lessons.md"
+        PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+          run_wiki "$home" close task-original >/dev/null || fail "initial capture failed"
+        wiki_task "$home" task-collision
+        set -- close task-collision
+        ;;
+      supervisor)
+        wiki_task "$home" task-collision
+        original="$home/data/task-collision/lessons.md"
+        printf '## supervision\nclaim: preserve the worker lesson\n' > "$home/data/task-collision/supervision.md"
+        set -- close task-collision
+        ;;
+      file)
+        original="$home/data/first.md"
+        printf '## first\nclaim: retain the first standalone lesson\n' > "$original"
+        PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+          run_wiki "$home" file "$original" >/dev/null || fail "initial file failed"
+        printf '## second\nclaim: retry the second standalone lesson\n' > "$home/data/second.md"
+        set -- file "$home/data/second.md"
+        ;;
+    esac
+    out=$(PATH="$fakebin:$PATH" FM_WIKI_REAL_BASENAME="$real_basename" FM_WIKI_CLOSE_DRAIN=0 \
+      run_wiki "$home" "$@" 2>&1) || fail "a collision must remain best effort"
+    assert_contains "$out" 'failed to queue' "a $mode collision must remain retryable"
+    tail -n "$(wc -l < "$original")" "$home/state/wiki/outbox/collision.md" | cmp -s "$original" - \
+      || fail "a $mode collision must preserve the existing lesson body"
+    assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "a failed $mode insertion cannot count as another queued file"
+    assert_equals '1' "$(wc -l < "$home/state/wiki/ledger.jsonl" | tr -d ' ')" \
+      "a failed $mode insertion cannot record completed capture"
+    if [ "$mode" = supervisor ]; then
+      assert_grep '"supervisor":"failed"' "$home/state/wiki/ledger.jsonl" "the missing supervisor remains retryable"
+      assert_grep '"files":1' "$home/state/wiki/ledger.jsonl" "partial progress counts only the worker"
+    fi
+    out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" "$@" 2>&1) || fail "collision retry failed"
+    assert_contains "$out" 'lesson queued' "the $mode contribution can be filed after the collision"
+    assert_equals '2' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+      "retry keeps both distinct contributions"
+  done
+  pass "worker, supervisor, and standalone outbox collisions preserve existing lessons and allow retry"
+}
+
 test_every_completed_close_retries_the_existing_queue() {
   local mode home bare attempt expected remaining
   for mode in duplicate queued missing nothing held accepted; do
@@ -650,7 +710,7 @@ test_every_completed_close_retries_the_existing_queue() {
 test_partial_close_retries_only_the_missing_contribution() {
   local mode home bare out fakebin real_cat
   real_cat=$(command -v cat) || fail "cat unavailable"
-  for mode in lesson held; do
+  for mode in lesson held supervisor-held; do
     home=$(wiki_home "partial-$mode")
     bare=$(wiki_bare "partial-$mode")
     wiki_cfg "$home" contributor "file://$bare"
@@ -673,18 +733,34 @@ SH
     case $out in *'recorded for'*|*'lesson queued'*) fail "partial capture must not announce completion" ;; esac
     assert_grep '"supervisor":"failed"' "$home/state/wiki/ledger.jsonl" "partial progress remains retryable"
     run_wiki "$home" drain >/dev/null || fail "an independent drain failed"
+    if [ "$mode" = supervisor-held ]; then
+      printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$home/data/task-partial/supervision.md"
+    fi
     out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-partial 2>&1) || fail "retry failed"
-    assert_contains "$out" 'supervision lesson queued' "retry captures the missing supervisor contribution"
+    if [ "$mode" = supervisor-held ]; then
+      assert_contains "$out" 'held locally' "retry holds the secret-bearing supervisor contribution"
+      assert_contains "$out" 'lesson recorded' "the published worker remains recorded"
+      case $out in *queued*) fail "a held-only queue must not report a publishable lesson" ;; esac
+      assert_equals '0' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+        "the published worker and held supervisor leave no publishable lesson"
+    else
+      assert_contains "$out" 'supervision lesson queued' "retry captures the missing supervisor contribution"
+    fi
     assert_contains "$(tail -n 1 "$home/state/wiki/ledger.jsonl")" '"files":2' "completion counts both contributions"
     run_wiki "$home" drain >/dev/null || fail "completion drain failed"
     if [ "$mode" = lesson ]; then
       assert_equals '2' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
         "a published worker is not duplicated by the retry"
-    else
+    elif [ "$mode" = held ]; then
       assert_equals '1' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
         "only the supervisor lesson is published"
       assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' | wc -l | tr -d ' ')" \
         "the held worker is not duplicated by the retry"
+    else
+      assert_equals '1' "$(git -C "$bare" ls-tree -r --name-only main -- raw/ | wc -l | tr -d ' ')" \
+        "only the previously captured worker is published"
+      assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' | wc -l | tr -d ' ')" \
+        "the secret-bearing supervisor remains held"
     fi
   done
   pass "partial closes retry missing contributions even after publication"
@@ -1070,6 +1146,7 @@ test_parallel_closes_from_homes_sharing_a_basename_land_distinct_files
 test_concurrent_drains_in_one_home_never_run_together
 test_queue_identity_ignores_lesson_body_fields
 test_failed_held_transfer_preserves_the_captured_bytes
+test_outbox_insertions_preserve_existing_lessons_on_collision
 test_every_completed_close_retries_the_existing_queue
 test_partial_close_retries_only_the_missing_contribution
 test_queued_contributions_are_deduplicated_separately
