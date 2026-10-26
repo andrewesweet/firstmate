@@ -1782,8 +1782,9 @@ spawn_abort_cleanup() {
   fi
   # A spawn that aborts after leasing its slot but before its record survives
   # must not strand a durable lease naming a task no record describes: return
-  # the slot so the pool can hand it out again. A published record owns the
-  # lease from then on and skips this branch entirely. The slot path is the
+  # the slot so the pool can hand it out again. Publication transfers this
+  # invocation's lease to its record; an older record must not suppress return
+  # of a different copy leased by this invocation. The slot path is the
   # canonical one once it is known, and the path treehouse printed before that -
   # an abort between the lease and the canonicalization holds a lease too.
   # The return mutates the pool's state file, which the Treehouse project lock
@@ -4706,11 +4707,8 @@ else
           else
             HERDR_PROJECTION_ID=$(fm_backend_herdr_projection_journal_create "$STATE" "$ID") || exit 1
             HERDR_PROJECTION_LABEL=$(fm_backend_herdr_projection_workspace_label "$ID" "$HERDR_PROJECTION_ID")
-            # The projected child workspace and its task tab are both created
-            # in the task's own worktree: herdr persists their CREATION cwd
-            # and restores workers in it, so either landing in the project's
-            # primary checkout would bring the restored worker back outside
-            # the copy holding its work.
+            # Keep every projected shell in the task copy for the live-cwd
+            # restore contract in docs/herdr-backend.md.
             if ! FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_create_task \
               "$WT" "$HERDR_PROJECTION_LABEL" "$W"; then
               if [ "${FM_BACKEND_HERDR_PROJECTION_CLEANUP_SAFE:-0}" = 1 ]; then
@@ -4770,12 +4768,8 @@ else
       HERDR_SEEDED_DEFAULT_TAB_ID=${HERDR_CONTAINER_RAW#*$'\t'}
       HERDR_SES=${CONTAINER%%:*}
       HERDR_WORKSPACE_ID=${CONTAINER#*:}
-      # The task tab is created in the task's own worktree, matching the
-      # projection layout and the relaunch-rebind path: herdr restores a tab
-      # in its creation cwd, so a tab created in the project's primary
-      # checkout would resume there, outside the copy holding the task's
-      # work. The per-home workspace container above stays keyed on the
-      # project.
+      # The flat container stays keyed on the project; its task shell follows
+      # the live-cwd restore contract in docs/herdr-backend.md.
       HERDR_TASK_IDS=$(FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_create_task "$CONTAINER" "$W" "$WT" "$HERDR_SEEDED_DEFAULT_TAB_ID") || exit 1
       read -r HERDR_TAB_ID HERDR_PANE_ID <<EOF
 $HERDR_TASK_IDS

@@ -374,8 +374,11 @@ Ordinary non-projected task removal:
 - Keeps the legitimate plain close when the target is the active tab.
 - Refuses an unlocked close if the lock cannot be acquired.
 
-Task cleanup acquires that session lock before the task's isolated copy is returned.
+Task cleanup acquires that session lock before closing the pane or returning the task's isolated copy.
 So a contended lock refuses up front while the copy, every durable record, and the endpoint are all intact for a plain rerun.
+After the parked-run and slot-ownership safety checks pass, teardown performs the guarded pane close and confirms the exact pane is gone before reaping worktree processes or returning the copy.
+Closing first prevents worktree process cleanup from killing the [task shell](#husks-after-a-server-restart) outside the close guards.
+A refused, skipped, or failed close that leaves the pane present or unreadable stops teardown before those steps.
 
 Forced secondmate cleanup recursively preflights every Herdr child endpoint and acquires every affected named-session lock before mutating any child.
 It then retains each child's durable identity unless that exact pane returns structured not-found after its close.
@@ -849,6 +852,10 @@ No Herdr-specific copy of that protocol exists.
 ### Husks after a server restart
 
 Stopping and restarting a named Herdr server preserves workspace, tab, pane, and label ids.
+Fresh crewmate and scout launches lease their task worktree before creating the endpoint.
+Both flat task tabs and projected task workspaces start their shells in that copy; replacement tabs and projected reclaim use the task's recorded worktree too.
+Herdr persists the pane's live working directory, so the top shell stays in the task worktree throughout the run rather than moving back to the project's primary checkout.
+Restore therefore returns the shell to the isolated copy holding the task's work.
 The underlying harness processes and live agent registrations do not survive.
 A restored same-labeled tab with a missing pane or no registered agent is a husk.
 
@@ -1024,6 +1031,8 @@ Tests use thin compatibility wrappers in `tests/herdr-test-safety.sh` and never 
 
 ```sh
 tests/fm-backend-herdr.test.sh
+tests/fm-spawn-herdr-tab-cwd.test.sh
+tests/fm-teardown.test.sh
 tests/fm-backend-herdr-metadata.test.sh
 tests/fm-composer-lib.test.sh
 tests/fm-herdr-submit-confirm-live-e2e.test.sh

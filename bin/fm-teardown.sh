@@ -217,7 +217,9 @@
 # owner claim names another task is screened out before the first step that
 # would read or change the copy, so nothing in that copy is killed, reset,
 # cleaned or deleted. A record predating claims carries none to screen with,
-# so its durable lease return is the FIRST ownership test it meets and runs
+# so ownership must be proved before processes or the copy are touched. Herdr
+# reads the lease holder under the project lock before its guarded pane close;
+# other paths use the durable lease return as their first ownership test,
 # before the reap, the branch drop or the hook sweep can touch that copy. If
 # that return is refused or fails for any reason teardown cannot name - a
 # lease that is another task's included - teardown refuses: no pooled copy is
@@ -4061,8 +4063,8 @@ if [ "$BACKEND" = herdr ]; then
 fi
 
 # Every landed/discard-work refusal above has now passed (or --force skipped
-# them). One check runs before the reaps and before any destructive step
-# below: a record whose slot carries no claim (pre-claim legacy) and whose
+# them). One check runs before the reaps and copy mutations below: a record
+# whose slot carries no claim (pre-claim legacy) and whose
 # pooled copy treehouse still reports must prove ownership through the durable
 # lease return BEFORE the reap, the branch drop or the hook sweep can touch
 # that copy - all three would hit another live task's work if the slot had
