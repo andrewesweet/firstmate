@@ -2454,9 +2454,10 @@ EOF
 #                 produces (verified empirically: `session stop` + fresh `herdr
 #                 server` restart leaves the pane alive, agent_status "unknown",
 #                 agent get -> agent_not_found - docs/herdr-backend.md "ID
-#                 stability across a server restart"), and what a future
-#                 `resume_agents_on_restore = false` restore would produce too
-#                 (a plain shell, never an agent).
+#                 stability across a server restart"), and what a
+#                 `resume_agents_on_restore = false` restore produces too (a
+#                 plain shell, never an agent; the option ships in herdr
+#                 0.9.5).
 #   stale-agent - `agent get` reports a registered agent_status (working, idle,
 #                 done, or blocked) but fm_backend_herdr_pane_process_state
 #                 proves the pane is shell-only: the registered agent's process
@@ -2682,9 +2683,9 @@ fm_backend_herdr_agent_alive() {  # <target>
 # herdr persists and restores its whole session layout (workspaces/tabs/
 # panes) across a server restart, including a reboot, and a restored fm-<id>
 # task tab comes back a HUSK - a dead pane, or (today, and unconditionally
-# once a future `resume_agents_on_restore = false` config ships) a plain
-# agent-less shell sitting in the saved cwd, never the crewmate that used to
-# be there. Before this fix, every fleet respawn after such a restart needed
+# under a `resume_agents_on_restore = false` config, which herdr 0.9.5 already
+# ships) a plain agent-less shell sitting in the saved cwd, never the crewmate
+# that used to be there. Before this fix, every fleet respawn after such a restart needed
 # the operator to manually close each husk pane first before firstmate could
 # spawn into it again. fm_backend_herdr_tab_is_husk classifies the existing
 # tab's pane conservatively (dead or no-agent only; anything live or
