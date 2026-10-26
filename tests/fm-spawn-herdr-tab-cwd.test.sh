@@ -203,14 +203,23 @@ case "$cmd" in
         ;;
       get)
         pid=${args[2]:-}
-        jq -r --arg p "$pid" --arg live "${FM_FAKE_PANE_PATH:-}" '
+        # A gone pane answers with the structured error object the real
+        # binary sends, which fm_backend_herdr_pane_presence_state reads as
+        # 'dead'; empty output would read as 'unknown' and make a confirmed
+        # close look refused.
+        hit=$(jq -r --arg p "$pid" --arg live "${FM_FAKE_PANE_PATH:-}" '
           [.workspaces[] | . as $ws | (.tabs // [])[] | select(.pane_id == $p)
             | {result:{pane:{
                 pane_id: .pane_id, tab_id: .tab_id, workspace_id: $ws.workspace_id,
                 cwd: .cwd,
                 foreground_cwd: (if $live == "" then .cwd else $live end)
               }}}]
-          | if length == 1 then .[0] | tostring else empty end' "$state"
+          | if length == 1 then .[0] | tostring else empty end' "$state")
+        if [ -n "$hit" ]; then
+          printf '%s\n' "$hit"
+        else
+          printf '%s\n' '{"error":{"code":"pane_not_found"}}'
+        fi
         exit 0
         ;;
       close)
@@ -223,7 +232,10 @@ case "$cmd" in
     exit 0
     ;;
   agent)
-    printf '{"result":{"agent_not_found":true}}'
+    # No agent is ever registered in the fake: every pane reads as a plain
+    # shell (the shape a restore produces), via the structured agent_not_found
+    # error object herdr 0.9.x sends.
+    printf '%s\n' '{"error":{"code":"agent_not_found"}}'
     exit 0
     ;;
 esac
