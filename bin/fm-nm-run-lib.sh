@@ -194,9 +194,17 @@ fm_nm_head_matches_worktree() {  # <worktree> <run_head>
 # The coarse `no-mistakes runs` ledger emits database status words; an
 # `axi status` run object reports its terminal result through its own outcome
 # field as well, which fm_nm_run_is_active below checks directly.
+# ci_monitor_interrupted is terminal: no-mistakes ends these runs itself -
+# stale-run recovery after a daemon restart marks them ci_monitor_interrupted
+# with an outcome (observed 2026-10-26 on v1.96.0) and `axi abort` on one
+# returns "run is already terminal (idempotent no-op)" - so firstmate must
+# read the word the way no-mistakes does. The state store carries no
+# machine-readable terminal flag, so a FUTURE status word still lands here as
+# unknown (fail-safe: it holds a slot rather than vanishing from the count)
+# until it is classified in this one owner.
 fm_nm_run_status_class() {  # <status_word>
   case "${1:-}" in
-    completed|failed|cancelled) printf 'terminal' ;;
+    completed|failed|cancelled|ci_monitor_interrupted) printf 'terminal' ;;
     pending|running)            printf 'live' ;;
     *)                          printf 'unknown' ;;
   esac
@@ -292,7 +300,7 @@ fm_nm_select_run() {  # <branch> <axi-overview> <worktree> [timeout_secs]
       }
       if (first == "") { first = id; first_status = st }
       if (st == "running" || st == "pending") live++
-      if (st !~ /^(pending|running|completed|failed|cancelled)$/) unknown_status = 1
+      if (st !~ /^(pending|running|completed|failed|cancelled|ci_monitor_interrupted)$/) unknown_status = 1
       next
     }
     inrows { inrows = 0 }
@@ -417,7 +425,7 @@ fm_nm_run_is_active() {  # <toon-output>
   status=$(fm_nm_strip_quotes "$(fm_nm_field "$1" status)")
   outcome=$(fm_nm_strip_quotes "$(fm_nm_field "$1" outcome)")
   [ -z "$outcome" ] || return 1
-  case "$status" in completed|failed|cancelled) return 1 ;; esac
+  case "$status" in completed|failed|cancelled|ci_monitor_interrupted) return 1 ;; esac
 }
 
 # The custody exemption to the head rule above: while the pipeline OWNS the
@@ -470,7 +478,7 @@ fm_nm_run_is_parked() {  # <toon-output>
 # daemon-down probe for exactly that reason.
 # All four accepted words reach here on BOTH surfaces. The overview table
 # fm_nm_select_run validates carries a narrower column
-# (pending|running|completed|failed|cancelled, its unknown_status check), but that column is not
+# (pending|running|completed|failed|cancelled|ci_monitor_interrupted, its unknown_status check), but that column is not
 # what this predicate reads: the selected-run route re-reads the run by id and
 # passes that DETAIL object, whose own vocabulary check admits `fixing` and `ci`
 # as live, and the legacy bare-status route passes the same detail shape.
