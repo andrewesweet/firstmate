@@ -1,0 +1,29 @@
+ok - absent config/wiki leaves every verb a silent no-op
+ok - role=off keeps the feature fully off
+ok - brief-snippet owns the lesson schema for contributing homes and the consult paragraph for readers
+ok - close scans and stages before anything reaches the outbox
+ok - close and drain publish one raw file with trailers
+ok - missing and nothing-to-teach lessons record without pushing
+ok - task ids are compared literally, never case-folded or pattern-matched
+ok - a duplicate close is a recorded no-op
+ok - an unreachable remote queues pending and a later drain lands it
+ok - 30 parallel closes from 3 homes (two sharing a basename) land 30 distinct files with no forced update
+ok - concurrent drains defer to live ownership and recover after owner death
+ok - queue identity reads only the literal task field in the leading stamp
+ok - failed held transfers preserve evidence unless an identical destination exists
+ok - every completed close hands the existing queue to the guarded drain
+ok - queued, held, retained, and cloned lessons stay owner-only under umask 022
+ok - clone, fetch, and push stay bounded without timeout or Perl and recover afterward
+ok - the watcher tick paces itself by its stamp
+ok - a completed task's final status is recorded, not none
+ok - close stays idempotent across repeated calls
+ok - brief insertion follows the config/wiki opt-in for ships and scouts
+ok - drain refreshes a read-only mirror after publish
+ok - an empty drain still refreshes the mirror
+ok - an offline drain keeps the last good mirror
+ok - a reader drain refreshes the mirror without publishing
+ok - an absent config leaves every verb a silent no-op with no mirror
+ok - standalone, ship, and scout consult commands work across directories with quoted paths
+ok - empty remotes, dangling HEAD, and checkout failures preserve complete snapshots
+ok - mirror replacement is atomic and failed publication preserves the old tree
+ok - shared consultations retain pages, index, and raw lessons until every reader exits

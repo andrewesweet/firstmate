@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Reader refresh and watcher pacing",
+    "result": "pass",
+    "live": true,
+    "observations": "Reader fetched release-two with no local lessons; tick refreshed once then stayed silent. Remote main unchanged at abd1faaa3d65908891be88a50ea3529a04a5e48d; reader outbox untouched; mirror has no .git."
+  },
+  {
+    "name": "Contributor publishes then refreshes even with an empty queue",
+    "result": "pass",
+    "live": true,
+    "observations": "One clean lesson landed in remote raw/, appeared in the contributor mirror, and left the outbox. A second empty drain refreshed successfully."
+  },
+  {
+    "name": "Workers follow emitted cheap-search commands and receive the data-only rule",
+    "result": "pass",
+    "live": true,
+    "observations": "Reader, contributor, and gardener ship/scout commands all found literal needle, --help, and -timeout; category and page reads worked from another directory. Relative state and paths containing spaces, quote, and dollar were resolved. Generated briefs cap page reads and subordinate wiki text; hostile raw text was returned as data."
+  },
+  {
+    "name": "Offline and exhausted deadlines preserve the last good mirror",
+    "result": "pass",
+    "live": true,
+    "observations": "A physically unavailable file:// remote left every mirror byte unchanged and consult still served the old page; first offline refresh exposed no partial snapshot. Restoring the remote recovered; a zero remaining budget also retained the complete mirror."
+  },
+  {
+    "name": "Empty and dangling-HEAD remotes work; real checkout timeouts cannot publish partial snapshots",
+    "result": "pass",
+    "live": true,
+    "observations": "An empty repository yielded a complete empty mirror; dangling HEAD selected main. Real post-checkout timeout returned checkout failed in 2.15s and retained all old bytes; first checkout failure published no mirror. Valid trunk default then refreshed correctly."
+  },
+  {
+    "name": "Concurrent consultations keep snapshots and defer refresh safely",
+    "result": "pass",
+    "live": true,
+    "observations": "Two real consult processes each retained their complete old page; drain deferred until both exited. Refresh then retired the old snapshot. Exclusive lock skipped a new reader silently; consult propagated exit 7."
+  },
+  {
+    "name": "Opt-out and missing-mirror paths remain silent and create no wiki state",
+    "result": "pass",
+    "live": true,
+    "observations": "Absent, off, invalid-role, and reader-without-remote homes drained and consulted silently; their ship/scout briefs omitted wiki instructions. A configured reader before first refresh skipped consultation without creating state."
+  }
+]
