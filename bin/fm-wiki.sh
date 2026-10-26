@@ -637,7 +637,7 @@ wiki_capture() {
   local meta="$WIKI_STATE/$task.meta"
   local harness
   harness=$(wiki_sanitize "$(wiki_meta_get "$meta" harness)")
-  local outcome worker files=0 supervisor=none
+  local outcome worker file_count=0 supervisor=none
   wiki_capture_one "$WIKI_DATA/$task/lessons.md" "$task" lesson \
     "$(wiki_sanitize "$(wiki_meta_get "$meta" kind)")" \
     "$harness" \
@@ -647,7 +647,7 @@ wiki_capture() {
     "$final"
   worker=$WIKI_CAPTURE_OUTCOME
   outcome=$worker
-  files=$WIKI_CAPTURE_FILES
+  file_count=$WIKI_CAPTURE_FILES
   if [ "$worker" = failed ]; then
     return 0
   fi
@@ -659,17 +659,17 @@ wiki_capture() {
     supervision "$harness" '' '' '' "$final" supervisor "$(wiki_supervisor_agent)"
   supervisor=$WIKI_CAPTURE_OUTCOME
   if [ "$supervisor" = failed ]; then
-    if [ "$files" -gt 0 ]; then
-      wiki_ledger_append "$outcome" "$task" "$final" "$files" failed "$worker"
+    if [ "$file_count" -gt 0 ]; then
+      wiki_ledger_append "$outcome" "$task" "$final" "$file_count" failed "$worker"
     fi
     return 0
   fi
-  files=$(( files + WIKI_CAPTURE_FILES ))
+  file_count=$(( file_count + WIKI_CAPTURE_FILES ))
   case $supervisor in
     lesson) outcome=lesson ;;
     held) [ "$outcome" = lesson ] || outcome=held ;;
   esac
-  wiki_ledger_append "$outcome" "$task" "$final" "$files" "$supervisor" "$worker"
+  wiki_ledger_append "$outcome" "$task" "$final" "$file_count" "$supervisor" "$worker"
   if [ "$outcome" = lesson ] && {
     [ -n "$(wiki_queued_with wiki-task "$task" '' outbox)" ] \
       || [ -n "$(wiki_queued_with wiki-task "$task" supervisor outbox)" ];
