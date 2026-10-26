@@ -100,7 +100,9 @@
 #      failed -> failed, cancelled -> unknown (no verdict unless the green
 #      delivery safeguard below applies), and a ci-monitor-interrupted
 #      outcome (daemon-restart interrupted monitor, no-mistakes' own
-#      terminal word) -> done with the run's bounded forge PR disposition.
+#      terminal word) -> done with the run's bounded forge PR disposition,
+#      without claiming a checks verdict. An unavailable forge still yields
+#      done with PR state unknown; the coarse ledger cannot read PR disposition.
 #      A cancelled outcome takes precedence
 #      over an interrupted step's failed status or outstanding gate findings;
 #      it does not rewrite historical events or backlog records.
@@ -837,16 +839,9 @@ nm_reclassify_failed_run_as_held_green() {
   return 0
 }
 
-# Real state of a run the daemon marked ci_monitor_interrupted: every
-# substantive step had finished and the forge CI monitor died (a daemon
-# restart), so the run is terminal in no-mistakes (fm_nm_run_status_class
-# reads the word terminal) and the work's own disposition lives on the PR.
-# Unlike the held-green rule above there is no ci log and no checks verdict
-# to claim, so the detail states the interruption and the bounded forge PR
-# disposition; the merge decision reads the PR's actual checks as it always
-# does. No forge answer at all still reads done - the run record itself is
-# the fact, and the alternative (unknown) is what fired the stale-worker
-# alert storm this reading exists to stop.
+# Apply the header's interrupted-monitor mapping using passed_pr_detail only
+# for PR disposition; its "run passed" prefix is not a checks verdict for this
+# run. Regression coverage: tests/fm-crew-state.test.sh.
 nm_reclassify_interrupted_run() {
   local disposition pr_url
   disposition=$(passed_pr_detail)

@@ -29,8 +29,9 @@
 # Two ceilings, both deliberate, with no liveness or staleness machinery here:
 # a parked run that is later resumed re-enters the counted set without
 # re-checking the limit, and a run abandoned mid-step (its daemon killed) keeps
-# its place in the count until an operator cancels it - the wait message names
-# the counted run ids so that operator knows which runs hold the slots.
+# its place in the count until the daemon records a terminal status or an
+# operator cancels it - the wait message names the counted run ids so that
+# operator knows which runs hold the slots.
 #
 # Limit configuration (host-level, deliberately outside FM_HOME, so
 # secondmate inheritance and propagation never see it):

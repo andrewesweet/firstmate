@@ -194,14 +194,13 @@ fm_nm_head_matches_worktree() {  # <worktree> <run_head>
 # The coarse `no-mistakes runs` ledger emits database status words; an
 # `axi status` run object reports its terminal result through its own outcome
 # field as well, which fm_nm_run_is_active below checks directly.
-# ci_monitor_interrupted is terminal: no-mistakes ends these runs itself -
-# stale-run recovery after a daemon restart marks them ci_monitor_interrupted
-# with an outcome (observed 2026-10-26 on v1.96.0) and `axi abort` on one
-# returns "run is already terminal (idempotent no-op)" - so firstmate must
-# read the word the way no-mistakes does. The state store carries no
-# machine-readable terminal flag, so a FUTURE status word still lands here as
-# unknown (fail-safe: it holds a slot rather than vanishing from the count)
-# until it is classified in this one owner.
+# ci_monitor_interrupted is terminal: stale-run recovery after a daemon restart
+# ends the CI monitor without a checks verdict. It must release a validation
+# slot even when all its steps are completed or skipped, leaving no active step
+# to qualify for the monitor exemption (tests/fm-nm-slot.test.sh).
+# The state store carries no machine-readable terminal flag, so a future status
+# word stays unknown (fail-safe: it holds a slot rather than vanishing from the
+# count) until it is classified in this one owner.
 fm_nm_run_status_class() {  # <status_word>
   case "${1:-}" in
     completed|failed|cancelled|ci_monitor_interrupted) printf 'terminal' ;;
