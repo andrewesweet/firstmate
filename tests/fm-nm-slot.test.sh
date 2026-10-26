@@ -44,6 +44,7 @@ export NM_HOME XDG_RUNTIME_DIR XDG_CONFIG_HOME
 #   cifix      live run whose ci step has moved on to a fix round   counts
 #   fixing     live run running ci while a non-ci step is in a fix round   counts
 #   terminal   finished run                                      holds no slot
+#   interrupted run the daemon marked ci_monitor_interrupted after a restart  holds no slot
 #   unknown    live run carrying a status word this repo does not classify  counts
 seed_db() {
   local spec kind n i runs='' steps=''
@@ -88,6 +89,15 @@ seed_db() {
         terminal)
           runs+="${runs:+,}('done-$i','completed',NULL)"
           steps+="${steps:+,}('done-$i','review','completed')"
+          ;;
+        interrupted)
+          # The 2026-10-26 daemon-restart incident shape, copied from the five
+          # stuck runs: every substantive step completed, the ci step skipped,
+          # and the run left in no-mistakes' own ci_monitor_interrupted status
+          # (terminal there: `axi abort` is an idempotent no-op and the axi
+          # detail carries an outcome).
+          runs+="${runs:+,}('int-$i','ci_monitor_interrupted',NULL)"
+          steps+="${steps:+,}('int-$i','intent','completed'),('int-$i','rebase','completed'),('int-$i','review','completed'),('int-$i','test','completed'),('int-$i','document','completed'),('int-$i','lint','completed'),('int-$i','push','completed'),('int-$i','pr','completed'),('int-$i','ci','skipped')"
           ;;
         unknown)
           runs+="${runs:+,}('unknown-$i','quiescing',NULL)"
@@ -215,6 +225,21 @@ run_slot "$FAKE_START"
   || fail "a status word the repo does not classify must still count, got $RUN_STATUS: $RUN_ERR"
 printf '%s' "$RUN_ERR" | grep -q 'unknown-1' \
   || fail "wait reason must name the unclassified runs holding slots, got: $RUN_ERR"
+
+# --- a daemon-restart interrupted monitor run is terminal and holds no slot ---
+# no-mistakes ends these runs itself (recovery marks them ci_monitor_interrupted
+# with an outcome; `axi abort` on one is an idempotent no-op), so firstmate's
+# classification must read them as finished, not as slots held forever. Five of
+# them reproduce the 2026-10-26 incident: 5 counted of a default limit of 3
+# blocked every validation on the host.
+
+clear_limit_file
+seed_db interrupted:5
+run_slot "$FAKE_START"
+[ "$RUN_STATUS" -eq 0 ] \
+  || fail "interrupted ci-monitor runs must not count toward the cap, got $RUN_STATUS: $RUN_ERR"
+! printf '%s' "$RUN_ERR" | grep -q 'int-1' \
+  || fail "an interrupted run must not be named as holding a slot, got: $RUN_ERR"
 
 # --- a limit-file override is honored ---------------------------------------
 
