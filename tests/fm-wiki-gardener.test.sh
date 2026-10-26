@@ -983,7 +983,8 @@ test_gardener_commands_bind_custom_home_paths() {
   wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A home-bound compilation' || fail "home-bound command never published the task page"
   assert_present "$state/wiki/.drain.lock" "publication uses the supervising home's configured state path"
   assert_absent "$home/state/wiki" "publication must not substitute the home's default state path"
-  rule=$(python3 - "$brief" <<'PYTHON'
+  # shellcheck disable=SC2016 # Python owns literal backticks; -c avoids Bash 3.2's nested-heredoc parsing.
+  rule=$(python3 -c '
 import re
 import sys
 for line in open(sys.argv[1]):
@@ -991,8 +992,7 @@ for line in open(sys.argv[1]):
         for command in re.findall(r"`([^`]+)`", line):
             if "fm-wiki.sh publish " in command:
                 print(command)
-PYTHON
-)
+' "$brief")
   [ -n "$rule" ] || fail "home-bound safety rule did not provide its publication command"
   out=$(cd "$task_copy" && unset FM_HOME FM_ROOT_OVERRIDE FM_CONFIG_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE && BASE="$base" bash -e -c "$rule --base \"\$BASE\"" 2>&1) || fail "home-bound safety-rule command failed: $out"
   assert_contains "$out" 'nothing to publish' "safety rule binds the same home as the Definition of done"
