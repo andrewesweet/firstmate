@@ -34,7 +34,7 @@
 #                 in its ledger line. A hit goes to held/. A crash at any
 #                 point leaves nothing unscanned in the outbox. Completed
 #                 capture decisions are recorded best-effort in ledger.jsonl;
-#                 a recorded or queued lesson skips recapture. With valid
+#                 a recorded or queued contribution skips recapture. With valid
 #                 arguments, close exits 0 even on capture failure. It then
 #                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
@@ -105,10 +105,12 @@
 #                 inside, so nothing can commit or push from it); rebuilt only
 #                 by drain's refresh, swapped in whole, read by workers.
 #   .mirror.*     mirror snapshots and refresh scratch; reached through mirror/.
-#   ledger.jsonl  one JSON line per close outcome
-#                 (lesson|no-lessons|nothing-to-teach|held) with a supervisor
-#                 field (none|lesson|held); supervisor=none when the task had
-#                 no supervision file.
+#   ledger.jsonl  capture outcomes (lesson|no-lessons|nothing-to-teach|held),
+#                 with worker and supervisor outcomes. supervisor=none when
+#                 the task had no supervision file; supervisor=failed leaves
+#                 a partial capture retryable while retaining worker progress.
+#                 Standalone files use file:<content-digest> ledger identities,
+#                 which cannot be task ids.
 #   repo/         this home's local clone of the configured remote.
 #   .drain.lock   persistent drain-exclusive, reader-shared lock with the drain's pid.
 #   .last-drain   stamp for the watcher's drain-if-due cadence.
@@ -255,17 +257,17 @@ wiki_prepare() {
     && chmod 700 "$WIKI_DIR" "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null
 }
 
-wiki_ledger_append() {  # <outcome> <task> <final> <files> [supervisor]
-  printf '{"ts":%s,"outcome":"%s","task":"%s","final":"%s","files":%s,"supervisor":"%s"}\n' \
-    "$(date +%s)" "$1" "$2" "$3" "$4" "${5:-none}" >> "$WIKI_LEDGER" 2>/dev/null || true
+wiki_ledger_append() {  # <outcome> <task> <final> <files> [supervisor] [worker]
+  printf '{"ts":%s,"outcome":"%s","task":"%s","final":"%s","files":%s,"supervisor":"%s","worker":"%s"}\n' \
+    "$(date +%s)" "$1" "$2" "$3" "$4" "${5:-none}" "${6:-none}" >> "$WIKI_LEDGER" 2>/dev/null || true
 }
 
-# wiki_recorded_outcome <task>: an empty result means the task is unrecorded.
+# wiki_recorded_outcome <task> [field]: empty means the field is unrecorded.
 # Task ids are compared literally, never as a pattern.
 wiki_recorded_outcome() {
   local line
   line=$(grep -F "\"task\":\"$1\"" "$WIKI_LEDGER" 2>/dev/null | tail -n 1) || return 0
-  printf '%s' "$(sed -n 's/.*"outcome":"\([^"]*\)".*/\1/p' <<<"$line")"
+  printf '%s' "$(sed -n "s/.*\"${2:-outcome}\":\"\([^\"]*\)\".*/\1/p" <<<"$line")"
 }
 
 wiki_stamp_field() {
@@ -276,7 +278,7 @@ wiki_stamp_field() {
   ' "$1"
 }
 
-# wiki_queued_with <field> <value>: non-empty when a stamp block carrying
+# wiki_queued_with <field> <value> [role]: non-empty when a stamp block carrying
 # <field>: <value> sits in a queue already (the crash window between the
 # outbox rename and the ledger append). Only the generated leading stamp's
 # fields are read, never lesson body text, and the match is literal.
@@ -284,6 +286,10 @@ wiki_queued_with() {
   local file
   for file in "$WIKI_OUTBOX"/*.md "$WIKI_HELD"/*.md; do
     [ -f "$file" ] || continue
+    if [ "$1" = wiki-task ]; then
+      [ -z "$(wiki_stamp_field "$file" wiki-content)" ] || continue
+      [ "$(wiki_stamp_field "$file" wiki-role)" = "${3:-}" ] || continue
+    fi
     if [ "$(wiki_stamp_field "$file" "$1")" = "$2" ]; then
       printf '%s\n' "$file"
       return 0
@@ -521,8 +527,9 @@ wiki_close() {
 # wiki_capture_one <source> <task> <noun> <stamp-block args...>: stamp,
 # secret-scan and queue one lesson file through private staging, so no drain
 # can publish unscanned bytes. Any crash residue or a failed hold remains
-# private and is never drained. Sets WIKI_CAPTURE_OUTCOME to lesson, held, or
-# failed, and WIKI_CAPTURE_FILES to 1 on a completed capture. Always exits 0;
+# private and is never drained. Sets WIKI_CAPTURE_OUTCOME to lesson, held,
+# no-lessons, nothing-to-teach, none, or failed, and WIKI_CAPTURE_FILES to 1
+# on a completed capture. Always exits 0;
 # the caller owns the ledger and the combined report. The caller renders the
 # stamp values; they are passed through to wiki_stamp_block.
 wiki_capture_one() {
@@ -530,7 +537,44 @@ wiki_capture_one() {
   WIKI_CAPTURE_FILES=0
   local source=$1 task=$2 noun=$3
   shift 3
-  local staging file
+  local staging file recorded
+  if [ -n "${9:-}" ]; then
+    file=$(wiki_queued_with wiki-content "$9")
+  else
+    if [ "${7:-}" = supervisor ]; then
+      recorded=$(wiki_recorded_outcome "$task" supervisor)
+    else
+      recorded=$(wiki_recorded_outcome "$task" worker)
+    fi
+    case $recorded in
+      lesson|held)
+        WIKI_CAPTURE_OUTCOME=$recorded
+        WIKI_CAPTURE_FILES=1
+        return 0
+        ;;
+    esac
+    file=$(wiki_queued_with wiki-task "$task" "${7:-}")
+  fi
+  if [ -n "$file" ]; then
+    case $file in
+      "$WIKI_HELD/"*) WIKI_CAPTURE_OUTCOME=held ;;
+      *) WIKI_CAPTURE_OUTCOME=lesson ;;
+    esac
+    WIKI_CAPTURE_FILES=1
+    return 0
+  fi
+  if [ ! -s "$source" ]; then
+    if [ "${7:-}" = supervisor ]; then
+      WIKI_CAPTURE_OUTCOME=none
+    else
+      WIKI_CAPTURE_OUTCOME=no-lessons
+    fi
+    return 0
+  fi
+  if [ -z "${7:-}" ] && wiki_is_nothing_to_teach "$source"; then
+    WIKI_CAPTURE_OUTCOME=nothing-to-teach
+    return 0
+  fi
   staging=$(mktemp -d "$WIKI_DIR/.capture.XXXXXX") || {
     printf 'wiki: failed to stage the %s for %s\n' "$noun" "$task" >&2
     return 0
@@ -572,8 +616,8 @@ wiki_capture_one() {
 wiki_capture() {
   local task=$1 recorded
   recorded=$(wiki_recorded_outcome "$task")
-  if [ -n "$recorded" ] || [ -n "$(wiki_queued_with wiki-task "$task")" ]; then
-    printf 'wiki: close %s already recorded (%s)\n' "$task" "${recorded:-queued}"
+  if [ -n "$recorded" ] && [ "$(wiki_recorded_outcome "$task" supervisor)" != failed ]; then
+    printf 'wiki: close %s already recorded (%s)\n' "$task" "$recorded"
     return 0
   fi
   local final
@@ -581,48 +625,50 @@ wiki_capture() {
   local meta="$WIKI_STATE/$task.meta"
   local harness
   harness=$(wiki_sanitize "$(wiki_meta_get "$meta" harness)")
-  local outcome='' files=0 supervisor=none
-  if [ ! -s "$WIKI_DATA/$task/lessons.md" ]; then
-    outcome=no-lessons
-    printf 'wiki: no-lessons recorded for %s (final=%s)\n' "$task" "$final"
-  elif wiki_is_nothing_to_teach "$WIKI_DATA/$task/lessons.md"; then
-    outcome=nothing-to-teach
-    printf 'wiki: nothing-to-teach recorded for %s (final=%s)\n' "$task" "$final"
-  else
-    wiki_capture_one "$WIKI_DATA/$task/lessons.md" "$task" lesson \
-      "$(wiki_sanitize "$(wiki_meta_get "$meta" kind)")" \
-      "$harness" \
-      "$(wiki_sanitize "$(wiki_meta_get "$meta" model)")" \
-      "$(wiki_sanitize "$(basename "$(wiki_meta_get "$meta" project)" 2>/dev/null)")" \
-      "$(wiki_sanitize "$(wiki_meta_get "$meta" visibility)")" \
-      "$final"
-    outcome=$WIKI_CAPTURE_OUTCOME
-    files=$WIKI_CAPTURE_FILES
-    if [ "$outcome" = failed ]; then
-      return 0   # no ledger line: a later close retries the whole capture
-    fi
-    if [ "$outcome" = lesson ]; then
-      printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
-    fi
+  local outcome worker files=0 supervisor=none
+  wiki_capture_one "$WIKI_DATA/$task/lessons.md" "$task" lesson \
+    "$(wiki_sanitize "$(wiki_meta_get "$meta" kind)")" \
+    "$harness" \
+    "$(wiki_sanitize "$(wiki_meta_get "$meta" model)")" \
+    "$(wiki_sanitize "$(basename "$(wiki_meta_get "$meta" project)" 2>/dev/null)")" \
+    "$(wiki_sanitize "$(wiki_meta_get "$meta" visibility)")" \
+    "$final"
+  worker=$WIKI_CAPTURE_OUTCOME
+  outcome=$worker
+  files=$WIKI_CAPTURE_FILES
+  if [ "$worker" = failed ]; then
+    return 0
   fi
   # The supervisor's own lesson: a supervision.md beside the task's lessons
   # file, stamped as a supervisor lesson through the same scan-and-save path.
   # A task with only supervision.md yields one saved raw lesson; no
   # supervision file records supervisor=none in the ledger line.
-  if [ -s "$WIKI_DATA/$task/supervision.md" ]; then
-    wiki_capture_one "$WIKI_DATA/$task/supervision.md" "$task" 'supervision lesson' \
-      supervision "$harness" '' '' '' "$final" supervisor "$(wiki_supervisor_agent)"
-    if [ "$WIKI_CAPTURE_OUTCOME" = failed ]; then
-      return 0   # no ledger line: a later close retries the whole capture
+  wiki_capture_one "$WIKI_DATA/$task/supervision.md" "$task" 'supervision lesson' \
+    supervision "$harness" '' '' '' "$final" supervisor "$(wiki_supervisor_agent)"
+  supervisor=$WIKI_CAPTURE_OUTCOME
+  if [ "$supervisor" = failed ]; then
+    if [ "$files" -gt 0 ]; then
+      wiki_ledger_append "$outcome" "$task" "$final" "$files" failed "$worker"
     fi
-    supervisor=$WIKI_CAPTURE_OUTCOME
-    files=$(( files + WIKI_CAPTURE_FILES ))
-    if [ "$supervisor" = lesson ]; then
-      outcome=lesson
-      printf 'wiki: supervision lesson queued for %s (final=%s)\n' "$task" "$final"
-    fi
+    return 0
   fi
-  wiki_ledger_append "${outcome:-no-lessons}" "$task" "$final" "$files" "$supervisor"
+  files=$(( files + WIKI_CAPTURE_FILES ))
+  case $supervisor in
+    lesson) outcome=lesson ;;
+    held) [ "$outcome" = lesson ] || outcome=held ;;
+  esac
+  wiki_ledger_append "$outcome" "$task" "$final" "$files" "$supervisor" "$worker"
+  if [ "$outcome" = lesson ] && {
+    [ -n "$(wiki_queued_with wiki-task "$task")" ] \
+      || [ -n "$(wiki_queued_with wiki-task "$task" supervisor)" ];
+  }; then
+    printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
+  else
+    printf 'wiki: %s recorded for %s (final=%s)\n' "$outcome" "$task" "$final"
+  fi
+  if [ "$supervisor" = lesson ] && [ -n "$(wiki_queued_with wiki-task "$task" supervisor)" ]; then
+    printf 'wiki: supervision lesson queued for %s (final=%s)\n' "$task" "$final"
+  fi
   return 0
 }
 
@@ -653,18 +699,22 @@ wiki_file() {
     return 0
   fi
   local recorded
-  recorded=$(wiki_recorded_outcome "file-$hash")
-  if [ -n "$recorded" ] || [ -n "$(wiki_queued_with wiki-content "$hash")" ]; then
-    printf 'wiki: file already recorded (%s)\n' "${recorded:-queued}"
-    return 0
+  recorded=$(wiki_recorded_outcome "file:$hash")
+  if [ -n "$recorded" ]; then
+    printf 'wiki: file already recorded (%s)\n' "$recorded"
+  else
+    wiki_capture_one "$path" session 'supervision lesson' \
+      supervision unknown '' '' '' none supervisor "$(wiki_supervisor_agent)" "$hash"
+    if [ "$WIKI_CAPTURE_OUTCOME" = failed ]; then
+      return 0   # nothing recorded: the supervisor can simply run file again
+    fi
+    if [ "$WIKI_CAPTURE_OUTCOME" = lesson ]; then
+      printf 'wiki: supervision lesson queued for session (final=none)\n'
+    else
+      printf 'wiki: supervision lesson %s for session (final=none)\n' "$WIKI_CAPTURE_OUTCOME"
+    fi
+    wiki_ledger_append "$WIKI_CAPTURE_OUTCOME" "file:$hash" none "$WIKI_CAPTURE_FILES" "$WIKI_CAPTURE_OUTCOME"
   fi
-  wiki_capture_one "$path" session 'supervision lesson' \
-    supervision unknown '' '' '' none supervisor "$(wiki_supervisor_agent)" "$hash"
-  if [ "$WIKI_CAPTURE_OUTCOME" = failed ]; then
-    return 0   # nothing recorded: the supervisor can simply run file again
-  fi
-  printf 'wiki: supervision lesson queued for session (final=none)\n'
-  wiki_ledger_append "$WIKI_CAPTURE_OUTCOME" "file-$hash" none "$WIKI_CAPTURE_FILES" "$WIKI_CAPTURE_OUTCOME"
   # Hand publication off without touching the network here: one detached
   # drain, single-flight inside, the same handoff close uses.
   if [ "${FM_WIKI_CLOSE_DRAIN:-1}" = 1 ]; then

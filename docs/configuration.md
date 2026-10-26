@@ -986,8 +986,8 @@ Workers consult it optionally using the method rendered by `brief-snippet --role
 See the [script header](../bin/fm-wiki.sh) for mirror location, snapshot replacement, reader locking, failure behavior, verb syntax, and watcher pacing mechanics.
 
 Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
-Each line also records a `supervisor` field: `lesson` or `held` when the task carried a supervision file, `none` when it did not.
-A recorded close skips recapture, including edits to the source lesson; queued-but-unrecorded lessons are detected from the generated stamp block, never lesson body text.
+The ledger tracks worker and supervisor capture outcomes so a partial capture can retry the missing contribution without duplicating one already saved.
+A completed close skips recapture, including edits to the source lesson; queued-but-unrecorded lessons are detected from the generated stamp block, never lesson body text.
 Later closes still trigger a detached drain for existing queued lessons, including duplicate closes and tasks with no publishable lesson.
 Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.
 Project visibility comes from local task metadata and is empty when absent; no forge lookup occurs.
