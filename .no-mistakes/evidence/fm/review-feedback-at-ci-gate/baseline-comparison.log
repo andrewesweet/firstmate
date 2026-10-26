@@ -1,0 +1,3 @@
+Executed fm_dod_block at base 127f0f30 and target e3a22bab.
+Base lacks the required generated cadence, review-read command, review-decision key, and external-wait key.
+Target emits all four. Full generated outputs: baseline-dod.md and standalone-dod.md.

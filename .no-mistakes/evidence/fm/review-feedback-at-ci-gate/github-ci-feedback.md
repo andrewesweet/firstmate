@@ -24,12 +24,12 @@ If the top-level path is the primary checkout or not the worktree you were launc
 
 # Rules
 1. Never push to the default branch. Never merge a PR.
-2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/data/github-ci-feedback/` or a temporary directory.
+2. Keep project edits inside this worktree; keep proof and scratch output outside it, under `~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/data/github-ci-feedback/` or a temporary directory.
    Outside the worktree, write only that task material and the status and steering-inbox records authorized below.
    Leave the worktree clean before reporting done.
 3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations.
 4. Report status by appending one line:
-   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/config' '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.status' >/dev/null 2>&1 || true; }`
+   `echo "{state} [at=<epoch>]: {one short line}" >> '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.status' && { [ ! -e '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/config/fleet-ledger' ] || '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/bin/fm-fleet-ledger.sh' appended '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/config' '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.status' >/dev/null 2>&1 || true; }`
    States: working, needs-decision, blocked, paused, done, failed.
    Substitute `<epoch>` with the current Unix time in seconds - run `date +%s` and write the number it printed; a stamp that is not plain digits records no time at all.
    Each append wakes firstmate, so report sparingly: only phase changes a supervisor
@@ -53,8 +53,8 @@ If the top-level path is the primary checkout or not the worktree you were launc
 5. If you hit the same obstacle twice, append `blocked [at=<epoch>]: {why}` and stop; firstmate will help.
 6. If a decision belongs above the implementation worker (product choices, destructive actions),
    append `needs-decision [at=<epoch>]: {summary of options}` and stop. Firstmate will reply with the decision.
-   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/data/github-ci-feedback/nm-<run>-findings.txt`, then report the gate with
-   `needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/data/github-ci-feedback/nm-<run>-findings.txt`
+   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/data/github-ci-feedback/nm-<run>-findings.txt`, then report the gate with
+   `needs-decision [at=<epoch>] [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/data/github-ci-feedback/nm-<run>-findings.txt`
    naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
    A decision or blocker you opened stays open until a `resolved` line carrying its exact key lands; a later `done:` or `working:` line never closes it, even when the answer is what started that work.
    Firstmate's reply normally writes that closing line at answer time; when a blocker or wait clears WITHOUT a firstmate reply, append `resolved [at=<epoch>]: {how it cleared}` yourself (same `[key=<slug>]` if you opened it with one) as you resume.
@@ -85,13 +85,14 @@ If the top-level path is the primary checkout or not the worktree you were launc
    Pass this rule to every sub-agent you launch.
 
 # Firstmate instruction inbox
-Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.inbox'.
-When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list them with `find '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.inbox' -maxdepth 1 -name '*.msg' 2>/dev/null | sort -V`, read and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/.phase-live-validation/github-ci-feedback/state/github-ci-feedback.inbox'/handled/`.
+Firstmate steers you through durable message files in '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.inbox'.
+When a terminal message says an instruction is waiting there - and at any natural checkpoint when you are unsure - list them with `find '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.inbox' -maxdepth 1 -name '*.msg' 2>/dev/null | sort -V`, read the complete contents of each record (including its final line even when it is not newline-terminated) and act on each message in numeric order, then acknowledge each handled message by moving it: `mv '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.inbox'/NNN.msg '~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/.test-ci-feedback/github-ci-feedback/state/github-ci-feedback.inbox'/handled/`.
+Prefer the format-aware `fm_task_inbox_body` reader from `bin/fm-task-inbox-lib.sh` when it is available. If you read manually, a header line `body-terminator=1` means the writer added exactly one synthetic final newline to terminate the record file; that marked newline is not part of the logical message body, so remove only it and preserve any intentional trailing newlines. Legacy records without that marker may end without a newline; read them through the file end.
 The move IS the acknowledgement: without it firstmate rings again and eventually treats you as stuck. An empty or absent inbox needs no action.
 
 # Project memory
 A project's `AGENTS.md` or `CLAUDE.md` is loaded into every agent session in that project, so edit it only to correct information that is factually wrong - including information your own change made wrong - and never to add knowledge because it is missing.
-A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M5J29E59AGB87CCA3JKPNAA3/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
+A correction edits only the wrong text: do not run `~/.no-mistakes/worktrees/0d094301c922/01M5WT1TP1D85GPYCYJBW4XTNM/bin/fm-ensure-agents-md.sh`, create either file, or add sections, headings, or pointers alongside it.
 
 # Definition of done
 Delivery contract: mode=no-mistakes
