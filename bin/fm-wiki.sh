@@ -345,8 +345,8 @@ wiki_is_nothing_to_teach() {
 wiki_supervisor_agent() {
   local id
   if [ -f "$FM_HOME/.fm-secondmate-home" ]; then
-    id=$(wiki_sanitize "$(cat "$FM_HOME/.fm-secondmate-home" 2>/dev/null || printf '')")
-    if [ -n "$id" ]; then
+    id=$(cat "$FM_HOME/.fm-secondmate-home" 2>/dev/null || printf '')
+    if fm_task_id_creation_valid "$id"; then
       printf 'secondmate:%s' "$id"
       return 0
     fi

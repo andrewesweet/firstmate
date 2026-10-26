@@ -335,18 +335,43 @@ test_close_collects_worker_and_supervision_lessons_together() {
 }
 
 test_secondmate_home_stamps_its_own_supervisor_agent() {
-  local home out queued
-  home=$(wiki_home supmate)
-  wiki_cfg "$home" contributor "file://$TMP_ROOT/supmate.git"
-  printf 'selfimprove\n' > "$home/.fm-secondmate-home"
-  mkdir -p "$home/data"
-  printf '## charter note\nscope: routing\nclaim: route by scope\n\nevidence: fewer misroutes\n' > "$home/data/sup.md"
-  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0"
-  assert_contains "$out" 'queued' "the secondmate home files its lesson"
-  queued=$(cat "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
-  assert_contains "$queued" 'wiki-agent: secondmate:selfimprove' \
-    "a secondmate home stamps its own supervisor agent"
-  pass "a secondmate home stamps secondmate:<id> as the supervisor agent"
+  local home queued id verb queue prefix expected source case_number=0
+  prefix=$(printf '%063d' 0)
+  for id in selfimprove Research.A research.a "${prefix}A" "${prefix}B" \
+    'invalid/id' "${prefix}AB" $'Research.A\nforged'; do
+    case $id in
+      'invalid/id'|"${prefix}AB"|$'Research.A\nforged') expected=firstmate ;;
+      *) expected="secondmate:$id" ;;
+    esac
+    for verb in close file; do
+      for queue in outbox held; do
+        case_number=$((case_number + 1))
+        home=$(wiki_home "supmate-$case_number")
+        wiki_cfg "$home" contributor ''
+        printf '%s\n' "$id" > "$home/.fm-secondmate-home"
+        if [ "$verb" = close ]; then
+          wiki_sup_task "$home" task-supervisor - '## charter note'
+          source="$home/data/task-supervisor/supervision.md"
+          set -- close task-supervisor
+        else
+          source="$home/data/sup.md"
+          printf '## charter note\nclaim: route by scope\n' > "$source"
+          set -- file "$source"
+        fi
+        if [ "$queue" = held ]; then
+          printf 'evidence: AKIAIOSFODNN7EXAMPLE\n' >> "$source"
+        fi
+        FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" "$@" >/dev/null 2>&1 || fail "$verb must exit 0"
+        assert_equals '1' "$(find "$home/state/wiki/$queue" -name '*.md' | wc -l | tr -d ' ')" \
+          "$verb saves one supervisor lesson in $queue"
+        for queued in "$home/state/wiki/$queue/"*.md; do
+          assert_equals "wiki-agent: $expected" "$(sed -n '/^wiki-agent:/p' "$queued")" \
+            "$verb preserves valid secondmate identities and rejects invalid markers in $queue"
+        done
+      done
+    done
+  done
+  pass "close and file preserve literal secondmate identities in queued and held supervisor stamps"
 }
 
 test_task_ids_are_compared_literally() {
