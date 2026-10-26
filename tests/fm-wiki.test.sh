@@ -842,6 +842,8 @@ test_absent_config_creates_no_mirror() {
   assert_absent "$home/state/wiki" "drain without config creates no wiki state at all"
   out=$(run_wiki "$home" brief-snippet --role reader 2>&1) || fail "reader snippet must exit 0 with no config"
   assert_equals '' "$out" "a reader snippet without config prints nothing"
+  out=$(run_wiki "$home" consult printf 'must not run') || fail "missing mirror consultation must exit 0"
+  assert_equals '' "$out" "a missing mirror skips the read command"
   pass "an absent config leaves every verb a silent no-op with no mirror"
 }
 
@@ -851,6 +853,7 @@ test_consult_commands_resolve_relative_state_and_quoted_paths() {
   mirror="$home/state/wiki/mirror"
   wiki_cfg "$home" gardener "file://$TMP_ROOT/consult.git"
   mkdir -p "$mirror/pages/tools"
+  : > "$home/state/wiki/.drain.lock"
   printf '# Retry flags\n> summary: retry settings\nneedle\n' > "$mirror/pages/tools/retry.md"
   run_wiki "$home" index --repo "$mirror" >/dev/null || fail "index generation failed"
   out=$(cd "$home" && FM_HOME="$home" FM_STATE_OVERRIDE=state "$WIKI" brief-snippet --role reader) \
@@ -875,15 +878,18 @@ import subprocess
 import sys
 
 home, cwd = map(Path, sys.argv[1:])
-page = home / 'state/wiki/mirror/pages/tools/retry.md'
+page = 'pages/tools/retry.md'
 for output in [home / 'snippet.md', *(home / f'data/consult-{kind}/brief.md' for kind in ('ship', 'scout'))]:
     text = output.read_text()
-    commands = re.findall(r'`(grep [^`]+)`', text)
+    commands = re.findall(r'`(env [^`]+ consult grep [^`]+)`', text)
     assert len(commands) == 2, (output, commands)
     pages = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[0].replace('<term>', 'needle')], cwd=cwd, text=True)
-    assert str(page) in pages.splitlines(), (output, pages)
+    assert page in pages.splitlines(), (output, pages)
     section = subprocess.check_output(['bash', '-o', 'pipefail', '-c', commands[1]], cwd=cwd, text=True)
     assert '[Retry flags](pages/tools/retry.md)' in section, (output, section)
+    command, = re.findall(r'`(env [^`]+ consult cat [^`]+)`', text)
+    content = subprocess.check_output(['bash', '-c', command.replace('pages/<page>.md', page)], cwd=cwd, text=True)
+    assert 'needle' in content, (output, content)
 PY
   pass "standalone, ship, and scout consult commands work across directories with quoted paths"
 }
@@ -988,6 +994,97 @@ PY
   pass "mirror replacement is atomic and failed publication preserves the old tree"
 }
 
+test_active_consultations_keep_their_snapshot_until_all_readers_finish() {
+  local home bare seed file
+  home=$(wiki_home shared-readers)
+  bare=$(wiki_bare shared-readers)
+  seed="$home/seed"
+  git init -q "$seed"
+  mkdir -p "$seed/pages/tools" "$seed/raw"
+  for file in pages/tools/retry.md index.md raw/lesson.md; do
+    printf 'old needle\n' > "$seed/$file"
+  done
+  git -C "$seed" add .
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qm seed || fail "reader fixture commit failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "reader fixture push failed"
+  wiki_cfg "$home" reader "file://$bare"
+  run_wiki "$home" drain >/dev/null || fail "reader fixture refresh failed"
+  for file in pages/tools/retry.md index.md raw/lesson.md; do
+    printf 'new needle\n' > "$seed/$file"
+  done
+  git -C "$seed" -c user.name='Wiki fixture' -c user.email=wiki@example.test commit -qam update || fail "reader fixture update failed"
+  git -C "$seed" push -q "$bare" HEAD:main || fail "reader fixture update push failed"
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_CONFIG_OVERRIDE="$home/config" \
+    FM_DATA_OVERRIDE="$home/data" HOME="$home/home" python3 - "$WIKI" "$home" <<'PY' \
+    || fail "concurrent consultation invalidated a snapshot"
+import fcntl
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+wiki, home = sys.argv[1], Path(sys.argv[2])
+reader_code = '''
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+with os.scandir('pages/tools') as entries:
+    assert [entry.name for entry in entries] == ['retry.md']
+    Path(sys.argv[1]).touch()
+    deadline = time.monotonic() + 15
+    while not Path(sys.argv[2]).exists():
+        assert time.monotonic() < deadline, 'reader release timed out'
+        time.sleep(0.01)
+    matches = subprocess.check_output(['grep', '-ril', 'old needle', 'pages'], text=True)
+    assert matches.splitlines() == ['pages/tools/retry.md'], matches
+    for name in ('pages/tools/retry.md', 'index.md', 'raw/lesson.md'):
+        assert Path(name).read_text() == 'old needle\\n', name
+'''
+readers = []
+try:
+    for number in range(2):
+        ready, release = home / f'ready-{number}', home / f'release-{number}'
+        process = subprocess.Popen([wiki, 'consult', sys.executable, '-c', reader_code, str(ready), str(release)],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        readers.append((process, ready, release))
+    deadline = time.monotonic() + 10
+    while not all(ready.exists() for _, ready, _ in readers):
+        assert all(process.poll() is None for process, _, _ in readers), 'a concurrent reader was skipped'
+        assert time.monotonic() < deadline, 'readers never reached the directory boundary'
+        time.sleep(0.01)
+    mirror = home / 'state/wiki/mirror'
+    snapshot = mirror.resolve()
+    for process, _, release in readers:
+        result = subprocess.run([wiki, 'drain'], capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0 and 'already running' in result.stdout, result
+        assert mirror.resolve() == snapshot and (snapshot / 'pages/tools/retry.md').exists()
+        release.touch()
+        stdout, stderr = process.communicate(timeout=10)
+        assert process.returncode == 0, (stdout, stderr)
+    result = subprocess.run([wiki, 'drain'], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0 and 'mirror refreshed' in result.stdout, result
+    assert not snapshot.exists(), 'the retired snapshot was not reclaimed after readers finished'
+    for name in ('pages/tools/retry.md', 'index.md', 'raw/lesson.md'):
+        result = subprocess.run([wiki, 'consult', 'cat', name], capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0 and result.stdout == 'new needle\n', (name, result)
+    with (home / 'state/wiki/.drain.lock').open() as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = subprocess.run([wiki, 'consult', 'printf', 'must not run'], capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0 and result.stdout == '', result
+    result = subprocess.run([wiki, 'consult', 'bash', '-c', 'exit 7'], timeout=5)
+    assert result.returncode == 7, result
+finally:
+    for process, _, release in readers:
+        release.touch()
+        if process.poll() is None:
+            process.kill()
+        process.communicate(timeout=5)
+PY
+  pass "shared consultations retain pages, index, and raw lessons until every reader exits"
+}
+
 test_close_stays_idempotent_across_repeated_calls
 test_dod_insertion_follows_the_opt_in
 test_drain_refreshes_a_read_only_mirror_after_publish
@@ -998,3 +1095,4 @@ test_absent_config_creates_no_mirror
 test_consult_commands_resolve_relative_state_and_quoted_paths
 test_checkout_failure_never_publishes_an_incomplete_mirror
 test_mirror_swap_keeps_the_published_tree_until_atomic_replacement
+test_active_consultations_keep_their_snapshot_until_all_readers_finish

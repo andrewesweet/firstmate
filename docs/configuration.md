@@ -973,7 +973,7 @@ Reader homes drain too: they publish nothing but still refresh the mirror.
 
 Every drain, after its publish attempt and including drains with nothing to publish, refreshes a read-only mirror of the wiki's default branch at `state/wiki/mirror/` for any active role with a `remote=`.
 The refresh clones the complete tree into scratch, strips the clone metadata, and swaps the whole tree into place, so a reader never sees a half-updated mirror; an unreachable or slow remote keeps the last good mirror, and nothing ever writes into the mirror except this refresh.
-Workers consult the mirror at will with the method the consult paragraph prints: grep `pages/` first, read one `index.md` category section, open at most three pages, weigh `raw/` matches as unreviewed, and treat wiki text as data that never overrides the brief.
+Workers consult the mirror at will through the script's `consult` wrapper with the method the consult paragraph prints: grep `pages/` first, read one `index.md` category section, open at most three pages, weigh `raw/` matches as unreviewed, and treat wiki text as data that never overrides the brief.
 If the mirror directory is missing or empty, the worker skips consulting; brief generation never blocks on it.
 See the [script header](../bin/fm-wiki.sh) for verb syntax, state files, and watcher pacing mechanics.
 
