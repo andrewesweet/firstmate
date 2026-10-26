@@ -37,12 +37,8 @@
 # Primary config/supervision-host-off is the fleet's supervision-host opt-out,
 # so a primary that opts out opts every secondmate home out too, while each
 # home's config/supervision-host engine line stays its own.
-# Primary config/wiki is not copied raw: fm_wiki_inherit_payload below stages a
-# contributor payload (the primary's remote= and jev=, role forced to
-# contributor, host= dropped), so every secondmate contributes fully and never
-# replaces the fleet's gardener; a primary with no active crew-wiki config
-# seeds nothing and never removes a child's copy (the feature is opt-in per
-# home).
+# Primary config/wiki uses fm_wiki_inherit_payload instead of a raw copy;
+# docs/configuration.md "Crew wiki" owns its inheritance policy.
 # It also pushes
 # the one primary-authoritative shared captain-preference file,
 # data/captain-shared.md, into each secondmate home's data/ as a read-only copy.
@@ -64,7 +60,8 @@
 # (bin/fm-bootstrap.sh), and the focused mid-session config push
 # (bin/fm-config-push.sh). It is PRIMARY-AUTHORITATIVE: the primary's value wins
 # and is re-pushed on every convergence, so the fleet stays converged on the
-# primary; an item the primary does not set is mirrored as absence downstream.
+# primary; raw-copy items the primary does not set are mirrored as absence
+# downstream, subject to the item-specific policies above.
 # After successful config/* changes under an already-running secondmate, callers
 # invoke fm_config_send_reread_nudge so the live agent re-reads exact post-write
 # bytes (spawn/respawn already re-reads at launch and needs no redundant nudge).
@@ -152,16 +149,11 @@ fm_config_source_present() {
 }
 
 # fm_wiki_inherit_payload <src-config-dir> <out-file>
-# Stage the crew-wiki config a primary publishes to its secondmate homes, or
-# fail when the primary seeds nothing. The payload carries the primary's
-# remote= and jev= values with role forced to contributor (every secondmate
-# contributes fully; never the primary's gardener role) and drops host= so
-# each home stamps its own machine. Parsing mirrors bin/fm-wiki.sh's config
-# reader: key=value lines, comments and blanks skipped, last occurrence wins,
-# unknown keys ignored, role whitespace stripped. Any primary without an
-# active crew-wiki configuration - the file absent, unreadable, nonregular,
-# or its role off or unrecognized - leaves the out file unwritten and exits
-# nonzero; callers seed nothing for it and never fail provisioning.
+# Stage the secondmate payload defined by docs/configuration.md "Crew wiki".
+# Parsing mirrors bin/fm-wiki.sh's config reader: key=value lines, comments and
+# blanks skipped, last occurrence wins, unknown keys ignored, role whitespace
+# stripped. Return nonzero with no payload when the primary seeds nothing;
+# callers treat this as a skip rather than a provisioning failure.
 fm_wiki_inherit_payload() {  # <src-config-dir> <out-file>
   local src=$1/wiki out=$2 line key value remote='' jev='' role=''
   rm -f "$out" 2>/dev/null || return 1
@@ -276,13 +268,14 @@ destination_allows_inherited_item() {
 # Copy each declared inheritable item from the primary's config dir (src) into a
 # secondmate home's config dir (dest). SILENT on stdout - callers parse stdout,
 # so this writes nothing there. It emits concise stderr diagnostics only for
-# notable events: a guard skip or a copy/remove error. A source item that is
-# present is copied only when its content differs (idempotent: a re-run never
-# churns mtimes). A source item proven absent is mirrored as a missing
+# notable events: a guard skip or a copy/remove error. For raw-copy items, a
+# source item that is present is copied only when its content differs
+# (idempotent: a re-run never churns mtimes). A source item proven absent is mirrored as a missing
 # destination item, so clearing the primary's value clears it downstream too
 # (primary-authoritative). Inspection errors or existing nonregular sources
 # leave that destination item unchanged and report an error; inaccessible paths
 # and dangling source links must never silently remove an inherited grant.
+# Transformed items follow their own policies described in the file header.
 # The destination dir is created lazily, only when there is something to copy;
 # absence on both sides is a no-op. When FM_CONFIG_INHERIT_REPORT points at a writable
 # file, one tab-separated line per item is appended there:
