@@ -953,6 +953,7 @@ Briefs and cleanup follow the configured role:
 - Contributing homes' ship and scout briefs include the lesson instructions owned by [`bin/fm-wiki.sh brief-snippet`](../bin/fm-wiki.sh), framed by `bin/fm-dod-lib.sh` with this task's lesson-file path.
 - With a `remote=`, all active roles' ship and scout briefs also include the consult paragraph owned by `brief-snippet --role reader`; reader homes receive only that paragraph, never a lesson file.
 - Both ship and scout cleanup paths run `close` before retiring task status, so contributing homes' local capture can read the final outcome.
+  `close` also collects a supervisor-written `data/<task-id>/supervision.md` beside the lessons file and captures it as a supervisor lesson through the same path.
 
 Secondmate provisioning seeds each secondmate's `config/wiki` from the primary's own wiki settings through the inherited-local-material path: same `remote=` and `jev=`, `role=contributor` for every secondmate (never the primary's `gardener` role), and the primary's `host=` stamp dropped.
 Later inherited-material convergence restores these settings over a divergent secondmate copy.
@@ -966,6 +967,10 @@ A scan hit goes to `state/wiki/held/` and emits an actionable stderr diagnostic 
 Capture creates lesson files with owner-only permissions and keeps the wiki state, queue, staging, and publish-clone directories private.
 Held lessons and staging residue are never drained automatically.
 Capture failures do not fail cleanup, and cleanup never waits for network publication.
+
+Supervisors contribute without a task, too: `bin/fm-wiki.sh file <path>` runs the same stamp, scan, and queue pipeline for one supervision lesson not tied to a task, for the idle-moment trigger (going idle with an empty fleet, or `/stow`).
+It is best effort like `close` and idempotent for the same file content; a secret hit is held exactly as `close` holds one.
+Supervisors' two contribution triggers, consult moments, and the wiki-or-`data/learnings.md` test live in `AGENTS.md` section 6.
 
 `bin/fm-wiki.sh drain` is the only publisher of raw lessons.
 It is single-flight per home through a non-blocking kernel lock, released automatically when its holders exit; the lock file remains in place.
@@ -981,6 +986,7 @@ Workers consult it optionally using the method rendered by `brief-snippet --role
 See the [script header](../bin/fm-wiki.sh) for mirror location, snapshot replacement, reader locking, failure behavior, verb syntax, and watcher pacing mechanics.
 
 Completed capture decisions (lesson, no lessons, nothing to teach, held) append to the home's `state/wiki/ledger.jsonl` on a best-effort basis.
+Each line also records a `supervisor` field: `lesson` or `held` when the task carried a supervision file, `none` when it did not.
 A recorded close skips recapture, including edits to the source lesson; queued-but-unrecorded lessons are detected from the generated stamp block, never lesson body text.
 Later closes still trigger a detached drain for existing queued lessons, including duplicate closes and tasks with no publishable lesson.
 Raw files carry task, project, worker runtime, and model attribution in their leading stamp block.

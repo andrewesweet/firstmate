@@ -22,15 +22,34 @@
 #                 return the command's exit status. Use this for every mirror read.
 #   close <task-id>
 #                 Local only, never the network, never a lock: read the task's
-#                 final status, stamp and secret-scan its lessons.md into a
-#                 private staging file, and only a clean scan renames the file
-#                 atomically into the outbox. A hit goes to held/. A crash at
-#                 any point leaves nothing unscanned in the outbox. Completed
+#                 final status, stamp and secret-scan its lessons.md, and any
+#                 supervisor-written supervision.md beside it at
+#                 data/<task-id>/supervision.md, each into a private staging
+#                 file, and only a clean scan renames the file atomically into
+#                 the outbox. A supervision file is stamped as a supervisor
+#                 lesson (wiki-role: supervisor, wiki-agent: firstmate or
+#                 secondmate:<id>) through the same scan-and-save path; a task
+#                 with only supervision.md yields one saved raw lesson, and a
+#                 task with no supervision file records "supervisor": "none"
+#                 in its ledger line. A hit goes to held/. A crash at any
+#                 point leaves nothing unscanned in the outbox. Completed
 #                 capture decisions are recorded best-effort in ledger.jsonl;
 #                 a recorded or queued lesson skips recapture. With valid
 #                 arguments, close exits 0 even on capture failure. It then
 #                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
+#   file <path>
+#                 The close capture pipeline for one supervision lesson not
+#                 tied to a task: firstmate and second mates file their own
+#                 idle-moment supervision files (an empty fleet, or /stow)
+#                 this way; workers are never told about it. Stamps the file
+#                 as a supervisor lesson with the session task id, secret-
+#                 scans it, queues a clean scan in the outbox, holds a hit in
+#                 held/ exactly as close holds one, and hands off to one
+#                 detached drain like close. Best effort: exits 0 with one
+#                 line. Idempotent for the same file content; a missing or
+#                 empty path reports and exits 0. The detached drain is
+#                 disabled with FM_WIKI_CLOSE_DRAIN=0, like close's.
 #   drain        The only publisher of raw lessons: single-flight per home
 #                 (exits 0 immediately when another drain, publish, or active
 #                 consultation holds the lock), bounded by a wall-clock
@@ -87,7 +106,9 @@
 #                 by drain's refresh, swapped in whole, read by workers.
 #   .mirror.*     mirror snapshots and refresh scratch; reached through mirror/.
 #   ledger.jsonl  one JSON line per close outcome
-#                 (lesson|no-lessons|nothing-to-teach|held; supervisor=none).
+#                 (lesson|no-lessons|nothing-to-teach|held) with a supervisor
+#                 field (none|lesson|held); supervisor=none when the task had
+#                 no supervision file.
 #   repo/         this home's local clone of the configured remote.
 #   .drain.lock   persistent drain-exclusive, reader-shared lock with the drain's pid.
 #   .last-drain   stamp for the watcher's drain-if-due cadence.
@@ -234,9 +255,9 @@ wiki_prepare() {
     && chmod 700 "$WIKI_DIR" "$WIKI_OUTBOX" "$WIKI_HELD" 2>/dev/null
 }
 
-wiki_ledger_append() {  # <outcome> <task> <final> <files>
-  printf '{"ts":%s,"outcome":"%s","task":"%s","final":"%s","files":%s,"supervisor":"none"}\n' \
-    "$(date +%s)" "$1" "$2" "$3" "$4" >> "$WIKI_LEDGER" 2>/dev/null || true
+wiki_ledger_append() {  # <outcome> <task> <final> <files> [supervisor]
+  printf '{"ts":%s,"outcome":"%s","task":"%s","final":"%s","files":%s,"supervisor":"%s"}\n' \
+    "$(date +%s)" "$1" "$2" "$3" "$4" "${5:-none}" >> "$WIKI_LEDGER" 2>/dev/null || true
 }
 
 # wiki_recorded_outcome <task>: an empty result means the task is unrecorded.
@@ -255,15 +276,15 @@ wiki_stamp_field() {
   ' "$1"
 }
 
-# wiki_queued_for <task>: non-empty when a stamp block naming the task sits in
-# a queue already (the crash window between the outbox rename and the ledger
-# append). Only the generated leading stamp's task field is read, never lesson
-# body text, and the match is literal.
-wiki_queued_for() {
+# wiki_queued_with <field> <value>: non-empty when a stamp block carrying
+# <field>: <value> sits in a queue already (the crash window between the
+# outbox rename and the ledger append). Only the generated leading stamp's
+# fields are read, never lesson body text, and the match is literal.
+wiki_queued_with() {
   local file
   for file in "$WIKI_OUTBOX"/*.md "$WIKI_HELD"/*.md; do
     [ -f "$file" ] || continue
-    if [ "$(wiki_stamp_field "$file" wiki-task)" = "$1" ]; then
+    if [ "$(wiki_stamp_field "$file" "$1")" = "$2" ]; then
       printf '%s\n' "$file"
       return 0
     fi
@@ -281,7 +302,12 @@ wiki_final_verb() {
   printf '%s' "$verb"
 }
 
-wiki_stamp_block() {  # <task> <kind> <harness> <model> <project> <visibility> <final>
+# wiki_stamp_block <task> <kind> <harness> <model> <project> <visibility>
+#                  <final> [role] [agent] [content]
+# The optional trailing arguments stamp a supervisor lesson: role=supervisor
+# with the supervisor agent, and a content digest for file's content-keyed
+# idempotency. Worker lessons pass none of them and keep the worker stamp.
+wiki_stamp_block() {  # <task> <kind> <harness> <model> <project> <visibility> <final> [role] [agent] [content]
   printf -- '---\n'
   printf 'wiki: raw-lesson v1\n'
   printf 'wiki-home: %s\n' "$WIKI_HOME_NAME"
@@ -293,6 +319,9 @@ wiki_stamp_block() {  # <task> <kind> <harness> <model> <project> <visibility> <
   printf 'wiki-project: %s\n' "$5"
   printf 'wiki-project-visibility: %s\n' "$6"
   printf 'wiki-final: %s\n' "$7"
+  if [ -n "${8:-}" ]; then printf 'wiki-role: %s\n' "$8"; fi
+  if [ -n "${9:-}" ]; then printf 'wiki-agent: %s\n' "$9"; fi
+  if [ -n "${10:-}" ]; then printf 'wiki-content: %s\n' "${10}"; fi
   printf 'date: %s\n' "$(date -u +%Y-%m-%d)"
   printf -- '---\n'
 }
@@ -300,6 +329,31 @@ wiki_stamp_block() {  # <task> <kind> <harness> <model> <project> <visibility> <
 wiki_is_nothing_to_teach() {
   grep -q '^nothing-to-teach:' "$1" 2>/dev/null \
     && ! grep -q '^## ' "$1" 2>/dev/null
+}
+
+# wiki_supervisor_agent: the agent stamp for a supervision lesson - the
+# supervisor of this home: firstmate, or secondmate:<id> in a seeded
+# secondmate home (the .fm-secondmate-home marker carries the id).
+wiki_supervisor_agent() {
+  local id
+  if [ -f "$FM_HOME/.fm-secondmate-home" ]; then
+    id=$(wiki_sanitize "$(cat "$FM_HOME/.fm-secondmate-home" 2>/dev/null || printf '')")
+    if [ -n "$id" ]; then
+      printf 'secondmate:%s' "$id"
+      return 0
+    fi
+  fi
+  printf 'firstmate'
+}
+
+# wiki_content_digest <file>: first 12 hex characters of the file's SHA-256,
+# the content key behind file's idempotency. Empty on failure; callers treat
+# that as a capture failure.
+wiki_content_digest() {
+  python3 -c '
+import hashlib, sys
+print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:12])
+' "$1" 2>/dev/null
 }
 
 # wiki_scan_hit <file>: 0 when the secret scan flags the text. gitleaks when
@@ -464,68 +518,160 @@ wiki_close() {
   return 0
 }
 
-wiki_capture() {
-  local task=$1 staging file recorded
-  recorded=$(wiki_recorded_outcome "$task")
-  if [ -n "$recorded" ] || [ -n "$(wiki_queued_for "$task")" ]; then
-    printf 'wiki: close %s already recorded (%s)\n' "$task" "${recorded:-queued}"
-    return 0
-  fi
-  local final
-  final=$(wiki_final_verb "$task")
-  if [ ! -s "$WIKI_DATA/$task/lessons.md" ]; then
-    wiki_ledger_append no-lessons "$task" "$final" 0
-    printf 'wiki: no-lessons recorded for %s (final=%s)\n' "$task" "$final"
-    return 0
-  fi
-  if wiki_is_nothing_to_teach "$WIKI_DATA/$task/lessons.md"; then
-    wiki_ledger_append nothing-to-teach "$task" "$final" 0
-    printf 'wiki: nothing-to-teach recorded for %s (final=%s)\n' "$task" "$final"
-    return 0
-  fi
-  # Private staging: the stamped file is scanned here, before it is ever
-  # visible in the outbox, so no drain can publish unscanned bytes. Any
-  # crash residue or a failed hold remains private and is never drained.
+# wiki_capture_one <source> <task> <noun> <stamp-block args...>: stamp,
+# secret-scan and queue one lesson file through private staging, so no drain
+# can publish unscanned bytes. Any crash residue or a failed hold remains
+# private and is never drained. Sets WIKI_CAPTURE_OUTCOME to lesson, held, or
+# failed, and WIKI_CAPTURE_FILES to 1 on a completed capture. Always exits 0;
+# the caller owns the ledger and the combined report. The caller renders the
+# stamp values; they are passed through to wiki_stamp_block.
+wiki_capture_one() {
+  WIKI_CAPTURE_OUTCOME=failed
+  WIKI_CAPTURE_FILES=0
+  local source=$1 task=$2 noun=$3
+  shift 3
+  local staging file
   staging=$(mktemp -d "$WIKI_DIR/.capture.XXXXXX") || {
-    printf 'wiki: failed to stage the lesson for %s\n' "$task" >&2
+    printf 'wiki: failed to stage the %s for %s\n' "$noun" "$task" >&2
     return 0
   }
   file="$staging/$(date -u +%Y%m%dT%H%M%SZ)-$CFG_HOST-$WIKI_HOME_NAME-$task-$(printf '%02x%02x' $((RANDOM % 256)) $((RANDOM % 256))).md"
   {
-    wiki_stamp_block "$task" \
-      "$(wiki_sanitize "$(wiki_meta_get "$WIKI_STATE/$task.meta" kind)")" \
-      "$(wiki_sanitize "$(wiki_meta_get "$WIKI_STATE/$task.meta" harness)")" \
-      "$(wiki_sanitize "$(wiki_meta_get "$WIKI_STATE/$task.meta" model)")" \
-      "$(wiki_sanitize "$(basename "$(wiki_meta_get "$WIKI_STATE/$task.meta" project)" 2>/dev/null)")" \
-      "$(wiki_sanitize "$(wiki_meta_get "$WIKI_STATE/$task.meta" visibility)")" \
-      "$final"
-    cat "$WIKI_DATA/$task/lessons.md"
+    wiki_stamp_block "$task" "$@"
+    cat "$source"
   } > "$file" 2>/dev/null || {
     rm -rf "$staging"
-    printf 'wiki: failed to stamp the lesson for %s\n' "$task" >&2
+    printf 'wiki: failed to stamp the %s for %s\n' "$noun" "$task" >&2
     return 0
   }
   if wiki_scan_hit "$file"; then
     if wiki_move_lesson "$file" "$WIKI_HELD/$(basename "$file")"; then
       rm -rf "$staging"
-      wiki_ledger_append held "$task" "$final" 1
-      printf 'wiki: secret scan flagged the lesson for %s - held locally at %s, not pushed; raise to the captain\n' \
-        "$task" "$WIKI_HELD/$(basename "$file")" >&2
+      WIKI_CAPTURE_OUTCOME=held
+      WIKI_CAPTURE_FILES=1
+      printf 'wiki: secret scan flagged the %s for %s - held locally at %s, not pushed; raise to the captain\n' \
+        "$noun" "$task" "$WIKI_HELD/$(basename "$file")" >&2
     else
-      printf 'wiki: failed to hold the scanned lesson for %s; retained at %s, not pushed; raise to the captain\n' \
-        "$task" "$file" >&2
+      printf 'wiki: failed to hold the scanned %s for %s; retained at %s, not pushed; raise to the captain\n' \
+        "$noun" "$task" "$file" >&2
     fi
     return 0
   fi
   wiki_jev_privacy_advisory "$file"
   if ! mv "$file" "$WIKI_OUTBOX/$(basename "$file")"; then
     rm -rf "$staging"
-    printf 'wiki: failed to queue the lesson for %s\n' "$task" >&2
+    printf 'wiki: failed to queue the %s for %s\n' "$noun" "$task" >&2
     return 0
   fi
   rm -rf "$staging"
-  wiki_ledger_append lesson "$task" "$final" 1
-  printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
+  WIKI_CAPTURE_OUTCOME=lesson
+  WIKI_CAPTURE_FILES=1
+  return 0
+}
+
+wiki_capture() {
+  local task=$1 recorded
+  recorded=$(wiki_recorded_outcome "$task")
+  if [ -n "$recorded" ] || [ -n "$(wiki_queued_with wiki-task "$task")" ]; then
+    printf 'wiki: close %s already recorded (%s)\n' "$task" "${recorded:-queued}"
+    return 0
+  fi
+  local final
+  final=$(wiki_final_verb "$task")
+  local meta="$WIKI_STATE/$task.meta"
+  local harness
+  harness=$(wiki_sanitize "$(wiki_meta_get "$meta" harness)")
+  local outcome='' files=0 supervisor=none
+  if [ ! -s "$WIKI_DATA/$task/lessons.md" ]; then
+    outcome=no-lessons
+    printf 'wiki: no-lessons recorded for %s (final=%s)\n' "$task" "$final"
+  elif wiki_is_nothing_to_teach "$WIKI_DATA/$task/lessons.md"; then
+    outcome=nothing-to-teach
+    printf 'wiki: nothing-to-teach recorded for %s (final=%s)\n' "$task" "$final"
+  else
+    wiki_capture_one "$WIKI_DATA/$task/lessons.md" "$task" lesson \
+      "$(wiki_sanitize "$(wiki_meta_get "$meta" kind)")" \
+      "$harness" \
+      "$(wiki_sanitize "$(wiki_meta_get "$meta" model)")" \
+      "$(wiki_sanitize "$(basename "$(wiki_meta_get "$meta" project)" 2>/dev/null)")" \
+      "$(wiki_sanitize "$(wiki_meta_get "$meta" visibility)")" \
+      "$final"
+    outcome=$WIKI_CAPTURE_OUTCOME
+    files=$WIKI_CAPTURE_FILES
+    if [ "$outcome" = failed ]; then
+      return 0   # no ledger line: a later close retries the whole capture
+    fi
+    if [ "$outcome" = lesson ]; then
+      printf 'wiki: lesson queued for %s (final=%s)\n' "$task" "$final"
+    fi
+  fi
+  # The supervisor's own lesson: a supervision.md beside the task's lessons
+  # file, stamped as a supervisor lesson through the same scan-and-save path.
+  # A task with only supervision.md yields one saved raw lesson; no
+  # supervision file records supervisor=none in the ledger line.
+  if [ -s "$WIKI_DATA/$task/supervision.md" ]; then
+    wiki_capture_one "$WIKI_DATA/$task/supervision.md" "$task" 'supervision lesson' \
+      supervision "$harness" '' '' '' "$final" supervisor "$(wiki_supervisor_agent)"
+    if [ "$WIKI_CAPTURE_OUTCOME" = failed ]; then
+      return 0   # no ledger line: a later close retries the whole capture
+    fi
+    supervisor=$WIKI_CAPTURE_OUTCOME
+    files=$(( files + WIKI_CAPTURE_FILES ))
+    if [ "$supervisor" = lesson ]; then
+      outcome=lesson
+      printf 'wiki: supervision lesson queued for %s (final=%s)\n' "$task" "$final"
+    fi
+  fi
+  wiki_ledger_append "${outcome:-no-lessons}" "$task" "$final" "$files" "$supervisor"
+  return 0
+}
+
+# wiki_file <path>: the close capture pipeline for one supervision lesson not
+# tied to a task. Best effort, exits 0; idempotent for the same file content;
+# a secret hit is held exactly as close holds one.
+wiki_file() {
+  [ "${1:-}" != '' ] || die_usage 'file <path>'
+  [ "$#" -eq 1 ] || die_usage 'file takes exactly one path'
+  wiki_feature_on 0 || return 0   # contributing role; file needs no remote
+  wiki_paths || return 0
+  wiki_prepare || return 0
+  local path=$1
+  if [ ! -f "$path" ]; then
+    printf 'wiki: file: no lesson file at %s\n' "$path" >&2
+    return 0
+  fi
+  if [ ! -s "$path" ]; then
+    printf 'wiki: file: %s is empty; nothing to file\n' "$path" >&2
+    return 0
+  fi
+  # Content-keyed idempotency: the same bytes are one lesson, however often
+  # the supervisor runs file on them.
+  local hash
+  hash=$(wiki_content_digest "$path")
+  if [ -z "$hash" ]; then
+    printf 'wiki: file: could not read %s\n' "$path" >&2
+    return 0
+  fi
+  local recorded
+  recorded=$(wiki_recorded_outcome "file-$hash")
+  if [ -n "$recorded" ] || [ -n "$(wiki_queued_with wiki-content "$hash")" ]; then
+    printf 'wiki: file already recorded (%s)\n' "${recorded:-queued}"
+    return 0
+  fi
+  wiki_capture_one "$path" session 'supervision lesson' \
+    supervision unknown '' '' '' none supervisor "$(wiki_supervisor_agent)" "$hash"
+  if [ "$WIKI_CAPTURE_OUTCOME" = failed ]; then
+    return 0   # nothing recorded: the supervisor can simply run file again
+  fi
+  printf 'wiki: supervision lesson queued for session (final=none)\n'
+  wiki_ledger_append "$WIKI_CAPTURE_OUTCOME" "file-$hash" none "$WIKI_CAPTURE_FILES" "$WIKI_CAPTURE_OUTCOME"
+  # Hand publication off without touching the network here: one detached
+  # drain, single-flight inside, the same handoff close uses.
+  if [ "${FM_WIKI_CLOSE_DRAIN:-1}" = 1 ]; then
+    env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$WIKI_STATE" FM_DATA_OVERRIDE="$WIKI_DATA" \
+      FM_CONFIG_OVERRIDE="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$SCRIPT_DIR/fm-wiki.sh" drain </dev/null >/dev/null 2>&1 &
+  fi
   return 0
 }
 
@@ -1398,6 +1544,10 @@ case ${1:-} in
   close)
     shift
     wiki_close "$@"
+    ;;
+  file)
+    shift
+    wiki_file "$@"
     ;;
   drain)
     shift

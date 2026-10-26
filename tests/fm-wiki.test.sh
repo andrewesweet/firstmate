@@ -81,6 +81,10 @@ test_absent_config_leaves_every_verb_a_silent_noop() {
   assert_equals '' "$out" "brief-snippet without config prints nothing"
   out=$(run_wiki "$home" drain-if-due 2>&1) || fail "drain-if-due must exit 0 with no config"
   assert_equals '' "$out" "drain-if-due without config prints nothing"
+  printf '## a lesson nobody files\nscope: t\nclaim: c\n\nevidence: e\n' > "$home/data/sup.md"
+  out=$(run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0 with no config"
+  assert_equals '' "$out" "file without config prints nothing"
+  [ ! -e "$home/state/wiki" ] || fail "file without config creates no wiki state"
   pass "absent config/wiki leaves every verb a silent no-op"
 }
 
@@ -95,6 +99,9 @@ test_role_off_keeps_the_feature_fully_off() {
     "an off home never queues a lesson"
   out=$(run_wiki "$home" drain 2>&1) || fail "drain must exit 0 with role=off"
   assert_equals '' "$out" "drain with role=off prints nothing"
+  printf '## a lesson nobody files\nscope: t\nclaim: c\n\nevidence: e\n' > "$home/data/sup.md"
+  out=$(run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0 with role=off"
+  assert_equals '' "$out" "file with role=off prints nothing"
   pass "role=off keeps the feature fully off"
 }
 
@@ -204,6 +211,141 @@ test_missing_and_nothing_to_teach_lessons_record_without_pushing() {
   assert_contains "$out" 'nothing to publish' "drain reports an empty outbox"
   [ -z "$(git -C "$bare" log --format=%H main 2>/dev/null)" ] || fail "nothing was pushed"
   pass "missing and nothing-to-teach lessons record without pushing"
+}
+
+# wiki_sup_task <home> <task-id> <lessons-text|-> <supervision-text|->: stage a
+# finished task's lesson and supervision files; - omits the file.
+wiki_sup_task() {
+  local home=$1 task=$2 lessons=$3 supervision=$4
+  printf 'kind=ship\nharness=pi\nmodel=test-model\nproject=/tmp/proj\n' > "$home/state/$task.meta"
+  printf 'done [at=1]: PR https://example.test/pull/1\n' > "$home/state/$task.status"
+  mkdir -p "$home/data/$task"
+  if [ "$lessons" != - ]; then
+    printf '%s\n' "$lessons" > "$home/data/$task/lessons.md"
+  fi
+  if [ "$supervision" != - ]; then
+    printf '%s\n' "$supervision" > "$home/data/$task/supervision.md"
+  fi
+}
+
+test_close_collects_a_supervision_file_as_one_supervisor_lesson() {
+  local home bare out queued body path
+  home=$(wiki_home supclose)
+  bare=$(wiki_bare supclose)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_sup_task "$home" task-s1 - '## steer through the durable inbox\nscope: harness:pi\nclaim: send text with fm-send\n\nevidence: the doorbell rang\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s1 2>&1) || fail "close with only supervision.md must exit 0"
+  assert_contains "$out" 'queued' "the supervision close reports its queued lesson"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a task with only supervision.md queues exactly one lesson"
+  queued=$(cat "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
+  assert_contains "$queued" 'wiki-role: supervisor' "the stamp marks a supervisor lesson"
+  assert_contains "$queued" 'wiki-kind: supervision' "the stamp kinds the lesson as supervision"
+  assert_contains "$queued" 'wiki-agent: firstmate' "the stamp names the supervisor agent"
+  assert_contains "$queued" 'wiki-task: task-s1' "the stamp names the supervised task"
+  assert_contains "$queued" 'wiki-harness: pi' "the stamp keeps the task's harness"
+  assert_grep '"outcome":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger records the capture"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger names the supervision capture"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'pushed 1 lesson' "the drain lands the supervision lesson"
+  path=$(git -C "$bare" ls-tree -r --name-only main | head -n 1)
+  body=$(git -C "$bare" show "main:$path")
+  assert_contains "$body" 'wiki-role: supervisor' "the raw file keeps the supervisor stamp"
+  assert_contains "$body" 'evidence: the doorbell rang' "the raw file keeps the lesson body"
+  pass "close collects a supervision.md as one supervisor-stamped lesson"
+}
+
+test_file_verb_scans_holds_and_stays_idempotent() {
+  local home bare out path body sup leak
+  home=$(wiki_home supfile)
+  bare=$(wiki_bare supfile)
+  wiki_cfg "$home" contributor "file://$bare"
+  mkdir -p "$home/data"
+  sup="$home/data/wiki-supervision/20261025T000000Z.md"
+  mkdir -p "$home/data/wiki-supervision"
+  printf '## recovery recipe\nscope: harness:claude\nclaim: resume the session\n\nevidence: the window came back\n' > "$sup"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$sup" 2>&1) || fail "file must exit 0"
+  assert_contains "$out" 'queued' "file reports its queued lesson"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "file queues exactly one lesson"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger records the filed lesson"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$sup" 2>&1) || fail "a repeated file must exit 0"
+  assert_contains "$out" 'already recorded' "a repeated file names its recorded outcome"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a repeated file queues nothing new"
+  leak="$home/data/wiki-supervision/leak.md"
+  printf 'evidence: AKIAIOSFODNN7EXAMPLE is a key\n' > "$leak"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$leak" 2>&1) || fail "a flagged file must still exit 0"
+  assert_contains "$out" 'held' "file names the held outcome"
+  assert_equals '1' "$(find "$home/state/wiki/held" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a flagged supervision file is held locally"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a flagged supervision file never reaches the outbox"
+  out=$(run_wiki "$home" drain) || fail "drain must exit 0"
+  assert_contains "$out" 'pushed 1 lesson' "the drain lands the filed lesson"
+  path=$(git -C "$bare" ls-tree -r --name-only main | head -n 1)
+  body=$(git -C "$bare" show "main:$path")
+  assert_contains "$body" 'wiki-role: supervisor' "the raw file keeps the supervisor stamp"
+  assert_contains "$body" 'wiki-task: session' "a filed lesson stamps the session task id"
+  assert_contains "$body" 'wiki-agent: firstmate' "the raw file names the supervisor agent"
+  pass "file scans, holds planted keys, and is idempotent per content"
+}
+
+test_close_records_supervisor_none_without_a_supervision_file() {
+  local home bare
+  home=$(wiki_home supnone)
+  bare=$(wiki_bare supnone)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_task "$home" task-s2
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s2 >/dev/null || fail "close failed"
+  assert_grep '"supervisor":"none"' "$home/state/wiki/ledger.jsonl" \
+    "a task with no supervision file records supervisor none"
+  pass "close records supervisor none without a supervision file"
+}
+
+test_close_collects_worker_and_supervision_lessons_together() {
+  local home bare out queued
+  home=$(wiki_home supboth)
+  bare=$(wiki_bare supboth)
+  wiki_cfg "$home" contributor "file://$bare"
+  wiki_sup_task "$home" task-s3 \
+    '## share the retry rule\nscope: tool:no-mistakes\nclaim: rerun after fix\n\nevidence: saw it land\n' \
+    '## steer early\nscope: harness:pi\nclaim: brief before spawn\n\nevidence: less rework\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s3 2>&1) || fail "close must exit 0"
+  assert_equals '2' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "a close with both files queues both lessons"
+  assert_grep '"files":2' "$home/state/wiki/ledger.jsonl" "the ledger counts both captured files"
+  assert_grep '"supervisor":"lesson"' "$home/state/wiki/ledger.jsonl" "the ledger names the supervision capture"
+  assert_equals '1' "$(grep -l '^wiki-role: supervisor$' "$home/state/wiki/outbox"/*.md | wc -l | tr -d ' ')" \
+    "exactly one queued file is the supervision half"
+  # A nothing-to-teach worker lesson does not block the supervision half.
+  wiki_sup_task "$home" task-s4 'nothing-to-teach: routine work\n' \
+    '## steer with questions\nscope: intake\nclaim: ask one question\n\nevidence: clearer specs\n'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-s4 2>&1) || fail "close task-s4 must exit 0"
+  assert_contains "$out" 'supervision lesson queued' "the supervision half reports itself"
+  assert_equals '3' "$(find "$home/state/wiki/outbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" \
+    "the nothing-to-teach close queues only the supervision lesson"
+  local s4
+  s4=$(grep -rl '^wiki-task: task-s4$' "$home/state/wiki/outbox" 2>/dev/null | head -n 1)
+  [ -n "$s4" ] || fail "the task-s4 close queues its supervision lesson"
+  grep -q '^wiki-kind: supervision$' "$s4" || fail "the task-s4 lesson is stamped as supervision"
+  assert_grep '"outcome":"lesson"' "$home/state/wiki/ledger.jsonl" "the close still records a lesson"
+  pass "close collects worker and supervision lessons through one ledger line"
+}
+
+test_secondmate_home_stamps_its_own_supervisor_agent() {
+  local home out queued
+  home=$(wiki_home supmate)
+  wiki_cfg "$home" contributor "file://$TMP_ROOT/supmate.git"
+  printf 'selfimprove\n' > "$home/.fm-secondmate-home"
+  mkdir -p "$home/data"
+  printf '## charter note\nscope: routing\nclaim: route by scope\n\nevidence: fewer misroutes\n' > "$home/data/sup.md"
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" file "$home/data/sup.md" 2>&1) || fail "file must exit 0"
+  assert_contains "$out" 'queued' "the secondmate home files its lesson"
+  queued=$(cat "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
+  assert_contains "$queued" 'wiki-agent: secondmate:selfimprove' \
+    "a secondmate home stamps its own supervisor agent"
+  pass "a secondmate home stamps secondmate:<id> as the supervisor agent"
 }
 
 test_task_ids_are_compared_literally() {
@@ -746,6 +888,11 @@ test_brief_snippet_owns_the_lesson_schema_for_contributing_homes
 test_close_scans_and_stages_before_anything_reaches_the_outbox
 test_close_and_drain_publish_one_raw_file_with_trailers
 test_missing_and_nothing_to_teach_lessons_record_without_pushing
+test_close_collects_a_supervision_file_as_one_supervisor_lesson
+test_file_verb_scans_holds_and_stays_idempotent
+test_close_records_supervisor_none_without_a_supervision_file
+test_close_collects_worker_and_supervision_lessons_together
+test_secondmate_home_stamps_its_own_supervisor_agent
 test_task_ids_are_compared_literally
 test_a_duplicate_close_is_a_recorded_noop
 test_an_unreachable_remote_queues_for_a_later_drain
