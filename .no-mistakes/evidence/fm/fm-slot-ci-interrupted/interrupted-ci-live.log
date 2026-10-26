@@ -1,0 +1,128 @@
+$ git init -q -b fm/interrupted
+exit: 0
+$ git commit -q --allow-empty -m fixture
+exit: 0
+$ git rev-parse HEAD
+954f3362d1e3b4700bafbc49d20fa3df2a40278d
+exit: 0
+$ no-mistakes axi status
+error: repo not initialized (run 'no-mistakes init' first)
+help[1]: Run `no-mistakes init` to set up the gate in this repository
+exit: 1
+
+=== Incident reproduction and root-cause counterfactual ===
+$ no-mistakes --version
+no-mistakes version v1.96.0 (93b4407) 2026-10-13T13:36:31Z
+exit: 0
+$ no-mistakes axi status
+run:
+  id: INTERRUPTED-5
+  branch: fm/interrupted
+  status: ci_monitor_interrupted
+  head: 954f3362
+  head_sha: 954f3362d1e3b4700bafbc49d20fa3df2a40278d
+  verification_plan: none
+  findings: none
+  steps[9]{step,status,findings,duration_ms}:
+    intent,completed,0,0
+    rebase,completed,0,0
+    review,completed,0,0
+    test,completed,0,0
+    document,completed,0,0
+    lint,completed,0,0
+    push,completed,0,0
+    pr,completed,0,0
+    ci,skipped,0,0
+outcome: ci-monitor-interrupted
+exit: 0
+$ no-mistakes axi
+bin: ~/.local/bin/no-mistakes
+description: "Validate your code changes through the no-mistakes pipeline - automated code review, tests, lint, docs, push, PR, and CI - before they reach the configured push target. Use when the user asks to run no-mistakes, gate or ship or validate their changes, push safely, asks you to do a task and then validate it, or invokes /no-mistakes."
+repo: ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/.test-ci-interrupted/live/repo
+current_branch: fm/interrupted
+daemon: stopped
+count: 5 of 5 total
+runs[5]{id,branch,status,head,pr}:
+  INTERRUPTED-5,fm/interrupted,ci_monitor_interrupted,954f3362,""
+  INTERRUPTED-4,fm/interrupted,ci_monitor_interrupted,954f3362,""
+  INTERRUPTED-3,fm/interrupted,ci_monitor_interrupted,954f3362,""
+  INTERRUPTED-2,fm/interrupted,ci_monitor_interrupted,954f3362,""
+  INTERRUPTED-1,fm/interrupted,ci_monitor_interrupted,954f3362,""
+help[4]: "Run `no-mistakes axi run --intent \"<what the user set out to accomplish>\"` to validate your changes","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits.",The calling agent drives AXI gates but does not replace the configured pipeline agent; run `no-mistakes doctor` if no native agent or ACP runner is available,"How to drive the pipeline: `no-mistakes axi run --help`, or the `/no-mistakes` skill (loaded when you invoke `/no-mistakes`)"
+exit: 0
+$ no-mistakes runs
+  ci_monitor_interrupted fm/interrupted       954f3362  2026-10-26 19:29
+  ci_monitor_interrupted fm/interrupted       954f3362  2026-10-26 19:29
+  ci_monitor_interrupted fm/interrupted       954f3362  2026-10-26 19:29
+  ci_monitor_interrupted fm/interrupted       954f3362  2026-10-26 19:29
+  ci_monitor_interrupted fm/interrupted       954f3362  2026-10-26 19:29
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/.test-ci-interrupted/live/basebin/fm-nm-slot.sh /usr/bin/printf validation start admitted\n
+wait: 5 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: INTERRUPTED-1, INTERRUPTED-2, INTERRUPTED-3, INTERRUPTED-4, INTERRUPTED-5
+exit: 75
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/.test-ci-interrupted/live/basebin/fm-crew-state.sh interrupted
+state: unknown · source: run-step · unrecognized run status; run ids: INTERRUPTED-5, INTERRUPTED-4, INTERRUPTED-3, INTERRUPTED-2, INTERRUPTED-1; last reported run id: INTERRUPTED-5
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-nm-slot.sh /usr/bin/printf validation start admitted\n
+validation start admitted
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-crew-state.sh interrupted
+state: done · source: run-step · ci monitor interrupted (PR state unknown) · run: INTERRUPTED-5
+exit: 0
+
+=== PR unavailable: terminal status remains honest and preserves identity ===
+$ no-mistakes axi status --run INTERRUPTED-5
+run:
+  id: INTERRUPTED-5
+  branch: fm/interrupted
+  status: ci_monitor_interrupted
+  head: 954f3362
+  head_sha: 954f3362d1e3b4700bafbc49d20fa3df2a40278d
+  verification_plan: none
+  pr: "https://github.com/example/fixture/pull/205"
+  findings: none
+  steps[9]{step,status,findings,duration_ms}:
+    intent,completed,0,0
+    rebase,completed,0,0
+    review,completed,0,0
+    test,completed,0,0
+    document,completed,0,0
+    lint,completed,0,0
+    push,completed,0,0
+    pr,completed,0,0
+    ci,skipped,0,0
+outcome: ci-monitor-interrupted
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-crew-state.sh interrupted
+state: done · source: run-step · ci monitor interrupted (PR state unknown): https://github.com/example/fixture/pull/205 · run: INTERRUPTED-5
+exit: 0
+
+=== Capacity guard: interrupted history plus actual executing work ===
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-nm-slot.sh /usr/bin/printf validation start admitted\n
+validation start admitted
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-nm-slot.sh /usr/bin/printf validation start admitted\n
+wait: 3 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: EXECUTING-1, EXECUTING-2, EXECUTING-3
+exit: 75
+
+=== Unknown future status is never silently freed or marked done ===
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-nm-slot.sh /usr/bin/printf validation start admitted\n
+wait: 3 counted no-mistakes run(s) on this host >= limit 3; retry when one finishes. Counted runs: UNKNOWN-1, UNKNOWN-2, UNKNOWN-3
+exit: 75
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-crew-state.sh interrupted
+state: unknown · source: run-step · unrecognized run status; run ids: UNKNOWN-3, UNKNOWN-2, UNKNOWN-1, INTERRUPTED-5, INTERRUPTED-4, INTERRUPTED-3, INTERRUPTED-2, INTERRUPTED-1; last reported run id: UNKNOWN-3
+exit: 0
+
+=== New executing replacement outranks old interrupted run ===
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-crew-state.sh interrupted
+state: working · source: run-step · validating (running) · run: REPLACEMENT
+exit: 0
+
+=== Reused branch with new local work is not falsely completed ===
+$ git commit -q --allow-empty -m new local work
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M5WTQQJAGHQPM9ASKJATQ6W4/bin/fm-crew-state.sh interrupted
+state: unknown · source: none · no backend target recorded
+exit: 0
+
+All public-interface assertions passed. Fixtures contain no real operator data.
