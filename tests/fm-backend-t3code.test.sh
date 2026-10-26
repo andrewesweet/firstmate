@@ -60,12 +60,6 @@ t3_uid() {  # <base> -> <base><run-tag>, recorded for cleanup
 # (${CLAUDE_CONFIG_DIR:-$HOME}), so both are pinned to a throwaway home.
 SPAWN_HOME="$TMP_ROOT/user-home"
 mkdir -p "$SPAWN_HOME"
-export CODEX_HOME="$SPAWN_HOME/.codex"
-
-trust_t3_codex_project() {
-  mkdir -p "$CODEX_HOME"
-  printf '[projects."%s"]\ntrust_level = "trusted"\n' "$(cd -P "$1" && pwd)" > "$CODEX_HOME/config.toml"
-}
 
 # t3_case <name> [thread-status] -> sets CASE_DIR, CONFIG, LOG, REPO
 # The default world has one project rooted at $REPO with a Claude default
@@ -1308,7 +1302,6 @@ test_spawn_codex_preserves_tracked_codex_config() {
   git -C "$proj" -c user.name=t -c user.email=t@example.invalid commit -qm "track codex config"
   git -C "$proj" push -q origin main
   git -C "$wt" merge --ff-only -q main
-  trust_t3_codex_project "$proj"
   write_spawn_brief "$data" "$id"
   touch "$state/.last-watcher-beat"
   FM_T3_PROJ="$proj" t3_world_set 'w.projects[0].workspaceRoot = process.env.FM_T3_PROJ'
@@ -1593,7 +1586,6 @@ test_spawn_codex_scout_writes_toml_env_with_traceparent() {
   t3_case spawn-codex
   proj="$CASE_DIR/spawn-project"; wt="$CASE_DIR/spawn-wt"; data="$CASE_DIR/data"; state="$CASE_DIR/state"
   fm_git_worktree "$proj" "$wt" "fm/$id"
-  trust_t3_codex_project "$proj"
   mkdir -p "$data/$id" "$state" "$CASE_DIR/home/state"
   write_spawn_brief "$data" "$id"
   touch "$state/.last-watcher-beat"
@@ -1626,69 +1618,41 @@ test_spawn_codex_scout_writes_toml_env_with_traceparent() {
 }
 
 # Codex applies the worktree's .codex/config.toml only when its main checkout
-# is trusted. Trust resolves from the thread's launch
+# is trusted, so spawn warns once, and still launches, unless the Codex
+# configuration shows that trust. Trust resolves from the thread's launch
 # directory: a worker's leased worktree is covered only by its main checkout's
 # entry, never a parent directory's or a linked checkout's own, while a
 # secondmate's home is also covered by its own.
-test_spawn_codex_requires_project_trust() {
-  local proj wt data state id out rc fb codex_home trust linked kind
-  local -a args
-  t3_require_tomllib test_spawn_codex_requires_project_trust || return 0
-  for kind in ship scout secondmate; do
-    for trust in absent untrusted malformed project; do
-      id=$(t3_uid "t3trust$kind$trust")
-      t3_task_id "$id"
-      t3_case "spawn-codex-trust-$kind-$trust"
-      proj="$CASE_DIR/spawn-project"; wt="$CASE_DIR/spawn-wt"; data="$CASE_DIR/data"; state="$CASE_DIR/state"
-      codex_home="$CASE_DIR/codex-home"
-      args=(--model gpt-5.6-sol --backend t3code)
-      if [ "$kind" = secondmate ]; then
-        make_t3_secondmate_home "$proj" "$id"
-        wt=$proj
-        args+=(--secondmate)
-      else
-        fm_git_worktree "$proj" "$wt" "fm/$id"
-        if [ "$kind" = scout ]; then args+=(--scout); else args+=(--mode no-mistakes --yolo off); fi
-      fi
-      mkdir -p "$data/$id" "$state" "$CASE_DIR/home/state" "$codex_home"
-      case "$trust" in
-        project) printf '[projects."%s"]\ntrust_level = "trusted"\n' "$(cd -P "$proj" && pwd)" > "$codex_home/config.toml" ;;
-        untrusted) printf '[projects."%s"]\ntrust_level = "untrusted"\n' "$(cd -P "$proj" && pwd)" > "$codex_home/config.toml" ;;
-        malformed) printf '[\n' > "$codex_home/config.toml" ;;
-      esac
-      [ ! -f "$codex_home/config.toml" ] || cp "$codex_home/config.toml" "$CASE_DIR/original-config.toml"
-      write_spawn_brief "$data" "$id"
-      touch "$state/.last-watcher-beat"
-      printf '%s\n' "$$" > "$state/.lock"
-      printf '%s off\n' "$$" > "$state/.trace-context-effective"
-      FM_T3_PROJ="$proj" t3_world_set 'w.projects[0].workspaceRoot = process.env.FM_T3_PROJ'
-      fb=$(make_treehouse_fakebin "$CASE_DIR")
-      out=$( HOME="$SPAWN_HOME" CODEX_HOME="$codex_home" PATH="$fb:$PATH" FM_T3_TREEHOUSE_LOG="$LOG" FM_T3_TREEHOUSE_WT="$wt" \
-        TRACEPARENT=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01 \
-        FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$CASE_DIR/home" FM_STATE_OVERRIDE="$state" FM_DATA_OVERRIDE="$data" FM_CONFIG_OVERRIDE="$CONFIG" \
-        FM_PROJECTS_OVERRIDE="$CASE_DIR/unused-projects" FM_SPAWN_NO_GUARD=1 \
-        "$ROOT/bin/fm-spawn.sh" "$id" "$proj" codex "${args[@]}" 2>&1 ); rc=$?
-      if [ "$trust" = project ]; then
-        expect_code 0 "$rc" "a trusted Codex $kind must launch"$'\n'"$out"
-        assert_contains "$(t3_dispatch_types)" "t3_thread_launch t3_thread_send" "a trusted Codex $kind must launch then send its instructions"
-        [ "$(t3_toml_env "$wt/.codex/config.toml" TRACEPARENT)" = '' ] || fail "a trusted Codex $kind must override an inherited carrier"
-      else
-        expect_code 1 "$rc" "Codex $kind with trust '$trust' must refuse"$'\n'"$out"
-        assert_contains "$out" "$codex_home/config.toml trusts $proj" "the refusal must name the configuration and project it checked"
-        assert_contains "$out" "TRACEPARENT override" "the refusal must name the missing trace protection"
-        assert_contains "$out" "trust the project in the Codex configuration T3 uses" "the refusal must name the remedy"
-        [ -z "$(t3_dispatch_types)" ] || fail "a trust refusal must precede every T3 mutation"
-        [ "$(t3_log_line_of 'r.tool === "treehouse"')" -eq 0 ] || fail "a trust refusal must precede leasing a slot"
-        assert_absent "$state/$id.meta" "a trust refusal must not record a worker"
-        assert_absent "$wt/.codex/config.toml" "a trust refusal must not install ignored environment configuration"
-        [ ! -L "$proj/config/t3code-token" ] || fail "a trust refusal must not link a secondmate credential"
-      fi
-      if [ "$trust" = absent ]; then
-        assert_absent "$codex_home/config.toml" "spawn must not grant Codex trust"
-      else
-        cmp -s "$CASE_DIR/original-config.toml" "$codex_home/config.toml" || fail "spawn must preserve the Codex trust configuration"
-      fi
-    done
+test_spawn_codex_warns_unless_codex_trusts_the_project() {
+  local proj wt data state id out rc fb codex_home trust linked warning='could not confirm that'
+  t3_require_tomllib test_spawn_codex_warns_unless_codex_trusts_the_project || return 0
+  for trust in absent project; do
+    id=$(t3_uid "t3trust$trust")
+    t3_task_id "$id"
+    t3_case "spawn-codex-trust-$trust"
+    proj="$CASE_DIR/spawn-project"; wt="$CASE_DIR/spawn-wt"; data="$CASE_DIR/data"; state="$CASE_DIR/state"
+    codex_home="$CASE_DIR/codex-home"
+    fm_git_worktree "$proj" "$wt" "fm/$id"
+    mkdir -p "$data/$id" "$state" "$CASE_DIR/home/state" "$codex_home"
+    [ "$trust" = absent ] || printf '[projects."%s"]\ntrust_level = "trusted"\n' "$(cd -P "$proj" && pwd)" > "$codex_home/config.toml"
+    write_spawn_brief "$data" "$id"
+    touch "$state/.last-watcher-beat"
+    FM_T3_PROJ="$proj" t3_world_set 'w.projects[0].workspaceRoot = process.env.FM_T3_PROJ'
+    fb=$(make_treehouse_fakebin "$CASE_DIR")
+    out=$( HOME="$SPAWN_HOME" CODEX_HOME="$codex_home" PATH="$fb:$PATH" FM_T3_TREEHOUSE_LOG="$LOG" FM_T3_TREEHOUSE_WT="$wt" \
+      FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$CASE_DIR/home" FM_STATE_OVERRIDE="$state" FM_DATA_OVERRIDE="$data" FM_CONFIG_OVERRIDE="$CONFIG" \
+      FM_PROJECTS_OVERRIDE="$CASE_DIR/unused-projects" FM_SPAWN_NO_GUARD=1 \
+      "$ROOT/bin/fm-spawn.sh" "$id" "$proj" codex --scout --model gpt-5.6-sol --backend t3code 2>&1 ); rc=$?
+    expect_code 0 "$rc" "a codex t3code spawn with Codex trust '$trust' must still launch"$'\n'"$out"
+    [ "$(t3_dispatch_types)" = "t3_thread_launch t3_thread_send" ] || fail "trust '$trust': spawn must launch then send the brief, got '$(t3_dispatch_types)'"
+    if [ "$trust" = project ]; then
+      case "$out" in *"$warning"*) fail "a project the Codex configuration trusts must not warn, got '$out'" ;; esac
+    else
+      assert_equals 1 "$(printf '%s\n' "$out" | grep -c "$warning")" "trust '$trust' must warn exactly once"
+      assert_contains "$out" "$codex_home/config.toml trusts $proj" "the warning must name the configuration and project it checked"
+      assert_contains "$out" "FM_TASK_ID, FM_TASK_INBOX, GOTMPDIR, and the core.hooksPath push guard" "the warning must name what the thread runs without"
+      assert_contains "$out" "trust the project in the Codex configuration T3 uses" "the warning must name the fix"
+    fi
   done
   linked="$CASE_DIR/linked-checkout"
   git -C "$proj" worktree add --quiet -b fm/linked "$linked"
@@ -1700,7 +1664,7 @@ test_spawn_codex_requires_project_trust() {
   codex_trusts "$linked" "$linked" scout && fail "a linked checkout trusted only by its own path must not confirm a worker's trust"
   codex_trusts "$proj" "$linked" ship || fail "the main checkout's trust must confirm a worker spawned from its linked checkout"
   codex_trusts "$linked" "$linked" secondmate || fail "a secondmate home trusted by its own path must confirm its trust"
-  pass "fm-spawn.sh --backend t3code codex: ship, scout, and secondmate require confirmed project trust before any launch mutation"
+  pass "fm-spawn.sh --backend t3code codex: warns once, and still launches, unless the Codex configuration trusts the launch directory's main checkout"
 }
 
 # A seeded secondmate home on its own git branch, with the charter the launch
@@ -1717,7 +1681,6 @@ make_t3_secondmate_home() {  # <home> <id>
   git -C "$home" init -q -b sm/home
   git -C "$home" add -A
   git -C "$home" -c user.name=t -c user.email=t@example.invalid commit -qm seed
-  trust_t3_codex_project "$home"
 }
 
 # spawn_t3_secondmate <id> <home> <harness> <model> -> spawn output; status in $?
@@ -1865,7 +1828,6 @@ t3_worker_setup() {
   t3_task_id "$id"
   WORKER_PROJ="$CASE_DIR/spawn-project"; WORKER_WT="$CASE_DIR/spawn-wt"
   fm_git_worktree "$WORKER_PROJ" "$WORKER_WT" "fm/$id"
-  trust_t3_codex_project "$WORKER_PROJ"
   mkdir -p "$CASE_DIR/data/$id" "$CASE_DIR/state" "$CASE_DIR/home/state"
   write_spawn_brief "$CASE_DIR/data" "$id"
   touch "$CASE_DIR/state/.last-watcher-beat"
@@ -2825,7 +2787,7 @@ test_untracked_codex_config_is_preserved
 test_codex_cleanup_without_journal_needs_no_python
 test_codex_worker_ignores_untracked_config_in_main_checkout
 test_spawn_codex_scout_writes_toml_env_with_traceparent
-test_spawn_codex_requires_project_trust
+test_spawn_codex_warns_unless_codex_trusts_the_project
 test_spawn_secondmate_runs_thread_in_home_with_env
 test_spawn_codex_secondmate_writes_toml_env
 test_spawn_refuses_t3code_when_token_rejected

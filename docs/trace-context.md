@@ -27,7 +27,8 @@ The delivery sits at the unconditional pre-launch environment site, so it covers
 This is the same coverage `GOTMPDIR` already has and requires no trace-specific `launch_template()` behavior.
 Ship and scout spawns reach that site on every pane-typed spawn backend (`tmux`, `herdr`, `zellij`, `orca`, `cmux`, `paseo`, `rex`); a Secondmate reaches it on every pane backend that accepts a Secondmate spawn (`tmux`, `herdr`, `zellij`, `rex`), because `bin/fm-spawn.sh` rejects a Secondmate on `orca`, `cmux`, and `paseo`.
 An off decision takes the opposite defense: the launch command itself is prefixed with `unset TRACEPARENT;`, so an ambient value the pane or daemon inherited at its own launch can never reach the worker.
-`t3code` has no pane, so its `claude` and `codex` ship, scout, and Secondmate spawns receive the same `TRACEPARENT` value under the same conditions through the backend's [per-directory harness environment](t3code-backend.md#per-directory-harness-environment) instead, with an explicit empty override when no carrier is recorded.
+`t3code` has no pane, so its `claude` and trusted `codex` ship, scout, and Secondmate spawns receive the same `TRACEPARENT` value under the same conditions through the backend's [per-directory harness environment](t3code-backend.md#per-directory-harness-environment) instead, with an explicit empty override when no carrier is recorded.
+Untrusted T3 Codex projects ignore that configuration and remain outside the carrier-delivery and inherited-carrier suppression guarantees; spawn warns and still launches.
 
 ### Remote Secondmate routes
 
@@ -90,7 +91,7 @@ This is a deliberate, source-owned choice:
 ## Safety
 
 - **Default-off.**
-  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch writes no `traceparent=` line and uses the [backend-specific handling described above](#what-it-does) to suppress an inherited carrier.
+  With no `config/trace-context` and no `FM_TRACE_CONTEXT`, a fresh spawn or actual relaunch writes no `traceparent=` line and uses the [backend-specific handling described above](#what-it-does), subject to its Codex trust limitation, to suppress an inherited carrier.
   Reusing an already-alive remote endpoint records any carrier that endpoint reports without injecting a new one.
   A locked session start makes one config-file check, and each spawn sources one extra library and reads the frozen effective-state file.
 - **What is and is not exposed.**
