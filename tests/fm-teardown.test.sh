@@ -4567,7 +4567,10 @@ for run, branch, epoch in (("01OLD", "fm/task-x1", branch_epoch - 1), ("01OTHER"
 db.commit()
 PY
   (
-    export FM_HOME="$case_dir" FM_TEARDOWN_TEST_NM_HOME="$case_dir/nm" FM_FAKE_AXI_OVERVIEW="repo: $case_dir/project"
+    # Keep this case's home override local to the subshell.
+    # shellcheck disable=SC2030
+    local -x FM_HOME="$case_dir"
+    export FM_TEARDOWN_TEST_NM_HOME="$case_dir/nm" FM_FAKE_AXI_OVERVIEW="repo: $case_dir/project"
     export FM_TEST_POOL_VARIANT="$variant" FM_TEST_WORKTREE="$case_dir/wt"
     export FM_TEST_TREEHOUSE_LOG="$case_dir/treehouse.log" FM_TEST_RETURN_PHASE="$case_dir/return-phase"
     export FM_TEST_PIPELINE_LEDGER="$case_dir/data/pipeline-spend.jsonl"
@@ -5895,7 +5898,9 @@ SH
       pid=$!
       rc=0
       (
-        export FM_HOME="$case_dir"
+        # Keep this case's home override local to the subshell.
+        # shellcheck disable=SC2031
+        local -x FM_HOME="$case_dir"
         export FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_RESTORED="$restored"
         export FM_FAKE_HERDR_PROCESS="$pid" FM_FAKE_HERDR_PROCESS_SEEN="$case_dir/process-seen-at-close"
         export FM_TEST_ORDER_WT="$wt" FM_TEST_ORDER_HOLDER=task-x1 FM_TEST_ORDER_RETURNED="$case_dir/returned"
@@ -5905,7 +5910,8 @@ SH
         elif [ "$ownership" = unleased ]; then
           export FM_TEST_ORDER_HOLDER=
         elif [ "$ownership" = parked ]; then
-          export FM_FAKE_AXI_STATUS="$(parked_axi_status_toon fm/task-x1 "$(git -C "$wt" rev-parse HEAD)")"
+          FM_FAKE_AXI_STATUS="$(parked_axi_status_toon fm/task-x1 "$(git -C "$wt" rev-parse HEAD)")"
+          export FM_FAKE_AXI_STATUS
           export FM_FAKE_NM_ABORT_LOG="$case_dir/abort.log" FM_FAKE_NM_ABORT_NOOP=1
         fi
         run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"

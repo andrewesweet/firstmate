@@ -524,16 +524,16 @@ SH
 done
 unset FM_FAKE_LEASE_FILE FM_FAKE_GET_STATUS
 
-for FAIL_SEND in 1; do
-  IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
+FAIL_SEND=1
+IFS='|' read -r CASE_DIR HOME_DIR PROJECT_DIR WT_DIR FAKEBIN_DIR <<EOF
 $(make_herdr_tab_cwd_case "failed-send-$FAIL_SEND" off)
 EOF
-  export FM_HERDR_FAKE_STATE="$CASE_DIR/herdr-state.json" \
-    FM_HERDR_LOG="$CASE_DIR/herdr-calls.log" \
-    FM_HERDR_FAKE_SOCKET="$TMP_ROOT/herdr-sock/default.sock" \
-    FM_FAKE_FAIL_SEND="$FAIL_SEND" FM_FAKE_LEASE_FILE="$CASE_DIR/lease"
-  fm_test_spawn_brief "$HOME_DIR" failed-send-task
-  cat > "$FAKEBIN_DIR/treehouse" <<'SH'
+export FM_HERDR_FAKE_STATE="$CASE_DIR/herdr-state.json" \
+  FM_HERDR_LOG="$CASE_DIR/herdr-calls.log" \
+  FM_HERDR_FAKE_SOCKET="$TMP_ROOT/herdr-sock/default.sock" \
+  FM_FAKE_FAIL_SEND="$FAIL_SEND" FM_FAKE_LEASE_FILE="$CASE_DIR/lease"
+fm_test_spawn_brief "$HOME_DIR" failed-send-task
+cat > "$FAKEBIN_DIR/treehouse" <<'SH'
 #!/usr/bin/env bash
 set -eu
 case "${1:-}" in
@@ -544,14 +544,13 @@ case "${1:-}" in
     ;;
 esac
 SH
-  OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
-    failed-send-task "$PROJECT_DIR" 'sh -c "while :; do sleep 60; done"' \
-    --backend herdr --mode no-mistakes --yolo off)
-  SPAWN_STATUS=$?
-  [ "$SPAWN_STATUS" -ne 0 ] || fail "typed-send failure $FAIL_SEND unexpectedly succeeded"
-  assert_contains "$OUT" 'refusing to launch outside the copy holding its work' "typed-send failure refuses the worker launch"
-  [ ! -e "$FM_FAKE_LEASE_FILE" ] || fail "typed-send failure $FAIL_SEND stranded its lease"
-  [ ! -e "$HOME_DIR/state/failed-send-task.meta" ] || fail "typed-send failure published a task record"
-  pass "typed-send failure $FAIL_SEND: spawn refuses and returns its lease"
-done
+OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
+  failed-send-task "$PROJECT_DIR" 'sh -c "while :; do sleep 60; done"' \
+  --backend herdr --mode no-mistakes --yolo off)
+SPAWN_STATUS=$?
+[ "$SPAWN_STATUS" -ne 0 ] || fail "typed-send failure $FAIL_SEND unexpectedly succeeded"
+assert_contains "$OUT" 'refusing to launch outside the copy holding its work' "typed-send failure refuses the worker launch"
+[ ! -e "$FM_FAKE_LEASE_FILE" ] || fail "typed-send failure $FAIL_SEND stranded its lease"
+[ ! -e "$HOME_DIR/state/failed-send-task.meta" ] || fail "typed-send failure published a task record"
+pass "typed-send failure $FAIL_SEND: spawn refuses and returns its lease"
 unset FM_FAKE_FAIL_SEND FM_FAKE_LEASE_FILE
