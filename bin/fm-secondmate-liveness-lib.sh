@@ -358,6 +358,7 @@ fm_secondmate_liveness_relaunch() {  # <meta> <id> [timeout-secs]
     elif [ -n "$target" ] && ! fm_backend_kill "$backend" "$target" 2>/dev/null; then
       fm_secondmate_liveness_ledger_add "$id" failed || true
       FM_SM_LIVE_STATUS=skipped
+      fm_lock_release "$control_lock" || true
       fm_lock_release "$relaunch_lock" || true
       FM_SM_LIVE_REASON="could not prove the old $backend endpoint $target closed; it and its record are left in place, not replaced"
       FM_SM_LIVE_RC=1
@@ -374,6 +375,7 @@ fm_secondmate_liveness_relaunch() {  # <meta> <id> [timeout-secs]
       FM_SM_LIVE_RC=$rc
       fm_secondmate_liveness_ledger_add "$id" failed || true
     fi
+    fm_lock_release "$control_lock" || true
     fm_lock_release "$relaunch_lock" || true
     return "$rc"
   fi

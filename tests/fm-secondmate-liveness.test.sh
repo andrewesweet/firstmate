@@ -546,6 +546,52 @@ test_relaunch_waits_for_other_mates_relaunch_lock() {
   pass "relaunch: the spawn timeout bounds the lock wait before touching the endpoint"
 }
 
+test_t3_recovery_releases_locks_before_returning_to_caller() {
+  local mode w out expected_rc expected_outcome
+  for mode in close-failed resume-ok resume-failed; do
+    w="$TMP_ROOT/t3-recovery-$mode"
+    mkdir -p "$w/home/state"
+    fm_write_meta "$w/home/state/sm1.meta" "window=fm-sm1" "kind=secondmate" \
+      "harness=claude" "backend=t3code" "t3_thread_id=thread-sm1"
+    expected_rc=1 expected_outcome=failed
+    if [ "$mode" = resume-ok ]; then expected_rc=0; expected_outcome=relaunched; fi
+    out=$(FM_HOME="$w/home" FM_ROOT="$ROOT" STATE="$w/home/state" FM_STATE_OVERRIDE="$w/home/state" \
+      FM_TEST_T3_RECOVERY="$mode" bash -c '
+        . "$1/bin/fm-secondmate-liveness-lib.sh"
+        fm_backend_agent_state() {
+          if [ "$FM_TEST_T3_RECOVERY" = close-failed ]; then printf missing; else printf dead; fi
+        }
+        fm_backend_kill() { printf "close\n" >> "$STATE/actions"; return 1; }
+        fm_backend_source() { return 0; }
+        fm_backend_t3code_resume_failed() {
+          printf "resume\n" >> "$STATE/actions"
+          [ "$FM_TEST_T3_RECOVERY" = resume-ok ]
+        }
+        fm_secondmate_liveness_lock sm1 || exit 2
+        fm_secondmate_liveness_probe "$STATE/sm1.meta" sm1 poll
+        rc=0
+        fm_secondmate_liveness_relaunch "$STATE/sm1.meta" sm1 || rc=$?
+        [ "$rc" = "$2" ] || exit 3
+        bash -c '\''
+          . "$1/bin/fm-wake-lib.sh"
+          for name in .control-sm1.lock .secondmate-relaunch.lock; do
+            fm_lock_try_acquire "$STATE/$name" || exit 4
+            fm_lock_release "$STATE/$name" || exit 5
+          done
+        '\'' _ "$1" || exit 6
+        fm_secondmate_liveness_unlock sm1
+      ' _ "$ROOT" "$expected_rc" 2>&1) || fail "$mode recovery retained a lock or changed its result: $out"
+    if [ "$mode" = close-failed ]; then
+      [ "$(cat "$w/home/state/actions")" = close ] || fail "failed close must not resume or spawn"
+    else
+      [ "$(cat "$w/home/state/actions")" = resume ] || fail "resume must not close or replace the thread"
+    fi
+    [ "$(awk '{print $2}' "$w/home/state/.secondmate-relaunch-sm1")" = "$(printf 'attempt\n%s' "$expected_outcome")" ] \
+      || fail "$mode recovery changed the attempt ledger"
+  done
+  pass "T3 recovery: failed close and successful or failed resume release both locks while the caller remains alive"
+}
+
 test_relaunch_rechecks_after_wait_and_respects_lifecycle_lock() {
   local w fb tmuxfb log out mode state pane
   for mode in full poll; do
@@ -938,6 +984,7 @@ test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta
 test_sweep_skips_mate_whose_liveness_lock_is_held
 test_relaunch_waits_for_other_mates_relaunch_lock
+test_t3_recovery_releases_locks_before_returning_to_caller
 test_relaunch_rechecks_after_wait_and_respects_lifecycle_lock
 test_sweep_refuses_relaunch_on_ledger_errors
 test_remote_poll_probe_maps_states
