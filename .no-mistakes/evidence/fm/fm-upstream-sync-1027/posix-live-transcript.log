@@ -1,0 +1,11 @@
+lock acquired: harness pid 3905508
+lock: held by live harness pid 3905508
+Live main-session key: 3905508:1816592692:544488566
+Auto-arm claim remains open under real primary process
+Duplicate auto-arm claim refused with status 2
+watcher: started pid=3982751 (beacon fresh)
+check: ~/.no-mistakes/worktrees/feb37d45d9da/01M5ZPP1SWG9FDZFATBT7VZKB2/.l/state/labwake.check.sh: LAB_WAKE: isolated registered check fired
+unregistered: state/labwake.check.sh
+LAB_HOST_DONE
+Private tmux client exit left the Claude background task alive; claude stop bf204381 on the same private socket reported: stopped bf204381
+After private tmux primary exited, session key correctly refused for former holder 3905508

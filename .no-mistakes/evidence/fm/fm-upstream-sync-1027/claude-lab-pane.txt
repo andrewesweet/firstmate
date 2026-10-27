@@ -1,0 +1,40 @@
+
+● Bash(bash .l/probe.sh)
+  ⎿  lock acquired: harness pid 3905508
+     lock: held by live harness pid 3905508
+     Live main-session key: 3905508:1816592692:544488566
+     … +7 lines
+  ⎿  Created .l/probe.log (+9 -0)
+      1 +lock acquired: harness pid 3905508
+      2 +lock: held by live harness pid 3905508
+      3 +Live main-session key: 3905508:1816592692:544488566
+      4 +Auto-arm claim remains open under real primary process
+      5 +Duplicate auto-arm claim refused with status 2
+      6 +watcher: started pid=3982751 (beacon fresh)
+      7 +check: ~/.no-mistakes/worktrees/feb37d45d9da/01M5ZPP1SWG9FDZFATBT7VZKB2/.l/state/labwake.check
+        +.sh: LAB_WAKE: isolated registered check fired
+      8 +unregistered: state/labwake.check.sh
+      9 +LAB_HOST_DONE
+  ⎿  (files that changed while this command ran, by the command or by another process; a convenience view, not a
+     review or audit of the command)
+  ⎿  (timeout 10m)
+  ⎿  Allowed by auto mode classifier
+
+● Captain, I ran bash .l/probe.sh and it returned LAB_HOST_DONE. No other tool used, nothing dispatched.
+
+  - Lock held by live harness pid 3905508. Live main-session key: 3905508:1816592692:544488566.
+  - First auto-arm claim stayed open under the real primary process. Duplicate claim refused with status 2, so
+    single-flight held.
+  - Watcher started (pid 3982751, beacon fresh). Lab custom check state/labwake.check.sh fired with LAB_WAKE: isolated
+    registered check fired, then was unregistered.
+
+  result: lab probe finished with LAB_HOST_DONE; session key verified, duplicate auto-arm refused, lab check fired then
+  unregistered
+
+✻ Cogitated for 25s · done 10:36 PM
+
+────────────────────────────────────────────────────────────────────────────────────────────── isolated-validation-lab ─
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents
