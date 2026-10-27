@@ -340,7 +340,7 @@ A claim is open while all of these hold:
 - Its outcome is `arming`.
 - Its owner pid is alive.
 - Its recorded identity successfully recomputes and matches that pid.
-- Its owner is still reachable by its session: it descends from the numeric pid in `state/.lock`, or, for a tagged Windows holder outside the local process table, its recorded `owner_session_id` matches the trusted session id in `state/.lock-session` while the session-lock identity recorded on entry line 3 still recomputes from that lock's holder.
+- Its owner is still reachable by its session under the shared reachability check owned by `fm_autoarm_claim_open` in [`bin/fm-wake-lib.sh`](../bin/fm-wake-lib.sh).
 - It is not stuck.
 
 Stuck means the entry and the watcher beacon are both older than the guard grace, which proves the owner hung mid-arm.

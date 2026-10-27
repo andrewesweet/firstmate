@@ -35,9 +35,9 @@ _fm_wake_require_timeout() {
   . "$FM_WAKE_LIB_DIR/fm-timeout-lib.sh"
 }
 
-# Load the session-lock identity owner only for the auto-arm claim helpers,
-# which read the trusted session id beside state/.lock. Sourcing it eagerly
-# would pull harness identity machinery into every wake-library consumer.
+# Load the session-lock identity owner only when a caller reads the session
+# lock or its trusted session id. Sourcing it eagerly would pull harness
+# identity machinery into every wake-library consumer.
 _fm_wake_require_session_lock() {
   command -v fm_session_lock_recorded_session_id >/dev/null 2>&1 && return 0
   # shellcheck source=bin/fm-session-lock-lib.sh
@@ -1920,11 +1920,11 @@ fm_failure_episode_reset() {
 #     its owner pid is alive, its recorded identity successfully recomputes
 #     and matches that pid, its owner is still REACHABLE by its session -
 #     either it DESCENDS from the numeric session-lock pid (state/.lock line 1)
-#     or, for a tagged Windows session-lock pid that is outside the local
-#     process table, its recorded owner_session_id matches the trusted session
-#     id beside that lock (state/.lock-session) WHILE the recorded pid-identity
+#     or its recorded owner_session_id matches the trusted session id beside
+#     that lock (state/.lock-session) WHILE the recorded session-lock identity
 #     of the lock holder it claimed under (entry line 3) still recomputes from
-#     the lock's current holder pid. A missing or malformed lock means no
+#     the lock's current holder pid, whether numeric or tagged Windows.
+#     A missing or malformed lock means no
 #     session can receive a rewake. The id signal is the second one
 #     the claiming hook's own admission accepts (fm_session_lock_owned_by_self),
 #     so a background session whose bridge is recycled mid-cycle keeps its live
