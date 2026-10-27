@@ -1,0 +1,6 @@
+COMMAND bash tests/fm-backend-rex-smoke.test.sh
+skip: rex CLI not found at $REX_BIN_DIR, on PATH, or at the server bundle path
+COMMAND bash tests/fm-backend-tern-smoke.test.sh
+skip: tern not found
+COMMAND bash tests/fm-backend-t3code-live-e2e.test.sh
+skip: live: no T3 credential at ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/config/t3code-token

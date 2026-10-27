@@ -1,0 +1,30 @@
+ok - host+hook: a Claude home without config/supervision-host runs the host at the default engine, and an off file restores the plain arm
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: boundary survives a lost continuation, retries, and transfers one watcher after acknowledgement
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: pass-through survives a lost continuation, retries, and transfers one watcher after acknowledgement
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.UBBI0N/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: hand-back retry submits only to the idle owning pane without replacing human input
+ok - host: an idle engine conversation is compacted once across hosts
+ok - host: a conversation the next turn would not resume is not compacted
+ok - host: a compaction abandoned at the park boundary is not marked done

@@ -1,0 +1,50 @@
+Create isolated task and refuse duplicate
+@2
+error: window fm-lab-check:fm-task already exists
+Sized grid: 120x40
+
+Captured actual shell output (result tokens absent from typed commands):
+(ins)bash-5.2$ printf 'ready-%s\n' shell
+ready-shell
+(ins)bash-5.2$ printf 'single-%s\n' submitted
+single-submitted
+(ins)bash-5.2$ printf 'literal-%s\n' submitted
+literal-submitted
+(ins)bash-5.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Shell-only task agent state: dead
+Task agent state after close: missing
+Same-named task in other session survives exact close.
+Repeated close succeeds.

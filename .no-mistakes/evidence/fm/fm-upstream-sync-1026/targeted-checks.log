@@ -1,0 +1,207 @@
+FM_TEST_BEGIN 2026-10-27T05:19:57Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+not ok - a confirmed-dead secondmate should actually be relaunched (missing: 'new-window')
+--- output ---
+kill-window -t =firstmate:=fm-sm1
+FM_TEST_END 2026-10-27T05:19:59Z tests/fm-secondmate-liveness.test.sh exit=1 duration_ms=1901 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:19:59Z tests/fm-record-export.test.sh family=unclassified expected_gate_skip=none
+ok - record export sync is inert when config is absent
+ok - record export sync copies only the fixed v1 allowlist with restrictive modes
+ok - record export sync leaves the prior live snapshot intact when capture fails
+ok - record export accepts an absolute export root with spaces
+ok - record export sync refuses malformed config, traversal-shaped names, symlinks, and non-regular files
+ok - record export requires a dedicated root disjoint from and owned by exactly one home
+ok - record export rejects an unowned root without changing its mode
+ok - interrupted live publication staging cannot wedge archive or sync
+ok - record export sync publishes the exact current allowlist as one live snapshot
+ok - record export refuses unknown managed artifacts before publishing a snapshot
+ok - record export sync binds destination validation to descriptor-safe publication
+ok - teardown archive commits a complete v1 manifest after every allowlisted source
+ok - teardown archive is inert before any state read when config is absent
+ok - teardown archive retries idempotently and reused task IDs stay separated by spawn_gen
+ok - teardown archive retry accepts sources already retired after a committed capture
+ok - teardown archive rejects a corrupt committed manifest
+ok - teardown archive refuses to commit when a source changes during capture
+ok - teardown archive safely repairs an uncommitted same-generation attempt
+ok - teardown archive retry publishes a fresh generation without stale partial files
+ok - teardown archive revalidates sources immediately before publication
+ok - teardown archive holds the task producer lock through source enumeration and commit
+ok - teardown archive treats absent status and inbox records as a complete capture
+ok - teardown archive refuses malformed generations, unknown artifacts, symlinks, and non-regular files
+ok - record export retention mirrors 30 completed days and prunes only owned committed generations
+ok - presentation, wake, classification, and snapshot readers leave the export root cold
+ALL TESTS PASSED
+FM_TEST_END 2026-10-27T05:20:12Z tests/fm-record-export.test.sh exit=0 duration_ms=13005 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:20:12Z tests/fm-capacity.test.sh family=standalone expected_gate_skip=none
+ok - absent config/lane-capacity reports counts and no target
+ok - the Constrained line is printed only when config/lane-capacity exists
+ok - a target yields open lanes, full, and never a negative count
+ok - cpu, memory, and disk pressure close every lane and are named
+ok - unavailable probes print unknown and do not constrain
+ok - a malformed target is reported, not guessed
+ok - keyed config lines parse, and unknown, repeated, or malformed lines are refused
+ok - a fresh beat replaces probes, and its warn level closes lanes with its reason
+ok - late beats count, and stale, missing, malformed, or foreign beats fall back to probes
+ok - several pressure files: worst level wins, first supplies memory, every disk counts
+ok - a beat with missing fields keeps its fields aligned and limits fall back to probes
+ok - the lane footprint memory rule applies only with min-avail-gb
+ok - limits close lanes with named reasons, and --admit exits 0, 75, or 1
+ok - publish is opt-in, private, throttled, records boots, and publishes an invalid config as invalid
+ok - captain presence and quota runway publish derived words only, unknown when unreadable
+ok - the watcher publishes lane facts only for an opted-in home
+ok - real host probes produce a well-formed report
+# all fm-capacity tests passed
+FM_TEST_END 2026-10-27T05:20:18Z tests/fm-capacity.test.sh exit=0 duration_ms=6140 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:20:18Z tests/fm-usage-warner.test.sh family=unclassified expected_gate_skip=none
+ok - fm-usage-warner: help and usage plumbing
+ok - fm-usage-warner: an unconfigured home sees no behaviour change
+ok - fm-usage-warner: config parsing keeps only valid directives, including colon-containing ids
+ok - fm-usage-warner: edge-triggered de-dupe crosses once, stays quiet, and re-arms on drop
+ok - fm-usage-warner: tiered thresholds on one window each warn on their own crossing
+ok - fm-usage-warner: a v1 de-dupe record is read without crashing or re-warning
+ok - fm-usage-warner: multiple crossings in one read batch into a single notification
+ok - fm-usage-warner: a repeated directive reports its crossing once
+ok - fm-usage-warner: overlapping checks warn once for one crossing
+ok - fm-usage-warner: a configured but absent window id is silently skipped
+ok - fm-usage-warner: a window missing from one read keeps its crossing recorded
+ok - fm-usage-warner: the read is always strictly read-only
+ok - fm-usage-warner: a schema-6 snapshot resolves the default account lane
+ok - fm-usage-warner: a missing quota-axi is reported once until it changes
+ok - fm-usage-warner: a missing jq is reported by name
+ok - fm-usage-warner: a malformed quota-axi response is reported
+ok - fm-usage-warner: a slow read is bounded and reported as a timeout
+ok - fm-usage-warner: the read bound is cut to fit a lowered FM_CHECK_TIMEOUT
+ok - fm-usage-warner: a watcher bound with no room for a read is recorded as not measured
+ok - fm-usage-warner: an unconfigured invocation never fails on unused environment
+ok - fm-usage-warner: arm refuses without a configured threshold, mirroring the opt-in gate
+ok - fm-usage-warner: arm refuses on a platform with no Notification Center path
+ok - fm-usage-warner: shim-writing arm cases are macOS-only; skipping on Linux
+FM_TEST_END 2026-10-27T05:20:41Z tests/fm-usage-warner.test.sh exit=0 duration_ms=22603 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:20:41Z tests/fm-supervision-host.test.sh family=afk expected_gate_skip=none
+ok - host+hook: a main-only close after a handled turn restores inherited handling and rewakes main
+ok - host+hook: a refused inherited handling restore delivers a failure instead of silent success
+ok - host+hook: a driver returning to an idle worker is stale-handled while attended
+ok - host+hook: a driver returning to an idle worker is stale-handled while away
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-boundary/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: boundary survives a lost continuation, retries, and transfers one watcher after acknowledgement
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/lost-handoff-pass-through/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: pass-through survives a lost continuation, retries, and transfers one watcher after acknowledgement
+ok - host+hook: an acknowledged hand-back at the turn keeps its pass-through row
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+grep: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-supervision-host.97CIa3/handoff-doorbell/state/.supervision-handoff.log: No such file or directory
+ok - host+hook: hand-back retry submits only to the idle owning pane without replacing human input
+ok - host+hook: a successor closed before exit_to_main does not suppress the branch-outcome rewake
+ok - host+hook: a successor that closes during a held engine turn does not suppress the branch-outcome rewake
+ok - host+hook: a refused hand-back becomes a delivered failure notice
+ok - host+hook: a refused hand-back on an announced handling marker becomes a delivered failure notice
+ok - host: parked child-exit sampling uses ordinary half-second sleeps
+ok - report surface: only the branch actor's current turn may report, and only on the tasks its wake names
+ok - report surface: visible late outcomes queue a relay, while silent outcomes remain stored without a wake or note
+ok - dispatch entry: the host reads branch eligibility, the offer rule, and the wake prompt from the Pi branch's own owner
+ok - drain: BRANCH OUTCOMES runs on a Claude home by default and on another primary with the file, never with off, and never on Pi
+ok - drain: captain outcomes come first, and routine overflow collapses into a count one drain clears
+ok - drain: repeated captain outcomes collapse per task, and the byte cap presents only the run its acknowledgement covers
+ok - drain: a long away window costs one short drain, captain outcomes collapsed per task and routine overflow counted, and nothing from it is shown again
+ok - drain: the BRANCH OUTCOMES budgets count bytes, cutting multibyte summaries by whole characters in any locale
+ok - drain: branch outcomes stay unread when a projection of the store fails
+ok - drain: branch outcomes stay unread and the drain fails when jq is missing
+ok - drain: branch outcomes stay unread when the drain cannot print them
+ok - drain: a legacy backlog is presented with each outcome's age and a check-first instruction, never adopted
+ok - drain: a keyed decision survives acknowledgement through a newer outcome for its task
+ok - drain: an outcome carried across a switch off Pi comes back with its age, never adopted
+ok - drain: an outcome nothing has shown is presented until acknowledged, and a repeated acknowledgement changes nothing
+ok - drain: an outcome the host drain presented but main never acknowledged stays unprocessed across a switch to Pi
+ok - drain: an outcome the host drain presented but main never acknowledged survives an outcome index repair
+ok - host: an attended wake the branch may take is handled on the engine, and its routine outcome never wakes main
+ok - host: a host stopped right after a handled wake exits and leaves the wake queue usable
+ok - host: an engine in another time zone than the host drains, reports, and acknowledges its granted rows
+ok - host: an attended captain outcome wakes main once and stays in its drain until main acknowledges it
+ok - host: a captain outcome recorded after the captain left waits for the return, then reaches main's drain
+ok - host: a quiet record without its daemon is a present captain, so outcomes and decisions reach main
+not ok - tests/fm-supervision-host.test.sh exceeded the per-script bound of 180s and was terminated
+FM_TEST_END 2026-10-27T05:23:41Z tests/fm-supervision-host.test.sh exit=124 duration_ms=180022 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=2 skipped_gate=0 duration_ms=223794
+FM_TEST_SUMMARY_FAMILY family=afk count=1 duration_ms=180022 failed=1
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=1901 failed=1
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=6140 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=35608 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-supervision-host.test.sh duration_ms=180022
+FM_TEST_SLOWEST rank=2 script=tests/fm-usage-warner.test.sh duration_ms=22603
+FM_TEST_SLOWEST rank=3 script=tests/fm-record-export.test.sh duration_ms=13005
+FM_TEST_SLOWEST rank=4 script=tests/fm-capacity.test.sh duration_ms=6140
+FM_TEST_SLOWEST rank=5 script=tests/fm-secondmate-liveness.test.sh duration_ms=1901
+FM_TEST_FAILED script=tests/fm-secondmate-liveness.test.sh exit=1
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+not ok - a confirmed-dead secondmate should actually be relaunched (missing: 'new-window')
+--- output ---
+kill-window -t =firstmate:=fm-sm1
+FM_TEST_FAILURE_END script=tests/fm-secondmate-liveness.test.sh
+FM_TEST_FAILED script=tests/fm-supervision-host.test.sh exit=124
+ok - host+hook: hand-back retry submits only to the idle owning pane without replacing human input
+ok - host+hook: a successor closed before exit_to_main does not suppress the branch-outcome rewake
+ok - host+hook: a successor that closes during a held engine turn does not suppress the branch-outcome rewake
+ok - host+hook: a refused hand-back becomes a delivered failure notice
+ok - host+hook: a refused hand-back on an announced handling marker becomes a delivered failure notice
+ok - host: parked child-exit sampling uses ordinary half-second sleeps
+ok - report surface: only the branch actor's current turn may report, and only on the tasks its wake names
+ok - report surface: visible late outcomes queue a relay, while silent outcomes remain stored without a wake or note
+ok - dispatch entry: the host reads branch eligibility, the offer rule, and the wake prompt from the Pi branch's own owner
+ok - drain: BRANCH OUTCOMES runs on a Claude home by default and on another primary with the file, never with off, and never on Pi
+ok - drain: captain outcomes come first, and routine overflow collapses into a count one drain clears
+ok - drain: repeated captain outcomes collapse per task, and the byte cap presents only the run its acknowledgement covers
+ok - drain: a long away window costs one short drain, captain outcomes collapsed per task and routine overflow counted, and nothing from it is shown again
+ok - drain: the BRANCH OUTCOMES budgets count bytes, cutting multibyte summaries by whole characters in any locale
+ok - drain: branch outcomes stay unread when a projection of the store fails
+ok - drain: branch outcomes stay unread and the drain fails when jq is missing
+ok - drain: branch outcomes stay unread when the drain cannot print them
+ok - drain: a legacy backlog is presented with each outcome's age and a check-first instruction, never adopted
+ok - drain: a keyed decision survives acknowledgement through a newer outcome for its task
+ok - drain: an outcome carried across a switch off Pi comes back with its age, never adopted
+ok - drain: an outcome nothing has shown is presented until acknowledged, and a repeated acknowledgement changes nothing
+ok - drain: an outcome the host drain presented but main never acknowledged stays unprocessed across a switch to Pi
+ok - drain: an outcome the host drain presented but main never acknowledged survives an outcome index repair
+ok - host: an attended wake the branch may take is handled on the engine, and its routine outcome never wakes main
+ok - host: a host stopped right after a handled wake exits and leaves the wake queue usable
+ok - host: an engine in another time zone than the host drains, reports, and acknowledges its granted rows
+ok - host: an attended captain outcome wakes main once and stays in its drain until main acknowledges it
+ok - host: a captain outcome recorded after the captain left waits for the return, then reaches main's drain
+ok - host: a quiet record without its daemon is a present captain, so outcomes and decisions reach main
+not ok - tests/fm-supervision-host.test.sh exceeded the per-script bound of 180s and was terminated
+FM_TEST_FAILURE_END script=tests/fm-supervision-host.test.sh

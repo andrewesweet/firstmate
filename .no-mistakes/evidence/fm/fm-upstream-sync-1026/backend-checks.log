@@ -1,0 +1,284 @@
+FM_TEST_BEGIN 2026-10-27T05:21:32Z tests/fm-secondmate-harness.test.sh family=secondmate expected_gate_skip=none
+ok - A1 fm-harness.sh secondmate resolves the fallback chain; crew mode unchanged
+ok - fm-harness detects only Cursor Agent CLI's exact invocation marker
+ok - C1 fm-harness.sh secondmate-model/secondmate-effort resolve the optional tokens; bare harness stays empty (backward-compat)
+ok - D1 fm-harness.sh honors a mate override line for its id and changes nothing else
+ok - D2 malformed config/secondmate-harness refuses with its line number on every read verb
+ok - D3 a config/secondmate-harness that declares no mate line is never refused
+ok - pi-signed identity: authoritative launch selection distinguishes shared wrapper ancestry
+ok - harness identity: dash-leading ps command names are basename operands, not options
+ok - B1 propagate_inheritable_config: copy, idempotence, convergence, absence-mirror, exclusion, no-op, skip diagnostics
+not ok - split: no meta written
+FM_TEST_END 2026-10-27T05:21:39Z tests/fm-secondmate-harness.test.sh exit=1 duration_ms=7176 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:21:39Z tests/fm-backend-t3code.test.sh family=backend-dispatch expected_gate_skip=none
+fm-afk-launch: away-posture record archived at ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-t3code-tests.3IFfqB/restart-unknown-completed/home/state/afk-contracts/1793078499.afk-contract
+fm-afk-launch: away mode stopped; no daemon terminal was running, .afk cleared, and the posture record archived
+fm-afk-launch: away-posture record archived at ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-t3code-tests.3IFfqB/restart-unknown-failed/home/state/afk-contracts/1793078502.afk-contract
+fm-afk-launch: away mode stopped; no daemon terminal was running, .afk cleared, and the posture record archived
+ok - native restart re-arms discarded T3 stale warnings exactly once and preserves delivered suppression
+ok - away housekeeping preserves unknown stale rechecks and reports possible wedges until work resumes
+ok - away daemon on T3: a stall reported while unknown is not reported again once T3 reads idle
+ok - T3 stale watcher: harness=codex status=failed turn=fresh -> dead
+ok - t3code: a failed thread read reports unknown busy state, submits no away-mode injection, and keeps stale rechecks uncertain
+ok - T3 stale lookup honors paused and captain-held declarations
+ok - T3 stale watcher: harness=codex status=running turn=fresh -> absorb
+ok - T3 stale watcher: harness=claude status=running turn=fresh -> absorb
+ok - T3 stale watcher: harness=codex status=waiting turn=fresh -> absorb
+ok - T3 stale watcher: harness=codex status=starting turn=fresh -> surface
+ok - T3 stale watcher: harness=codex status=completed turn=fresh -> surface
+ok - T3 stale watcher: harness=codex status=failed turn=fresh -> dead
+ok - T3 stale watcher: harness=codex status=running turn=hung -> surface
+ok - fm_backend_t3code_runtime_check: a missing credential names the sign-in
+ok - fm_backend_t3code_runtime_check: a 401 names the fresh sign-in
+warning: T3 telemetry at http://127.0.0.1:45615 is on; run the server that hosts Firstmate workers with T3CODE_TELEMETRY_ENABLED=false (docs/t3code-backend.md)
+ok - fm_backend_t3code_runtime_check: the tools/list gate and environment pin refuse control and teardown without a mutation
+ok - fm_backend_t3code_project_ensure: matches by realpath, otherwise creates with the fm- title
+ok - fm_backend_t3code_model_selection: T3's catalog decides driver, model, and effort; overrides keep other options; default handling, instances file
+ok - fm_backend_t3code_thread_create/turn_start: verified t3_thread_launch and t3_thread_send payloads
+ok - fm_backend_t3code_thread_create: a lost reply is uncertain and never retried; a mis-bound thread is archived and refused
+ok - fm_backend_t3code_thread_for_home: zero, one, ambiguous, and unreachable
+ok - T3 requires explicit selection and does not query the server during runtime detection
+ok - fm_backend_t3code_capture: renders the activity tail and the thread's status line
+ok - fm_backend_t3code_send_key: Escape and C-c interrupt, Enter no-ops, others refuse
+ok - fm_backend_t3code_send_text_submit: empty on accept, send-failed on rejection
+ok - t3code send: a reply lost after commit is unconfirmed through the adapter and fm-send, and the resend lands once
+ok - t3code send: a held request id stays unconfirmed when the next attempt fails locally, and the retry lands once
+ok - t3code send: a lost reply to a secondmate names its armed correlation instead of advising a resend
+ok - t3code status table: every V2 thread status, a pending request, archived, archived-but-draining, missing, unreachable, and unreadable rows
+ok - t3code push wait: a pending question wakes the supervisor once with how to answer it, approvals are named apart, and answering clears it
+ok - fm-t3-answer.sh: lists a T3 worker's pending questions and answers one by request id
+ok - secondmate liveness backend=t3code: a failed run is resumed on its own thread, never archived and replaced
+ok - secondmate liveness backend=t3code: a missing thread re-proves its archive before replacement, and an unreadable thread spawns nothing
+ok - away daemon on T3: an unconfirmed digest is frozen and retried verbatim; a later event goes in the next digest, each event once
+ok - away daemon on T3: a delivered frozen digest leaves the items behind it with the first one's undelivered age
+ok - away daemon on T3: a supervisor thread waiting on a pending request defers digests until it is answered
+ok - t3code helper: runs through a symlinked Firstmate root, and a kill that cannot read the thread fails closed
+ok - secondmate liveness backend=t3code: an archived thread whose run still drains is left in place, not replaced
+ok - fm_backend_t3code_kill: interrupt then archive with a proven close, idempotent on archived and missing, loud on failure
+ok - fm-backend dispatcher: routes every t3code primitive, validates and resolves t3_thread_id records, and joins the push wait
+ok - T3 harness admission refuses every non-T3 adapter and launch-time typing refuses without a thread read
+ok - fm_busy_classify: t3code native busy, idle, and unknown are trusted without a record
+ok - fm-control-lib: t3code key set, state-verified, no-exit, and no-replacement membership
+ok - fm-control.sh backend=t3code: exit refuses before any call (V2 has no session stop); interrupt ends the turn natively
+ok - fm-control.sh relaunch backend=t3code: refused before anything is stopped, by the control plane and by the launch owner
+ok - fm-spawn.sh --backend t3code: leases the slot, launches the thread on it, records metadata, sends the launch brief
+ok - t3code Claude PR-tool clause: dropped only at or past the verified T3 build, kept for older or unreadable servers
+WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+ok - codex-cli 0.162.1: project config retained; shell FM_TASK_ID=t3codextrk2f37704dea
+ok - fm-spawn.sh backend=t3code: compatible tracked Codex config launches, stays out of commits, and survives cleanup
+ok - tracked Codex overlay: edited files survive refusal, interrupted restoration recovers, quoted and dotted policy keys refuse
+ok - fm-spawn.sh --backend t3code codex: refuses to overwrite a project's tracked .codex/config.toml before any mutation
+ok - fm-spawn.sh --backend t3code claude: refuses to overwrite a project's tracked CLAUDE.local.md before any mutation
+ok - Claude channel refuses a symlink in the leased worktree without following it
+ok - untracked Codex config is preserved unless Firstmate's marker owns it
+ok - fm-t3code-codex-env.sh cleanup: without an installed overlay it needs no Python and never refuses
+ok - fm-spawn.sh --backend t3code codex: an untracked Codex config in the main checkout does not refuse a worker
+ok - fm-spawn.sh --backend t3code codex: writes .codex/config.toml with GOTMPDIR, FM_TASK_ID, and TRACEPARENT
+ok - fm-spawn.sh --backend t3code codex: warns once, and still launches, unless the Codex configuration trusts the launch directory's main checkout
+not ok - fm-spawn.sh --backend t3code --secondmate should succeed against the fake T3 server
+warning: T3 telemetry at http://127.0.0.1:45615 is on; run the server that hosts Firstmate workers with T3CODE_TELEMETRY_ENABLED=false (docs/t3code-backend.md)
+error: secondmate home cannot be inside the firstmate repo: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-t3code-tests.3IFfqB/spawn-secondmate/sm-home: expected exit 0, got 1
+FM_TEST_END 2026-10-27T05:23:28Z tests/fm-backend-t3code.test.sh exit=1 duration_ms=109686 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:23:28Z tests/fm-backend-rex.test.sh family=rex expected_gate_skip=optional-binary
+ok - fm_backend_rex_bin: REX_BIN_DIR, then PATH, then the server bundle path
+ok - fm_backend_rex_version_check: accepts API revision 5 and refuses an older CLI, older server, or missing CLI
+ok - fm_backend_rex_parse_target: <session-uuid>:<block-uuid> only, prefixes restored
+ok - fm_backend_rex_create_task: one per-home session created once then adopted, one tab per task, scoped block label, 200x50
+warning: could not move the respawned Rex secondmate tab window:00000009-0000-7000-8000-000000000009 to the first position
+ok - fm_backend_rex_create_task: confirmed launcher session gets the tab focus-safe; unconfirmed claims refuse; nested tmux and other-home use the per-home session
+ok - fm_backend_rex_create_task: refuses an unreadable inventory, ambiguous per-home sessions, and duplicates; a gone session returns 2
+ok - fm_backend_rex_create_task_in_session: closes a bare-shell husk carrying the task label, refuses over a live one
+ok - fm_backend_rex_create_task reclaim: the fallback placement closes a bare-shell husk, refuses a live one, and spawn still refuses duplicates
+ok - rex capture: CR stripped and tailed; viewport derived from the last size.rows styled rows, implicit empty bottom row restored
+ok - fm_backend_composer_state rex: the composer holding the cursor decides; a cursor outside any composer falls back to the cursorless read
+ok - fm_backend_agent_state rex: alive/dead/ambiguous from the process view, missing on not-found, unreadable without starting a server
+ok - fm_backend_agent_state rex: a harness below a shell foreground is alive and its records are trusted; a bare shell stays dead
+ok - fm_backend_busy_state rex: OSC 7501 records count only while their owner is the foreground process or an ancestor
+ok - fm_backend_rex_current_path: the foreground process cwd
+ok - rex input: literal text after --, no call for empty input, verified key names only, line submit
+ok - fm_backend_kill rex: closes exactly its tab, treats a gone block as done, retires the emptied per-home session
+ok - fm_backend_kill rex: never kills a session this home does not own, even when it is empty
+ok - fm_backend_kill rex: refuses success unless the block is proven gone
+not ok - teardown of a rex secondmate must succeed: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: unsafe secondmate home removal target ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-rex-tests.aJYccP/teardown-secondmate/mate is inside the firstmate repo: expected exit 0, got 1
+FM_TEST_END 2026-10-27T05:23:38Z tests/fm-backend-rex.test.sh exit=1 duration_ms=9585 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:23:38Z tests/fm-backend-tern.test.sh family=tern expected_gate_skip=optional-binary
+ok - fm_backend_tern_parse_target: splits '<session-id>:<block-id>' and keeps ids above 2^53 byte-exact
+ok - fm_backend_tern_parse_target: refuses empty, non-numeric, signed, spaced, extra-colon and selector-shaped targets
+ok - fm_backend_tern_*: a selector-shaped target (@focused) is refused without calling tern
+ok - fm_backend_tern_container_ensure: reuses an existing named session and prints its full 64-bit id
+ok - fm_backend_tern_container_ensure: creates a missing session by name and returns the new id, leaving other sessions alone
+ok - fm_backend_tern_container_ensure: without an override the session is named fm-<home tag>
+ok - fm_backend_tern_container_ensure: refuses a tern older than 0.9.4 loudly before touching any session
+ok - fm_backend_tern_container_ensure: compares versions numerically (0.10.0 passes the 0.9.4 floor)
+ok - fm_backend_tern_container_ensure: an unreadable inventory fails instead of creating a duplicate session
+ok - fm_backend_tern_create_task: opens a keep-open tab in the session, renames it to the scoped title, reads it back, prints exact ids
+ok - fm_backend_tern_create_task: refuses to place a task in any session other than its own
+ok - fm_backend_tern_create_task: an unparseable 'new tab' answer fails without renaming anything
+ok - fm_backend_tern_create_task: a failed rename fails the create and closes only the block it made
+ok - fm_backend_tern_create_task: refuses a duplicate scoped tab title before creating anything
+ok - fm_backend_tern_create_task: a title that never reads back fails the create and closes the new block
+ok - fm_backend_tern_target_ready: one ls, true only for the exact session:block pair, exact at 64 bits, false when unreadable
+ok - fm_backend_tern_target_ready: the expected label must equal this home's scoped tab title
+ok - fm_backend_tern_capture: 'tern capture <block-id> --scrollback --surfaces', trimmed to N lines locally
+ok - fm_backend_tern_capture: propagates a failing capture and never reads an absent block
+ok - fm_backend_tern_visible_capture: --surfaces without --scrollback, limited to the block's visible rows
+ok - fm_backend_tern_capture/visible_capture: a --surfaces JSON object yields its .text before the line trim; other output is kept raw
+ok - fm_backend_tern_send_literal: 'tern send <block> text TEXT' with no Enter, even for option-shaped text
+ok - fm_backend_tern_send_key: Enter/Escape/Esc/C-c/C-u map to tern's enter/escape/ctrl+c/ctrl+u chords
+ok - fm_backend_tern_send_key: a mismatched expected task label sends nothing
+ok - fm_backend_tern_send_text_line: one atomic 'tern run' (text plus Enter), no separate key
+ok - fm_backend_tern_current_path: reads 'tern process' foreground.cwd without typing into the block
+ok - fm_backend_tern_current_path: prints nothing when the process cannot be read
+ok - fm_backend_tern_composer_state: empty/pending/unknown from a plain --surfaces capture, never failing the caller
+ok - fm_backend_composer_state: routes tern to the tern composer classifier
+ok - fm_backend_tern_busy_state: working->busy, idle->idle, waiting_input->blocked (herdr's vocabulary), picking the entry whose pane equals the block id at 64 bits
+ok - fm_backend_tern_busy_state: a stale 'working' registration over a shell-only block never reads busy
+ok - fm_backend_tern_busy_state: no entry, alive:false, malformed or non-array answers all read unknown
+ok - fm_backend_tern_busy_state: tolerates the optional fresh-Lua-state banner above the arrow line
+ok - fm_backend_tern_busy_state: no Tern window / failing tern ctl degrades to unknown, never an error
+ok - fm_backend_tern_native_state: a hung control endpoint is bounded by FM_BACKEND_TERN_CTL_TIMEOUT and reads unknown
+ok - fm_backend_tern_native_state: working|idle|waiting_input from the projected agent list after one inventory check, unknown for an unverified block
+ok - fm_backend_tern_native_state/busy_state: a displayed answer with a raw newline inside a string fails agents_json and reads unknown without failing the caller, while the same entries with it escaped read normally
+ok - fm_backend_tern_native_state: the projected answer parses (also laid out over several lines), every id survives as an exact decimal string, and the entry whose pane equals the block id supplies the state
+ok - fm_backend_busy_state: routes tern to the native agent-state reader
+ok - fm_backend_tern_agent_state: agent foreground -> alive, idle shell (incl. --rcfile) -> dead, shell -c / unrelated process -> ambiguous
+ok - fm_backend_tern_agent_state: missing only from a good inventory; exited -> dead; moved -> ambiguous; unreadable on any failed read
+ok - fm_backend_agent_state: routes tern to the tern process classifier
+ok - fm_backend_tern_kill: closes exactly the task block by numeric id, never the session
+ok - fm_backend_tern_kill: 0 when the block is already gone, and repeatable
+ok - fm_backend_tern_kill: an unreadable inventory fails instead of claiming the block is gone
+ok - fm_backend_tern_kill: a failed close is success only when a fresh inventory shows the block gone
+ok - fm_backend_tern_kill: refuses (and closes nothing) when the block id now belongs to another session
+ok - fm_backend_tern_kill: refuses (and closes nothing) when the block's tab no longer carries the task's title
+ok - fm_backend_tern_list_live: lists only this home's scoped task tabs in its own session, as plain fm-<id> labels
+ok - fm_backend_visible_capture: routes tern to the viewport read
+ok - fm_backend_target_exists: tern is a read-only inventory check
+ok - fm_backend dispatcher: send_key, capture and kill route to the tern adapter
+ok - fm_backend_tern_send_text_submit: a native idle -> working transition confirms delivery without reading the screen
+ok - fm_backend_tern_send_text_submit: waiting_input after Enter counts as a landed submit
+ok - fm_backend_tern_send_text_submit: an inconclusive native read falls back to the composer; retries press Enter only and never retype
+ok - fm_backend_tern_send_text_submit: a busy agent's queued Enter counts as delivered (shared queued-Enter policy)
+ok - fm_backend_tern_send_text_submit: no control endpoint degrades to the shared composer loop
+ok - fm_backend_tern_send_text_submit: retries past a popup-placeholder-fill Enter and lands the real second Enter
+ok - fm_backend_tern_send_text_submit: a swallowed Enter reports pending after the Enter-only retries
+ok - fm_backend_tern_send_text_submit: a failing Enter is retried as Enter only, and reported send-failed when it never lands
+ok - fm_backend_tern_send_text_submit: reports 'send-failed' when the block is absent
+ok - fm_backend_send_text_submit: routes tern to the native-confirming submit
+ok - fm_backend_validate_task_endpoint: a complete tern record validates and keeps 64-bit ids byte-exact
+ok - fm_backend_validate_task_endpoint: tern records without an exact binding, with mismatched/non-numeric/overlong/duplicate ids or selector windows are refused
+ok - fm-spawn.sh: refuses backend=tern for --secondmate spawns (no per-home lifecycle design is verified)
+ok - fm-spawn.sh --backend tern: writes backend/window/tern_*_id/endpoint_task_id with exact ids that pass cleanup validation
+ok - fm-spawn.sh --backend tern: a cleared allowlist launch keeps TERM_PROGRAM and the TERN_* identity, drops the rest, and invents nothing
+ok - tern_refuse_if_unsafe: accepts only a numeric id listed under exactly its fm-test- name; fails closed on empty, non-numeric, foreign, unlisted or unreadable
+ok - tern_refuse_if_unsafe: session ids above 2^53 are compared as exact integers
+ok - tern_refuse_if_unsafe: a session hosting $TERN_PANE is never torn down
+ok - tern_safe_kill_session: one 'tern kill session <id>' behind the guard, nothing at all when the guard refuses
+ok - tern smoke test: skips cleanly with no tern, and with a listing daemon but no window control endpoint, touching nothing
+FM_TEST_END 2026-10-27T05:23:53Z tests/fm-backend-tern.test.sh exit=0 duration_ms=14976 gate_skip=false
+FM_TEST_BEGIN 2026-10-27T05:23:53Z tests/fm-codex-hook-layer-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+not ok - codex WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+codex-cli 0.162.1 could not list its feature flags: WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+Error: failed to resolve CODEX_HOME
+
+Caused by:
+    CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+FM_TEST_END 2026-10-27T05:23:53Z tests/fm-codex-hook-layer-live-e2e.test.sh exit=1 duration_ms=213 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=4 skipped_gate=0 duration_ms=141754
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=109686 failed=1
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=213 failed=1
+FM_TEST_SUMMARY_FAMILY family=rex count=1 duration_ms=9585 failed=1
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=7176 failed=1
+FM_TEST_SUMMARY_FAMILY family=tern count=1 duration_ms=14976 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-backend-t3code.test.sh duration_ms=109686
+FM_TEST_SLOWEST rank=2 script=tests/fm-backend-tern.test.sh duration_ms=14976
+FM_TEST_SLOWEST rank=3 script=tests/fm-backend-rex.test.sh duration_ms=9585
+FM_TEST_SLOWEST rank=4 script=tests/fm-secondmate-harness.test.sh duration_ms=7176
+FM_TEST_SLOWEST rank=5 script=tests/fm-codex-hook-layer-live-e2e.test.sh duration_ms=213
+FM_TEST_FAILED script=tests/fm-secondmate-harness.test.sh exit=1
+ok - A1 fm-harness.sh secondmate resolves the fallback chain; crew mode unchanged
+ok - fm-harness detects only Cursor Agent CLI's exact invocation marker
+ok - C1 fm-harness.sh secondmate-model/secondmate-effort resolve the optional tokens; bare harness stays empty (backward-compat)
+ok - D1 fm-harness.sh honors a mate override line for its id and changes nothing else
+ok - D2 malformed config/secondmate-harness refuses with its line number on every read verb
+ok - D3 a config/secondmate-harness that declares no mate line is never refused
+ok - pi-signed identity: authoritative launch selection distinguishes shared wrapper ancestry
+ok - harness identity: dash-leading ps command names are basename operands, not options
+ok - B1 propagate_inheritable_config: copy, idempotence, convergence, absence-mirror, exclusion, no-op, skip diagnostics
+not ok - split: no meta written
+FM_TEST_FAILURE_END script=tests/fm-secondmate-harness.test.sh
+FM_TEST_FAILED script=tests/fm-backend-t3code.test.sh exit=1
+ok - secondmate liveness backend=t3code: a missing thread re-proves its archive before replacement, and an unreadable thread spawns nothing
+ok - away daemon on T3: an unconfirmed digest is frozen and retried verbatim; a later event goes in the next digest, each event once
+ok - away daemon on T3: a delivered frozen digest leaves the items behind it with the first one's undelivered age
+ok - away daemon on T3: a supervisor thread waiting on a pending request defers digests until it is answered
+ok - t3code helper: runs through a symlinked Firstmate root, and a kill that cannot read the thread fails closed
+ok - secondmate liveness backend=t3code: an archived thread whose run still drains is left in place, not replaced
+ok - fm_backend_t3code_kill: interrupt then archive with a proven close, idempotent on archived and missing, loud on failure
+ok - fm-backend dispatcher: routes every t3code primitive, validates and resolves t3_thread_id records, and joins the push wait
+ok - T3 harness admission refuses every non-T3 adapter and launch-time typing refuses without a thread read
+ok - fm_busy_classify: t3code native busy, idle, and unknown are trusted without a record
+ok - fm-control-lib: t3code key set, state-verified, no-exit, and no-replacement membership
+ok - fm-control.sh backend=t3code: exit refuses before any call (V2 has no session stop); interrupt ends the turn natively
+ok - fm-control.sh relaunch backend=t3code: refused before anything is stopped, by the control plane and by the launch owner
+ok - fm-spawn.sh --backend t3code: leases the slot, launches the thread on it, records metadata, sends the launch brief
+ok - t3code Claude PR-tool clause: dropped only at or past the verified T3 build, kept for older or unreadable servers
+WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+ok - codex-cli 0.162.1: project config retained; shell FM_TASK_ID=t3codextrk2f37704dea
+ok - fm-spawn.sh backend=t3code: compatible tracked Codex config launches, stays out of commits, and survives cleanup
+ok - tracked Codex overlay: edited files survive refusal, interrupted restoration recovers, quoted and dotted policy keys refuse
+ok - fm-spawn.sh --backend t3code codex: refuses to overwrite a project's tracked .codex/config.toml before any mutation
+ok - fm-spawn.sh --backend t3code claude: refuses to overwrite a project's tracked CLAUDE.local.md before any mutation
+ok - Claude channel refuses a symlink in the leased worktree without following it
+ok - untracked Codex config is preserved unless Firstmate's marker owns it
+ok - fm-t3code-codex-env.sh cleanup: without an installed overlay it needs no Python and never refuses
+ok - fm-spawn.sh --backend t3code codex: an untracked Codex config in the main checkout does not refuse a worker
+ok - fm-spawn.sh --backend t3code codex: writes .codex/config.toml with GOTMPDIR, FM_TASK_ID, and TRACEPARENT
+ok - fm-spawn.sh --backend t3code codex: warns once, and still launches, unless the Codex configuration trusts the launch directory's main checkout
+not ok - fm-spawn.sh --backend t3code --secondmate should succeed against the fake T3 server
+warning: T3 telemetry at http://127.0.0.1:45615 is on; run the server that hosts Firstmate workers with T3CODE_TELEMETRY_ENABLED=false (docs/t3code-backend.md)
+error: secondmate home cannot be inside the firstmate repo: ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-t3code-tests.3IFfqB/spawn-secondmate/sm-home: expected exit 0, got 1
+FM_TEST_FAILURE_END script=tests/fm-backend-t3code.test.sh
+FM_TEST_FAILED script=tests/fm-backend-rex.test.sh exit=1
+ok - fm_backend_rex_bin: REX_BIN_DIR, then PATH, then the server bundle path
+ok - fm_backend_rex_version_check: accepts API revision 5 and refuses an older CLI, older server, or missing CLI
+ok - fm_backend_rex_parse_target: <session-uuid>:<block-uuid> only, prefixes restored
+ok - fm_backend_rex_create_task: one per-home session created once then adopted, one tab per task, scoped block label, 200x50
+warning: could not move the respawned Rex secondmate tab window:00000009-0000-7000-8000-000000000009 to the first position
+ok - fm_backend_rex_create_task: confirmed launcher session gets the tab focus-safe; unconfirmed claims refuse; nested tmux and other-home use the per-home session
+ok - fm_backend_rex_create_task: refuses an unreadable inventory, ambiguous per-home sessions, and duplicates; a gone session returns 2
+ok - fm_backend_rex_create_task_in_session: closes a bare-shell husk carrying the task label, refuses over a live one
+ok - fm_backend_rex_create_task reclaim: the fallback placement closes a bare-shell husk, refuses a live one, and spawn still refuses duplicates
+ok - rex capture: CR stripped and tailed; viewport derived from the last size.rows styled rows, implicit empty bottom row restored
+ok - fm_backend_composer_state rex: the composer holding the cursor decides; a cursor outside any composer falls back to the cursorless read
+ok - fm_backend_agent_state rex: alive/dead/ambiguous from the process view, missing on not-found, unreadable without starting a server
+ok - fm_backend_agent_state rex: a harness below a shell foreground is alive and its records are trusted; a bare shell stays dead
+ok - fm_backend_busy_state rex: OSC 7501 records count only while their owner is the foreground process or an ancestor
+ok - fm_backend_rex_current_path: the foreground process cwd
+ok - rex input: literal text after --, no call for empty input, verified key names only, line submit
+ok - fm_backend_kill rex: closes exactly its tab, treats a gone block as done, retires the emptied per-home session
+ok - fm_backend_kill rex: never kills a session this home does not own, even when it is empty
+ok - fm_backend_kill rex: refuses success unless the block is proven gone
+not ok - teardown of a rex secondmate must succeed: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: unsafe secondmate home removal target ~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/fm-backend-rex-tests.aJYccP/teardown-secondmate/mate is inside the firstmate repo: expected exit 0, got 1
+FM_TEST_FAILURE_END script=tests/fm-backend-rex.test.sh
+FM_TEST_FAILED script=tests/fm-codex-hook-layer-live-e2e.test.sh exit=1
+not ok - codex WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+codex-cli 0.162.1 could not list its feature flags: WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+Error: failed to resolve CODEX_HOME
+
+Caused by:
+    CODEX_HOME points to "~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/codex", but that path does not exist
+FM_TEST_FAILURE_END script=tests/fm-codex-hook-layer-live-e2e.test.sh

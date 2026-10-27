@@ -1,0 +1,13 @@
+{
+  "fixture_setup": "Initial secondmate/backend failures came from placing disposable homes beneath the code root. Re-running an unmodified archived target snapshot in a nested code root, with sibling homes, resolved them. CODEX_HOME was created before re-driving the real CLI.",
+  "bounded_runs": "The initial supervision-host suite and secondmate-harness suite reached 180-second bounds. Seven selected supervision cases and the remaining eight secondmate selectors subsequently completed successfully. No full regression suite was run.",
+  "live_supervision": "Real Claude Code 2.1.308 headless engine, actual watcher and branch scripts; synthetic primary lock holder. Two wakes handled, same engine conversation resumed, host and watcher stopped. This proves the engine flow, not an attended primary TUI.",
+  "cleanup": "All disposable source snapshots, homes, sockets and caches removed from the worktree at completion.",
+  "limitations": [
+    "Herdr lab requires a running default session in its config namespace. Its real namespace is outside the worktree; isolated XDG_CONFIG_HOME fails the mandatory tripwire. No lab provisioned.",
+    "Rex, Tern, Cortex and t3 executables absent on PATH; no repository-local real executable supplied.",
+    "T3 credential absent in run worktree; no production credential stores read or modified.",
+    "Only OpenCode 1.19.3 available; native OpenCode 2 fixture capability-skipped.",
+    "macOS Notification Center unavailable on Linux; Linux refusal was driven."
+  ]
+}

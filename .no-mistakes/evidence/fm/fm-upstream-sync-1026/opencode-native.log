@@ -1,0 +1,2 @@
+skip: ~/.bun/bin/opencode reports 1.19.3, not OpenCode 2
+skip: no OpenCode 2 executable to exercise

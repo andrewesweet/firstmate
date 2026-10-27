@@ -1,0 +1,197 @@
+SCENARIO: opt-in record export and exact allowlist
+$ FM_HOME=<disposable> bin/fm-record-export.sh sync
+exit=0
+$ FM_HOME=<disposable> bin/fm-record-export.sh sync
+exit=0
+Published live files: ["data/demo/brief.md", "data/projects.md", "state/demo.inbox/001.msg", "state/demo.inbox/handled/002.msg", "state/demo.meta", "state/demo.status"]
+$ FM_HOME=<disposable> bin/fm-record-export.sh sync
+exit=0
+Acknowledged message appears only under handled/.
+SCENARIO: archive integrity, retry and reused task generation
+$ FM_HOME=<disposable> bin/fm-record-export.sh archive-task demo
+exit=0
+{
+  "schema": "firstmate-record-export-archive.v1",
+  "schema_version": 1,
+  "task": "demo",
+  "spawn_gen": "live-one",
+  "captured_at": "2026-10-27T05:21:03Z",
+  "complete": true,
+  "files": [
+    {
+      "source": "state/demo.meta",
+      "archive": "meta",
+      "bytes": 39,
+      "sha256": "ac6431a6bccac6057850b2560aee2f96ba529cb9b02626638115d2ec814d0758"
+    },
+    {
+      "source": "state/demo.status",
+      "archive": "status",
+      "bytes": 25,
+      "sha256": "e715c0d242fae4b3b254fa50a15065182e7aa525566bf1ec7a149191c55f4ff2"
+    },
+    {
+      "source": "state/demo.inbox/handled/001.msg",
+      "archive": "inbox/handled/001.msg",
+      "bytes": 20,
+      "sha256": "b2260970755a1905d932d38b2c51925def2cb4c50c30cd9bdc1410cd1bfa0d60"
+    },
+    {
+      "source": "state/demo.inbox/handled/002.msg",
+      "archive": "inbox/handled/002.msg",
+      "bytes": 20,
+      "sha256": "b161c581385a714864f84370166d8f184e512fb51a96a644de9f618f15185772"
+    }
+  ]
+}
+
+Every archive entry matches manifest byte count and SHA-256.
+$ FM_HOME=<disposable> bin/fm-record-export.sh archive-task demo
+exit=0
+$ FM_HOME=<disposable> bin/fm-record-export.sh archive-task demo
+exit=0
+Both generation archives retained; retry leaves committed manifest unchanged.
+SCENARIO: export root symlink refuses without changing sentinel
+$ FM_HOME=<disposable> bin/fm-record-export.sh sync
+error: record export root is not a real directory
+exit=1
+SCENARIO: real host capacity, lane accounting and reserve deferral
+$ FM_HOME=<disposable> bin/fm-capacity.sh --json
+{
+  "schema": "fm-lane-capacity.v1",
+  "generated_epoch": 1793078463,
+  "home": "main",
+  "machine": "laptop",
+  "lanes": {
+    "count": 1,
+    "pr_ready": 0,
+    "ids": [
+      "demo"
+    ]
+  },
+  "cap": {
+    "target": 4,
+    "status": "ok"
+  },
+  "projects": [],
+  "pressure": {
+    "level": "ok",
+    "why": [],
+    "basis": "probe",
+    "beat_age_s": null,
+    "avail_gb": 7.77,
+    "total_gb": 11.68,
+    "runq_per_core": 0.19,
+    "swap_rate_pps_1m": null,
+    "mem_stall_pct": null,
+    "load1": 2.29,
+    "on_battery": null,
+    "disks": [
+      {
+        "label": "home",
+        "free_gb": 510.5
+      }
+    ]
+  },
+  "uptime_s": 108830,
+  "boot_id": "5959f0e1-4f60-4c06-a900-eb9267c5d2c5",
+  "boots": [
+    1792969632
+  ],
+  "watcher_beat_age_s": null,
+  "reserve": {
+    "flag": "present",
+    "label": "verification reserve"
+  },
+  "captain": "not-configured",
+  "quota": null,
+  "limits": {
+    "min_avail_gb": null,
+    "min_disk_gb": null,
+    "max_load1": null
+  },
+  "verdict": {
+    "admit": false,
+    "free_lanes": 0,
+    "reasons": [
+      "captain reserve: verification reserve"
+    ]
+  }
+}
+exit=0
+$ FM_HOME=<disposable> bin/fm-capacity.sh --admit
+deferred: lane capacity of this home (~/.no-mistakes/worktrees/feb37d45d9da/01M5XV1WAR9HTEF10GHEC0GRDY/.t/manual/home/config/lane-capacity) does not admit another lane: captain reserve: verification reserve
+exit=75
+$ FM_HOME=<disposable> bin/fm-capacity.sh --publish
+exit=0
+$ FM_HOME=<disposable> bin/fm-capacity.sh --json
+{
+  "schema": "fm-lane-capacity.v1",
+  "generated_epoch": 1793078463,
+  "home": "main",
+  "machine": "laptop",
+  "lanes": {
+    "count": 1,
+    "pr_ready": 0,
+    "ids": [
+      "demo"
+    ]
+  },
+  "cap": {
+    "target": null,
+    "status": "invalid"
+  },
+  "projects": [],
+  "pressure": {
+    "level": "ok",
+    "why": [],
+    "basis": "probe",
+    "beat_age_s": null,
+    "avail_gb": 7.75,
+    "total_gb": 11.68,
+    "runq_per_core": 0.19,
+    "swap_rate_pps_1m": null,
+    "mem_stall_pct": null,
+    "load1": 2.29,
+    "on_battery": null,
+    "disks": [
+      {
+        "label": "home",
+        "free_gb": 510.5
+      }
+    ]
+  },
+  "uptime_s": 108830,
+  "boot_id": "5959f0e1-4f60-4c06-a900-eb9267c5d2c5",
+  "boots": [
+    1792969632
+  ],
+  "watcher_beat_age_s": null,
+  "reserve": {
+    "flag": "not-configured",
+    "label": null
+  },
+  "captain": "not-configured",
+  "quota": null,
+  "limits": {
+    "min_avail_gb": null,
+    "min_disk_gb": null,
+    "max_load1": null
+  },
+  "verdict": {
+    "admit": false,
+    "free_lanes": null,
+    "reasons": [
+      "config/lane-capacity: line 1: the first line must be the lane cap, one non-negative integer"
+    ]
+  }
+}
+fm-capacity: config/lane-capacity: line 1: the first line must be the lane cap, one non-negative integer
+exit=1
+SCENARIO: usage warner silent default and Linux notification refusal
+$ FM_HOME=<disposable> bin/fm-usage-warner.sh check
+exit=0
+$ FM_HOME=<disposable> bin/fm-usage-warner.sh arm
+fm-usage-warner: Notification Center is only available on macOS; nothing to arm on Linux
+exit=1
+All driven CLI scenarios passed.
