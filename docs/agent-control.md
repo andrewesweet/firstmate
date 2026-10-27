@@ -183,10 +183,10 @@ The worktree and the task's records are unaffected either way.
 - A backend that cannot deliver the harness's interrupt key, or the composer clear that key needs, is refused rather than sent a different key.
   Orca's terminal API exposes only an interrupt and an Enter, so it can deliver neither Escape nor Ctrl+U.
   T3 Code has no composer, so Escape and Ctrl+C are both a turn interrupt and Ctrl+U is refused.
-- `exit` and `relaunch` require a backend with a recovery-grade agent-state classifier - tmux, herdr, rex, and t3code - because without one the "the agent stopped" postcondition cannot be proven.
-  zellij, orca, cmux, and paseo are refused rather than reported as successful blind.
+- `exit` and `relaunch` require a backend admitted by [`fm_control_backend_state_verified`](../bin/fm-control-lib.sh), because without a verified recovery-grade classifier the "the agent stopped" postcondition cannot be proven.
+  Every other backend is refused rather than reported as successful blind.
 - On t3code, `exit` refuses before anything is sent: a T3 thread has no composer for a typed exit command, and T3's `/mcp` tools offer no session stop.
-- `relaunch` additionally requires a backend that can host a replacement agent - tmux, herdr, and rex.
+- `relaunch` additionally requires a backend that can host a replacement agent, as declared by [`fm_control_backend_relaunch_supported`](../bin/fm-control-lib.sh).
   t3code is refused before anything is stopped: a T3 thread keeps its conversation, so a new turn or a provider change on it continues the same agent rather than launching a fresh one.
 - An ambiguous or unreadable endpoint state refuses.
   Only a positively classified state acts; a Rex `unreadable` acts only once the absence proof above settles it.
@@ -197,18 +197,8 @@ The worktree and the task's records are unaffected either way.
 
 ## Capability matrix
 
-Backend capability comes from each adapter's real surface, not from a policy choice.
-
-| Backend | Escape | Enter | Ctrl+C | Ctrl+U | Recovery-grade agent state | Replacement agent |
-| --- | --- | --- | --- | --- | --- | --- |
-| tmux | yes | yes | yes | yes | yes | yes |
-| herdr | yes | yes | yes | yes | yes | yes |
-| zellij | yes | yes | yes | yes | no | no |
-| cmux | yes | yes | yes | yes | no | no |
-| orca | no | yes | yes | no | no | no |
-| paseo | yes | yes | yes | yes | no | no |
-| rex | yes | yes | yes | yes | yes | yes |
-| t3code | yes | yes | yes | no | yes | no |
+Backend capability comes from each adapter's real surface.
+[`bin/fm-control-lib.sh`](../bin/fm-control-lib.sh) owns the executable capability tables: `fm_control_backend_supports_key`, `fm_control_backend_state_verified`, `fm_control_backend_exit_supported`, and `fm_control_backend_relaunch_supported`.
 
 Per-harness interrupt keys, repeat counts, composer clears, exit commands, and supported task kinds live in `bin/fm-control-lib.sh` and are exercised for every verified harness by `tests/fm-control.test.sh`, with adapters outside its lane pinning their control mechanics in their own harness suites.
 The empirical basis for each adapter's value is the `harness-adapters` skill's verification record for that adapter.
