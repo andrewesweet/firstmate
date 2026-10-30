@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Semicolon ingest batches",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Comma ingest batches",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Mixed delimiters, whitespace and legacy .md ids remain compiled",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Compiled ids stop contributing to count and oldest-age thresholds",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Near-match ids cannot falsely compile a pending lesson",
+    "result": "pass",
+    "live": true
+  }
+]

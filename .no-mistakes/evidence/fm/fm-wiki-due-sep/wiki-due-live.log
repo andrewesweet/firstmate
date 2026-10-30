@@ -1,0 +1,106 @@
+Oracle: compiled exact ids do not count as pending; 25 pending or an old pending lesson fires due.
+
+SCENARIO Semicolon ingest batches
+COMMITTED log.md = ""
+RAW IDS = ["20200101T000000Z-lab-home-alpha-a1b2", "20200101T000000Z-lab-home-beta-c3d4"]
+$ [target: unlogged old lessons trigger readiness] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2; 20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter='; '] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2;20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=';'] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2;\t20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=';\t'] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2;;;  20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=';;;  '] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2; 20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: target clears the exact baseline regression input] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+$ [base: base still counts separator-adjacent compiled ids as pending] FM_HOME=<isolated:semicolon> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+
+SCENARIO Comma ingest batches
+COMMITTED log.md = ""
+RAW IDS = ["20200101T000000Z-lab-home-alpha-a1b2", "20200101T000000Z-lab-home-beta-c3d4"]
+$ [target: unlogged old lessons trigger readiness] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2,20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=','] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2, 20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=', '] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2,\t20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=',\t'] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2,,,20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: both compiled ids clear readiness, delimiter=',,,'] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2,20200101T000000Z-lab-home-beta-c3d4\n"
+$ [target: target clears the exact baseline regression input] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+$ [base: base still counts separator-adjacent compiled ids as pending] FM_HOME=<isolated:comma> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+
+SCENARIO Mixed delimiters, whitespace and legacy .md ids remain compiled
+COMMITTED log.md = ""
+$ [target: control: old lessons pending] FM_HOME=<isolated:compatible> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2\t20200101T000000Z-lab-home-beta-c3d4.md\r\n\n"
+$ [target: compiled bare and legacy ids with mixed delimiters] FM_HOME=<isolated:compatible> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | ;,20200101T000000Z-lab-home-alpha-a1b2.md;,\t20200101T000000Z-lab-home-beta-c3d4,;\n"
+$ [target: compiled bare and legacy ids with mixed delimiters] FM_HOME=<isolated:compatible> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2.md, 20200101T000000Z-lab-home-beta-c3d4.md;\n"
+$ [target: compiled bare and legacy ids with mixed delimiters] FM_HOME=<isolated:compatible> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+
+SCENARIO Compiled ids stop contributing to count and oldest-age thresholds
+COMMITTED log.md = ""
+RAW IDS = 25 distinct lessons stamped 20261030T214453Z
+$ [target: 25 recent pending lessons trigger count] FM_HOME=<isolated:thresholds> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-30)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20261030T214453Z-lab-home-fresh-0-a1b2;20261030T214453Z-lab-home-fresh-1-a1b2\n"
+$ [target: two semicolon-compiled ids reduce count to 23] FM_HOME=<isolated:thresholds> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20261030T214453Z-lab-home-fresh-0-a1b2,20261030T214453Z-lab-home-fresh-1-a1b2\n"
+$ [target: 23 fresh plus one old pending lesson trigger age] FM_HOME=<isolated:thresholds> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (24 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20261030T214453Z-lab-home-fresh-0-a1b2,20261030T214453Z-lab-home-fresh-1-a1b2;20200101T000000Z-lab-home-alpha-a1b2\n"
+$ [target: compiled old id no longer contributes age; 23 fresh remain] FM_HOME=<isolated:thresholds> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+
+SCENARIO Near-match ids cannot falsely compile a pending lesson
+COMMITTED log.md = ""
+RAW IDS = ["20200101T000000Z-lab-home-alpha-a1b2", "20200101T000000Z-lab-home-alpha-a1b2-longer"]
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | unknown;20200101T000000Z-lab-home-alpha-a1b2-longer;another-unknown\n"
+$ [target: logging longer id leaves prefix pending ('', ';')] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | unknown,20200101T000000Z-lab-home-alpha-a1b2-longer,another-unknown\n"
+$ [target: logging longer id leaves prefix pending ('', ',')] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | unknown;20200101T000000Z-lab-home-alpha-a1b2-longer.md;another-unknown\n"
+$ [target: logging longer id leaves prefix pending ('.md', ';')] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | unknown,20200101T000000Z-lab-home-alpha-a1b2-longer.md,another-unknown\n"
+$ [target: logging longer id leaves prefix pending ('.md', ',')] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2-longer.md;x20200101T000000Z-lab-home-alpha-a1b2,\n"
+$ [target: embedded or double-suffixed id remains pending x20200101T000000Z-lab-home-alpha-a1b2] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2-longer.md;20200101T000000Z-lab-home-alpha-a1b2-extra,\n"
+$ [target: embedded or double-suffixed id remains pending 20200101T000000Z-lab-home-alpha-a1b2-extra] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2-longer.md;20200101T000000Z-lab-home-alpha-a1b2.md.md,\n"
+$ [target: embedded or double-suffixed id remains pending 20200101T000000Z-lab-home-alpha-a1b2.md.md] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=0; stdout="wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n"; stderr=""
+COMMITTED log.md = "## [2026-10-30] ingest | 2 lessons | 20200101T000000Z-lab-home-alpha-a1b2-longer.md;20200101T000000Z-lab-home-alpha-a1b2,\n"
+$ [target: logging exact remaining id clears readiness] FM_HOME=<isolated:exact-id> bash bin/fm-wiki.sh due
+exit=1; stdout=""; stderr=""
+
+All live scenarios passed. Baseline reproduced both separator failures. Disposable homes are removed on exit.

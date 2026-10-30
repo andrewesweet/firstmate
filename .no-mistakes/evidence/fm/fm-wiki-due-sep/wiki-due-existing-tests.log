@@ -1,0 +1,9 @@
+1..7
+ok - due fires at 25 uncompiled lessons
+ok - due fires on age and stays quiet below threshold
+ok - due counts only lessons the log has not cited
+ok - due honours a log line naming raw ids without .md
+ok - due matches whole bare and legacy raw id tokens for count and age
+ok - due honours ingest lines separating raw ids with semicolons and commas
+ok - due stays quiet while a gardener task is open
+FM_TEST_COMPLETE
