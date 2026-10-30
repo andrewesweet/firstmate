@@ -1,0 +1,202 @@
+[
+  {
+    "step": "Unlogged old lesson triggers age readiness",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "Bare-id ingest removes old lesson from pending age",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Pre-change reproduction: bare-id ingest still triggers readiness",
+    "command": "bash .due-live-r8nt3uaq/baseline/bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (2 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": false
+  },
+  {
+    "step": "25 fresh lessons trigger count readiness (bare)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-30)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-30)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "One logged ID drops fresh pending count below 25 (bare)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Prefix remains pending at count threshold (bare, tab and CRLF)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "Prefix remains pending by age (bare)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "All exact IDs compiled suppress readiness (bare)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "25 fresh lessons trigger count readiness (.md)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-30)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2026-10-30)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "One logged ID drops fresh pending count below 25 (.md)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Prefix remains pending at count threshold (.md, tab and CRLF)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (25 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "Prefix remains pending by age (.md)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "All exact IDs compiled suppress readiness (.md)",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Embedded IDs and additional suffixes never compile an exact ID",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "An open gardener task suppresses duplicate readiness",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Closing gardener task restores pending readiness",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 0,
+    "stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "stderr": "",
+    "expected_exit": 0,
+    "expected_stdout": "wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)\n",
+    "matches_contract": true
+  },
+  {
+    "step": "Role guard remains silent for reader",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Role guard remains silent for contributor",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Role guard remains silent for off",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  },
+  {
+    "step": "Absent feature config stays silent",
+    "command": "bash bin/fm-wiki.sh due",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "",
+    "expected_exit": 1,
+    "expected_stdout": "",
+    "matches_contract": true
+  }
+]
