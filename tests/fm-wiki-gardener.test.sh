@@ -247,13 +247,19 @@ test_due_counts_a_lesson_the_log_names_by_bare_id() {
   seed_checkout "$bare" "$TMP_ROOT/duebare-seed" >/dev/null
   home=$(gardener_home_with_repo duebare "$bare")
   repo="$home/state/wiki/repo"
-  # The log schema names bare raw ids (`assets/crew-wiki-AGENTS.md`); the seed
-  # log line keeps the older `.md` form, and both must count as compiled.
   cited=$(add_raw "$repo" 20200101T000000Z task-old)
-  printf '## [2026-10-25] ingest | 1 lesson | %s\n' "$(basename "$cited" .md)" >> "$repo/log.md"
   add_raw "$repo" "$(date -u +%Y%m%dT%H%M%SZ)" task-fresh >/dev/null
   wgit -C "$repo" add -A
   wgit -C "$repo" commit -q -m "wiki: bare-id logged lesson plus one fresh"
+  # Control: unlogged, the old lesson makes due fire on its age.
+  out=$(run_wiki "$home" due 2>&1) || fail "due must fire while the old lesson is unlogged"
+  assert_contains "$out" 'gardener due' "an unlogged old lesson makes due fire"
+  # The log schema names bare raw ids (`assets/crew-wiki-AGENTS.md`); logging
+  # the same lesson by bare id must silence the check. The seed log line keeps
+  # the older `.md` form, and both forms count as compiled.
+  printf '## [2026-10-25] ingest | 1 lesson | %s\n' "$(basename "$cited" .md)" >> "$repo/log.md"
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: log the old lesson by bare id"
   out=$(run_wiki "$home" due 2>&1); status=$?
   [ "$status" -ne 0 ] || fail "due must stay quiet when the log cites an old lesson by bare id"
   assert_equals '' "$out" "a lesson logged by bare id does not count toward due"
