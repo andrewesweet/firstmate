@@ -266,6 +266,40 @@ test_due_counts_a_lesson_the_log_names_by_bare_id() {
   pass "due honours a log line naming raw ids without .md"
 }
 
+test_due_keeps_a_prefix_of_a_logged_id_pending() {
+  local home bare repo out status suffix pending compiled fresh_ids i stamp
+  for suffix in '' .md; do
+    bare=$(wiki_bare "dueprefix$suffix")
+    seed_checkout "$bare" "$TMP_ROOT/dueprefix$suffix-seed" >/dev/null
+    home=$(gardener_home_with_repo "dueprefix$suffix" "$bare")
+    repo="$home/state/wiki/repo"
+    pending=$(add_raw "$repo" 20200101T000000Z fix)
+    compiled=$(add_raw "$repo" 20200101T000000Z fix-a1b2)
+    fresh_ids=
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    for i in $(seq 1 24); do
+      fresh_ids="$fresh_ids $(basename "$(add_raw "$repo" "$stamp" "fresh-$i")" .md)$suffix"
+    done
+    printf '## [2026-10-25] ingest | 1 lesson |\t%s%s\r\n' "$(basename "$compiled" .md)" "$suffix" >> "$repo/log.md"
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: log only the longer raw id"
+    out=$(run_wiki "$home" due 2>&1) || fail "a prefix collision must not suppress readiness"
+    assert_equals 'wiki: gardener due (25 uncompiled raw lesson(s), oldest 2020-01-01)' "$out" "the prefix lesson still counts toward the 25-lesson threshold"
+    printf '## [2026-10-25] ingest | 24 lessons |%s\n' "$fresh_ids" >> "$repo/log.md"
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: compile the fresh lessons"
+    out=$(run_wiki "$home" due 2>&1) || fail "the pending prefix lesson must still trigger readiness by age"
+    assert_equals 'wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)' "$out" "only the old prefix lesson remains pending"
+    printf '## [2026-10-25] ingest | 1 lesson | %s%s\n' "$(basename "$pending" .md)" "$suffix" >> "$repo/log.md"
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: compile the prefix lesson"
+    out=$(run_wiki "$home" due 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "due must stay quiet once every complete raw id is logged"
+    assert_equals '' "$out" "all compiled lessons leave no pending readiness"
+  done
+  pass "due matches whole bare and legacy raw id tokens for count and age"
+}
+
 test_due_stays_quiet_while_a_gardener_task_is_open() {
   local home bare repo out status i stamp
   bare=$(wiki_bare dueopen)
@@ -1163,6 +1197,7 @@ test_due_fires_at_25_uncompiled_lessons
 test_due_fires_on_a_seven_day_old_lesson
 test_due_counts_only_lessons_the_log_has_not_cited
 test_due_counts_a_lesson_the_log_names_by_bare_id
+test_due_keeps_a_prefix_of_a_logged_id_pending
 test_due_stays_quiet_while_a_gardener_task_is_open
 test_lint_passes_a_well_formed_checkout
 test_lint_blocks_on_header_link_budget_and_citation_gaps

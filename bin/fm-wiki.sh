@@ -1108,6 +1108,7 @@ wiki_due() {
   log_text=$(wiki_git "$WIKI_REPO" show HEAD:log.md 2>/dev/null || printf '')
   # The log names bare raw ids (assets/crew-wiki-AGENTS.md); matching the bare
   # id also accepts older log lines that still wrote `<id>.md`.
+  log_text=$(printf '%s\n' "$log_text" | awk -F '[[:space:]]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }')
   local pending=0 stamps name stamp
   stamps=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-due.XXXXXX") || return 1
   : > "$stamps"
@@ -1117,7 +1118,7 @@ wiki_due() {
       *.md) ;;
       *) continue ;;
     esac
-    if printf '%s' "$log_text" | grep -qF -- "$(basename "$name" .md)"; then
+    if printf '%s\n' "$log_text" | grep -qxF -- "$(basename "$name" .md)"; then
       continue
     fi
     pending=$(( pending + 1 ))
