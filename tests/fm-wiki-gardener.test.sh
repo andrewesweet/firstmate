@@ -300,6 +300,37 @@ test_due_keeps_a_prefix_of_a_logged_id_pending() {
   pass "due matches whole bare and legacy raw id tokens for count and age"
 }
 
+test_due_reads_ids_separated_by_semicolons_and_commas() {
+  local home bare repo out status cited1 cited2 sepname sep
+  for sepname in semi comma; do
+    case $sepname in
+      semi) sep='; ' ;;
+      comma) sep=',' ;;
+    esac
+    bare=$(wiki_bare "duesep-$sepname")
+    seed_checkout "$bare" "$TMP_ROOT/duesep-$sepname-seed" >/dev/null
+    home=$(gardener_home_with_repo "duesep-$sepname" "$bare")
+    repo="$home/state/wiki/repo"
+    cited1=$(add_raw "$repo" 20200101T000000Z task-old1)
+    cited2=$(add_raw "$repo" 20200101T000000Z task-old2)
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: two unlogged old lessons"
+    # Control: unlogged, the old lessons make due fire on their age.
+    out=$(run_wiki "$home" due 2>&1) || fail "due must fire while the old lessons are unlogged"
+    assert_contains "$out" 'gardener due' "an unlogged old lesson makes due fire"
+    # The real gardener writes one ingest line per batch with the raw ids joined
+    # by "; "; a separator-joined id must count as compiled like a bare token.
+    printf '## [2026-10-25] ingest | 2 lessons | %s%s%s\n' \
+      "$(basename "$cited1" .md)" "$sep" "$(basename "$cited2" .md)" >> "$repo/log.md"
+    wgit -C "$repo" add -A
+    wgit -C "$repo" commit -q -m "wiki: log both lessons in one separator-joined ingest line"
+    out=$(run_wiki "$home" due 2>&1); status=$?
+    [ "$status" -ne 0 ] || fail "due must stay quiet when one ingest line lists both ids separated by$sep"
+    assert_equals '' "$out" "separator-joined ids do not count toward due"
+  done
+  pass "due honours ingest lines separating raw ids with semicolons and commas"
+}
+
 test_due_stays_quiet_while_a_gardener_task_is_open() {
   local home bare repo out status i stamp
   bare=$(wiki_bare dueopen)
@@ -1198,6 +1229,7 @@ test_due_fires_on_a_seven_day_old_lesson
 test_due_counts_only_lessons_the_log_has_not_cited
 test_due_counts_a_lesson_the_log_names_by_bare_id
 test_due_keeps_a_prefix_of_a_logged_id_pending
+test_due_reads_ids_separated_by_semicolons_and_commas
 test_due_stays_quiet_while_a_gardener_task_is_open
 test_lint_passes_a_well_formed_checkout
 test_lint_blocks_on_header_link_budget_and_citation_gaps
