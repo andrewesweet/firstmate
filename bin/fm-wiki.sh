@@ -85,6 +85,9 @@
 #                 this home. Otherwise exit 1, silently. A home without the
 #                 feature, or with any role but gardener, never fires. Reads
 #                 only the home's own clone and task records; never the network.
+#                 A lesson counts as compiled only when its bare raw id equals a
+#                 complete whitespace-delimited token in log.md, after stripping
+#                 one optional trailing .md from each token for legacy logs.
 #                 Register it with bin/fm-procevent-when.sh (docs/configuration.md
 #                 "Crew wiki") so firstmate is woken once to file a gardener
 #                 task; the watch fires at most once and firstmate re-arms it.
@@ -1106,6 +1109,8 @@ wiki_due() {
   local raw_list log_text
   raw_list=$(wiki_git "$WIKI_REPO" ls-tree -r --name-only HEAD -- raw 2>/dev/null) || return 1
   log_text=$(wiki_git "$WIKI_REPO" show HEAD:log.md 2>/dev/null || printf '')
+  # Compilation membership follows the `due` contract in this script's header.
+  log_text=$(printf '%s\n' "$log_text" | awk -F '[[:space:]]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }')
   local pending=0 stamps name stamp
   stamps=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-due.XXXXXX") || return 1
   : > "$stamps"
@@ -1115,7 +1120,7 @@ wiki_due() {
       *.md) ;;
       *) continue ;;
     esac
-    if printf '%s' "$log_text" | grep -qF -- "$(basename "$name")"; then
+    if printf '%s\n' "$log_text" | grep -qxF -- "$(basename "$name" .md)"; then
       continue
     fi
     pending=$(( pending + 1 ))
