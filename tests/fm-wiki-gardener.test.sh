@@ -241,6 +241,25 @@ test_due_counts_only_lessons_the_log_has_not_cited() {
   pass "due counts only lessons the log has not cited"
 }
 
+test_due_counts_a_lesson_the_log_names_by_bare_id() {
+  local home bare repo out status cited
+  bare=$(wiki_bare duebare)
+  seed_checkout "$bare" "$TMP_ROOT/duebare-seed" >/dev/null
+  home=$(gardener_home_with_repo duebare "$bare")
+  repo="$home/state/wiki/repo"
+  # The log schema names bare raw ids (`assets/crew-wiki-AGENTS.md`); the seed
+  # log line keeps the older `.md` form, and both must count as compiled.
+  cited=$(add_raw "$repo" 20200101T000000Z task-old)
+  printf '## [2026-10-25] ingest | 1 lesson | %s\n' "$(basename "$cited" .md)" >> "$repo/log.md"
+  add_raw "$repo" "$(date -u +%Y%m%dT%H%M%SZ)" task-fresh >/dev/null
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: bare-id logged lesson plus one fresh"
+  out=$(run_wiki "$home" due 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "due must stay quiet when the log cites an old lesson by bare id"
+  assert_equals '' "$out" "a lesson logged by bare id does not count toward due"
+  pass "due honours a log line naming raw ids without .md"
+}
+
 test_due_stays_quiet_while_a_gardener_task_is_open() {
   local home bare repo out status i stamp
   bare=$(wiki_bare dueopen)
@@ -1137,6 +1156,7 @@ test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
 test_due_fires_on_a_seven_day_old_lesson
 test_due_counts_only_lessons_the_log_has_not_cited
+test_due_counts_a_lesson_the_log_names_by_bare_id
 test_due_stays_quiet_while_a_gardener_task_is_open
 test_lint_passes_a_well_formed_checkout
 test_lint_blocks_on_header_link_budget_and_citation_gaps
