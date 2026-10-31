@@ -5202,6 +5202,54 @@ test_send_text_submit_clears_a_wrapped_suffix_one_row_per_press() {
   pass "fm_backend_herdr_send_text_submit: a refused 480-character suffix wrapped over five rows is cleared one row per Ctrl+U and reports send-failed"
 }
 
+# The lost-submit incident: Claude echoes a typed doorbell slower than the
+# settle, so the proof read sees an empty composer, then only the head. The
+# proof waits for the echo instead of refusing a payload still arriving.
+test_send_text_submit_waits_for_a_slow_claude_echo() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-slow-echo"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text=$(herdr_long_payload 165)
+  herdr_submit_claude_prefix "$resp" "$text"
+  printf '  \xe2\x9d\xaf\n' > "$resp/4.out"
+  printf '  \xe2\x9d\xaf %s\n' "${text:0:60}" > "$resp/5.out"
+  printf '  \xe2\x9d\xaf %s\n' "$text" > "$resp/6.out"
+  printf '{"result":{"agent":{"agent_status":"idle"}}}\n' > "$resp/7.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/9.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "a payload whose echo arrives after the settle should be submitted, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "a slowly echoed payload should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a payload still being echoed must not be cleared, sent $(herdr_ctrl_u_count "$log") Ctrl+U"
+  pass "fm_backend_herdr_send_text_submit: a Claude echo that shows empty, then the head, then the whole payload is waited for and submitted"
+}
+
+# When the echo never completes inside the proof budget, its rows may still be
+# queued behind the clear. A clear that stopped at the first empty read
+# deleted only the last wrapped row once Claude caught up, stranding the head
+# that later rings skipped as foreign pending text. Every press is sent.
+test_send_text_submit_clears_every_row_of_an_echo_still_arriving() {
+  local dir log resp fb out enter_count text cap
+  dir="$TMP_ROOT/submit-slow-echo-clear"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text=$(herdr_long_payload 165)
+  herdr_submit_claude_prefix "$resp" "$text"
+  printf '  \xe2\x9d\xaf\n' > "$resp/4.out"
+  printf '  \xe2\x9d\xaf\n' > "$resp/5.out"
+  cap=$(( 173 / 40 + 8 ))
+  [ "$cap" -ge 20 ] || cap=20
+  printf '  \xe2\x9d\xaf\n' > "$resp/$((6 + cap)).out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    FM_BACKEND_HERDR_PROOF_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = send-failed ] || fail "an echo that never arrived, cleared with every press, should report send-failed, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 0 ] || fail "an unproven payload must not be submitted, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq "$cap" ] || fail "an echo still arriving needs all $cap Ctrl+U presses, not a stop at an unrendered empty read, sent $(herdr_ctrl_u_count "$log")"
+  pass "fm_backend_herdr_send_text_submit: an echo that never shows inside the proof budget is cleared with every bounded Ctrl+U press"
+}
+
 test_send_text_submit_refused_suffix_then_clean_retry_submits_only_the_message() {
   local dir log resp fb out enter_count text suffix
   dir="$TMP_ROOT/submit-long-suffix-retry"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -6575,6 +6623,8 @@ test_send_text_submit_long_literal_submits_when_composer_holds_every_byte
 test_send_text_submit_refuses_enter_when_composer_holds_only_the_suffix
 test_send_text_submit_refused_suffix_that_will_not_clear_is_unknown
 test_send_text_submit_clears_a_wrapped_suffix_one_row_per_press
+test_send_text_submit_waits_for_a_slow_claude_echo
+test_send_text_submit_clears_every_row_of_an_echo_still_arriving
 test_send_text_submit_refused_suffix_then_clean_retry_submits_only_the_message
 test_send_text_submit_claude_refuses_to_type_into_a_nonempty_composer
 test_send_text_submit_refuses_suffix_when_transcript_still_shows_the_head
