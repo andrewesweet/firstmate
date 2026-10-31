@@ -1,0 +1,24 @@
+ok - an unknown-but-alive pane with progress evidence alarms once per bounded pause-resurface window
+ok - an unknown-but-alive pane without progress evidence keeps surfacing every new hash
+ok - with config/wedge-evidence-guards absent no guard runs and the ladder, timing and wording are unchanged
+ok - a CRITICAL guard defers one window at a time, the cap escalates naming the guard, and the run survives a restart
+ok - a guard that times out, fails, answers malformed, UNKNOWN or WARNING, or is untrusted leaves the ladder unchanged
+ok - a gone endpoint is reported before any guard is asked, so a guard never defers it
+ok - a backlog captain hold bounds the wedge ladder like a captain-held line, and stays silent while the captain is away
+ok - in an armed home a worker's own open newest blocker or decision is deferred to the bounded recheck, and a newer line, a resolved line, a reserved key, or a newer acknowledged inbox record keeps the ladder
+ok - with config/wedge-defer-worker-wait absent a worker blocker keeps the byte-identical wedge reason
+ok - a running or fixing validation run is deferred on the long recheck cadence rather than wedge-escalated
+ok - parked, terminal, ci-monitoring, coarse, runless, absent and unreadable runs keep the unchanged wedge ladder
+ok - with config/wedge-defer-validating absent a running validation keeps the unchanged ladder, wording and reads
+ok - a paused wait naming its deadline with by is rechecked at that time, not on the flat cadence
+ok - without until, a worker paused on its own ended background job is not rechecked inside the cadence
+ok - until set to a background job's timeout rechecks the worker paused on it once the job must have ended
+ok - a pane on the exit picker is a named stale, from the one capture the poll already takes
+ok - a pane on the exit picker keeps the wedge ladder, and the name follows demand-deep-inspection
+ok - picker text quoted above a composer stays an ordinary stale
+ok - a second mate on the exit picker stays quiet, and the poll does not capture the pane
+ok - a closed picker drops the saved dialog name, and the stale stays ordinary
+ok - an unchanged unacknowledged row never stops .last-check advancing
+ok - a row appended after the announcement resurfaces once under a fresh generation
+ok - an acknowledgement typed between restarts retires the generation it names
+ok - recovery re-arms follow only queue sequence changes across identities and episode states
