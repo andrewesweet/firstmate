@@ -371,8 +371,9 @@ fm_task_inbox_doorbell_line() {  # <record-path>
 # CONSTANT line the worker recovers semantically, while skipping on ambiguous
 # verdicts would starve a harness whose idle screen the classifier cannot
 # positively identify (that classifier is advisory here by design).
-# A composer holding exactly our own doorbell line, ignoring whitespace,
-# proves an earlier ring remains unsubmitted. After the busy checks, submit
+# A composer holding our own doorbell line, or a stranded head of it (see
+# fm_task_inbox_composer_holds), ignoring whitespace, proves an earlier ring
+# remains unsubmitted. After the busy checks, submit
 # it with Enter without retyping, before consulting the composer verdict:
 # ghost stripping can misread muted typed text as `empty`, and an
 # unclassifiable screen reads `unknown`. Requiring `pending` would strand
@@ -419,13 +420,20 @@ fm_task_inbox_ring() {  # <backend> <target> <record-path> [expected-label]
   return 0
 }
 
-# Whether the composer's content, ignoring line wrapping, is exactly <line>.
+# Whether the composer's content, ignoring line wrapping, is <line> or a head
+# of it at least as long as the constant `: Firstmate instruction waiting:`
+# lead-in. A head is what a lost submit strands when a clear deleted only the
+# last wrapped row (the Herdr slow-echo incident); left alone it reads as
+# foreign pending text and starves every later ring.
 fm_task_inbox_composer_holds() {  # <backend> <target> <line> [expected-label]
-  local cap held
+  local cap held line lead
   fm_backend_source "$1" || return 1
   cap=$(fm_backend_capture "$1" "$2" "$FM_COMPOSER_CAPTURE_LINES" "${4:-}" 2>/dev/null) || return 1
   held=$(fm_composer_extract_selected_content styled=0 "$cap") || return 1
-  [ -n "$held" ] && [ "$(printf '%s' "$held" | tr -d '[:space:]')" = "$(printf '%s' "$3" | tr -d '[:space:]')" ]
+  held=$(printf '%s' "$held" | tr -d '[:space:]')
+  line=$(printf '%s' "$3" | tr -d '[:space:]')
+  lead=${line%%list*}
+  [ "${#held}" -ge "${#lead}" ] && [ "${line#"$held"}" != "$line" ]
 }
 
 fm_task_inbox_is_fire_and_forget() {  # <record-path>
