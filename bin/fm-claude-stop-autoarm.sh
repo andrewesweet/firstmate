@@ -15,10 +15,8 @@
 #     ancestor, or a live lock was recorded under this same trusted Claude
 #     session id (which is what keeps a background session arming after its
 #     transient helper chain is recycled).
-#     When an existing numeric owner fails the shared harness-liveness predicate,
-#     the hook delegates guarded recovery to bin/fm-lock.sh and then re-verifies
-#     ownership. A live owner, missing lock, malformed lock, or unresolved
-#     ancestry remains inert, so a competing session never arms or rewakes.
+#     docs/watcher-continuity.md "Claude session-lock ownership" owns the
+#     stale-owner recovery boundary.
 #   - AFK: while state/.afk exists the away daemon owns the watcher and triage;
 #     this hook exits 0 and NEVER rewakes the primary (checked again at
 #     translation time so a mid-cycle AFK transition is honored).
