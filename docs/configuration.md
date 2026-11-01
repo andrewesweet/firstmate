@@ -513,6 +513,28 @@ Run every routine Firstmate backlog command through [`bin/fm-tasks-axi.sh`](../b
 Like lifecycle transitions, it addresses this home's backlog and archive from any working directory.
 Bootstrap reports a code-root `data/backlog.md` or `data/done-archive.md` that is not this home's own file as a `BACKLOG_RECONCILE: code-root ...` line, even in a read-only session.
 
+## Topic registry (data/topics.md)
+
+The optional `data/topics.md` registers long-running topics for per-topic briefings; [`bin/fm-topic-brief.sh`](../bin/fm-topic-brief.sh) owns the format's parser and behavior.
+Blank lines and `#` comment lines are skipped; every other line must be exactly:
+
+```
+- <name> [| aliases: <csv>] [| projects: <csv>]
+```
+
+`<name>` is the topic's `topic:<name>` label suffix: lowercase alphanumerics plus `. _ / : -`, 1..58 chars, no spaces or pipes.
+`aliases:` is an optional comma-separated list of alternative label suffixes (same character set), and `projects:` an optional comma-separated list of default project tags (alphanumerics plus `. _ / -`, 1..128 chars) matching backlog rows' `repo` field.
+Topic names must be unique, and an alias may not collide with another topic's name or alias.
+An absent file means no topics are registered.
+Invalid line syntax stops the command with the file name and line number; duplicate names or aliases and invalid suffixes or project tags stop it with the offending value.
+
+Membership is by durable labels first: a backlog row is in topic T when its `labels` carry `topic:<name>` for T's name or one of T's aliases, read only through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh).
+A row with no `topic:` labels whose `repo` equals one of T's default projects is also a member.
+A row labelled only for other topics is excluded even when its project matches; a matching topic label takes precedence over project defaults and other topic labels.
+Secondmate rows follow the same rule from the same ledger and fleet snapshot.
+When the installed tasks-axi cannot carry the `labels` field, the command discloses that membership fell back to default projects only and exits 0 (`labels_available: false` in the model).
+`bin/fm-topic-brief.sh`'s header owns the briefing window, history paths, the HTML brief and its offline answers line, and the `--board` decision binding.
+
 ## Runtime backend (config/backend / FM_BACKEND)
 
 For spawn-capable adapters, the runtime session-provider backend controls where task windows/endpoints are created, captured, sent to, watched, and killed.
@@ -3207,6 +3229,9 @@ FM_DATA_OVERRIDE=        # alternate data dir, mainly for tests
 FM_PROJECTS_OVERRIDE=    # alternate projects dir, mainly for tests
 FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
 FM_PROC_ROOT_OVERRIDE=   # alternate /proc root for Linux process-identity reads in fm-wake-lib.sh and fm-teardown.sh, mainly for tests
+FM_TOPIC_SNAPSHOT=       # test-only: command used instead of bin/fm-bearings-snapshot.sh in fm-topic-brief.sh
+FM_TOPIC_BOARD_CMD=      # test-only: command used instead of bin/fm-bearings-board.sh in fm-topic-brief.sh
+FM_TOPIC_NOW=            # test-only: fixed "now" (ISO-8601 UTC) for deterministic windows in fm-topic-brief.sh
 FM_BACKEND=             # optional runtime backend override for new spawns; tmux/herdr/zellij/orca/cmux/paseo/rex/t3code/tern support ship/scout spawns, codex-app is not accepted
 FM_T3CODE_ORIGIN=       # optional T3 Code server origin for bin/fm-t3-mcp.mjs login; the default is read from ~/.t3/userdata/server-runtime.json
 FM_TRACE_CONTEXT=       # optional trace-context override; see "Trace context propagation"

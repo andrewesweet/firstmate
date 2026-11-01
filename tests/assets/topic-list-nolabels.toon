@@ -1,0 +1,14 @@
+count: 9
+tasks[9]{id,state,kind,repo,title,blocked_by,created,closed,held,hold_kind,hold_until,links,hold_reason}:
+  t-flight,in_flight,ship,treehouse,Main child in flight,none,2026-10-20,"-",no,"-","-",none,"-"
+  t-lab,queued,ship,treehouse,"Labelled member, plain title",none,2026-10-20,"-",no,"-","-",none,"-"
+  t-alias,queued,ship,other-repo,Member via alias label,none,2026-10-21,"-",no,"-","-",none,"-"
+  t-proj,queued,ship,treehouse,"Member by default project, unlabelled",t-lab,2026-10-22,"-",no,"-","-",none,"-"
+  t-out,queued,ship,other-repo,Carries another topic label,none,2026-10-23,"-",no,"-","-",none,"-"
+  t-topicless,queued,ship,treehouse,Has a topic label for another topic,none,2026-10-24,"-",no,"-","-",none,"-"
+  t-dec,queued,ship,treehouse,Held member with captain question,none,2026-10-25,"-",yes,captain,2026-11-15,none,"Question: which merge posture for topic briefings? Full context: the captain asked for topic briefings on 2026-10-20. options: yolo on | yolo off | defer a week"
+  t-answ,done,captain,"-","Topic briefings: start now data/t-dec/report.md",none,"-",2026-10-26,no,captain,"-","report:data/t-dec/report.md","Captain decision: start now"
+  t-done,done,ship,treehouse,"Landed member row with PR https://github.com/andrewesweet/treehouse/pull/42",none,"-",2026-10-28,no,"-","-","pr:https://github.com/andrewesweet/treehouse/pull/42","-"
+help[2]:
+  - Run `tasks-axi show <id>` for full notes on a task
+  - Run `tasks-axi ready` to see unblocked queued work

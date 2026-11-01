@@ -639,7 +639,7 @@ test_build_drops_decision_cards_whose_subject_already_landed() {
          "options":[{"value":"yes","label":"Yes"}]}
       ]
       | .landed = [
-        {"id":"landed-by-task","repo":"sample","what":"shipped it","owner":"crew"},
+        {"id":"landed-by-task","repo":"sample","what":"shipped it","owner":"(main)"},
         {"id":"some-other-task","repo":"sample","what":"merged timeout reattach","owner":"crew",
          "pr_url":"https://github.com/sample/sample/pull/7"},
         {"id":"quota-release","repo":"sample","what":"published quota-axi","owner":"crew",
@@ -769,6 +769,25 @@ test_build_refuses_a_nondecision_reconcile_value() {
   pass "build reserves reconcile across non-decision cards"
 }
 
+test_build_rejects_nonlocal_identity_owner_mismatches() {
+  local home data out rc kind
+  home=$(make_home owner-mismatch)
+  data="$home/payload.json"
+  for kind in call charted; do
+    write_valid_payload "$data"
+    if [ "$kind" = call ]; then
+      jq '.captains_call[0] |= (.key = "other/call" | .owner = "mate")' "$data" > "$data.tmp"
+    else
+      jq '.charted[0] |= (.id = "other/queued" | .owner = "mate")' "$data" > "$data.tmp"
+    fi
+    mv "$data.tmp" "$data"
+    out=$(run_board "$home" build "$data" 2>&1) && rc=0 || rc=$?
+    [ "$rc" -ne 0 ] || fail "$kind accepted an identity from a different owner"
+    assert_absent "$home/.lavish/bearings-board.html" "owner mismatch still published a board"
+  done
+  pass "nonlocal call and queued identities must match their declared owner"
+}
+
 test_path_is_stable_and_home_scoped
 test_build_refuses_malformed_payloads_before_touching_the_board
 test_charted_kind_is_optional_and_accepts_both_values
@@ -787,3 +806,5 @@ test_build_fails_when_reconcile_cannot_establish_a_listener
 test_every_decision_card_carries_the_reconcile_choice
 test_build_refuses_a_payload_that_occupies_the_reconcile_value
 test_build_refuses_a_nondecision_reconcile_value
+
+test_build_rejects_nonlocal_identity_owner_mismatches

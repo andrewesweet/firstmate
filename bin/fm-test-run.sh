@@ -427,7 +427,7 @@ family_for_basename() {
       printf '%s\n' afk
       ;;
     fm-bearings-board-render.test.sh|fm-bearings-snapshot.test.sh|fm-contributions.test.sh|\
-    fm-fleet-snapshot-view.test.sh|fm-home-summary-refresh.test.sh)
+    fm-fleet-snapshot-view.test.sh|fm-home-summary-refresh.test.sh|fm-topic-brief.test.sh)
       printf '%s\n' snapshot-bearings
       ;;
     fm-backend-cmux.test.sh|fm-backend-cmux-smoke.test.sh)
@@ -758,6 +758,7 @@ tests/fm-bearings-board-lavish-live-e2e.test.sh 19124
 tests/fm-bearings-board-render.test.sh 17205
 tests/fm-bearings-board.test.sh 42341
 tests/fm-bearings-snapshot.test.sh 192054
+tests/fm-topic-brief.test.sh 2480
 tests/fm-bootstrap-network-parallel.test.sh 30619
 tests/fm-bootstrap.test.sh 84978
 tests/fm-branch-classifier.test.sh 904
@@ -1863,7 +1864,7 @@ families_for_changed_path() {
       printf '%s\n' live-harness-optin
       ;;
     bin/fm-bearings-snapshot.sh|bin/fm-fleet-snapshot.sh|bin/fm-fleet-view.sh|bin/fm-contributions.sh|bin/fm-contributions.jq|\
-    bin/fm-home-summary-refresh.sh)
+    bin/fm-home-summary-refresh.sh|bin/fm-topic-brief.sh)
       printf '%s\n' snapshot-bearings
       ;;
     bin/fm-install-herdr.sh|bin/fm-install-treehouse.sh|bin/fm-herdr-ci-cleanup.sh)
@@ -1904,6 +1905,12 @@ families_for_changed_path() {
     .github/*|.gitattributes|.tasks.toml|AGENTS.md|CLAUDE.md|CONTRIBUTING.md|\
     docs/configuration.md|docs/supervision-protocols/*)
       printf '%s\n' pure-contract-unit
+      ;;
+    tests/assets/board-render-harness.mjs)
+      printf '%s\n' __script__:fm-bearings-board-render.test.sh
+      ;;
+    tests/assets/topic-answers-harness.mjs|tests/assets/topic-list-labels.toon|tests/assets/topic-list-nolabels.toon)
+      printf '%s\n' __script__:fm-topic-brief.test.sh
       ;;
     tests/git-config-helpers.sh)
       # The reference scan is not transitive, so match the two helpers that

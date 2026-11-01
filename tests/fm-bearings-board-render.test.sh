@@ -95,11 +95,11 @@ require_listener_reached_poll() {  # <home>
 # Build the board from <underway-json> plus <charted-json> and return what the
 # renderer produced.
 render_board() {  # <home> <underway-json> <charted-json> [charted_more] [charted_warning_more]
-  local home=$1 underway=$2 charted=$3 more=${4:-0} warning_more=${5:-0} data="$1/payload.json"
+  local home=$1 underway=$2 charted=$3 more=${4:-0} warning_more=${5:-0} calls=${6:-[]} selection=${7:-} landed=${8:-[]} data="$1/payload.json"
   jq -n --argjson underway "$underway" --argjson charted "$charted" \
-    --argjson more "$more" --argjson warning_more "$warning_more" '{
+    --argjson more "$more" --argjson warning_more "$warning_more" --argjson calls "$calls" --argjson landed "$landed" '{
     schema:"fm-bearings-board.v1", home:"render-home", generated:"2026-08-26T00:00Z",
-    prs_live:false, captains_call:[], underway:$underway, landed:[],
+    prs_live:false, captains_call:$calls, underway:$underway, landed:$landed,
     charted:$charted, charted_more:$more, charted_warning_more:$warning_more}' > "$data"
   PATH="$home/fakebin:$PATH" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
@@ -107,7 +107,7 @@ render_board() {  # <home> <underway-json> <charted-json> [charted_more] [charte
     LAVISH_AXI_STATE_DIR="$home/lavish-state" \
     "$BOARD" build "$data" >/dev/null || fail "the board did not build"
   require_listener_reached_poll "$home"
-  node "$HARNESS" "$home/.lavish/bearings-board.html" \
+  node "$HARNESS" "$home/.lavish/bearings-board.html" "$selection" \
     || fail "the built board could not be rendered"
 }
 
@@ -266,6 +266,238 @@ test_charted_rows_without_a_filed_date_follow_the_dated_rows_in_payload_order() 
   pass "charted rows with no filed date follow the dated rows in payload order"
 }
 
+test_captured_choices_preserve_recorded_option_labels() {
+  local home out
+  home=$(make_home captured-label)
+  out=$(render_board "$home" '[]' '[]' 0 0 '[
+    {"key":"recorded-choice","type":"decision","repo":"sample","title":"Recorded option","options":[
+      {"value":"option-0-A-B","label":"A/B"},
+      {"value":"option-1-A-B","label":"A-B"}
+    ]}
+  ]' option-0-A-B)
+  jq -e '
+    .error == "" and (.queued | length) == 1
+    and .queued[0].text == "Recorded option -> A/B"
+    and .queued[0].data == {schema:"fm-bearings-answer.v1",question:"recorded-choice",selection:"option-0-A-B",note:""}
+  ' <<<"$out" >/dev/null || fail "captured answer lost the recorded label: $out"
+  pass "captured choices preserve the label beside the distinct selection value"
+}
+
+captured_result() {
+  jq -r '
+    "prompts[\(.queued | length)]{uid,prompt,selector,tag,text}:",
+    (.queued | to_entries[] | "  " + ([ (.key | tostring), (.value.prompt + "\n\nContext data:\n" + (.value.data | tojson)), "form", .value.tag, .value.text] | map(tojson) | join(",")))'
+}
+
+test_nonlocal_choices_never_enter_local_answers_or_reconciles() {
+  local home out answers reconciles
+  home=$(make_home owned-answer)
+  out=$(render_board "$home" '[]' '[
+    {"id":"mate/ready","owner":"mate","repo":"sample","title":"Mate ready","reason":"ready","dispatchable":true,"filed":"2026-10-30"},
+    {"id":"mate/blocked","owner":"mate","repo":"sample","title":"Mate blocked","reason":"blocked","dispatchable":false,"filed":"2026-10-31"}
+  ]' 0 0 '[
+    {"key":"t-dec","type":"decision","repo":"sample","title":"Main call","options":[{"value":"yes","label":"Yes"}]},
+    {"key":"mate/t-dec","owner":"mate","type":"decision","repo":"sample","title":"Mate call","options":[{"value":"yes","label":"Yes"}]}
+  ]' yes '[{"id":"t-dec","owner":"(main)","repo":"sample","what":"Main delivery"}]')
+  jq -e '.error == "" and .queued[0].data.question == "mate/t-dec" and .queued[0].data.owner == "mate"
+    and [.charted[].title] == ["Mate blocked","Mate ready"]' <<<"$out" >/dev/null || fail "nonlocal identity, stale check or ordering failed: $out"
+  captured_result <<<"$out" > "$home/result.toon"
+  answers=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/result.toon") || fail "nonlocal answer extraction failed"
+  [ -z "$answers" ] || fail "nonlocal answer reached local intake: $answers"
+  jq '.queued[0].data.question = "t-dec" | .queued[0].data.selection = "reconcile"' <<<"$out" | captured_result > "$home/result.toon"
+  reconciles=$(bash "$ROOT/bin/fm-procevent-lavish.sh" reconciles "$home/result.toon") || fail "nonlocal reconcile extraction failed"
+  [ -z "$reconciles" ] || fail "nonlocal reconcile reached local intake: $reconciles"
+  jq '.queued[0].data.selection = "yes" | .queued[0].data.question = "t-dec"' <<<"$out" | captured_result > "$home/result.toon"
+  answers=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/result.toon") || fail "owner extraction failed"
+  [ -z "$answers" ] || fail "unqualified nonlocal answer reached local intake: $answers"
+  local representation landed_id
+  for representation in raw qualified; do
+    home=$(make_home "mate-landed-$representation")
+    landed_id=t-dec
+    [ "$representation" != qualified ] || landed_id=mate/t-dec
+    out=$(render_board "$home" '[]' '[]' 0 0 '[
+      {"key":"t-dec","type":"decision","repo":"sample","title":"Main call","options":[{"value":"yes","label":"Yes"}]},
+      {"key":"mate/t-dec","owner":"mate","type":"decision","repo":"sample","title":"Mate call","options":[{"value":"yes","label":"Yes"}]}
+    ]' yes "$(jq -nc --arg id "$landed_id" '[{id:$id,owner:"mate",repo:"sample",what:"Mate delivery"}]')")
+    jq -e '.error == "" and .queued[0].data.question == "t-dec"' <<<"$out" >/dev/null || fail "$representation mate landing removed a colliding main call: $out"
+  done
+  pass "owner-qualified stale checks keep colliding homes separate; nonlocal captures stay out of local intake"
+}
+
+test_local_work_answer_preserves_release_mode() {
+  local home out answer
+  home=$(make_home release-answer)
+  out=$(render_board "$home" '[]' '[]' 0 0 '[
+    {"key":"work-gate","owner":"(main)","type":"decision","repo":"sample","title":"Approve work","close":"release","options":[{"value":"approve","label":"Approve"}]}
+  ]' approve)
+  captured_result <<<"$out" > "$home/result.toon"
+  answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/result.toon") || fail "release answer extraction failed"
+  [ "$answer" = "$(printf 'work-gate\tapprove\tApprove work -> Approve\trelease')" ] || fail "work approval lost release mode: $answer"
+  pass "rendered work approvals reach the existing intake with release mode"
+}
+
+test_recorded_landed_artifacts_are_visible() {
+  local home out
+  home=$(make_home landed-artifacts)
+  out=$(render_board "$home" '[]' '[]' 0 0 '[]' '' '[
+    {"id":"pr","owner":"(main)","repo":"sample","what":"Merged work","artifact":"https://github.com/example/sample/pull/42"},
+    {"id":"mate/report","owner":"mate","repo":"sample","what":"Research","artifact":"data/report/report.md"}
+  ]')
+  jq -e '.error == "" and .landed[0].artifacts == [{text:"https://github.com/example/sample/pull/42",href:"https://github.com/example/sample/pull/42"}]
+    and .landed[1].artifacts == [{text:"data/report/report.md",href:null}]' <<<"$out" >/dev/null || fail "recorded artifacts disappeared from rendered board: $out"
+  pass "the built board renders snapshot PR URLs as links and report artifacts as recorded"
+}
+
+test_topic_output_builds_and_renders_through_the_real_board() {
+  local home out mate answer key reconcile
+  home=$(make_home topic-integration)
+  mkdir -p "$home/mate/data"
+  printf -- '- topic | aliases: alias | projects: sample\n' > "$home/data/topics.md"
+  printf -- '- mate - Fixture (home: %s/mate; scope: test; projects: sample; added 2026-10-01)\n' "$home" > "$home/data/secondmates.md"
+  cat > "$home/main.json" <<'EOF'
+[
+  {"id":"t-dec","kind":"ship","state":"in_flight","repo":"sample","title":"Main approval","hold_kind":"captain","hold_reason":"Question: approve? options: approve | reconcile | wait"},
+  {"id":"stale-gate","kind":"captain","state":"queued","repo":"sample","title":"Already landed subject","hold_kind":"captain","hold_reason":"Question: approve landed PR?","links":["pr:https://github.com/example/sample/pull/42"]},
+  {"id":"other-gate","kind":"captain","state":"queued","repo":"sample","title":"Different PR subject","hold_kind":"captain","hold_reason":"Question: approve other PR? options: reconcile","links":["pr:https://github.com/example/sample/pull/43"]},
+  {"id":"old-gate","kind":"captain","state":"queued","repo":"sample","title":"Old landed subject","hold_kind":"captain","hold_reason":"Question: approve old PR?","links":["pr:https://github.com/example/sample/pull/44"]},
+  {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
+  {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
+  {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Released during read","hold_kind":"captain","hold_reason":"Question: release?"},
+  {"id":"external-queue","kind":"ship","state":"queued","repo":"sample","title":"Vendor wait","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Waiting on vendor","hold_until":"2026-11-15"},
+  {"id":"external-observe","kind":"observe","state":"in_flight","repo":"external","labels":["topic:alias"],"title":"Rollout watch","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Watching rollout"},
+  {"id":"old","state":"queued","repo":"sample","title":"Older ready","created":"2026-10-20"},
+  {"id":"new","state":"queued","repo":"sample","title":"Newer blocked","created":"2026-10-30","blocked_by":["old"]},
+  {"id":"flight","state":"in_flight","kind":"ship","repo":"sample","title":"Flight"},
+  {"id":"orphan","state":"in_flight","kind":"ship","repo":"sample","title":"Missing worker","created":"2026-10-01"},
+  {"id":"landed","state":"done","kind":"ship","repo":"sample","title":"","closed":"2026-10-29"},
+  {"id":"old-landed","state":"done","kind":"ship","repo":"sample","title":"Old delivery","closed":"2026-10-01"},
+  {"id":"outside-landed","state":"done","kind":"ship","repo":"external","labels":["topic:unrelated"],"title":"Unrelated delivery","closed":"2026-10-30"}
+]
+EOF
+  cat > "$home/mate.json" <<'EOF'
+[
+  {"id":"t-dec","kind":"captain","state":"queued","repo":"external","labels":["topic:alias"],"title":"Mate question","hold_kind":"captain","hold_reason":"Question: next? options: wait | continue"},
+  {"id":"old-gate","kind":"captain","state":"queued","repo":"sample","title":"Mate old landed subject","hold_kind":"captain","hold_reason":"Question: approve old PR?","links":["pr:https://github.com/example/sample/pull/44"]},
+  {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Mate other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
+  {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Mate answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
+  {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Mate released during read","hold_kind":"captain","hold_reason":"Question: release?"},
+  {"id":"external-queue","kind":"ship","state":"queued","repo":"sample","title":"Mate vendor wait","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Waiting on mate vendor","hold_until":"2026-11-20"},
+  {"id":"external-observe","kind":"observe","state":"in_flight","repo":"sample","title":"Mate rollout watch","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Watching mate rollout"},
+  {"id":"next","state":"queued","repo":"sample","title":"Mate next","created":"2026-10-31"},
+  {"id":"blocked","state":"queued","repo":"sample","title":"Mate blocked","created":"2026-10-30","blocked_by":["next"]},
+  {"id":"report","state":"done","kind":"scout","repo":"sample","title":"Mate report","closed":"2026-10-28"}
+]
+EOF
+  cat > "$home/snapshot.json" <<'EOF'
+{
+  "in_flight":[{"id":"flight","kind":"ship","state":"working","repo":"sample","name":"","doing":""}],
+  "recorded_prs":[],
+  "landed":[{"id":"landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/42"},{"id":"report","owner":"mate","artifact":"data/report/report.md"},{"id":"old-landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/44"},{"id":"outside-landed","owner":"(main)","pr_url":"https://github.com/example/sample/pull/45"}],
+  "secondmates":[{"id":"offline","state":"unknown","freshness":"unavailable","reason":"ledger unavailable"}],
+  "gates":[{"id":"(main-inventory)","title":"in-flight backlog item has no child metadata","reason":"main inventory","owner":"(main)","filed":null,"blocked_by":"-"}],
+  "omitted":[
+    {"surface":"main in-flight backlog item(s) have no child metadata: 1","reveal":"inspect main data/backlog.md In flight vs state/*.meta"},
+    {"surface":"main unstructured current backlog row(s): 2","reveal":"inspect main data/backlog.md In flight and Queued free-form rows"}
+  ]
+}
+EOF
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+fixture="$TOPIC_FIXTURE_HOME/main.json"
+case "$TASKS_AXI_FILE" in */mate/data/backlog.md) fixture="$TOPIC_FIXTURE_HOME/mate.json" ;; esac
+printf '%s\n' "$TASKS_AXI_FILE $*" >> "$TOPIC_FIXTURE_HOME/task-calls"
+case "${1:-}" in list|show) ;; *) exit 9 ;; esac
+jq -r --arg command "$1" --arg id "${2:-}" '
+  def cell:
+    (if type == "array" then if length == 0 then "none" else join(",") end
+     elif . == null then "-" else tostring end) | tojson;
+  if $command == "show" then
+    "task:", (.[] | select(.id == $id)
+      | if .id == "race-done" then .state = "done"
+        elif .id == "race-released" then .hold_kind = "-" | .held = "no"
+        else . end
+      | to_entries[] | "  " + .key + ": " + (.value | cell))
+  elif length == 0 then
+    "count: 0", "tasks: 0 tasks in this backlog"
+  else
+    ["id","state","kind","repo","title","labels","blocked_by","created","closed","held","hold_kind","hold_until","links","hold_reason"] as $fields |
+    "count: \(length)", "tasks[\(length)]{\($fields | join(","))}:",
+    (.[] | . as $row | "  " + ([$fields[] | $row[.] | cell] | join(",")))
+  end' "$fixture"
+SH
+  cat > "$home/fakebin/topic-snapshot" <<'SH'
+#!/usr/bin/env bash
+cat "$TOPIC_FIXTURE_HOME/snapshot.json"
+SH
+  chmod +x "$home/fakebin/tasks-axi" "$home/fakebin/topic-snapshot"
+  TOPIC_FIXTURE_HOME="$home" PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_DATA_OVERRIDE="$home/data" FM_STATE_OVERRIDE="$home/state" \
+    FM_TOPIC_SNAPSHOT="$home/fakebin/topic-snapshot" FM_TOPIC_NOW=2026-11-01T09:00:00Z FM_TOPIC_BOARD_CMD="$BOARD" \
+    FM_PROCEVENT_CLAIM_ROOT="$home/procevent-claims" LAVISH_AXI_STATE_DIR="$home/lavish-state" \
+    bash "$ROOT/bin/fm-topic-brief.sh" topic --board > "$home/chat" 2> "$home/topic-error" || fail "topic payload failed the real board consumer"
+  [ ! -s "$home/topic-error" ] || fail "topic board emitted an unexpected diagnostic: $(cat "$home/topic-error")"
+  case "$(cat "$home/chat")" in *'next steps: 2 ready, 6 blocked'*) : ;; *) fail "topic chat dropped externally held work" ;; esac
+  require_listener_reached_poll "$home"
+  out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-approve t-dec) || fail "topic board did not render"
+  jq -e '
+    .error == ""
+    and .questions == ["t-dec","other-gate","mate/t-dec"]
+    and ([.options[] | select(. == "Reconcile")] | length) == 3
+    and all(.options[]; . != "reconcile")
+    and .queued[0].data.close == "release"
+    and [.charted[] | select(.pickable) | .title] == ["Mate next","Older ready"]
+    and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 4
+    and any(.charted[]; (.sub | contains("offline") and contains("ledger unavailable")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main inventory: in-flight backlog item has no child metadata")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main in-flight backlog item(s) have no child metadata: 1") and contains("inspect main data/backlog.md In flight vs state/*.meta")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main unstructured current backlog row(s): 2") and contains("inspect main data/backlog.md In flight and Queued free-form rows")) and (.pickable | not))
+    and (.stats[] | select(.label == "charted next") | .n) == 8
+    and any(.charted[]; .title == "Vendor wait" and (.sub | contains("external hold until 2026-11-15: Waiting on vendor")) and (.pickable | not))
+    and any(.charted[]; .title == "Rollout watch" and (.sub | contains("external hold: Watching rollout")) and (.pickable | not))
+    and any(.charted[]; .title == "Mate vendor wait" and (.sub | contains("external hold until 2026-11-20: Waiting on mate vendor")) and (.pickable | not))
+    and any(.charted[]; .title == "Mate rollout watch" and (.sub | contains("external hold: Watching mate rollout")) and (.pickable | not))
+    and .underway[0].title == "flight" and (.underway[0].sub | contains("working") and contains("sample"))
+    and (.underway | length) == 1
+    and .landed[0].title == "landed" and .landed[0].artifacts[0].href == "https://github.com/example/sample/pull/42"
+    and .landed[1].artifacts[0].text == "data/report/report.md"
+    and (.landed | length) == 2
+  ' <<<"$out" >/dev/null || fail "topic fields did not survive real board rendering: $out"
+  mate=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-wait mate/t-dec) || fail "mate card did not render"
+  captured_result <<<"$mate" > "$home/mate-result.toon"
+  answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/mate-result.toon") || fail "mate capture failed"
+  [ -z "$answer" ] || fail "mate topic card entered local mutation intake"
+  for key in t-dec other-gate; do
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" reconcile "$key") || fail "injected reconcile did not render"
+    jq -e --arg key "$key" '.queued[0].data.question == $key and .queued[0].data.selection == "reconcile"' <<<"$out" >/dev/null || fail "reconcile captured an ordinary answer: $out"
+    captured_result <<<"$out" > "$home/reconcile-result.toon"
+    answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/reconcile-result.toon") || fail "reconcile answer extraction failed"
+    reconcile=$(bash "$ROOT/bin/fm-procevent-lavish.sh" reconciles "$home/reconcile-result.toon") || fail "reconciliation request extraction failed"
+    [ -z "$answer" ] && [ "$reconcile" = "$key" ] || fail "reconcile reached completion/release intake instead of requesting reconciliation"
+  done
+  pass "real topic board drops stale PRs outside topic/window and refreshed closed calls; injected reconcile stays out of completion/release intake"
+}
+
+test_long_option_labels_do_not_consume_answer_protocol_budget() {
+  local home out label calls note answer
+  home=$(make_home long-option)
+  label=$(jq -nr '"é" * 300')
+  calls=$(jq -nc --arg label "$label" '[{key:"long-option",type:"decision",repo:"sample",title:"Long option",options:[{value:"approve",label:$label}],allow_freeform:true}]')
+  out=$(render_board "$home" '[]' '[]' 0 0 "$calls" approve)
+  jq -e --arg label "$label" '.error == "" and any(.options[]; . == $label) and .queued[0].text == ("Long option -> " + $label) and .queued[0].data.selection == "approve"' <<<"$out" >/dev/null || fail "600-byte label blocked or lost an otherwise valid answer: $out"
+  captured_result <<<"$out" > "$home/result.toon"
+  answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/result.toon") || fail "long-label answer extraction failed"
+  [ "$(printf '%s' "$answer" | cut -f1-2)" = "$(printf 'long-option\tapprove')" ] || fail "long label prevented the selection reaching intake"
+  note=$(jq -nr '"x" * 512')
+  out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" '' long-option "$note") || fail "freeform submission failed"
+  jq -e --arg note "$note" '.queued[0].data.note == $note' <<<"$out" >/dev/null || fail "512-byte freeform answer was rejected"
+  for note in "$(jq -nr '"x" * 513')" "$(jq -nr '"🙂" * 129')"; do
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" '' long-option "$note") || fail "over-limit submission failed"
+    jq -e '.queued | length == 0' <<<"$out" >/dev/null || fail "over-512-byte note was captured"
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" approve long-option "$note") || fail "over-limit selection/note submission failed"
+    jq -e '.queued | length == 0' <<<"$out" >/dev/null || fail "over-limit selected answer/note was captured"
+  done
+  pass "whole 600-byte option labels remain selectable while the submitted selection/note retains its 512-byte guard"
+}
+
 test_an_underway_row_leads_with_the_task_name_and_keeps_its_run_status
 test_an_underway_identifier_label_is_not_replaced_by_run_status
 test_charted_next_reads_newest_filed_first
@@ -275,3 +507,13 @@ test_warnings_are_excluded_from_the_charted_next_count
 test_a_board_of_only_warnings_still_reports_nothing_queued
 test_omitted_warnings_never_count_as_more_queued
 test_an_omitted_kind_keeps_the_existing_queued_rendering
+
+test_captured_choices_preserve_recorded_option_labels
+
+test_nonlocal_choices_never_enter_local_answers_or_reconciles
+test_local_work_answer_preserves_release_mode
+test_recorded_landed_artifacts_are_visible
+
+test_topic_output_builds_and_renders_through_the_real_board
+
+test_long_option_labels_do_not_consume_answer_protocol_budget

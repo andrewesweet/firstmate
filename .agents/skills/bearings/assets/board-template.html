@@ -510,6 +510,7 @@ __FM_BEARINGS_BOARD_DATA__
     } else {
       /* the rec marker on the option itself carries the recommendation */
       var ctx = el("div", "bb-ctx");
+      if (item.owner && item.owner !== "(main)") ctx.appendChild(ctxRow("owner", item.owner));
       if (item.about) ctx.appendChild(ctxRow("about", item.about));
       if (item.decide) ctx.appendChild(ctxRow("decide", item.decide));
       pad.appendChild(ctx);
@@ -559,9 +560,12 @@ __FM_BEARINGS_BOARD_DATA__
       var fd = new FormData(form);
       var value = fd.get("answer");
       var note = (fd.get("note") || "").trim();
-      var displayAnswer = value ? (note ? value + " - " + note : value) : note;
+      var selectedOption = item.options.find(function (option) { return option.value === value; });
+      var selectedLabel = selectedOption ? selectedOption.label : value;
+      var displayAnswer = value ? (note ? selectedLabel + " - " + note : selectedLabel) : note;
       if (!displayAnswer) return;
-      if (utf8ByteLength(displayAnswer) > 512) {
+      var submittedAnswer = value ? (note ? value + " - " + note : value) : note;
+      if (utf8ByteLength(submittedAnswer) > 512) {
         answerLimit.textContent = "Answer is too long to queue (512 bytes maximum).";
         answerLimit.classList.add("is-visible");
         return;
@@ -575,6 +579,7 @@ __FM_BEARINGS_BOARD_DATA__
           selection: value || "",
           note: note
         };
+        if (item.owner) ctxData.owner = item.owner;
         if (item.close) ctxData.close = item.close;
         window.lavish.queuePrompt(
           "Captain's Call answer - " + item.title + ": " + displayAnswer,
@@ -655,6 +660,13 @@ __FM_BEARINGS_BOARD_DATA__
       var a = el("a", "bb-row__pr", "#" + t.pr_url.split("/").pop());
       a.href = t.pr_url; a.title = t.pr_url; a.target = "_blank"; a.rel = "noopener";
       row.appendChild(a);
+    }
+    if (t.artifact && t.artifact !== t.pr_url) {
+      var artifact = el(t.artifact.indexOf("https://") === 0 ? "a" : "span", "bb-row__pr", t.artifact);
+      if (artifact.tagName.toLowerCase() === "a") {
+        artifact.href = t.artifact; artifact.target = "_blank"; artifact.rel = "noopener";
+      }
+      row.appendChild(artifact);
     }
     ld.appendChild(row);
   });

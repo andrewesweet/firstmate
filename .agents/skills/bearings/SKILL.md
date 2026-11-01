@@ -3,6 +3,7 @@ name: bearings
 description: >-
   Generate a "pick up where I left off" fleet digest.
   Use when the captain invokes /bearings (plain, file, or lavish) or asks for a bearings report, morning brief, status report, catch-up, "where did I leave off", or "what's in the works".
+  Also use when the captain asks to be briefed on a registered topic ("brief me on <topic>") - run bin/fm-topic-brief.sh for that and relay its result.
   Also use on a contributions check wake, when filing work linked to an upstream issue, and on a procevent lavish wake whose source id is the bearings board's.
 user-invocable: true
 metadata:
@@ -97,6 +98,7 @@ For a contribution wake or linked-issue filing, go directly to Contribution foll
 Compose the payload from the same snapshot with the same ranking judgment as the chat digest, plus these board rules:
 
 - A Captain's Call decision key is the captain-held TASK ID from `decisions_open` (legacy `<origin>-decision-<key>` rows are already task ids); a merge card's key is `merge.<task-id>`; the Charted Next dispatch picker's key is `dispatch.charted`.
+  Follow the board command's owner-qualified identity contract for nonlocal cards and Charted Next rows.
 - Before carding a hold, check that its SUBJECT has not already landed, and omit it when it has. `build` drops a card whose task or PR appears in the payload's own landed rows, and one whose task is no longer an open captain call. When a hold waits on one specific PR, put that PR in the card's `pr_url`. When it concerns a published version, put the artifact and numeric three-part version in the card's structured `subject`; landed rows for releases carry the same identity, and a matching or newer version drops the card. Identity matching is structured only, so verify any subject without one of these identities against current reality before carding it.
 - Never author a `reconcile` option on any card. `build` gives every decision card the standard reconcile choice itself, and the payload validator reserves that value across all card types; recommendations must name an authored option.
 - Compose exactly one decision card per captain-held task id. When one task carries multiple questions, consolidate all of them and their options into that card; never emit duplicate cards with the same task-id key.
@@ -120,12 +122,12 @@ Never run `lavish-axi poll` for the board yourself: the armed source's supervise
 ### Handling a board wake
 
 A board answer arrives as an ordinary `procevent lavish <source-id> <sequence>` check wake. Identify it by comparing the wake source id with `bin/fm-procevent-lavish.sh source-id "$(bin/fm-bearings-board.sh path)"`, regardless of which answer kinds the result contains; then load `process-event-sources` and follow its contract for the result read, adapter classification, and the handled acknowledgement.
-Decision answers need no routing from you: the runner feeds the board's binding into `bin/fm-captain-hold.sh`'s one keyed-answer intake, which closes or releases each answered captain-held task at answer time; reconcile any `skipped:` key yourself with a direct `answer`, and when the captain's answer is "later", record it as a deferral with `bin/fm-captain-hold.sh hold <id> --reason "<reason>" --until <date>` instead of a closure.
+Local decision answers need no routing from you: the runner feeds the board's binding into `bin/fm-captain-hold.sh`'s one keyed-answer intake, which closes or releases each answered captain-held task at answer time; reconcile any `skipped:` key yourself with a direct `answer`, and when the captain's answer is "later", record it as a deferral with `bin/fm-captain-hold.sh hold <id> --reason "<reason>" --until <date>` instead of a closure.
 A current structured Reconcile selection closes nothing: the versioned board context carries its exact selected option separately from any typed note, and the adapter routes that selection only into a durable re-check request while preserving the note as provenance.
 The rollout-compatible old context still feeds ordinary non-reconcile answers, but its bare or separator-annotated reconcile values and every structurally uncertain choice feed neither intake and remain announced for deliberate handling.
 Verify the call's latest state, then retire the request through `bin/fm-captain-hold.sh reconcile close <id> --evidence-file <path>` when it turns out to be moot, or `reconcile note <id> --note-file <path>` when it is genuinely still open.
 Both outcomes refuse without that pending board-created request, and `bin/fm-captain-hold.sh reconcile list` names every request still outstanding.
-A remote-secondmate card whose task is absent from the main backlog remains on the board unchanged, but its reconcile request is refused in the main home until the separately tracked owner-aware routing follow-up can query and mutate the authoritative secondmate home; handle the announced capture without claiming that a request or reconciliation succeeded.
+For nonlocal captures, follow the [board header's owner contract](../../../bin/fm-bearings-board.sh) and handle the announced answer in its authoritative home without claiming that the main-home binding applied it.
 `captain-hold-lifecycle` owns why a reconcile may never be recorded as the captain's answer.
 Route the non-decision keys yourself:
 
@@ -175,6 +177,13 @@ Rules that keep the contract unambiguous:
 - Detailed decisions, plans, full gate reasons, and evidence stay out of chat; file mode puts them in the report, while lavish mode puts only its payload-backed interactive detail on the board.
 - In file mode, include the report path or link inside the four-section digest without adding another heading.
 - In lavish mode, include the board URL inside the four-section digest the same way.
+
+## Per-topic briefings
+
+When the captain asks to be briefed on a registered topic ("brief me on <topic>", "what's new with <topic>"), the whole-fleet digest is the wrong deliverable; run `bin/fm-topic-brief.sh <topic>` instead and relay its chat summary as the answer.
+See the [`fm-topic-brief.sh` header](../../../bin/fm-topic-brief.sh) for command mechanics and the [topic registry reference](../../../docs/configuration.md#topic-registry-datatopicsmd) for registry syntax and membership.
+Membership reads, the snapshot, and board answers follow the same read-only and authority rules as the whole-fleet digest above.
+When the topic command rejects an unknown topic, relay its registry error and point at `data/topics.md`.
 
 ## Tone and content rules
 
