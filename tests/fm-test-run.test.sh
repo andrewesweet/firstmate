@@ -396,6 +396,35 @@ test_shell_line_ending_policy_selects_runner_contract() {
   pass "shell line-ending policy selects runner coverage"
 }
 
+test_changed_topic_assets_select_their_consumers() {
+  local tmp repo suite asset expected listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-topic-assets.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  mkdir -p "$repo/tests/assets"
+  for suite in fm-topic-brief.test.sh fm-bearings-board-render.test.sh; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$repo/tests/$suite"
+    chmod +x "$repo/tests/$suite"
+  done
+  for asset in board-render-harness.mjs topic-answers-harness.mjs topic-list-labels.toon topic-list-nolabels.toon; do
+    : > "$repo/tests/assets/$asset"
+  done
+  git -C "$repo" add tests
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm assets-baseline
+  for asset in board-render-harness.mjs topic-answers-harness.mjs topic-list-labels.toon topic-list-nolabels.toon; do
+    printf '\n' >> "$repo/tests/assets/$asset"
+    expected=tests/fm-topic-brief.test.sh
+    [ "$asset" != board-render-harness.mjs ] || expected=tests/fm-bearings-board-render.test.sh
+    listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD) \
+      || fail "changed asset has no test mapping: $asset"
+    [ "$listed" = "$expected" ] || fail "$asset selected $listed instead of its consumer $expected"
+    git -C "$repo" add "tests/assets/$asset"
+    git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm asset-change
+  done
+  rm -rf "$tmp"
+  pass "changed board/topic assets select their exact consuming suites"
+}
+
 test_changed_dependency_selection_and_unmapped_failure() {
   local tmp repo listed rc
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-changed.XXXXXX")
@@ -2003,6 +2032,7 @@ test_task_marker_refuses_the_primary_checkout
 test_changed_runner_surfaces_select_their_family
 test_shell_line_ending_policy_selects_runner_contract
 test_changed_dependency_selection_and_unmapped_failure
+test_changed_topic_assets_select_their_consumers
 test_changed_bin_reference_selects_per_script_not_per_family
 test_changed_uses_bounded_automatic_concurrency
 test_windows_posix_mode_emulation_does_not_fail_parallel_runs

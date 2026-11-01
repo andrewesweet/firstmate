@@ -368,6 +368,7 @@ test_topic_output_builds_and_renders_through_the_real_board() {
   {"id":"old","state":"queued","repo":"sample","title":"Older ready","created":"2026-10-20"},
   {"id":"new","state":"queued","repo":"sample","title":"Newer blocked","created":"2026-10-30","blocked_by":["old"]},
   {"id":"flight","state":"in_flight","kind":"ship","repo":"sample","title":"Flight"},
+  {"id":"orphan","state":"in_flight","kind":"ship","repo":"sample","title":"Missing worker","created":"2026-10-01"},
   {"id":"landed","state":"done","kind":"ship","repo":"sample","title":"","closed":"2026-10-29"},
   {"id":"old-landed","state":"done","kind":"ship","repo":"sample","title":"Old delivery","closed":"2026-10-01"},
   {"id":"outside-landed","state":"done","kind":"ship","repo":"external","labels":["topic:unrelated"],"title":"Unrelated delivery","closed":"2026-10-30"}
@@ -392,7 +393,12 @@ EOF
   "in_flight":[{"id":"flight","kind":"ship","state":"working","repo":"sample","name":"","doing":""}],
   "recorded_prs":[],
   "landed":[{"id":"landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/42"},{"id":"report","owner":"mate","artifact":"data/report/report.md"},{"id":"old-landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/44"},{"id":"outside-landed","owner":"(main)","pr_url":"https://github.com/example/sample/pull/45"}],
-  "secondmates":[{"id":"offline","state":"unknown","freshness":"unavailable","reason":"ledger unavailable"}]
+  "secondmates":[{"id":"offline","state":"unknown","freshness":"unavailable","reason":"ledger unavailable"}],
+  "gates":[{"id":"(main-inventory)","title":"in-flight backlog item has no child metadata","reason":"main inventory","owner":"(main)","filed":null,"blocked_by":"-"}],
+  "omitted":[
+    {"surface":"main in-flight backlog item(s) have no child metadata: 1","reveal":"inspect main data/backlog.md In flight vs state/*.meta"},
+    {"surface":"main unstructured current backlog row(s): 2","reveal":"inspect main data/backlog.md In flight and Queued free-form rows"}
+  ]
 }
 EOF
   cat > "$home/fakebin/tasks-axi" <<'SH'
@@ -439,14 +445,18 @@ SH
     and all(.options[]; . != "reconcile")
     and .queued[0].data.close == "release"
     and [.charted[] | select(.pickable) | .title] == ["Mate next","Older ready"]
-    and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 1
+    and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 4
     and any(.charted[]; (.sub | contains("offline") and contains("ledger unavailable")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main inventory: in-flight backlog item has no child metadata")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main in-flight backlog item(s) have no child metadata: 1") and contains("inspect main data/backlog.md In flight vs state/*.meta")) and (.pickable | not))
+    and any(.charted[]; (.sub | contains("main unstructured current backlog row(s): 2") and contains("inspect main data/backlog.md In flight and Queued free-form rows")) and (.pickable | not))
     and (.stats[] | select(.label == "charted next") | .n) == 8
     and any(.charted[]; .title == "Vendor wait" and (.sub | contains("external hold until 2026-11-15: Waiting on vendor")) and (.pickable | not))
     and any(.charted[]; .title == "Rollout watch" and (.sub | contains("external hold: Watching rollout")) and (.pickable | not))
     and any(.charted[]; .title == "Mate vendor wait" and (.sub | contains("external hold until 2026-11-20: Waiting on mate vendor")) and (.pickable | not))
     and any(.charted[]; .title == "Mate rollout watch" and (.sub | contains("external hold: Watching mate rollout")) and (.pickable | not))
     and .underway[0].title == "flight" and (.underway[0].sub | contains("working") and contains("sample"))
+    and (.underway | length) == 1
     and .landed[0].title == "landed" and .landed[0].artifacts[0].href == "https://github.com/example/sample/pull/42"
     and .landed[1].artifacts[0].text == "data/report/report.md"
     and (.landed | length) == 2

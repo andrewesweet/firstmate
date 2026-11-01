@@ -635,19 +635,31 @@ test_coverage_disclosures_in_every_mode() {
   home=$(make_home coverage)
   stubbin="$TMP_ROOT/stub-labeled"
   make_stub_bin "$stubbin" labeled
+  sed '/^help\[/,$d; s/^count: 9$/count: 10/; s/^tasks\[9\]/tasks[10]/' "$TMP_ROOT/list-labels.toon" > "$home/rows.toon"
+  cat >> "$home/rows.toon" <<'EOF'
+  t-orphan,in_flight,ship,treehouse,Missing worker,none,none,2026-10-01,"-",no,"-","-",none,"-"
+EOF
   jq '.secondmates = [{id:"offline",state:"unknown",freshness:"unavailable",reason:"ledger missing"},{id:"cached",state:"active_child_work",freshness:"fresh",provenance:"structured-home-cache",reason:"cached ledger"}]
-    | .omitted = [{surface:"secondmate children truncated",reveal:"raise bound"}]' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
-  json=$(TOPIC_TEST_SNAPSHOT="$home/snapshot.json" run_topic "$home" "$stubbin" tf-mut --json) || fail "coverage model failed"
-  jq -e 'any(.disclosures[]; contains("offline") and contains("ledger missing")) and any(.disclosures[]; contains("cached")) and any(.disclosures[]; contains("truncated"))' <<<"$json" >/dev/null || fail "coverage lost: $json"
+    | .gates = [{id:"(main-inventory)",title:"in-flight backlog item has no child metadata",reason:"main inventory",owner:"(main)",filed:null,blocked_by:"-"}]
+    | .omitted = [{surface:"secondmate children truncated",reveal:"raise bound"},
+        {surface:"main in-flight backlog item(s) have no child metadata: 1",reveal:"inspect main data/backlog.md In flight vs state/*.meta"},
+        {surface:"main unstructured current backlog row(s): 2",reveal:"inspect main data/backlog.md In flight and Queued free-form rows"}]' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
+  json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" run_topic "$home" "$stubbin" tf-mut --json) || fail "coverage model failed"
+  jq -e 'any(.disclosures[]; contains("offline") and contains("ledger missing")) and any(.disclosures[]; contains("cached")) and any(.disclosures[]; contains("truncated"))
+    and any(.disclosures[]; . == "main inventory: in-flight backlog item has no child metadata")
+    and any(.disclosures[]; . == "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta")
+    and any(.disclosures[]; . == "main unstructured current backlog row(s): 2; inspect main data/backlog.md In flight and Queued free-form rows")
+    and all(.in_flight[], .next_steps.ready[], .next_steps.blocked[], .decisions_open[]; .id != "t-orphan" and .id != "(main-inventory)")
+    and .counts.in_flight == 2 and .counts.ready == 2 and .counts.blocked == 1 and .counts.decisions == 1' <<<"$json" >/dev/null || fail "coverage lost or invented work: $json"
   make_board_stub "$stubbin"
-  out=$(TOPIC_TEST_SNAPSHOT="$home/snapshot.json" FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+  out=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
     run_topic "$home" "$stubbin" tf-mut --html "$home/coverage.html" --board) || fail "coverage outputs failed"
   html=$(cat "$home/coverage.html")
-  for expected in offline cached truncated; do
+  for expected in offline cached truncated 'main inventory: in-flight backlog item has no child metadata' 'main in-flight backlog item(s) have no child metadata: 1' 'inspect main data/backlog.md In flight vs state/*.meta' 'main unstructured current backlog row(s): 2' 'inspect main data/backlog.md In flight and Queued free-form rows'; do
     case "$out" in *"$expected"*) : ;; *) fail "chat lost $expected" ;; esac
     case "$html" in *"$expected"*) : ;; *) fail "html lost $expected" ;; esac
   done
-  pass "unavailable, cached and truncated coverage survives JSON, chat and HTML"
+  pass "inventory integrity, unavailable, cached and truncated warnings survive JSON, chat and HTML without inventing work"
 }
 
 test_complete_distinct_board_options() {

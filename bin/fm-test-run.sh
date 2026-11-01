@@ -1906,6 +1906,12 @@ families_for_changed_path() {
     docs/configuration.md|docs/supervision-protocols/*)
       printf '%s\n' pure-contract-unit
       ;;
+    tests/assets/board-render-harness.mjs)
+      printf '%s\n' __script__:fm-bearings-board-render.test.sh
+      ;;
+    tests/assets/topic-answers-harness.mjs|tests/assets/topic-list-labels.toon|tests/assets/topic-list-nolabels.toon)
+      printf '%s\n' __script__:fm-topic-brief.test.sh
+      ;;
     tests/git-config-helpers.sh)
       # The reference scan is not transitive, so match the two helpers that
       # source this one as well: most suites inherit it only through them.

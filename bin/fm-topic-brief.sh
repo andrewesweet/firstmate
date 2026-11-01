@@ -529,7 +529,8 @@ topic_model() {
     (($coverage | split("\n") | map(select(length > 0))) +
       [$snap.secondmates[]? | select(.state == "unknown" or .freshness != "fresh" or .provenance == "structured-home-cache") |
         "secondmate \(.id): \(.state), \(.freshness // "unknown") (\(.provenance // "registered")) coverage - \(.reason // .doing // "state unavailable")"] +
-      [$snap.omitted[]? | select(.surface | test("secondmate|showing|capped|truncated|unreadable|unavailable")) |
+      [$snap.gates[]? | select(.id == "(main-inventory)") | "\(.reason): \(.title)"] +
+      [$snap.omitted[]? | select(.surface | test("^main |secondmate|showing|capped|truncated|unreadable|unavailable")) |
         "\(.surface); \(.reveal)"]) as $disclosures |
 
     "Topic \($t.name) briefing \($since | d10) to \($now | d10): \($landed | length) landed, \($answered | length) captain call(s) answered, \($newrows | length) new, \($heldetails | length) decision(s) open, \($flight | length) row(s) in flight." as $recapnext |
