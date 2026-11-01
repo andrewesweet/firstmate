@@ -525,13 +525,15 @@ Blank lines and `#` comment lines are skipped; every other line must be exactly:
 `<name>` is the topic's `topic:<name>` label suffix: lowercase alphanumerics plus `. _ / : -`, 1..58 chars, no spaces or pipes.
 `aliases:` is an optional comma-separated list of alternative label suffixes (same character set), and `projects:` an optional comma-separated list of default project tags (alphanumerics plus `. _ / -`, 1..128 chars) matching backlog rows' `repo` field.
 Topic names must be unique, and an alias may not collide with another topic's name or alias.
-An absent file means no topics are registered; a malformed line, duplicate, or invalid suffix stops the command with the file name and line number rather than guessing.
+An absent file means no topics are registered.
+Invalid line syntax stops the command with the file name and line number; duplicate names or aliases and invalid suffixes or project tags stop it with the offending value.
 
 Membership is by durable labels first: a backlog row is in topic T when its `labels` carry `topic:<name>` for T's name or one of T's aliases, read only through [`bin/fm-tasks-axi.sh`](../bin/fm-tasks-axi.sh).
-An unlabelled row whose `repo` equals one of T's default projects is also a member; a row carrying a label for a different topic is excluded.
+A row with no `topic:` labels whose `repo` equals one of T's default projects is also a member.
+A row labelled only for other topics is excluded even when its project matches; a matching topic label takes precedence over project defaults and other topic labels.
 Secondmate rows follow the same rule from the same ledger and fleet snapshot.
 When the installed tasks-axi cannot carry the `labels` field, the command discloses that membership fell back to default projects only and exits 0 (`labels_available: false` in the model).
-`bin/fm-topic-brief.sh`'s header owns the briefing window, briefing history under `data/topic-briefings/<topic>/`, the HTML brief and its offline answers line, and the `--board` decision binding.
+`bin/fm-topic-brief.sh`'s header owns the briefing window, history paths, the HTML brief and its offline answers line, and the `--board` decision binding.
 
 ## Runtime backend (config/backend / FM_BACKEND)
 

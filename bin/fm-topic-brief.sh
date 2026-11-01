@@ -3,9 +3,9 @@
 #
 # "Brief me on <topic>" mechanics: resolve the topic through the operational
 # home's topic registry, project the fleet's existing bearings snapshot plus
-# this home's backlog down to the topic, render a self-contained HTML briefing
-# with an offline pick-and-copy answers block, append the topic's briefing
-# history, and optionally open the topic's decisions on the existing
+# each home's backlog down to the topic, and return a chat summary by default.
+# Explicit flags select the model, a self-contained HTML briefing with an
+# offline pick-and-copy answers block and history record, or the existing
 # interactive bearings board.
 #
 # Usage:
@@ -29,13 +29,16 @@
 #                  fm-bearings-board.v1 payload and running
 #                  bin/fm-bearings-board.sh build. Reuses the board's existing
 #                  captured-answer binding keyed by held task id (the board
-#                  build owns the bind; no new answer intake, keying scheme or
-#                  decision record is introduced). The board is rebuilt with
-#                  this topic's rows only; the next /bearings lavish rebuild
+#                  build owns the bind and owner-qualified identities; no new
+#                  answer intake or decision record is introduced). Nonlocal
+#                  answers follow the board's manual owner-home handling.
+#                  The board is rebuilt with this topic's rows only; the next
+#                  /bearings lavish rebuild
 #                  restores the whole fleet.
 #
 # With no flags, prints a short TOON-style chat summary for the invoking agent
-# to relay next to the briefing.
+# to relay. --json exits before HTML or board output even when combined with
+# those flags; --html and --board otherwise compose with the chat summary.
 #
 # Registry syntax and membership: docs/configuration.md "Topic registry".
 #
@@ -68,8 +71,10 @@
 #   - A missing or unreadable remote ledger shows up exactly as bearings
 #     reports it (unknown second-mate state), disclosed, never as empty.
 #   - Usage errors, a missing or malformed registry, an unknown topic, an
-#     invalid --since date, or a failed snapshot/backlog read exit 2 with an
-#     actionable message.
+#     invalid --since date, a failed snapshot/main-backlog read, or unparseable
+#     backlog output exit 2 with an actionable message. An unavailable
+#     secondmate backlog or task detail is disclosed as incomplete coverage;
+#     unavailable detail falls back to the recorded list fields.
 #
 # Field-value conventions parsed from tasks-axi TOON output: "-" is a null
 # scalar, "none" is an empty list, and list fields contain comma-separated

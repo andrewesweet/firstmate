@@ -266,7 +266,7 @@ Board request creation uses a separate captured-source seam.
 The board emits `fm-bearings-answer.v1` context with the slug-shaped selected option and the freeform note in separate fields.
 Annotating Reconcile therefore cannot turn it into an ordinary answer value.
 
-The Lavish adapter splits each capture between two commands:
+For captures eligible for the local binding, the Lavish adapter splits each capture between two commands; the [board header](../bin/fm-bearings-board.sh) owns nonlocal identity and manual-handling rules:
 
 | Command | What it emits |
 | --- | --- |
@@ -318,7 +318,7 @@ No path here closes a captain call without either the captain's words through `a
 
 Three checks run, all on exact identity and none on prose:
 
-- The card's key is the captain-held task id, so `bin/fm-captain-hold.sh open --distinguish-absent` is asked whether that task is still an open captain call.
+- For a local card, `bin/fm-captain-hold.sh open --distinguish-absent` is asked whether that task is still an open captain call; nonlocal checks follow the [board header's owner contract](../bin/fm-bearings-board.sh).
   - Exit 1 means the task is present but closed, or no longer held for the captain, and drops the card.
   - Exit 2 means the answer could not be established, and keeps the card.
   - Exit 3 means the task is absent from the main backlog, which includes a home carrying no backlog file at all, and keeps the card.
@@ -339,10 +339,9 @@ That scope is all card types, because the captured payload carries no card type.
 
 ### Remote-secondmate cards
 
-Owner-aware routing for remote-secondmate decision cards is tracked separately.
+Automated owner-aware routing for remote-secondmate decision cards is tracked separately.
 That follow-up must query landedness and route reconciliation in the authoritative secondmate home while honoring the remote and local consistency principle.
-Until then, an absent main-home task passes through this hygiene check unchanged.
-Its Reconcile selection remains announced but cannot create a main-home request, because the main intake refuses an absent task.
+The [board header](../bin/fm-bearings-board.sh) owns the current nonlocal identity, hygiene, and manual-handling contract.
 For a main-home call, the reconcile option is the recovery path for whatever still slips through.
 
 ## Structured read surfaces
