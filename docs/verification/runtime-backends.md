@@ -1498,6 +1498,27 @@ Observed 2026-08-19:
 ok - live Herdr submit confirm: Claude Code (2.1.236 (Claude Code)) on herdr 0.8.0 reports empty for a landed idle steer
 ```
 
+### Claude slow echo of a steering doorbell
+
+Measured 2026-10-31 against Herdr 0.9.5 and Claude Code 2.1.308 in an isolated `fm-lab-` session, with Claude in a 51-column pane.
+Under CPU starvation, Claude's composer read stayed empty for about 5.7 seconds after a literal send, past the ring's 0.3-second settle.
+The [Claude composer proof](../herdr-backend.md#claude-composer-proof) owns echo polling and refused-echo cleanup.
+[`fm_task_inbox_ring` and `fm_task_inbox_composer_holds`](../../bin/fm-task-inbox-lib.sh) own recovery of an unsubmitted doorbell or its stranded head.
+The portable regressions are in `tests/fm-backend-herdr.test.sh` and `tests/fm-task-inbox.test.sh`.
+Refresh the live proof with:
+
+```sh
+FM_HERDR_DOORBELL_SLOW_ECHO_LIVE=1 tests/fm-herdr-doorbell-slow-echo-live-e2e.test.sh
+```
+
+Observed 2026-10-31:
+
+```text
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a doorbell whose echo arrives after the settle
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 clears a refused late echo completely and the next ring delivers
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a stranded doorbell head instead of skipping it
+```
+
 ### Claude exit behind the slash-command popup
 
 Measured 2026-09-26 against Herdr 0.9.0 and Claude Code 2.1.283 in an isolated `fm-lab-` session.

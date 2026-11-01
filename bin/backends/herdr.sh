@@ -3646,6 +3646,37 @@ fm_backend_herdr_composer_payload_shown() {  # <text> <after>
   [ -z "$literal" ]
 }
 
+# fm_backend_herdr_composer_echo: the pre-Enter proof read, polled while the
+# composer shows only the start of <text>. Claude can echo typed input well
+# after the settle on a loaded host (verified live: an empty composer read for
+# 5.7s under CPU starvation), so an empty or head-only read is an echo still
+# arriving, re-read every <settle> up to FM_BACKEND_HERDR_PROOF_POLLS more
+# times. Prints shown, arriving (still empty or head-only when the budget
+# ends), or refused (unreadable, or anything else, such as a suffix).
+FM_BACKEND_HERDR_PROOF_POLLS=${FM_BACKEND_HERDR_PROOF_POLLS:-20}
+
+fm_backend_herdr_composer_echo() {  # <target> <text> <settle>
+  local target=$1 text=$2 settle=$3 polls=$FM_BACKEND_HERDR_PROOF_POLLS i=0 content
+  case "$polls" in ''|*[!0-9]*) polls=20 ;; esac
+  fm_composer_normalize_spaces_var text
+  text=${text//[$' \t\r\n\v\f']/}
+  text=${text//$'\xE2\x81\xA3'/}
+  while :; do
+    content=$(fm_backend_herdr_composer_content "$target") || { printf 'refused'; return 0; }
+    if fm_backend_herdr_composer_payload_shown "$2" "$content"; then
+      printf 'shown'
+      return 0
+    fi
+    fm_composer_normalize_spaces_var content
+    content=${content//[$' \t\r\n\v\f']/}
+    content=${content//$'\xE2\x81\xA3'/}
+    [ "${text#"$content"}" != "$text" ] || [ -z "$content" ] || { printf 'refused'; return 0; }
+    [ "$i" -lt "$polls" ] || { printf 'arriving'; return 0; }
+    i=$((i + 1))
+    sleep "$settle"
+  done
+}
+
 # fm_backend_herdr_composer_clear: after a refused proof, press Ctrl+U until
 # the shared classifier reads the composer as empty. Claude documents Ctrl+U
 # as delete-to-line-start, repeated across lines of a multiline draft; Ctrl+C
@@ -3653,13 +3684,18 @@ fm_backend_herdr_composer_payload_shown() {  # <text> <after>
 # wrapped screen row per press, so a single-line leftover can need several
 # presses. The press count comes from fm_backend_herdr_proof_lines, which
 # sizes it from the payload length, not from the viewport read.
+# An echo still arriving gets every press before the one verifying read: its
+# rows render after the presses queued behind them, so an early empty read is
+# not proof, and stopping there let one press delete only the last wrapped
+# row, stranding the head (the lost-submit incident).
 # 0 only when the composer is verified empty again.
-fm_backend_herdr_composer_clear() {  # <target> <text>
-  local target=$1 text=$2 presses i=0
+fm_backend_herdr_composer_clear() {  # <target> <text> [echo-verdict]
+  local target=$1 text=$2 echo=${3:-} presses i=0
   presses=$(fm_backend_herdr_proof_lines "$text")
   while [ "$i" -lt "$presses" ]; do
     fm_backend_herdr_send_key "$target" C-u || return 1
     i=$((i + 1))
+    [ "$echo" != arriving ] || [ "$i" -eq "$presses" ] || continue
     [ "$(fm_backend_herdr_composer_state "$target")" = empty ] && return 0
   done
   return 1
@@ -3667,7 +3703,7 @@ fm_backend_herdr_composer_clear() {  # <target> <text>
 
 fm_backend_herdr_send_text_submit() {  # <target> <text> <retries> <enter-sleep> <settle>
   local target=$1 text=$2 retries=$3 sleep_s=$4 settle=$5 i=0 verdict baseline confirm_sleep
-  local raw_status footer_baseline='' allow_rendered=0 enter_sent=0 identity proof=0 content busy_harness=''
+  local raw_status footer_baseline='' allow_rendered=0 enter_sent=0 identity proof=0 content echo busy_harness=''
   fm_backend_herdr_parse_target "$target" || { printf 'unknown'; return 0; }
   # Claude on Herdr is the live-verified truncation shape: Enter is withheld
   # unless the composer, empty before the send, shows this payload. A suffix
@@ -3684,9 +3720,9 @@ fm_backend_herdr_send_text_submit() {  # <target> <text> <retries> <enter-sleep>
   fm_backend_herdr_send_literal "$target" "$text" || { printf 'send-failed'; return 0; }
   sleep "$settle"
   if [ "$proof" = 1 ]; then
-    if ! content=$(fm_backend_herdr_composer_content "$target") \
-      || ! fm_backend_herdr_composer_payload_shown "$text" "$content"; then
-      if fm_backend_herdr_composer_clear "$target" "$text"; then
+    echo=$(fm_backend_herdr_composer_echo "$target" "$text" "$settle")
+    if [ "$echo" != shown ]; then
+      if fm_backend_herdr_composer_clear "$target" "$text" "$echo"; then
         printf 'send-failed'
       else
         printf 'unknown'

@@ -410,6 +410,41 @@ test_ring_submits_its_own_stuck_doorbell() {
   pass "inbox: the ring submits its own stuck doorbell, skips other pending text, and retries a lost Enter once on both paths"
 }
 
+# The lost-submit incident left only the first wrapped row of a doorbell in a
+# Claude composer. Every later ring read that head as foreign pending text and
+# skipped, so the steer was never read. A stranded head of our own doorbell is
+# submitted like the whole line; text that only resembles it still skips.
+test_ring_submits_a_stranded_doorbell_head() {
+  local dir state rec doorbell log composer head rc other
+  dir="$TMP_ROOT/ring-stranded-head"
+  state="$dir/state"
+  mkdir -p "$state"
+  make_composer_stub "$dir"
+  rec=$(inbox_lib "$state" fm_task_inbox_write "$state" t1 "please continue")
+  doorbell=$(inbox_lib "$state" fm_task_inbox_doorbell_line "$rec")
+  log="$dir/send.log"; composer="$dir/composer"
+  ring() {
+    PATH="$dir/fakebin:$PATH" FM_SEND_LOG="$log" FM_FAKE_COMPOSER="$composer" \
+      inbox_lib "$state" fm_task_inbox_ring tmux sess:fm-t1 "$rec" fm-t1
+  }
+
+  head=${doorbell:0:60}
+  : > "$log"; printf '%s' "$head" > "$composer"
+  rc=0; ring || rc=$?
+  [ "$rc" = 0 ] || fail "a composer holding the head of our own doorbell should be submitted, got rc $rc"
+  [ "$(cat "$log")" = "SUBMIT: $head" ] \
+    || fail "the stranded head should be submitted once, not retyped:"$'\n'"$(cat "$log")"
+  [ ! -s "$composer" ] || fail "the stranded head was left in the composer"
+
+  for other in ': Firstmate' ': Firstmate instruction waiting: please also fix the docs' "${doorbell:1:60}"; do
+    : > "$log"; printf '%s' "$other" > "$composer"
+    rc=0; ring || rc=$?
+    [ "$rc" = 1 ] || fail "text that is not a stranded doorbell head should skip the ring, got rc $rc for: $other"
+    [ ! -s "$log" ] || fail "text that is not a stranded doorbell head was submitted:"$'\n'"$(cat "$log")"
+  done
+  pass "inbox: the ring submits a stranded head of its own doorbell and still skips look-alike pending text"
+}
+
 make_inbox_consumer() {
   cat > "$1/consume" <<'SH'
 #!/usr/bin/env bash
@@ -1522,6 +1557,7 @@ test_doorbell_is_a_shell_noop
 test_doorbell_rejects_terminal_controls
 test_ring_skips_dead_agent
 test_ring_submits_its_own_stuck_doorbell
+test_ring_submits_a_stranded_doorbell_head
 test_ring_submits_stuck_doorbell_on_misread_verdict
 test_ring_submits_stuck_doorbell_on_herdr_claude
 test_idempotent_write_dedups_exact_body

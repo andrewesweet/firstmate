@@ -5083,6 +5083,85 @@ herdr_ctrl_u_count() {  # <log>
   grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''ctrl+u' "$1"
 }
 
+make_herdr_composer_fakebin() {
+  local dir=$1 mode=$2
+  mkdir -p "$dir/fakebin"
+  printf '%s' "$mode" > "$dir/mode"
+  : > "$dir/draft"
+  cat > "$dir/fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+set -eu
+dir=${FM_HERDR_COMPOSER_DIR:?}
+mode=$(cat "$dir/mode")
+draft=$(cat "$dir/draft")
+line="HERDR_SESSION=${HERDR_SESSION:-}"
+for arg in "$@"; do line="$line"$'\x1f'"$arg"; done
+printf '%s\n' "$line" >> "${FM_HERDR_LOG:?}"
+clear_row() {
+  if [ -n "$draft" ] && [ "$mode" != stuck ]; then
+    draft=${draft:0:$(( (${#draft} - 1) / 51 * 51 ))}
+  fi
+}
+case "$1 $2" in
+  'status --json')
+    printf '{"client":{"version":"0.7.1","protocol":14},"server":{"running":true}}\n'
+    ;;
+  'agent get')
+    status=idle
+    [ ! -e "$dir/submitted" ] || status=working
+    printf '{"result":{"agent":{"agent":"claude","agent_status":"%s"}}}\n' "$status"
+    ;;
+  'pane send-text')
+    if [ ! -e "$dir/typed" ]; then
+      : > "$dir/typed"
+      if [ "$mode" = stuck ]; then
+        draft=${4: -480}
+      else
+        printf '%s' "$4" > "$dir/queued"
+        printf '0' > "$dir/reads"
+        printf '0' > "$dir/clears"
+      fi
+    else
+      draft=$draft$4
+    fi
+    ;;
+  'pane send-keys')
+    case "$4" in
+      ctrl+u)
+        if [ -e "$dir/queued" ]; then
+          printf '%s' "$(( $(cat "$dir/clears") + 1 ))" > "$dir/clears"
+        else
+          clear_row
+        fi
+        ;;
+      enter)
+        printf '%s\n' "$draft" >> "$dir/submitted"
+        draft=
+        ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  'pane read')
+    if [ -e "$dir/queued" ]; then
+      reads=$(( $(cat "$dir/reads") + 1 ))
+      printf '%s' "$reads" > "$dir/reads"
+      if [ "$reads" -gt 3 ]; then
+        draft=$draft$(cat "$dir/queued")
+        rm "$dir/queued"
+        clears=$(cat "$dir/clears")
+        for ((i = 0; i < clears; i++)); do clear_row; done
+      fi
+    fi
+    printf '  \xe2\x9d\xaf %s\n' "$draft"
+    ;;
+  *) exit 1 ;;
+esac
+printf '%s' "$draft" > "$dir/draft"
+SH
+  chmod +x "$dir/fakebin/herdr"
+  printf '%s\n' "$dir/fakebin"
+}
+
 # herdr_wrapped_composer: a Claude composer holding <text> wrapped at <width>
 # columns, with its first <drop> rows already deleted. Live Claude's Ctrl+U
 # deletes one wrapped screen row per press, so a stub that clears a whole
@@ -5163,23 +5242,19 @@ test_send_text_submit_refuses_enter_when_composer_holds_only_the_suffix() {
 }
 
 test_send_text_submit_refused_suffix_that_will_not_clear_is_unknown() {
-  local dir log resp fb out enter_count text suffix cap n
-  dir="$TMP_ROOT/submit-long-suffix-stuck"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  local dir log fb out enter_count text suffix clears
+  dir="$TMP_ROOT/submit-long-suffix-stuck"; mkdir -p "$dir"; log="$dir/log"; : > "$log"
   text=$(herdr_long_payload 1492)
   suffix=${text: -480}
-  herdr_submit_claude_prefix "$resp" "$text"
-  printf '  \xe2\x9d\xaf %s\n' "$suffix" > "$resp/4.out"
-  cap=$(( 1500 / 40 + 8 ))
-  for ((n = 6; n <= 4 + 2 * cap; n += 2)); do
-    printf '  \xe2\x9d\xaf %s\n' "$suffix" > "$resp/$n.out"
-  done
-  fb=$(make_herdr_fakebin "$dir")
-  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+  fb=$(make_herdr_composer_fakebin "$dir" stuck)
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_COMPOSER_DIR="$dir" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
     bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
   [ "$out" = unknown ] || fail "a refused suffix that stays in the composer must not claim nothing was typed, got '$out'"
   enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
   [ "$enter_count" -eq 0 ] || fail "a suffix must not be submitted, sent $enter_count Enter(s)"
-  [ "$(herdr_ctrl_u_count "$log")" -eq "$cap" ] || fail "a leftover that will not clear should get a bounded $cap Ctrl+U presses, sent $(herdr_ctrl_u_count "$log")"
+  [ "$(cat "$dir/draft")" = "$suffix" ] || fail "the unresponsive composer must retain its refused suffix"
+  clears=$(herdr_ctrl_u_count "$log")
+  [ "$clears" -gt 0 ] && [ "$clears" -le 200 ] || fail "a stuck composer must get a bounded clear attempt, sent $clears Ctrl+U presses"
   pass "fm_backend_herdr_send_text_submit: a refused suffix whose clear cannot be verified reports unknown, not send-failed"
 }
 
@@ -5200,6 +5275,57 @@ test_send_text_submit_clears_a_wrapped_suffix_one_row_per_press() {
   [ "$enter_count" -eq 0 ] || fail "a suffix must not be submitted, sent $enter_count Enter(s)"
   [ "$(herdr_ctrl_u_count "$log")" -eq 5 ] || fail "a five-row wrapped suffix should take five Ctrl+U presses, sent $(herdr_ctrl_u_count "$log")"
   pass "fm_backend_herdr_send_text_submit: a refused 480-character suffix wrapped over five rows is cleared one row per Ctrl+U and reports send-failed"
+}
+
+# The lost-submit incident: Claude echoes a typed doorbell slower than the
+# settle, so the proof read sees an empty composer, then only the head. The
+# proof waits for the echo instead of refusing a payload still arriving.
+test_send_text_submit_waits_for_a_slow_claude_echo() {
+  local dir log resp fb out enter_count text
+  dir="$TMP_ROOT/submit-slow-echo"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  text=$(herdr_long_payload 165)
+  herdr_submit_claude_prefix "$resp" "$text"
+  printf '  \xe2\x9d\xaf\n' > "$resp/4.out"
+  printf '  \xe2\x9d\xaf %s\n' "${text:0:60}" > "$resp/5.out"
+  printf '  \xe2\x9d\xaf %s\n' "$text" > "$resp/6.out"
+  printf '{"result":{"agent":{"agent_status":"idle"}}}\n' > "$resp/7.out"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/9.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
+  [ "$out" = empty ] || fail "a payload whose echo arrives after the settle should be submitted, got '$out'"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "a slowly echoed payload should be submitted once, sent $enter_count Enter(s)"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a payload still being echoed must not be cleared, sent $(herdr_ctrl_u_count "$log") Ctrl+U"
+  pass "fm_backend_herdr_send_text_submit: a Claude echo that shows empty, then the head, then the whole payload is waited for and submitted"
+}
+
+# When the echo never completes inside the proof budget, its rows may still be
+# queued behind the clear. A clear that stopped at the first empty read
+# deleted only the last wrapped row once Claude caught up, stranding the head
+# that later rings skipped as foreign pending text. Every press is sent.
+test_send_text_submit_clears_every_row_of_an_echo_still_arriving() {
+  local dir log fb out enter_count text
+  dir="$TMP_ROOT/submit-slow-echo-clear"; mkdir -p "$dir"; log="$dir/log"; : > "$log"
+  text=$(herdr_long_payload 165)
+  fb=$(make_herdr_composer_fakebin "$dir" queued)
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_COMPOSER_DIR="$dir" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    FM_BACKEND_HERDR_PROOF_POLLS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"
+      first=$(fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01)
+      [ "$first" = send-failed ] || exit 1
+      [ "$(fm_backend_herdr_composer_content default:w1:p2)" = "" ] || exit 2
+      [ ! -e "$FM_HERDR_COMPOSER_DIR/queued" ] || exit 3
+      [ ! -s "$FM_HERDR_COMPOSER_DIR/draft" ] || exit 4
+      [ ! -e "$FM_HERDR_COMPOSER_DIR/submitted" ] || exit 5
+      fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" ) \
+    || fail "the refused queued echo must drain without a stranded draft or submission"
+  [ "$out" = empty ] || fail "the retry after a cleared queued echo should submit, got '$out'"
+  [ "$(cat "$dir/submitted")" = "$text" ] || fail "the retry must submit exactly the original message"
+  [ ! -s "$dir/draft" ] || fail "the successful retry must leave no draft"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "only the clean retry should be submitted, sent $enter_count Enter(s)"
+  pass "fm_backend_herdr_send_text_submit: a queued echo is cleared without a stranded draft and the next send submits exactly the message"
 }
 
 test_send_text_submit_refused_suffix_then_clean_retry_submits_only_the_message() {
@@ -6575,6 +6701,8 @@ test_send_text_submit_long_literal_submits_when_composer_holds_every_byte
 test_send_text_submit_refuses_enter_when_composer_holds_only_the_suffix
 test_send_text_submit_refused_suffix_that_will_not_clear_is_unknown
 test_send_text_submit_clears_a_wrapped_suffix_one_row_per_press
+test_send_text_submit_waits_for_a_slow_claude_echo
+test_send_text_submit_clears_every_row_of_an_echo_still_arriving
 test_send_text_submit_refused_suffix_then_clean_retry_submits_only_the_message
 test_send_text_submit_claude_refuses_to_type_into_a_nonempty_composer
 test_send_text_submit_refuses_suffix_when_transcript_still_shows_the_head
