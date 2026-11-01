@@ -737,15 +737,20 @@ The [verification record](verification/runtime-backends.md#claude-completion-pop
 
 That comparison ignores whitespace and U+2063, the invisible mark that starts operational inputs and ends the from-firstmate label.
 It ignores U+2063 because Claude's Herdr read-back never shows it.
+After the initial settle, an empty composer or a matching prefix of the payload triggers bounded polling for the remaining echo.
+The polling budget and interval are owned by `fm_backend_herdr_composer_echo` in [`bin/backends/herdr.sh`](../bin/backends/herdr.sh).
 
-A composer that holds a shorter suffix, or a placeholder plus a literal remainder, does not receive Enter.
+A composer that holds a shorter suffix or a placeholder plus a literal remainder, cannot be read, or still shows an incomplete echo when polling ends does not receive Enter.
 Instead:
 
-1. The adapter presses Ctrl+U until the shared classifier reads the composer as empty.
+1. The adapter makes a bounded Ctrl+U clear attempt, sized from the payload length.
+   If the echo is still arriving when polling ends, it sends every clear press before checking for an empty composer, because an early empty read can precede the queued text.
+   Otherwise, it checks after each press and stops when the shared classifier reads the composer as empty.
 2. It then reports `send-failed`, so a resend starts from a clean composer.
 
 Ctrl+C is not used for this, because Claude documents it as interrupting a running operation.
 If the composer cannot be verified empty again, the submit reports `unknown` instead, because text may still be in the composer.
+The [slow-echo verification record](verification/runtime-backends.md#claude-slow-echo-of-a-steering-doorbell) owns the measured delay and regression entry points.
 
 Other harnesses, and panes with no native identity, skip this proof and keep the type-then-Enter path.
 They skip it because their paste placeholders and composer shapes are not live-verified.

@@ -1502,11 +1502,8 @@ ok - live Herdr submit confirm: Claude Code (2.1.236 (Claude Code)) on herdr 0.8
 
 Measured 2026-10-31 against Herdr 0.9.5 and Claude Code 2.1.308 in an isolated `fm-lab-` session, with Claude in a 51-column pane.
 Under CPU starvation, Claude's composer read stayed empty for about 5.7 seconds after a literal send, past the ring's 0.3-second settle.
-Before the fix, the payload proof refused that empty read, and the clear stopped at its first `empty` read, which Claude had not yet rendered.
-Claude then deleted only the last wrapped row of the doorbell, so the ring left the doorbell's head in the composer and skipped every later ring.
-The proof now re-reads the composer while it shows nothing or only the start of the payload.
-A refused echo that was still arriving gets every bounded Ctrl+U press before the clear's verifying read.
-The ring submits a stranded head of its own doorbell.
+The [Claude composer proof](../herdr-backend.md#claude-composer-proof) owns echo polling and refused-echo cleanup.
+[`fm_task_inbox_ring` and `fm_task_inbox_composer_holds`](../../bin/fm-task-inbox-lib.sh) own recovery of an unsubmitted doorbell or its stranded head.
 The portable regressions are in `tests/fm-backend-herdr.test.sh` and `tests/fm-task-inbox.test.sh`.
 Refresh the live proof with:
 
