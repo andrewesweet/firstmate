@@ -1,0 +1,12 @@
+$ bin/fm-topic-brief.sh unknown --json
+jq: error (at ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/fm-topic-brief.M49DIq/registry.json:18): unknown topic
+fm-topic-brief: unknown topic: unknown (no name or alias matches; registered: release, other)
+exit: 2
+
+$ bin/fm-topic-brief.sh release --since 2026-02-30 --json
+fm-topic-brief: --since is not a real calendar date: 2026-02-30
+exit: 2
+
+$ bin/fm-topic-brief.sh release --json
+fm-topic-brief: malformed topic registry: ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/data/topics.md line 1: topic lines start with "- "
+exit: 2

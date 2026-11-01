@@ -1,0 +1,18 @@
+ok - an underway row leads with the task name and still reports its run status
+ok - an underway identifier label is not replaced by run status
+ok - charted next renders the most recently filed work first
+ok - charted rows with no filed date follow the dated rows in payload order
+ok - a warning row badges needs repair while queued work keeps waiting
+ok - the charted next count counts queued work only, and still renders warnings
+ok - a warning-only board reports nothing queued and still shows the warning
+ok - omitted warnings remain separate from omitted queued work
+ok - an omitted kind renders exactly as queued work always did
+ok - captured choices preserve the label beside the distinct selection value
+dropped-landed-card: t-dec (structured subject already landed)
+dropped-landed-card: mate/t-dec (structured subject already landed)
+dropped-landed-card: mate/t-dec (structured subject already landed)
+ok - owner-qualified stale checks keep colliding homes separate; nonlocal captures stay out of local intake
+ok - rendered work approvals reach the existing intake with release mode
+ok - the built board renders snapshot PR URLs as links and report artifacts as recorded
+ok - real topic board drops stale PRs outside topic/window and refreshed closed calls; injected reconcile stays out of completion/release intake
+ok - whole 600-byte option labels remain selectable while the submitted selection/note retains its 512-byte guard

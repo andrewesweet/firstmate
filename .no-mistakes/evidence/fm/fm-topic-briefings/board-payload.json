@@ -1,0 +1,192 @@
+{
+  "schema": "fm-bearings-board.v1",
+  "home": "release",
+  "generated": "2026-11-01T03:35:02Z",
+  "prs_live": false,
+  "captains_call": [
+    {
+      "key": "decision",
+      "owner": "(main)",
+      "close": "done",
+      "type": "decision",
+      "repo": "demo",
+      "title": "Choose release posture",
+      "about": "Which posture? options: ship now | reconcile | wait for review",
+      "options": [
+        {
+          "value": "option-0-ship-now",
+          "label": "ship now"
+        },
+        {
+          "value": "option-2-wait-for-review",
+          "label": "wait for review"
+        },
+        {
+          "value": "reconcile",
+          "label": "Reconcile",
+          "hint": "Re-check the latest state, then close this with evidence or keep it open with a note"
+        }
+      ],
+      "allow_freeform": false
+    },
+    {
+      "key": "mate/decision",
+      "owner": "mate",
+      "close": "done",
+      "type": "decision",
+      "repo": "demo",
+      "title": "Choose release posture",
+      "about": "Which posture? options: ship now | reconcile | wait for review",
+      "options": [
+        {
+          "value": "option-0-ship-now",
+          "label": "ship now"
+        },
+        {
+          "value": "option-2-wait-for-review",
+          "label": "wait for review"
+        },
+        {
+          "value": "reconcile",
+          "label": "Reconcile",
+          "hint": "Re-check the latest state, then close this with evidence or keep it open with a note"
+        }
+      ],
+      "allow_freeform": false
+    }
+  ],
+  "underway": [
+    {
+      "id": "flight",
+      "kind": "scout",
+      "state": "unknown",
+      "name": "Current release investigation",
+      "doing": "worktree gone (torn down?)",
+      "repo": "demo"
+    }
+  ],
+  "landed": [
+    {
+      "id": "landed",
+      "what": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)",
+      "owner": "(main)",
+      "repo": "demo",
+      "artifact": "https://github.com/example/demo/pull/42",
+      "pr_url": "https://github.com/example/demo/pull/42"
+    },
+    {
+      "id": "mate/landed",
+      "what": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)",
+      "owner": "mate",
+      "repo": "demo",
+      "artifact": "https://github.com/example/demo/pull/42",
+      "pr_url": "https://github.com/example/demo/pull/42"
+    }
+  ],
+  "charted": [
+    {
+      "id": "ready",
+      "title": "Publish release notes — 日本語",
+      "owner": "(main)",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "ready",
+      "dispatchable": true
+    },
+    {
+      "id": "mate/ready",
+      "title": "Publish release notes — 日本語",
+      "owner": "mate",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "ready",
+      "dispatchable": true
+    },
+    {
+      "id": "observation",
+      "title": "Held flight observation",
+      "owner": "(main)",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "external hold: Waiting for upstream signal",
+      "dispatchable": false
+    },
+    {
+      "id": "waiting",
+      "title": "Dependent rollout",
+      "owner": "(main)",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "blocked by ready",
+      "dispatchable": false
+    },
+    {
+      "id": "external",
+      "title": "Vendor release approval",
+      "owner": "(main)",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "external hold until 2099-12-01: Waiting for vendor approval",
+      "dispatchable": false
+    },
+    {
+      "id": "mate/observation",
+      "title": "Held flight observation",
+      "owner": "mate",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "external hold: Waiting for upstream signal",
+      "dispatchable": false
+    },
+    {
+      "id": "mate/waiting",
+      "title": "Dependent rollout",
+      "owner": "mate",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "blocked by mate/ready",
+      "dispatchable": false
+    },
+    {
+      "id": "mate/external",
+      "title": "Vendor release approval",
+      "owner": "mate",
+      "filed": "2026-11-01",
+      "repo": "demo",
+      "reason": "external hold until 2099-12-01: Waiting for vendor approval",
+      "dispatchable": false
+    },
+    {
+      "id": "topic-coverage-0",
+      "title": "Topic coverage",
+      "repo": null,
+      "kind": "warning",
+      "reason": "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+      "dispatchable": false
+    },
+    {
+      "id": "topic-coverage-1",
+      "title": "Topic coverage",
+      "repo": null,
+      "kind": "warning",
+      "reason": "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+      "dispatchable": false
+    },
+    {
+      "id": "topic-coverage-2",
+      "title": "Topic coverage",
+      "repo": null,
+      "kind": "warning",
+      "reason": "main inventory: in-flight backlog item has no child metadata",
+      "dispatchable": false
+    },
+    {
+      "id": "topic-coverage-3",
+      "title": "Topic coverage",
+      "repo": null,
+      "kind": "warning",
+      "reason": "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta",
+      "dispatchable": false
+    }
+  ]
+}

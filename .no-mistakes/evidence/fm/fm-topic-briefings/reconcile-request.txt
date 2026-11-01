@@ -1,0 +1,20 @@
+decision	requested=2026-11-01T03:33:21Z	source=the captured result lavish-bdd9864c5ee0b696 sequence 1
+reconcile-requests: 1
+task:
+  id: decision
+  title: Choose release posture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Which posture? options: ship now | reconcile | wait for review"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: demo
+  priority: "-"
+  created: 2026-11-01
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-11-01T03:31:32Z"

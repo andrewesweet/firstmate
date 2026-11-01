@@ -1,0 +1,1787 @@
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 114
+snapshot:
+uid=g22:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g22:8_1 "Lavish"
+  uid=g22:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g22:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g22:8_3 button "More" expandable haspopup="menu"
+  uid=g22:8_4 Iframe
+    uid=g22:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g22:8_6 banner
+        uid=g22:8_7 "bearings"
+      uid=g22:8_8 main
+        uid=g22:8_9 "2"
+        uid=g22:8_10 "NEED YOU"
+        uid=g22:8_11 "1"
+        uid=g22:8_12 "UNDERWAY"
+        uid=g22:8_13 "2"
+        uid=g22:8_14 "LANDED RECENTLY"
+        uid=g22:8_15 "8"
+        uid=g22:8_16 "CHARTED NEXT"
+        uid=g22:8_17 "CAPTAIN'S CALL"
+        uid=g22:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g22:8_19 "DECISION"
+        uid=g22:8_20 "demo"
+        uid=g22:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g22:8_22 "ABOUT"
+        uid=g22:8_23 "Ready? options: ship now | wait"
+        uid=g22:8_24 form
+          uid=g22:8_25 radio "ship now"
+          uid=g22:8_26 "ship now"
+          uid=g22:8_27 radio "wait"
+          uid=g22:8_28 "wait"
+          uid=g22:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g22:8_30 "Reconcile"
+          uid=g22:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g22:8_32 button "Queue answer"
+        uid=g22:8_33 "card 1 of 2"
+        uid=g22:8_34 button "Previous card" disableable disabled
+        uid=g22:8_35 button "Next card"
+        uid=g22:8_36 "CHARTED NEXT"
+        uid=g22:8_37 checkbox "Pick ready for dispatch"
+        uid=g22:8_38 "Publish release notes — 日本語"
+        uid=g22:8_39 "ready · demo"
+        uid=g22:8_40 "WAITING"
+        uid=g22:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g22:8_42 "Publish release notes — 日本語"
+        uid=g22:8_43 "ready · demo"
+        uid=g22:8_44 "WAITING"
+        uid=g22:8_45 "Held flight observation"
+        uid=g22:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g22:8_47 "WAITING"
+        uid=g22:8_48 "Dependent rollout"
+        uid=g22:8_49 "blocked by ready · demo"
+        uid=g22:8_50 "WAITING"
+        uid=g22:8_51 "Vendor release approval"
+        uid=g22:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g22:8_53 "WAITING"
+        uid=g22:8_54 "Held flight observation"
+        uid=g22:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g22:8_56 "WAITING"
+        uid=g22:8_57 "Dependent rollout"
+        uid=g22:8_58 "blocked by mate/ready · demo"
+        uid=g22:8_59 "WAITING"
+        uid=g22:8_60 "Vendor release approval"
+        uid=g22:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g22:8_62 "WAITING"
+        uid=g22:8_63 "Topic coverage"
+        uid=g22:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g22:8_65 "NEEDS REPAIR"
+        uid=g22:8_66 "Topic coverage"
+        uid=g22:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g22:8_68 "NEEDS REPAIR"
+        uid=g22:8_69 "Topic coverage"
+        uid=g22:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g22:8_71 "NEEDS REPAIR"
+        uid=g22:8_72 "Topic coverage"
+        uid=g22:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g22:8_74 "NEEDS REPAIR"
+        uid=g22:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g22:8_76 button "Queue dispatch order" disableable disabled
+        uid=g22:8_77 "UNDERWAY"
+        uid=g22:8_78 "UNKNOWN"
+        uid=g22:8_79 "Current release investigation"
+        uid=g22:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g22:8_81 "RECENTLY LANDED"
+        uid=g22:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g22:8_83 "demo · (main)"
+        uid=g22:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g22:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g22:8_87 "demo · mate"
+        uid=g22:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g22:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g22:8_91 complementary
+    uid=g22:8_92 heading "Conversation" level="2"
+    uid=g22:8_93 status atomic live="polite" relevant="additions text"
+      uid=g22:8_94 "Agent listening"
+    uid=g22:8_95 button "Hide conversation" expandable expanded
+    uid=g22:8_96 "YOU"
+    uid=g22:8_97 "<choice>"
+    uid=g22:8_98 "“Choose release posture -> Reconcile”"
+    uid=g22:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g22:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g22:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g22:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g22:8_103 "YOU"
+    uid=g22:8_104 "<choice>"
+    uid=g22:8_105 "“Choose release posture -> ship now”"
+    uid=g22:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g22:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g22:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g22:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g22:8_110 textbox "Write a message for the agent..." multiline
+    uid=g22:8_111 button "Attach images"
+    uid=g22:8_112 status atomic live="polite" relevant="additions text"
+    uid=g22:8_113 button "Send & End"
+    uid=g22:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g22:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g22:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g22:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 114
+snapshot:
+uid=g23:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g23:8_1 "Lavish"
+  uid=g23:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g23:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g23:8_3 button "More" expandable haspopup="menu"
+  uid=g23:8_4 Iframe
+    uid=g23:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g23:8_6 banner
+        uid=g23:8_7 "bearings"
+      uid=g23:8_8 main
+        uid=g23:8_9 "2"
+        uid=g23:8_10 "NEED YOU"
+        uid=g23:8_11 "1"
+        uid=g23:8_12 "UNDERWAY"
+        uid=g23:8_13 "2"
+        uid=g23:8_14 "LANDED RECENTLY"
+        uid=g23:8_15 "8"
+        uid=g23:8_16 "CHARTED NEXT"
+        uid=g23:8_17 "CAPTAIN'S CALL"
+        uid=g23:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g23:8_19 "DECISION"
+        uid=g23:8_20 "demo"
+        uid=g23:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g23:8_22 "ABOUT"
+        uid=g23:8_23 "Ready? options: ship now | wait"
+        uid=g23:8_24 form
+          uid=g23:8_25 radio "ship now"
+          uid=g23:8_26 "ship now"
+          uid=g23:8_27 radio "wait"
+          uid=g23:8_28 "wait"
+          uid=g23:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g23:8_30 "Reconcile"
+          uid=g23:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g23:8_32 button "Queue answer"
+        uid=g23:8_33 "card 1 of 2"
+        uid=g23:8_34 button "Previous card" disableable disabled
+        uid=g23:8_35 button "Next card"
+        uid=g23:8_36 "CHARTED NEXT"
+        uid=g23:8_37 checkbox "Pick ready for dispatch"
+        uid=g23:8_38 "Publish release notes — 日本語"
+        uid=g23:8_39 "ready · demo"
+        uid=g23:8_40 "WAITING"
+        uid=g23:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g23:8_42 "Publish release notes — 日本語"
+        uid=g23:8_43 "ready · demo"
+        uid=g23:8_44 "WAITING"
+        uid=g23:8_45 "Held flight observation"
+        uid=g23:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g23:8_47 "WAITING"
+        uid=g23:8_48 "Dependent rollout"
+        uid=g23:8_49 "blocked by ready · demo"
+        uid=g23:8_50 "WAITING"
+        uid=g23:8_51 "Vendor release approval"
+        uid=g23:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g23:8_53 "WAITING"
+        uid=g23:8_54 "Held flight observation"
+        uid=g23:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g23:8_56 "WAITING"
+        uid=g23:8_57 "Dependent rollout"
+        uid=g23:8_58 "blocked by mate/ready · demo"
+        uid=g23:8_59 "WAITING"
+        uid=g23:8_60 "Vendor release approval"
+        uid=g23:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g23:8_62 "WAITING"
+        uid=g23:8_63 "Topic coverage"
+        uid=g23:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g23:8_65 "NEEDS REPAIR"
+        uid=g23:8_66 "Topic coverage"
+        uid=g23:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g23:8_68 "NEEDS REPAIR"
+        uid=g23:8_69 "Topic coverage"
+        uid=g23:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g23:8_71 "NEEDS REPAIR"
+        uid=g23:8_72 "Topic coverage"
+        uid=g23:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g23:8_74 "NEEDS REPAIR"
+        uid=g23:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g23:8_76 button "Queue dispatch order" disableable disabled
+        uid=g23:8_77 "UNDERWAY"
+        uid=g23:8_78 "UNKNOWN"
+        uid=g23:8_79 "Current release investigation"
+        uid=g23:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g23:8_81 "RECENTLY LANDED"
+        uid=g23:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g23:8_83 "demo · (main)"
+        uid=g23:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g23:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g23:8_87 "demo · mate"
+        uid=g23:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g23:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g23:8_91 complementary
+    uid=g23:8_92 heading "Conversation" level="2"
+    uid=g23:8_93 status atomic live="polite" relevant="additions text"
+      uid=g23:8_94 "Agent listening"
+    uid=g23:8_95 button "Hide conversation" expandable expanded
+    uid=g23:8_96 "YOU"
+    uid=g23:8_97 "<choice>"
+    uid=g23:8_98 "“Choose release posture -> Reconcile”"
+    uid=g23:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g23:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g23:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g23:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g23:8_103 "YOU"
+    uid=g23:8_104 "<choice>"
+    uid=g23:8_105 "“Choose release posture -> ship now”"
+    uid=g23:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g23:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g23:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g23:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g23:8_110 textbox "Write a message for the agent..." multiline
+    uid=g23:8_111 button "Attach images" focusable focused
+    uid=g23:8_112 status atomic live="polite" relevant="additions text"
+    uid=g23:8_113 button "Send & End"
+    uid=g23:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g23:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g23:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g23:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 114
+snapshot:
+uid=g24:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g24:8_1 "Lavish"
+  uid=g24:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g24:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g24:8_3 button "More" expandable haspopup="menu"
+  uid=g24:8_4 Iframe
+    uid=g24:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g24:8_6 banner
+        uid=g24:8_7 "bearings"
+      uid=g24:8_8 main
+        uid=g24:8_9 "2"
+        uid=g24:8_10 "NEED YOU"
+        uid=g24:8_11 "1"
+        uid=g24:8_12 "UNDERWAY"
+        uid=g24:8_13 "2"
+        uid=g24:8_14 "LANDED RECENTLY"
+        uid=g24:8_15 "8"
+        uid=g24:8_16 "CHARTED NEXT"
+        uid=g24:8_17 "CAPTAIN'S CALL"
+        uid=g24:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g24:8_19 "DECISION"
+        uid=g24:8_20 "demo"
+        uid=g24:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g24:8_22 "ABOUT"
+        uid=g24:8_23 "Ready? options: ship now | wait"
+        uid=g24:8_24 form
+          uid=g24:8_25 radio "ship now"
+          uid=g24:8_26 "ship now"
+          uid=g24:8_27 radio "wait"
+          uid=g24:8_28 "wait"
+          uid=g24:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g24:8_30 "Reconcile"
+          uid=g24:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g24:8_32 button "Queue answer"
+        uid=g24:8_33 "card 1 of 2"
+        uid=g24:8_34 button "Previous card" disableable disabled
+        uid=g24:8_35 button "Next card"
+        uid=g24:8_36 "CHARTED NEXT"
+        uid=g24:8_37 checkbox "Pick ready for dispatch"
+        uid=g24:8_38 "Publish release notes — 日本語"
+        uid=g24:8_39 "ready · demo"
+        uid=g24:8_40 "WAITING"
+        uid=g24:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g24:8_42 "Publish release notes — 日本語"
+        uid=g24:8_43 "ready · demo"
+        uid=g24:8_44 "WAITING"
+        uid=g24:8_45 "Held flight observation"
+        uid=g24:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g24:8_47 "WAITING"
+        uid=g24:8_48 "Dependent rollout"
+        uid=g24:8_49 "blocked by ready · demo"
+        uid=g24:8_50 "WAITING"
+        uid=g24:8_51 "Vendor release approval"
+        uid=g24:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g24:8_53 "WAITING"
+        uid=g24:8_54 "Held flight observation"
+        uid=g24:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g24:8_56 "WAITING"
+        uid=g24:8_57 "Dependent rollout"
+        uid=g24:8_58 "blocked by mate/ready · demo"
+        uid=g24:8_59 "WAITING"
+        uid=g24:8_60 "Vendor release approval"
+        uid=g24:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g24:8_62 "WAITING"
+        uid=g24:8_63 "Topic coverage"
+        uid=g24:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g24:8_65 "NEEDS REPAIR"
+        uid=g24:8_66 "Topic coverage"
+        uid=g24:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g24:8_68 "NEEDS REPAIR"
+        uid=g24:8_69 "Topic coverage"
+        uid=g24:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g24:8_71 "NEEDS REPAIR"
+        uid=g24:8_72 "Topic coverage"
+        uid=g24:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g24:8_74 "NEEDS REPAIR"
+        uid=g24:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g24:8_76 button "Queue dispatch order" disableable disabled
+        uid=g24:8_77 "UNDERWAY"
+        uid=g24:8_78 "UNKNOWN"
+        uid=g24:8_79 "Current release investigation"
+        uid=g24:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g24:8_81 "RECENTLY LANDED"
+        uid=g24:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g24:8_83 "demo · (main)"
+        uid=g24:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g24:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g24:8_87 "demo · mate"
+        uid=g24:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g24:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g24:8_91 complementary
+    uid=g24:8_92 heading "Conversation" level="2"
+    uid=g24:8_93 status atomic live="polite" relevant="additions text"
+      uid=g24:8_94 "Agent listening"
+    uid=g24:8_95 button "Hide conversation" expandable expanded
+    uid=g24:8_96 "YOU"
+    uid=g24:8_97 "<choice>"
+    uid=g24:8_98 "“Choose release posture -> Reconcile”"
+    uid=g24:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g24:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g24:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g24:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g24:8_103 "YOU"
+    uid=g24:8_104 "<choice>"
+    uid=g24:8_105 "“Choose release posture -> ship now”"
+    uid=g24:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g24:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g24:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g24:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g24:8_110 textbox "Write a message for the agent..." multiline
+    uid=g24:8_111 button "Attach images" focusable focused
+    uid=g24:8_112 status atomic live="polite" relevant="additions text"
+    uid=g24:8_113 button "Send & End"
+    uid=g24:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g24:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g24:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g24:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 114
+snapshot:
+uid=g25:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g25:8_1 "Lavish"
+  uid=g25:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g25:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g25:8_3 button "More" expandable haspopup="menu"
+  uid=g25:8_4 Iframe
+    uid=g25:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g25:8_6 banner
+        uid=g25:8_7 "bearings"
+      uid=g25:8_8 main
+        uid=g25:8_9 "2"
+        uid=g25:8_10 "NEED YOU"
+        uid=g25:8_11 "1"
+        uid=g25:8_12 "UNDERWAY"
+        uid=g25:8_13 "2"
+        uid=g25:8_14 "LANDED RECENTLY"
+        uid=g25:8_15 "8"
+        uid=g25:8_16 "CHARTED NEXT"
+        uid=g25:8_17 "CAPTAIN'S CALL"
+        uid=g25:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g25:8_19 "DECISION"
+        uid=g25:8_20 "demo"
+        uid=g25:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g25:8_22 "ABOUT"
+        uid=g25:8_23 "Ready? options: ship now | wait"
+        uid=g25:8_24 form
+          uid=g25:8_25 radio "ship now"
+          uid=g25:8_26 "ship now"
+          uid=g25:8_27 radio "wait"
+          uid=g25:8_28 "wait"
+          uid=g25:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g25:8_30 "Reconcile"
+          uid=g25:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g25:8_32 button "Queue answer"
+        uid=g25:8_33 "card 1 of 2"
+        uid=g25:8_34 button "Previous card" disableable disabled
+        uid=g25:8_35 button "Next card"
+        uid=g25:8_36 "CHARTED NEXT"
+        uid=g25:8_37 checkbox "Pick ready for dispatch"
+        uid=g25:8_38 "Publish release notes — 日本語"
+        uid=g25:8_39 "ready · demo"
+        uid=g25:8_40 "WAITING"
+        uid=g25:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g25:8_42 "Publish release notes — 日本語"
+        uid=g25:8_43 "ready · demo"
+        uid=g25:8_44 "WAITING"
+        uid=g25:8_45 "Held flight observation"
+        uid=g25:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g25:8_47 "WAITING"
+        uid=g25:8_48 "Dependent rollout"
+        uid=g25:8_49 "blocked by ready · demo"
+        uid=g25:8_50 "WAITING"
+        uid=g25:8_51 "Vendor release approval"
+        uid=g25:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g25:8_53 "WAITING"
+        uid=g25:8_54 "Held flight observation"
+        uid=g25:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g25:8_56 "WAITING"
+        uid=g25:8_57 "Dependent rollout"
+        uid=g25:8_58 "blocked by mate/ready · demo"
+        uid=g25:8_59 "WAITING"
+        uid=g25:8_60 "Vendor release approval"
+        uid=g25:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g25:8_62 "WAITING"
+        uid=g25:8_63 "Topic coverage"
+        uid=g25:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g25:8_65 "NEEDS REPAIR"
+        uid=g25:8_66 "Topic coverage"
+        uid=g25:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g25:8_68 "NEEDS REPAIR"
+        uid=g25:8_69 "Topic coverage"
+        uid=g25:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g25:8_71 "NEEDS REPAIR"
+        uid=g25:8_72 "Topic coverage"
+        uid=g25:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g25:8_74 "NEEDS REPAIR"
+        uid=g25:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g25:8_76 button "Queue dispatch order" disableable disabled
+        uid=g25:8_77 "UNDERWAY"
+        uid=g25:8_78 "UNKNOWN"
+        uid=g25:8_79 "Current release investigation"
+        uid=g25:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g25:8_81 "RECENTLY LANDED"
+        uid=g25:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g25:8_83 "demo · (main)"
+        uid=g25:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g25:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g25:8_87 "demo · mate"
+        uid=g25:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g25:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g25:8_91 complementary
+    uid=g25:8_92 heading "Conversation" level="2"
+    uid=g25:8_93 status atomic live="polite" relevant="additions text"
+      uid=g25:8_94 "Agent listening"
+    uid=g25:8_95 button "Hide conversation" expandable expanded
+    uid=g25:8_96 "YOU"
+    uid=g25:8_97 "<choice>"
+    uid=g25:8_98 "“Choose release posture -> Reconcile”"
+    uid=g25:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g25:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g25:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g25:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g25:8_103 "YOU"
+    uid=g25:8_104 "<choice>"
+    uid=g25:8_105 "“Choose release posture -> ship now”"
+    uid=g25:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g25:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g25:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g25:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g25:8_110 textbox "Write a message for the agent..." multiline
+    uid=g25:8_111 button "Attach images"
+    uid=g25:8_112 status atomic live="polite" relevant="additions text"
+    uid=g25:8_113 button "Send & End"
+    uid=g25:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g25:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g25:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g25:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 114
+snapshot:
+uid=g26:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g26:8_1 "Lavish"
+  uid=g26:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g26:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g26:8_3 button "More" expandable haspopup="menu"
+  uid=g26:8_4 Iframe
+    uid=g26:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g26:8_6 banner
+        uid=g26:8_7 "bearings"
+      uid=g26:8_8 main
+        uid=g26:8_9 "2"
+        uid=g26:8_10 "NEED YOU"
+        uid=g26:8_11 "1"
+        uid=g26:8_12 "UNDERWAY"
+        uid=g26:8_13 "2"
+        uid=g26:8_14 "LANDED RECENTLY"
+        uid=g26:8_15 "8"
+        uid=g26:8_16 "CHARTED NEXT"
+        uid=g26:8_17 "CAPTAIN'S CALL"
+        uid=g26:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g26:8_19 "DECISION"
+        uid=g26:8_20 "demo"
+        uid=g26:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g26:8_22 "ABOUT"
+        uid=g26:8_23 "Ready? options: ship now | wait"
+        uid=g26:8_24 form
+          uid=g26:8_25 radio "ship now"
+          uid=g26:8_26 "ship now"
+          uid=g26:8_27 radio "wait"
+          uid=g26:8_28 "wait"
+          uid=g26:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g26:8_30 "Reconcile"
+          uid=g26:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g26:8_32 button "Queue answer"
+        uid=g26:8_33 "card 1 of 2"
+        uid=g26:8_34 button "Previous card" disableable disabled
+        uid=g26:8_35 button "Next card"
+        uid=g26:8_36 "CHARTED NEXT"
+        uid=g26:8_37 checkbox "Pick ready for dispatch"
+        uid=g26:8_38 "Publish release notes — 日本語"
+        uid=g26:8_39 "ready · demo"
+        uid=g26:8_40 "WAITING"
+        uid=g26:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g26:8_42 "Publish release notes — 日本語"
+        uid=g26:8_43 "ready · demo"
+        uid=g26:8_44 "WAITING"
+        uid=g26:8_45 "Held flight observation"
+        uid=g26:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g26:8_47 "WAITING"
+        uid=g26:8_48 "Dependent rollout"
+        uid=g26:8_49 "blocked by ready · demo"
+        uid=g26:8_50 "WAITING"
+        uid=g26:8_51 "Vendor release approval"
+        uid=g26:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g26:8_53 "WAITING"
+        uid=g26:8_54 "Held flight observation"
+        uid=g26:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g26:8_56 "WAITING"
+        uid=g26:8_57 "Dependent rollout"
+        uid=g26:8_58 "blocked by mate/ready · demo"
+        uid=g26:8_59 "WAITING"
+        uid=g26:8_60 "Vendor release approval"
+        uid=g26:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g26:8_62 "WAITING"
+        uid=g26:8_63 "Topic coverage"
+        uid=g26:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g26:8_65 "NEEDS REPAIR"
+        uid=g26:8_66 "Topic coverage"
+        uid=g26:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g26:8_68 "NEEDS REPAIR"
+        uid=g26:8_69 "Topic coverage"
+        uid=g26:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g26:8_71 "NEEDS REPAIR"
+        uid=g26:8_72 "Topic coverage"
+        uid=g26:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g26:8_74 "NEEDS REPAIR"
+        uid=g26:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g26:8_76 button "Queue dispatch order" disableable disabled
+        uid=g26:8_77 "UNDERWAY"
+        uid=g26:8_78 "UNKNOWN"
+        uid=g26:8_79 "Current release investigation"
+        uid=g26:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g26:8_81 "RECENTLY LANDED"
+        uid=g26:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g26:8_83 "demo · (main)"
+        uid=g26:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g26:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g26:8_87 "demo · mate"
+        uid=g26:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g26:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g26:8_91 complementary
+    uid=g26:8_92 heading "Conversation" level="2"
+    uid=g26:8_93 status atomic live="polite" relevant="additions text"
+      uid=g26:8_94 "Agent listening"
+    uid=g26:8_95 button "Hide conversation" expandable expanded
+    uid=g26:8_96 "YOU"
+    uid=g26:8_97 "<choice>"
+    uid=g26:8_98 "“Choose release posture -> Reconcile”"
+    uid=g26:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g26:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g26:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g26:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g26:8_103 "YOU"
+    uid=g26:8_104 "<choice>"
+    uid=g26:8_105 "“Choose release posture -> ship now”"
+    uid=g26:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g26:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g26:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g26:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g26:8_110 textbox "Write a message for the agent..." multiline
+    uid=g26:8_111 button "Attach images"
+    uid=g26:8_112 status atomic live="polite" relevant="additions text"
+    uid=g26:8_113 button "Send & End"
+    uid=g26:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g26:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g26:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g26:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 112
+snapshot:
+uid=g30:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g30:8_1 "Lavish"
+  uid=g30:16_0 "EDITOR"
+  uid=g30:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g30:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g30:8_3 button "More" expandable haspopup="menu"
+  uid=g30:8_4 Iframe
+    uid=g30:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g30:8_6 banner
+        uid=g30:8_7 "bearings"
+      uid=g30:8_8 main
+        uid=g30:8_9 "2"
+        uid=g30:8_10 "NEED YOU"
+        uid=g30:8_11 "1"
+        uid=g30:8_12 "UNDERWAY"
+        uid=g30:8_13 "2"
+        uid=g30:8_14 "LANDED RECENTLY"
+        uid=g30:8_15 "8"
+        uid=g30:8_16 "CHARTED NEXT"
+        uid=g30:8_17 "CAPTAIN'S CALL"
+        uid=g30:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g30:8_19 "DECISION"
+        uid=g30:8_20 "demo"
+        uid=g30:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g30:8_22 "ABOUT"
+        uid=g30:8_23 "Ready? options: ship now | wait"
+        uid=g30:8_24 form
+          uid=g30:8_25 radio "ship now"
+          uid=g30:8_26 "ship now"
+          uid=g30:8_27 radio "wait"
+          uid=g30:8_28 "wait"
+          uid=g30:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g30:8_30 "Reconcile"
+          uid=g30:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g30:8_32 button "Queue answer"
+        uid=g30:8_33 "card 1 of 2"
+        uid=g30:8_34 button "Previous card" disableable disabled
+        uid=g30:8_35 button "Next card"
+        uid=g30:8_36 "CHARTED NEXT"
+        uid=g30:8_37 checkbox "Pick ready for dispatch"
+        uid=g30:8_38 "Publish release notes — 日本語"
+        uid=g30:8_39 "ready · demo"
+        uid=g30:8_40 "WAITING"
+        uid=g30:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g30:8_42 "Publish release notes — 日本語"
+        uid=g30:8_43 "ready · demo"
+        uid=g30:8_44 "WAITING"
+        uid=g30:8_45 "Held flight observation"
+        uid=g30:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g30:8_47 "WAITING"
+        uid=g30:8_48 "Dependent rollout"
+        uid=g30:8_49 "blocked by ready · demo"
+        uid=g30:8_50 "WAITING"
+        uid=g30:8_51 "Vendor release approval"
+        uid=g30:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g30:8_53 "WAITING"
+        uid=g30:8_54 "Held flight observation"
+        uid=g30:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g30:8_56 "WAITING"
+        uid=g30:8_57 "Dependent rollout"
+        uid=g30:8_58 "blocked by mate/ready · demo"
+        uid=g30:8_59 "WAITING"
+        uid=g30:8_60 "Vendor release approval"
+        uid=g30:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g30:8_62 "WAITING"
+        uid=g30:8_63 "Topic coverage"
+        uid=g30:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g30:8_65 "NEEDS REPAIR"
+        uid=g30:8_66 "Topic coverage"
+        uid=g30:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g30:8_68 "NEEDS REPAIR"
+        uid=g30:8_69 "Topic coverage"
+        uid=g30:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g30:8_71 "NEEDS REPAIR"
+        uid=g30:8_72 "Topic coverage"
+        uid=g30:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g30:8_74 "NEEDS REPAIR"
+        uid=g30:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g30:8_76 button "Queue dispatch order" disableable disabled
+        uid=g30:8_77 "UNDERWAY"
+        uid=g30:8_78 "UNKNOWN"
+        uid=g30:8_79 "Current release investigation"
+        uid=g30:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g30:8_81 "RECENTLY LANDED"
+        uid=g30:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g30:8_83 "demo · (main)"
+        uid=g30:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g30:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g30:8_87 "demo · mate"
+        uid=g30:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g30:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g30:8_91 complementary
+    uid=g30:8_92 heading "Conversation" level="2"
+    uid=g30:8_96 "YOU"
+    uid=g30:8_97 "<choice>"
+    uid=g30:8_98 "“Choose release posture -> Reconcile”"
+    uid=g30:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g30:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g30:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g30:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g30:8_103 "YOU"
+    uid=g30:8_104 "<choice>"
+    uid=g30:8_105 "“Choose release posture -> ship now”"
+    uid=g30:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g30:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g30:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g30:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g30:8_110 textbox "Write a message for the agent..." multiline
+    uid=g30:8_111 button "Attach images"
+    uid=g30:8_112 status atomic live="polite" relevant="additions text"
+    uid=g30:8_113 button "Send & End"
+    uid=g30:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g30:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g30:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g30:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 112
+snapshot:
+uid=g31:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g31:8_1 "Lavish"
+  uid=g31:16_0 "EDITOR"
+  uid=g31:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g31:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g31:8_3 button "More" expandable haspopup="menu"
+  uid=g31:8_4 Iframe
+    uid=g31:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g31:8_6 banner
+        uid=g31:8_7 "bearings"
+      uid=g31:8_8 main
+        uid=g31:8_9 "2"
+        uid=g31:8_10 "NEED YOU"
+        uid=g31:8_11 "1"
+        uid=g31:8_12 "UNDERWAY"
+        uid=g31:8_13 "2"
+        uid=g31:8_14 "LANDED RECENTLY"
+        uid=g31:8_15 "8"
+        uid=g31:8_16 "CHARTED NEXT"
+        uid=g31:8_17 "CAPTAIN'S CALL"
+        uid=g31:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g31:8_19 "DECISION"
+        uid=g31:8_20 "demo"
+        uid=g31:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g31:8_22 "ABOUT"
+        uid=g31:8_23 "Ready? options: ship now | wait"
+        uid=g31:8_24 form
+          uid=g31:8_25 radio "ship now" checked focusable focused
+          uid=g31:8_26 "ship now"
+          uid=g31:8_27 radio "wait"
+          uid=g31:8_28 "wait"
+          uid=g31:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g31:8_30 "Reconcile"
+          uid=g31:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g31:8_32 button "Queue answer"
+        uid=g31:8_33 "card 1 of 2"
+        uid=g31:8_34 button "Previous card" disableable disabled
+        uid=g31:8_35 button "Next card"
+        uid=g31:8_36 "CHARTED NEXT"
+        uid=g31:8_37 checkbox "Pick ready for dispatch"
+        uid=g31:8_38 "Publish release notes — 日本語"
+        uid=g31:8_39 "ready · demo"
+        uid=g31:8_40 "WAITING"
+        uid=g31:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g31:8_42 "Publish release notes — 日本語"
+        uid=g31:8_43 "ready · demo"
+        uid=g31:8_44 "WAITING"
+        uid=g31:8_45 "Held flight observation"
+        uid=g31:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g31:8_47 "WAITING"
+        uid=g31:8_48 "Dependent rollout"
+        uid=g31:8_49 "blocked by ready · demo"
+        uid=g31:8_50 "WAITING"
+        uid=g31:8_51 "Vendor release approval"
+        uid=g31:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g31:8_53 "WAITING"
+        uid=g31:8_54 "Held flight observation"
+        uid=g31:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g31:8_56 "WAITING"
+        uid=g31:8_57 "Dependent rollout"
+        uid=g31:8_58 "blocked by mate/ready · demo"
+        uid=g31:8_59 "WAITING"
+        uid=g31:8_60 "Vendor release approval"
+        uid=g31:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g31:8_62 "WAITING"
+        uid=g31:8_63 "Topic coverage"
+        uid=g31:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g31:8_65 "NEEDS REPAIR"
+        uid=g31:8_66 "Topic coverage"
+        uid=g31:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g31:8_68 "NEEDS REPAIR"
+        uid=g31:8_69 "Topic coverage"
+        uid=g31:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g31:8_71 "NEEDS REPAIR"
+        uid=g31:8_72 "Topic coverage"
+        uid=g31:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g31:8_74 "NEEDS REPAIR"
+        uid=g31:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g31:8_76 button "Queue dispatch order" disableable disabled
+        uid=g31:8_77 "UNDERWAY"
+        uid=g31:8_78 "UNKNOWN"
+        uid=g31:8_79 "Current release investigation"
+        uid=g31:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g31:8_81 "RECENTLY LANDED"
+        uid=g31:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g31:8_83 "demo · (main)"
+        uid=g31:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g31:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g31:8_87 "demo · mate"
+        uid=g31:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g31:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g31:8_91 complementary
+    uid=g31:8_92 heading "Conversation" level="2"
+    uid=g31:8_96 "YOU"
+    uid=g31:8_97 "<choice>"
+    uid=g31:8_98 "“Choose release posture -> Reconcile”"
+    uid=g31:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g31:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g31:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g31:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g31:8_103 "YOU"
+    uid=g31:8_104 "<choice>"
+    uid=g31:8_105 "“Choose release posture -> ship now”"
+    uid=g31:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g31:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g31:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g31:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g31:8_110 textbox "Write a message for the agent..." multiline
+    uid=g31:8_111 button "Attach images"
+    uid=g31:8_112 status atomic live="polite" relevant="additions text"
+    uid=g31:8_113 button "Send & End"
+    uid=g31:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g31:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g31:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g31:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 112
+snapshot:
+uid=g32:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g32:8_1 "Lavish"
+  uid=g32:16_0 "EDITOR"
+  uid=g32:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g32:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g32:8_3 button "More" expandable haspopup="menu"
+  uid=g32:8_4 Iframe
+    uid=g32:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g32:8_6 banner
+        uid=g32:8_7 "bearings"
+      uid=g32:8_8 main
+        uid=g32:8_9 "2"
+        uid=g32:8_10 "NEED YOU"
+        uid=g32:8_11 "1"
+        uid=g32:8_12 "UNDERWAY"
+        uid=g32:8_13 "2"
+        uid=g32:8_14 "LANDED RECENTLY"
+        uid=g32:8_15 "8"
+        uid=g32:8_16 "CHARTED NEXT"
+        uid=g32:8_17 "CAPTAIN'S CALL"
+        uid=g32:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g32:8_19 "DECISION"
+        uid=g32:8_20 "demo"
+        uid=g32:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g32:8_22 "ABOUT"
+        uid=g32:8_23 "Ready? options: ship now | wait"
+        uid=g32:8_24 form
+          uid=g32:8_25 radio "ship now" checked focusable focused
+          uid=g32:8_26 "ship now"
+          uid=g32:8_27 radio "wait"
+          uid=g32:8_28 "wait"
+          uid=g32:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g32:8_30 "Reconcile"
+          uid=g32:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g32:8_32 button "Queue answer"
+        uid=g32:8_33 "card 1 of 2"
+        uid=g32:8_34 button "Previous card" disableable disabled
+        uid=g32:8_35 button "Next card"
+        uid=g32:8_36 "CHARTED NEXT"
+        uid=g32:8_37 checkbox "Pick ready for dispatch"
+        uid=g32:8_38 "Publish release notes — 日本語"
+        uid=g32:8_39 "ready · demo"
+        uid=g32:8_40 "WAITING"
+        uid=g32:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g32:8_42 "Publish release notes — 日本語"
+        uid=g32:8_43 "ready · demo"
+        uid=g32:8_44 "WAITING"
+        uid=g32:8_45 "Held flight observation"
+        uid=g32:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g32:8_47 "WAITING"
+        uid=g32:8_48 "Dependent rollout"
+        uid=g32:8_49 "blocked by ready · demo"
+        uid=g32:8_50 "WAITING"
+        uid=g32:8_51 "Vendor release approval"
+        uid=g32:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g32:8_53 "WAITING"
+        uid=g32:8_54 "Held flight observation"
+        uid=g32:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g32:8_56 "WAITING"
+        uid=g32:8_57 "Dependent rollout"
+        uid=g32:8_58 "blocked by mate/ready · demo"
+        uid=g32:8_59 "WAITING"
+        uid=g32:8_60 "Vendor release approval"
+        uid=g32:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g32:8_62 "WAITING"
+        uid=g32:8_63 "Topic coverage"
+        uid=g32:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g32:8_65 "NEEDS REPAIR"
+        uid=g32:8_66 "Topic coverage"
+        uid=g32:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g32:8_68 "NEEDS REPAIR"
+        uid=g32:8_69 "Topic coverage"
+        uid=g32:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g32:8_71 "NEEDS REPAIR"
+        uid=g32:8_72 "Topic coverage"
+        uid=g32:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g32:8_74 "NEEDS REPAIR"
+        uid=g32:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g32:8_76 button "Queue dispatch order" disableable disabled
+        uid=g32:8_77 "UNDERWAY"
+        uid=g32:8_78 "UNKNOWN"
+        uid=g32:8_79 "Current release investigation"
+        uid=g32:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g32:8_81 "RECENTLY LANDED"
+        uid=g32:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g32:8_83 "demo · (main)"
+        uid=g32:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g32:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g32:8_87 "demo · mate"
+        uid=g32:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g32:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g32:8_91 complementary
+    uid=g32:8_92 heading "Conversation" level="2"
+    uid=g32:8_96 "YOU"
+    uid=g32:8_97 "<choice>"
+    uid=g32:8_98 "“Choose release posture -> Reconcile”"
+    uid=g32:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g32:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g32:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g32:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g32:8_103 "YOU"
+    uid=g32:8_104 "<choice>"
+    uid=g32:8_105 "“Choose release posture -> ship now”"
+    uid=g32:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g32:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g32:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g32:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g32:8_110 textbox "Write a message for the agent..." multiline
+    uid=g32:8_111 button "Attach images"
+    uid=g32:8_112 status atomic live="polite" relevant="additions text"
+    uid=g32:8_113 button "Send & End"
+    uid=g32:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g32:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g32:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g32:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 119
+snapshot:
+uid=g33:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g33:8_1 "Lavish"
+  uid=g33:16_0 "EDITOR"
+  uid=g33:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g33:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g33:8_3 button "More" expandable haspopup="menu"
+  uid=g33:8_4 Iframe
+    uid=g33:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g33:8_6 banner
+        uid=g33:8_7 "bearings"
+      uid=g33:8_8 main
+        uid=g33:8_9 "2"
+        uid=g33:8_10 "NEED YOU"
+        uid=g33:8_11 "1"
+        uid=g33:8_12 "UNDERWAY"
+        uid=g33:8_13 "2"
+        uid=g33:8_14 "LANDED RECENTLY"
+        uid=g33:8_15 "8"
+        uid=g33:8_16 "CHARTED NEXT"
+        uid=g33:8_17 "CAPTAIN'S CALL"
+        uid=g33:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g33:8_19 "DECISION"
+        uid=g33:8_20 "demo"
+        uid=g33:8_21 heading "Confirm captured answer delivery" level="3"
+        uid=g33:8_22 "ABOUT"
+        uid=g33:8_23 "Ready? options: ship now | wait"
+        uid=g33:8_24 form
+          uid=g33:8_25 radio "ship now" checked
+          uid=g33:8_26 "ship now"
+          uid=g33:8_27 radio "wait"
+          uid=g33:8_28 "wait"
+          uid=g33:8_29 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g33:8_30 "Reconcile"
+          uid=g33:8_31 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g33:8_32 button "Queue answer" focusable focused
+          uid=g33:20_0 "QUEUED"
+        uid=g33:8_33 "card 1 of 2"
+        uid=g33:8_34 button "Previous card" disableable disabled
+        uid=g33:8_35 button "Next card"
+        uid=g33:8_36 "CHARTED NEXT"
+        uid=g33:8_37 checkbox "Pick ready for dispatch"
+        uid=g33:8_38 "Publish release notes — 日本語"
+        uid=g33:8_39 "ready · demo"
+        uid=g33:8_40 "WAITING"
+        uid=g33:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g33:8_42 "Publish release notes — 日本語"
+        uid=g33:8_43 "ready · demo"
+        uid=g33:8_44 "WAITING"
+        uid=g33:8_45 "Held flight observation"
+        uid=g33:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g33:8_47 "WAITING"
+        uid=g33:8_48 "Dependent rollout"
+        uid=g33:8_49 "blocked by ready · demo"
+        uid=g33:8_50 "WAITING"
+        uid=g33:8_51 "Vendor release approval"
+        uid=g33:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g33:8_53 "WAITING"
+        uid=g33:8_54 "Held flight observation"
+        uid=g33:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g33:8_56 "WAITING"
+        uid=g33:8_57 "Dependent rollout"
+        uid=g33:8_58 "blocked by mate/ready · demo"
+        uid=g33:8_59 "WAITING"
+        uid=g33:8_60 "Vendor release approval"
+        uid=g33:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g33:8_62 "WAITING"
+        uid=g33:8_63 "Topic coverage"
+        uid=g33:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g33:8_65 "NEEDS REPAIR"
+        uid=g33:8_66 "Topic coverage"
+        uid=g33:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g33:8_68 "NEEDS REPAIR"
+        uid=g33:8_69 "Topic coverage"
+        uid=g33:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g33:8_71 "NEEDS REPAIR"
+        uid=g33:8_72 "Topic coverage"
+        uid=g33:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g33:8_74 "NEEDS REPAIR"
+        uid=g33:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g33:8_76 button "Queue dispatch order" disableable disabled
+        uid=g33:8_77 "UNDERWAY"
+        uid=g33:8_78 "UNKNOWN"
+        uid=g33:8_79 "Current release investigation"
+        uid=g33:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g33:8_81 "RECENTLY LANDED"
+        uid=g33:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g33:8_83 "demo · (main)"
+        uid=g33:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g33:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g33:8_87 "demo · mate"
+        uid=g33:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g33:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g33:8_91 complementary
+    uid=g33:8_92 heading "Conversation" level="2"
+    uid=g33:8_96 "YOU"
+    uid=g33:8_97 "<choice>"
+    uid=g33:8_98 "“Choose release posture -> Reconcile”"
+    uid=g33:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g33:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g33:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g33:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g33:8_103 "YOU"
+    uid=g33:8_104 "<choice>"
+    uid=g33:8_105 "“Choose release posture -> ship now”"
+    uid=g33:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g33:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g33:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g33:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g33:20_1 "QUEUED"
+    uid=g33:20_2 button "Edit queued prompt"
+    uid=g33:20_3 button "Remove queued prompt"
+    uid=g33:20_4 "<choice>"
+    uid=g33:20_5 "“Confirm captured answer delivery -> ship now”"
+    uid=g33:20_6 "Captain's Call answer - Confirm captured answer delivery: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "live-answer",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g33:8_110 textbox "Write a message for the agent..." multiline
+    uid=g33:8_111 button "Attach images"
+    uid=g33:8_112 status atomic live="polite" relevant="additions text"
+    uid=g33:8_113 button "Send & End"
+    uid=g33:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g33:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g33:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g33:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 120
+snapshot:
+uid=g34:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g34:8_1 "Lavish"
+  uid=g34:16_0 "EDITOR"
+  uid=g34:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g34:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g34:8_3 button "More" expandable haspopup="menu"
+  uid=g34:8_4 Iframe
+    uid=g34:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g34:8_6 banner
+        uid=g34:8_7 "bearings"
+      uid=g34:8_8 main
+        uid=g34:8_9 "2"
+        uid=g34:8_10 "NEED YOU"
+        uid=g34:8_11 "1"
+        uid=g34:8_12 "UNDERWAY"
+        uid=g34:8_13 "2"
+        uid=g34:8_14 "LANDED RECENTLY"
+        uid=g34:8_15 "8"
+        uid=g34:8_16 "CHARTED NEXT"
+        uid=g34:8_17 "CAPTAIN'S CALL"
+        uid=g34:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g34:21_0 "DECISION"
+        uid=g34:21_1 "demo"
+        uid=g34:21_2 heading "Choose release posture" level="3"
+        uid=g34:21_3 "OWNER"
+        uid=g34:21_4 "mate"
+        uid=g34:21_5 "ABOUT"
+        uid=g34:21_6 "Which posture? options: ship now | reconcile | wait for review"
+        uid=g34:21_7 form
+          uid=g34:21_8 radio "ship now"
+          uid=g34:21_9 "ship now"
+          uid=g34:21_10 radio "wait for review"
+          uid=g34:21_11 "wait for review"
+          uid=g34:21_12 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g34:21_13 "Reconcile"
+          uid=g34:21_14 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g34:21_15 button "Queue answer"
+        uid=g34:21_16 "card 2 of 2 · 1 answered"
+        uid=g34:8_34 button "Previous card"
+        uid=g34:8_35 button "Next card" disableable disabled
+        uid=g34:8_36 "CHARTED NEXT"
+        uid=g34:8_37 checkbox "Pick ready for dispatch"
+        uid=g34:8_38 "Publish release notes — 日本語"
+        uid=g34:8_39 "ready · demo"
+        uid=g34:8_40 "WAITING"
+        uid=g34:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g34:8_42 "Publish release notes — 日本語"
+        uid=g34:8_43 "ready · demo"
+        uid=g34:8_44 "WAITING"
+        uid=g34:8_45 "Held flight observation"
+        uid=g34:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g34:8_47 "WAITING"
+        uid=g34:8_48 "Dependent rollout"
+        uid=g34:8_49 "blocked by ready · demo"
+        uid=g34:8_50 "WAITING"
+        uid=g34:8_51 "Vendor release approval"
+        uid=g34:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g34:8_53 "WAITING"
+        uid=g34:8_54 "Held flight observation"
+        uid=g34:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g34:8_56 "WAITING"
+        uid=g34:8_57 "Dependent rollout"
+        uid=g34:8_58 "blocked by mate/ready · demo"
+        uid=g34:8_59 "WAITING"
+        uid=g34:8_60 "Vendor release approval"
+        uid=g34:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g34:8_62 "WAITING"
+        uid=g34:8_63 "Topic coverage"
+        uid=g34:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g34:8_65 "NEEDS REPAIR"
+        uid=g34:8_66 "Topic coverage"
+        uid=g34:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g34:8_68 "NEEDS REPAIR"
+        uid=g34:8_69 "Topic coverage"
+        uid=g34:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g34:8_71 "NEEDS REPAIR"
+        uid=g34:8_72 "Topic coverage"
+        uid=g34:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g34:8_74 "NEEDS REPAIR"
+        uid=g34:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g34:8_76 button "Queue dispatch order" disableable disabled
+        uid=g34:8_77 "UNDERWAY"
+        uid=g34:8_78 "UNKNOWN"
+        uid=g34:8_79 "Current release investigation"
+        uid=g34:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g34:8_81 "RECENTLY LANDED"
+        uid=g34:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g34:8_83 "demo · (main)"
+        uid=g34:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g34:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g34:8_87 "demo · mate"
+        uid=g34:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g34:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g34:8_91 complementary
+    uid=g34:8_92 heading "Conversation" level="2"
+    uid=g34:8_96 "YOU"
+    uid=g34:8_97 "<choice>"
+    uid=g34:8_98 "“Choose release posture -> Reconcile”"
+    uid=g34:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g34:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g34:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g34:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g34:8_103 "YOU"
+    uid=g34:8_104 "<choice>"
+    uid=g34:8_105 "“Choose release posture -> ship now”"
+    uid=g34:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g34:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g34:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g34:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g34:20_1 "QUEUED"
+    uid=g34:20_2 button "Edit queued prompt"
+    uid=g34:20_3 button "Remove queued prompt"
+    uid=g34:20_4 "<choice>"
+    uid=g34:20_5 "“Confirm captured answer delivery -> ship now”"
+    uid=g34:20_6 "Captain's Call answer - Confirm captured answer delivery: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "live-answer",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g34:8_110 textbox "Write a message for the agent..." multiline
+    uid=g34:8_111 button "Attach images"
+    uid=g34:8_112 status atomic live="polite" relevant="additions text"
+    uid=g34:8_113 button "Send & End"
+    uid=g34:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g34:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g34:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g34:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 120
+snapshot:
+uid=g35:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g35:8_1 "Lavish"
+  uid=g35:16_0 "EDITOR"
+  uid=g35:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g35:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g35:8_3 button "More" expandable haspopup="menu"
+  uid=g35:8_4 Iframe
+    uid=g35:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g35:8_6 banner
+        uid=g35:8_7 "bearings"
+      uid=g35:8_8 main
+        uid=g35:8_9 "2"
+        uid=g35:8_10 "NEED YOU"
+        uid=g35:8_11 "1"
+        uid=g35:8_12 "UNDERWAY"
+        uid=g35:8_13 "2"
+        uid=g35:8_14 "LANDED RECENTLY"
+        uid=g35:8_15 "8"
+        uid=g35:8_16 "CHARTED NEXT"
+        uid=g35:8_17 "CAPTAIN'S CALL"
+        uid=g35:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g35:21_0 "DECISION"
+        uid=g35:21_1 "demo"
+        uid=g35:21_2 heading "Choose release posture" level="3"
+        uid=g35:21_3 "OWNER"
+        uid=g35:21_4 "mate"
+        uid=g35:21_5 "ABOUT"
+        uid=g35:21_6 "Which posture? options: ship now | reconcile | wait for review"
+        uid=g35:21_7 form
+          uid=g35:21_8 radio "ship now"
+          uid=g35:21_9 "ship now"
+          uid=g35:21_10 radio "wait for review"
+          uid=g35:21_11 "wait for review"
+          uid=g35:21_12 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g35:21_13 "Reconcile"
+          uid=g35:21_14 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g35:21_15 button "Queue answer"
+        uid=g35:21_16 "card 2 of 2 · 1 answered"
+        uid=g35:8_34 button "Previous card"
+        uid=g35:8_35 button "Next card" disableable disabled
+        uid=g35:8_36 "CHARTED NEXT"
+        uid=g35:8_37 checkbox "Pick ready for dispatch"
+        uid=g35:8_38 "Publish release notes — 日本語"
+        uid=g35:8_39 "ready · demo"
+        uid=g35:8_40 "WAITING"
+        uid=g35:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g35:8_42 "Publish release notes — 日本語"
+        uid=g35:8_43 "ready · demo"
+        uid=g35:8_44 "WAITING"
+        uid=g35:8_45 "Held flight observation"
+        uid=g35:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g35:8_47 "WAITING"
+        uid=g35:8_48 "Dependent rollout"
+        uid=g35:8_49 "blocked by ready · demo"
+        uid=g35:8_50 "WAITING"
+        uid=g35:8_51 "Vendor release approval"
+        uid=g35:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g35:8_53 "WAITING"
+        uid=g35:8_54 "Held flight observation"
+        uid=g35:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g35:8_56 "WAITING"
+        uid=g35:8_57 "Dependent rollout"
+        uid=g35:8_58 "blocked by mate/ready · demo"
+        uid=g35:8_59 "WAITING"
+        uid=g35:8_60 "Vendor release approval"
+        uid=g35:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g35:8_62 "WAITING"
+        uid=g35:8_63 "Topic coverage"
+        uid=g35:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g35:8_65 "NEEDS REPAIR"
+        uid=g35:8_66 "Topic coverage"
+        uid=g35:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g35:8_68 "NEEDS REPAIR"
+        uid=g35:8_69 "Topic coverage"
+        uid=g35:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g35:8_71 "NEEDS REPAIR"
+        uid=g35:8_72 "Topic coverage"
+        uid=g35:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g35:8_74 "NEEDS REPAIR"
+        uid=g35:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g35:8_76 button "Queue dispatch order" disableable disabled
+        uid=g35:8_77 "UNDERWAY"
+        uid=g35:8_78 "UNKNOWN"
+        uid=g35:8_79 "Current release investigation"
+        uid=g35:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g35:8_81 "RECENTLY LANDED"
+        uid=g35:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g35:8_83 "demo · (main)"
+        uid=g35:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g35:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g35:8_87 "demo · mate"
+        uid=g35:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g35:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g35:8_91 complementary
+    uid=g35:8_92 heading "Conversation" level="2"
+    uid=g35:8_96 "YOU"
+    uid=g35:8_97 "<choice>"
+    uid=g35:8_98 "“Choose release posture -> Reconcile”"
+    uid=g35:8_99 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g35:8_100 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g35:8_101 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g35:8_102 image "Done: not yet" description="Done: not yet"
+    uid=g35:8_103 "YOU"
+    uid=g35:8_104 "<choice>"
+    uid=g35:8_105 "“Choose release posture -> ship now”"
+    uid=g35:8_106 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g35:8_107 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g35:8_108 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g35:8_109 image "Done: not yet" description="Done: not yet"
+    uid=g35:20_1 "QUEUED"
+    uid=g35:20_2 button "Edit queued prompt"
+    uid=g35:20_3 button "Remove queued prompt"
+    uid=g35:20_4 "<choice>"
+    uid=g35:20_5 "“Confirm captured answer delivery -> ship now”"
+    uid=g35:20_6 "Captain's Call answer - Confirm captured answer delivery: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "live-answer",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g35:8_110 textbox "Write a message for the agent..." multiline
+    uid=g35:8_111 button "Attach images"
+    uid=g35:8_112 status atomic live="polite" relevant="additions text"
+    uid=g35:8_113 button "Send & End"
+    uid=g35:8_114 button "Send to Agent"
+help[5]:
+  Run `chrome-devtools-axi fill @g35:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g35:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g35:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`
+page:
+  title: Bearings - fleet board · Lavish
+  refs: 122
+snapshot:
+uid=g36:8_0 RootWebArea "Bearings - fleet board · Lavish" url="http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  uid=g36:8_1 "Lavish"
+  uid=g36:16_0 "EDITOR"
+  uid=g36:9_0 button "1 unresolved layout issue" expandable haspopup="dialog"
+  uid=g36:8_2 button "Annotate" description="Toggle annotate/explore mode (⌘I / Ctrl+I)" pressed
+  uid=g36:8_3 button "More" expandable haspopup="menu"
+  uid=g36:8_4 Iframe
+    uid=g36:8_5 RootWebArea "Bearings - fleet board" url="http://127.0.0.1:44389/artifact/bdd9864c5ee0b696/index.html?artifact_revision=3&artifact_load_token=SKhrZQ3fNq3FxyAQCcCK6Q0ZTIapiWNY"
+      uid=g36:8_6 banner
+        uid=g36:8_7 "bearings"
+      uid=g36:8_8 main
+        uid=g36:8_9 "2"
+        uid=g36:8_10 "NEED YOU"
+        uid=g36:8_11 "1"
+        uid=g36:8_12 "UNDERWAY"
+        uid=g36:8_13 "2"
+        uid=g36:8_14 "LANDED RECENTLY"
+        uid=g36:8_15 "8"
+        uid=g36:8_16 "CHARTED NEXT"
+        uid=g36:8_17 "CAPTAIN'S CALL"
+        uid=g36:8_18 "2 ITEMS WAIT ON YOU, CAPTAIN"
+        uid=g36:21_0 "DECISION"
+        uid=g36:21_1 "demo"
+        uid=g36:21_2 heading "Choose release posture" level="3"
+        uid=g36:21_3 "OWNER"
+        uid=g36:21_4 "mate"
+        uid=g36:21_5 "ABOUT"
+        uid=g36:21_6 "Which posture? options: ship now | reconcile | wait for review"
+        uid=g36:21_7 form
+          uid=g36:21_8 radio "ship now"
+          uid=g36:21_9 "ship now"
+          uid=g36:21_10 radio "wait for review"
+          uid=g36:21_11 "wait for review"
+          uid=g36:21_12 radio "Reconcile Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g36:21_13 "Reconcile"
+          uid=g36:21_14 "Re-check the latest state, then close this with evidence or keep it open with a note"
+          uid=g36:21_15 button "Queue answer"
+        uid=g36:21_16 "card 2 of 2 · 1 answered"
+        uid=g36:8_34 button "Previous card"
+        uid=g36:8_35 button "Next card" disableable disabled
+        uid=g36:8_36 "CHARTED NEXT"
+        uid=g36:8_37 checkbox "Pick ready for dispatch"
+        uid=g36:8_38 "Publish release notes — 日本語"
+        uid=g36:8_39 "ready · demo"
+        uid=g36:8_40 "WAITING"
+        uid=g36:8_41 checkbox "Pick mate/ready for dispatch"
+        uid=g36:8_42 "Publish release notes — 日本語"
+        uid=g36:8_43 "ready · demo"
+        uid=g36:8_44 "WAITING"
+        uid=g36:8_45 "Held flight observation"
+        uid=g36:8_46 "external hold: Waiting for upstream signal · demo"
+        uid=g36:8_47 "WAITING"
+        uid=g36:8_48 "Dependent rollout"
+        uid=g36:8_49 "blocked by ready · demo"
+        uid=g36:8_50 "WAITING"
+        uid=g36:8_51 "Vendor release approval"
+        uid=g36:8_52 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g36:8_53 "WAITING"
+        uid=g36:8_54 "Held flight observation"
+        uid=g36:8_55 "external hold: Waiting for upstream signal · demo"
+        uid=g36:8_56 "WAITING"
+        uid=g36:8_57 "Dependent rollout"
+        uid=g36:8_58 "blocked by mate/ready · demo"
+        uid=g36:8_59 "WAITING"
+        uid=g36:8_60 "Vendor release approval"
+        uid=g36:8_61 "external hold until 2099-12-01: Waiting for vendor approval · demo"
+        uid=g36:8_62 "WAITING"
+        uid=g36:8_63 "Topic coverage"
+        uid=g36:8_64 "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-0"
+        uid=g36:8_65 "NEEDS REPAIR"
+        uid=g36:8_66 "Topic coverage"
+        uid=g36:8_67 "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only · topic-coverage-1"
+        uid=g36:8_68 "NEEDS REPAIR"
+        uid=g36:8_69 "Topic coverage"
+        uid=g36:8_70 "main inventory: in-flight backlog item has no child metadata · topic-coverage-2"
+        uid=g36:8_71 "NEEDS REPAIR"
+        uid=g36:8_72 "Topic coverage"
+        uid=g36:8_73 "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta · topic-coverage-3"
+        uid=g36:8_74 "NEEDS REPAIR"
+        uid=g36:8_75 "PICK QUEUED WORK TO DISPATCH"
+        uid=g36:8_76 button "Queue dispatch order" disableable disabled
+        uid=g36:8_77 "UNDERWAY"
+        uid=g36:8_78 "UNKNOWN"
+        uid=g36:8_79 "Current release investigation"
+        uid=g36:8_80 "worktree gone (torn down?) · scout · demo"
+        uid=g36:8_81 "RECENTLY LANDED"
+        uid=g36:8_82 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g36:8_83 "demo · (main)"
+        uid=g36:8_84 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g36:8_86 "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/ ... (truncated, 87 chars total - use show landed --full to see complete text)"
+        uid=g36:8_87 "demo · mate"
+        uid=g36:8_88 link "#42" description="https://github.com/example/demo/pull/42" url="https://github.com/example/demo/pull/42"
+        uid=g36:8_90 "fm-bearings-board.v1 · 2026-11-01T03:36:37Z"
+  uid=g36:8_91 complementary
+    uid=g36:8_92 heading "Conversation" level="2"
+    uid=g36:23_0 "YOU"
+    uid=g36:23_1 "<choice>"
+    uid=g36:23_2 "“Choose release posture -> Reconcile”"
+    uid=g36:23_3 "Captain's Call answer - Choose release posture: Reconcile
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "reconcile",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g36:23_4 image "Seen 03:33 AM" description="Seen 03:33 AM"
+    uid=g36:23_5 image "Working 03:35 AM" description="Working 03:35 AM"
+    uid=g36:23_6 image "Done: not yet" description="Done: not yet"
+    uid=g36:23_7 "YOU"
+    uid=g36:23_8 "<choice>"
+    uid=g36:23_9 "“Choose release posture -> ship now”"
+    uid=g36:23_10 "Captain's Call answer - Choose release posture: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "decision",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g36:23_11 image "Seen 03:35 AM" description="Seen 03:35 AM"
+    uid=g36:23_12 image "Working 03:36 AM" description="Working 03:36 AM"
+    uid=g36:23_13 image "Done: not yet" description="Done: not yet"
+    uid=g36:23_14 "YOU"
+    uid=g36:23_15 "<choice>"
+    uid=g36:23_16 "“Confirm captured answer delivery -> ship now”"
+    uid=g36:23_17 "Captain's Call answer - Confirm captured answer delivery: ship now
+
+Context data:
+{
+  "schema": "fm-bearings-answer.v1",
+  "question": "live-answer",
+  "selection": "option-0-ship-now",
+  "note": "",
+  "owner": "(main)",
+  "close": "done"
+}"
+    uid=g36:23_18 image "Seen 03:37 AM" description="Seen 03:37 AM"
+    uid=g36:23_19 image "Working: not yet" description="Working: not yet"
+    uid=g36:23_20 image "Done: not yet" description="Done: not yet"
+    uid=g36:23_21 "Working..."
+    uid=g36:8_110 textbox "Write a message for the agent..." multiline
+    uid=g36:8_111 button "Attach images"
+    uid=g36:8_112 status atomic live="polite" relevant="additions text"
+    uid=g36:8_113 button "Send & End"
+    uid=g36:8_114 button "Send to Agent" focusable focused
+help[5]:
+  Run `chrome-devtools-axi fill @g36:8_110 "text"` to fill the "Write a message for the agent..." field
+  Run `chrome-devtools-axi click @g36:9_0` to click the "1 unresolved layout issue" button
+  Run `chrome-devtools-axi click @g36:8_84` to click the "#42" link
+  Run `chrome-devtools-axi scroll down` to scroll down
+  Use `chrome-devtools-axi eval <expr>` for JS expressions. For multi-statement code, pass a function: `eval "() => { ...; return result }"`

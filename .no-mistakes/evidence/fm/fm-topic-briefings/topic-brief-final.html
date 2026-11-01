@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Topic briefing: release</title>
+<style>
+:root{--paper:#faf6ef;--ink:#22304a;--rust:#b34a3c;--navy:#22304a;--gold:#c8a44d;--line:#d8cfbd;--muted:#6b6455;--ok:#2e6b4f;}
+*{box-sizing:border-box;max-width:100%}
+body{margin:0;padding:16px;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-wrap:break-word;word-break:break-word}
+main,header,footer{max-width:760px;margin:0 auto}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--navy)}
+h2{font-size:1.15rem;margin:1.6em 0 .4em;color:var(--navy);border-bottom:2px solid var(--line);padding-bottom:4px}
+h3{font-size:1rem;margin:.2em 0}
+.card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:6px;padding:10px 12px;margin:10px 0}
+.card.decision{border-left-color:var(--rust)}
+.meta{color:var(--muted);font-size:.85rem;margin:.2em 0}
+.muted{color:var(--muted);font-size:.9rem}
+.disclosure{background:#fdf3d7;border:1px solid var(--gold);border-radius:6px;padding:6px 10px;font-size:.9rem}
+.holdreason{white-space:pre-wrap;background:#f6f1e6;border-radius:6px;padding:8px 10px;margin:.5em 0;font-size:.95rem}
+fieldset.opts{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:.6em 0 0}
+fieldset.opts legend{font-size:.85rem;color:var(--muted);padding:0 4px}
+label.opt{display:block;padding:4px 2px}
+textarea{width:100%;font:inherit;padding:6px;border:1px solid var(--line);border-radius:4px}
+a{color:var(--rust);overflow-wrap:anywhere}
+ul{padding-left:1.2em;margin:.4em 0}
+li{margin:.35em 0}
+.timeline{width:100%;height:auto;margin:8px 0}
+.timeline .axis{stroke:var(--line);stroke-width:2}
+.timeline .dot{fill:var(--gold)}
+.timeline .dot.landed,.timeline .dot.closed{fill:var(--ok)}
+.timeline .dot.answered{fill:var(--rust)}
+.timeline .dot.briefing{fill:var(--navy)}
+.timeline text{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;fill:var(--ink)}
+.timeline .tl-date{fill:var(--muted)}
+.timeline .tl-id{fill:var(--muted)}
+.answersbox{background:#fff;border:1px dashed var(--gold);border-radius:6px;padding:10px 12px;margin:14px 0}
+#answers-line{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;min-height:1.2em;margin:.4em 0}
+button{font:inherit;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:8px 14px;margin-top:8px;cursor:pointer}
+footer{color:var(--muted);font-size:.8rem;margin-top:2.5em;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body data-topic="release">
+<header>
+<h1>Topic briefing: release</h1>
+<p class="muted">2026-10-18 → 2026-11-01 · generated 2026-11-01 · flag</p>
+<p class="disclosure">(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only</p>
+<p class="disclosure">mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only</p>
+<p class="disclosure">main inventory: in-flight backlog item has no child metadata</p>
+<p class="disclosure">main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta</p>
+</header>
+<main>
+<section id="recap"><h2>Where we left off</h2><p>Topic release briefing 2026-10-01 to 2026-11-01: 2 landed, 0 captain call(s) answered, 12 new, 2 decision(s) open, 0 row(s) in flight.</p><p class="muted">Previous briefing generated 2026-11-01.</p></section>
+<section id="changed"><h2>Changed since</h2>
+<div class="card"><h3>Recorded delivery &lt;script&gt;window.bad=1&lt;/script&gt; https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text)</h3><p class="meta">landed · closed 2026-11-01</p><p><a href="https://github.com/example/demo/pull/42">https://github.com/example/demo/pull/42</a></p></div>
+<div class="card"><h3>Recorded delivery &lt;script&gt;window.bad=1&lt;/script&gt; https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text)</h3><p class="meta">mate/landed · closed 2026-11-01</p><p><a href="https://github.com/example/demo/pull/42">https://github.com/example/demo/pull/42</a></p></div><h3>New rows</h3>
+<ul>
+<li><strong>Current release investigation</strong> <span class="meta">flight · filed 2026-11-01</span></li>
+<li><strong>Inventory missing its worker</strong> <span class="meta">orphan · filed 2026-11-01</span></li>
+<li><strong>Held flight observation</strong> <span class="meta">observation · filed 2026-11-01</span></li>
+<li><strong>Publish release notes — 日本語</strong> <span class="meta">ready · filed 2026-11-01</span></li>
+<li><strong>Dependent rollout</strong> <span class="meta">waiting · filed 2026-11-01</span></li>
+<li><strong>Vendor release approval</strong> <span class="meta">external · filed 2026-11-01</span></li>
+<li><strong>Choose release posture</strong> <span class="meta">decision · filed 2026-11-01</span></li>
+<li><strong>Outdated landing call https://github.com/example/elsewhere/pull/88</strong> <span class="meta">stale · filed 2026-11-01</span></li>
+<li><strong>Inventory missing its worker</strong> <span class="meta">mate/orphan · filed 2026-11-01</span></li>
+<li><strong>Held flight observation</strong> <span class="meta">mate/observation · filed 2026-11-01</span></li>
+<li><strong>Publish release notes — 日本語</strong> <span class="meta">mate/ready · filed 2026-11-01</span></li>
+<li><strong>Dependent rollout</strong> <span class="meta">mate/waiting · filed 2026-11-01</span></li>
+<li><strong>Vendor release approval</strong> <span class="meta">mate/external · filed 2026-11-01</span></li>
+<li><strong>Choose release posture</strong> <span class="meta">mate/decision · filed 2026-11-01</span></li></ul>
+</section>
+<section id="flight"><h2>In flight</h2>
+<div class="card"><h3>Current release investigation</h3><p class="meta">flight · scout · unknown · demo</p><p>worktree gone (torn down?)</p></div></section>
+<section id="decisions"><h2>Open captain decisions</h2>
+<div class="card decision"><h3>Choose release posture</h3><p class="meta">decision</p><p class="holdreason">Which posture? options: ship now | reconcile | wait for review</p><fieldset class="opts"><legend>Your answer</legend><label class="opt"><input type="radio" name="d0" value="ship now" data-decision="0"> ship now</label><label class="opt"><input type="radio" name="d0" value="reconcile" data-decision="0"> reconcile</label><label class="opt"><input type="radio" name="d0" value="wait for review" data-decision="0"> wait for review</label><label class="opt"><input type="radio" name="d0" value="reconcile" data-decision="0"> reconcile — re-check the records</label><label class="opt freeform"><textarea name="t0" rows="2" placeholder="or type your answer here" data-freetext="0"></textarea></label></fieldset></div>
+<div class="card decision"><h3>Outdated landing call https://github.com/example/elsewhere/pull/88</h3><p class="meta">stale</p><p class="holdreason">Choose a posture for earlier delivery</p><p><a href="https://github.com/example/elsewhere/pull/88">https://github.com/example/elsewhere/pull/88</a></p><fieldset class="opts"><legend>Your answer</legend><label class="opt"><input type="radio" name="d1" value="reconcile" data-decision="1"> reconcile — re-check the records</label><label class="opt freeform"><textarea name="t1" rows="2" placeholder="or type your answer here" data-freetext="1"></textarea></label></fieldset></div>
+<div class="card decision"><h3>Choose release posture</h3><p class="meta">mate/decision</p><p class="holdreason">Which posture? options: ship now | reconcile | wait for review</p><fieldset class="opts"><legend>Your answer</legend><label class="opt"><input type="radio" name="d2" value="ship now" data-decision="2"> ship now</label><label class="opt"><input type="radio" name="d2" value="reconcile" data-decision="2"> reconcile</label><label class="opt"><input type="radio" name="d2" value="wait for review" data-decision="2"> wait for review</label><label class="opt"><input type="radio" name="d2" value="reconcile" data-decision="2"> reconcile — re-check the records</label><label class="opt freeform"><textarea name="t2" rows="2" placeholder="or type your answer here" data-freetext="2"></textarea></label></fieldset></div><div class="answersbox">
+<h2 style="margin-top:0">Your answers</h2>
+<p class="muted">Pick an option or type an answer per decision, then copy the answers line back into chat.</p>
+<p>Answered <span id="ans-count">0</span>/
+3</p>
+<pre id="answers-line">TOPIC-ANSWERS v1 | topic=release | answered=0/3</pre>
+<button id="copy-answers" type="button">Copy answers</button>
+<noscript><p class="muted">With scripting disabled, answer in chat as: TOPIC-ANSWERS v1 | topic=release | answered=&lt;n&gt;/3 | &lt;task-id&gt;=&lt;your answer&gt;</p></noscript>
+</div>
+</section>
+<section id="next"><h2>Next steps</h2>
+<h3>Ready</h3>
+<ul>
+<li><strong>Publish release notes — 日本語</strong> <span class="meta">ready · demo</span></li>
+<li><strong>Publish release notes — 日本語</strong> <span class="meta">mate/ready · demo</span></li></ul>
+<h3>Blocked</h3>
+<ul>
+<li><strong>Held flight observation</strong> <span class="meta">observation · external hold: Waiting for upstream signal</span></li>
+<li><strong>Dependent rollout</strong> <span class="meta">waiting · blocked by ready</span></li>
+<li><strong>Vendor release approval</strong> <span class="meta">external · external hold until 2099-12-01: Waiting for vendor approval</span></li>
+<li><strong>Held flight observation</strong> <span class="meta">mate/observation · external hold: Waiting for upstream signal</span></li>
+<li><strong>Dependent rollout</strong> <span class="meta">mate/waiting · blocked by mate/ready</span></li>
+<li><strong>Vendor release approval</strong> <span class="meta">mate/external · external hold until 2099-12-01: Waiting for vendor approval</span></li></ul>
+</section>
+<section id="timeline"><h2>Timeline</h2>
+<svg viewBox="0 0 1360 602" width="1360" class="timeline" role="img" aria-label="Topic timeline" preserveAspectRatio="xMinYMin meet"><line x1="26" y1="20" x2="26" y2="592" class="axis"/><circle cx="26" cy="34" r="5" class="dot landed"/><text x="46" y="38" class="tl-label">Recorded delivery &lt;script&gt;window.bad=1&lt;/script&gt; https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text)</text><text x="8" y="22" class="tl-date">2026-11-01</text><text x="46" y="54" class="tl-id">landed</text><circle cx="26" cy="68" r="5" class="dot landed"/><text x="46" y="72" class="tl-label">Recorded delivery &lt;script&gt;window.bad=1&lt;/script&gt; https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text)</text><text x="8" y="56" class="tl-date">2026-11-01</text><text x="46" y="88" class="tl-id">mate/landed</text><circle cx="26" cy="102" r="5" class="dot filed"/><text x="46" y="106" class="tl-label">Current release investigation</text><text x="8" y="90" class="tl-date">2026-11-01</text><text x="46" y="122" class="tl-id">flight</text><circle cx="26" cy="136" r="5" class="dot filed"/><text x="46" y="140" class="tl-label">Inventory missing its worker</text><text x="8" y="124" class="tl-date">2026-11-01</text><text x="46" y="156" class="tl-id">orphan</text><circle cx="26" cy="170" r="5" class="dot filed"/><text x="46" y="174" class="tl-label">Held flight observation</text><text x="8" y="158" class="tl-date">2026-11-01</text><text x="46" y="190" class="tl-id">observation</text><circle cx="26" cy="204" r="5" class="dot filed"/><text x="46" y="208" class="tl-label">Publish release notes — 日本語</text><text x="8" y="192" class="tl-date">2026-11-01</text><text x="46" y="224" class="tl-id">ready</text><circle cx="26" cy="238" r="5" class="dot filed"/><text x="46" y="242" class="tl-label">Dependent rollout</text><text x="8" y="226" class="tl-date">2026-11-01</text><text x="46" y="258" class="tl-id">waiting</text><circle cx="26" cy="272" r="5" class="dot filed"/><text x="46" y="276" class="tl-label">Vendor release approval</text><text x="8" y="260" class="tl-date">2026-11-01</text><text x="46" y="292" class="tl-id">external</text><circle cx="26" cy="306" r="5" class="dot filed"/><text x="46" y="310" class="tl-label">Choose release posture</text><text x="8" y="294" class="tl-date">2026-11-01</text><text x="46" y="326" class="tl-id">decision</text><circle cx="26" cy="340" r="5" class="dot filed"/><text x="46" y="344" class="tl-label">Outdated landing call https://github.com/example/elsewhere/pull/88</text><text x="8" y="328" class="tl-date">2026-11-01</text><text x="46" y="360" class="tl-id">stale</text><circle cx="26" cy="374" r="5" class="dot filed"/><text x="46" y="378" class="tl-label">Inventory missing its worker</text><text x="8" y="362" class="tl-date">2026-11-01</text><text x="46" y="394" class="tl-id">mate/orphan</text><circle cx="26" cy="408" r="5" class="dot filed"/><text x="46" y="412" class="tl-label">Held flight observation</text><text x="8" y="396" class="tl-date">2026-11-01</text><text x="46" y="428" class="tl-id">mate/observation</text><circle cx="26" cy="442" r="5" class="dot filed"/><text x="46" y="446" class="tl-label">Publish release notes — 日本語</text><text x="8" y="430" class="tl-date">2026-11-01</text><text x="46" y="462" class="tl-id">mate/ready</text><circle cx="26" cy="476" r="5" class="dot filed"/><text x="46" y="480" class="tl-label">Dependent rollout</text><text x="8" y="464" class="tl-date">2026-11-01</text><text x="46" y="496" class="tl-id">mate/waiting</text><circle cx="26" cy="510" r="5" class="dot filed"/><text x="46" y="514" class="tl-label">Vendor release approval</text><text x="8" y="498" class="tl-date">2026-11-01</text><text x="46" y="530" class="tl-id">mate/external</text><circle cx="26" cy="544" r="5" class="dot filed"/><text x="46" y="548" class="tl-label">Choose release posture</text><text x="8" y="532" class="tl-date">2026-11-01</text><text x="46" y="564" class="tl-id">mate/decision</text><circle cx="26" cy="578" r="5" class="dot briefing"/><text x="46" y="582" class="tl-label">previous briefing</text><text x="8" y="566" class="tl-date">2026-11-01</text><text x="46" y="598" class="tl-id"></text></svg></section>
+</main>
+<footer>
+Generated from durable records only: the topic registry, the backlog ledger, the bearings snapshot, and this topic's briefing history.
+Aliases: launch · Default projects: demo</footer>
+<script>
+(function(){
+  "use strict";
+  function sanitize(v){
+    return v.replace(/\|/g, ";").replace(/[\r\n]+/g, " ");
+  }
+  function answerFor(i){
+    var sel = document.querySelector('input[name="d'+i+'"]:checked');
+    if (sel) return sel.value;
+    var ta = document.querySelector('textarea[data-freetext="'+i+'"]');
+    if (ta && ta.value.trim()) return sanitize(ta.value.trim());
+    return null;
+  }
+  function refresh(){
+    var parts = [];
+    var n = 0;
+    var cards = document.querySelectorAll(".decision");
+    for (var i = 0; i < cards.length; i++){
+      var meta = cards[i].querySelector(".meta");
+      var id = meta ? meta.textContent.split(" ")[0] : null;
+      var v = answerFor(i);
+      if (v){ n = n + 1; if (id) parts.push(id + "=" + sanitize(v)); }
+    }
+    var line = "TOPIC-ANSWERS v1 | topic=" + document.body.getAttribute("data-topic") + " | answered=" + n + "/" + cards.length;
+    if (parts.length) line = line + " | " + parts.join(" | ");
+    document.getElementById("answers-line").textContent = line;
+    document.getElementById("ans-count").textContent = String(n);
+    return line;
+  }
+  document.addEventListener("change", function(event){
+    var i = event.target.getAttribute("data-decision");
+    if (i !== null){
+      document.querySelector('textarea[data-freetext="'+i+'"]').value = "";
+    }
+    refresh();
+  });
+  document.addEventListener("input", function(event){
+    var i = event.target.getAttribute("data-freetext");
+    if (i !== null){
+      document.querySelectorAll('input[name="d'+i+'"]').forEach(function(input){ input.checked = false; });
+    }
+    refresh();
+  });
+  document.getElementById("copy-answers").addEventListener("click", function(){
+    var line = refresh();
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = line;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(line).catch(fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+</body>
+</html>

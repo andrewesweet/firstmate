@@ -1,0 +1,353 @@
+{
+  "schema": "fm-topic-brief.v1",
+  "topic": {
+    "name": "release",
+    "aliases": [
+      "launch"
+    ],
+    "projects": [
+      "demo"
+    ]
+  },
+  "generated": "2026-11-01T03:31:38Z",
+  "window": {
+    "since": "2026-10-01",
+    "until": "2026-11-01T03:31:38Z",
+    "source": "flag"
+  },
+  "labels_available": false,
+  "recap": {
+    "generated": "2026-11-01T03:31:36Z",
+    "paragraph": "Topic release briefing 2026-10-18 to 2026-11-01: 1 landed, 0 captain call(s) answered, 12 new, 2 decision(s) open, 0 row(s) in flight."
+  },
+  "changed_since": {
+    "landed": [
+      {
+        "id": "landed",
+        "title": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)",
+        "closed": "2026-11-01",
+        "owner": "(main)",
+        "repo": "demo",
+        "artifact": "https://github.com/example/demo/pull/42",
+        "pr_url": "https://github.com/example/demo/pull/42",
+        "report": null
+      }
+    ],
+    "new_rows": [
+      {
+        "id": "orphan",
+        "title": "Inventory missing its worker",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "observation",
+        "title": "Held flight observation",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "ready",
+        "title": "Publish release notes — 日本語",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "waiting",
+        "title": "Dependent rollout",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "external",
+        "title": "Vendor release approval",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "decision",
+        "title": "Choose release posture",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/orphan",
+        "title": "Inventory missing its worker",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "mate/observation",
+        "title": "Held flight observation",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "mate/ready",
+        "title": "Publish release notes — 日本語",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/waiting",
+        "title": "Dependent rollout",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/external",
+        "title": "Vendor release approval",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/decision",
+        "title": "Choose release posture",
+        "created": "2026-11-01",
+        "state": "queued"
+      }
+    ],
+    "answered_decisions": []
+  },
+  "in_flight": [],
+  "decisions_open": [
+    {
+      "id": "decision",
+      "title": "Choose release posture",
+      "owner": "(main)",
+      "key": "decision",
+      "repo": "demo",
+      "kind": "captain",
+      "state": "queued",
+      "close": "done",
+      "hold_reason": "Which posture? options: ship now | reconcile | wait for review",
+      "hold_until": null,
+      "report": null,
+      "pr_url": null,
+      "options": [
+        "ship now",
+        "reconcile",
+        "wait for review"
+      ]
+    },
+    {
+      "id": "mate/decision",
+      "title": "Choose release posture",
+      "owner": "mate",
+      "key": "mate/decision",
+      "repo": "demo",
+      "kind": "captain",
+      "state": "queued",
+      "close": "done",
+      "hold_reason": "Which posture? options: ship now | reconcile | wait for review",
+      "hold_until": null,
+      "report": null,
+      "pr_url": null,
+      "options": [
+        "ship now",
+        "reconcile",
+        "wait for review"
+      ]
+    }
+  ],
+  "next_steps": {
+    "ready": [
+      {
+        "id": "ready",
+        "title": "Publish release notes — 日本語",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo"
+      },
+      {
+        "id": "mate/ready",
+        "title": "Publish release notes — 日本語",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo"
+      }
+    ],
+    "blocked": [
+      {
+        "id": "observation",
+        "title": "Held flight observation",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for upstream signal",
+        "hold_until": null,
+        "reason": "external hold: Waiting for upstream signal"
+      },
+      {
+        "id": "waiting",
+        "title": "Dependent rollout",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [
+          "ready"
+        ],
+        "hold_reason": "",
+        "hold_until": null,
+        "reason": "blocked by ready"
+      },
+      {
+        "id": "external",
+        "title": "Vendor release approval",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for vendor approval",
+        "hold_until": "2099-12-01",
+        "reason": "external hold until 2099-12-01: Waiting for vendor approval"
+      },
+      {
+        "id": "mate/observation",
+        "title": "Held flight observation",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for upstream signal",
+        "hold_until": null,
+        "reason": "external hold: Waiting for upstream signal"
+      },
+      {
+        "id": "mate/waiting",
+        "title": "Dependent rollout",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [
+          "mate/ready"
+        ],
+        "hold_reason": "",
+        "hold_until": null,
+        "reason": "blocked by mate/ready"
+      },
+      {
+        "id": "mate/external",
+        "title": "Vendor release approval",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for vendor approval",
+        "hold_until": "2099-12-01",
+        "reason": "external hold until 2099-12-01: Waiting for vendor approval"
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "date": "2026-11-01",
+      "kind": "landed",
+      "id": "landed",
+      "label": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "closed",
+      "id": "mate/landed",
+      "label": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "orphan",
+      "label": "Inventory missing its worker"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "observation",
+      "label": "Held flight observation"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "ready",
+      "label": "Publish release notes — 日本語"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "waiting",
+      "label": "Dependent rollout"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "external",
+      "label": "Vendor release approval"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "decision",
+      "label": "Choose release posture"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/orphan",
+      "label": "Inventory missing its worker"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/observation",
+      "label": "Held flight observation"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/ready",
+      "label": "Publish release notes — 日本語"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/waiting",
+      "label": "Dependent rollout"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/external",
+      "label": "Vendor release approval"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/decision",
+      "label": "Choose release posture"
+    },
+    {
+      "date": "2026-11-01T03:31:36Z",
+      "kind": "briefing",
+      "id": null,
+      "label": "previous briefing"
+    }
+  ],
+  "counts": {
+    "landed": 1,
+    "new_rows": 12,
+    "answered": 0,
+    "in_flight": 0,
+    "decisions": 2,
+    "ready": 2,
+    "blocked": 6
+  },
+  "disclosures": [
+    "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+    "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+    "secondmate mate: unknown, unknown (unknown) coverage - invalid home: secondmate home cannot be inside the firstmate repo",
+    "main inventory: in-flight backlog item has no child metadata",
+    "secondmate home(s) with unreadable structured state: 1; inspect the listed secondmate home ledgers",
+    "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta"
+  ],
+  "recap_next": "Topic release briefing 2026-10-01 to 2026-11-01: 1 landed, 0 captain call(s) answered, 12 new, 2 decision(s) open, 0 row(s) in flight."
+}

@@ -1,0 +1,19 @@
+topic: release
+window: 2026-10-01 .. 2026-11-01 (flag)
+labels: unavailable for one or more homes - see membership disclosures
+changed since: 2 landed, 12 new, 0 answered
+landed: landed Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text) https://github.com/example/demo/pull/42
+landed: mate/landed Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text) https://github.com/example/demo/pull/42
+in flight: 0
+decisions open: 2
+decision: decision Which posture? options: ship now | reconcile | wait for review
+decision: mate/decision Which posture? options: ship now | reconcile | wait for review
+next steps: 2 ready, 6 blocked
+recap: previous briefing 2026-11-01
+note: (main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only
+note: mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only
+note: main inventory: in-flight backlog item has no child metadata
+note: main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta
+briefing: ~/.no-mistakes/evidence/01M6ACPD6ZQCA731JT03PGGRAA/topic-brief-complete.html

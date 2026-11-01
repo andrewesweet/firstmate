@@ -1,0 +1,5 @@
+error: "Unknown field(s): labels. Available: blocked, blocked_by, body, closed, created, delivery_state, deps, held, hold_kind, hold_reason, hold_until, links, priority"
+code: VALIDATION_ERROR
+
+Installed version: 0.2.6
+Published latest: 0.2.6

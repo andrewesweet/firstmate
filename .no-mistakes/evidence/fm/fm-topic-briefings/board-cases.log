@@ -1,0 +1,507 @@
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-tasks-axi.sh add old Earlier delivery outside topic window --repo elsewhere
+ok: added old (repo elsewhere) -> Queued
+task:
+  id: old
+  title: Earlier delivery outside topic window
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: elsewhere
+  priority: "-"
+  created: 2026-11-01
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start old` to move it to in flight
+  - Run `tasks-axi block old --by <other>` to record a dependency
+
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-tasks-axi.sh done old --pr https://github.com/example/elsewhere/pull/88
+ok: done old -> Done (pr https://github.com/example/elsewhere/pull/88)
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-captain-hold.sh hold stale --title Outdated landing call --repo demo --reason Choose a posture for earlier delivery
+stale
+
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-tasks-axi.sh update stale --pr https://github.com/example/elsewhere/pull/88
+ok: updated stale (links)
+task:
+  id: stale
+  title: "Outdated landing call https://github.com/example/elsewhere/pull/88"
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Q2hvb3NlIGEgcG9zdHVyZSBmb3IgZWFybGllciBkZWxpdmVyeQ=="
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: demo
+  priority: "-"
+  created: 2026-11-01
+  closed: "-"
+  deps: none
+  links: "pr:https://github.com/example/elsewhere/pull/88"
+  body: "Captain hold set: 2026-11-01T03:35:00Z"
+help[1]:
+  - Run `tasks-axi show stale --full` to see the result
+
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-topic-brief.sh release --since 2026-10-18 --board
+board: ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html
+session:
+  file: ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html
+  url: "http://127.0.0.1:44389/session/bdd9864c5ee0b696"
+  status: opened
+next_step: "Do not respond to the user just yet. Now you must run `lavish-axi poll ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html`. This command long-polls until the user sends feedback, ends the session, or leaves every review window disconnected past the reconnect grace period, and it stays silent the whole time - that is normal, never kill it. Layout issues the browser detects do not return this poll; they wait in the user's Layout issues inbox until the user queues them, then arrive as an ordinary tag \"layout-warnings\" prompt. Do not pass --timeout-ms during normal agent use. Keep the poll in the foreground by default and let it return the feedback directly to the agent. A background poll is allowed only through a harness-native tracked background-job facility whose completion result is guaranteed to resume or notify the same agent. Never use `nohup`, shell `&`, `disown`, redirected fire-and-forget processes, or a detached terminal without an explicit verified callback merely to keep polling alive. If the harness has no completion-aware background facility, use the foreground poll or first wire a verified wake callback into the surrounding supervisor. Do not tell the user the artifact is being monitored until that wake path is live. If the poll gets killed or times out before feedback arrives, re-run it - feedback remains queued until delivery. Poll delivery consumes the response, so read it completely. If it returns browser_disconnected, the review window stayed disconnected past its reconnect grace period but the session remains resumable; ask the user whether to reopen or end it, and do neither uninvited. Codex detected: completed background tasks may not resume Codex automatically, so keep the poll attached to the active turn. After applying feedback, run `lavish-axi poll ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html --agent-reply \"<message for the user>\"` without --timeout-ms to show a concise response in Lavish Editor and keep waiting for more feedback. If instead you are handing back a result without starting another long-poll, run `lavish-axi reply ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html --agent-reply \"<message for the user>\"` to get an acceptance receipt. Keep the reply concise. Only when a longer reply is genuinely necessary, use Markdown structure - blank-line paragraphs, `- ` / `1. ` lists, `## ` headings - so it renders scannably instead of a wall of text, and pass that body with `--agent-reply-file <path>` (`-` reads stdin) so newlines survive quoting. The Conversation panel's Markdown subset is in `lavish-axi poll --help` and README. If the user ends the session, stop polling and do not reopen it by re-running `lavish-axi ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html` unless the user asks for further review or something genuinely important needs their visual attention - deliver routine updates directly in this conversation instead. When reopening is warranted, run `lavish-axi ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html --reopen`."
+session: live
+served: ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/.topic-live/main/.lavish/bearings-board.html
+bound: lavish-bdd9864c5ee0b696
+already-armed: lavish-bdd9864c5ee0b696
+listening: live
+topic: release
+window: 2026-10-18 .. 2026-11-01 (flag)
+labels: unavailable for one or more homes - see membership disclosures
+changed since: 2 landed, 14 new, 0 answered
+landed: landed Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text) https://github.com/example/demo/pull/42
+landed: mate/landed Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/
+... (truncated, 87 chars total - use show landed --full to see complete text) https://github.com/example/demo/pull/42
+in flight: 1 - Current release investigation
+decisions open: 3
+decision: decision Which posture? options: ship now | reconcile | wait for review
+decision: stale Choose a posture for earlier delivery
+decision: mate/decision Which posture? options: ship now | reconcile | wait for review
+next steps: 2 ready, 6 blocked
+recap: previous briefing 2026-11-01
+note: (main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only
+note: mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only
+note: main inventory: in-flight backlog item has no child metadata
+note: main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta
+board: rebuilt with this topic only
+
+exit: 0
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6ACPD6ZQCA731JT03PGGRAA/bin/fm-topic-brief.sh release --since 2026-10-18 --json
+{
+  "schema": "fm-topic-brief.v1",
+  "topic": {
+    "name": "release",
+    "aliases": [
+      "launch"
+    ],
+    "projects": [
+      "demo"
+    ]
+  },
+  "generated": "2026-11-01T03:35:08Z",
+  "window": {
+    "since": "2026-10-18",
+    "until": "2026-11-01T03:35:08Z",
+    "source": "flag"
+  },
+  "labels_available": false,
+  "recap": {
+    "generated": "2026-11-01T03:33:55Z",
+    "paragraph": "Topic release briefing 2026-10-01 to 2026-11-01: 2 landed, 0 captain call(s) answered, 12 new, 2 decision(s) open, 0 row(s) in flight."
+  },
+  "changed_since": {
+    "landed": [
+      {
+        "id": "landed",
+        "title": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)",
+        "closed": "2026-11-01",
+        "owner": "(main)",
+        "repo": "demo",
+        "artifact": "https://github.com/example/demo/pull/42",
+        "pr_url": "https://github.com/example/demo/pull/42",
+        "report": null
+      },
+      {
+        "id": "mate/landed",
+        "title": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)",
+        "closed": "2026-11-01",
+        "owner": "mate",
+        "repo": "demo",
+        "artifact": "https://github.com/example/demo/pull/42",
+        "pr_url": "https://github.com/example/demo/pull/42",
+        "report": null
+      }
+    ],
+    "new_rows": [
+      {
+        "id": "flight",
+        "title": "Current release investigation",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "orphan",
+        "title": "Inventory missing its worker",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "observation",
+        "title": "Held flight observation",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "ready",
+        "title": "Publish release notes — 日本語",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "waiting",
+        "title": "Dependent rollout",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "external",
+        "title": "Vendor release approval",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "decision",
+        "title": "Choose release posture",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "stale",
+        "title": "Outdated landing call https://github.com/example/elsewhere/pull/88",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/orphan",
+        "title": "Inventory missing its worker",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "mate/observation",
+        "title": "Held flight observation",
+        "created": "2026-11-01",
+        "state": "in_flight"
+      },
+      {
+        "id": "mate/ready",
+        "title": "Publish release notes — 日本語",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/waiting",
+        "title": "Dependent rollout",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/external",
+        "title": "Vendor release approval",
+        "created": "2026-11-01",
+        "state": "queued"
+      },
+      {
+        "id": "mate/decision",
+        "title": "Choose release posture",
+        "created": "2026-11-01",
+        "state": "queued"
+      }
+    ],
+    "answered_decisions": []
+  },
+  "in_flight": [
+    {
+      "id": "flight",
+      "name": "Current release investigation",
+      "kind": "scout",
+      "state": "unknown",
+      "repo": "demo",
+      "doing": "worktree gone (torn down?)",
+      "owner": "(main)",
+      "pr_url": null
+    }
+  ],
+  "decisions_open": [
+    {
+      "id": "decision",
+      "title": "Choose release posture",
+      "owner": "(main)",
+      "key": "decision",
+      "repo": "demo",
+      "kind": "captain",
+      "state": "queued",
+      "close": "done",
+      "hold_reason": "Which posture? options: ship now | reconcile | wait for review",
+      "hold_until": null,
+      "report": null,
+      "pr_url": null,
+      "options": [
+        "ship now",
+        "reconcile",
+        "wait for review"
+      ]
+    },
+    {
+      "id": "stale",
+      "title": "Outdated landing call https://github.com/example/elsewhere/pull/88",
+      "owner": "(main)",
+      "key": "stale",
+      "repo": "demo",
+      "kind": "captain",
+      "state": "queued",
+      "close": "done",
+      "hold_reason": "Choose a posture for earlier delivery",
+      "hold_until": null,
+      "report": null,
+      "pr_url": "https://github.com/example/elsewhere/pull/88",
+      "options": []
+    },
+    {
+      "id": "mate/decision",
+      "title": "Choose release posture",
+      "owner": "mate",
+      "key": "mate/decision",
+      "repo": "demo",
+      "kind": "captain",
+      "state": "queued",
+      "close": "done",
+      "hold_reason": "Which posture? options: ship now | reconcile | wait for review",
+      "hold_until": null,
+      "report": null,
+      "pr_url": null,
+      "options": [
+        "ship now",
+        "reconcile",
+        "wait for review"
+      ]
+    }
+  ],
+  "next_steps": {
+    "ready": [
+      {
+        "id": "ready",
+        "title": "Publish release notes — 日本語",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo"
+      },
+      {
+        "id": "mate/ready",
+        "title": "Publish release notes — 日本語",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo"
+      }
+    ],
+    "blocked": [
+      {
+        "id": "observation",
+        "title": "Held flight observation",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for upstream signal",
+        "hold_until": null,
+        "reason": "external hold: Waiting for upstream signal"
+      },
+      {
+        "id": "waiting",
+        "title": "Dependent rollout",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [
+          "ready"
+        ],
+        "hold_reason": "",
+        "hold_until": null,
+        "reason": "blocked by ready"
+      },
+      {
+        "id": "external",
+        "title": "Vendor release approval",
+        "owner": "(main)",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for vendor approval",
+        "hold_until": "2099-12-01",
+        "reason": "external hold until 2099-12-01: Waiting for vendor approval"
+      },
+      {
+        "id": "mate/observation",
+        "title": "Held flight observation",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for upstream signal",
+        "hold_until": null,
+        "reason": "external hold: Waiting for upstream signal"
+      },
+      {
+        "id": "mate/waiting",
+        "title": "Dependent rollout",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [
+          "mate/ready"
+        ],
+        "hold_reason": "",
+        "hold_until": null,
+        "reason": "blocked by mate/ready"
+      },
+      {
+        "id": "mate/external",
+        "title": "Vendor release approval",
+        "owner": "mate",
+        "filed": "2026-11-01",
+        "repo": "demo",
+        "blocked_by": [],
+        "hold_reason": "Waiting for vendor approval",
+        "hold_until": "2099-12-01",
+        "reason": "external hold until 2099-12-01: Waiting for vendor approval"
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "date": "2026-11-01",
+      "kind": "landed",
+      "id": "landed",
+      "label": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "landed",
+      "id": "mate/landed",
+      "label": "Recorded delivery <script>window.bad=1</script> https://github.com/example/demo/\n... (truncated, 87 chars total - use show landed --full to see complete text)"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "flight",
+      "label": "Current release investigation"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "orphan",
+      "label": "Inventory missing its worker"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "observation",
+      "label": "Held flight observation"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "ready",
+      "label": "Publish release notes — 日本語"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "waiting",
+      "label": "Dependent rollout"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "external",
+      "label": "Vendor release approval"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "decision",
+      "label": "Choose release posture"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "stale",
+      "label": "Outdated landing call https://github.com/example/elsewhere/pull/88"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/orphan",
+      "label": "Inventory missing its worker"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/observation",
+      "label": "Held flight observation"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/ready",
+      "label": "Publish release notes — 日本語"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/waiting",
+      "label": "Dependent rollout"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/external",
+      "label": "Vendor release approval"
+    },
+    {
+      "date": "2026-11-01",
+      "kind": "filed",
+      "id": "mate/decision",
+      "label": "Choose release posture"
+    },
+    {
+      "date": "2026-11-01T03:33:55Z",
+      "kind": "briefing",
+      "id": null,
+      "label": "previous briefing"
+    }
+  ],
+  "counts": {
+    "landed": 2,
+    "new_rows": 14,
+    "answered": 0,
+    "in_flight": 1,
+    "decisions": 3,
+    "ready": 2,
+    "blocked": 6
+  },
+  "disclosures": [
+    "(main): the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+    "mate: the installed tasks-axi does not support --fields labels; membership fell back to default projects only",
+    "main inventory: in-flight backlog item has no child metadata",
+    "main in-flight backlog item(s) have no child metadata: 1; inspect main data/backlog.md In flight vs state/*.meta"
+  ],
+  "recap_next": "Topic release briefing 2026-10-18 to 2026-11-01: 2 landed, 0 captain call(s) answered, 14 new, 3 decision(s) open, 1 row(s) in flight."
+}
+
+exit: 0

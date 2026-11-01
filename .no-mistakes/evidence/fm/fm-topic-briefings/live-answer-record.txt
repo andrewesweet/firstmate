@@ -1,0 +1,18 @@
+task:
+  id: live-answer
+  title: Confirm captured answer delivery
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "Ready? options: ship now | wait"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: demo
+  priority: "-"
+  created: "-"
+  closed: 2026-11-01
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 3361ccfdf08216b9d7f9886479a95accd7d24ea45169eebd39c50f2ef02d8c38\nResolution mode: answered\n\nCaptain decision:\nCaptain answered this call through the captured result lavish-bdd9864c5ee0b696 sequence 3.\nTask: live-answer\nAnswer: option-0-ship-now\nAnswer as shown to the captain: Confirm captured answer delivery -> ship now"
