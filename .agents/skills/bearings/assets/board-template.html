@@ -564,7 +564,8 @@ __FM_BEARINGS_BOARD_DATA__
       var selectedLabel = selectedOption ? selectedOption.label : value;
       var displayAnswer = value ? (note ? selectedLabel + " - " + note : selectedLabel) : note;
       if (!displayAnswer) return;
-      if (utf8ByteLength(displayAnswer) > 512) {
+      var submittedAnswer = value ? (note ? value + " - " + note : value) : note;
+      if (utf8ByteLength(submittedAnswer) > 512) {
         answerLimit.textContent = "Answer is too long to queue (512 bytes maximum).";
         answerLimit.classList.add("is-visible");
         return;

@@ -93,12 +93,15 @@ globalThis.TextEncoder = TextEncoder;
 
 const script = html.slice(html.indexOf("<script>") + "<script>".length, html.lastIndexOf("</script>"));
 new Function(script)();
-if (process.argv[3]) {
+if (process.argv[3] || process.argv[5] !== undefined) {
   const form = descendants(byId.get("bb-call")).find((node) => node.tagName === "form"
     && (!process.argv[4] || node.attributes["data-lavish-question"] === process.argv[4]));
-  const input = descendants(form).find((node) => node.type === "radio" && node.value === process.argv[3]);
-  if (!input) throw new Error("requested option was not rendered");
-  input.checked = true;
+  if (process.argv[3]) {
+    const input = descendants(form).find((node) => node.type === "radio" && node.value === process.argv[3]);
+    if (!input) throw new Error("requested option was not rendered");
+    input.checked = true;
+  }
+  if (process.argv[5] !== undefined) descendants(form).find((node) => node.name === "note").value = process.argv[5];
   form.listeners.submit({ preventDefault() {} });
 }
 
@@ -142,5 +145,7 @@ const errorText = [...byId.entries()]
 const empty = ch.children.filter((c) => c.className.includes("bb-empty")).map((c) => c.textContent);
 const more = ch.children.filter((c) => c.className.includes("bb-morechip")).map((c) => c.textContent);
 
+const options = descendants(byId.get("bb-call")).filter((node) => node.className === "bb-opt__label").map((node) => node.textContent);
+const questions = descendants(byId.get("bb-call")).filter((node) => node.tagName === "form").map((node) => node.attributes["data-lavish-question"]);
 process.stdout.write(
-  JSON.stringify({ stats, underway, landed, charted, empty, more, error: errorText, queued }) + "\n");
+  JSON.stringify({ options, questions, stats, underway, landed, charted, empty, more, error: errorText, queued }) + "\n");

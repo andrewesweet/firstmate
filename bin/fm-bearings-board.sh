@@ -320,7 +320,7 @@ effective_payload() {  # <data.json> <dest.json>
       | select(
           ($payload.landed | any((.owner // "(main)") == ($card.owner // "(main)")
             and (.id == $card.key or ((.owner + "/" + .id) == $card.key))))
-          or (($card.pr_url? != null) and ($payload.landed | any(.pr_url? == $card.pr_url)))
+          or (($card.pr_url? != null) and ($payload.landed | any(.pr_url? == $card.pr_url or .artifact? == $card.pr_url)))
           or (($card.subject? != null) and ($payload.landed | any(
             (.subject? != null)
             and (.subject.artifact == $card.subject.artifact)

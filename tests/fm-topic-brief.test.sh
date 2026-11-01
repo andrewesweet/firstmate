@@ -8,10 +8,10 @@
 # HTML brief with its offline answers line, briefing history, and the
 # fm-bearings-board.v1 payload shape.
 #
-# The suite never depends on the host tasks-axi supporting labels: every
-# ledger read is served by PATH stubs (one with a labels-capable list, one
-# that reproduces the installed 0.2.x "Unknown field(s): labels" refusal), so
-# the fallback path is exercised by construction.
+# The no-labels table fixture was captured from tasks-axi list after creating
+# the records through the real CLI and setting their durable fixture dates.
+# The labeled variant adds the optional labels column to that table contract.
+# PATH stubs cover both capabilities; a real-CLI case checks table decoding.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -24,6 +24,7 @@ TMP_ROOT=$(fm_test_tmproot fm-topic-brief)
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
 
 NOW=2026-11-01T09:00:00Z
+REAL_TASKS_AXI=$(command -v tasks-axi || true)
 
 # --- fixture builders --------------------------------------------------------
 
@@ -80,207 +81,25 @@ EOF
   chmod +x "$dir/fmtb-snapshot"
 }
 
+write_toon() {
+  jq -r --arg mode "${1:-list}" '
+    def cell:
+      (if type == "array" then if length == 0 then "none" else join(",") end
+       elif . == null then "-" else tostring end) | tojson;
+    if $mode == "detail" then
+      "task:", (.[0] | to_entries[] | "  " + .key + ": " + (.value | cell))
+    elif length == 0 then
+      "count: 0", "tasks: 0 tasks in this backlog"
+    else
+      ["id","state","kind","repo","title","labels","blocked_by","created","closed","held","hold_kind","hold_until","links","hold_reason"] as $fields |
+      "count: \(length)", "tasks[\(length)]{\($fields | join(","))}:",
+      (.[] | . as $row | "  " + ([$fields[] | $row[.] | cell] | join(",")))
+    end'
+}
+
 write_fixtures() {
-  cat > "$TMP_ROOT/list-labels.toon" <<'EOF'
-count: 9
-tasks[9]:
-  - id: t-flight
-    state: in_flight
-    kind: ship
-    repo: treehouse
-    title: Main child in flight
-    labels[1]: "topic:tf-mut"
-    held: no
-  - id: t-lab
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Labelled member, plain title"
-    labels[1]: "topic:tf-mut"
-    blocked_by: none
-    created: 2026-10-20
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-alias
-    state: queued
-    kind: ship
-    repo: other-repo
-    title: "Member via alias label"
-    labels[1]: "topic:mut"
-    blocked_by: none
-    created: 2026-10-21
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-proj
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Member by default project, unlabelled"
-    labels: []
-    blocked_by[1]: t-lab
-    created: 2026-10-22
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-out
-    state: queued
-    kind: ship
-    repo: other-repo
-    title: "Carries another topic label"
-    labels[1]: "topic:crew-wiki"
-    blocked_by: none
-    created: 2026-10-23
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-topicless
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Has a topic label for another topic"
-    labels[1]: "topic:crew-wiki"
-    blocked_by: none
-    created: 2026-10-24
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-dec
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Held member with captain question"
-    labels[1]: "topic:tf-mut"
-    blocked_by: none
-    created: 2026-10-25
-    closed: "-"
-    held: yes
-    hold_kind: captain
-    hold_until: 2026-11-15
-    links: none
-    hold_reason: "Question: which merge posture for topic briefings? Full context: the captain asked for topic briefings on 2026-10-20. options: yolo on | yolo off | defer a week"
-  - id: t-done
-    state: done
-    kind: ship
-    repo: treehouse
-    title: "Landed member row with PR"
-    labels[1]: "topic:tf-mut"
-    blocked_by: none
-    created: 2026-10-18
-    closed: 2026-10-28
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links[1]: "pr:https://github.com/andrewesweet/treehouse/pull/42"
-    hold_reason: "-"
-  - id: t-answ
-    state: done
-    kind: captain
-    repo: "-"
-    title: "Topic briefings: start now"
-    labels[1]: "topic:tf-mut"
-    blocked_by: none
-    created: 2026-10-19
-    closed: 2026-10-26
-    held: no
-    hold_kind: captain
-    hold_until: "-"
-    links[1]: "report:data/t-dec/report.md"
-    hold_reason: "Captain decision: start now"
-help[2]:
-  - "Run `tasks-axi show <id>` for full notes on a task"
-  - "Field semantics live in the tasks-axi docs"
-EOF
-  # The same ledger as the installed 0.2.x would render it: no labels field at
-  # all, and only five rows because the remaining fixtures exist to test
-  # label-driven membership.
-  cat > "$TMP_ROOT/list-nolabels.toon" <<'EOF'
-count: 5
-tasks[5]:
-  - id: t-lab
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Labelled member, plain title"
-    blocked_by: none
-    created: 2026-10-20
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-alias
-    state: queued
-    kind: ship
-    repo: other-repo
-    title: "Member via alias label"
-    blocked_by: none
-    created: 2026-10-21
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-proj
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Member by default project, unlabelled"
-    blocked_by[1]: t-lab
-    created: 2026-10-22
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-out
-    state: queued
-    kind: ship
-    repo: other-repo
-    title: "Carries another topic label"
-    blocked_by: none
-    created: 2026-10-23
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-  - id: t-topicless
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: "Has a topic label for another topic"
-    blocked_by: none
-    created: 2026-10-24
-    closed: "-"
-    held: no
-    hold_kind: "-"
-    hold_until: "-"
-    links: none
-    hold_reason: "-"
-help[1]:
-  - "Run `tasks-axi show <id>` for full notes on a task"
-EOF
+  cp "$ROOT/tests/assets/topic-list-labels.toon" "$TMP_ROOT/list-labels.toon"
+  cp "$ROOT/tests/assets/topic-list-nolabels.toon" "$TMP_ROOT/list-nolabels.toon"
   printf 'Unknown field(s): labels. Available: blocked, blocked_by, body, closed, created, delivery_state, deps, held, hold_kind, hold_until, links, hold_reason\n' > "$TMP_ROOT/nolabel-refusal.txt"
   cat > "$TMP_ROOT/show-t-dec.toon" <<'EOF'
 task:
@@ -289,14 +108,14 @@ task:
   kind: ship
   repo: treehouse
   title: "Held member with captain question (full title from detail)"
-  labels[1]: "topic:tf-mut"
+  labels: "topic:tf-mut"
   blocked_by: none
   created: 2026-10-25
   closed: "-"
   held: yes
   hold_kind: captain
   hold_until: 2026-11-15
-  links[1]: "report:data/t-dec/report.md"
+  links: "report:data/t-dec/report.md"
   hold_reason: "Question: which merge posture for topic briefings? Full context: the captain asked for topic briefings on 2026-10-20. options: yolo on | yolo off | defer a week"
 help[1]:
   - "Run `tasks-axi show <id>` for full notes on a task"
@@ -324,22 +143,11 @@ EOF
   "omitted": []
 }
 EOF
-  cat > "$TMP_ROOT/mate-labels.toon" <<'EOF'
-tasks[2]:
-  - id: t-flight
-    state: in_flight
-    kind: ship
-    repo: treehouse
-    title: Second-mate child in flight
-    labels: []
-    held: no
-  - id: t-nowhere
-    state: in_flight
-    kind: ship
-    repo: "-"
-    title: Second-mate no-repo flight
-    labels: []
-    held: no
+  write_toon > "$TMP_ROOT/mate-labels.toon" <<'EOF'
+[
+  {"id":"t-flight","state":"in_flight","kind":"ship","repo":"treehouse","title":"Second-mate child in flight","labels":[],"held":"no"},
+  {"id":"t-nowhere","state":"in_flight","kind":"ship","repo":"-","title":"Second-mate no-repo flight","labels":[],"held":"no"}
+]
 EOF
 }
 
@@ -428,7 +236,7 @@ test_window_default_since_and_recap() {
     || fail "--since window wrong: $w2"
   # First HTML run writes history; the next run windows from it and recaps.
   run_topic "$home" "$stubbin" tf-mut --html "$home/brief-1.html" >/dev/null || fail "html run failed"
-  [ -f "$home/data/topic-briefings/tf-mut/T20261101T090000Z.json" ] || fail "history record not written"
+  [ -f "$home/data/topic-briefings/topic-tf-mut/T20261101T090000Z.json" ] || fail "history record not written"
   w3=$(FM_TOPIC_NOW=2026-11-08T09:00:00Z SNAPSHOT_FIXTURE="$TMP_ROOT/snapshot.json" \
       PATH="$stubbin:$PATH" FM_DATA_OVERRIDE="$home/data" \
       FM_TOPIC_SNAPSHOT="$stubbin/fmtb-snapshot" \
@@ -581,15 +389,6 @@ test_board_payload_shape() {
   pass "board payload: distinct values with recorded labels, topic-scoped rows, shape contract"
 }
 
-write_toon() {
-  jq -r '
-    "tasks[\(length)]:",
-    (.[] | "  - id: \(.id | tojson)",
-      (to_entries[] | select(.key != "id") |
-        if (.value | type) == "array" then
-          "    \(.key)[\(.value | length)]: \(.value | map(tojson) | join(","))"
-        else "    \(.key): \(.value | tojson)" end))'
-}
 
 test_secondmate_membership_all_surfaces() {
   local home stubbin placement json
@@ -647,17 +446,11 @@ test_deferred_calls_and_resolved_dependencies() {
   home=$(make_home deferred)
   stubbin="$TMP_ROOT/stub-labeled"
   make_stub_bin "$stubbin" labeled
-  sed 's/held: yes/held: no/; s/2026-11-15/2026-10-31/' "$TMP_ROOT/list-labels.toon" > "$home/main.toon"
+  sed 's/,yes,captain,2026-11-15,/,no,captain,2026-10-31,/' "$TMP_ROOT/list-labels.toon" > "$home/main.toon"
   sed 's/held: yes/held: no/; s/2026-11-15/2026-10-31/' "$TMP_ROOT/show-t-dec.toon" > "$home/detail.toon"
-  sed '/^help\[/,$d; s/^count: 9$/count: 10/; s/^tasks\[9\]:$/tasks[10]:/' "$home/main.toon" > "$home/rows.toon"
+  sed '/^help\[/,$d; s/^count: 9$/count: 10/; s/^tasks\[9\]/tasks[10]/' "$home/main.toon" > "$home/rows.toon"
   cat >> "$home/rows.toon" <<'EOF'
-  - id: t-unblocked
-    state: queued
-    kind: ship
-    repo: treehouse
-    title: Resolved dependency
-    blocked_by[1]: t-done
-    held: no
+  t-unblocked,queued,ship,treehouse,Resolved dependency,none,t-done,2026-10-30,"-",no,"-","-",none,"-"
 EOF
   json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_DETAIL_FIXTURE="$home/detail.toon" \
     run_topic "$home" "$stubbin" tf-mut --json) || fail "deferred run failed"
@@ -743,9 +536,9 @@ test_publication_failure_preserves_history_and_empty_states() {
     case "$html" in *"$expected"*) : ;; *) fail "missing empty state: $expected" ;; esac
   done
   case "$html" in *'id="recap"'*) fail "first briefing has an empty recap" ;; esac
-  before=$(cat "$home/data/topic-briefings/empty/T20261101T090000Z.json")
+  before=$(cat "$home/data/topic-briefings/topic-empty/T20261101T090000Z.json")
   run_topic "$home" "$stubbin" empty --html "$home" >/dev/null 2>&1 && fail "directory output succeeded"
-  [ "$(cat "$home/data/topic-briefings/empty/T20261101T090000Z.json")" = "$before" ] || fail "failed publication changed existing history"
+  [ "$(cat "$home/data/topic-briefings/topic-empty/T20261101T090000Z.json")" = "$before" ] || fail "failed publication changed existing history"
   pass "failed HTML publication preserves history; empty briefs show every empty state"
 }
 
@@ -775,7 +568,7 @@ test_complete_distinct_board_options() {
   stubbin="$TMP_ROOT/stub-labeled"
   make_stub_bin "$stubbin" labeled
   jq -n '["A/B", "A-B", "reconcile", "four", "five", "six", ("long " + ("condition " * 20) + "keep this suffix")]' > "$home/options.json"
-  jq '[{id:"t-dec",hold_kind:"captain",state:"queued",title:"Recorded choice",hold_reason:("Question: choose? options: " + join(" | "))}]' "$home/options.json" | write_toon > "$home/detail.toon"
+  jq '[{id:"t-dec",hold_kind:"captain",state:"queued",title:"Recorded choice",hold_reason:("Question: choose? options: " + join(" | "))}]' "$home/options.json" | write_toon detail > "$home/detail.toon"
   json=$(TOPIC_DETAIL_FIXTURE="$home/detail.toon" run_topic "$home" "$stubbin" tf-mut --json) || fail "options model failed"
   jq -e --slurpfile expected "$home/options.json" '.decisions_open[0].options == $expected[0]' <<<"$json" >/dev/null || fail "options truncated"
   make_board_stub "$stubbin"
@@ -815,7 +608,7 @@ test_board_preserves_work_modes_dates_and_empty_defaults() {
   {"id":"t-done","kind":"ship","state":"done","repo":"treehouse","title":"","closed":"2026-10-28"}
 ]
 EOF
-  write_toon > "$home/detail.toon" <<'EOF'
+  write_toon detail > "$home/detail.toon" <<'EOF'
 [{"id":"t-dec","kind":"ship","state":"in_flight","repo":"treehouse","title":"Merge gate","hold_kind":"captain","held":"yes","hold_reason":"Question: approve merge? options: approve | wait"}]
 EOF
   jq '(.in_flight[] | select(.id == "t-flight")) |= (.name = "" | .doing = "")' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
@@ -844,7 +637,7 @@ test_snapshot_delivery_artifacts_reach_every_output() {
   stubbin="$TMP_ROOT/stub-labeled"
   make_stub_bin "$stubbin" labeled
   make_board_stub "$stubbin"
-  sed 's@    links\[1\]: "pr:https://github.com/andrewesweet/treehouse/pull/42"@    links: none@' "$TMP_ROOT/list-labels.toon" > "$home/rows.toon"
+  sed 's@"pr:https://github.com/andrewesweet/treehouse/pull/42"@none@' "$TMP_ROOT/list-labels.toon" > "$home/rows.toon"
   write_toon > "$home/mate.toon" <<'EOF'
 [{"id":"t-done2","kind":"scout","state":"done","repo":"treehouse","title":"Recorded report","closed":"2026-10-29","links":[]}]
 EOF
@@ -877,7 +670,7 @@ case "${1:-}" in
   list) cat "$TOPIC_MAIN_FIXTURE" ;;
   show)
     printf '%s\n' "$2" >> "$TOPIC_SHOW_LOG"
-    jq -r --arg id "$2" '.[] | select(.id == $id) | "task:", "  id: \(.id)", "  kind: captain", "  state: queued", "  hold_kind: captain", "  hold_reason: Question: full detail for \(.id)? options: yes | no"' "$TOPIC_ROWS_JSON"
+    jq -r --arg id "$2" '.[] | select(.id == $id) | "task:", "  id: \(.id)", "  kind: captain", "  state: queued", "  hold_kind: captain", "  hold_reason: \(("Question: full detail for " + .id + "? options: yes | no") | tojson)"' "$TOPIC_ROWS_JSON"
     ;;
   *) exit 9 ;;
 esac
@@ -891,6 +684,139 @@ SH
   [ "$shown" = 23 ] || fail "read unrelated decisions or capped members: $shown reads"
   if grep -q '^other-' "$home/show.log"; then fail "unrelated topic was detail-read"; fi
   pass "all 23 member decisions are enriched after 25 unrelated holds, without reading unrelated details"
+}
+
+test_real_cli_tabular_lists_and_scalar_list_fields() {
+  local home stubbin json phase title reason
+  home=$(make_home real-cli)
+  stubbin="$TMP_ROOT/stub-real-cli"
+  make_stub_bin "$stubbin" labeled
+  printf '# no secondmates\n' > "$home/data/secondmates.md"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$home/data/backlog.md"
+  [ -n "$REAL_TASKS_AXI" ] || fail "tasks-axi is required for real table contract verification"
+  title='A comma, a "quote", slash \ and café'
+  reason='Question: say "yes", or wait? options: A/B | A-B'
+  for phase in empty populated; do
+    if [ "$phase" = populated ]; then
+      TASKS_AXI_FILE="$home/data/backlog.md" "$REAL_TASKS_AXI" add real-a "$title" --kind ship --repo treehouse >/dev/null || fail "real CLI add failed"
+      TASKS_AXI_FILE="$home/data/backlog.md" "$REAL_TASKS_AXI" add real-c Other --kind ship --repo outside >/dev/null || fail "real CLI add failed"
+      TASKS_AXI_FILE="$home/data/backlog.md" "$REAL_TASKS_AXI" add real-q Queued --kind ship --repo treehouse --blocked-by real-a --blocked-by real-c >/dev/null || fail "real CLI dependencies failed"
+      TASKS_AXI_FILE="$home/data/backlog.md" "$REAL_TASKS_AXI" add real-b Decision --kind ship --repo treehouse --pr https://github.com/example/sample/pull/41 --report data/real-b/report.md >/dev/null || fail "real CLI links failed"
+      TASKS_AXI_FILE="$home/data/backlog.md" "$REAL_TASKS_AXI" hold real-b --kind captain --reason "$reason" >/dev/null || fail "real CLI hold failed"
+    fi
+    json=$(SNAPSHOT_FIXTURE="$TMP_ROOT/snapshot.json" FM_DATA_OVERRIDE="$home/data" FM_TOPIC_NOW="$NOW" \
+      FM_TOPIC_SNAPSHOT="$stubbin/fmtb-snapshot" "$TOPIC_BRIEF" tf-mut --json) || fail "real $phase list was not parsed"
+    if [ "$phase" = empty ]; then
+      jq -e '.counts.ready == 0 and .counts.decisions == 0' <<<"$json" >/dev/null || fail "empty real list is not empty"
+    else
+      jq -e --arg title "$title" --arg reason "$reason" '
+        [.next_steps.ready[].id] == ["real-a"] and .next_steps.ready[0].title == $title
+        and [.next_steps.blocked[].blocked_by] == [["real-a","real-c"]]
+        and .decisions_open[0].hold_reason == $reason and .decisions_open[0].options == ["A/B","A-B"]
+        and .decisions_open[0].pr_url == "https://github.com/example/sample/pull/41"
+        and .decisions_open[0].report == "data/real-b/report.md"
+      ' <<<"$json" >/dev/null || fail "real table scalars, quoting or list fields changed: $json"
+    fi
+  done
+  pass "real CLI empty and populated tables preserve quoted Unicode values, dependencies, links and held decisions"
+}
+
+test_unparsed_or_incomplete_task_lists_fail() {
+  local home stubbin out rc input
+  home=$(make_home malformed-lists)
+  stubbin="$TMP_ROOT/stub-malformed"
+  make_stub_bin "$stubbin" labeled
+  for input in unknown short expanded; do
+    case "$input" in
+      unknown) printf 'unrecognized populated backlog\n' > "$home/bad.toon" ;;
+      short) printf 'tasks[2]{id,state,kind,repo,title}:\n  only-one,queued,ship,treehouse,Work\n' > "$home/bad.toon" ;;
+      expanded) printf 'tasks[1]:\n  - id: expanded\n    state: queued\n' > "$home/bad.toon" ;;
+    esac
+    out=$(TOPIC_MAIN_FIXTURE="$home/bad.toon" run_topic "$home" "$stubbin" tf-mut --json 2>&1) && rc=0 || rc=$?
+    [ "$rc" = 2 ] || fail "$input task list was silently accepted: $out"
+    case "$out" in *'could not be parsed'*) : ;; *) fail "unparsed list lacks an actionable error: $out" ;; esac
+  done
+  pass "unknown, incomplete and unsupported expanded lists fail instead of becoming empty topics"
+}
+
+test_history_isolates_encoded_topic_names_and_checks_record_identity() {
+  local home stubbin topic json out rc record
+  home=$(make_home history-isolation)
+  stubbin="$TMP_ROOT/stub-history"
+  make_stub_bin "$stubbin" labeled
+  printf -- '- foo/../bar\n- bar\n- ..\n' > "$home/data/topics.md"
+  for topic in foo/../bar bar ..; do
+    run_topic "$home" "$stubbin" "$topic" --html "$home/brief.html" >/dev/null || fail "topic history write failed for $topic"
+  done
+  [ -f "$home/data/topic-briefings/topic-foo%2F..%2Fbar/T20261101T090000Z.json" ] || fail "slash topic key is not encoded"
+  [ -f "$home/data/topic-briefings/topic-bar/T20261101T090000Z.json" ] || fail "plain topic history missing"
+  [ -f "$home/data/topic-briefings/topic-../T20261101T090000Z.json" ] || fail "parent-like topic key escaped history"
+  [ ! -e "$home/data/T20261101T090000Z.json" ] || fail "history escaped its root"
+  for topic in foo/../bar bar ..; do
+    json=$(run_topic "$home" "$stubbin" "$topic" --json) || fail "isolated history read failed"
+    jq -e --arg topic "$topic" '.window.source == "previous-briefing" and (.recap.paragraph | startswith("Topic " + $topic + " briefing "))' <<<"$json" >/dev/null || fail "topic read another topic history: $json"
+  done
+  record="$home/data/topic-briefings/topic-bar/T20261101T090000Z.json"
+  jq '.topic = "foo/../bar"' "$record" > "$home/wrong.json"
+  mv "$home/wrong.json" "$record"
+  out=$(run_topic "$home" "$stubbin" bar --since 2026-10-30 --json 2>&1) && rc=0 || rc=$?
+  [ "$rc" = 2 ] || fail "mismatched topic record was used for recap: $out"
+  pass "topic keys cannot collide or traverse; history reads reject another topic record even with --since"
+}
+
+test_every_home_and_read_stage_is_bounded() {
+  local home stubbin placement stage out rc
+  for placement in main local remote; do
+    for stage in list fallback detail; do
+      home=$(make_home "bounded-$placement-$stage")
+      stubbin="$home/fakebin"
+      make_stub_bin "$stubbin" labeled
+      cat > "$stubbin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+owner="${TOPIC_READ_OWNER:-main}"
+case "${TASKS_AXI_FILE:-}" in */mate/data/backlog.md) owner=mate ;; esac
+if [ "$owner" = "$TOPIC_STALL_OWNER" ]; then
+  case "$TOPIC_STALL_STAGE:${1:-}:${3:-}" in
+    fallback:list:labels,*) printf 'Unknown field(s): labels\n'; exit 2 ;;
+    list:list:*|fallback:list:*|detail:show:*) sleep 3 ;;
+  esac
+fi
+case "${1:-}" in
+  list) cat "$TOPIC_TABLE_FIXTURE" ;;
+  show) cat "$TOPIC_SHOW_FIXTURE" ;;
+  *) exit 9 ;;
+esac
+SH
+      cat > "$home/ssh" <<'SH'
+#!/usr/bin/env bash
+args=()
+while IFS= read -r arg; do args+=("$arg"); done < <(printf '%s' "${!#}" | base64 -d | tr '\0' '\n')
+[ "${args[0]}" = fm-tasks-axi.sh ] || exit 9
+TOPIC_READ_OWNER=mate exec "$TOPIC_STALL_BIN" "${args[@]:1}"
+SH
+      chmod +x "$stubbin/tasks-axi" "$home/ssh"
+      if [ "$placement" = remote ]; then
+        printf -- '- mate - Fixture (host: fixturehost; root: %s; home: %s/mate; scope: tests; projects: treehouse; added 2026-10-01)\n' "$ROOT" "$home" > "$home/data/secondmates.md"
+      elif [ "$placement" = main ]; then
+        printf '# no secondmates\n' > "$home/data/secondmates.md"
+      fi
+      out=$(TOPIC_STALL_OWNER="$([ "$placement" = main ] && printf main || printf mate)" TOPIC_STALL_STAGE="$stage" \
+        TOPIC_TABLE_FIXTURE="$TMP_ROOT/list-labels.toon" TOPIC_SHOW_FIXTURE="$TMP_ROOT/show-t-dec.toon" \
+        TOPIC_STALL_BIN="$stubbin/tasks-axi" FM_SSH_BIN="$home/ssh" FM_TOPIC_READ_TIMEOUT=1 \
+        run_topic "$home" "$stubbin" tf-mut --json 2> "$home/error") && rc=0 || rc=$?
+      if [ "$placement" = main ] && [ "$stage" != detail ]; then
+        [ "$rc" = 2 ] || fail "main $stage read was not bounded: rc=$rc"
+      else
+        [ "$rc" = 0 ] || fail "$placement $stage timeout failed the whole briefing"
+        if [ "$stage" = detail ]; then
+          jq -e 'any(.disclosures[]; contains("detail unavailable"))' <<<"$out" >/dev/null || fail "$placement detail timeout was hidden"
+        else
+          jq -e 'any(.disclosures[]; contains("backlog unavailable"))' <<<"$out" >/dev/null || fail "$placement $stage timeout was hidden"
+        fi
+      fi
+    done
+  done
+  pass "main, local-mate and remote-mate list, fallback and detail reads terminate at the configured bound"
 }
 
 fm_test_run \
@@ -915,4 +841,8 @@ fm_test_run \
   test_latest_offline_answer_wins \
   test_board_preserves_work_modes_dates_and_empty_defaults \
   test_snapshot_delivery_artifacts_reach_every_output \
-  test_all_and_only_topic_decisions_are_enriched
+  test_all_and_only_topic_decisions_are_enriched \
+  test_real_cli_tabular_lists_and_scalar_list_fields \
+  test_unparsed_or_incomplete_task_lists_fail \
+  test_history_isolates_encoded_topic_names_and_checks_record_identity \
+  test_every_home_and_read_stage_is_bounded

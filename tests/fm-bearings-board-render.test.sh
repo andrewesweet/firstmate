@@ -357,6 +357,8 @@ test_topic_output_builds_and_renders_through_the_real_board() {
   cat > "$home/main.json" <<'EOF'
 [
   {"id":"t-dec","kind":"ship","state":"in_flight","repo":"sample","title":"Main approval","hold_kind":"captain","hold_reason":"Question: approve? options: approve | wait"},
+  {"id":"stale-gate","kind":"captain","state":"queued","repo":"sample","title":"Already landed subject","hold_kind":"captain","hold_reason":"Question: approve landed PR?","links":["pr:https://github.com/example/sample/pull/42"]},
+  {"id":"other-gate","kind":"captain","state":"queued","repo":"sample","title":"Different PR subject","hold_kind":"captain","hold_reason":"Question: approve other PR?","links":["pr:https://github.com/example/sample/pull/43"]},
   {"id":"old","state":"queued","repo":"sample","title":"Older ready","created":"2026-10-20"},
   {"id":"new","state":"queued","repo":"sample","title":"Newer blocked","created":"2026-10-30","blocked_by":["old"]},
   {"id":"flight","state":"in_flight","kind":"ship","repo":"sample","title":"Flight"},
@@ -386,11 +388,18 @@ case "$TASKS_AXI_FILE" in */mate/data/backlog.md) fixture="$TOPIC_FIXTURE_HOME/m
 printf '%s\n' "$TASKS_AXI_FILE $*" >> "$TOPIC_FIXTURE_HOME/task-calls"
 case "${1:-}" in list|show) ;; *) exit 9 ;; esac
 jq -r --arg command "$1" --arg id "${2:-}" '
-  (if $command == "show" then map(select(.id == $id)) else . end) as $rows |
-  "tasks[\($rows | length)]:",
-  ($rows[] | "  - id: \(.id)", (to_entries[] | select(.key != "id") |
-    if (.value | type) == "array" then "    \(.key)[\(.value | length)]: \(.value | map(tojson) | join(","))"
-    else "    \(.key): \(.value | tojson)" end))' "$fixture"
+  def cell:
+    (if type == "array" then if length == 0 then "none" else join(",") end
+     elif . == null then "-" else tostring end) | tojson;
+  if $command == "show" then
+    "task:", (.[] | select(.id == $id) | to_entries[] | "  " + .key + ": " + (.value | cell))
+  elif length == 0 then
+    "count: 0", "tasks: 0 tasks in this backlog"
+  else
+    ["id","state","kind","repo","title","labels","blocked_by","created","closed","held","hold_kind","hold_until","links","hold_reason"] as $fields |
+    "count: \(length)", "tasks[\(length)]{\($fields | join(","))}:",
+    (.[] | . as $row | "  " + ([$fields[] | $row[.] | cell] | join(",")))
+  end' "$fixture"
 SH
   cat > "$home/fakebin/topic-snapshot" <<'SH'
 #!/usr/bin/env bash
@@ -405,6 +414,7 @@ SH
   out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-approve t-dec) || fail "topic board did not render"
   jq -e '
     .error == ""
+    and .questions == ["t-dec","other-gate","mate/t-dec"]
     and .queued[0].data.close == "release"
     and [.charted[] | select(.pickable) | .title] == ["Mate next","Older ready"]
     and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 1
@@ -419,6 +429,28 @@ SH
   answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/mate-result.toon") || fail "mate capture failed"
   [ -z "$answer" ] || fail "mate topic card entered local mutation intake"
   pass "real topic board preserves owners, release mode, dates, empty fields, artifacts and visible coverage alarms"
+}
+
+test_long_option_labels_do_not_consume_answer_protocol_budget() {
+  local home out label calls note answer
+  home=$(make_home long-option)
+  label=$(jq -nr '"é" * 300')
+  calls=$(jq -nc --arg label "$label" '[{key:"long-option",type:"decision",repo:"sample",title:"Long option",options:[{value:"approve",label:$label}],allow_freeform:true}]')
+  out=$(render_board "$home" '[]' '[]' 0 0 "$calls" approve)
+  jq -e --arg label "$label" '.error == "" and any(.options[]; . == $label) and .queued[0].text == ("Long option -> " + $label) and .queued[0].data.selection == "approve"' <<<"$out" >/dev/null || fail "600-byte label blocked or lost an otherwise valid answer: $out"
+  captured_result <<<"$out" > "$home/result.toon"
+  answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/result.toon") || fail "long-label answer extraction failed"
+  [ "$(printf '%s' "$answer" | cut -f1-2)" = "$(printf 'long-option\tapprove')" ] || fail "long label prevented the selection reaching intake"
+  note=$(jq -nr '"x" * 512')
+  out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" '' long-option "$note") || fail "freeform submission failed"
+  jq -e --arg note "$note" '.queued[0].data.note == $note' <<<"$out" >/dev/null || fail "512-byte freeform answer was rejected"
+  for note in "$(jq -nr '"x" * 513')" "$(jq -nr '"🙂" * 129')"; do
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" '' long-option "$note") || fail "over-limit submission failed"
+    jq -e '.queued | length == 0' <<<"$out" >/dev/null || fail "over-512-byte note was captured"
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" approve long-option "$note") || fail "over-limit selection/note submission failed"
+    jq -e '.queued | length == 0' <<<"$out" >/dev/null || fail "over-limit selected answer/note was captured"
+  done
+  pass "whole 600-byte option labels remain selectable while the submitted selection/note retains its 512-byte guard"
 }
 
 test_an_underway_row_leads_with_the_task_name_and_keeps_its_run_status
@@ -438,3 +470,5 @@ test_local_work_answer_preserves_release_mode
 test_recorded_landed_artifacts_are_visible
 
 test_topic_output_builds_and_renders_through_the_real_board
+
+test_long_option_labels_do_not_consume_answer_protocol_budget

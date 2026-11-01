@@ -22,7 +22,7 @@
 #                  the chat summary is the no-flag output, so --json never
 #                  mixes the two on stdout.
 #   --html OUT     Write the self-contained HTML briefing to OUT and append a
-#                  history record under data/topic-briefings/<topic>/ (--html
+#                  history record under data/topic-briefings/<topic-key>/ (--html
 #                  is the only flag that writes history).
 #   --board        Additionally open the topic's decisions on the existing
 #                  interactive bearings board by composing an
@@ -54,7 +54,8 @@
 # line stays parseable. All content stays readable with scripting disabled;
 # without JS the page documents the line format manually.
 #
-# History: data/topic-briefings/<topic>/T<UTC-timestamp>.json records topic,
+# History: data/topic-briefings/<topic-key>/T<UTC-timestamp>.json.
+# The key is "topic-" plus the URI-encoded topic name. Records contain topic,
 # generated time, window, counts, and a one-paragraph recap. The next run
 # reads the latest record for its window ("since last briefing") and its
 # recap paragraph. No history means the 14-day default window and no recap.
@@ -71,9 +72,9 @@
 #     actionable message.
 #
 # Field-value conventions parsed from tasks-axi TOON output: "-" is a null
-# scalar, "none" is an empty list, "[]" is an empty list, inline arrays use
-# [N]: with comma-separated quoted-or-bare items, and quoted scalars use
-# JSON-style backslash escapes.
+# scalar, "none" is an empty list, and list fields contain comma-separated
+# values inside a scalar. Lists use tasks[N]{fields}: tables; show uses a
+# task: detail block. Quoted scalars use JSON-style backslash escapes.
 #
 # Tests override points (tests only, never set in production):
 #   FM_TOPIC_SNAPSHOT   command used instead of bin/fm-bearings-snapshot.sh
@@ -83,6 +84,9 @@
 #                       (test seam; the real build keeps the binding and
 #                       reconcile behavior)
 #   FM_TOPIC_NOW        fixed "now" (ISO-8601 UTC) for deterministic windows.
+#
+# FM_TOPIC_READ_TIMEOUT bounds each backlog/detail read in seconds (default
+# 15, positive integer), including local and remote secondmate reads.
 #
 # Set FM_HOME (or FM_DATA_OVERRIDE) to target a specific operational home;
 # the default is this script's repository root, the fleet's single-home
@@ -210,61 +214,79 @@ topic_registry_json() {
 # ---------------------------------------------------------------------------
 
 topic_toon_parse() {
-  # Parse tasks-axi TOON output on stdin into a JSON array of row objects.
-  # Handles list rows ("  - id: ..."), detail blocks ("task:" + "  id: ..."),
-  # field lines, quoted scalars with escapes, inline "[N]: a,\"b\"" arrays,
-  # and the "none" / "-" / "[]" conventions. Parsing stops at the help block.
-  jq -Rs -f <(cat <<'JQ'
-    def unescape:
-      . as $s |
-      {out: [], esc: false}
-      | reduce ($s | explode[]) as $ch (.;
-          if .esc then
-            .out += (if $ch == 110 then [10] elif $ch == 116 then [9] elif $ch == 34 then [34] elif $ch == 92 then [92] else [92, $ch] end)
-            | .esc = false
-          elif $ch == 92 then .esc = true
-          else .out += [$ch]
-          end)
-      | .out | implode;
-    def toonval:
-      if . == "[]" then []
-      elif (startswith("\"") and endswith("\"") and length >= 2) then .[1:length-1] | unescape
-      else . end;
-    def commalist:
-      . as $s |
-      {parts: [], cur: [], inq: false, esc: false}
-      | reduce ($s | explode[]) as $ch (.;
-          if .esc then .cur += [$ch] | .esc = false
-          elif $ch == 92 then .cur += [$ch] | .esc = true
-          elif $ch == 34 then .inq = (.inq | not) | .cur += [$ch]
-          elif $ch == 44 and (.inq | not) then
-            .parts += [(.cur | implode)] | .cur = []
-          else .cur += [$ch]
-          end)
-      | (.parts + [(.cur | implode)])
-      | map(toonval)
-      | map(select(length > 0));
-    split("\n") as $lines |
-    (($lines | map(test("^help\\[")) | index(true)) // ($lines | length)) as $cutoff |
-    [($lines[:$cutoff][] | select(length > 0) |
-      capture("^(?<lead>[ \\t]*)(?<dash>- )?(?<k>[A-Za-z_][A-Za-z0-9_]*)(?<arr>\\[[0-9]+\\])?: ?(?<v>.*)$"))] as $fields |
-    {rows: [], cur: null}
-    | reduce ($fields[]) as $f (.;
-        if $f.dash != null then
-          (.rows += [(.cur // {})]) | .cur = {($f.k): ($f.v | toonval)}
-        elif .cur == null and $f.k == "id" then
-          .cur = {($f.k): ($f.v | toonval)}
-        elif .cur == null then .
-        elif ($f.arr | length) > 0 then
-          .cur[$f.k] = ($f.v | commalist)
-        else
-          .cur[$f.k] = ($f.v | toonval)
-        end)
-    | (.rows += [(.cur // {})])
-    | .rows
-    | map(select(has("id")))
-JQ
-  ) 2> "$TOPIC_TMP/parse.err"
+  perl -MJSON::PP -e '
+    use strict;
+    use warnings;
+    binmode STDIN, ":encoding(UTF-8)";
+    binmode STDOUT, ":encoding(UTF-8)";
+    my $mode = shift;
+    my $json = JSON::PP->new->allow_nonref;
+    sub scalar_value {
+      my ($raw) = @_;
+      return $raw =~ /^"/ ? $json->decode($raw) : $raw;
+    }
+    sub cells {
+      my ($line) = @_;
+      my @values;
+      while (1) {
+        $line =~ s/\A("(?:[^"\\]|\\.)*"|[^,"]*)// or die "invalid table cell\n";
+        push @values, scalar_value($1);
+        last if $line eq "";
+        $line =~ s/\A,// or die "invalid table delimiter\n";
+      }
+      return @values;
+    }
+    my (@rows, @fields, %detail, $expected, $started, $count);
+    while (my $line = <STDIN>) {
+      $line =~ s/\r?\n\z//;
+      last if $line =~ /^help\[/;
+      next if $line =~ /^\s*$/;
+      if (!$started && $mode eq "list" && $line =~ /^count: ([0-9]+)$/) {
+        die "duplicate task count\n" if defined $count;
+        $count = $1;
+        next;
+      } elsif (!$started && $mode eq "list" && $line =~ /^tasks\[([0-9]+)\]\{([^}]*)\}:$/) {
+        $expected = $1;
+        @fields = split /,/, $2;
+        my %seen;
+        die "invalid task table fields\n" if !grep { $_ eq "id" } @fields;
+        for (@fields) { die "invalid task table field\n" unless /^[A-Za-z_][A-Za-z0-9_]*$/ && !$seen{$_}++ }
+        $started = 1;
+      } elsif (!$started && $mode eq "list" && $line eq "tasks: 0 tasks in this backlog" && defined($count) && $count == 0) {
+        $expected = 0;
+        $started = 1;
+      } elsif (!$started && $mode eq "detail" && $line eq "task:") {
+        $started = 1;
+      } elsif ($started && $mode eq "list" && @fields && $line =~ /^  (.*)$/) {
+        my @values = cells($1);
+        die "task table column count mismatch\n" unless @values == @fields;
+        my %row;
+        @row{@fields} = @values;
+        push @rows, \%row;
+      } elsif ($started && $mode eq "detail" && $line =~ /^  ([A-Za-z_][A-Za-z0-9_]*): (.*)$/) {
+        my ($field, $raw) = ($1, $2);
+        die "duplicate task detail field\n" if exists $detail{$field};
+        $detail{$field} = scalar_value($raw);
+      } else {
+        die "unrecognized task output\n";
+      }
+    }
+    die "missing task output\n" unless $started;
+    if ($mode eq "list") {
+      die "task table row count mismatch\n" unless @rows == $expected;
+    } else {
+      @rows = (\%detail);
+    }
+    for my $row (@rows) {
+      die "missing task id\n" unless defined($row->{id}) && length($row->{id});
+      for my $field (qw(labels blocked_by links)) {
+        my $value = $row->{$field};
+        $row->{$field} = !defined($value) || $value eq "none" || $value eq "-" || $value eq ""
+          ? [] : [split /,/, $value];
+      }
+    }
+    print $json->encode(\@rows), "\n";
+  ' "$1" 2> "$TOPIC_TMP/parse.err"
 }
 
 # ---------------------------------------------------------------------------
@@ -275,17 +297,24 @@ TOPIC_TASKS_AXI="$SCRIPT_DIR/fm-tasks-axi.sh"
 # shellcheck source=bin/fm-secondmate-registry-lib.sh disable=SC1091
 . "$SCRIPT_DIR/fm-secondmate-registry-lib.sh"
 
+# shellcheck source=bin/fm-timeout-lib.sh disable=SC1091
+. "$SCRIPT_DIR/fm-timeout-lib.sh"
+TOPIC_READ_TIMEOUT="${FM_TOPIC_READ_TIMEOUT:-15}"
+case "$TOPIC_READ_TIMEOUT" in
+  ''|0*|*[!0-9]*) fail "FM_TOPIC_READ_TIMEOUT must be a positive integer" ;;
+esac
+
 topic_tasks() {
   local owner="$1"
   shift
   if [ "$owner" = "(main)" ]; then
-    "$TOPIC_TASKS_AXI" "$@"
+    fm_run_timed "$TOPIC_READ_TIMEOUT" "$TOPIC_TASKS_AXI" "$@"
   else
     secondmate_registry_line_for_id "$DATA/secondmates.md" "$owner" || return 2
     if [ "$SECONDMATE_REGISTRY_REMOTE" -eq 1 ]; then
-      "$SCRIPT_DIR/fm-on.sh" "$owner" fm-tasks-axi.sh "$@"
+      fm_run_timed "$TOPIC_READ_TIMEOUT" "$SCRIPT_DIR/fm-on.sh" "$owner" fm-tasks-axi.sh "$@"
     else
-      FM_HOME="$SECONDMATE_REGISTRY_HOME" FM_DATA_OVERRIDE="$SECONDMATE_REGISTRY_HOME/data" \
+      fm_run_timed "$TOPIC_READ_TIMEOUT" env FM_HOME="$SECONDMATE_REGISTRY_HOME" FM_DATA_OVERRIDE="$SECONDMATE_REGISTRY_HOME/data" \
         "$TOPIC_TASKS_AXI" "$@"
     fi
   fi
@@ -326,7 +355,7 @@ topic_collect_rows() {
     TOPIC_LABELS_NOTE="the installed tasks-axi does not support --fields labels; membership fell back to default projects only"
     printf '%s\n' "$owner: $TOPIC_LABELS_NOTE" >> "$TOPIC_TMP/coverage.txt"
   fi
-  topic_toon_parse < "$TOPIC_TMP/list.raw" > "$TOPIC_TMP/parsed.json" || return 2
+  topic_toon_parse list < "$TOPIC_TMP/list.raw" > "$TOPIC_TMP/parsed.json" || return 2
   jq --arg owner "$owner" '
     map(. + {owner: $owner, task_id: .id}
       | if $owner == "(main)" then . else
@@ -360,7 +389,11 @@ topic_snapshot() {
 # History
 # ---------------------------------------------------------------------------
 
-topic_history_dir() { printf '%s/topic-briefings/%s' "$DATA" "$1"; }
+topic_history_dir() {
+  local key
+  key=$(jq -nr --arg topic "$1" '"topic-" + ($topic | @uri)') || return 1
+  printf '%s/topic-briefings/%s' "$DATA" "$key"
+}
 
 topic_history_latest() {
   local dir="$1" latest
@@ -516,6 +549,7 @@ topic_model() {
         hold_reason: .hold_reason,
         hold_until: .hold_until,
         report: reporturl,
+        pr_url: (prurl // $recprs[.id]),
         options: (.hold_reason
           | if test("(^|[^[:alpha:]])options:") then
               (capture("(^|[^[:alpha:]])(?<opts>options:.*$)").opts
@@ -599,6 +633,7 @@ topic_html_render() {
         (if ($d.hold_until // null) != null then " · revisit by \($d.hold_until | d10)" else "" end) +
         "</p><p class=\"holdreason\">\($d.hold_reason | esc)</p>" +
         (if ($d.report // null) != null then "<p class=\"meta\">report: \($d.report | esc)</p>" else "" end) +
+        (if ($d.pr_url // null) != null then "<p><a href=\"\($d.pr_url | attr)\">\($d.pr_url | esc)</a></p>" else "" end) +
         "<fieldset class=\"opts\"><legend>Your answer</legend>" +
         ([$d.options | to_entries[] |
           "<label class=\"opt\"><input type=\"radio\" name=\"d\($i)\" value=\"\(.value | attr)\" data-decision=\"\($i)\"> \(.value | esc)</label>"] | join("")) +
@@ -906,6 +941,7 @@ topic_board_payload() {
            about: $d.hold_reason,
            options: $opts,
            allow_freeform: (($opts | length) == 0) }
+         + (if $d.pr_url != null then {pr_url: $d.pr_url} else {} end)
          + (if (($opts | length) == 0) then {freeform_hint: "Type the captain answer as words; firstmate routes it by task id."} else {} end))],
       underway: [($m.in_flight[] | . as $row |
         { id: .id,
@@ -981,7 +1017,9 @@ printf '%s' "$TOPIC_ENTRY" > "$TOPIC_TMP/entry.json"
 # Window
 TOPIC_PREV_FILE="$(topic_history_latest "$(topic_history_dir "$TOPIC_NAME")")"
 printf '{"generated": null, "recap": ""}' > "$TOPIC_TMP/prev.json"
-if [ -n "$TOPIC_PREV_FILE" ] && jq -e '(.generated | type) == "string"' "$TOPIC_PREV_FILE" >/dev/null 2>&1; then
+if [ -n "$TOPIC_PREV_FILE" ]; then
+  jq -e --arg topic "$TOPIC_NAME" ' .schema == "fm-topic-brief-record.v1" and .topic == $topic and (.generated | type) == "string"' "$TOPIC_PREV_FILE" >/dev/null 2>&1 \
+    || fail "invalid history record for topic $TOPIC_NAME: $TOPIC_PREV_FILE"
   jq '{generated, recap: (.recap // "")}' "$TOPIC_PREV_FILE" > "$TOPIC_TMP/prev.json"
 fi
 if [ -n "$TOPIC_SINCE_FLAG" ]; then
@@ -1021,8 +1059,13 @@ jq -s 'add // []' "$TOPIC_TMP/rows.ndjson" > "$TOPIC_TMP/rows.json" || fail "can
 : > "$TOPIC_TMP/details.ndjson"
 while IFS="$(printf '\t')" read -r rid owner task_id; do
   [ -n "$rid" ] || continue
-  topic_tasks "$owner" show "$task_id" 2>> "$TOPIC_TMP/axi.err" | topic_toon_parse | jq -ce --arg id "$rid" '.[0] // empty | .id = $id' \
-    >> "$TOPIC_TMP/details.ndjson" 2>> "$TOPIC_TMP/parse.err" || true
+  if topic_tasks "$owner" show "$task_id" --full > "$TOPIC_TMP/detail.raw" 2>> "$TOPIC_TMP/axi.err" \
+      && topic_toon_parse detail < "$TOPIC_TMP/detail.raw" > "$TOPIC_TMP/detail.json" \
+      && jq -ce --arg id "$rid" '.[0] // empty | .id = $id' "$TOPIC_TMP/detail.json" >> "$TOPIC_TMP/details.ndjson"; then
+    :
+  else
+    printf '%s\n' "task $rid detail unavailable; using recorded list fields" >> "$TOPIC_TMP/coverage.txt"
+  fi
 done < <(jq -r --slurpfile topic "$TOPIC_TMP/entry.json" "$TOPIC_MEMBERSHIP_JQ"'.[] | select(topic_member($topic[0]) and .hold_kind == "captain" and .state != "done") | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
 jq -s '.' "$TOPIC_TMP/details.ndjson" > "$TOPIC_TMP/details.json" 2>/dev/null \
   || printf '[]' > "$TOPIC_TMP/details.json"
