@@ -30,30 +30,29 @@ LAB_HELPER=${HERDR_LAB_HELPER:-$ROOT/bin/fm-herdr-lab.sh}
 fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
 pass() { printf 'ok - %s\n' "$1"; }
 
-fm_live_gate opt-in FM_HERDR_DOORBELL_SLOW_ECHO_LIVE herdr jq claude stty taskset renice nproc
+fm_live_gate opt-in FM_HERDR_DOORBELL_SLOW_ECHO_LIVE herdr jq claude stty taskset renice
 
 [ -x "$LAB_HELPER" ] || fail "FM_HERDR_DOORBELL_SLOW_ECHO_LIVE=1 but the Herdr lab helper is not executable at $LAB_HELPER"
-CPUS=$(nproc)
-[ "$CPUS" -ge 2 ] || fail "FM_HERDR_DOORBELL_SLOW_ECHO_LIVE=1 needs at least two CPUs to slow Claude on one of them"
 
 # shellcheck source=tests/herdr-test-safety.sh
 . "$ROOT/tests/herdr-test-safety.sh"
 herdr_forget_inherited_pane
 
 ORIGINAL_PATH=$PATH
-SESSION=${HERDR_LAB_SESSION:-$("$LAB_HELPER" name herdr-doorbell-slow-echo)}
+SESSION=$("$LAB_HELPER" name herdr-doorbell-slow-echo)
 TMP_ROOT=$(mktemp -d "$(cd "${TMPDIR:-/tmp}" && pwd -P)/fm-herdr-doorbell-slow-echo.XXXXXX")
 FAKEBIN="$TMP_ROOT/fakebin"
 STATE="$TMP_ROOT/state"
 TASK=slowecho
 mkdir -p "$FAKEBIN" "$STATE"
 CLAUDE_PID=
+CLAUDE_AFFINITY=
 HOGS=()
 
 unslow() {
   [ "${#HOGS[@]}" -eq 0 ] || { kill "${HOGS[@]}" 2>/dev/null; wait "${HOGS[@]}" 2>/dev/null; }
   HOGS=()
-  [ -z "$CLAUDE_PID" ] || taskset -a -p -c "0-$((CPUS - 1))" "$CLAUDE_PID" >/dev/null 2>&1 || true
+  [ -z "$CLAUDE_AFFINITY" ] || taskset -a -p -c "$CLAUDE_AFFINITY" "$CLAUDE_PID" >/dev/null 2>&1 || true
 }
 
 cleanup() {
@@ -140,9 +139,19 @@ CLAUDE_PID=$(lab pane process-info --pane "$PANE" 2>/dev/null | jq -er \
   '[.result.process_info.foreground_processes[] | select(.name == "claude") | .pid][0] | select(type == "number") | floor') \
   || fail "could not find the lab pane's Claude Code process"
 
+affinity=$(taskset -p -c "$CLAUDE_PID") || fail "could not read Claude Code's CPU affinity"
+affinity=${affinity##*: }
+[[ "$affinity" =~ ^[0-9]+([,-][0-9]+)*$ ]] || fail "could not parse Claude Code's CPU affinity"
+case "$affinity" in
+  *[,-]*) ;;
+  *) fail "FM_HERDR_DOORBELL_SLOW_ECHO_LIVE=1 needs at least two allowed CPUs to slow Claude on one of them" ;;
+esac
+CLAUDE_AFFINITY=$affinity
+
 # slow <seconds>: pin Claude to the last CPU at nice 19 beside busy loops.
 slow() {
-  local cpu=$((CPUS - 1)) t _
+  local cpu=${CLAUDE_AFFINITY##*,} t _
+  cpu=${cpu##*-}
   taskset -a -p -c "$cpu" "$CLAUDE_PID" >/dev/null || fail "could not pin Claude Code to one CPU"
   for t in /proc/"$CLAUDE_PID"/task/*; do renice -n 19 -p "${t##*/}" >/dev/null 2>&1 || true; done
   for _ in 1 2 3 4; do
