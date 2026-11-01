@@ -420,6 +420,7 @@ topic_history_record() {
 # ---------------------------------------------------------------------------
 
 TOPIC_MEMBERSHIP_JQ='
+  def open_captain_call: .hold_kind == "captain" and .state != "done";
   def topic_member($topic):
     (.labels | if type == "array" then . else [] end) as $labels |
     (["topic:" + $topic.name] + ($topic.aliases | map("topic:" + .))) as $wanted |
@@ -486,8 +487,9 @@ topic_model() {
       $row + {artifact: ($delivery.artifact | nul)})) as $landed |
     ($members | map(select(createdinwin and .state != "done"))) as $newrows |
 
-    ($members | map(select(.hold_kind == "captain" and .state != "done"))) as $heldrows |
-    ($heldrows | map(. as $r | $r + ((($details | map(select(.id == $r.id)))[0]) // {}))) as $heldetails |
+    ($members | map(select(open_captain_call))) as $heldrows |
+    ($heldrows | map(. as $r | $r + ((($details | map(select(.id == $r.id)))[0]) // {})
+      | select(open_captain_call))) as $heldetails |
 
     ($snap.recorded_prs // [] | map({key: .id, value: .url}) | from_entries) as $recprs |
     ($snap.in_flight // [] | map(. as $f |
@@ -921,7 +923,7 @@ topic_board_payload() {
   # Compose an fm-bearings-board.v1 payload scoped to the topic. The board
   # build owns validation, reconcile injection, stale-card dropping, the
   # lavish session check, and the captured-answer binding by held task id.
-  jq -n --slurpfile m "$TOPIC_TMP/model.json" '
+  jq -n --slurpfile m "$TOPIC_TMP/model.json" --slurpfile snapshot "$TOPIC_TMP/snapshot.json" '
     ($m[0]) as $m |
     def slug: gsub("[^A-Za-z0-9._-]"; "-") | .[0:64];
     {
@@ -931,7 +933,10 @@ topic_board_payload() {
       prs_live: false,
       captains_call: [($m.decisions_open | to_entries[]) |
         .value as $d |
-        ([$d.options | to_entries[] | {value: ("option-" + (.key | tostring) + "-" + (.value | slug)), label: .value}]) as $opts |
+        select($d.pr_url == null or (any($snapshot[0].landed[]?;
+          .pr_url == $d.pr_url or .artifact == $d.pr_url) | not)) |
+        ([$d.options | to_entries[] | select((.value | slug) != "reconcile") |
+          {value: ("option-" + (.key | tostring) + "-" + (.value | slug)), label: .value}]) as $opts |
         ({ key: $d.key,
            owner: $d.owner,
            close: $d.close,
@@ -1066,7 +1071,7 @@ while IFS="$(printf '\t')" read -r rid owner task_id; do
   else
     printf '%s\n' "task $rid detail unavailable; using recorded list fields" >> "$TOPIC_TMP/coverage.txt"
   fi
-done < <(jq -r --slurpfile topic "$TOPIC_TMP/entry.json" "$TOPIC_MEMBERSHIP_JQ"'.[] | select(topic_member($topic[0]) and .hold_kind == "captain" and .state != "done") | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
+done < <(jq -r --slurpfile topic "$TOPIC_TMP/entry.json" "$TOPIC_MEMBERSHIP_JQ"'.[] | select(topic_member($topic[0]) and open_captain_call) | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
 jq -s '.' "$TOPIC_TMP/details.ndjson" > "$TOPIC_TMP/details.json" 2>/dev/null \
   || printf '[]' > "$TOPIC_TMP/details.json"
 

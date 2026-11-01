@@ -349,25 +349,35 @@ test_recorded_landed_artifacts_are_visible() {
 }
 
 test_topic_output_builds_and_renders_through_the_real_board() {
-  local home out mate answer
+  local home out mate answer key reconcile
   home=$(make_home topic-integration)
   mkdir -p "$home/mate/data"
   printf -- '- topic | aliases: alias | projects: sample\n' > "$home/data/topics.md"
   printf -- '- mate - Fixture (home: %s/mate; scope: test; projects: sample; added 2026-10-01)\n' "$home" > "$home/data/secondmates.md"
   cat > "$home/main.json" <<'EOF'
 [
-  {"id":"t-dec","kind":"ship","state":"in_flight","repo":"sample","title":"Main approval","hold_kind":"captain","hold_reason":"Question: approve? options: approve | wait"},
+  {"id":"t-dec","kind":"ship","state":"in_flight","repo":"sample","title":"Main approval","hold_kind":"captain","hold_reason":"Question: approve? options: approve | reconcile | wait"},
   {"id":"stale-gate","kind":"captain","state":"queued","repo":"sample","title":"Already landed subject","hold_kind":"captain","hold_reason":"Question: approve landed PR?","links":["pr:https://github.com/example/sample/pull/42"]},
-  {"id":"other-gate","kind":"captain","state":"queued","repo":"sample","title":"Different PR subject","hold_kind":"captain","hold_reason":"Question: approve other PR?","links":["pr:https://github.com/example/sample/pull/43"]},
+  {"id":"other-gate","kind":"captain","state":"queued","repo":"sample","title":"Different PR subject","hold_kind":"captain","hold_reason":"Question: approve other PR? options: reconcile","links":["pr:https://github.com/example/sample/pull/43"]},
+  {"id":"old-gate","kind":"captain","state":"queued","repo":"sample","title":"Old landed subject","hold_kind":"captain","hold_reason":"Question: approve old PR?","links":["pr:https://github.com/example/sample/pull/44"]},
+  {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
+  {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
+  {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Released during read","hold_kind":"captain","hold_reason":"Question: release?"},
   {"id":"old","state":"queued","repo":"sample","title":"Older ready","created":"2026-10-20"},
   {"id":"new","state":"queued","repo":"sample","title":"Newer blocked","created":"2026-10-30","blocked_by":["old"]},
   {"id":"flight","state":"in_flight","kind":"ship","repo":"sample","title":"Flight"},
-  {"id":"landed","state":"done","kind":"ship","repo":"sample","title":"","closed":"2026-10-29"}
+  {"id":"landed","state":"done","kind":"ship","repo":"sample","title":"","closed":"2026-10-29"},
+  {"id":"old-landed","state":"done","kind":"ship","repo":"sample","title":"Old delivery","closed":"2026-10-01"},
+  {"id":"outside-landed","state":"done","kind":"ship","repo":"external","labels":["topic:unrelated"],"title":"Unrelated delivery","closed":"2026-10-30"}
 ]
 EOF
   cat > "$home/mate.json" <<'EOF'
 [
   {"id":"t-dec","kind":"captain","state":"queued","repo":"external","labels":["topic:alias"],"title":"Mate question","hold_kind":"captain","hold_reason":"Question: next? options: wait | continue"},
+  {"id":"old-gate","kind":"captain","state":"queued","repo":"sample","title":"Mate old landed subject","hold_kind":"captain","hold_reason":"Question: approve old PR?","links":["pr:https://github.com/example/sample/pull/44"]},
+  {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Mate other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
+  {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Mate answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
+  {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Mate released during read","hold_kind":"captain","hold_reason":"Question: release?"},
   {"id":"next","state":"queued","repo":"sample","title":"Mate next","created":"2026-10-31"},
   {"id":"blocked","state":"queued","repo":"sample","title":"Mate blocked","created":"2026-10-30","blocked_by":["next"]},
   {"id":"report","state":"done","kind":"scout","repo":"sample","title":"Mate report","closed":"2026-10-28"}
@@ -377,7 +387,7 @@ EOF
 {
   "in_flight":[{"id":"flight","kind":"ship","state":"working","repo":"sample","name":"","doing":""}],
   "recorded_prs":[],
-  "landed":[{"id":"landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/42"},{"id":"report","owner":"mate","artifact":"data/report/report.md"}],
+  "landed":[{"id":"landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/42"},{"id":"report","owner":"mate","artifact":"data/report/report.md"},{"id":"old-landed","owner":"(main)","artifact":"https://github.com/example/sample/pull/44"},{"id":"outside-landed","owner":"(main)","pr_url":"https://github.com/example/sample/pull/45"}],
   "secondmates":[{"id":"offline","state":"unknown","freshness":"unavailable","reason":"ledger unavailable"}]
 }
 EOF
@@ -392,7 +402,11 @@ jq -r --arg command "$1" --arg id "${2:-}" '
     (if type == "array" then if length == 0 then "none" else join(",") end
      elif . == null then "-" else tostring end) | tojson;
   if $command == "show" then
-    "task:", (.[] | select(.id == $id) | to_entries[] | "  " + .key + ": " + (.value | cell))
+    "task:", (.[] | select(.id == $id)
+      | if .id == "race-done" then .state = "done"
+        elif .id == "race-released" then .hold_kind = "-" | .held = "no"
+        else . end
+      | to_entries[] | "  " + .key + ": " + (.value | cell))
   elif length == 0 then
     "count: 0", "tasks: 0 tasks in this backlog"
   else
@@ -409,12 +423,15 @@ SH
   TOPIC_FIXTURE_HOME="$home" PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_DATA_OVERRIDE="$home/data" FM_STATE_OVERRIDE="$home/state" \
     FM_TOPIC_SNAPSHOT="$home/fakebin/topic-snapshot" FM_TOPIC_NOW=2026-11-01T09:00:00Z FM_TOPIC_BOARD_CMD="$BOARD" \
     FM_PROCEVENT_CLAIM_ROOT="$home/procevent-claims" LAVISH_AXI_STATE_DIR="$home/lavish-state" \
-    bash "$ROOT/bin/fm-topic-brief.sh" topic --board > "$home/chat" || fail "topic payload failed the real board consumer"
+    bash "$ROOT/bin/fm-topic-brief.sh" topic --board > "$home/chat" 2> "$home/topic-error" || fail "topic payload failed the real board consumer"
+  [ ! -s "$home/topic-error" ] || fail "topic board emitted an unexpected diagnostic: $(cat "$home/topic-error")"
   require_listener_reached_poll "$home"
   out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-approve t-dec) || fail "topic board did not render"
   jq -e '
     .error == ""
     and .questions == ["t-dec","other-gate","mate/t-dec"]
+    and ([.options[] | select(. == "Reconcile")] | length) == 3
+    and all(.options[]; . != "reconcile")
     and .queued[0].data.close == "release"
     and [.charted[] | select(.pickable) | .title] == ["Mate next","Older ready"]
     and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 1
@@ -423,12 +440,21 @@ SH
     and .underway[0].title == "flight" and (.underway[0].sub | contains("working") and contains("sample"))
     and .landed[0].title == "landed" and .landed[0].artifacts[0].href == "https://github.com/example/sample/pull/42"
     and .landed[1].artifacts[0].text == "data/report/report.md"
+    and (.landed | length) == 2
   ' <<<"$out" >/dev/null || fail "topic fields did not survive real board rendering: $out"
   mate=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-wait mate/t-dec) || fail "mate card did not render"
   captured_result <<<"$mate" > "$home/mate-result.toon"
   answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/mate-result.toon") || fail "mate capture failed"
   [ -z "$answer" ] || fail "mate topic card entered local mutation intake"
-  pass "real topic board preserves owners, release mode, dates, empty fields, artifacts and visible coverage alarms"
+  for key in t-dec other-gate; do
+    out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" reconcile "$key") || fail "injected reconcile did not render"
+    jq -e --arg key "$key" '.queued[0].data.question == $key and .queued[0].data.selection == "reconcile"' <<<"$out" >/dev/null || fail "reconcile captured an ordinary answer: $out"
+    captured_result <<<"$out" > "$home/reconcile-result.toon"
+    answer=$(bash "$ROOT/bin/fm-procevent-lavish.sh" answers "$home/reconcile-result.toon") || fail "reconcile answer extraction failed"
+    reconcile=$(bash "$ROOT/bin/fm-procevent-lavish.sh" reconciles "$home/reconcile-result.toon") || fail "reconciliation request extraction failed"
+    [ -z "$answer" ] && [ "$reconcile" = "$key" ] || fail "reconcile reached completion/release intake instead of requesting reconciliation"
+  done
+  pass "real topic board drops stale PRs outside topic/window and refreshed closed calls; injected reconcile stays out of completion/release intake"
 }
 
 test_long_option_labels_do_not_consume_answer_protocol_budget() {

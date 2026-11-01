@@ -68,7 +68,9 @@ case "\${1:-}" in
   list) cat "\$fixture" ;;
   show)
     [ "\${2:-}" = t-dec ] || exit 1
-    cat "\${TOPIC_DETAIL_FIXTURE:-$TMP_ROOT/show-t-dec.toon}"
+    detail="\${TOPIC_DETAIL_FIXTURE:-$TMP_ROOT/show-t-dec.toon}"
+    case "\${TASKS_AXI_FILE:-}" in */mate/data/backlog.md) detail="\${TOPIC_MATE_DETAIL_FIXTURE:-\$detail}" ;; esac
+    cat "\$detail"
     ;;
   *) echo "unexpected tasks-axi call: \$*" >&2; exit 9 ;;
 esac
@@ -576,10 +578,86 @@ test_complete_distinct_board_options() {
     run_topic "$home" "$stubbin" tf-mut --board >/dev/null || fail "options board failed"
   capture="$TMP_ROOT/captured-board.json"
   jq -e --slurpfile expected "$home/options.json" '
-    [.captains_call[0].options[].label] == $expected[0]
+    [.captains_call[0].options[].label] == ($expected[0] | map(select(. != "reconcile")))
     and ([.captains_call[0].options[].value] | length == (unique | length) and all(.[]; . != "reconcile" and test("^[A-Za-z0-9._-]{1,128}$")))
   ' "$capture" >/dev/null || fail "options collide, reserve reconcile or lose meaning"
-  pass "all recorded options survive with distinct nonreserved board values"
+  pass "recorded options stay whole; the board owns the reserved reconcile choice"
+}
+
+test_enriched_decisions_recheck_each_home_state() {
+  local home stubbin owner outcome json chat live_id expected
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  make_board_stub "$stubbin"
+  for owner in main mate; do
+    for outcome in done released; do
+      home=$(make_home "enriched-$owner-$outcome")
+      write_toon > "$home/list.toon" <<'EOF'
+[{"id":"t-dec","state":"queued","kind":"ship","repo":"treehouse","title":"List call","hold_kind":"captain","held":"yes","hold_reason":"Question: old list question?"}]
+EOF
+      write_toon detail > "$home/live.toon" <<'EOF'
+[{"id":"t-dec","state":"in_flight","kind":"ship","repo":"treehouse","title":"Still open","hold_kind":"captain","held":"no","hold_until":"2026-10-01","hold_reason":"Question: surviving call? options: approve | wait"}]
+EOF
+      jq -n --arg outcome "$outcome" '[{id:"t-dec",state:(if $outcome == "done" then "done" else "in_flight" end),kind:"ship",repo:"treehouse",title:"Obsolete call",hold_kind:(if $outcome == "done" then "captain" else "-" end),held:"no",hold_reason:"Question: obsolete call?"}]' \
+        | write_toon detail > "$home/obsolete.toon"
+      local main_detail="$home/live.toon" mate_detail="$home/obsolete.toon"
+      live_id=t-dec
+      if [ "$owner" = main ]; then
+        main_detail="$home/obsolete.toon"
+        mate_detail="$home/live.toon"
+        live_id=mate/t-dec
+      fi
+      json=$(TOPIC_MAIN_FIXTURE="$home/list.toon" TOPIC_MATE_FIXTURE="$home/list.toon" \
+        TOPIC_DETAIL_FIXTURE="$main_detail" TOPIC_MATE_DETAIL_FIXTURE="$mate_detail" \
+        run_topic "$home" "$stubbin" tf-mut --json) || fail "enriched $owner $outcome model failed"
+      jq -e --arg id "$live_id" '.counts.decisions == 1 and [.decisions_open[].id] == [$id]
+        and .decisions_open[0].hold_reason == "Question: surviving call? options: approve | wait"
+        and (.recap_next | contains("1 decision(s) open"))' <<<"$json" >/dev/null || fail "enriched $owner $outcome eligibility was lost: $json"
+      chat=$(TOPIC_MAIN_FIXTURE="$home/list.toon" TOPIC_MATE_FIXTURE="$home/list.toon" \
+        TOPIC_DETAIL_FIXTURE="$main_detail" TOPIC_MATE_DETAIL_FIXTURE="$mate_detail" \
+        FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+        run_topic "$home" "$stubbin" tf-mut --html "$home/brief.html" --board) || fail "enriched $owner $outcome outputs failed"
+      expected="decision: $live_id Question: surviving call? options: approve | wait"
+      [ "$(printf '%s\n' "$chat" | sed -n '/^decision: /p')" = "$expected" ] || fail "chat retained an obsolete $owner $outcome call: $chat"
+      jq -e --arg id "$live_id" '[.captains_call[].key] == [$id]' "$TMP_ROOT/captured-board.json" >/dev/null || fail "board retained an obsolete $owner $outcome call"
+      python3 - "$home/brief.html" "$live_id" <<'PY' || fail "HTML retained an obsolete call"
+from html.parser import HTMLParser
+import sys
+
+class Decisions(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.depth = 0
+        self.text = []
+        self.cards = []
+    def handle_starttag(self, tag, attrs):
+        if tag == "div":
+            if self.depth:
+                self.depth += 1
+            elif dict(attrs).get("class") == "card decision":
+                self.depth = 1
+                self.text = []
+    def handle_endtag(self, tag):
+        if tag == "div" and self.depth:
+            self.depth -= 1
+            if not self.depth:
+                self.cards.append(" ".join(self.text))
+    def handle_data(self, data):
+        if self.depth:
+            self.text.append(data)
+
+page = Decisions()
+with open(sys.argv[1]) as source:
+    page.feed(source.read())
+assert len(page.cards) == 1, page.cards
+assert sys.argv[2] in page.cards[0] and "surviving call?" in page.cards[0], page.cards
+assert "obsolete call?" not in page.cards[0], page.cards
+PY
+      jq -e '.counts.decisions == 1 and (.recap | contains("1 decision(s) open"))' \
+        "$home/data/topic-briefings/topic-tf-mut/T20261101T090000Z.json" >/dev/null || fail "history recap retained an obsolete call"
+    done
+  done
+  pass "each home's answered or released detail disappears from decisions, recap, counts, chat, HTML and board; expired live holds remain"
 }
 
 test_latest_offline_answer_wins() {
@@ -838,6 +916,7 @@ fm_test_run \
   test_publication_failure_preserves_history_and_empty_states \
   test_coverage_disclosures_in_every_mode \
   test_complete_distinct_board_options \
+  test_enriched_decisions_recheck_each_home_state \
   test_latest_offline_answer_wins \
   test_board_preserves_work_modes_dates_and_empty_defaults \
   test_snapshot_delivery_artifacts_reach_every_output \
