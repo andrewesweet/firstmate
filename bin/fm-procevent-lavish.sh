@@ -792,6 +792,8 @@ cmd_choice_rows() {
       my $ctx = $1;
       my $data = eval { decode_json($ctx) };
       next unless ref($data) eq "HASH";
+      next if exists($data->{owner})
+        && (!defined($data->{owner}) || ref($data->{owner}) || $data->{owner} ne "(main)");
       my ($key, $selected, $note, $answer, $legacy);
       if (defined($data->{schema}) && !ref($data->{schema})
           && $data->{schema} eq "fm-bearings-answer.v1") {

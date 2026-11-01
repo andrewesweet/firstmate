@@ -386,6 +386,15 @@ topic_history_record() {
 # Model
 # ---------------------------------------------------------------------------
 
+TOPIC_MEMBERSHIP_JQ='
+  def topic_member($topic):
+    (.labels | if type == "array" then . else [] end) as $labels |
+    (["topic:" + $topic.name] + ($topic.aliases | map("topic:" + .))) as $wanted |
+    any($labels[]; . as $label | $wanted | index($label) != null)
+    or (all($labels[]; startswith("topic:") | not)
+        and ((.repo | if . == "-" or . == "none" then null else . end) as $repo | $topic.projects | index($repo) != null));
+'
+
 topic_model() {
   jq -n \
     --slurpfile registry "$TOPIC_TMP/entry.json" \
@@ -398,8 +407,7 @@ topic_model() {
     --arg since "$TOPIC_SINCE" \
     --arg since_source "$TOPIC_SINCE_SOURCE" \
     --arg labels_note "$TOPIC_LABELS_NOTE" \
-    --arg held_note "$TOPIC_HELD_NOTE" \
-    '
+    "$TOPIC_MEMBERSHIP_JQ"'
     def nul: if . == "-" or . == "none" then null else . end;
     def arr: if (type == "array") then . else [] end;
     def links_split: (.links | arr |
@@ -436,22 +444,13 @@ topic_model() {
       })) as $details |
     ($snapshot[0]) as $snap |
     ($prev[0]) as $prev |
-    ($t.projects) as $projects |
-    (["topic:" + $t.name] + ($t.aliases | map("topic:" + .))) as $wantlabels |
-
-    # membership over home rows
-    ([$rows[] |
-      (.labels | map(select(. as $l | $wantlabels | index($l)))) as $hit |
-      if ($hit | length) > 0 then {id: .id, how: "label"}
-      elif ((.labels | map(select(startswith("topic:"))) | length) == 0)
-        and ((.repo // "") != "") and (.repo as $r | ($projects | index($r)) != null)
-      then {id: .id, how: "project"}
-      else empty end] | map(.id)) as $memberids |
-    ($rows | map(select(.id as $id | ($memberids | index($id))))) as $members |
+    ($rows | map(select(topic_member($t)))) as $members |
 
     ($members | map(select(.state == "done" and closedinwin))) as $closed |
     ($closed | map(select(.hold_kind == "captain" or .kind == "captain"))) as $answered |
-    ($closed | map(. as $row | select(any($snap.landed[]?; .id == $row.task_id and (.owner // "(main)") == $row.owner)))) as $landed |
+    ($closed | map(. as $row |
+      first($snap.landed[]? | select(.id == $row.task_id and (.owner // "(main)") == $row.owner)) as $delivery |
+      $row + {artifact: ($delivery.artifact | nul)})) as $landed |
     ($members | map(select(createdinwin and .state != "done"))) as $newrows |
 
     ($members | map(select(.hold_kind == "captain" and .state != "done"))) as $heldrows |
@@ -490,8 +489,7 @@ topic_model() {
       else [] end)
      | sort_by(.date)) as $timeline |
 
-    ([if ($held_note | length) > 0 then $held_note else empty end] +
-      ($coverage | split("\n") | map(select(length > 0))) +
+    (($coverage | split("\n") | map(select(length > 0))) +
       [$snap.secondmates[]? | select(.state == "unknown" or .freshness != "fresh" or .provenance == "structured-home-cache") |
         "secondmate \(.id): \(.state), \(.freshness // "unknown") (\(.provenance // "registered")) coverage - \(.reason // .doing // "state unavailable")"] +
       [$snap.omitted[]? | select(.surface | test("secondmate|showing|capped|truncated|unreadable|unavailable")) |
@@ -507,13 +505,14 @@ topic_model() {
       labels_available: (($labels_note | length) == 0),
       recap: {generated: ($prev.generated // null), paragraph: ($prev.recap | if (. // "") == "" then null else . end)},
       changed_since: {
-        landed: [$landed[] | {id, title, closed, owner, repo, pr_url: (prurl // null), report: reporturl}],
+        landed: [$landed[] | {id, title, closed, owner, repo, artifact, pr_url: (prurl // null), report: reporturl}],
         new_rows: [$newrows[] | {id, title, created, state}],
         answered_decisions: [$answered[] | {id, title, closed}]
       },
       in_flight: $flight,
       decisions_open: [$heldetails[] | {
-        id, title, owner, key: .task_id, repo,
+        id, title, owner, key: .id, repo, kind, state,
+        close: (if .kind == "captain" then "done" else "release" end),
         hold_reason: .hold_reason,
         hold_until: .hold_until,
         report: reporturl,
@@ -527,8 +526,8 @@ topic_model() {
             else [] end)
       }],
       next_steps: {
-        ready: [$ready[] | {id, title, repo: (.repo // null)}],
-        blocked: [$blocked[] | {id, title, repo, blocked_by: .blocked_by}]
+        ready: [$ready[] | {id, title, owner, filed: .created, repo: (.repo // null)}],
+        blocked: [$blocked[] | {id, title, owner, filed: .created, repo, blocked_by: .blocked_by}]
       },
       timeline: $timeline,
       counts: {
@@ -577,6 +576,10 @@ topic_html_render() {
         "<div class=\"card\"><h3>\(.title | esc)</h3><p class=\"meta\">\(.id | esc) · closed \(.closed | d10)</p>" +
         (if (.pr_url // null) != null then "<p><a href=\"\(.pr_url | attr)\">\(.pr_url | esc)</a></p>" else "" end) +
         (if (.report // null) != null then "<p class=\"meta\">report: \(.report | esc)</p>" else "" end) +
+        (if (.artifact // null) != null and .artifact != .pr_url and .artifact != .report then
+          "<p class=\"meta\">artifact: " +
+          (if (.artifact | startswith("https://")) then "<a href=\"\(.artifact | attr)\">\(.artifact | esc)</a>" else (.artifact | esc) end) + "</p>"
+         else "" end) +
         "</div>"] | join("\n")),
       new_html: ([$m.changed_since.new_rows[] |
         "<li><strong>\(.title | esc)</strong> <span class=\"meta\">\(.id | esc) · filed \(.created | d10)</span></li>"] | join("\n")),
@@ -895,6 +898,8 @@ topic_board_payload() {
         .value as $d |
         ([$d.options | to_entries[] | {value: ("option-" + (.key | tostring) + "-" + (.value | slug)), label: .value}]) as $opts |
         ({ key: $d.key,
+           owner: $d.owner,
+           close: $d.close,
            type: "decision",
            repo: $d.repo,
            title: ($d.title | if (. // "") == "" then $d.id else . end),
@@ -902,22 +907,23 @@ topic_board_payload() {
            options: $opts,
            allow_freeform: (($opts | length) == 0) }
          + (if (($opts | length) == 0) then {freeform_hint: "Type the captain answer as words; firstmate routes it by task id."} else {} end))],
-      underway: [($m.in_flight[] |
+      underway: [($m.in_flight[] | . as $row |
         { id: .id,
           kind: ((.kind // "ship") | if (. // "") == "" then "ship" else . end),
           state: ((.state // "in_flight") | if (. // "") == "" then "in_flight" else . end),
-          name: ((.name // .id) | if (. // "") == "" then .id else . end),
-          doing: ((.doing // "") | if (. // "") == "" then (.state // "in_flight") else . end),
+          name: ((.name // .id) | if (. // "") == "" then $row.id else . end),
+          doing: ((.doing // "") | if (. // "") == "" then ($row.state | if (. // "") == "" then "in_flight" else . end) else . end),
           repo: (.repo // null) })],
-      landed: [($m.changed_since.landed[] |
+      landed: [($m.changed_since.landed[] | . as $row |
         { id: .id,
-          what: ((.title // "") | if (. // "") == "" then .id else . end),
+          what: ((.title // "") | if (. // "") == "" then $row.id else . end),
           owner: .owner,
           repo: .repo }
+        + (if (.artifact // .report // null) != null then {artifact: (.artifact // .report)} else {} end)
         + (if ((.pr_url // null) != null) and ((.pr_url | test("^https://"))) then {pr_url: .pr_url} else {} end))],
-      charted: ([($m.next_steps.ready[] | {id: .id, title: .title, repo: (.repo // null), reason: "ready", dispatchable: true})] +
-                [($m.next_steps.blocked[] | {id: .id, title: .title, repo: (.repo // null), reason: ("blocked by " + (.blocked_by | join(", "))), dispatchable: false})]),
-      warnings: $m.disclosures
+      charted: ([($m.next_steps.ready[] | {id, title, owner, filed, repo, reason: "ready", dispatchable: true})] +
+                [($m.next_steps.blocked[] | {id, title, owner, filed, repo, reason: ("blocked by " + (.blocked_by | join(", "))), dispatchable: false})] +
+                [$m.disclosures | to_entries[] | {id: ("topic-coverage-" + (.key | tostring)), title: "Topic coverage", repo: null, kind: "warning", reason: .value, dispatchable: false}])
     }'
 }
 
@@ -944,7 +950,7 @@ topic_chat_summary() {
     (if .labels_available then "labels: available"
      else "labels: unavailable for one or more homes - see membership disclosures" end),
     "changed since: \(.counts.landed) landed, \(.counts.new_rows) new, \(.counts.answered) answered",
-    (.changed_since.landed[] | "landed: \(.id) \(.title)\(if .pr_url != null then " " + .pr_url else "" end)"),
+    (.changed_since.landed[] | "landed: \(.id) \(.title)\([.pr_url, .report, .artifact] | map(select(. != null and . != "")) | unique | if length > 0 then " " + join(" ") else "" end)"),
     "in flight: \(.counts.in_flight)\(if (.in_flight | length) > 0 then " - " + ([.in_flight[].name] | join("; ")) else "" end)",
     "decisions open: \(.counts.decisions)",
     (.decisions_open[] | "decision: \(.id) \(.hold_reason | split("Full context:")[0] | sub("(^|[^[:alpha:]])options:.*$"; "") | gsub("[[:space:]]+"; " ") | sub(" +$"; ""))\(if (.options | length) > 0 then " options: " + (.options | join(" | ")) else "" end)"),
@@ -996,7 +1002,6 @@ fi
 
 # Backlog rows (with the label-support probe and fallback)
 TOPIC_LABELS_NOTE=""
-TOPIC_HELD_NOTE=""
 : > "$TOPIC_TMP/coverage.txt"
 : > "$TOPIC_TMP/rows.ndjson"
 topic_collect_rows "(main)" || fail "main backlog output could not be parsed"
@@ -1012,19 +1017,13 @@ if [ -f "$DATA/secondmates.md" ]; then
 fi
 jq -s 'add // []' "$TOPIC_TMP/rows.ndjson" > "$TOPIC_TMP/rows.json" || fail "cannot assemble backlog rows"
 
-# Detail reads for held member rows (full title and hold reason; bounded)
+# Detail reads for held member rows (full title and hold reason)
 : > "$TOPIC_TMP/details.ndjson"
-HELD_TOTAL=0
 while IFS="$(printf '\t')" read -r rid owner task_id; do
   [ -n "$rid" ] || continue
-  HELD_TOTAL=$((HELD_TOTAL + 1))
-  [ "$HELD_TOTAL" -le 20 ] || continue
   topic_tasks "$owner" show "$task_id" 2>> "$TOPIC_TMP/axi.err" | topic_toon_parse | jq -ce --arg id "$rid" '.[0] // empty | .id = $id' \
     >> "$TOPIC_TMP/details.ndjson" 2>> "$TOPIC_TMP/parse.err" || true
-done < <(jq -r '.[] | select(.hold_kind == "captain" and .state != "done") | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
-if [ "$HELD_TOTAL" -gt 20 ]; then
-  TOPIC_HELD_NOTE="only the first 20 held rows were detail-read; the rest fall back to list fields"
-fi
+done < <(jq -r --slurpfile topic "$TOPIC_TMP/entry.json" "$TOPIC_MEMBERSHIP_JQ"'.[] | select(topic_member($topic[0]) and .hold_kind == "captain" and .state != "done") | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
 jq -s '.' "$TOPIC_TMP/details.ndjson" > "$TOPIC_TMP/details.json" 2>/dev/null \
   || printf '[]' > "$TOPIC_TMP/details.json"
 

@@ -94,7 +94,8 @@ globalThis.TextEncoder = TextEncoder;
 const script = html.slice(html.indexOf("<script>") + "<script>".length, html.lastIndexOf("</script>"));
 new Function(script)();
 if (process.argv[3]) {
-  const form = descendants(byId.get("bb-call")).find((node) => node.tagName === "form");
+  const form = descendants(byId.get("bb-call")).find((node) => node.tagName === "form"
+    && (!process.argv[4] || node.attributes["data-lavish-question"] === process.argv[4]));
   const input = descendants(form).find((node) => node.type === "radio" && node.value === process.argv[3]);
   if (!input) throw new Error("requested option was not rendered");
   input.checked = true;
@@ -121,6 +122,7 @@ const rowsOf = (container) =>
         title: main?.children.find((c) => c.className.includes("bb-row__title"))?.textContent ?? "",
         sub: main?.children.find((c) => c.className.includes("bb-row__sub"))?.textContent ?? "",
         badges: badgesOf(row),
+        artifacts: row.children.filter((c) => c.className.includes("bb-row__pr")).map((c) => ({text: c.textContent, href: c.href ?? null})),
         pickable: row.children.some((c) => c.className.includes("bb-pick") && !c.className.includes("spacer")),
       };
     });
@@ -128,6 +130,7 @@ const rowsOf = (container) =>
 const uw = byId.get("bb-underway") || new Node("div");
 const underway = rowsOf(uw);
 
+const landed = rowsOf(byId.get("bb-landed") || new Node("div"));
 const ch = byId.get("bb-charted") || new Node("div");
 const charted = rowsOf(ch);
 // A fail-closed render replaces the page body instead of the board sections, so
@@ -140,4 +143,4 @@ const empty = ch.children.filter((c) => c.className.includes("bb-empty")).map((c
 const more = ch.children.filter((c) => c.className.includes("bb-morechip")).map((c) => c.textContent);
 
 process.stdout.write(
-  JSON.stringify({ stats, underway, charted, empty, more, error: errorText, queued }) + "\n");
+  JSON.stringify({ stats, underway, landed, charted, empty, more, error: errorText, queued }) + "\n");

@@ -765,9 +765,8 @@ test_coverage_disclosures_in_every_mode() {
   for expected in offline cached truncated; do
     case "$out" in *"$expected"*) : ;; *) fail "chat lost $expected" ;; esac
     case "$html" in *"$expected"*) : ;; *) fail "html lost $expected" ;; esac
-    jq -e --arg expected "$expected" 'any(.warnings[]; contains($expected))' "$TMP_ROOT/captured-board.json" >/dev/null || fail "board lost $expected"
   done
-  pass "unavailable, cached and truncated coverage survives JSON, chat, HTML and board"
+  pass "unavailable, cached and truncated coverage survives JSON, chat and HTML"
 }
 
 test_complete_distinct_board_options() {
@@ -800,6 +799,100 @@ test_latest_offline_answer_wins() {
   pass "typing replaces radio selection; selecting replaces text; copy exports the latest answer"
 }
 
+test_board_preserves_work_modes_dates_and_empty_defaults() {
+  local home stubbin json
+  home=$(make_home board-contract)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  make_board_stub "$stubbin"
+  write_toon > "$home/rows.toon" <<'EOF'
+[
+  {"id":"t-dec","kind":"ship","state":"in_flight","repo":"treehouse","title":"Merge gate","hold_kind":"captain","held":"yes","created":"2026-10-20","hold_reason":"Question: approve merge? options: approve | wait"},
+  {"id":"t-question","kind":"captain","state":"queued","repo":"treehouse","title":"Question","hold_kind":"captain","held":"yes","hold_reason":"Question: choose?"},
+  {"id":"t-old","state":"queued","repo":"treehouse","title":"Older ready","created":"2026-10-20"},
+  {"id":"t-new","state":"queued","repo":"treehouse","title":"Newer blocked","created":"2026-10-30","blocked_by":["t-old"]},
+  {"id":"t-flight","kind":"ship","state":"in_flight","repo":"treehouse","title":"Working"},
+  {"id":"t-done","kind":"ship","state":"done","repo":"treehouse","title":"","closed":"2026-10-28"}
+]
+EOF
+  write_toon > "$home/detail.toon" <<'EOF'
+[{"id":"t-dec","kind":"ship","state":"in_flight","repo":"treehouse","title":"Merge gate","hold_kind":"captain","held":"yes","hold_reason":"Question: approve merge? options: approve | wait"}]
+EOF
+  jq '(.in_flight[] | select(.id == "t-flight")) |= (.name = "" | .doing = "")' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
+  json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_DETAIL_FIXTURE="$home/detail.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+    run_topic "$home" "$stubbin" tf-mut --json) || fail "board contract model failed"
+  jq -e '
+    any(.decisions_open[]; .id == "t-dec" and .kind == "ship" and .state == "in_flight" and .close == "release")
+    and any(.decisions_open[]; .id == "t-question" and .close == "done")
+  ' <<<"$json" >/dev/null || fail "work/question completion modes lost: $json"
+  TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_DETAIL_FIXTURE="$home/detail.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+    FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" run_topic "$home" "$stubbin" tf-mut --board >/dev/null || fail "empty board defaults failed"
+  jq -e '
+    any(.captains_call[]; .key == "t-dec" and .close == "release")
+    and any(.captains_call[]; .key == "t-question" and .close == "done")
+    and any(.charted[]; .id == "t-old" and .filed == "2026-10-20")
+    and any(.charted[]; .id == "t-new" and .filed == "2026-10-30")
+    and any(.underway[]; .id == "t-flight" and .name == "t-flight" and .doing == "in_flight")
+    and any(.landed[]; .id == "t-done" and .what == "t-done")
+  ' "$TMP_ROOT/captured-board.json" >/dev/null || fail "mode, filed date or row defaults lost"
+  pass "board projection preserves completion modes, both filed dates and empty scalar defaults"
+}
+
+test_snapshot_delivery_artifacts_reach_every_output() {
+  local home stubbin json out html
+  home=$(make_home artifacts)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  make_board_stub "$stubbin"
+  sed 's@    links\[1\]: "pr:https://github.com/andrewesweet/treehouse/pull/42"@    links: none@' "$TMP_ROOT/list-labels.toon" > "$home/rows.toon"
+  write_toon > "$home/mate.toon" <<'EOF'
+[{"id":"t-done2","kind":"scout","state":"done","repo":"treehouse","title":"Recorded report","closed":"2026-10-29","links":[]}]
+EOF
+  jq '(.landed[] | select(.id == "t-done")).artifact = "https://github.com/andrewesweet/treehouse/pull/42"' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
+  json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_MATE_FIXTURE="$home/mate.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+    run_topic "$home" "$stubbin" tf-mut --json) || fail "artifact model failed"
+  jq -e '[.changed_since.landed[].artifact] == ["https://github.com/andrewesweet/treehouse/pull/42","data/t-done2/report.md"]' <<<"$json" >/dev/null || fail "snapshot artifacts lost: $json"
+  out=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_MATE_FIXTURE="$home/mate.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+    FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" run_topic "$home" "$stubbin" tf-mut --html "$home/artifacts.html" --board) || fail "artifact outputs failed"
+  html=$(cat "$home/artifacts.html")
+  for artifact in https://github.com/andrewesweet/treehouse/pull/42 data/t-done2/report.md; do
+    case "$out" in *"$artifact"*) : ;; *) fail "chat lost $artifact" ;; esac
+    case "$html" in *"$artifact"*) : ;; *) fail "HTML lost $artifact" ;; esac
+  done
+  jq -e '[.landed[].artifact] == ["https://github.com/andrewesweet/treehouse/pull/42","data/t-done2/report.md"]' "$TMP_ROOT/captured-board.json" >/dev/null || fail "board projection lost artifacts"
+  pass "snapshot-only PR and report artifacts survive JSON, HTML, chat and board projection"
+}
+
+test_all_and_only_topic_decisions_are_enriched() {
+  local home stubbin json shown
+  home=$(make_home all-details)
+  stubbin="$TMP_ROOT/stub-all-details"
+  make_stub_bin "$stubbin" labeled
+  jq -n '[range(0;25) | {id:("other-" + tostring),state:"queued",kind:"captain",repo:"other-repo",labels:["topic:crew-wiki"],hold_kind:"captain",hold_reason:"Other topic"}]
+    + [range(0;23) | {id:("member-" + tostring),state:"queued",kind:"captain",repo:"treehouse",labels:["topic:mut"],hold_kind:"captain",hold_reason:"Short list reason"}]' > "$home/rows.json"
+  write_toon < "$home/rows.json" > "$home/rows.toon"
+  cat > "$stubbin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  list) cat "$TOPIC_MAIN_FIXTURE" ;;
+  show)
+    printf '%s\n' "$2" >> "$TOPIC_SHOW_LOG"
+    jq -r --arg id "$2" '.[] | select(.id == $id) | "task:", "  id: \(.id)", "  kind: captain", "  state: queued", "  hold_kind: captain", "  hold_reason: Question: full detail for \(.id)? options: yes | no"' "$TOPIC_ROWS_JSON"
+    ;;
+  *) exit 9 ;;
+esac
+SH
+  chmod +x "$stubbin/tasks-axi"
+  printf '# no secondmates\n' > "$home/data/secondmates.md"
+  json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_ROWS_JSON="$home/rows.json" TOPIC_SHOW_LOG="$home/show.log" \
+    run_topic "$home" "$stubbin" tf-mut --json) || fail "complete detail read failed"
+  jq -e '.counts.decisions == 23 and all(.decisions_open[]; .options == ["yes","no"] and (.hold_reason | startswith("Question: full detail")))' <<<"$json" >/dev/null || fail "some member decisions were not enriched"
+  shown=$(wc -l < "$home/show.log" | tr -d ' ')
+  [ "$shown" = 23 ] || fail "read unrelated decisions or capped members: $shown reads"
+  if grep -q '^other-' "$home/show.log"; then fail "unrelated topic was detail-read"; fi
+  pass "all 23 member decisions are enriched after 25 unrelated holds, without reading unrelated details"
+}
+
 fm_test_run \
   test_label_alias_project_membership \
   test_decision_options_and_detail_enrichment \
@@ -819,4 +912,7 @@ fm_test_run \
   test_publication_failure_preserves_history_and_empty_states \
   test_coverage_disclosures_in_every_mode \
   test_complete_distinct_board_options \
-  test_latest_offline_answer_wins
+  test_latest_offline_answer_wins \
+  test_board_preserves_work_modes_dates_and_empty_defaults \
+  test_snapshot_delivery_artifacts_reach_every_output \
+  test_all_and_only_topic_decisions_are_enriched

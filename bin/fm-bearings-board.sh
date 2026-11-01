@@ -72,6 +72,14 @@
 # the template may display the routing id. Anything else refuses before the
 # existing board is touched.
 #
+# Captain's Call keys and Charted Next ids use a local task slug (1..128
+# alphanumerics plus . _ -), or <owner>/<task-slug> with an explicit owner
+# slug for nonlocal work. An omitted owner means "(main)". Nonlocal cards
+# are captured for manual handling in their owning home; they never query or
+# mutate local captain calls through the board's binding.
+#
+# Recently Landed may carry `artifact`, the recorded delivery reference.
+#
 # Every Underway row likewise carries a non-empty `name`: the durable task name
 # when known, otherwise its durable identifier.
 # A Charted Next row MAY carry `filed`, the durable filed date (YYYY-MM-DD, or
@@ -141,9 +149,15 @@ validate_payload() {  # <data.json>
           and (keys | sort) == ["artifact", "version"]
           and (.artifact | slug(128))
           and (.version | version));
+    def owned_identity($field):
+      (.owner // "(main)") as $owner |
+      ((has("owner") | not) or (.owner | nonempty_string))
+      and (if $owner == "(main)" then (.[$field] | slug(128))
+           else ($owner | slug(128)) and (.[$field] | type == "string" and startswith($owner + "/"))
+             and (.[$field] | ltrimstr($owner + "/") | slug(128)) end);
     def call_item:
       type == "object"
-      and (.key | slug(128))
+      and owned_identity("key")
       and (.type == "decision" or .type == "merge" or .type == "credential")
       and repo_marker
       and (.title | nonempty_string)
@@ -176,9 +190,10 @@ validate_payload() {  # <data.json>
       type == "object" and repo_marker and (.id | nonempty_string)
       and (.what | nonempty_string) and (.owner | nonempty_string)
       and optional_https_url("pr_url")
+      and optional_string("artifact")
       and optional_subject;
     def charted_item:
-      type == "object" and repo_marker and (.id | slug(128))
+      type == "object" and repo_marker and owned_identity("id")
       and (.title | nonempty_string) and (.reason | type == "string")
       and (.dispatchable | type == "boolean")
       and ((has("kind") | not) or (.kind == "queued" or .kind == "warning"))
@@ -272,12 +287,13 @@ establish_board_session() {  # <board>
 # dropped here instead of being carded again. All checks use exact structured
 # identities; unknown subject state keeps the card.
 
-decision_card_is_stale() {  # <task-id> <landed-0-or-1>
-  local task=$1 landed=$2 rc=0
+decision_card_is_stale() {  # <task-id> <landed-0-or-1> <owner>
+  local task=$1 landed=$2 owner=$3 rc=0
   if [ "$landed" = 1 ]; then
     printf 'structured subject already landed\n'
     return 0
   fi
+  [ "$owner" = "(main)" ] || return 1
   "$SCRIPT_DIR/fm-captain-hold.sh" open "$task" --distinguish-absent >/dev/null 2>&1 || rc=$?
   # 1 is a definite "no longer an open captain call". 2 is "cannot tell", 3 is
   # absent from this backlog, and a call wrongly hidden is worse than a card
@@ -294,7 +310,7 @@ decision_card_is_stale() {  # <task-id> <landed-0-or-1>
 # card offers reconcile" a property of the board rather than of the composer's
 # memory; the validator prevents duplicate decision options.
 effective_payload() {  # <data.json> <dest.json>
-  local data=$1 dest=$2 landed_keys key reason drop='' tmp landed=0
+  local data=$1 dest=$2 landed_keys key owner reason drop='' tmp landed=0
   landed_keys=$(jq -c '
     def version_parts: split(".") | map(tonumber);
     . as $payload
@@ -302,7 +318,8 @@ effective_payload() {  # <data.json> <dest.json>
       | select(.type == "decision")
       | . as $card
       | select(
-          ($payload.landed | any(.id == $card.key))
+          ($payload.landed | any((.owner // "(main)") == ($card.owner // "(main)")
+            and (.id == $card.key or ((.owner + "/" + .id) == $card.key))))
           or (($card.pr_url? != null) and ($payload.landed | any(.pr_url? == $card.pr_url)))
           or (($card.subject? != null) and ($payload.landed | any(
             (.subject? != null)
@@ -311,16 +328,16 @@ effective_payload() {  # <data.json> <dest.json>
         )
       | .key]
   ' "$data") || return 1
-  while IFS= read -r key; do
+  while IFS=$'\t' read -r key owner; do
     [ -n "$key" ] || continue
     landed=0
     if jq -e --arg key "$key" 'index($key) != null' <<< "$landed_keys" >/dev/null; then
       landed=1
     fi
-    reason=$(decision_card_is_stale "$key" "$landed") || continue
+    reason=$(decision_card_is_stale "$key" "$landed" "$owner") || continue
     printf 'dropped-landed-card: %s (%s)\n' "$key" "$reason" >&2
     drop=$drop$key$'\n'
-  done < <(jq -r '.captains_call[]? | select(.type == "decision") | .key' "$data")
+  done < <(jq -r '.captains_call[]? | select(.type == "decision") | [.key, (.owner // "(main)")] | @tsv' "$data")
   tmp=$(printf '%s' "$drop" | jq -R -s 'split("\n") | map(select(length > 0))') || return 1
   jq --argjson dropped "$tmp" '
     .captains_call = [
