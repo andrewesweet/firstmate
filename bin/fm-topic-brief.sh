@@ -424,6 +424,7 @@ topic_history_record() {
 # Model
 # ---------------------------------------------------------------------------
 
+# shellcheck disable=SC2016 # Variables belong to jq, not the shell.
 TOPIC_MEMBERSHIP_JQ='
   def open_captain_call: .hold_kind == "captain" and .state != "done";
   def topic_member($topic):

@@ -688,7 +688,7 @@ test_enriched_decisions_recheck_each_home_state() {
   make_stub_bin "$stubbin" labeled
   make_board_stub "$stubbin"
   for owner in main mate; do
-    for outcome in done released; do
+    for outcome in 'done' released; do
       home=$(make_home "enriched-$owner-$outcome")
       write_toon > "$home/list.toon" <<'EOF'
 [{"id":"t-dec","state":"queued","kind":"ship","repo":"treehouse","title":"List call","hold_kind":"captain","held":"yes","hold_reason":"Question: old list question?"}]
