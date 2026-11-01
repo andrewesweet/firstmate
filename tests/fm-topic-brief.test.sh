@@ -471,6 +471,92 @@ EOF
   pass "dated captain calls remain enriched decisions; completed dependencies stop blocking"
 }
 
+test_external_holds_remain_blocked_in_every_home_and_output() {
+  local home stubbin placement json chat
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  make_board_stub "$stubbin"
+  for placement in local remote; do
+    home=$(make_home "external-$placement")
+    write_toon > "$home/rows.toon" <<'EOF'
+[
+  {"id":"external-queue","kind":"ship","state":"queued","repo":"treehouse","created":"2026-10-01","title":"Vendor gate","held":"yes","hold_kind":"external","hold_until":"2026-11-15","hold_reason":"Waiting on vendor <approval>","blocked_by":["done","ready"]},
+  {"id":"external-flight","kind":"ship","state":"in_flight","repo":"other-repo","labels":["topic:tf-mut"],"created":"2026-10-01","title":"Build gate","held":true,"hold_kind":"external","hold_reason":"Waiting on build"},
+  {"id":"external-observe","kind":"observe","state":"in_flight","repo":"-","labels":["topic:mut"],"created":"2026-10-01","title":"Rollout observation","held":"yes","hold_kind":"external","hold_until":"2026-11-20","hold_reason":"Watching rollout"},
+  {"id":"dependency","state":"queued","repo":"treehouse","created":"2026-10-01","title":"Dependency gate","blocked_by":["done","ready"]},
+  {"id":"ready","state":"queued","repo":"treehouse","created":"2026-10-01","title":"Ready work"},
+  {"id":"expired","state":"queued","repo":"treehouse","created":"2026-10-01","title":"Expired wait","held":"no","hold_kind":"external","hold_until":"2026-10-31","hold_reason":"Old wait","blocked_by":["done"]},
+  {"id":"done","state":"done","repo":"treehouse","created":"2026-10-01","closed":"2026-10-02","title":"Completed wait","held":"yes","hold_kind":"external","hold_reason":"Old wait"},
+  {"id":"unrelated","state":"queued","repo":"treehouse","labels":["topic:crew-wiki"],"created":"2026-10-01","title":"Other topic","held":"yes","hold_kind":"external","hold_reason":"Other wait"},
+  {"id":"t-dec","state":"queued","repo":"treehouse","created":"2026-10-01","title":"Captain call","held":"yes","hold_kind":"captain","hold_reason":"Question: choose?"}
+]
+EOF
+    printf '{"in_flight":[],"landed":[],"recorded_prs":[]}\n' > "$home/snapshot.json"
+    if [ "$placement" = remote ]; then
+      printf -- '- mate - Remote fixture (host: fixturehost; root: %s; home: %s/mate; scope: tests; projects: treehouse; added 2026-10-01)\n' "$ROOT" "$home" > "$home/data/secondmates.md"
+      cat > "$home/ssh" <<'SH'
+#!/usr/bin/env bash
+printf '%s' "${!#}" | base64 -d | tr '\0' '\n' > "$TOPIC_ROUTE_LOG"
+case "$(sed -n '2p' "$TOPIC_ROUTE_LOG")" in
+  list) cat "$TOPIC_MATE_FIXTURE" ;;
+  show) cat "$TOPIC_DETAIL_FIXTURE" ;;
+  *) exit 9 ;;
+esac
+SH
+      chmod +x "$home/ssh"
+    fi
+    json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_MATE_FIXTURE="$home/rows.toon" \
+      TOPIC_DETAIL_FIXTURE="$TMP_ROOT/show-t-dec.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+      FM_SSH_BIN="$home/ssh" TOPIC_ROUTE_LOG="$home/remote-call" \
+      run_topic "$home" "$stubbin" tf-mut --json) || fail "$placement external holds model failed"
+    jq -e '
+      .counts.blocked == 8 and .counts.ready == 4 and .counts.decisions == 2 and .counts.new_rows == 0
+      and [.decisions_open[].id] == ["t-dec","mate/t-dec"]
+      and [.next_steps.ready[].id] == ["ready","expired","mate/ready","mate/expired"]
+      and [.next_steps.blocked[].id] == ["external-queue","external-flight","external-observe","dependency","mate/external-queue","mate/external-flight","mate/external-observe","mate/dependency"]
+      and ([.next_steps.blocked[] | select(.id == "external-queue" or .id == "mate/external-queue") | {hold_reason,hold_until}] == [{hold_reason:"Waiting on vendor <approval>",hold_until:"2026-11-15"},{hold_reason:"Waiting on vendor <approval>",hold_until:"2026-11-15"}])
+      and any(.next_steps.blocked[]; .id == "external-queue" and .blocked_by == ["ready"] and .reason == "external hold until 2026-11-15: Waiting on vendor <approval>; blocked by ready")
+      and any(.next_steps.blocked[]; .id == "mate/external-queue" and .owner == "mate" and .blocked_by == ["mate/ready"] and .reason == "external hold until 2026-11-15: Waiting on vendor <approval>; blocked by mate/ready")
+      and ([.next_steps.blocked[] | select(.id == "external-flight" or .id == "mate/external-flight") | .reason] == ["external hold: Waiting on build","external hold: Waiting on build"])
+      and ([.next_steps.blocked[] | select(.id == "external-observe" or .id == "mate/external-observe") | .reason] == ["external hold until 2026-11-20: Watching rollout","external hold until 2026-11-20: Watching rollout"])
+      and any(.next_steps.blocked[]; .id == "dependency" and .reason == "blocked by ready")
+    ' <<<"$json" >/dev/null || fail "$placement external work vanished, became dispatchable or lost its recorded reason/date: $json"
+    chat=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_MATE_FIXTURE="$home/rows.toon" \
+      TOPIC_DETAIL_FIXTURE="$TMP_ROOT/show-t-dec.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+      FM_SSH_BIN="$home/ssh" TOPIC_ROUTE_LOG="$home/remote-call" \
+      FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+      run_topic "$home" "$stubbin" tf-mut --html "$home/brief.html" --board) || fail "$placement external hold outputs failed"
+    case "$chat" in *'next steps: 4 ready, 8 blocked'*) : ;; *) fail "chat lost external holds: $chat" ;; esac
+    jq -e '([.charted[] | select(.dispatchable | not)] | length) == 8
+      and any(.charted[]; .id == "external-queue" and .reason == "external hold until 2026-11-15: Waiting on vendor <approval>; blocked by ready")
+      and any(.charted[]; .id == "mate/external-observe" and .owner == "mate" and .reason == "external hold until 2026-11-20: Watching rollout")' \
+      "$TMP_ROOT/captured-board.json" >/dev/null || fail "board changed blocked classification or reasons"
+    python3 - "$home/brief.html" <<'PY' || fail "HTML lost held work or its recorded reason/date"
+from html.parser import HTMLParser
+import sys
+
+class Text(HTMLParser):
+    def handle_data(self, data):
+        self.parts.append(data)
+
+page = Text()
+page.parts = []
+with open(sys.argv[1]) as source:
+    page.feed(source.read())
+text = " ".join(page.parts)
+for prefix in ("", "mate/"):
+    for expected in (
+        "external-queue · external hold until 2026-11-15: Waiting on vendor <approval>; blocked by " + prefix + "ready",
+        "external-flight · external hold: Waiting on build",
+        "external-observe · external hold until 2026-11-20: Watching rollout",
+        "dependency · blocked by " + prefix + "ready",
+    ):
+        assert prefix + expected in text, (prefix, expected)
+PY
+  done
+  pass "queued and in-flight external holds, including observations, stay blocked with recorded reasons/dates in main and local/remote mate outputs"
+}
+
 test_chat_details_and_read_only_modes() {
   local home stubbin out
   home=$(make_home chat)
@@ -910,6 +996,7 @@ fm_test_run \
   test_board_payload_shape \
   test_secondmate_membership_all_surfaces \
   test_deferred_calls_and_resolved_dependencies \
+  test_external_holds_remain_blocked_in_every_home_and_output \
   test_chat_details_and_read_only_modes \
   test_registry_name_alias_collisions \
   test_portable_dates_and_calendar_validation \

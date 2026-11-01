@@ -363,6 +363,8 @@ test_topic_output_builds_and_renders_through_the_real_board() {
   {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
   {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
   {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Released during read","hold_kind":"captain","hold_reason":"Question: release?"},
+  {"id":"external-queue","kind":"ship","state":"queued","repo":"sample","title":"Vendor wait","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Waiting on vendor","hold_until":"2026-11-15"},
+  {"id":"external-observe","kind":"observe","state":"in_flight","repo":"external","labels":["topic:alias"],"title":"Rollout watch","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Watching rollout"},
   {"id":"old","state":"queued","repo":"sample","title":"Older ready","created":"2026-10-20"},
   {"id":"new","state":"queued","repo":"sample","title":"Newer blocked","created":"2026-10-30","blocked_by":["old"]},
   {"id":"flight","state":"in_flight","kind":"ship","repo":"sample","title":"Flight"},
@@ -378,6 +380,8 @@ EOF
   {"id":"outside-gate","kind":"captain","state":"queued","repo":"sample","title":"Mate other topic landed subject","hold_kind":"captain","hold_reason":"Question: approve other topic PR?","links":["pr:https://github.com/example/sample/pull/45"]},
   {"id":"race-done","kind":"captain","state":"queued","repo":"sample","title":"Mate answered during read","hold_kind":"captain","hold_reason":"Question: answer?"},
   {"id":"race-released","kind":"ship","state":"in_flight","repo":"sample","title":"Mate released during read","hold_kind":"captain","hold_reason":"Question: release?"},
+  {"id":"external-queue","kind":"ship","state":"queued","repo":"sample","title":"Mate vendor wait","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Waiting on mate vendor","hold_until":"2026-11-20"},
+  {"id":"external-observe","kind":"observe","state":"in_flight","repo":"sample","title":"Mate rollout watch","created":"2026-10-01","held":"yes","hold_kind":"external","hold_reason":"Watching mate rollout"},
   {"id":"next","state":"queued","repo":"sample","title":"Mate next","created":"2026-10-31"},
   {"id":"blocked","state":"queued","repo":"sample","title":"Mate blocked","created":"2026-10-30","blocked_by":["next"]},
   {"id":"report","state":"done","kind":"scout","repo":"sample","title":"Mate report","closed":"2026-10-28"}
@@ -425,6 +429,7 @@ SH
     FM_PROCEVENT_CLAIM_ROOT="$home/procevent-claims" LAVISH_AXI_STATE_DIR="$home/lavish-state" \
     bash "$ROOT/bin/fm-topic-brief.sh" topic --board > "$home/chat" 2> "$home/topic-error" || fail "topic payload failed the real board consumer"
   [ ! -s "$home/topic-error" ] || fail "topic board emitted an unexpected diagnostic: $(cat "$home/topic-error")"
+  case "$(cat "$home/chat")" in *'next steps: 2 ready, 6 blocked'*) : ;; *) fail "topic chat dropped externally held work" ;; esac
   require_listener_reached_poll "$home"
   out=$(node "$HARNESS" "$home/.lavish/bearings-board.html" option-0-approve t-dec) || fail "topic board did not render"
   jq -e '
@@ -436,7 +441,11 @@ SH
     and [.charted[] | select(.pickable) | .title] == ["Mate next","Older ready"]
     and ([.charted[] | select(.badges | any(.text == "needs repair"))] | length) == 1
     and any(.charted[]; (.sub | contains("offline") and contains("ledger unavailable")) and (.pickable | not))
-    and (.stats[] | select(.label == "charted next") | .n) == 4
+    and (.stats[] | select(.label == "charted next") | .n) == 8
+    and any(.charted[]; .title == "Vendor wait" and (.sub | contains("external hold until 2026-11-15: Waiting on vendor")) and (.pickable | not))
+    and any(.charted[]; .title == "Rollout watch" and (.sub | contains("external hold: Watching rollout")) and (.pickable | not))
+    and any(.charted[]; .title == "Mate vendor wait" and (.sub | contains("external hold until 2026-11-20: Waiting on mate vendor")) and (.pickable | not))
+    and any(.charted[]; .title == "Mate rollout watch" and (.sub | contains("external hold: Watching mate rollout")) and (.pickable | not))
     and .underway[0].title == "flight" and (.underway[0].sub | contains("working") and contains("sample"))
     and .landed[0].title == "landed" and .landed[0].artifacts[0].href == "https://github.com/example/sample/pull/42"
     and .landed[1].artifacts[0].text == "data/report/report.md"

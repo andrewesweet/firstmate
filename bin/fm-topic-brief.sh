@@ -506,10 +506,12 @@ topic_model() {
         pr_url: ($recprs[$f.id] // ($r | prurl))
       })) as $flight |
 
-    ($members | map(select(.state == "queued" and (heldyes | not) and .hold_kind != "captain")
-      | .blocked_by |= map(. as $id | select(any($rows[]; .id == $id and .state == "done") | not)))) as $queued |
-    ($queued | map(select((.blocked_by | length) == 0))) as $ready |
-    ($queued | map(select((.blocked_by | length) > 0))) as $blocked |
+    ($members | map(select(.hold_kind != "captain" and
+      ((.state == "queued" and (heldyes | not)) or
+       (.hold_kind == "external" and heldyes and (.state == "queued" or .state == "in_flight"))))
+      | .blocked_by |= map(. as $id | select(any($rows[]; .id == $id and .state == "done") | not)))) as $nextrows |
+    ($nextrows | map(select((heldyes | not) and (.blocked_by | length) == 0))) as $ready |
+    ($nextrows | map(select(heldyes or (.blocked_by | length) > 0))) as $blocked |
 
     # timeline
     ([$closed[] |
@@ -563,7 +565,13 @@ topic_model() {
       }],
       next_steps: {
         ready: [$ready[] | {id, title, owner, filed: .created, repo: (.repo // null)}],
-        blocked: [$blocked[] | {id, title, owner, filed: .created, repo, blocked_by: .blocked_by}]
+        blocked: [$blocked[] | {id, title, owner, filed: .created, repo, blocked_by, hold_reason, hold_until,
+          reason: ([
+            (if heldyes then "external hold" +
+              (if .hold_until != null then " until " + .hold_until else "" end) +
+              (if .hold_reason != "" then ": " + .hold_reason else "" end) else empty end),
+            (if (.blocked_by | length) > 0 then "blocked by " + (.blocked_by | join(", ")) else empty end)
+          ] | join("; "))}]
       },
       timeline: $timeline,
       counts: {
@@ -646,7 +654,7 @@ topic_html_render() {
         "<li><strong>\(.title | esc)</strong> <span class=\"meta\">\(.id | esc)" +
         (if (.repo // null) != null then " · \(.repo | esc)" else "" end) + "</span></li>"] | join("\n")),
       blocked_html: ([$m.next_steps.blocked[] |
-        "<li><strong>\(.title | esc)</strong> <span class=\"meta\">\(.id | esc) · blocked by \(.blocked_by | join(", ") | esc)</span></li>"] | join("\n")),
+        "<li><strong>\(.title | esc)</strong> <span class=\"meta\">\(.id | esc) · \(.reason | esc)</span></li>"] | join("\n")),
       n_decisions: ($m.decisions_open | length),
       tl_svg:
         (if (($m.timeline | length) > 0) then
@@ -963,7 +971,7 @@ topic_board_payload() {
         + (if (.artifact // .report // null) != null then {artifact: (.artifact // .report)} else {} end)
         + (if ((.pr_url // null) != null) and ((.pr_url | test("^https://"))) then {pr_url: .pr_url} else {} end))],
       charted: ([($m.next_steps.ready[] | {id, title, owner, filed, repo, reason: "ready", dispatchable: true})] +
-                [($m.next_steps.blocked[] | {id, title, owner, filed, repo, reason: ("blocked by " + (.blocked_by | join(", "))), dispatchable: false})] +
+                [($m.next_steps.blocked[] | {id, title, owner, filed, repo, reason, dispatchable: false})] +
                 [$m.disclosures | to_entries[] | {id: ("topic-coverage-" + (.key | tostring)), title: "Topic coverage", repo: null, kind: "warning", reason: .value, dispatchable: false}])
     }'
 }
