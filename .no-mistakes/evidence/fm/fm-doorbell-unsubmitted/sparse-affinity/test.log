@@ -1,0 +1,3 @@
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a doorbell whose echo arrives after the settle
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 clears a refused late echo completely and the next ring delivers
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a stranded doorbell head instead of skipping it

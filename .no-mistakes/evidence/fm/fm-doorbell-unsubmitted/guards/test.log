@@ -1,0 +1,12 @@
+draft=:\ Firstmate ring_rc=1 before=:\ Firstmate after=:\ Firstmate record_pending=yes
+draft=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs ring_rc=1 before=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs after=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs record_pending=yes
+draft=\ Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg\  ring_rc=1 before=Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg after=Firstmate\ instruction\ waiting:\ list\ \"\$FM_TASK_INBOX\"/\*.msg record_pending=yes
+draft=an\ unfinished\ captain\ draft ring_rc=1 before=an\ unfinished\ captain\ draft after=an\ unfinished\ captain\ draft record_pending=yes
+ok - real Claude composer preserves unrelated drafts, too-short prefixes, look-alikes and doorbell suffixes
+Handled record: ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.RCN6gn/state/slowecho.inbox/handled/001.msg
+schema=fm-task-inbox.v1
+at=2026-11-01T01:08:17Z
+body-terminator=1
+--
+Run exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.RCN6gn/acted-guard - then mv this message into handled/. Reply with one short line.
+ok - own doorbell head recovers after foreign drafts; same durable record is acknowledged

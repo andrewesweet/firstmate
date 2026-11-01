@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Live Herdr doorbell evidence</title><style>body{background:#151515;color:#eee;font:15px system-ui;margin:28px}h1{font-size:26px}p{color:#ccc;max-width:90ch}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}section{min-width:0;background:#202020;border:1px solid #444;border-radius:8px;padding:15px}h2{font-size:17px;color:#b6e1bb;margin:0 0 10px}pre{font:13px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}small{display:block;color:#aaa;margin:10px 0}details{margin-top:20px} @media(max-width:800px){.grid{grid-template-columns:1fr}}</style><h1>Live Claude Code doorbell validation</h1><p>Herdr 0.9.5 · Claude Code 2.1.308 · isolated named labs. Actual terminal composer captures, cropped to the composer with ANSI styling removed. Styling follows the product’s terminal surface.</p><div class="grid"><section><h2>Delayed echo: composer remains empty</h2><small>run fm-lab-herdr-doorbell-s-737217-31247 pane read w1:p1 --source visible --format ansi</small><pre>───────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) ·
+                                 ● high · /effort</pre></section><section><h2>Complete payload observed before Enter</h2><small>run fm-lab-herdr-doorbell-s-737217-31247 pane read w1:p1 --source visible --format ansi</small><pre>───────────────────────────────────────────────────
+❯ : Firstmate instruction waiting: list
+  &quot;$FM_TASK_INBOX&quot;/*.msg in your &#x27;slowecho.inbox&#x27;
+  steering inbox, read and act on each in
+  numeric order, then mv each into its handled/.
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                 ● high · /effort</pre></section><section><h2>Refused echo: empty composer before retry</h2><small>run fm-lab-herdr-doorbell-s-737217-31247 pane read w1:p1 --source visible --format ansi</small><pre>───────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) ·</pre></section><section><h2>Foreign draft before ring</h2><small>run fm-lab-herdr-doorbell-s-794788-8034 pane read w1:p1 --source visible --format ansi</small><pre>───────────────────────────────────────────────────
+❯ an unfinished captain draft
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                     Ctrl+Y to paste deleted text</pre></section><section><h2>Foreign draft after ring: unchanged</h2><small>run fm-lab-herdr-doorbell-s-794788-8034 pane read w1:p1 --source visible --format ansi</small><pre>───────────────────────────────────────────────────
+❯ an unfinished captain draft
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                     Ctrl+Y to paste deleted text</pre></section><section><h2>Own stranded head before recovery</h2><small>run fm-lab-herdr-doorbell-s-794788-8034 pane read w1:p1 --source recent --lines 200</small><pre>───────────────────────────────────────────────────
+❯ : Firstmate instruction waiting: list
+  &quot;$FM_TASK_INBOX&quot;/*.msg
+───────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                     Ctrl+Y to paste deleted text</pre></section></div><details open><summary>Delivery receipts and safety boundaries</summary><pre>ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a doorbell whose echo arrives after the settle
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 clears a refused late echo completely and the next ring delivers
+ok - live Herdr doorbell: Claude Code (2.1.308 (Claude Code)) on herdr 0.9.5 submits a stranded doorbell head instead of skipping it
+
+draft=:\ Firstmate ring_rc=1 before=:\ Firstmate after=:\ Firstmate record_pending=yes
+draft=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs ring_rc=1 before=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs after=:\ Firstmate\ instruction\ waiting:\ please\ also\ fix\ the\ docs record_pending=yes
+draft=\ Firstmate\ instruction\ waiting:\ list\ \&quot;\$FM_TASK_INBOX\&quot;/\*.msg\  ring_rc=1 before=Firstmate\ instruction\ waiting:\ list\ \&quot;\$FM_TASK_INBOX\&quot;/\*.msg after=Firstmate\ instruction\ waiting:\ list\ \&quot;\$FM_TASK_INBOX\&quot;/\*.msg record_pending=yes
+draft=an\ unfinished\ captain\ draft ring_rc=1 before=an\ unfinished\ captain\ draft after=an\ unfinished\ captain\ draft record_pending=yes
+ok - real Claude composer preserves unrelated drafts, too-short prefixes, look-alikes and doorbell suffixes
+Handled record: ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.RCN6gn/state/slowecho.inbox/handled/001.msg
+schema=fm-task-inbox.v1
+at=2026-11-01T01:08:17Z
+body-terminator=1
+--
+Run exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.RCN6gn/acted-guard - then mv this message into handled/. Reply with one short line.
+ok - own doorbell head recovers after foreign drafts; same durable record is acknowledged
+</pre></details></html>

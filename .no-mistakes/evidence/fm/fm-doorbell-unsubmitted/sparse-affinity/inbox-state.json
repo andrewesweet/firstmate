@@ -1,0 +1,8 @@
+{
+  "acted-slow": "",
+  "acted-head": "",
+  "acted-cleared": "",
+  "state/slowecho.inbox/handled/002.msg": "schema=fm-task-inbox.v1\nat=2026-11-01T01:10:43Z\nbody-terminator=1\n--\nRun exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.ZwKZso/acted-cleared - then mv this message into handled/. Reply with one short line.\n",
+  "state/slowecho.inbox/handled/003.msg": "schema=fm-task-inbox.v1\nat=2026-11-01T01:11:12Z\nbody-terminator=1\n--\nRun exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.ZwKZso/acted-head - then mv this message into handled/. Reply with one short line.\n",
+  "state/slowecho.inbox/handled/001.msg": "schema=fm-task-inbox.v1\nat=2026-11-01T01:10:25Z\nbody-terminator=1\n--\nRun exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.ZwKZso/acted-slow - then mv this message into handled/. Reply with one short line.\n"
+}

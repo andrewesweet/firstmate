@@ -1,0 +1,4 @@
+{
+  "acted-guard": "",
+  "state/slowecho.inbox/handled/001.msg": "schema=fm-task-inbox.v1\nat=2026-11-01T01:08:17Z\nbody-terminator=1\n--\nRun exactly: touch ~/.no-mistakes/worktrees/feb37d45d9da/01M6A9HJ8B8A9F2YY5RGMNSGYC/.test-phase/tmp/fm-herdr-doorbell-slow-echo.RCN6gn/acted-guard - then mv this message into handled/. Reply with one short line.\n"
+}

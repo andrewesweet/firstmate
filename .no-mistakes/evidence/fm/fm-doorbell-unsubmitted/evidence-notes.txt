@@ -1,0 +1,5 @@
+Real Herdr 0.9.5 and Claude Code 2.1.308. Three generated, independently owned fm-lab sessions. All provision/teardown operations used bin/fm-herdr-lab.sh and passed its default-session tripwire.
+Terminal screenshots render cropped actual composer captures. Transcripts omit unrelated terminal scrollback and agent quota metadata.
+Live oracles: marker creation plus the same record in handled/; refused queued input leaves an empty composer and its retry delivers; pending foreign text remains unchanged with ring return 1 and its record still pending.
+Regression oracles: current slow-echo, queued-clear, and stranded-head cases pass; each rejects the corresponding base implementation from 415045bdac86ff23249e0f50191ea37d4f5832d7.
+Sparse-affinity run: taskset -c 6,11; every Claude thread has exactly [6,11] after unslow and before teardown.

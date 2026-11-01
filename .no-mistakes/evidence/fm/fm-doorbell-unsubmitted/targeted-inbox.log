@@ -1,0 +1,20 @@
+ok - watcher: idle successor surfaces once despite unremovable predecessor bookkeeping
+ok - watcher: busy successor surfaces once despite unremovable predecessor bookkeeping
+ok - watcher: persistent idle busy-reset failure escalates once and later instructions still deliver
+ok - watcher: persistent protected busy-reset failure escalates once and later instructions still deliver
+ok - watcher: busy limit '999999999999999999999999999999' escalates exactly once at 2
+ok - watcher: busy limit '1000000000' escalates exactly once at 2
+ok - watcher: busy limit '0' escalates exactly once at 2
+ok - watcher: busy limit '000' escalates exactly once at 2
+ok - watcher: busy limit '' escalates exactly once at 2
+ok - watcher: busy limit 'invalid' escalates exactly once at 2
+ok - watcher: busy limit '1' escalates exactly once at 1
+ok - watcher: busy limit '3' escalates exactly once at 3
+ok - watcher: busy successor escalates once despite stale predecessor ring history
+ok - watcher: dead successor escalates once despite stale predecessor ring history
+ok - watcher: missing successor escalates once despite stale predecessor ring history
+ok - watcher: unwritable successor escalates once despite stale predecessor ring history
+ok - watcher: a non-busy protected delivery breaks the busy streak and preserves the attempt ladder
+ok - watcher: a non-busy failed delivery breaks the busy streak and preserves the attempt ladder
+ok - inbox: the ring submits a stranded head of its own doorbell and still skips look-alike pending text
+ok - inbox: the ring submits its own stuck doorbell on the herdr Claude incident screen (muted-grey ghost misread), exactly once, without retyping, and leaves foreign or busy composers untouched

@@ -1,0 +1,20 @@
+[
+  {
+    "session": "fm-lab-herdr-doorbell-s-737217-31247",
+    "provision_exit": 0,
+    "teardown_exit": 0,
+    "default_session_tripwire": "checked by helper at provision and teardown"
+  },
+  {
+    "session": "fm-lab-herdr-doorbell-s-794788-8034",
+    "provision_exit": 0,
+    "teardown_exit": 0,
+    "default_session_tripwire": "checked by helper at provision and teardown"
+  },
+  {
+    "session": "fm-lab-herdr-doorbell-s-873562-29411",
+    "provision_exit": 0,
+    "teardown_exit": 0,
+    "default_session_tripwire": "checked by helper at provision and teardown"
+  }
+]
