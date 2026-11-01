@@ -37,41 +37,13 @@
 # With no flags, prints a short TOON-style chat summary for the invoking agent
 # to relay next to the briefing.
 #
-# Topic registry (data/topics.md in the operational home; schema owned by
-# docs/configuration.md "Topic registry"):
-#   - <name> | aliases: <a, b> | projects: <repo1, repo2>
-# One topic per line; blank lines and leading-# comment lines are skipped.
-# Name and every alias must be a valid label suffix (lowercase alphanumerics
-# plus . _ / : -, 1..58 characters, so "topic:<suffix>" fits a tasks-axi
-# label). Project tags accept alphanumerics plus . _ / -. A malformed line, a
-# duplicate name, a duplicate alias, or an invalid suffix is an actionable
-# error (exit 2) naming the file and the offending value. A missing registry
-# file is an actionable error: no topics are registered (exit 2).
-#
-# Membership (applied identically to main-home and second-mate rows):
-#   1. A row belongs to the topic when it carries a topic label - the label
-#      "topic:<name>" or "topic:<alias>" - read through bin/fm-tasks-axi.sh,
-#      never by parsing data/backlog.md directly.
-#   2. Otherwise, when it carries no topic label at all and its repo is one of
-#      the topic's default projects, it belongs by project default.
-#   3. Otherwise it is not a member.
-# The installed tasks-axi may reject --fields labels: then label membership is
-# unavailable, membership falls back to project default alone, the model says
-# so visibly (labels_available false plus a disclosure), and the command still
-# exits 0. A backlog read that fails for any other reason is an actionable
-# error (exit 2).
-# Second-mate rows come from the same remote and local ledger reads bearings
-# already performs (bin/fm-bearings-snapshot.sh --json). The fleet projection
-# carries no labels, so second-mate rows are matched by default projects from
-# their repo (never by inference); rows that carry no repo are disclosed as
-# unclassified counts in the model and the page instead of silently dropped.
+# Registry syntax and membership: docs/configuration.md "Topic registry".
 #
 # Options as given (hold reasons): the model never invents options. When a
 # hold reason contains an `options:` marker (preceded by line start or a
 # non-letter), the items after it, separated by " | " to the end of that line,
-# are the decision's offered options (first 6 kept, each capped at 120
-# characters). Without the marker the decision offers freeform text plus the
-# standard reconcile choice. The marker is an optional convention; prose-only
+# are the decision's offered options. Without the marker the decision offers
+# freeform text plus the standard reconcile choice. The marker is an optional convention; prose-only
 # reasons stay fully usable.
 #
 # Answers block (offline pick-and-copy): each decision card offers its options
@@ -122,7 +94,7 @@ FM_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FM_HOME="${FM_HOME:-$FM_ROOT}"
 DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 
-usage() { sed -n '2,109p' "$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,${/^#/!q;p;}' "$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")" | sed 's/^# \{0,1\}//'; }
 
 fail() {
   printf 'fm-topic-brief: %s\n' "$1" >&2
@@ -212,19 +184,18 @@ topic_registry_json() {
   jq -Rn '
     def trims: gsub("^[ \\t]+"; "") | gsub("[ \\t]+$"; "");
     def splitlist: trims | split(",") | map(trims | select(length > 0));
-    def suffixok: test("^[a-z0-9._/:_-]{1,58}$");
     [inputs | [splits("\t")] |
       { name: (.[0] | trims),
         aliases: (.[1] | splitlist),
         projects: (.[2] | splitlist) }
     ] as $topics |
     ($topics | map(.name) | group_by(.) | map(select(length > 1)) | .[0][0]) as $dupname |
-    ($topics | map(.aliases[]) | group_by(.) | map(select(length > 1)) | .[0][0]) as $dupalias |
+    ($topics | map(.name, .aliases[]) | group_by(.) | map(select(length > 1)) | .[0][0]) as $dupalias |
     ([$topics[] | .name as $n | ([( $n )] + .aliases) | select(any(test("^[a-z0-9._/:_-]{1,58}$") | not)) | "\(.)"] | .[0]) as $badsuffix |
     ([$topics[] | .projects[] | select(test("^[A-Za-z0-9._/-]{1,128}$") | not)] | .[0]) as $badproj |
     if ($topics | length) == 0 then error("no topics defined in " + $regfile)
     elif $dupname != null then error("duplicate topic name: " + $dupname)
-    elif $dupalias != null then error("duplicate topic alias: " + $dupalias)
+    elif $dupalias != null then error("duplicate topic name or alias: " + $dupalias)
     elif $badsuffix != null then error("topic label suffix must be lowercase alphanumerics plus . _ / : - (1..58 chars): " + $badsuffix)
     elif $badproj != null then error("project tag must be alphanumerics plus . _ / - (1..128 chars): " + $badproj)
     else $topics end
@@ -301,18 +272,37 @@ JQ
 # ---------------------------------------------------------------------------
 
 TOPIC_TASKS_AXI="$SCRIPT_DIR/fm-tasks-axi.sh"
+# shellcheck source=bin/fm-secondmate-registry-lib.sh disable=SC1091
+. "$SCRIPT_DIR/fm-secondmate-registry-lib.sh"
+
+topic_tasks() {
+  local owner="$1"
+  shift
+  if [ "$owner" = "(main)" ]; then
+    "$TOPIC_TASKS_AXI" "$@"
+  else
+    secondmate_registry_line_for_id "$DATA/secondmates.md" "$owner" || return 2
+    if [ "$SECONDMATE_REGISTRY_REMOTE" -eq 1 ]; then
+      "$SCRIPT_DIR/fm-on.sh" "$owner" fm-tasks-axi.sh "$@"
+    else
+      FM_HOME="$SECONDMATE_REGISTRY_HOME" FM_DATA_OVERRIDE="$SECONDMATE_REGISTRY_HOME/data" \
+        "$TOPIC_TASKS_AXI" "$@"
+    fi
+  fi
+}
+
 [ -f "$TOPIC_TASKS_AXI" ] || fail "missing helper: $TOPIC_TASKS_AXI"
 
 topic_backlog_rows() {
   # Read all backlog rows; returns 0 with labels, 3 with the label-fallback
-  # read (labels unavailable), and fails (exit 2) on any other error.
-  if "$TOPIC_TASKS_AXI" list --fields "labels,blocked_by,created,closed,held,hold_kind,hold_until,links,hold_reason" \
+  # read (labels unavailable), and returns 2 on any other error.
+  if topic_tasks "$1" list --fields "labels,blocked_by,created,closed,held,hold_kind,hold_until,links,hold_reason" \
       > "$TOPIC_TMP/list.raw" 2> "$TOPIC_TMP/axi.err"; then
     return 0
   fi
   # tasks-axi 0.2.x prints validation errors on stdout; 0.3+ may use stderr.
   if grep -q 'Unknown field' "$TOPIC_TMP/axi.err" "$TOPIC_TMP/list.raw" 2>/dev/null; then
-    if "$TOPIC_TASKS_AXI" list --fields "blocked_by,created,closed,held,hold_kind,hold_until,links,hold_reason" \
+    if topic_tasks "$1" list --fields "blocked_by,created,closed,held,hold_kind,hold_until,links,hold_reason" \
         > "$TOPIC_TMP/list.raw" 2>> "$TOPIC_TMP/axi.err"; then
       return 3
     fi
@@ -320,7 +310,30 @@ topic_backlog_rows() {
   printf 'fm-topic-brief: backlog read failed: ' >&2
   { head -2 "$TOPIC_TMP/axi.err" 2>/dev/null; head -1 "$TOPIC_TMP/list.raw" 2>/dev/null; } | tr '\n' ' ' >&2
   printf '\n' >&2
-  exit 2
+  return 2
+}
+
+topic_collect_rows() {
+  local owner="$1" rc
+  topic_backlog_rows "$owner"
+  rc=$?
+  if [ "$rc" -eq 2 ]; then
+    [ "$owner" != "(main)" ] || fail "cannot read main backlog"
+    printf '%s\n' "secondmate $owner backlog unavailable; topic membership is unknown" >> "$TOPIC_TMP/coverage.txt"
+    return 0
+  fi
+  if [ "$rc" -eq 3 ]; then
+    TOPIC_LABELS_NOTE="the installed tasks-axi does not support --fields labels; membership fell back to default projects only"
+    printf '%s\n' "$owner: $TOPIC_LABELS_NOTE" >> "$TOPIC_TMP/coverage.txt"
+  fi
+  topic_toon_parse < "$TOPIC_TMP/list.raw" > "$TOPIC_TMP/parsed.json" || return 2
+  jq --arg owner "$owner" '
+    map(. + {owner: $owner, task_id: .id}
+      | if $owner == "(main)" then . else
+          .id = ($owner + "/" + .id)
+          | .blocked_by = ((.blocked_by | if type == "array" then . else [] end) | map($owner + "/" + .))
+        end)
+  ' "$TOPIC_TMP/parsed.json" >> "$TOPIC_TMP/rows.ndjson"
 }
 
 # ---------------------------------------------------------------------------
@@ -332,7 +345,7 @@ TOPIC_SNAPSHOT_CMD="${FM_TOPIC_SNAPSHOT:-$SCRIPT_DIR/fm-bearings-snapshot.sh}"
 topic_snapshot() {
   # shellcheck disable=SC2086 # test fixtures may pass a word-split command
   read -r -a topic_snap_cmd <<< "$TOPIC_SNAPSHOT_CMD"
-  "${topic_snap_cmd[@]}" --json --all-decisions --all-in-flight --all-landed --all-recorded-prs \
+  "${topic_snap_cmd[@]}" --json --all-decisions --all-in-flight --all-landed --all-recorded-prs --all-secondmates \
     > "$TOPIC_TMP/snapshot.json" 2> "$TOPIC_TMP/snapshot.err"
   local rc=$?
   if [ $rc -ne 0 ]; then
@@ -380,6 +393,7 @@ topic_model() {
     --slurpfile details "$TOPIC_TMP/details.json" \
     --slurpfile snapshot "$TOPIC_TMP/snapshot.json" \
     --slurpfile prev "$TOPIC_TMP/prev.json" \
+    --rawfile coverage "$TOPIC_TMP/coverage.txt" \
     --arg now "$TOPIC_NOW" \
     --arg since "$TOPIC_SINCE" \
     --arg since_source "$TOPIC_SINCE_SOURCE" \
@@ -401,6 +415,7 @@ topic_model() {
     ($registry[0]) as $t |
     ($rows[0] | map(. + {
         labels: (.labels | arr),
+        repo: (.repo | nul),
         blocked_by: (.blocked_by | arr),
         closed: (.closed | nul),
         created: (.created | nul),
@@ -410,6 +425,7 @@ topic_model() {
       })) as $rows |
     ($details[0] | map(. + {
         labels: (.labels | arr),
+        repo: (.repo | nul),
         blocked_by: (.blocked_by | arr),
         links: (.links | arr),
         closed: (.closed | nul),
@@ -423,7 +439,7 @@ topic_model() {
     ($t.projects) as $projects |
     (["topic:" + $t.name] + ($t.aliases | map("topic:" + .))) as $wantlabels |
 
-    # membership over main-home rows
+    # membership over home rows
     ([$rows[] |
       (.labels | map(select(. as $l | $wantlabels | index($l)))) as $hit |
       if ($hit | length) > 0 then {id: .id, how: "label"}
@@ -433,52 +449,39 @@ topic_model() {
       else empty end] | map(.id)) as $memberids |
     ($rows | map(select(.id as $id | ($memberids | index($id))))) as $members |
 
-    # changed since: closed rows, answered captain calls, new rows
     ($members | map(select(.state == "done" and closedinwin))) as $closed |
-    ($closed | map(select(.hold_kind == "captain"))) as $answered |
+    ($closed | map(select(.hold_kind == "captain" or .kind == "captain"))) as $answered |
+    ($closed | map(. as $row | select(any($snap.landed[]?; .id == $row.task_id and (.owner // "(main)") == $row.owner)))) as $landed |
     ($members | map(select(createdinwin and .state != "done"))) as $newrows |
 
-    # open captain decisions (held members), enriched from detail reads
-    ($members | map(select(heldyes and .hold_kind == "captain" and .state != "done"))) as $heldrows |
-    ($heldrows | map(. as $r | (($details | map(select(.id == $r.id)))[0]) // $r)) as $heldetails |
+    ($members | map(select(.hold_kind == "captain" and .state != "done"))) as $heldrows |
+    ($heldrows | map(. as $r | $r + ((($details | map(select(.id == $r.id)))[0]) // {}))) as $heldetails |
 
-    # snapshot projection: in flight (main members + second-mate rows by repo)
-    ($snap.in_flight // []) as $flight_all |
-    ($flight_all | map(select((.id // "") | test("/")))) as $mate_flight |
-    ($flight_all | map(select(((.id // "") | test("/")) | not))) as $main_flight |
-    ($mate_flight
-      | map(select(((.repo // "") != "") and (.repo as $r | ($projects | index($r)) != null))
-        | {id, kind, state, repo, name, doing})) as $mate_flight_in |
-    ($mate_flight | length - ($mate_flight_in | length)) as $mate_unclassified_flight |
-    ($main_flight | map(select(.id as $id | ($memberids | index($id))))) as $main_flight_member |
-    ($snap.recorded_prs // {}) as $recprs |
-    ($main_flight_member | map(. as $f |
-      (($rows | map(select(.id == $f.id)))[0] // {}) as $r |
+    ($snap.recorded_prs // [] | map({key: .id, value: .url}) | from_entries) as $recprs |
+    ($snap.in_flight // [] | map(. as $f |
+      (($members | map(select(.id == $f.id)))[0]) as $r |
+      select($r != null) |
       {
         id: $f.id,
-        name: ((.name // $r.title // $f.id)),
-        kind: ((.kind // $r.kind // "ship")),
-        state: ((.state // "in_flight")),
-        repo: ((.repo // $r.repo // null)),
-        doing: ((.doing // "")),
-        owner: "(main)",
-        pr_url: ((($recprs // {})[.id]) // ($r | prurl))
-      })) as $main_flight_out |
+        name: ($f.name // $r.title // $f.id),
+        kind: ($f.kind // $r.kind // "ship"),
+        state: ($f.state // "in_flight"),
+        repo: ($f.repo // $r.repo // null),
+        doing: ($f.doing // ""),
+        owner: $r.owner,
+        pr_url: ($recprs[$f.id] // ($r | prurl))
+      })) as $flight |
 
-    # second-mate rows the projection cannot classify (no repo): context only
-    ($snap.decisions_open // [] | map(select((.owner // "(main)") != "(main)"))) as $mate_decisions |
-    ($snap.landed // [] | map(select((.owner // "(main)") != "(main)"))) as $mate_landed |
-
-    # next steps
-    ($members | map(select(.state == "queued" and (heldyes | not)))) as $queued |
+    ($members | map(select(.state == "queued" and (heldyes | not) and .hold_kind != "captain")
+      | .blocked_by |= map(. as $id | select(any($rows[]; .id == $id and .state == "done") | not)))) as $queued |
     ($queued | map(select((.blocked_by | length) == 0))) as $ready |
     ($queued | map(select((.blocked_by | length) > 0))) as $blocked |
 
     # timeline
     ([$closed[] |
         {date: .closed,
-         kind: (if .hold_kind == "captain" then "answered"
-                elif prurl != null then "landed"
+         kind: (if .hold_kind == "captain" or .kind == "captain" then "answered"
+                elif (.id as $id | any($landed[]; .id == $id)) then "landed"
                 else "closed" end),
          id: .id, label: .title}] +
      [$newrows[] | {date: .created, kind: "filed", id: .id, label: .title}] +
@@ -487,15 +490,14 @@ topic_model() {
       else [] end)
      | sort_by(.date)) as $timeline |
 
-    # disclosures
-    ([if ($labels_note | length) > 0 then $labels_note else empty end,
-      if ($held_note | length) > 0 then $held_note else empty end,
-      if $mate_unclassified_flight > 0 then "\($mate_unclassified_flight) second-mate in-flight row(s) carry no repo; left unclassified" else empty end,
-      if ($mate_decisions | length) > 0 then "\($mate_decisions | length) second-mate decision(s) carry no repo in the fleet projection; shown as context only, not counted" else empty end,
-      if ($mate_landed | length) > 0 then "\($mate_landed | length) second-mate landed row(s) carry no repo in the fleet projection; shown as context only, not counted" else empty end]) as $disclosures |
+    ([if ($held_note | length) > 0 then $held_note else empty end] +
+      ($coverage | split("\n") | map(select(length > 0))) +
+      [$snap.secondmates[]? | select(.state == "unknown" or .freshness != "fresh" or .provenance == "structured-home-cache") |
+        "secondmate \(.id): \(.state), \(.freshness // "unknown") (\(.provenance // "registered")) coverage - \(.reason // .doing // "state unavailable")"] +
+      [$snap.omitted[]? | select(.surface | test("secondmate|showing|capped|truncated|unreadable|unavailable")) |
+        "\(.surface); \(.reveal)"]) as $disclosures |
 
-    # recap paragraph for the next run
-    "Topic \($t.name) briefing \($since | d10) to \($now | d10): \($closed | length) landed, \($answered | length) captain call(s) answered, \($newrows | length) new, \($heldetails | length) decision(s) open, \($main_flight_out | length) main and \($mate_flight_in | length) second-mate row(s) in flight." as $recapnext |
+    "Topic \($t.name) briefing \($since | d10) to \($now | d10): \($landed | length) landed, \($answered | length) captain call(s) answered, \($newrows | length) new, \($heldetails | length) decision(s) open, \($flight | length) row(s) in flight." as $recapnext |
 
     {
       schema: "fm-topic-brief.v1",
@@ -505,13 +507,13 @@ topic_model() {
       labels_available: (($labels_note | length) == 0),
       recap: {generated: ($prev.generated // null), paragraph: ($prev.recap | if (. // "") == "" then null else . end)},
       changed_since: {
-        landed: [$closed[] | {id, title, closed, pr_url: (prurl // null), report: reporturl}],
+        landed: [$landed[] | {id, title, closed, owner, repo, pr_url: (prurl // null), report: reporturl}],
         new_rows: [$newrows[] | {id, title, created, state}],
         answered_decisions: [$answered[] | {id, title, closed}]
       },
-      in_flight: ($main_flight_out + $mate_flight_in),
+      in_flight: $flight,
       decisions_open: [$heldetails[] | {
-        id, title,
+        id, title, owner, key: .task_id, repo,
         hold_reason: .hold_reason,
         hold_until: .hold_until,
         report: reporturl,
@@ -521,25 +523,19 @@ topic_model() {
                 | sub("^options:"; "")
                 | [splits("\\|")]
                 | map(gsub("^[ \\t]+|[ \\t]+$"; ""))
-                | map(select(length > 0))
-                | .[0:6]
-                | map(.[0:120]))
+                | map(select(length > 0)))
             else [] end)
       }],
-      secondmates: {
-        decisions: ($mate_decisions | map({id, verb, summary, owner})),
-        landed: ($mate_landed | map({id, what, owner}))
-      },
       next_steps: {
         ready: [$ready[] | {id, title, repo: (.repo // null)}],
-        blocked: [$blocked[] | {id, title, blocked_by: .blocked_by}]
+        blocked: [$blocked[] | {id, title, repo, blocked_by: .blocked_by}]
       },
       timeline: $timeline,
       counts: {
-        landed: ($closed | length),
+        landed: ($landed | length),
         new_rows: ($newrows | length),
         answered: ($answered | length),
-        in_flight: (($main_flight_out | length) + ($mate_flight_in | length)),
+        in_flight: ($flight | length),
         decisions: ($heldetails | length),
         ready: ($ready | length),
         blocked: ($blocked | length)
@@ -574,7 +570,7 @@ topic_html_render() {
     {
       topic_attr: ($m.topic.name | attr),
       window_line: (($m.window.since | d10) + " → " + ($m.window.until | d10) + " · generated " + ($m.generated | d10) + " · " + ($m.window.source | esc)),
-      disclosures_lines: [($m.disclosures[] | esc)],
+      disclosures_lines: ([$m.disclosures[] | esc] | join("\n")),
       recap_para: (($m.recap.paragraph // "") | esc),
       recap_generated: (($m.recap.generated // "") | d10),
       landed_html: ([$m.changed_since.landed[] |
@@ -637,7 +633,7 @@ JQ
   local part
   for part in topic_attr window_line disclosures_lines recap_para recap_generated landed_html new_html answered_html \
               flight_html decisions_html ready_html blocked_html n_decisions tl_svg aliases_line projects_line; do
-    jq -r --arg k "$part" '.[$k]' "$p/parts.json" > "$p/$part.part"
+    jq -j --arg k "$part" '.[$k]' "$p/parts.json" > "$p/$part.part"
   done
 
   local nd
@@ -706,7 +702,7 @@ BODYOPEN
 </p>
 HEADER
     if [ -s "$p/disclosures_lines.part" ]; then
-      while IFS= read -r line; do
+      while IFS= read -r line || [ -n "$line" ]; do
         [ -n "$line" ] && printf '<p class="disclosure">%s</p>\n' "$line"
       done < "$p/disclosures_lines.part"
     fi
@@ -838,8 +834,20 @@ FOOT1
     document.getElementById("ans-count").textContent = String(n);
     return line;
   }
-  document.addEventListener("change", refresh);
-  document.addEventListener("input", refresh);
+  document.addEventListener("change", function(event){
+    var i = event.target.getAttribute("data-decision");
+    if (i !== null){
+      document.querySelector('textarea[data-freetext="'+i+'"]').value = "";
+    }
+    refresh();
+  });
+  document.addEventListener("input", function(event){
+    var i = event.target.getAttribute("data-freetext");
+    if (i !== null){
+      document.querySelectorAll('input[name="d'+i+'"]').forEach(function(input){ input.checked = false; });
+    }
+    refresh();
+  });
   document.getElementById("copy-answers").addEventListener("click", function(){
     var line = refresh();
     function fallback(){
@@ -877,7 +885,7 @@ topic_board_payload() {
   # lavish session check, and the captured-answer binding by held task id.
   jq -n --slurpfile m "$TOPIC_TMP/model.json" '
     ($m[0]) as $m |
-    def slug: gsub("[^A-Za-z0-9._-]"; "-") | gsub("^-+|-+$"; "") | .[0:64] | if length == 0 then "opt" else . end;
+    def slug: gsub("[^A-Za-z0-9._-]"; "-") | .[0:64];
     {
       schema: "fm-bearings-board.v1",
       home: $m.topic.name,
@@ -885,10 +893,10 @@ topic_board_payload() {
       prs_live: false,
       captains_call: [($m.decisions_open | to_entries[]) |
         .value as $d |
-        ([$d.options[] | {value: slug, label: .}]) as $opts |
-        ({ key: $d.id,
+        ([$d.options | to_entries[] | {value: ("option-" + (.key | tostring) + "-" + (.value | slug)), label: .value}]) as $opts |
+        ({ key: $d.key,
            type: "decision",
-           repo: null,
+           repo: $d.repo,
            title: ($d.title | if (. // "") == "" then $d.id else . end),
            about: $d.hold_reason,
            options: $opts,
@@ -904,8 +912,8 @@ topic_board_payload() {
       landed: [($m.changed_since.landed[] |
         { id: .id,
           what: ((.title // "") | if (. // "") == "" then .id else . end),
-          owner: "(main)",
-          repo: null }
+          owner: .owner,
+          repo: .repo }
         + (if ((.pr_url // null) != null) and ((.pr_url | test("^https://"))) then {pr_url: .pr_url} else {} end))],
       charted: ([($m.next_steps.ready[] | {id: .id, title: .title, repo: (.repo // null), reason: "ready", dispatchable: true})] +
                 [($m.next_steps.blocked[] | {id: .id, title: .title, repo: (.repo // null), reason: ("blocked by " + (.blocked_by | join(", "))), dispatchable: false})]),
@@ -934,12 +942,12 @@ topic_chat_summary() {
     "topic: \(.topic.name)",
     "window: \(.window.since[0:10]) .. \(.window.until[0:10]) (\(.window.source))",
     (if .labels_available then "labels: available"
-     else "labels: unavailable - membership by default projects only" end),
+     else "labels: unavailable for one or more homes - see membership disclosures" end),
     "changed since: \(.counts.landed) landed, \(.counts.new_rows) new, \(.counts.answered) answered",
-    ([.changed_since.landed[] | select(.pr_url != null) | .pr_url]
-     | if length > 0 then "prs: \(join(" "))" else empty end),
-    "in flight: \(.counts.in_flight)",
+    (.changed_since.landed[] | "landed: \(.id) \(.title)\(if .pr_url != null then " " + .pr_url else "" end)"),
+    "in flight: \(.counts.in_flight)\(if (.in_flight | length) > 0 then " - " + ([.in_flight[].name] | join("; ")) else "" end)",
     "decisions open: \(.counts.decisions)",
+    (.decisions_open[] | "decision: \(.id) \(.hold_reason | split("Full context:")[0] | sub("(^|[^[:alpha:]])options:.*$"; "") | gsub("[[:space:]]+"; " ") | sub(" +$"; ""))\(if (.options | length) > 0 then " options: " + (.options | join(" | ")) else "" end)"),
     "next steps: \(.counts.ready) ready, \(.counts.blocked) blocked",
     (if ((.recap.paragraph // "") != "") then "recap: previous briefing \(.recap.generated[0:10])" else empty end),
     ([.disclosures[] | "note: \(.)"][]),
@@ -966,48 +974,54 @@ printf '%s' "$TOPIC_ENTRY" > "$TOPIC_TMP/entry.json"
 
 # Window
 TOPIC_PREV_FILE="$(topic_history_latest "$(topic_history_dir "$TOPIC_NAME")")"
+printf '{"generated": null, "recap": ""}' > "$TOPIC_TMP/prev.json"
+if [ -n "$TOPIC_PREV_FILE" ] && jq -e '(.generated | type) == "string"' "$TOPIC_PREV_FILE" >/dev/null 2>&1; then
+  jq '{generated, recap: (.recap // "")}' "$TOPIC_PREV_FILE" > "$TOPIC_TMP/prev.json"
+fi
 if [ -n "$TOPIC_SINCE_FLAG" ]; then
   printf '%s' "$TOPIC_SINCE_FLAG" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
     || fail "--since must be YYYY-MM-DD (got: $TOPIC_SINCE_FLAG)"
-  [ "$(date -u -d "$TOPIC_SINCE_FLAG" '+%Y-%m-%d' 2>/dev/null)" = "$TOPIC_SINCE_FLAG" ] \
+  jq -ne --arg date "$TOPIC_SINCE_FLAG" '$date + "T00:00:00Z" | fromdateiso8601 | strftime("%Y-%m-%d") == $date' >/dev/null 2>&1 \
     || fail "--since is not a real calendar date: $TOPIC_SINCE_FLAG"
   TOPIC_SINCE="$TOPIC_SINCE_FLAG"
   TOPIC_SINCE_SOURCE="flag"
-  printf '{"generated": null, "recap": ""}' > "$TOPIC_TMP/prev.json"
-elif [ -n "$TOPIC_PREV_FILE" ] && jq -e '(.generated | type) == "string"' "$TOPIC_PREV_FILE" >/dev/null 2>&1; then
-  TOPIC_SINCE="$(jq -r '.generated' "$TOPIC_PREV_FILE")"
+elif [ -n "$TOPIC_PREV_FILE" ] && jq -e '.generated != null' "$TOPIC_TMP/prev.json" >/dev/null; then
+  TOPIC_SINCE="$(jq -r '.generated' "$TOPIC_TMP/prev.json")"
   TOPIC_SINCE_SOURCE="previous-briefing"
-  jq '{generated, recap: (.recap // "")}' "$TOPIC_PREV_FILE" > "$TOPIC_TMP/prev.json"
 else
-  TOPIC_SINCE="$(date -u -d "$TOPIC_NOW - 14 days" '+%Y-%m-%dT%H:%M:%SZ')" \
+  TOPIC_SINCE="$(jq -nr --arg now "$TOPIC_NOW" '$now | fromdateiso8601 - (14 * 86400) | todateiso8601')" \
     || fail "cannot compute the default 14-day window from $TOPIC_NOW"
   TOPIC_SINCE_SOURCE="default-14d"
-  printf '{"generated": null, "recap": ""}' > "$TOPIC_TMP/prev.json"
 fi
 
 # Backlog rows (with the label-support probe and fallback)
 TOPIC_LABELS_NOTE=""
 TOPIC_HELD_NOTE=""
-topic_backlog_rows
-backlog_rc=$?
-if [ $backlog_rc -eq 3 ]; then
-  TOPIC_LABELS_NOTE="the installed tasks-axi does not support --fields labels; membership fell back to default projects only"
+: > "$TOPIC_TMP/coverage.txt"
+: > "$TOPIC_TMP/rows.ndjson"
+topic_collect_rows "(main)" || fail "main backlog output could not be parsed"
+if [ -f "$DATA/secondmates.md" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in '- '*) ;; *) continue ;; esac
+    if ! secondmate_registry_parse_line "$line"; then
+      printf '%s\n' 'secondmate registry contains an unreadable route; topic membership is incomplete' >> "$TOPIC_TMP/coverage.txt"
+      continue
+    fi
+    topic_collect_rows "$SECONDMATE_REGISTRY_ID" || fail "secondmate backlog output could not be parsed"
+  done < "$DATA/secondmates.md"
 fi
-topic_toon_parse < "$TOPIC_TMP/list.raw" > "$TOPIC_TMP/rows.json" || \
-  fail "backlog output could not be parsed ($(head -c 160 "$TOPIC_TMP/parse.err" 2>/dev/null | tr '\n' ' '))"
+jq -s 'add // []' "$TOPIC_TMP/rows.ndjson" > "$TOPIC_TMP/rows.json" || fail "cannot assemble backlog rows"
 
 # Detail reads for held member rows (full title and hold reason; bounded)
 : > "$TOPIC_TMP/details.ndjson"
-HELD_COUNT=0
 HELD_TOTAL=0
-while IFS="$(printf '\t')" read -r rid; do
+while IFS="$(printf '\t')" read -r rid owner task_id; do
   [ -n "$rid" ] || continue
   HELD_TOTAL=$((HELD_TOTAL + 1))
   [ "$HELD_TOTAL" -le 20 ] || continue
-  HELD_COUNT=$((HELD_COUNT + 1))
-  "$TOPIC_TASKS_AXI" show "$rid" 2>> "$TOPIC_TMP/axi.err" | topic_toon_parse | jq -ce '.[0] // empty' \
+  topic_tasks "$owner" show "$task_id" 2>> "$TOPIC_TMP/axi.err" | topic_toon_parse | jq -ce --arg id "$rid" '.[0] // empty | .id = $id' \
     >> "$TOPIC_TMP/details.ndjson" 2>> "$TOPIC_TMP/parse.err" || true
-done < <(jq -r '.[] | select((((.held // "no") | tostring) | test("^(yes|true)$")) and (.hold_kind == "captain") and .state != "done") | .id' "$TOPIC_TMP/rows.json")
+done < <(jq -r '.[] | select(.hold_kind == "captain" and .state != "done") | [.id, .owner, .task_id] | @tsv' "$TOPIC_TMP/rows.json")
 if [ "$HELD_TOTAL" -gt 20 ]; then
   TOPIC_HELD_NOTE="only the first 20 held rows were detail-read; the rest fall back to list fields"
 fi
@@ -1032,7 +1046,7 @@ fi
 TOPIC_BOARD_BUILT=false
 if [ -n "$TOPIC_HTML_OUT" ]; then
   mkdir -p "$(dirname "$TOPIC_HTML_OUT")" || fail "cannot create output directory for $TOPIC_HTML_OUT"
-  topic_html_render "$TOPIC_TMP/model.json" "$TOPIC_HTML_OUT"
+  topic_html_render "$TOPIC_TMP/model.json" "$TOPIC_HTML_OUT" || fail "cannot publish HTML briefing: $TOPIC_HTML_OUT"
   topic_history_record "$(topic_history_dir "$TOPIC_NAME")" "$TOPIC_TMP/model.json"
 fi
 if [ "$TOPIC_BOARD" -eq 1 ]; then

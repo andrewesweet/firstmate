@@ -95,11 +95,11 @@ require_listener_reached_poll() {  # <home>
 # Build the board from <underway-json> plus <charted-json> and return what the
 # renderer produced.
 render_board() {  # <home> <underway-json> <charted-json> [charted_more] [charted_warning_more]
-  local home=$1 underway=$2 charted=$3 more=${4:-0} warning_more=${5:-0} data="$1/payload.json"
+  local home=$1 underway=$2 charted=$3 more=${4:-0} warning_more=${5:-0} calls=${6:-[]} selection=${7:-} data="$1/payload.json"
   jq -n --argjson underway "$underway" --argjson charted "$charted" \
-    --argjson more "$more" --argjson warning_more "$warning_more" '{
+    --argjson more "$more" --argjson warning_more "$warning_more" --argjson calls "$calls" '{
     schema:"fm-bearings-board.v1", home:"render-home", generated:"2026-08-26T00:00Z",
-    prs_live:false, captains_call:[], underway:$underway, landed:[],
+    prs_live:false, captains_call:$calls, underway:$underway, landed:[],
     charted:$charted, charted_more:$more, charted_warning_more:$warning_more}' > "$data"
   PATH="$home/fakebin:$PATH" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
@@ -107,7 +107,7 @@ render_board() {  # <home> <underway-json> <charted-json> [charted_more] [charte
     LAVISH_AXI_STATE_DIR="$home/lavish-state" \
     "$BOARD" build "$data" >/dev/null || fail "the board did not build"
   require_listener_reached_poll "$home"
-  node "$HARNESS" "$home/.lavish/bearings-board.html" \
+  node "$HARNESS" "$home/.lavish/bearings-board.html" "$selection" \
     || fail "the built board could not be rendered"
 }
 
@@ -266,6 +266,23 @@ test_charted_rows_without_a_filed_date_follow_the_dated_rows_in_payload_order() 
   pass "charted rows with no filed date follow the dated rows in payload order"
 }
 
+test_captured_choices_preserve_recorded_option_labels() {
+  local home out
+  home=$(make_home captured-label)
+  out=$(render_board "$home" '[]' '[]' 0 0 '[
+    {"key":"recorded-choice","type":"decision","repo":"sample","title":"Recorded option","options":[
+      {"value":"option-0-A-B","label":"A/B"},
+      {"value":"option-1-A-B","label":"A-B"}
+    ]}
+  ]' option-0-A-B)
+  jq -e '
+    .error == "" and (.queued | length) == 1
+    and .queued[0].text == "Recorded option -> A/B"
+    and .queued[0].data == {schema:"fm-bearings-answer.v1",question:"recorded-choice",selection:"option-0-A-B",note:""}
+  ' <<<"$out" >/dev/null || fail "captured answer lost the recorded label: $out"
+  pass "captured choices preserve the label beside the distinct selection value"
+}
+
 test_an_underway_row_leads_with_the_task_name_and_keeps_its_run_status
 test_an_underway_identifier_label_is_not_replaced_by_run_status
 test_charted_next_reads_newest_filed_first
@@ -275,3 +292,5 @@ test_warnings_are_excluded_from_the_charted_next_count
 test_a_board_of_only_warnings_still_reports_nothing_queued
 test_omitted_warnings_never_count_as_more_queued
 test_an_omitted_kind_keeps_the_existing_queued_rendering
+
+test_captured_choices_preserve_recorded_option_labels

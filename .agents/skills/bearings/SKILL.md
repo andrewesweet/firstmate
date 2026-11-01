@@ -180,9 +180,9 @@ Rules that keep the contract unambiguous:
 ## Per-topic briefings
 
 When the captain asks to be briefed on a registered topic ("brief me on <topic>", "what's new with <topic>"), the whole-fleet digest is the wrong deliverable; run `bin/fm-topic-brief.sh <topic>` instead and relay its chat summary as the answer.
-The script's header owns the exact mechanics: the `data/topics.md` registry ("Topic registry" in `docs/configuration.md`), membership by `topic:<name>` labels with the default-projects fallback, the briefing window (previous briefing, `--since`, or the 14-day default), briefing history under `data/topic-briefings/<topic>/`, the `--html` self-contained brief with its offline pick-and-copy answers line, and the `--board` flag that opens the topic's open captain decisions on the existing bearings board with its captured-answer binding.
+See the [`fm-topic-brief.sh` header](../../../bin/fm-topic-brief.sh) for command mechanics and the [topic registry reference](../../../docs/configuration.md#topic-registry-datatopicsmd) for registry syntax and membership.
 Membership reads, the snapshot, and board answers follow the same read-only and authority rules as the whole-fleet digest above.
-When the captain names something that is not a registered topic, answer from the digest instead and point at the registry rather than inventing a topic.
+When the topic command rejects an unknown topic, relay its registry error and point at `data/topics.md`.
 
 ## Tone and content rules
 

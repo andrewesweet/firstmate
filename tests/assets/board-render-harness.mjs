@@ -24,9 +24,12 @@ class Node {
     this.type = "";
     this.value = "";
     this.checked = false;
+    this.listeners = {};
     this.classList = {
       add: (c) => { this.className = (this.className + " " + c).trim(); },
       contains: (c) => this.className.split(/\s+/).includes(c),
+      remove: (c) => { this.className = this.className.split(/\s+/).filter((name) => name !== c).join(" "); },
+      toggle: (c, enabled) => { if (enabled) this.classList.add(c); else this.classList.remove(c); },
     };
   }
   get textContent() {
@@ -37,7 +40,7 @@ class Node {
   set textContent(v) { this._text = String(v); this.children = []; }
   appendChild(n) { n.parentNode = this; this.children.push(n); return n; }
   setAttribute(k, v) { this.attributes[k] = v; }
-  addEventListener() {}
+  addEventListener(type, handler) { this.listeners[type] = handler; }
   querySelectorAll(sel) {
     const want = sel.replace(/^\./, "").replace(/:checked$/, "");
     const checkedOnly = sel.endsWith(":checked");
@@ -78,11 +81,25 @@ globalThis.document = {
     return byId.get(id);
   },
 };
-globalThis.window = {};
+const queued = [];
+globalThis.window = { lavish: { queuePrompt: (prompt, { tag, text, data }) => { queued.push({ prompt, tag, text, data }); } } };
+const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
+globalThis.FormData = class {
+  constructor(form) { this.inputs = descendants(form).filter((node) => node.tagName === "input"); }
+  get(name) { return this.inputs.find((input) => input.name === name && (input.type !== "radio" || input.checked))?.value ?? null; }
+};
+globalThis.setTimeout = () => 0;
 globalThis.TextEncoder = TextEncoder;
 
 const script = html.slice(html.indexOf("<script>") + "<script>".length, html.lastIndexOf("</script>"));
 new Function(script)();
+if (process.argv[3]) {
+  const form = descendants(byId.get("bb-call")).find((node) => node.tagName === "form");
+  const input = descendants(form).find((node) => node.type === "radio" && node.value === process.argv[3]);
+  if (!input) throw new Error("requested option was not rendered");
+  input.checked = true;
+  form.listeners.submit({ preventDefault() {} });
+}
 
 const badgesOf = (row) =>
   row.children
@@ -123,4 +140,4 @@ const empty = ch.children.filter((c) => c.className.includes("bb-empty")).map((c
 const more = ch.children.filter((c) => c.className.includes("bb-morechip")).map((c) => c.textContent);
 
 process.stdout.write(
-  JSON.stringify({ stats, underway, charted, empty, more, error: errorText }) + "\n");
+  JSON.stringify({ stats, underway, charted, empty, more, error: errorText, queued }) + "\n");

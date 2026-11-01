@@ -29,7 +29,8 @@ NOW=2026-11-01T09:00:00Z
 
 make_home() {  # <name> -> prints home dir; writes registry + fixture state
   local home="$TMP_ROOT/$1"
-  mkdir -p "$home/data" "$home/state" "$home/config"
+  mkdir -p "$home/data" "$home/state" "$home/config" "$home/mate/data"
+  printf -- '- mate - Fixture secondmate (home: %s/mate; scope: tests; projects: treehouse; added 2026-10-01)\n' "$home" > "$home/data/secondmates.md"
   cat > "$home/data/topics.md" <<'EOF'
 # topic registry: - <name> [| aliases: csv] [| projects: csv]
 - tf-mut | aliases: tf-mutations, mut | projects: treehouse, firstmate
@@ -52,14 +53,22 @@ make_stub_bin() {  # <dir> <mode: labeled|nolabels>
   cat > "$dir/tasks-axi" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$dir/calls.log"
+fixture="\${TOPIC_MAIN_FIXTURE:-$fixture}"
+case "\${TASKS_AXI_FILE:-}" in */mate/data/backlog.md) fixture="\${TOPIC_MATE_FIXTURE:-$TMP_ROOT/mate-labels.toon}" ;; esac
 case "\${3:-}" in
-  labels,*) # the label-capable field list
-$([ "$mode" = labeled ] && printf '    cat "%s"\n    exit 0\n' "$fixture" || printf '    cat "%s/nolabel-refusal.txt"\n    exit 2\n' "$TMP_ROOT")
+  labels,*)
+    if [ "$mode" = nolabels ]; then
+      cat "$TMP_ROOT/nolabel-refusal.txt"
+      exit 2
+    fi
     ;;
 esac
 case "\${1:-}" in
-  list) cat "$fixture" ;;
-  show) cat "$TMP_ROOT/show-t-dec.toon" ;;
+  list) cat "\$fixture" ;;
+  show)
+    [ "\${2:-}" = t-dec ] || exit 1
+    cat "\${TOPIC_DETAIL_FIXTURE:-$TMP_ROOT/show-t-dec.toon}"
+    ;;
   *) echo "unexpected tasks-axi call: \$*" >&2; exit 9 ;;
 esac
 EOF
@@ -73,8 +82,15 @@ EOF
 
 write_fixtures() {
   cat > "$TMP_ROOT/list-labels.toon" <<'EOF'
-count: 8
-tasks[8]:
+count: 9
+tasks[9]:
+  - id: t-flight
+    state: in_flight
+    kind: ship
+    repo: treehouse
+    title: Main child in flight
+    labels[1]: "topic:tf-mut"
+    held: no
   - id: t-lab
     state: queued
     kind: ship
@@ -287,7 +303,7 @@ help[1]:
 EOF
   cat > "$TMP_ROOT/snapshot.json" <<'EOF'
 {
-  "schema": "fm-fleet-snapshot.v1",
+  "schema": "fm-bearings-snapshot.v1",
   "generated": "2026-11-01T08:00:00Z",
   "in_flight": [
     { "id": "t-flight", "kind": "ship", "state": "in_flight", "repo": "treehouse", "name": "Main child in flight", "doing": "landing the pipeline", "owner": "(main)" },
@@ -295,16 +311,35 @@ EOF
     { "id": "mate/t-flight", "kind": "ship", "state": "in_flight", "repo": "treehouse", "name": "Second-mate child in flight", "doing": "checking labels", "owner": "mate" },
     { "id": "mate/t-nowhere", "kind": "ship", "state": "in_flight", "repo": null, "name": "Second-mate no-repo flight", "doing": "work", "owner": "mate" }
   ],
-  "decisions": [
+  "decisions_open": [
     { "id": "t-dec", "verb": "decide", "summary": "main held decision", "repo": "treehouse", "owner": "(main)" },
     { "id": "mate/t-dec2", "verb": "decide", "summary": "second-mate decision", "repo": null, "owner": "mate" }
   ],
   "landed": [
     { "id": "t-done", "what": "Landed member row with PR", "pr_url": "https://github.com/andrewesweet/treehouse/pull/42", "repo": "treehouse", "owner": "(main)" },
-    { "id": "mate/t-done2", "what": "Second-mate landed row", "pr_url": null, "repo": null, "owner": "mate" }
+    { "id": "t-done2", "what": "Second-mate landed row", "artifact": "data/t-done2/report.md", "owner": "mate" }
   ],
-  "recorded_prs": { "t-flight": "https://github.com/andrewesweet/treehouse/pull/77" }
+  "recorded_prs": [{ "id": "t-flight", "url": "https://github.com/andrewesweet/treehouse/pull/77" }],
+  "secondmates": [{"id":"mate", "state":"active_child_work", "freshness":"fresh"}],
+  "omitted": []
 }
+EOF
+  cat > "$TMP_ROOT/mate-labels.toon" <<'EOF'
+tasks[2]:
+  - id: t-flight
+    state: in_flight
+    kind: ship
+    repo: treehouse
+    title: Second-mate child in flight
+    labels: []
+    held: no
+  - id: t-nowhere
+    state: in_flight
+    kind: ship
+    repo: "-"
+    title: Second-mate no-repo flight
+    labels: []
+    held: no
 EOF
 }
 
@@ -313,7 +348,7 @@ write_fixtures
 run_topic() {  # <home> <stubbin> <args...>
   local home="$1" stubbin="$2"
   shift 2
-  SNAPSHOT_FIXTURE="$TMP_ROOT/snapshot.json" \
+  SNAPSHOT_FIXTURE="${TOPIC_TEST_SNAPSHOT:-$TMP_ROOT/snapshot.json}" \
     PATH="$stubbin:$PATH" FM_DATA_OVERRIDE="$home/data" \
     FM_TOPIC_SNAPSHOT="$stubbin/fmtb-snapshot" FM_TOPIC_NOW="$NOW" \
     "$TOPIC_BRIEF" "$@"
@@ -335,12 +370,16 @@ test_label_alias_project_membership() {
   decisions=$(jq -c '[.decisions_open[].id]' <<<"$json")
   [ "$ready" = '["t-lab","t-alias"]' ] || fail "ready membership wrong: $ready (t-lab by label, t-alias by alias, not t-topicless/t-out)"
   [ "$blocked" = '["t-proj"]' ] || fail "project-default membership wrong: $blocked"
-  [ "$landed" = '["t-done","t-answ"]' ] || fail "landed membership wrong: $landed"
-  [ "$flight" = '["mate/t-flight"]' ] || fail "second-mate in-flight membership wrong: $flight"
+  [ "$landed" = '["t-done"]' ] || fail "landed membership wrong: $landed"
+  [ "$flight" = '["t-flight","mate/t-flight"]' ] || fail "second-mate in-flight membership wrong: $flight"
   [ "$decisions" = '["t-dec"]' ] || fail "decision membership wrong: $decisions"
   local prurl
   prurl=$(jq -r '[.changed_since.landed[] | select(.id == "t-done") | .pr_url][0]' <<<"$json")
   [ "$prurl" = "https://github.com/andrewesweet/treehouse/pull/42" ] || fail "recorded PR URL missing from landed row: $prurl"
+  [ "$(jq -r '.in_flight[] | select(.id == "t-flight") | .pr_url' <<<"$json")" = "https://github.com/andrewesweet/treehouse/pull/77" ] \
+    || fail "in-flight recorded PR array was not consumed"
+  jq -e '.counts.landed == 1 and .counts.answered == 1 and (.changed_since.answered_decisions | map(.id)) == ["t-answ"] and (has("secondmates") | not)' <<<"$json" >/dev/null \
+    || fail "answered calls or unfiltered secondmate context leaked into deliveries"
   pass "membership: label, alias, project default, second-mate rows, recorded PR"
 }
 
@@ -414,7 +453,11 @@ test_recap_and_history_read() {
     "Topic tf-mut briefing"*) : ;;
     *) fail "recap from history missing: $recap" ;;
   esac
-  pass "recap: second briefing carries the previous briefing's summary"
+  local explicit
+  explicit=$(run_topic "$home" "$stubbin" tf-mut --since 2026-10-23 --json) || fail "explicit window run failed"
+  jq -e --arg recap "$recap" '.recap.paragraph == $recap and .recap.generated == "2026-11-01T09:00:00Z" and .window.since == "2026-10-23"' <<<"$explicit" >/dev/null \
+    || fail "explicit window erased recap: $explicit"
+  pass "recap: previous summary survives an explicit window"
 }
 
 test_registry_errors() {
@@ -494,17 +537,11 @@ test_html_self_containment_and_answers_line() {
   printf '%s' "$html" | grep -q 'value="yolo on"' || fail "HTML option values must carry recorded text"
   printf '%s' "$html" | grep -q 'data-decision="0"> yolo on</label>' || fail "HTML option labels missing"
   printf '%s' "$html" | grep -q 'reconcile' || fail "HTML reconcile option missing"
-  # The second-mate no-repo disclosure must be visible in the page.
-  printf '%s' "$html" | grep -q 'class="disclosure"' || fail "HTML missing disclosure block"
   pass "HTML: self-contained, mobile viewport, inline SVG, noscript answers doc, answers line"
 }
 
-test_board_payload_shape() {
-  local home stubbin capture opts
-  home=$(make_home board)
-  stubbin="$TMP_ROOT/stub-labeled"
-  make_stub_bin "$stubbin" labeled
-  capture="$TMP_ROOT/captured-board.json"
+make_board_stub() {
+  local stubbin="$1" capture="$TMP_ROOT/captured-board.json"
   cat > "$stubbin/fm-bearings-board" <<EOF
 #!/usr/bin/env bash
 # Test seam for FM_TOPIC_BOARD_CMD: capture the composed payload verbatim.
@@ -513,13 +550,22 @@ printf '%s\n' "\$*" >> "$stubbin/board-calls.log"
 exit 9
 EOF
   chmod +x "$stubbin/fm-bearings-board"
+}
+
+test_board_payload_shape() {
+  local home stubbin capture opts
+  home=$(make_home board)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  capture="$TMP_ROOT/captured-board.json"
+  make_board_stub "$stubbin"
   SNAPSHOT_FIXTURE="$TMP_ROOT/snapshot.json" PATH="$stubbin:$PATH" \
     FM_DATA_OVERRIDE="$home/data" FM_TOPIC_SNAPSHOT="$stubbin/fmtb-snapshot" \
     FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" FM_TOPIC_NOW="$NOW" \
     "$TOPIC_BRIEF" tf-mut --board >/dev/null || fail "--board with stubbed board command failed"
   [ -f "$capture" ] || fail "board command was not invoked with a payload"
   opts=$(jq -c '[.captains_call[0].options[].value]' "$capture")
-  [ "$opts" = '["yolo-on","yolo-off","defer-a-week"]' ] || fail "board option values must be slugs: $opts"
+  [ "$opts" = '["option-0-yolo-on","option-1-yolo-off","option-2-defer-a-week"]' ] || fail "board option values must be distinct slugs: $opts"
   local labels
   labels=$(jq -c '[.captains_call[0].options[].label]' "$capture")
   [ "$labels" = '["yolo on","yolo off","defer a week"]' ] || fail "board option labels lost recorded text: $labels"
@@ -531,8 +577,227 @@ EOF
     "$capture" >/dev/null || fail "board payload violates the fm-bearings-board.v1 shape"
   local mateflight
   mateflight=$(jq -c '[.underway[].id]' "$capture")
-  [ "$mateflight" = '["mate/t-flight"]' ] || fail "board underway should carry only topic member rows: $mateflight"
-  pass "board payload: slug values with recorded labels, topic-scoped rows, shape contract"
+  [ "$mateflight" = '["t-flight","mate/t-flight"]' ] || fail "board underway should carry only topic member rows: $mateflight"
+  pass "board payload: distinct values with recorded labels, topic-scoped rows, shape contract"
+}
+
+write_toon() {
+  jq -r '
+    "tasks[\(length)]:",
+    (.[] | "  - id: \(.id | tojson)",
+      (to_entries[] | select(.key != "id") |
+        if (.value | type) == "array" then
+          "    \(.key)[\(.value | length)]: \(.value | map(tojson) | join(","))"
+        else "    \(.key): \(.value | tojson)" end))'
+}
+
+test_secondmate_membership_all_surfaces() {
+  local home stubbin placement json
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  for placement in local remote; do
+    home=$(make_home "mate-$placement")
+    write_toon > "$home/mate.toon" <<'EOF'
+[
+  {"id":"t-flight","state":"in_flight","kind":"ship","repo":"treehouse","labels":["topic:crew-wiki"],"title":"Unrelated child"},
+  {"id":"t-nowhere","state":"in_flight","kind":"ship","repo":"-","labels":["topic:mut"],"title":"Labelled child without repo","created":"2026-10-24"},
+  {"id":"t-match","state":"in_flight","kind":"ship","repo":"other-repo","labels":["topic:tf-mut"],"title":"Labelled child outside defaults","created":"2026-10-24"},
+  {"id":"t-dec2","state":"queued","kind":"ship","repo":"other-repo","labels":["topic:mut"],"title":"Mate captain call","hold_kind":"captain","held":"no","hold_until":"2026-10-31","hold_reason":"Question: which mate path? options: continue | wait","created":"2026-10-24"},
+  {"id":"t-done2","state":"done","kind":"scout","repo":"treehouse","labels":[],"title":"Mate report","closed":"2026-10-29","links":["report:data/t-done2/report.md"]},
+  {"id":"t-answ2","state":"done","kind":"captain","repo":"treehouse","labels":[],"title":"Mate answer","closed":"2026-10-29"},
+  {"id":"t-ready","state":"queued","repo":"treehouse","labels":[],"title":"Mate next step","blocked_by":["t-done2"]}
+]
+EOF
+    jq '.in_flight += [{id:"mate/t-match",kind:"ship",state:"working",repo:"other-repo",name:"Labelled child outside defaults",doing:"work"}]' \
+      "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
+    if [ "$placement" = remote ]; then
+      printf -- '- mate - Remote fixture (host: fixturehost; root: %s; home: %s/mate; scope: tests; projects: treehouse; added 2026-10-01)\n' "$ROOT" "$home" > "$home/data/secondmates.md"
+      cat > "$home/ssh" <<'SH'
+#!/usr/bin/env bash
+printf '%s' "${!#}" | base64 -d | tr '\0' '\n' > "$TOPIC_ROUTE_LOG"
+[ "$(sed -n '1p' "$TOPIC_ROUTE_LOG")" = fm-tasks-axi.sh ] || exit 9
+case "$(sed -n '2p' "$TOPIC_ROUTE_LOG")" in
+  list) cat "$TOPIC_MATE_FIXTURE" ;;
+  show) exit 1 ;;
+  *) exit 9 ;;
+esac
+SH
+      chmod +x "$home/ssh"
+    fi
+    json=$(TOPIC_MATE_FIXTURE="$home/mate.toon" TOPIC_TEST_SNAPSHOT="$home/snapshot.json" \
+      FM_SSH_BIN="$home/ssh" TOPIC_ROUTE_LOG="$home/remote-call" \
+      run_topic "$home" "$stubbin" tf-mut --json) || fail "$placement mate run failed"
+    jq -e '
+      [.in_flight[].id] == ["t-flight","mate/t-nowhere","mate/t-match"]
+      and [.decisions_open[].id] == ["t-dec","mate/t-dec2"]
+      and [.changed_since.landed[].id] == ["t-done","mate/t-done2"]
+      and [.changed_since.answered_decisions[].id] == ["t-answ","mate/t-answ2"]
+      and [.next_steps.ready[].id] == ["t-lab","t-alias","mate/t-ready"]
+      and any(.timeline[]; .id == "mate/t-done2" and .kind == "landed")
+      and any(.timeline[]; .id == "mate/t-answ2" and .kind == "answered")
+      and .counts.landed == 2 and .counts.answered == 2 and .counts.decisions == 2
+    ' <<<"$json" >/dev/null || fail "$placement membership differs across surfaces: $json"
+    [ "$placement" != remote ] || [ -s "$home/remote-call" ] || fail "remote tasks read was bypassed"
+  done
+  pass "local and remote mates share label, alias, default-project and dependency rules across every collection"
+}
+
+test_deferred_calls_and_resolved_dependencies() {
+  local home stubbin json
+  home=$(make_home deferred)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  sed 's/held: yes/held: no/; s/2026-11-15/2026-10-31/' "$TMP_ROOT/list-labels.toon" > "$home/main.toon"
+  sed 's/held: yes/held: no/; s/2026-11-15/2026-10-31/' "$TMP_ROOT/show-t-dec.toon" > "$home/detail.toon"
+  sed '/^help\[/,$d; s/^count: 9$/count: 10/; s/^tasks\[9\]:$/tasks[10]:/' "$home/main.toon" > "$home/rows.toon"
+  cat >> "$home/rows.toon" <<'EOF'
+  - id: t-unblocked
+    state: queued
+    kind: ship
+    repo: treehouse
+    title: Resolved dependency
+    blocked_by[1]: t-done
+    held: no
+EOF
+  json=$(TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_DETAIL_FIXTURE="$home/detail.toon" \
+    run_topic "$home" "$stubbin" tf-mut --json) || fail "deferred run failed"
+  jq -e '
+    [.decisions_open[].id] == ["t-dec"]
+    and (.decisions_open[0].title | contains("full title from detail"))
+    and any(.next_steps.ready[]; .id == "t-unblocked")
+    and all(.next_steps.ready[], .next_steps.blocked[]; .id != "t-dec")
+    and [.next_steps.blocked[].id] == ["t-proj"]
+  ' <<<"$json" >/dev/null || fail "captain or dependency state misclassified: $json"
+  make_board_stub "$stubbin"
+  TOPIC_MAIN_FIXTURE="$home/rows.toon" TOPIC_DETAIL_FIXTURE="$home/detail.toon" FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+    run_topic "$home" "$stubbin" tf-mut --board >/dev/null || fail "deferred board failed"
+  jq -e 'any(.charted[]; .id == "t-unblocked" and .dispatchable) and all(.charted[]; .id != "t-dec") and [.landed[].id] == ["t-done"]' \
+    "$TMP_ROOT/captured-board.json" >/dev/null || fail "board reintroduced blockers or counted a captain answer as a delivery"
+  pass "dated captain calls remain enriched decisions; completed dependencies stop blocking"
+}
+
+test_chat_details_and_read_only_modes() {
+  local home stubbin out
+  home=$(make_home chat)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  out=$(run_topic "$home" "$stubbin" tf-mut) || fail "chat run failed"
+  case "$out" in
+    *'decision: t-dec Question: which merge posture for topic briefings? options: yolo on | yolo off | defer a week'*) : ;;
+    *) fail "chat lacks recorded question/options: $out" ;;
+  esac
+  case "$out" in *'landed: t-done Landed member row with PR https://github.com/andrewesweet/treehouse/pull/42'*) : ;; *) fail "chat lacks landed item/PR: $out" ;; esac
+  case "$out" in *'in flight: 2 - Main child in flight; Second-mate child in flight'*) : ;; *) fail "chat lacks in-flight names: $out" ;; esac
+  case "$out" in *'timeline:'*) fail "chat contains timeline" ;; esac
+  run_topic "$home" "$stubbin" tf-mut --json >/dev/null || fail "json run failed"
+  make_board_stub "$stubbin"
+  FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" run_topic "$home" "$stubbin" tf-mut --board >/dev/null || fail "board run failed"
+  [ ! -e "$home/data/topic-briefings" ] || fail "read-only modes wrote history"
+  pass "chat carries recorded details; chat, JSON and board leave history untouched"
+}
+
+test_registry_name_alias_collisions() {
+  local home out query rc
+  home=$(make_home alias-collision)
+  printf -- '- alpha | aliases: beta\n- beta\n' > "$home/data/topics.md"
+  for query in alpha beta; do
+    out=$(run_topic "$home" "$TMP_ROOT/stub-labeled" "$query" --json 2>&1) && rc=0 || rc=$?
+    [ "$rc" = 2 ] || fail "colliding name/alias accepted for $query"
+    case "$out" in *'duplicate topic name or alias: beta'*) : ;; *) fail "collision diagnostic missing: $out" ;; esac
+  done
+  pass "name/alias collisions fail before either resolution path"
+}
+
+test_portable_dates_and_calendar_validation() {
+  local home stubbin real_date json out rc
+  home=$(make_home portable-date)
+  stubbin="$TMP_ROOT/stub-portable"
+  make_stub_bin "$stubbin" labeled
+  real_date=$(command -v date)
+  cat > "$stubbin/date" <<EOF
+#!/usr/bin/env bash
+for arg in "\$@"; do [ "\$arg" != -d ] || exit 99; done
+exec "$real_date" "\$@"
+EOF
+  chmod +x "$stubbin/date"
+  json=$(run_topic "$home" "$stubbin" tf-mut --json) || fail "default needs GNU date"
+  [ "$(jq -r '.window.since' <<<"$json")" = 2026-10-18T09:00:00Z ] || fail "default window drifted"
+  run_topic "$home" "$stubbin" tf-mut --since 2024-02-29 --json >/dev/null || fail "valid leap day rejected"
+  out=$(run_topic "$home" "$stubbin" tf-mut --since 2026-02-30 --json 2>&1) && rc=0 || rc=$?
+  [ "$rc" = 2 ] || fail "impossible calendar date accepted: $out"
+  pass "default and explicit windows need no GNU date; impossible dates fail"
+}
+
+test_publication_failure_preserves_history_and_empty_states() {
+  local home stubbin out rc before html
+  home=$(make_home publication)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  out=$(run_topic "$home" "$stubbin" tf-mut --html "$home" 2>&1) && rc=0 || rc=$?
+  [ "$rc" = 2 ] && [ ! -e "$home/data/topic-briefings" ] || fail "failed publication advanced history: $out"
+  if printf '%s\n' "$out" | grep -q '^briefing: '; then fail "failed publication reported success"; fi
+  printf -- '- empty\n' > "$home/data/topics.md"
+  run_topic "$home" "$stubbin" empty --html "$home/empty.html" >/dev/null || fail "empty html failed"
+  html=$(cat "$home/empty.html")
+  for expected in 'Nothing landed in this window.' 'Nothing in flight for this topic.' 'No open decisions for this topic.' 'Nothing ready.' 'No events in this window.'; do
+    case "$html" in *"$expected"*) : ;; *) fail "missing empty state: $expected" ;; esac
+  done
+  case "$html" in *'id="recap"'*) fail "first briefing has an empty recap" ;; esac
+  before=$(cat "$home/data/topic-briefings/empty/T20261101T090000Z.json")
+  run_topic "$home" "$stubbin" empty --html "$home" >/dev/null 2>&1 && fail "directory output succeeded"
+  [ "$(cat "$home/data/topic-briefings/empty/T20261101T090000Z.json")" = "$before" ] || fail "failed publication changed existing history"
+  pass "failed HTML publication preserves history; empty briefs show every empty state"
+}
+
+test_coverage_disclosures_in_every_mode() {
+  local home stubbin json out html
+  home=$(make_home coverage)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  jq '.secondmates = [{id:"offline",state:"unknown",freshness:"unavailable",reason:"ledger missing"},{id:"cached",state:"active_child_work",freshness:"fresh",provenance:"structured-home-cache",reason:"cached ledger"}]
+    | .omitted = [{surface:"secondmate children truncated",reveal:"raise bound"}]' "$TMP_ROOT/snapshot.json" > "$home/snapshot.json"
+  json=$(TOPIC_TEST_SNAPSHOT="$home/snapshot.json" run_topic "$home" "$stubbin" tf-mut --json) || fail "coverage model failed"
+  jq -e 'any(.disclosures[]; contains("offline") and contains("ledger missing")) and any(.disclosures[]; contains("cached")) and any(.disclosures[]; contains("truncated"))' <<<"$json" >/dev/null || fail "coverage lost: $json"
+  make_board_stub "$stubbin"
+  out=$(TOPIC_TEST_SNAPSHOT="$home/snapshot.json" FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+    run_topic "$home" "$stubbin" tf-mut --html "$home/coverage.html" --board) || fail "coverage outputs failed"
+  html=$(cat "$home/coverage.html")
+  for expected in offline cached truncated; do
+    case "$out" in *"$expected"*) : ;; *) fail "chat lost $expected" ;; esac
+    case "$html" in *"$expected"*) : ;; *) fail "html lost $expected" ;; esac
+    jq -e --arg expected "$expected" 'any(.warnings[]; contains($expected))' "$TMP_ROOT/captured-board.json" >/dev/null || fail "board lost $expected"
+  done
+  pass "unavailable, cached and truncated coverage survives JSON, chat, HTML and board"
+}
+
+test_complete_distinct_board_options() {
+  local home stubbin json capture
+  home=$(make_home options)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  jq -n '["A/B", "A-B", "reconcile", "four", "five", "six", ("long " + ("condition " * 20) + "keep this suffix")]' > "$home/options.json"
+  jq '[{id:"t-dec",hold_kind:"captain",state:"queued",title:"Recorded choice",hold_reason:("Question: choose? options: " + join(" | "))}]' "$home/options.json" | write_toon > "$home/detail.toon"
+  json=$(TOPIC_DETAIL_FIXTURE="$home/detail.toon" run_topic "$home" "$stubbin" tf-mut --json) || fail "options model failed"
+  jq -e --slurpfile expected "$home/options.json" '.decisions_open[0].options == $expected[0]' <<<"$json" >/dev/null || fail "options truncated"
+  make_board_stub "$stubbin"
+  TOPIC_DETAIL_FIXTURE="$home/detail.toon" FM_TOPIC_BOARD_CMD="$stubbin/fm-bearings-board" \
+    run_topic "$home" "$stubbin" tf-mut --board >/dev/null || fail "options board failed"
+  capture="$TMP_ROOT/captured-board.json"
+  jq -e --slurpfile expected "$home/options.json" '
+    [.captains_call[0].options[].label] == $expected[0]
+    and ([.captains_call[0].options[].value] | length == (unique | length) and all(.[]; . != "reconcile" and test("^[A-Za-z0-9._-]{1,128}$")))
+  ' "$capture" >/dev/null || fail "options collide, reserve reconcile or lose meaning"
+  pass "all recorded options survive with distinct nonreserved board values"
+}
+
+test_latest_offline_answer_wins() {
+  local home stubbin
+  home=$(make_home latest-answer)
+  stubbin="$TMP_ROOT/stub-labeled"
+  make_stub_bin "$stubbin" labeled
+  run_topic "$home" "$stubbin" tf-mut --html "$home/answers.html" >/dev/null || fail "answers html failed"
+  node "$ROOT/tests/assets/topic-answers-harness.mjs" "$home/answers.html" || fail "latest displayed answer was not exported"
+  pass "typing replaces radio selection; selecting replaces text; copy exports the latest answer"
 }
 
 fm_test_run \
@@ -545,4 +810,13 @@ fm_test_run \
   test_registry_optional_fields \
   test_json_and_summary_are_exclusive \
   test_html_self_containment_and_answers_line \
-  test_board_payload_shape
+  test_board_payload_shape \
+  test_secondmate_membership_all_surfaces \
+  test_deferred_calls_and_resolved_dependencies \
+  test_chat_details_and_read_only_modes \
+  test_registry_name_alias_collisions \
+  test_portable_dates_and_calendar_validation \
+  test_publication_failure_preserves_history_and_empty_states \
+  test_coverage_disclosures_in_every_mode \
+  test_complete_distinct_board_options \
+  test_latest_offline_answer_wins
