@@ -263,6 +263,7 @@ until_watch() {  # <dir> <cadence> -> pid in UNTIL_PID
     FM_STATE_OVERRIDE="$dir/state" FM_CREW_STATE_BIN="$dir/fakebin/fm-crew-state.sh" \
     FM_PAUSE_RESURFACE_SECS="$2" FM_POLL=1 FM_SIGNAL_GRACE=1 \
     FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch.out" 2>&1 &
+  # shellcheck disable=SC2034 # Read by both watch-triage suites that source this helper.
   UNTIL_PID=$!
 }
 
