@@ -3,6 +3,7 @@ name: bearings
 description: >-
   Generate a "pick up where I left off" fleet digest.
   Use when the captain invokes /bearings (plain, file, or lavish) or asks for a bearings report, morning brief, status report, catch-up, "where did I leave off", or "what's in the works".
+  Also use when the captain asks to be briefed on a registered topic ("brief me on <topic>") - run bin/fm-topic-brief.sh for that and relay its result.
   Also use on a contributions check wake, when filing work linked to an upstream issue, and on a procevent lavish wake whose source id is the bearings board's.
 user-invocable: true
 metadata:
@@ -175,6 +176,13 @@ Rules that keep the contract unambiguous:
 - Detailed decisions, plans, full gate reasons, and evidence stay out of chat; file mode puts them in the report, while lavish mode puts only its payload-backed interactive detail on the board.
 - In file mode, include the report path or link inside the four-section digest without adding another heading.
 - In lavish mode, include the board URL inside the four-section digest the same way.
+
+## Per-topic briefings
+
+When the captain asks to be briefed on a registered topic ("brief me on <topic>", "what's new with <topic>"), the whole-fleet digest is the wrong deliverable; run `bin/fm-topic-brief.sh <topic>` instead and relay its chat summary as the answer.
+The script's header owns the exact mechanics: the `data/topics.md` registry ("Topic registry" in `docs/configuration.md`), membership by `topic:<name>` labels with the default-projects fallback, the briefing window (previous briefing, `--since`, or the 14-day default), briefing history under `data/topic-briefings/<topic>/`, the `--html` self-contained brief with its offline pick-and-copy answers line, and the `--board` flag that opens the topic's open captain decisions on the existing bearings board with its captured-answer binding.
+Membership reads, the snapshot, and board answers follow the same read-only and authority rules as the whole-fleet digest above.
+When the captain names something that is not a registered topic, answer from the digest instead and point at the registry rather than inventing a topic.
 
 ## Tone and content rules
 
