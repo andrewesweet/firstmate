@@ -832,6 +832,7 @@ tests/fm-harness-adapter-instructions-live-e2e.test.sh 72
 tests/fm-harness-adapter-references.test.sh 103
 tests/fm-harness-liveness-drift-live-e2e.test.sh 1309
 tests/fm-harness-precedence.test.sh 4565
+tests/fm-herdr-doorbell-slow-echo-live-e2e.test.sh 60
 tests/fm-herdr-groups.test.sh 5418
 tests/fm-herdr-pi-stale-registration-live-e2e.test.sh 111
 tests/fm-herdr-session-cleanup.test.sh 8108
