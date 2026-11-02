@@ -2,7 +2,7 @@
 // fm-de-shadow-relay.mjs - loopback shadow relay for the Drex Max v1.1 live
 // shadow trial beside TypeSafe Jev (data/de-shadow-drexmax/).
 //
-// Purpose: while a caller's TS_BASE override points at this
+// Purpose: while a caller's endpoint override (see Activation) points at this
 // relay, POST bodies up to 10 MiB are forwarded to TypeSafe unchanged and
 // TypeSafe's response status and body bytes are returned. In parallel,
 // eligible requests (see gates below) with only the model id swapped are sent
@@ -83,8 +83,8 @@
 // only - never a global shell or settings file, which would also activate the
 // shadow for the household second mate's sessions):
 //   resolver:        TS_BASE=http://127.0.0.1:<port>/<token>
-//   Claude Code mod: TS_BASE=http://127.0.0.1:<port>/<token>
-//   Pi extension:    TS_BASE=http://127.0.0.1:<port>/<token>
+//   Claude Code mod: TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
+//   Pi extension:    TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
 // Rollback is one line per caller: unset the override; the callers return to
 // TypeSafe directly with no other change. Stop the relay with the stop
 // command.
