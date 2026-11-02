@@ -83,8 +83,8 @@
 // only - never a global shell or settings file, which would also activate the
 // shadow for the household second mate's sessions):
 //   resolver:        TS_BASE=http://127.0.0.1:<port>/<token>
-//   Claude Code mod: TS_BASE=http://127.0.0.1:<port>/<token>
-//   Pi extension:    TS_BASE=http://127.0.0.1:<port>/<token>
+//   Claude Code mod: TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
+//   Pi extension:    TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
 // Rollback is one line per caller: unset the override; the callers return to
 // TypeSafe directly with no other change. Stop the relay with the stop
 // command.
