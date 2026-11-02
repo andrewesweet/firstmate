@@ -3,58 +3,62 @@
 // shadow trial beside TypeSafe Jev (data/de-shadow-drexmax/).
 //
 // Purpose: while a caller's TS_BASE override points at this
-// relay, every POST is forwarded to TypeSafe unchanged and TypeSafe's response
-// is returned byte for byte. In parallel, the same request body with the
-// model id swapped to the shadow model is sent to Nace's System One endpoint
-// and one record per call pair is appended under
-// the home's private data/de-shadow-drexmax/shadow/. The relay never changes
-// the answer, latency or failure behaviour the live caller sees: if this
-// relay is down, callers fail exactly as they do when TypeSafe is unreachable
-// today, and a slow or failing Nace never delays or alters the live reply.
+// relay, POST bodies up to 10 MiB are forwarded to TypeSafe unchanged and
+// TypeSafe's response status and body bytes are returned. In parallel,
+// eligible requests (see gates below) with only the model id swapped are sent
+// to Nace's System One endpoint and recorded under the home's private
+// data/de-shadow-drexmax/shadow/. The live reply does not wait for Nace.
+// The relay adds a local network hop; live transport/read failures return 502
+// and live timeouts return 504. If the relay is down, the caller cannot reach
+// TypeSafe through it. A slow or failing Nace never changes the live answer.
 //
 // Usage:
 //   fm-de-shadow-relay.mjs start [--port <n>]     daemonize and wait for health
-//   fm-de-shadow-relay.mjs start --foreground     run in this process
+//   fm-de-shadow-relay.mjs start --foreground     run here; stop with SIGTERM/SIGINT
 //   fm-de-shadow-relay.mjs stop                   SIGTERM the daemon, remove pid
 //   fm-de-shadow-relay.mjs status                 exit 0 running, 1 not running
 //
-// Privacy scoping (each layer enforced here, in code):
+// Shadow gates:
 //   Token gate: shadowing happens only for POST /<token>/v1/systemone where
-//     <token> is the contents of the relay-token file. Sessions the main
-//     firstmate home launches carry the override; no other home ever receives
-//     it, and even a leaked override without the token is proxied only -
-//     never sent to Nace, never recorded. The token is read per request, so
+//     <token> is the contents of the relay-token file. A missing or wrong
+//     token is proxied only - never sent to Nace, never recorded.
+//     Keep the token-bearing override scoped as described under Activation.
+//     The token is read per request, so
 //     rotating or deleting the file takes effect immediately; deleting it
 //     stops all shadowing. The token segment is stripped before proxying, so
 //     TypeSafe sees the plain /v1/systemone path it always did.
-//   Compaction content gate: a compaction request (questions carry done or
-//     shape) is shadowed only when it passes the topic exclusion scan loaded
-//     from topic-scan.json - the same household/money/credentials groups and
-//     boilerplate filter the decision-eval used (data/decision-eval/tools/
-//     topic_scan.py). Any group hit, a caller-reported coverage.redacted
+//   Request gate: JSON must carry a string-valued model plus state and questions.
+//     An object-valued questions.rule selects routing; otherwise an object-valued
+//     questions.done or questions.shape selects compaction. Other question
+//     sets produce an unknown-use skip; invalid requests produce unusable-request.
+//   Compaction content gate: compaction is shadowed only when it passes the
+//     operator-supplied topic-scan.json regex groups and boilerplate filter.
+//     Configure exclusions for household, money, and credentials content.
+//     Any group hit, a caller-reported coverage.redacted
 //     state, or a missing or unreadable scan config skips the shadow: the
 //     request never reaches Nace and only a content-free skip line (reason
 //     and group names, never request text) is recorded. Routing requests
-//     carry only a task brief and are shadowed without the content gate,
-//     matching the eval's scope.
+//     are shadowed without the content gate.
 //
 // Record format: one JSON object per line in shadow.jsonl (mode 600):
 //   {ts, use: routing|compaction, request: <raw request body string>,
-//    live: {status, body: <raw response string>, usage},
+//    live: {status, ms, body: <raw response string>, usage} or {status: null, error},
 //    shadow: {status, ms, body, usage, error}}
 // A skip line carries {ts, use, skipped: <reason>, ...} and no request text.
+// Accepted request and response content is retained, with each body string
+// capped at 4,194,304 UTF-16 code units; routing content is not redacted.
 //
 // Key handling: NACE_API_KEY is read once at start from the keys file
 //   (default ~/.config/decision-eval/keys.env, the captain-written file) and
 //   lives only in this process's memory, sent only as the Authorization
 //   header on shadow calls. It is never printed, logged, put on argv, or
 //   written to a record. The caller's own TypeSafe Authorization header is
-//   forwarded unchanged to TypeSafe and never read.
+//   forwarded unchanged to TypeSafe, never used for Nace or added to records.
 //
-// Configuration (environment, all optional):
+// Configuration (environment; FM_HOME required, others optional):
 //   FM_HOME                    required; data lives under $FM_HOME/data/de-shadow-drexmax/
 //   DE_SHADOW_PORT             listen port, default 8931 (always 127.0.0.1 only)
-//   DE_SHADOW_TYPESAFE_BASE    live upstream, default https://api.typesafe.ai
+//   DE_SHADOW_TYPESAFE_BASE    live upstream origin, default https://api.typesafe.ai
 //   DE_SHADOW_NACE_BASE        shadow upstream, default https://console.nace.ai
 //   DE_SHADOW_NACE_MODEL       shadow model id, default drex-max-v1.1
 //   DE_SHADOW_NACE_TIMEOUT_MS  shadow call timeout, default 30000
@@ -63,6 +67,17 @@
 //   DE_SHADOW_SCAN_FILE        topic scan config, default $FM_HOME/data/de-shadow-drexmax/topic-scan.json
 //   DE_SHADOW_DIR              records dir, default $FM_HOME/data/de-shadow-drexmax/shadow
 //   DE_SHADOW_TOKEN_FILE       token file, default $FM_HOME/data/de-shadow-drexmax/relay-token
+//   DE_SHADOW_PID_FILE         runtime record, default $FM_HOME/data/de-shadow-drexmax/relay.pid
+//   DE_SHADOW_LOG_FILE         daemon stderr log, default $FM_HOME/data/de-shadow-drexmax/relay.log
+//
+// Daemon lifecycle: start creates the token file if absent and records the pid,
+// port, and shutdown budget. A healthy recorded relay is reused on the same
+// port; another port is refused until it stops. Status and stop require the
+// /health x-relay-pid header to match the recorded pid before trusting it.
+// SIGTERM/SIGINT drain live calls and pending pairs, including recording,
+// bounded by max(live timeout, shadow timeout) + 2 seconds. Stop waits for this
+// budget plus an exit margin; it refuses further signals if the pid persists.
+// Foreground mode writes no runtime record; stop/status manage daemons only.
 //
 // Activation (per caller, in the main firstmate home's own launch environment
 // only - never a global shell or settings file, which would also activate the
@@ -73,6 +88,7 @@
 // Rollback is one line per caller: unset the override; the callers return to
 // TypeSafe directly with no other change. Stop the relay with the stop
 // command.
+// Regression entry point: tests/fm-de-shadow-relay.test.sh (fake upstreams only).
 import http from "node:http";
 import https from "node:https";
 import fs from "node:fs";
@@ -355,10 +371,9 @@ function readToken(tokenFile) {
   }
 }
 
-// The live proxy: forwards the request to TypeSafe with the caller's headers
-// unchanged (Authorization included) and writes TypeSafe's response body
-// back byte for byte. Calls onLiveDone only after the caller's response is
-// fully sent, so the shadow can never sit on the caller's critical path.
+// Preserve caller Authorization while adjusting the transport headers below.
+// Settle onLiveDone after queuing the live reply or reporting upstream failure;
+// the paired operation waits for this result independently of reply delivery.
 function proxyToTypeSafe(req, res, body, cfg, onLiveDone) {
   const liveStarted = Date.now();
   // A timeout destroys the socket, which then also fires the error handler:
