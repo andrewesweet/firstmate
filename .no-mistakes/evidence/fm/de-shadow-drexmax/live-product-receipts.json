@@ -1,0 +1,316 @@
+[
+  {
+    "name": "relay CLI",
+    "argv": [
+      "start"
+    ],
+    "code": 2,
+    "stdout": "",
+    "stderr": "error: cannot read the keys file ~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/.test-phase/live-home/keys.env - start is refused so a silent empty shadow week cannot happen\n"
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "start"
+    ],
+    "code": 0,
+    "stdout": "relay listening 127.0.0.1:46669\nrecords: ~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/.test-phase/live-home/data/de-shadow-drexmax/shadow/shadow.jsonl\ntoken file: ~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/.test-phase/live-home/data/de-shadow-drexmax/relay-token\nstop: '~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/bin/fm-de-shadow-relay.mjs' stop\n",
+    "stderr": ""
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "status"
+    ],
+    "code": 0,
+    "stdout": "status: running pid=713973 127.0.0.1:46669\n",
+    "stderr": ""
+  },
+  {
+    "name": "listener identity",
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/plain",
+      "x-relay-pid": "713973",
+      "Date": "Mon, 02 Nov 2026 02:56:30 GMT",
+      "Connection": "keep-alive",
+      "Keep-Alive": "timeout=5",
+      "Transfer-Encoding": "chunked"
+    },
+    "body": "ok",
+    "recorded_pid": 713973
+  },
+  {
+    "name": "listener binds only loopback",
+    "output": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess\nLISTEN 0      511        127.0.0.1:46669      0.0.0.0:*    users:((\"MainThread\",pid=713973,fd=21))\n"
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "start"
+    ],
+    "code": 0,
+    "stdout": "relay already-running 127.0.0.1:46669\n",
+    "stderr": ""
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "start",
+      "--port",
+      "46670"
+    ],
+    "code": 2,
+    "stdout": "",
+    "stderr": "error: relay already running on 127.0.0.1:46669; stop the running relay first or reuse it\n"
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "stop"
+    ],
+    "code": 2,
+    "stdout": "",
+    "stderr": "error: refusing to stop pid=714019: cannot verify relay identity on 127.0.0.1:46669\n"
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "status"
+    ],
+    "code": 1,
+    "stdout": "status: relay identity unverified pid=714019 127.0.0.1:46669\n",
+    "stderr": ""
+  },
+  {
+    "name": "stale PID guard leaves unrelated process alive",
+    "unrelated_pid": 714019,
+    "alive": true
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "parallel-live-proof",
+    "path": "/44f721fbb54c8cdbff37c53d7b18695fb0bcedf5809f30d352ccb121badfe4d6/v1/systemone?case=parallel",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 8.8,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "paired answers disagree; live answer wins",
+    "pair": {
+      "ts": "2026-11-02T02:56:31.753Z",
+      "use": "routing",
+      "request": "{\"model\": \"jev-latest\", \"state\": {\"task\": {\"brief\": \"parallel-live-proof\"}}, \"questions\": {\"rule\": {\"type\": \"choice\", \"criteria\": {\"rule_1\": \"fix\", \"default\": \"other\"}}}}",
+      "live": {
+        "status": 200,
+        "ms": 6,
+        "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+        "usage": {
+          "input_tokens": 7,
+          "output_tokens": 2
+        }
+      },
+      "shadow": {
+        "status": 200,
+        "ms": 1206,
+        "body": "{\"model\":\"drex-max-v1.1\",\"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"default\",\"confidence\":1,\"probabilities\":{\"rule_1\":0,\"default\":1}}},\"usage\":{\"input_tokens\":8,\"output_tokens\":3}}",
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 3
+        },
+        "error": null
+      }
+    },
+    "live_authorization_preserved": true,
+    "shadow_uses_separate_key": true
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "shadow-http-failure",
+    "path": "/44f721fbb54c8cdbff37c53d7b18695fb0bcedf5809f30d352ccb121badfe4d6/v1/systemone",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 5.5,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "shadow failure recorded without changing caller",
+    "pair": {
+      "ts": "2026-11-02T02:56:31.774Z",
+      "use": "routing",
+      "request": "{\"model\": \"jev-latest\", \"state\": {\"task\": {\"brief\": \"shadow-http-failure\"}}, \"questions\": {\"rule\": {\"type\": \"choice\", \"criteria\": {\"rule_1\": \"fix\", \"default\": \"other\"}}}}",
+      "live": {
+        "status": 200,
+        "ms": 3,
+        "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+        "usage": {
+          "input_tokens": 7,
+          "output_tokens": 2
+        }
+      },
+      "shadow": {
+        "status": 503,
+        "ms": 2,
+        "body": "{\"error\":\"shadow unavailable\"}",
+        "usage": null,
+        "error": "http 503"
+      }
+    }
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "no-opt-in",
+    "path": "/v1/systemone",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 3.3,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "wrong-opt-in",
+    "path": "/wrongtoken0123456789/v1/systemone",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 2.8,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "revoked-opt-in",
+    "path": "/44f721fbb54c8cdbff37c53d7b18695fb0bcedf5809f30d352ccb121badfe4d6/v1/systemone",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 3.4,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "missing, wrong, and deleted tokens never shadow",
+    "shadow_requests_before": 2,
+    "shadow_requests_after": 2,
+    "records_after": 2
+  },
+  {
+    "name": "real dispatch resolver through HTTP relay",
+    "code": 0,
+    "stdout": "dispatch-resolve:\n  status: clear\n  model: jev-latest   latency_ms: 10   tokens: 7/2\n  rule: rule_1 (Fix a bug)   confidence: 0.9\n  probabilities: rule_1=0.9 default=0.1\n  note: rule matched\n  candidate: codex:example-model  provider=codex  scope=all_models  remaining=80%  spendPriority=0.8  runway=through_reset  -> eligible\n  profile: --harness 'codex' --model 'example-model'\n",
+    "stderr": "",
+    "external_quota": "disposable known snapshot; no real account read"
+  },
+  {
+    "name": "dispatch pair persisted",
+    "pair": {
+      "ts": "2026-11-02T02:56:32.021Z",
+      "use": "routing",
+      "request": "{\n  \"model\": \"jev-latest\",\n  \"state\": {\n    \"task\": {\n      \"project\": \"isolated-demo\",\n      \"brief\": \"# Task\\nFix the pager off-by-one error.\\n\"\n    }\n  },\n  \"questions\": {\n    \"rule\": {\n      \"type\": \"choice\",\n      \"instructions\": \"Which ONE dispatch rule best fits `task` (read `task.brief` and `task.project`)? Each option is the rule's own matching condition; pick `default` when no rule's condition is met, including when a rule's own exemption text excludes this task.\",\n      \"criteria\": {\n        \"rule_1\": \"Fix a bug\",\n        \"default\": \"No listed rule applies to this task.\"\n      }\n    }\n  }\n}",
+      "live": {
+        "status": 200,
+        "ms": 2,
+        "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+        "usage": {
+          "input_tokens": 7,
+          "output_tokens": 2
+        }
+      },
+      "shadow": {
+        "status": 200,
+        "ms": 2,
+        "body": "{\"model\":\"drex-max-v1.1\",\"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"default\",\"confidence\":1,\"probabilities\":{\"rule_1\":0,\"default\":1}}},\"usage\":{\"input_tokens\":8,\"output_tokens\":3}}",
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 3
+        },
+        "error": null
+      }
+    }
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "stop"
+    ],
+    "code": 0,
+    "stdout": "relay stopped\n",
+    "stderr": ""
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "start"
+    ],
+    "code": 0,
+    "stdout": "relay listening 127.0.0.1:46669\nrecords: ~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/.test-phase/live-home/data/de-shadow-drexmax/shadow/shadow.jsonl\ntoken file: ~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/.test-phase/live-home/data/de-shadow-drexmax/relay-token\nstop: '~/.no-mistakes/worktrees/feb37d45d9da/01M6CY1ZH1F80ETC1TV2WNVGBM/bin/fm-de-shadow-relay.mjs' stop\n",
+    "stderr": ""
+  },
+  {
+    "name": "caller receives exact live bytes",
+    "marker": "drain-beyond-former-ten-second-cutoff",
+    "path": "/44f721fbb54c8cdbff37c53d7b18695fb0bcedf5809f30d352ccb121badfe4d6/v1/systemone",
+    "status": 200,
+    "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+    "elapsed_ms": 10.1,
+    "expected_bytes": 190,
+    "received_bytes": 190
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "stop"
+    ],
+    "code": 0,
+    "stdout": "relay stopped\n",
+    "stderr": ""
+  },
+  {
+    "name": "shutdown drains beyond ten seconds using daemon runtime deadline",
+    "stop_elapsed_ms": 11294,
+    "pair": {
+      "ts": "2026-11-02T02:56:44.082Z",
+      "use": "routing",
+      "request": "{\"model\": \"jev-latest\", \"state\": {\"task\": {\"brief\": \"drain-beyond-former-ten-second-cutoff\"}}, \"questions\": {\"rule\": {\"type\": \"choice\", \"criteria\": {\"rule_1\": \"fix\", \"default\": \"other\"}}}}",
+      "live": {
+        "status": 200,
+        "ms": 5,
+        "body": "{ \"model\":\"jev-latest\", \"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"rule_1\",\"confidence\":0.9,\"probabilities\":{\"rule_1\":0.9,\"default\":0.1}}}, \"usage\":{\"input_tokens\":7,\"output_tokens\":2}}  \n",
+        "usage": {
+          "input_tokens": 7,
+          "output_tokens": 2
+        }
+      },
+      "shadow": {
+        "status": 200,
+        "ms": 11205,
+        "body": "{\"model\":\"drex-max-v1.1\",\"answers\":{\"rule\":{\"type\":\"choice\",\"choice\":\"default\",\"confidence\":1,\"probabilities\":{\"rule_1\":0,\"default\":1}}},\"usage\":{\"input_tokens\":8,\"output_tokens\":3}}",
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 3
+        },
+        "error": null
+      }
+    },
+    "stop_command_timeouts_ms": 100,
+    "daemon_shadow_timeout_ms": 14000
+  },
+  {
+    "name": "relay CLI",
+    "argv": [
+      "status"
+    ],
+    "code": 1,
+    "stdout": "status: not running\n",
+    "stderr": ""
+  },
+  {
+    "name": "private recording and teardown",
+    "record_mode": "0600",
+    "directory_mode": "0700",
+    "credentials_absent_from_records_and_relay_log": true,
+    "runtime_removed": true
+  }
+]

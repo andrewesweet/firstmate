@@ -1,0 +1,17 @@
+ok - start is refused without the shadow key and leaves no listener
+ok - start daemonizes and status reports running
+ok - repeated start preserves ownership of the running daemon
+ok - one home refuses another relay across flag, environment, and foreground port choices
+ok - stale PIDs and unrelated HTTP-200 services cannot claim relay ownership
+ok - a routing call is proxied byte for byte and paired with a model-swapped shadow call
+ok - the live upstream can wait for the shadow request without deadlocking
+ok - a slow, failing, or crashed Nace never delays or alters the caller, and its error lands in the record
+ok - live transport failures, read failures, and timeouts retain one shadow pair
+ok - only the token-bearing path is shadowed; any other caller is proxied with no shadow effect
+ok - compaction skips on topic hits, caller redaction, and a missing scan config; routing is unaffected
+ok - no key value appears in any record or relay log
+ok - SIGTERM and SIGINT drain pending pairs before exit
+ok - shutdown retains unpaired live work after a caller disconnects
+ok - the daemon starts and its printed stop command works from a path needing decoding and quoting
+ok - stop terminates the relay and closes the loopback port
+# all fm-de-shadow-relay tests passed
