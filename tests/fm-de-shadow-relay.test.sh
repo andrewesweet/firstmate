@@ -61,8 +61,9 @@ cat > "$TMP_ROOT/bin/fake-upstream.mjs" <<'EOF'
 import http from "node:http";
 import fs from "node:fs";
 
-const [safePort, safeLog, nacePort, naceLog, bodyFile, controlFile] = process.argv.slice(2);
+const [safePort, safeLog, nacePort, naceLog, bodyFile, controlFile, safeControlFile] = process.argv.slice(2);
 const canned = fs.readFileSync(bodyFile);
+const shadowBriefs = new Set();
 
 function record(log, entry) {
   fs.appendFileSync(log, `${JSON.stringify(entry)}\n`);
@@ -81,12 +82,44 @@ function serve(port, log, handler) {
   server.listen(Number(port), "127.0.0.1");
 }
 
-serve(safePort, safeLog, (req, res) => {
-  res.writeHead(200, { "content-type": "application/json", "x-fake": "live" });
-  res.end(canned);
+serve(safePort, safeLog, (req, res, body) => {
+  if (req.url.split("?")[0] !== "/v1/systemone") {
+    res.writeHead(404);
+    res.end("wrong live path");
+    return;
+  }
+  const control = JSON.parse(fs.readFileSync(safeControlFile, "utf8"));
+  if (control.crash) {
+    res.destroy();
+    return;
+  }
+  if (control.readError) {
+    res.writeHead(200, { "content-length": canned.length + 1 });
+    res.write(canned);
+    setTimeout(() => res.destroy(), 20);
+    return;
+  }
+  const started = Date.now();
+  const brief = JSON.parse(body).state?.task?.brief;
+  const reply = () => {
+    if (control.waitForShadow && !shadowBriefs.has(brief)) {
+      if (Date.now() - started < 1000) {
+        setTimeout(reply, 10);
+        return;
+      }
+      res.writeHead(503);
+      res.end("shadow did not start alongside live");
+      return;
+    }
+    res.writeHead(200, { "content-type": "application/json", "x-fake": "live" });
+    res.end(canned);
+  };
+  if (control.delayMs) setTimeout(reply, control.delayMs);
+  else reply();
 });
 
-serve(nacePort, naceLog, (req, res) => {
+serve(nacePort, naceLog, (req, res, body) => {
+  shadowBriefs.add(JSON.parse(body).state?.task?.brief);
   let control = {};
   try {
     control = JSON.parse(fs.readFileSync(controlFile, "utf8"));
@@ -111,6 +144,8 @@ NACE_PORT=$(( 22000 + (RANDOM % 20000) ))
 SAFE_LOG="$TMP_ROOT/fake-safe.log.jsonl"
 NACE_LOG="$TMP_ROOT/fake-nace.log.jsonl"
 CONTROL_FILE="$TMP_ROOT/nace-control.json"
+SAFE_CONTROL_FILE="$TMP_ROOT/safe-control.json"
+echo '{}' > "$SAFE_CONTROL_FILE"
 echo '{}' > "$CONTROL_FILE"
 
 # The canned live response: unicode-free but with irregular interior spacing,
@@ -119,7 +154,7 @@ echo '{}' > "$CONTROL_FILE"
 printf '{ "model": "jev-1.14.0", "answers": { "rule": { "type": "choice", "choice": "rule_2", "confidence": 0.71,\n    "probabilities": { "rule_1": 0.05, "rule_2": 0.71, "default": 0.24 } } },\n  "usage": { "input_tokens": 812, "output_tokens": 60 } }\x20\x20' > "$TMP_ROOT/canned-live.json"
 
 NODE_BIN=$(command -v node)
-node "$TMP_ROOT/bin/fake-upstream.mjs" "$SAFE_PORT" "$SAFE_LOG" "$NACE_PORT" "$NACE_LOG" "$TMP_ROOT/canned-live.json" "$CONTROL_FILE" &
+node "$TMP_ROOT/bin/fake-upstream.mjs" "$SAFE_PORT" "$SAFE_LOG" "$NACE_PORT" "$NACE_LOG" "$TMP_ROOT/canned-live.json" "$CONTROL_FILE" "$SAFE_CONTROL_FILE" &
 FAKE_PID=$!
 # wait for both fake ports
 for i in $(seq 1 50); do
@@ -132,6 +167,8 @@ done
 
 export FM_HOME="$HOME_DIR"
 export DE_SHADOW_PORT="$PORT"
+export DE_SHADOW_LIVE_TIMEOUT_MS=1500
+export DE_SHADOW_NACE_TIMEOUT_MS=8000
 export DE_SHADOW_KEYS_FILE="$KEYS_FILE"
 export DE_SHADOW_TYPESAFE_BASE="http://127.0.0.1:$SAFE_PORT"
 export DE_SHADOW_NACE_BASE="http://127.0.0.1:$NACE_PORT"
@@ -156,7 +193,7 @@ kill_relay() {
     FM_HOME="$HOME_DIR" "$NODE_BIN" "$RELAY" stop >/dev/null 2>&1 || true
   fi
 }
-trap 'kill_relay; kill "$FAKE_PID" 2>/dev/null || true' EXIT
+trap 'kill_relay; kill "$FAKE_PID" 2>/dev/null || true; fm_test_cleanup' EXIT
 
 # wait_for <pattern> <file> <msg>: poll up to 10s for a fixed-string record.
 wait_for() {
@@ -166,6 +203,10 @@ wait_for() {
     sleep 0.1
   done
   fail "$msg (pattern not found within 10s in $file)"
+}
+
+now_ms() {
+  node -e 'process.stdout.write(String(Date.now()))'
 }
 
 records() {
@@ -214,6 +255,14 @@ pass "start is refused without the shadow key and leaves no listener"
 start_relays || fail "relay start failed"
 FM_HOME="$HOME_DIR" "$NODE_BIN" "$RELAY" status >/dev/null 2>&1 || fail "relay status after start"
 pass "start daemonizes and status reports running"
+original_runtime=$(cat "$TMP_ROOT/relay.pid")
+original_pid=$(jq -r '.pid' "$TMP_ROOT/relay.pid")
+repeat_output=$("$NODE_BIN" "$RELAY" start --port "$PORT") || fail "repeated start failed"
+assert_contains "$repeat_output" "already-running 127.0.0.1:$PORT" "repeated start identifies the running port"
+assert_equals "$original_runtime" "$(cat "$TMP_ROOT/relay.pid")" "repeated start preserves the original runtime record"
+status_output=$("$NODE_BIN" "$RELAY" status) || fail "repeated start broke status"
+assert_contains "$status_output" "pid=$original_pid " "status retains the original live pid"
+pass "repeated start preserves ownership of the running daemon"
 
 # --- (a) routing pair: byte-identical live response, token stripped, pair recorded
 
@@ -244,15 +293,24 @@ assert_equals "$(jq -r '.authorization' "$NACE_LOG" | head -1)" "Bearer $NACE_KE
 assert_contains "$nace_request" '"path":"/v1/systemone"' "the shadow call hits the Nace systemone endpoint"
 pass "a routing call is proxied byte for byte and paired with a model-swapped shadow call"
 
+echo '{"waitForShadow":true}' > "$SAFE_CONTROL_FILE"
+routing_body "$TMP_ROOT/parallel.json" parallel
+http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/parallel.json")
+expect_code 200 "$http" "the shadow starts before the live response can finish"
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "parallel execution altered the live bytes"
+wait_for '\"brief\":\"plain brief parallel\"' "$BASE_DIR/shadow/shadow.jsonl" "the parallel pair is recorded"
+echo '{}' > "$SAFE_CONTROL_FILE"
+pass "the live upstream can wait for the shadow request without deadlocking"
+
 # --- (b) slow or failing Nace never delays or alters the caller --------------
 
 # slow Nace: the caller still gets the identical bytes quickly
 echo '{"delayMs":1500}' > "$CONTROL_FILE"
 routing_body "$TMP_ROOT/routing-2.json" two
-t0=$(date +%s%N)
+t0=$(now_ms)
 http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/routing-2.json")
-t1=$(date +%s%N)
-elapsed_ms=$(( (t1 - t0) / 1000000 ))
+t1=$(now_ms)
+elapsed_ms=$(( t1 - t0 ))
 expect_code 200 "$http" "slow Nace leaves the live status untouched"
 cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "slow Nace altered the caller's response bytes"
 [ "$elapsed_ms" -lt 1200 ] || fail "slow Nace delayed the caller (${elapsed_ms} ms)"
@@ -285,6 +343,26 @@ assert_not_contains "$crash_rec" '"error":null' "a crashed shadow call is record
 echo '{}' > "$CONTROL_FILE"
 pass "a slow, failing, or crashed Nace never delays or alters the caller, and its error lands in the record"
 
+for live_failure in crash readError delayMs; do
+  case "$live_failure" in
+    crash) echo '{"crash":true}' > "$SAFE_CONTROL_FILE"; expected_status=502 ;;
+    readError) echo '{"readError":true}' > "$SAFE_CONTROL_FILE"; expected_status=502 ;;
+    delayMs) echo '{"delayMs":2000}' > "$SAFE_CONTROL_FILE"; expected_status=504 ;;
+  esac
+  routing_body "$TMP_ROOT/live-failure.json" "live-$live_failure"
+  http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/live-failure.json")
+  expect_code "$expected_status" "$http" "a live $live_failure retains its caller error"
+  marker="plain brief live-$live_failure"
+  wait_for "$marker" "$BASE_DIR/shadow/shadow.jsonl" "a live $live_failure still records a pair"
+  live_failure_rec=$(jq -c --arg marker "$marker" 'select(.request | fromjson | .state.task.brief == $marker)' "$BASE_DIR/shadow/shadow.jsonl")
+  assert_equals 1 "$(printf '%s\n' "$live_failure_rec" | wc -l | tr -d ' ')" "a live $live_failure records exactly one pair"
+  assert_equals null "$(jq -r '.live.status' <<<"$live_failure_rec")" "a live $live_failure has no upstream status"
+  [ "$(jq -r '.live.error | length' <<<"$live_failure_rec")" -gt 0 ] || fail "missing live error"
+  assert_equals 200 "$(jq -r '.shadow.status' <<<"$live_failure_rec")" "a live $live_failure retains the settled shadow result"
+done
+echo '{}' > "$SAFE_CONTROL_FILE"
+pass "live transport failures, read failures, and timeouts retain one shadow pair"
+
 # --- (d) only token-bearing requests are shadowed -----------------------------
 
 lines_before=$(records | wc -l | tr -d ' ')
@@ -295,9 +373,38 @@ expect_code 200 "$http" "a token-less call still reaches the live upstream"
 cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "a token-less call is not proxied byte for byte"
 http=$(post "/wrongtoken12345678901234567890/v1/systemone" "$TMP_ROOT/routing-5.json")
 expect_code 200 "$http" "a wrong-token call still reaches the live upstream"
-sleep 0.5
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "a wrong token altered the live bytes"
+assert_equals '/v1/systemone' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "a wrong token is stripped before proxying"
+sleep 0.3
 assert_equals "$lines_before" "$(records | wc -l | tr -d ' ')" "token-less and wrong-token calls record nothing"
-assert_equals "$nace_lines_before" "$(cat "$NACE_LOG" | wc -l | tr -d ' ')" "token-less and wrong-token calls never reach Nace"
+assert_equals "$nace_lines_before" "$(wc -l < "$NACE_LOG" | tr -d ' ')" "token-less and wrong-token calls never reach Nace"
+http=$(post "/$TOKEN/v1/systemone?case=current" "$TMP_ROOT/routing-5.json")
+expect_code 200 "$http" "a current token preserves query routing"
+assert_equals '/v1/systemone?case=current' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "a current token preserves the query string"
+wait_for 'plain brief five' "$BASE_DIR/shadow/shadow.jsonl" "the current token with a query still shadows"
+lines_before=$(records | wc -l | tr -d ' ')
+nace_lines_before=$(wc -l < "$NACE_LOG" | tr -d ' ')
+printf '%s\n' 'rotated0123456789abcdef0123456789abcdef' > "$TMP_ROOT/token"
+http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/routing-5.json")
+expect_code 200 "$http" "a stale token preserves the ordinary live endpoint"
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "a stale token altered the live bytes"
+assert_equals '/v1/systemone' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "rotation preserves the plain live path"
+http=$(post "/$TOKEN/v1/systemone?case=rotated" "$TMP_ROOT/routing-5.json")
+expect_code 200 "$http" "a stale token still reaches the live upstream"
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "rotation altered the live bytes"
+assert_equals '/v1/systemone?case=rotated' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "a stale token is stripped and the query survives"
+rm "$TMP_ROOT/token"
+http=$(post "/$TOKEN/v1/systemone?case=deleted" "$TMP_ROOT/routing-5.json")
+expect_code 200 "$http" "a deleted token still reaches the live upstream"
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "token deletion altered the live bytes"
+assert_equals '/v1/systemone?case=deleted' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "a deleted token is stripped and the query survives"
+http=$(post '/v1/systemone?case=bare' "$TMP_ROOT/routing-5.json")
+expect_code 200 "$http" "a bare path with a query reaches the live upstream"
+assert_equals '/v1/systemone?case=bare' "$(tail -1 "$SAFE_LOG" | jq -r '.path')" "a bare path and query remain unchanged"
+printf '%s\n' "$TOKEN" > "$TMP_ROOT/token"
+sleep 0.5
+assert_equals "$lines_before" "$(records | wc -l | tr -d ' ')" "stale, deleted, and bare tokens record nothing"
+assert_equals "$nace_lines_before" "$(cat "$NACE_LOG" | wc -l | tr -d ' ')" "stale, deleted, and bare tokens never reach Nace"
 pass "only the token-bearing path is shadowed; any other caller is proxied with no shadow effect"
 
 # --- (e) compaction content gate ----------------------------------------------
@@ -368,6 +475,26 @@ for target in $leak_targets; do
   fi
 done
 pass "no key value appears in any record or relay log"
+
+echo '{"delayMs":5500}' > "$CONTROL_FILE"
+routing_body "$TMP_ROOT/shutdown-term.json" shutdown-term
+http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/shutdown-term.json")
+expect_code 200 "$http" "a pending shadow leaves the live reply untouched before stop"
+cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "pending shutdown pair altered live bytes"
+kill_relay
+shutdown_rec=$(jq -c 'select(.request? | fromjson? | .state.task.brief == "plain brief shutdown-term")' "$BASE_DIR/shadow/shadow.jsonl")
+assert_equals 200 "$(jq -r '.shadow.status' <<<"$shutdown_rec")" "stop drains a shadow longer than five seconds through recording"
+
+start_relays || fail "restart for SIGINT failed"
+echo '{"delayMs":1500}' > "$CONTROL_FILE"
+routing_body "$TMP_ROOT/shutdown-int.json" shutdown-int
+http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/shutdown-int.json")
+expect_code 200 "$http" "a pending shadow leaves the live reply untouched before SIGINT"
+kill -INT "$(jq -r '.pid' "$TMP_ROOT/relay.pid")"
+wait_for 'plain brief shutdown-int' "$BASE_DIR/shadow/shadow.jsonl" "SIGINT drains the pending pair"
+shutdown_rec=$(jq -c 'select(.request? | fromjson? | .state.task.brief == "plain brief shutdown-int")' "$BASE_DIR/shadow/shadow.jsonl")
+assert_equals 200 "$(jq -r '.shadow.status' <<<"$shutdown_rec")" "SIGINT retains the settled shadow result"
+pass "SIGTERM and SIGINT drain pending pairs before exit"
 
 # --- lifecycle: stop removes the listener -------------------------------------
 

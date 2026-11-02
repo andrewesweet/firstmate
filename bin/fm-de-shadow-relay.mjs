@@ -4,9 +4,9 @@
 //
 // Purpose: while a caller's TYPESAFE_BASE or TS_BASE override points at this
 // relay, every POST is forwarded to TypeSafe unchanged and TypeSafe's response
-// is returned byte for byte. After the caller's response is already sent, the
-// same request body with the model id swapped to the shadow model is sent to
-// Nace's System One endpoint and one record per call pair is appended under
+// is returned byte for byte. In parallel, the same request body with the
+// model id swapped to the shadow model is sent to Nace's System One endpoint
+// and one record per call pair is appended under
 // the home's private data/de-shadow-drexmax/shadow/. The relay never changes
 // the answer, latency or failure behaviour the live caller sees: if this
 // relay is down, callers fail exactly as they do when TypeSafe is unreachable
@@ -85,6 +85,7 @@ const SELF_PATH = new URL(import.meta.url).pathname;
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 const MAX_RECORDED_BODY = 4 * 1024 * 1024;
 const DEFAULT_PORT = 8931;
+const pendingPairs = new Set();
 
 function die(message) {
   console.error(`error: ${message}`);
@@ -296,11 +297,9 @@ async function callNace(shadowBody, naceKey, naceBase, timeoutMs) {
   });
 }
 
-// The paired shadow: the live response has already been sent to the caller,
-// so everything here runs strictly off the caller's critical path and can
-// never delay or alter the reply. `live` is null only when the live call
-// itself failed, in which case only a content-free miss line is recorded.
-async function shadowPair(recordFile, requestBodyText, live, cfg, naceKey) {
+// The paired shadow starts alongside the live proxy and records both outcomes
+// once settled, independently of the caller's reply.
+async function shadowPair(recordFile, requestBodyText, liveResult, cfg, naceKey) {
   // Like the token file, the scan config is re-read per decision so a
   // mid-trial change takes effect immediately; a missing or malformed file
   // fails closed (every compaction request is skipped).
@@ -309,17 +308,19 @@ async function shadowPair(recordFile, requestBodyText, live, cfg, naceKey) {
   if (outcome.skipped) {
     line = { ts: new Date().toISOString(), use: outcome.use, skipped: outcome.skipped };
     if (outcome.groups) line.groups = outcome.groups;
-  } else if (live === null) {
-    line = { ts: new Date().toISOString(), use: outcome.use, skipped: "live-error" };
   } else {
-    const shadow = await callNace(outcome.shadowBody, naceKey, cfg.naceBase, cfg.naceTimeoutMs);
+    const [live, shadow] = await Promise.all([
+      liveResult,
+      callNace(outcome.shadowBody, naceKey, cfg.naceBase, cfg.naceTimeoutMs),
+    ]);
     const shadowError = shadow.error ??
       (typeof shadow.status === "number" && (shadow.status < 200 || shadow.status > 299) ? `http ${shadow.status}` : null);
     line = {
       ts: new Date().toISOString(),
       use: outcome.use,
       request: truncate(requestBodyText),
-      live: { status: live.status, ms: live.ms, body: truncate(live.bodyText), usage: parseUsage(live.bodyText) },
+      live: live.error ? { status: null, error: live.error } :
+        { status: live.status, ms: live.ms, body: truncate(live.bodyText), usage: parseUsage(live.bodyText) },
       shadow: {
         status: shadow.status ?? null,
         ms: shadow.ms ?? null,
@@ -337,8 +338,6 @@ async function shadowPair(recordFile, requestBodyText, live, cfg, naceKey) {
   }
   if (outcome.skipped && outcome.skipped !== "unusable-request" && outcome.skipped !== "unknown-use") {
     log(`skipped reason=${outcome.skipped}${outcome.groups ? ` groups=${outcome.groups.join("+")}` : ""}`);
-  } else if (live === null) {
-    log("skipped reason=live-error");
   }
 }
 
@@ -372,7 +371,7 @@ function proxyToTypeSafe(req, res, body, cfg, onLiveDone = () => {}) {
   } catch {
     res.writeHead(502, { "Content-Type": "application/json" });
     res.end('{"error":"relay misconfigured: bad live upstream"}');
-    liveDone(null);
+    liveDone({ status: null, error: "bad live upstream url" });
     return;
   }
   const isHttps = upstream.protocol === "https:";
@@ -413,7 +412,7 @@ function proxyToTypeSafe(req, res, body, cfg, onLiveDone = () => {}) {
         } else {
           res.destroy();
         }
-        liveDone(null);
+        liveDone({ status: null, error: "live upstream read failed" });
       });
     },
   );
@@ -423,14 +422,14 @@ function proxyToTypeSafe(req, res, body, cfg, onLiveDone = () => {}) {
       res.writeHead(504, { "Content-Type": "application/json" });
       res.end('{"error":"live upstream timeout"}');
     }
-    liveDone(null);
+    liveDone({ status: null, error: "live upstream timeout" });
   });
   upstreamReq.on("error", () => {
     if (!res.headersSent) {
       res.writeHead(502, { "Content-Type": "application/json" });
       res.end('{"error":"live upstream unreachable"}');
     }
-    liveDone(null);
+    liveDone({ status: null, error: "live upstream unreachable" });
   });
   upstreamReq.setTimeout(cfg.liveTimeoutMs);
   upstreamReq.end(body);
@@ -446,7 +445,7 @@ function runServer(cfg, naceKey) {
   const server = http.createServer((req, res) => {
     const route = (req.url || "").split("?")[0];
     if (req.method === "GET" && route === "/health") {
-      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.writeHead(200, { "Content-Type": "text/plain", "x-relay-pid": String(process.pid) });
       res.end("ok");
       return;
     }
@@ -474,16 +473,20 @@ function runServer(cfg, naceKey) {
     req.on("end", () => {
       if (tooLarge) return;
       const body = Buffer.concat(chunks);
-      // The shadow side is decided before proxying but runs strictly after
-      // the live response is sent: only a token-bearing request is ever
-      // considered, and the token segment is stripped so TypeSafe sees the
-      // plain /v1/systemone path it always did. An unscoped or leaked
-      // override without the token is proxied with no shadow effect at all.
       const token = readToken(cfg.tokenFile);
       const shadowRoute = token !== null && route === `/${token}/v1/systemone`;
-      if (shadowRoute) req.url = "/v1/systemone";
-      const requestBodyText = shadowRoute ? body.toString("utf8") : null;
-      proxyToTypeSafe(req, res, body, cfg, shadowRoute ? (live) => { shadowPair(recordFile, requestBodyText, live, cfg, naceKey); } : undefined);
+      if (/^\/[^/]+\/v1\/systemone$/.test(route)) {
+        req.url = `/v1/systemone${req.url.slice(route.length)}`;
+      }
+      let onLiveDone;
+      if (shadowRoute) {
+        const liveResult = new Promise((resolve) => { onLiveDone = resolve; });
+        const pair = shadowPair(recordFile, body.toString("utf8"), liveResult, cfg, naceKey)
+          .catch((err) => log(`pair failed: ${err.code || err.message}`));
+        pendingPairs.add(pair);
+        pair.finally(() => pendingPairs.delete(pair));
+      }
+      proxyToTypeSafe(req, res, body, cfg, onLiveDone);
     });
     req.on("error", () => {});
   });
@@ -492,27 +495,35 @@ function runServer(cfg, naceKey) {
   server.listen(cfg.port, "127.0.0.1", () => {
     log(`listening 127.0.0.1:${cfg.port}; records ${recordFile}`);
   });
+  let stopping = false;
   const shutdown = () => {
+    if (stopping) return;
+    stopping = true;
     log("stopping");
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 2000).unref();
+    const drainMs = Math.min(cfg.naceTimeoutMs, 10000);
+    const closed = new Promise((resolve) => server.close(resolve));
+    Promise.race([
+      closed.then(() => Promise.allSettled([...pendingPairs])),
+      new Promise((resolve) => setTimeout(resolve, drainMs)),
+    ]).then(() => process.exit(0));
+    setTimeout(() => process.exit(0), drainMs + 250).unref();
   };
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 }
 
-function waitHealthy(port, deadlineMs) {
+function waitHealthy(port, deadlineMs, expectedPid) {
   const deadline = Date.now() + deadlineMs;
   return new Promise((resolve) => {
     const poll = () => {
       const req = http.get({ host: "127.0.0.1", port, path: "/health", timeout: 500 }, (res) => {
         res.resume();
-        resolve(res.statusCode === 200);
+        resolve(res.statusCode === 200 &&
+          (expectedPid === undefined || res.headers["x-relay-pid"] === String(expectedPid)));
       });
       req.on("error", () => retry());
       req.on("timeout", () => {
         req.destroy();
-        retry();
       });
     };
     const retry = () => {
@@ -557,6 +568,10 @@ async function cmdStart() {
       die(`unknown option ${flags[i]}`);
     }
   }
+  if (!flags.includes("--foreground") && await waitHealthy(cfg.port, 300)) {
+    console.log(`relay already-running 127.0.0.1:${cfg.port}`);
+    return;
+  }
   fs.mkdirSync(cfg.baseDir, { recursive: true, mode: 0o700 });
   fs.chmodSync(cfg.baseDir, 0o700);
   if (!fs.existsSync(cfg.tokenFile)) {
@@ -578,7 +593,7 @@ async function cmdStart() {
     env: process.env,
   });
   fs.closeSync(logFd);
-  const healthy = await waitHealthy(cfg.port, 5000);
+  const healthy = await waitHealthy(cfg.port, 5000, child.pid);
   if (!healthy) {
     try {
       child.kill("SIGTERM");
@@ -608,7 +623,7 @@ function cmdStop() {
     console.log("relay not running (stale pid)");
     return;
   }
-  const deadline = Date.now() + 5000;
+  const deadline = Date.now() + 11000;
   const poll = () => {
     if (!pidAlive(pid)) {
       fs.rmSync(pidFile, { force: true });
