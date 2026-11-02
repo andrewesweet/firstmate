@@ -1,0 +1,67 @@
+Parsed commands.lint as a success-only command chain:
+[
+  [
+    "FM_LINT_JOBS=1",
+    "FM_LINT_REQUIRE_BOUNDS=1",
+    "bin/fm-lint.sh"
+  ],
+  [
+    "bash",
+    "tests/fm-pi-primary-types.test.sh"
+  ],
+  [
+    "bin/fm-branch-agent-md.sh",
+    "--check"
+  ]
+]
+The base configuration lacks the required guard; the target adds it after the unchanged two prior commands.
+Lint and typecheck clauses were not executed: this Test phase forbids those phases.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ) bin/fm-branch-agent-md.sh --check
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=1
+stderr: stale: ~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq/.claude/mods/fm-branch-mod/agents/fm-branch.md (run bin/fm-branch-agent-md.sh)
+Stale generated output rejected; file bytes unchanged by --check.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+Only input changed: .agents/skills/stuck-crewmate-recovery/SKILL.md; both generators and the generated file are unchanged.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=1
+stderr: stale: ~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq/.claude/mods/fm-branch-mod/agents/fm-branch.md (run bin/fm-branch-agent-md.sh)
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+Regenerated public agent contains the changed stuck-crewmate-recovery input; sha256=da0961d21aee6274442249a2ed28c2922cdddb0468fbcb432589fa0be38b5eed
+Only input changed: .agents/skills/ask-user-authority/SKILL.md; both generators and the generated file are unchanged.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=1
+stderr: stale: ~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq/.claude/mods/fm-branch-mod/agents/fm-branch.md (run bin/fm-branch-agent-md.sh)
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+Regenerated public agent contains the changed ask-user-authority input; sha256=a1ee737e1169cb0f55b0dc884565acb61b35cd4b771ef44684a75cfdc77ebc00
+Only input changed: .agents/skills/scout-completion/SKILL.md; both generators and the generated file are unchanged.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=1
+stderr: stale: ~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq/.claude/mods/fm-branch-mod/agents/fm-branch.md (run bin/fm-branch-agent-md.sh)
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+Regenerated public agent contains the changed scout-completion input; sha256=5217d07d35cd64138a05e875033db863fdb81db4e084885e54ea1a4484c875f8
+Only input changed: .agents/skills/captain-hold-lifecycle/SKILL.md; both generators and the generated file are unchanged.
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=1
+stderr: stale: ~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq/.claude/mods/fm-branch-mod/agents/fm-branch.md (run bin/fm-branch-agent-md.sh)
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh
+exit=0
+$ (cwd=~/.no-mistakes/worktrees/feb37d45d9da/01M6DMD3GRCSFH194RTYRA1EWZ/.fm-agent-freshness-live-ruhe2szq) bin/fm-branch-agent-md.sh --check
+exit=0
+Regenerated public agent contains the changed captain-hold-lifecycle input; sha256=f1217373cba03ddddc2f7a82833bc3b7f384065985484e3fe01d1ada31ae899d
+Disposable fixture removed; committed generated agent remains byte-identical.

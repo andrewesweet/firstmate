@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Configured freshness command accepts the committed current agent without rewriting it",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Developer checks a stale generated agent, receives the file and regeneration command, then regenerates successfully",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Developer changes each embedded skill alone; freshness refuses until the agent is regenerated with that change",
+    "result": "pass",
+    "live": true
+  }
+]
