@@ -7,7 +7,10 @@
 # bin/fm-branch-prompt.sh, and a fixed addendum that adapts the Pi-shaped
 # prompt to one persistent Claude Code background agent. Like the prompt it
 # wraps, the output is a pure function of tracked files, so it is committed and
-# regenerated only when bin/fm-branch-prompt.sh or this script changes.
+# regenerated when bin/fm-branch-prompt.sh, this script, or any tracked skill
+# bin/fm-branch-prompt.sh embeds verbatim changes (.agents/skills/
+# stuck-crewmate-recovery, ask-user-authority, scout-completion, and
+# captain-hold-lifecycle, each embedded whole as SKILL.md).
 # tests/fm-branch-claude-mod.test.sh holds the committed copy to --check.
 #
 # Usage:

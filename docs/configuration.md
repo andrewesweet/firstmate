@@ -1009,7 +1009,7 @@ The flag is a home-local supervision-noise preference and is not inherited by se
 
 ## Gate defaults (.no-mistakes.yaml)
 
-The tracked [`.no-mistakes.yaml`](../.no-mistakes.yaml) sets `test.evidence.store_in_repo: true` and runs the canonical [shell/workflow lint](../bin/fm-lint.sh) followed by the [Pi production-consumer typecheck](../tests/fm-pi-primary-types.test.sh) in the compiler-owning lint phase.
+The tracked [`.no-mistakes.yaml`](../.no-mistakes.yaml) sets `test.evidence.store_in_repo: true` and runs the canonical [shell/workflow lint](../bin/fm-lint.sh), the [Pi production-consumer typecheck](../tests/fm-pi-primary-types.test.sh), and the supervision-branch agent freshness check ([`bin/fm-branch-agent-md.sh --check`](../bin/fm-branch-agent-md.sh)) in the compiler-owning lint phase.
 The lint command is bounded the way CI bounds its own lint step (`FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1`): one ShellCheck worker at a time plus a required per-root resource envelope, which roughly halves the daemon lint step's peak memory demand versus the script's two-worker default, and a host whose shell rejects `ulimit -v` gets a deliberate lint refusal instead of an unbounded run.
 Storing evidence in the repo publishes each run's test artifacts to the orphan `no-mistakes/evidence` branch and links them from the PR body, instead of keeping them on local disk under the no-mistakes home.
 
