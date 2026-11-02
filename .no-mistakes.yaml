@@ -56,13 +56,9 @@ review:
 # Invocation wiring is asserted by `tests/fm-lint.test.sh` and
 # `tests/fm-lint-workflows.test.sh`.
 #
-# The trailing freshness check holds the committed supervision-branch agent
-# definition (.claude/mods/fm-branch-mod/agents/fm-branch.md) to its
-# generator: the generated file embeds tracked policy skills verbatim, so a
-# skill-only edit can go stale without either generator script changing, and
-# CI's `tests/fm-branch-claude-mod.test.sh` was the only check catching that
-# (it did, twice). Running the same `--check` here catches the staleness
-# locally; it costs a few hundredths of a second.
+# The trailing freshness check catches a stale generated supervision-branch
+# agent definition locally; bin/fm-branch-agent-md.sh owns its inputs and
+# regeneration procedure.
 #
 # Strict dual-SDK compilation belongs to this compiler-owning phase, not Test.
 # The existing type-regression owner also runs in the required portable CI lane.
