@@ -173,7 +173,7 @@ done
 export FM_HOME="$HOME_DIR"
 export DE_SHADOW_PORT="$PORT"
 export DE_SHADOW_LIVE_TIMEOUT_MS=1500
-export DE_SHADOW_NACE_TIMEOUT_MS=8000
+export DE_SHADOW_NACE_TIMEOUT_MS=7000
 export DE_SHADOW_KEYS_FILE="$KEYS_FILE"
 export DE_SHADOW_TYPESAFE_BASE="http://127.0.0.1:$SAFE_PORT"
 export DE_SHADOW_NACE_BASE="http://127.0.0.1:$NACE_PORT"
@@ -274,6 +274,20 @@ pass "repeated start preserves ownership of the running daemon"
 health_pid=$(curl -sS --max-time 2 -D - -o /dev/null "http://127.0.0.1:$PORT/health" | tr -d '\r' | awk 'tolower($1) == "x-relay-pid:" {print $2}')
 assert_equals "$original_pid" "$health_pid" "the health response identifies the actual listening relay"
 assert_contains "$status_output" "pid=$health_pid " "direct CLI status reports the header-verified pid"
+for port_input in flag environment foreground; do
+  different_port_code=0
+  case "$port_input" in
+    flag) different_port_output=$("$RELAY" start --port "$((PORT + 1))" 2>&1) || different_port_code=$? ;;
+    environment) different_port_output=$(DE_SHADOW_PORT="$((PORT + 1))" "$RELAY" start 2>&1) || different_port_code=$? ;;
+    foreground) different_port_output=$("$RELAY" start --foreground --port "$((PORT + 1))" 2>&1) || different_port_code=$? ;;
+  esac
+  [ "$different_port_code" -ne 0 ] || fail "a $port_input port override replaced a running relay"
+  assert_contains "$different_port_output" 'stop the running relay first or reuse it' "a $port_input port override explains the refusal"
+  assert_equals "$original_runtime" "$(cat "$TMP_ROOT/relay.pid")" "a $port_input port override preserves runtime ownership"
+done
+health_pid=$(curl -sS --max-time 2 -D - -o /dev/null "http://127.0.0.1:$PORT/health" | tr -d '\r' | awk 'tolower($1) == "x-relay-pid:" {print $2}')
+assert_equals "$original_pid" "$health_pid" "port changes leave the original relay listening"
+pass "one home refuses another relay across flag, environment, and foreground port choices"
 
 sleep 120 &
 UNRELATED_PID=$!
@@ -288,12 +302,11 @@ for stale_port in "$PORT" "$SAFE_PORT"; do
   stale_status=$("$RELAY" status 2>&1) || status_code=$?
   [ "$status_code" -ne 0 ] || fail "status accepted an unverified live pid"
   assert_not_contains "$stale_status" 'status: running' "status refuses a missing or mismatched health pid"
-  stale_runtime=$(cat "$TMP_ROOT/relay.pid")
   start_code=0
   stale_start=$("$RELAY" start --port "$stale_port" 2>&1) || start_code=$?
   [ "$start_code" -ne 0 ] || fail "start accepted an unrelated listener as the relay"
   assert_not_contains "$stale_start" 'already-running' "HTTP 200 alone cannot prove relay ownership"
-  assert_equals "$stale_runtime" "$(cat "$TMP_ROOT/relay.pid")" "a failed start preserves the runtime record"
+  [ ! -e "$TMP_ROOT/relay.pid" ] || fail "an unverifiable runtime record survives restart"
   kill -0 "$UNRELATED_PID" 2>/dev/null || fail "start signaled an unrelated process"
 done
 printf '%s\n' "$original_runtime" > "$TMP_ROOT/relay.pid"
@@ -521,9 +534,15 @@ routing_body "$TMP_ROOT/shutdown-term.json" shutdown-term
 http=$(post "/$TOKEN/v1/systemone" "$TMP_ROOT/shutdown-term.json")
 expect_code 200 "$http" "a pending shadow leaves the live reply untouched before stop"
 cmp -s "$TMP_ROOT/reply.bin" "$TMP_ROOT/canned-live.json" || fail "pending shutdown pair altered live bytes"
-kill_relay
+assert_equals "$original_pid" "$(jq -r '.pid' "$TMP_ROOT/relay.pid")" "stop still owns the first relay after refused port changes"
+sleep 1
+assert_not_contains "$(records)" 'plain brief shutdown-term' "the shadow pair is still pending when stop begins"
+stop_output=$(DE_SHADOW_NACE_TIMEOUT_MS=100 DE_SHADOW_LIVE_TIMEOUT_MS=100 "$RELAY" stop 2>&1) || fail "stop failed to drain the original relay: $stop_output"
+assert_equals 'relay stopped' "$stop_output" "stop reports a clean exit after draining"
+[ ! -e "$TMP_ROOT/relay.pid" ] || fail "a clean stop retained the runtime record"
 shutdown_rec=$(jq -c 'select(.request? | fromjson? | .state.task.brief == "plain brief shutdown-term")' "$BASE_DIR/shadow/shadow.jsonl")
 assert_equals 200 "$(jq -r '.shadow.status' <<<"$shutdown_rec")" "stop drains a shadow longer than five seconds through recording"
+assert_equals 'drex-max-v1.1' "$(jq -r '.shadow.body | fromjson | .model' <<<"$shutdown_rec")" "the pair contains the actual settled shadow body"
 
 start_relays || fail "restart for SIGINT failed"
 echo '{"delayMs":1500}' > "$CONTROL_FILE"
@@ -535,6 +554,28 @@ wait_for 'plain brief shutdown-int' "$BASE_DIR/shadow/shadow.jsonl" "SIGINT drai
 shutdown_rec=$(jq -c 'select(.request? | fromjson? | .state.task.brief == "plain brief shutdown-int")' "$BASE_DIR/shadow/shadow.jsonl")
 assert_equals 200 "$(jq -r '.shadow.status' <<<"$shutdown_rec")" "SIGINT retains the settled shadow result"
 pass "SIGTERM and SIGINT drain pending pairs before exit"
+
+kill_relay
+export DE_SHADOW_LIVE_TIMEOUT_MS=3000
+export DE_SHADOW_NACE_TIMEOUT_MS=500
+start_relays || fail "restart for an unpaired live drain failed"
+echo '{"delayMs":2000}' > "$SAFE_CONTROL_FILE"
+routing_body "$TMP_ROOT/unpaired-live.json" unpaired-live
+curl -sS --max-time 0.3 -o "$TMP_ROOT/aborted-live.bin" \
+  -X POST "http://127.0.0.1:$PORT/v1/systemone" \
+  -H 'Content-Type: application/json' --data-binary "@$TMP_ROOT/unpaired-live.json" 2>/dev/null &
+live_client_pid=$!
+wait_for 'plain brief unpaired-live' "$SAFE_LOG" "the unpaired live call reached the upstream"
+live_client_code=0
+wait "$live_client_pid" || live_client_code=$?
+expect_code 28 "$live_client_code" "the client disconnects before the live proxy completes"
+t0=$(now_ms)
+stop_output=$(DE_SHADOW_NACE_TIMEOUT_MS=100 DE_SHADOW_LIVE_TIMEOUT_MS=100 "$RELAY" stop 2>&1) || fail "stop failed to drain the unpaired live call: $stop_output"
+t1=$(now_ms)
+[ "$((t1 - t0))" -ge 1200 ] || fail "shutdown discarded an in-flight live call after the client disconnected"
+assert_equals 'relay stopped' "$stop_output" "an unpaired live call drains with a clean stop"
+assert_not_contains "$(records)" 'plain brief unpaired-live' "draining an unpaired call does not enable shadowing"
+pass "shutdown retains unpaired live work after a caller disconnects"
 
 # --- lifecycle: stop removes the listener -------------------------------------
 

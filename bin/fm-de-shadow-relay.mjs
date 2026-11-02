@@ -85,7 +85,7 @@ const SELF_PATH = new URL(import.meta.url).pathname;
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 const MAX_RECORDED_BODY = 4 * 1024 * 1024;
 const DEFAULT_PORT = 8931;
-const pendingPairs = new Set();
+const pendingWork = new Set();
 
 function die(message) {
   console.error(`error: ${message}`);
@@ -119,6 +119,10 @@ function resolveConfig() {
     liveTimeoutMs: Number(process.env.DE_SHADOW_LIVE_TIMEOUT_MS || 30000),
     port: Number(process.env.DE_SHADOW_PORT || DEFAULT_PORT),
   };
+}
+
+function shutdownTimeoutMs(cfg) {
+  return Math.max(cfg.naceTimeoutMs, cfg.liveTimeoutMs) + 2000;
 }
 
 // Keys file format: KEY=VALUE lines, optional `export ` prefix, optional
@@ -354,7 +358,7 @@ function readToken(tokenFile) {
 // unchanged (Authorization included) and writes TypeSafe's response body
 // back byte for byte. Calls onLiveDone only after the caller's response is
 // fully sent, so the shadow can never sit on the caller's critical path.
-function proxyToTypeSafe(req, res, body, cfg, onLiveDone = () => {}) {
+function proxyToTypeSafe(req, res, body, cfg, onLiveDone) {
   const liveStarted = Date.now();
   // A timeout destroys the socket, which then also fires the error handler:
   // the live outcome settles exactly once so the shadow pair is recorded once.
@@ -362,7 +366,7 @@ function proxyToTypeSafe(req, res, body, cfg, onLiveDone = () => {}) {
   const liveDone = (value) => {
     if (!liveSettled) {
       liveSettled = true;
-      onLiveDone?.(value);
+      onLiveDone(value);
     }
   };
   let upstream;
@@ -479,12 +483,14 @@ function runServer(cfg, naceKey) {
         req.url = `/v1/systemone${req.url.slice(route.length)}`;
       }
       let onLiveDone;
+      const liveResult = new Promise((resolve) => { onLiveDone = resolve; });
+      pendingWork.add(liveResult);
+      liveResult.finally(() => pendingWork.delete(liveResult));
       if (shadowRoute) {
-        const liveResult = new Promise((resolve) => { onLiveDone = resolve; });
         const pair = shadowPair(recordFile, body.toString("utf8"), liveResult, cfg, naceKey)
           .catch((err) => log(`pair failed: ${err.code || err.message}`));
-        pendingPairs.add(pair);
-        pair.finally(() => pendingPairs.delete(pair));
+        pendingWork.add(pair);
+        pair.finally(() => pendingWork.delete(pair));
       }
       proxyToTypeSafe(req, res, body, cfg, onLiveDone);
     });
@@ -500,13 +506,12 @@ function runServer(cfg, naceKey) {
     if (stopping) return;
     stopping = true;
     log("stopping");
-    const drainMs = Math.min(cfg.naceTimeoutMs, 10000);
     const closed = new Promise((resolve) => server.close(resolve));
-    Promise.race([
-      closed.then(() => Promise.allSettled([...pendingPairs])),
-      new Promise((resolve) => setTimeout(resolve, drainMs)),
-    ]).then(() => process.exit(0));
-    setTimeout(() => process.exit(0), drainMs + 250).unref();
+    closed.then(async () => {
+      while (pendingWork.size > 0) await Promise.allSettled([...pendingWork]);
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), shutdownTimeoutMs(cfg)).unref();
   };
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
@@ -534,7 +539,7 @@ function waitHealthy(port, deadlineMs, expectedPid) {
   });
 }
 
-// The pid file is one JSON object {pid, port} so stop and status address the
+// The pid file is one JSON object {pid, port, shutdownTimeoutMs} so stop and status address the
 // same port the daemon was started on, not a later default.
 function readRuntime(pidFile) {
   try {
@@ -569,11 +574,14 @@ async function cmdStart() {
     }
   }
   const runtime = readRuntime(cfg.pidFile);
-  if (!flags.includes("--foreground") && runtime?.port === cfg.port &&
-      await waitHealthy(cfg.port, 300, runtime.pid)) {
-    console.log(`relay already-running 127.0.0.1:${cfg.port}`);
+  if (runtime && pidAlive(runtime.pid) && await waitHealthy(runtime.port, 300, runtime.pid)) {
+    if (runtime.port !== cfg.port) {
+      die(`relay already running on 127.0.0.1:${runtime.port}; stop the running relay first or reuse it`);
+    }
+    console.log(`relay already-running 127.0.0.1:${runtime.port}`);
     return;
   }
+  fs.rmSync(cfg.pidFile, { force: true });
   fs.mkdirSync(cfg.baseDir, { recursive: true, mode: 0o700 });
   fs.chmodSync(cfg.baseDir, 0o700);
   if (!fs.existsSync(cfg.tokenFile)) {
@@ -602,7 +610,7 @@ async function cmdStart() {
     } catch {}
     die(`relay did not become healthy on 127.0.0.1:${cfg.port} - see ${cfg.logFile}`);
   }
-  fs.writeFileSync(cfg.pidFile, `${JSON.stringify({ pid: child.pid, port: cfg.port })}\n`, { mode: 0o600 });
+  fs.writeFileSync(cfg.pidFile, `${JSON.stringify({ pid: child.pid, port: cfg.port, shutdownTimeoutMs: shutdownTimeoutMs(cfg) })}\n`, { mode: 0o600 });
   console.log(`relay listening 127.0.0.1:${cfg.port}`);
   console.log(`records: ${path.join(cfg.shadowDir, "shadow.jsonl")}`);
   console.log(`token file: ${cfg.tokenFile}`);
@@ -611,7 +619,8 @@ async function cmdStart() {
 }
 
 async function cmdStop() {
-  const pidFile = resolveConfig().pidFile;
+  const cfg = resolveConfig();
+  const pidFile = cfg.pidFile;
   const runtime = readRuntime(pidFile);
   const pid = runtime?.pid ?? null;
   if (!pid) {
@@ -628,7 +637,9 @@ async function cmdStop() {
     console.log("relay not running (stale pid)");
     return;
   }
-  const deadline = Date.now() + 11000;
+  const drainMs = Math.max(shutdownTimeoutMs(cfg),
+    Number.isFinite(runtime.shutdownTimeoutMs) ? runtime.shutdownTimeoutMs : 0);
+  const deadline = Date.now() + drainMs + 1000;
   const poll = () => {
     if (!pidAlive(pid)) {
       fs.rmSync(pidFile, { force: true });
