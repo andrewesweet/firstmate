@@ -56,11 +56,19 @@ review:
 # Invocation wiring is asserted by `tests/fm-lint.test.sh` and
 # `tests/fm-lint-workflows.test.sh`.
 #
+# The trailing freshness check holds the committed supervision-branch agent
+# definition (.claude/mods/fm-branch-mod/agents/fm-branch.md) to its
+# generator: the generated file embeds tracked policy skills verbatim, so a
+# skill-only edit can go stale without either generator script changing, and
+# CI's `tests/fm-branch-claude-mod.test.sh` was the only check catching that
+# (it did, twice). Running the same `--check` here catches the staleness
+# locally; it costs a few hundredths of a second.
+#
 # Strict dual-SDK compilation belongs to this compiler-owning phase, not Test.
 # The existing type-regression owner also runs in the required portable CI lane.
 # Keep commands.test absent; the firstmate-coding-guidelines skill owns this policy.
 commands:
-  lint: 'FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1 bin/fm-lint.sh && bash tests/fm-pi-primary-types.test.sh'
+  lint: 'FM_LINT_JOBS=1 FM_LINT_REQUIRE_BOUNDS=1 bin/fm-lint.sh && bash tests/fm-pi-primary-types.test.sh && bin/fm-branch-agent-md.sh --check'
 
 # Publish each run's test evidence to the orphan no-mistakes/evidence branch linked from the PR.
 # The evidence is not committed to the feature or default branch.
