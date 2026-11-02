@@ -2077,8 +2077,12 @@ Firstmate passes its profile line unless it states a reason to override, such as
 
 - The resolver copies either environment-provided key into a non-exported private variable and unsets both `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` before launching child processes; bootstrap also protects the typesafe key.
 - The resolver sends only the selected key to `curl` as a header read from a file descriptor, never on argv, and never prints, logs, or writes either key.
-- The typesafe.ai endpoint is `https://api.typesafe.ai/v1/systemone`, and the OpenRouter endpoint is `https://openrouter.ai/api/alpha/decisions`.
+- The typesafe.ai endpoint defaults to `https://api.typesafe.ai/v1/systemone`; a non-empty `TS_BASE` in the process environment replaces the base URL before `/v1/systemone` is appended.
+  `TS_BASE` is not loaded from the home's `.env`, and the caller's TypeSafe Authorization header goes to the selected endpoint, so use a trusted destination.
+  The OpenRouter endpoint is `https://openrouter.ai/api/alpha/decisions` and ignores `TS_BASE`.
 - The default confidence floor is 0.5; request timeouts are 5 seconds for typesafe.ai and 10 seconds for OpenRouter.
+
+For opt-in local decision-model comparison, the [shadow relay header](../bin/fm-de-shadow-relay.mjs) owns setup, per-caller activation, eligibility and privacy gates, retained content, lifecycle, and rollback.
 
 The recommended OpenRouter model is `typesafe/jev-1.13` because it is built for fast typed choices and supplies native per-option probabilities without generated text.
 The dated model catalog observation is recorded in [dispatch verification](verification/dispatch-resolve.md#the-api-the-tool-depends-on).

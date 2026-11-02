@@ -253,6 +253,22 @@ assert_not_contains "$out" '--effort' "cursor profile without effort emits no --
 argv=$(cat "$LOG/argv")
 assert_not_contains "$argv" "$KEY" "the key never appears on curl argv"
 assert_contains "$argv" 'https://api.typesafe.ai/v1/systemone' "the request uses the fixed typesafe.ai endpoint"
+
+# --- TS_BASE override: shadow relay activation -------------------------------
+# An explicit TS_BASE replaces the default base wholesale (the same idiom as
+# bin/fm-branch-shadow-jev.sh); this is how the decision-eval shadow relay is
+# activated. Unset keeps the fixed endpoint above.
+reset_log
+write_response "$RESPONSE" rule_2 0.8
+TS_BASE='http://127.0.0.1:8931/tok0123456789abcdef' TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+expect_code 0 "$code" "TS_BASE override resolves"
+argv=$(cat "$LOG/argv")
+assert_contains "$argv" 'http://127.0.0.1:8931/tok0123456789abcdef/v1/systemone' "an explicit TS_BASE replaces the default base"
+assert_not_contains "$argv" 'api.typesafe.ai' "the overridden request never reaches the default endpoint"
+assert_contains "$argv" '@/dev/fd/3' "the override keeps the fd-based header read"
+assert_not_contains "$argv" "$KEY" "the override keeps the key off curl argv"
+assert_equals $'curl:clean\nquota-axi:clean' "$(cat "$LOG/child-env")" "the override keeps the key out of child environments"
+pass "an explicit TS_BASE replaces the default base while keeping the fd header and secret hygiene"
 assert_contains "$argv" $'--max-time\n5' "the request uses the fixed five-second timeout"
 assert_contains "$argv" '@/dev/fd/3' "the header is read from a file descriptor"
 assert_equals "Authorization: Bearer $KEY" "$(cat "$LOG/header")" "curl receives the bearer header on fd 3"

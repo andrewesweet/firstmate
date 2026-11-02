@@ -38,6 +38,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | [`fm-dod-lib.sh`](../bin/fm-dod-lib.sh) | Own ship/scout worker role scope, ship definitions of done, the named-head reachability gate on ship `done:` acceptance, and the no-mistakes `--intent` contract |
 | [`fm-wiki.sh`](../bin/fm-wiki.sh) | Capture and publish opt-in [crew-wiki lessons](configuration.md#crew-wiki-configwiki), refresh and consult the local mirror, check gardener readiness, lint pages, regenerate the index, and publish compiled pages |
 | `fm-jev-lint.sh`         | Optional advisory diff self-check and outcome scoring; see the [Jev self-check contract](configuration.md#jev-self-check-record-datajev-lintjsonl) |
+| [`fm-de-shadow-relay.mjs`](../bin/fm-de-shadow-relay.mjs) | Opt-in local TypeSafe decision-model comparison; its header owns setup and the relay contract |
 | `fm-brief-heading-lib.sh` | Single owner of reading a brief's sections, shared by the `--intent` contract, spawn and promotion validation, and `fm-dispatch-resolve.sh` |
 | `fm-herdr-lab.sh`        | Provision and guardedly operate an isolated, never-default Herdr lab session         |
 | `fm-herdr-lab-viewer.py` | The pty engine behind `fm-herdr-lab.sh viewer`: one real foreground Herdr client on a non-zero window grid |

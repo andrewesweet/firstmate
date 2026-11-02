@@ -87,6 +87,7 @@
 # Environment:
 #   FM_DISPATCH_PROVIDER, FM_DISPATCH_MODEL, TYPESAFE_API_KEY, and
 #   OPENROUTER_API_KEY are read from the environment or $FM_HOME/.env.
+#   TS_BASE endpoint overrides: see docs/configuration.md "Typed dispatch resolution".
 #
 # Authority: this tool never replaces firstmate's judgment, quota-array-dispatch,
 #   the captain-approval gate, or fm-spawn.sh validation; it publishes one
@@ -119,7 +120,7 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 CONFIDENCE_FLOOR=0.5
 DISPATCH_POLICY_VERSION=1
 TS_MODEL=jev-latest
-TS_BASE=https://api.typesafe.ai
+TS_BASE=${TS_BASE:-https://api.typesafe.ai}
 TS_TIMEOUT=5
 OR_BASE=https://openrouter.ai/api
 OR_TIMEOUT=10
