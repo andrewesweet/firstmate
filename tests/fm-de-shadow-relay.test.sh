@@ -83,6 +83,11 @@ function serve(port, log, handler) {
 }
 
 serve(safePort, safeLog, (req, res, body) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end("ok");
+    return;
+  }
   if (req.url.split("?")[0] !== "/v1/systemone") {
     res.writeHead(404);
     res.end("wrong live path");
@@ -193,7 +198,8 @@ kill_relay() {
     FM_HOME="$HOME_DIR" "$NODE_BIN" "$RELAY" stop >/dev/null 2>&1 || true
   fi
 }
-trap 'kill_relay; kill "$FAKE_PID" 2>/dev/null || true; fm_test_cleanup' EXIT
+UNRELATED_PID=''
+trap 'kill_relay; kill "$FAKE_PID" "$UNRELATED_PID" 2>/dev/null || true; fm_test_cleanup' EXIT
 
 # wait_for <pattern> <file> <msg>: poll up to 10s for a fixed-string record.
 wait_for() {
@@ -236,6 +242,8 @@ EOF
 
 # --- lifecycle: refused start without keys, then a running relay --------------
 
+[ -x "$RELAY" ] || fail "the documented relay CLI must be executable"
+
 start_relays() {
   FM_HOME="$HOME_DIR" "$NODE_BIN" "$RELAY" start --port "$PORT" >/dev/null 2>&1
 }
@@ -260,9 +268,41 @@ original_pid=$(jq -r '.pid' "$TMP_ROOT/relay.pid")
 repeat_output=$("$NODE_BIN" "$RELAY" start --port "$PORT") || fail "repeated start failed"
 assert_contains "$repeat_output" "already-running 127.0.0.1:$PORT" "repeated start identifies the running port"
 assert_equals "$original_runtime" "$(cat "$TMP_ROOT/relay.pid")" "repeated start preserves the original runtime record"
-status_output=$("$NODE_BIN" "$RELAY" status) || fail "repeated start broke status"
+status_output=$("$RELAY" status) || fail "repeated start broke status"
 assert_contains "$status_output" "pid=$original_pid " "status retains the original live pid"
 pass "repeated start preserves ownership of the running daemon"
+health_pid=$(curl -sS --max-time 2 -D - -o /dev/null "http://127.0.0.1:$PORT/health" | tr -d '\r' | awk 'tolower($1) == "x-relay-pid:" {print $2}')
+assert_equals "$original_pid" "$health_pid" "the health response identifies the actual listening relay"
+assert_contains "$status_output" "pid=$health_pid " "direct CLI status reports the header-verified pid"
+
+sleep 120 &
+UNRELATED_PID=$!
+for stale_port in "$PORT" "$SAFE_PORT"; do
+  printf '{"pid":%s,"port":%s}\n' "$UNRELATED_PID" "$stale_port" > "$TMP_ROOT/relay.pid"
+  stop_code=0
+  stop_output=$("$RELAY" stop 2>&1) || stop_code=$?
+  [ "$stop_code" -ne 0 ] || fail "stop accepted an unverified live pid"
+  assert_contains "$stop_output" 'cannot verify relay identity' "stop explains its identity refusal"
+  kill -0 "$UNRELATED_PID" 2>/dev/null || fail "stop signaled an unrelated process"
+  status_code=0
+  stale_status=$("$RELAY" status 2>&1) || status_code=$?
+  [ "$status_code" -ne 0 ] || fail "status accepted an unverified live pid"
+  assert_not_contains "$stale_status" 'status: running' "status refuses a missing or mismatched health pid"
+  stale_runtime=$(cat "$TMP_ROOT/relay.pid")
+  start_code=0
+  stale_start=$("$RELAY" start --port "$stale_port" 2>&1) || start_code=$?
+  [ "$start_code" -ne 0 ] || fail "start accepted an unrelated listener as the relay"
+  assert_not_contains "$stale_start" 'already-running' "HTTP 200 alone cannot prove relay ownership"
+  assert_equals "$stale_runtime" "$(cat "$TMP_ROOT/relay.pid")" "a failed start preserves the runtime record"
+  kill -0 "$UNRELATED_PID" 2>/dev/null || fail "start signaled an unrelated process"
+done
+printf '%s\n' "$original_runtime" > "$TMP_ROOT/relay.pid"
+kill "$UNRELATED_PID"
+wait "$UNRELATED_PID" 2>/dev/null || true
+UNRELATED_PID=''
+"$RELAY" status >/dev/null || fail "identity checks disturbed the original relay"
+pass "stale PIDs and unrelated HTTP-200 services cannot claim relay ownership"
+: > "$SAFE_LOG"
 
 # --- (a) routing pair: byte-identical live response, token stripped, pair recorded
 

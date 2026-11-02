@@ -2,7 +2,7 @@
 // fm-de-shadow-relay.mjs - loopback shadow relay for the Drex Max v1.1 live
 // shadow trial beside TypeSafe Jev (data/de-shadow-drexmax/).
 //
-// Purpose: while a caller's TYPESAFE_BASE or TS_BASE override points at this
+// Purpose: while a caller's TS_BASE override points at this
 // relay, every POST is forwarded to TypeSafe unchanged and TypeSafe's response
 // is returned byte for byte. In parallel, the same request body with the
 // model id swapped to the shadow model is sent to Nace's System One endpoint
@@ -68,8 +68,8 @@
 // only - never a global shell or settings file, which would also activate the
 // shadow for the household second mate's sessions):
 //   resolver:        TS_BASE=http://127.0.0.1:<port>/<token>
-//   Claude Code mod: TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
-//   Pi extension:    TYPESAFE_BASE=http://127.0.0.1:<port>/<token>
+//   Claude Code mod: TS_BASE=http://127.0.0.1:<port>/<token>
+//   Pi extension:    TS_BASE=http://127.0.0.1:<port>/<token>
 // Rollback is one line per caller: unset the override; the callers return to
 // TypeSafe directly with no other change. Stop the relay with the stop
 // command.
@@ -519,7 +519,7 @@ function waitHealthy(port, deadlineMs, expectedPid) {
       const req = http.get({ host: "127.0.0.1", port, path: "/health", timeout: 500 }, (res) => {
         res.resume();
         resolve(res.statusCode === 200 &&
-          (expectedPid === undefined || res.headers["x-relay-pid"] === String(expectedPid)));
+          res.headers["x-relay-pid"] === String(expectedPid));
       });
       req.on("error", () => retry());
       req.on("timeout", () => {
@@ -568,7 +568,9 @@ async function cmdStart() {
       die(`unknown option ${flags[i]}`);
     }
   }
-  if (!flags.includes("--foreground") && await waitHealthy(cfg.port, 300)) {
+  const runtime = readRuntime(cfg.pidFile);
+  if (!flags.includes("--foreground") && runtime?.port === cfg.port &&
+      await waitHealthy(cfg.port, 300, runtime.pid)) {
     console.log(`relay already-running 127.0.0.1:${cfg.port}`);
     return;
   }
@@ -608,13 +610,16 @@ async function cmdStart() {
   child.unref();
 }
 
-function cmdStop() {
+async function cmdStop() {
   const pidFile = resolveConfig().pidFile;
   const runtime = readRuntime(pidFile);
   const pid = runtime?.pid ?? null;
   if (!pid) {
     console.log("relay not running (no usable pid file)");
     return;
+  }
+  if (!await waitHealthy(runtime.port, 500, pid)) {
+    die(`refusing to stop pid=${pid}: cannot verify relay identity on 127.0.0.1:${runtime.port}`);
   }
   try {
     process.kill(pid, "SIGTERM");
@@ -631,53 +636,34 @@ function cmdStop() {
       return;
     }
     if (Date.now() > deadline) {
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {}
-      fs.rmSync(pidFile, { force: true });
-      console.log("relay stopped (forced)");
-      return;
+      die(`relay pid=${pid} did not exit after shutdown; refusing further signals`);
     }
     setTimeout(poll, 100);
   };
   poll();
 }
 
-function cmdStatus() {
+async function cmdStatus() {
   const cfg = resolveConfig();
   const runtime = readRuntime(cfg.pidFile);
-  const port = runtime?.port ?? cfg.port;
   const pid = runtime?.pid ?? null;
   if (!pid || !pidAlive(pid)) {
     console.log("status: not running");
     process.exit(1);
   }
-  const req = http.get({ host: "127.0.0.1", port, path: "/health", timeout: 1000 }, (res) => {
-    res.resume();
-    if (res.statusCode === 200) {
-      console.log(`status: running pid=${pid} 127.0.0.1:${port}`);
-      process.exit(0);
-    } else {
-      console.log(`status: unhealthy pid=${pid} http ${res.statusCode}`);
-      process.exit(1);
-    }
-  });
-  req.on("error", () => {
-    console.log(`status: process alive pid=${pid} but not answering on 127.0.0.1:${port}`);
-    process.exit(1);
-  });
-  req.on("timeout", () => {
-    req.destroy();
-    console.log(`status: process alive pid=${pid} but not answering on 127.0.0.1:${port}`);
-    process.exit(1);
-  });
+  if (await waitHealthy(runtime.port, 1000, pid)) {
+    console.log(`status: running pid=${pid} 127.0.0.1:${runtime.port}`);
+    return;
+  }
+  console.log(`status: relay identity unverified pid=${pid} 127.0.0.1:${runtime.port}`);
+  process.exit(1);
 }
 
 async function main() {
   const command = process.argv[2];
   if (command === "start") await cmdStart();
-  else if (command === "stop") cmdStop();
-  else if (command === "status") cmdStatus();
+  else if (command === "stop") await cmdStop();
+  else if (command === "status") await cmdStatus();
   else die("usage: fm-de-shadow-relay.mjs start [--port <n>] [--foreground] | stop | status");
 }
 
