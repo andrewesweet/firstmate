@@ -80,8 +80,9 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const SELF_PATH = new URL(import.meta.url).pathname;
+const SELF_PATH = fileURLToPath(import.meta.url);
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 const MAX_RECORDED_BODY = 4 * 1024 * 1024;
 const DEFAULT_PORT = 8931;
@@ -614,7 +615,7 @@ async function cmdStart() {
   console.log(`relay listening 127.0.0.1:${cfg.port}`);
   console.log(`records: ${path.join(cfg.shadowDir, "shadow.jsonl")}`);
   console.log(`token file: ${cfg.tokenFile}`);
-  console.log(`stop: ${SELF_PATH} stop`);
+  console.log(`stop: '${SELF_PATH.replaceAll("'", "'\"'\"'")}' stop`);
   child.unref();
 }
 

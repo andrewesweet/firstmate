@@ -577,6 +577,16 @@ assert_equals 'relay stopped' "$stop_output" "an unpaired live call drains with 
 assert_not_contains "$(records)" 'plain brief unpaired-live' "draining an unpaired call does not enable shadowing"
 pass "shutdown retains unpaired live work after a caller disconnects"
 
+copied_dir="$TMP_ROOT/relay space é's"
+mkdir -p "$copied_dir"
+cp "$RELAY" "$copied_dir/fm-de-shadow-relay.mjs"
+copied_start=$("$copied_dir/fm-de-shadow-relay.mjs" start --port "$PORT") || fail "relay startup failed from a path needing decoding"
+copied_stop_command=$(printf '%s\n' "$copied_start" | sed -n 's/^stop: //p')
+[ -n "$copied_stop_command" ] || fail "startup omitted the printed stop command"
+copied_stop=$(bash -c "$copied_stop_command" 2>&1) || fail "the printed stop command failed: $copied_stop"
+assert_equals 'relay stopped' "$copied_stop" "the printed stop command handles spaces, Unicode, and apostrophes"
+pass "the daemon starts and its printed stop command works from a path needing decoding and quoting"
+
 # --- lifecycle: stop removes the listener -------------------------------------
 
 kill_relay
