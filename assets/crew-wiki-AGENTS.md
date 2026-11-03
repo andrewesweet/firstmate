@@ -60,6 +60,10 @@ Orphan pages, raw lessons no page cites after 30 days, `stale` or `wrong` usage 
 ## Gardener run steps
 
 Compile at most 25 pending raw lessons, oldest first.
+A run plan (`plan.json`) and its `report.md` may arrive beside the task's instructions.
+The plan lists the same batch in that order and may carry Jev route, duplicate, and worth-keeping hints for each lesson.
+Those hints are advisory: a hint never drops, holds, or reorders a lesson, and the batch is whatever the log does not name.
+The report's calibration table is labelled against the pages the run actually cites, so compiling normally is all a run owes it.
 Apply supersessions for claims a newer lesson overturns.
 Act on the lint findings, blocking first.
 Append one `## [YYYY-MM-DD] ingest` line per batch to `log.md`, naming every raw id the run compiled.

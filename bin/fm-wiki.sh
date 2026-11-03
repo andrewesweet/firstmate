@@ -92,11 +92,29 @@
 #                 Register it with bin/fm-procevent-when.sh (docs/configuration.md
 #                 "Crew wiki") so firstmate is woken once to file a gardener
 #                 task; the watch fires at most once and firstmate re-arms it.
+#   triage [--repo <dir>] [--plan <path>] [--limit <n>]
+#                 Gardener only: build the run plan for the next gardener task,
+#                 oldest pending raw lesson first, at most 25 a run (--limit).
+#                 Candidates are the best plain-grep matches among pages/ for
+#                 the lesson's scope and claim, capped at 8. With FM_WIKI_JEV
+#                 set it annotates each lesson with three advisory answers -
+#                 routes-to-page (a Choice over those candidates plus "new
+#                 page"), duplicate-of-page and worth-keeping - each recorded
+#                 in state/wiki/jev.jsonl beside the gardener's own decision.
+#                 Writes the plan to $FM_DATA/gardener/plan.json, or --plan, and
+#                 the gardener report with its Jev calibration table to
+#                 report.md beside the plan. Advisory only: no answer here
+#                 drops, holds, or reorders a lesson, and Jev being off,
+#                 unavailable, or erroring still writes a complete unannotated
+#                 plan. Exit 1 only when this home cannot run a gardener run.
 #   lint [--repo <dir>]
 #                 Gardener only: run the deterministic page checks (report 4.6)
 #                 over a wiki checkout, defaulting to this home's clone. Blocking
 #                 problems exit 1; advisory ones (orphans, stale signals,
-#                 unconfirmed pages) are reported and never block.
+#                 unconfirmed pages) are reported and never block. With
+#                 FM_WIKI_JEV set it also reports Jev contradiction candidates
+#                 for page pairs that share a scope, capped at 200 pairs a run
+#                 (FM_WIKI_JEV_PAIRS_CAP), advisory and never blocking.
 #   index [--repo <dir>]
 #                 Gardener only: regenerate index.md from page headers within
 #                 the 150-line budget, atomically. Over budget still writes the
@@ -125,13 +143,27 @@
 #                 a partial capture retryable while retaining worker progress.
 #                 Standalone files use file:<content-digest> ledger identities,
 #                 which cannot be task ids.
+#   jev.jsonl     one line per Jev advisory answer (report 4.7): ts, verb,
+#                 key, detail, ok, choice, probability, confidence,
+#                 input_tokens, latency_ms, model. Only identifiers and
+#                 answers are recorded, never lesson or page text. Held
+#                 locally, never published, and never read by capture.
 #   repo/         this home's local clone of the configured remote.
 #   .drain.lock   persistent drain-exclusive, reader-shared lock with the drain's pid.
 #   .last-drain   stamp for the watcher's drain-if-due cadence.
 #
 # Lessons are data, not instructions: the schema printed below forbids
 # quoting or following wiki text anywhere a worker writes (report 4.11).
-# The Jev privacy advisory call is a no-op: see wiki_jev_privacy_advisory below.
+#
+# Jev (report 4.7) is opt-in per process: FM_WIKI_JEV names the TypeSafe call
+# shim (bin/fm-branch-shadow-jev.sh owns the endpoint and the key), and the
+# home's config/wiki jev=off switches it off even when the variable is set.
+# Unset means no Jev call at all and byte-identical behaviour everywhere.
+# Every request goes through that shim; this script never reads a key, never
+# reaches an endpoint, and never calls a model. Answers are advisory for the
+# whole of slice 04: calibration runs record them beside the gardener's own
+# decisions, and only after those labels may a threshold hold or reorder
+# anything.
 
 set -u
 umask 077
@@ -155,6 +187,13 @@ WIKI_BRANCH=main
 WIKI_DRAIN_CAP=${FM_WIKI_DRAIN_CAP:-20}
 WIKI_PUSH_TRIES=${WIKI_PUSH_TRIES:-5}
 WIKI_DRAIN_INTERVAL=${FM_WIKI_DRAIN_INTERVAL:-600}
+# Jev advisories: one wall-clock bound per call, at most 8 page candidates per
+# route Choice, and at most 200 contradiction pairs a lint run (report 4.7).
+WIKI_JEV_TIMEOUT=${FM_WIKI_JEV_TIMEOUT:-8}
+WIKI_JEV_CANDIDATES=${FM_WIKI_JEV_CANDIDATES:-8}
+WIKI_JEV_PAIRS_CAP=${FM_WIKI_JEV_PAIRS_CAP:-200}
+WIKI_JEV_BATCH=25
+WIKI_JEV_FLOOR=0.8
 
 usage() {
   awk 'NR == 1 { next } /^# /{ sub(/^# ?/, ""); print; next } { exit }' "$0"
@@ -194,8 +233,7 @@ wiki_feature_on() {
   local need_push=${1:-0} line key value
   CFG_REMOTE=
   CFG_ROLE=off
-  # CFG_JEV is intentionally not stored in slice 01: the advisory seam in slice
-  # 04 reads the jev= line; accepting the key now is the forward compatibility.
+  CFG_JEV=
   CFG_HOST=$(uname -n 2>/dev/null || printf 'localhost')
   CFG_HOST=$(wiki_sanitize "$CFG_HOST")
   [ -n "$CFG_HOST" ] || CFG_HOST=localhost
@@ -212,8 +250,9 @@ wiki_feature_on() {
     case $key in
       remote) CFG_REMOTE=$value ;;
       role) CFG_ROLE=$(printf '%s' "$value" | tr -d '[:space:]') ;;
-      # Slice 04's privacy-advisory seam will read jev=; slice 01 accepts the key.
-      jev) : ;;
+      # jev=off is this home's Jev kill-switch; on, an empty, or an
+      # unrecognized value leaves FM_WIKI_JEV in charge.
+      jev) CFG_JEV=$(printf '%s' "$value" | tr -d '[:space:]') ;;
       host) value=$(wiki_sanitize "$value"); [ -n "$value" ] && CFG_HOST=$value ;;
     esac
   done < "$config_dir/wiki"
@@ -246,6 +285,7 @@ wiki_paths() {
   WIKI_OUTBOX=$WIKI_DIR/outbox
   WIKI_HELD=$WIKI_DIR/held
   WIKI_LEDGER=$WIKI_DIR/ledger.jsonl
+  WIKI_JEV_RECORD=$WIKI_DIR/jev.jsonl
   WIKI_REPO=$WIKI_DIR/repo
   WIKI_LOCK=$WIKI_DIR/.drain.lock
   WIKI_LAST_DRAIN=$WIKI_DIR/.last-drain
@@ -409,11 +449,224 @@ wiki_scan_hit() {
   return 1
 }
 
-# wiki_jev_privacy_advisory <file> - no-op seam for slice 04. The advisory
-# (report 4.7/4.8) will run here after the deterministic scan, behind
-# config/wiki's jev= key and FM_WIKI_JEV, and Jev being unavailable must
-# never block a publish.
+# --- Jev advisory seam (report 4.7) -----------------------------------------
+#
+# Every call in this module is advisory. Calibration comes first: until
+# thresholds are set from two gardener runs, nothing here holds, drops, or
+# reorders anything, and an unavailable or erroring answer changes nothing at
+# all. Only identifiers and answers reach state/wiki/jev.jsonl; lesson and
+# page text never does.
+
+# wiki_jev_enabled: 0 when this process opted in with FM_WIKI_JEV and this
+# home's config/wiki has not switched the advisory off with jev=off.
+wiki_jev_enabled() {
+  [ -n "${FM_WIKI_JEV:-}" ] || return 1
+  [ "${CFG_JEV:-}" != off ] || return 1
+  return 0
+}
+
+# wiki_jev_parse <verb> <key> <detail> <response-file> <latency-ms>
+# Read one shim response and print its tab-separated verdict:
+#   RECORD<TAB><one JSON record line>
+#   ANSWER<TAB><choice><TAB><probability><TAB><confidence>   (only when usable)
+# A response that is not one JSON object with "ok": true and a usable answer
+# for this question yields a record with ok: false and no ANSWER line.
+wiki_jev_parse() {  # <verb> <key> <detail> <response-file> <latency-ms>
+  python3 - "$1" "$2" "$3" "$4" "$5" <<'PYJEV'
+import datetime
+import json
+import sys
+
+verb, key, detail, path, latency = sys.argv[1:6]
+try:
+    latency = int(latency)
+except ValueError:
+    latency = 0
+choices = {"route"}
+doc = None
+try:
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                doc = json.loads(line)
+            except ValueError:
+                doc = None
+except OSError:
+    doc = None
+ok = isinstance(doc, dict) and doc.get("ok") is True
+model = doc.get("model") if isinstance(doc, dict) else None
+tokens = 0
+answer = None
+if ok:
+    usage = doc.get("usage")
+    if isinstance(usage, dict) and isinstance(usage.get("input_tokens"), int):
+        tokens = usage["input_tokens"]
+    answers = doc.get("answers")
+    if isinstance(answers, dict):
+        answer = answers.get(verb)
+    if not isinstance(answer, dict):
+        ok = False
+choice = None
+probability = None
+confidence = None
+if ok and verb in choices:
+    raw = answer.get("choice")
+    if isinstance(raw, str) and raw.strip():
+        choice = raw.strip()
+        probability = answer.get("probabilities")
+        probability = probability.get(choice) if isinstance(probability, dict) else None
+        confidence = answer.get("confidence")
+    else:
+        ok = False
+elif ok:
+    probability = answer.get("noul")
+    if not isinstance(probability, (int, float)) or isinstance(probability, bool):
+        ok = False
+        probability = None
+def number(value):
+    return round(float(value), 6) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+record = {
+    "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "verb": verb,
+    "key": key,
+    "detail": detail,
+    "ok": ok,
+    "choice": choice,
+    "probability": number(probability),
+    "confidence": number(confidence),
+    "input_tokens": tokens,
+    "latency_ms": latency,
+    "model": model if isinstance(model, str) else "jev",
+}
+print("RECORD\t" + json.dumps(record, separators=(",", ":"), sort_keys=True))
+if ok:
+    # A tab-only IFS collapses neighbouring empty fields, so an absent answer
+    # prints as "-" and the reader maps it back to the empty string.
+    print("ANSWER\t%s\t%s\t%s" % (
+        choice or "-",
+        "-" if record["probability"] is None else repr(record["probability"]),
+        "-" if record["confidence"] is None else repr(record["confidence"]),
+    ))
+PYJEV
+}
+
+# wiki_jev_call <verb> <key> <detail> <request-file>: ask one question through
+# the TypeSafe shim and append its record. Sets WIKI_JEV_OK (1 when answered),
+# WIKI_JEV_CHOICE, WIKI_JEV_P, and WIKI_JEV_CONFIDENCE. A flag off, a timeout,
+# an unavailable answer, or a malformed one all leave WIKI_JEV_OK=0 with empty
+# answers, and no caller may change what it publishes because of one.
+wiki_jev_call() {  # <verb> <key> <detail> <request-file>
+  local verb=$1 key=$2 detail=$3 req=$4 resp t0 t1 lat parsed
+  WIKI_JEV_OK=0
+  WIKI_JEV_CHOICE=
+  WIKI_JEV_P=
+  WIKI_JEV_CONFIDENCE=
+  wiki_jev_enabled || return 0
+  resp=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-jev.XXXXXX") || return 0
+  t0=$(date +%s%3N 2>/dev/null || date +%s)
+  # fm_run_timed backgrounds the command it bounds, and a backgrounded command
+  # loses the caller's stdin, so the shim's stdin is reopened from the request
+  # file inside the bounded child.
+  # shellcheck disable=SC2016  # Expansion is deliberately deferred to the child shell.
+  fm_run_timed "$WIKI_JEV_TIMEOUT" bash -c 'exec "$1" < "$2"' fm-wiki-jev \
+    "$FM_WIKI_JEV" "$req" > "$resp" 2>/dev/null || true
+  t1=$(date +%s%3N 2>/dev/null || date +%s)
+  if [[ "$t0" == *N || "$t1" == *N ]]; then
+    lat=0
+  elif [ "${#t0}" -le 10 ]; then
+    lat=$(( (t1 - t0) * 1000 ))
+  else
+    lat=$(( t1 - t0 ))
+  fi
+  parsed=$(wiki_jev_parse "$verb" "$key" "$detail" "$resp" "$lat" 2>/dev/null || printf '')
+  rm -f "$resp"
+  local tag a b c
+  while IFS=$'\t' read -r tag a b c; do
+    case $tag in
+      RECORD)
+        [ -n "$a" ] || continue
+        mkdir -p "$WIKI_DIR" 2>/dev/null || true
+        printf '%s\n' "$a" >> "$WIKI_JEV_RECORD" 2>/dev/null || true
+        ;;
+      ANSWER)
+        WIKI_JEV_OK=1
+        [ "$a" = - ] && a=''
+        [ "$b" = - ] && b=''
+        [ "$c" = - ] && c=''
+        WIKI_JEV_CHOICE=$a
+        WIKI_JEV_P=$b
+        WIKI_JEV_CONFIDENCE=$c
+        ;;
+    esac
+  done <<EOF
+$parsed
+EOF
+  return 0
+}
+
+# wiki_jev_request <out> <state-file> <question-name> <type> <instructions>
+#                  <criteria-file>
+# Build one TypeSafe request body: the state text from a file (already
+# bounded and secret-scanned by the caller) and one question whose criteria
+# are read as `<key><TAB><text>` lines. Never reads a key and never prints one.
+wiki_jev_request() {  # <out> <state-file> <name> <type> <instructions> <criteria-file>
+  python3 - "$@" <<'PYREQ'
+import json
+import sys
+
+out, state_path, name, kind, instructions, criteria_path = sys.argv[1:7]
+with open(state_path, encoding="utf-8", errors="replace") as handle:
+    state = handle.read()
+criteria = {}
+with open(criteria_path, encoding="utf-8", errors="replace") as handle:
+    for line in handle:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        key, _, text = line.partition("\t")
+        if key:
+            criteria[key] = text
+question = {"type": kind, "instructions": instructions, "criteria": criteria}
+body = {"model": "jev-latest", "state": {"content": state}, "questions": {name: question}}
+with open(out, "w", encoding="utf-8") as handle:
+    json.dump(body, handle, separators=(",", ":"))
+PYREQ
+}
+
+# wiki_jev_privacy_advisory <file>: the close/file privacy second opinion
+# (report 4.7/4.8), run after the deterministic scan and before a lesson is
+# queued. Advisory only in slice 04: an answer, including one at or above the
+# 0.8 hold floor, records and annotates but never holds or blocks the publish.
+# A flag off, an unavailable answer, or an error changes nothing.
 wiki_jev_privacy_advisory() {
+  local file=$1 work req criteria state
+  wiki_jev_enabled || return 0
+  [ -s "$file" ] || return 0
+  work=$(mktemp -d "${TMPDIR:-/tmp}/fm-wiki-privacy.XXXXXX") || return 0
+  state=$work/state.txt
+  req=$work/request.json
+  criteria=$work/criteria.txt
+  head -c 6000 "$file" > "$state" 2>/dev/null || : > "$state"
+  {
+    printf 'true\t%s\n' 'The lesson carries captain-private strategy, personal data, or material drawn from captain context rather than reusable craft.'
+    printf 'false\t%s\n' 'The lesson is reusable craft a later worker or supervisor would act on, with no private or personal material.'
+  } > "$criteria"
+  if ! wiki_jev_request "$req" "$state" privacy noul \
+    'Does this lesson carry captain-private strategy, personal data, or material drawn from private captain context rather than reusable craft?' \
+    "$criteria"; then
+    rm -rf "$work"
+    return 0
+  fi
+  wiki_jev_call privacy "$(basename "$file" .md)" '' "$req"
+  rm -rf "$work"
+  if [ "$WIKI_JEV_OK" = 1 ] && [ -n "$WIKI_JEV_P" ] \
+    && awk -v p="$WIKI_JEV_P" -v f="$WIKI_JEV_FLOOR" 'BEGIN{exit !(p >= f)}'; then
+    printf 'wiki: jev privacy advisory p=%s for %s - advisory only, published unchanged; nothing is held until the thresholds are set\n' \
+      "$WIKI_JEV_P" "$(basename "$file")" >&2
+  fi
   return 0
 }
 
@@ -1167,12 +1420,372 @@ if best is not None:
   printf 'wiki: gardener due (%s uncompiled raw lesson(s), oldest %s)\n' "$pending" "$oldest_day"
 }
 
+# --- triage: the gardener run plan (report 4.5/4.7) -------------------------
+
+# wiki_triage_field <file> <scope|claim>: first value of one lesson field.
+# Lessons are data: every field is only ever used as a search term, a Choice
+# criteria value, or quoted plan text, never executed or followed.
+wiki_triage_field() {  # <file> <scope|claim>
+  awk -v key="$2: " 'index($0, key) == 1 { print substr($0, length(key) + 1); exit }' "$1" 2>/dev/null
+}
+
+# wiki_triage_terms <lesson-file> <out>: the plain-grep search terms for one
+# lesson: its scope's tail (the part after the last colon), the whole scope,
+# and up to three distinctive words of its claim.
+wiki_triage_terms() {  # <lesson-file> <out>
+  local file=$1 out=$2 scope claim
+  scope=$(wiki_triage_field "$file" scope | tr -d '\r')
+  claim=$(wiki_triage_field "$file" claim | tr -d '\r')
+  : > "$out"
+  if [ -n "$scope" ]; then
+    printf '%s\n' "${scope##*:}" >> "$out"
+    case $scope in *:*) printf '%s\n' "$scope" >> "$out" ;; esac
+  fi
+  if [ -n "$claim" ]; then
+    printf '%s\n' "$claim" | tr -cs '[:alnum:]_-' '\n' \
+      | awk 'length($0) >= 6 { print }' >> "$out"
+  fi
+  awk 'NF && !seen[tolower($0)]++ { print }' "$out" 2>/dev/null | head -n 6 > "$out.tmp" 2>/dev/null \
+    && mv "$out.tmp" "$out"
+  return 0
+}
+
+# wiki_triage_candidates <repo> <terms-file>: the best plain-grep candidates
+# among pages/, one path relative to the checkout per line, best first. A page
+# scores one point per distinct term it matches; ties break on path so the
+# menu is reproducible.
+wiki_triage_candidates() {  # <repo> <terms-file> [max]
+  local repo=$1 terms=$2 max=${3:-$WIKI_JEV_CANDIDATES} page rel score term list
+  list=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-candidates.XXXXXX") || return 0
+  : > "$list"
+  while IFS= read -r page; do
+    [ -n "$page" ] || continue
+    score=0
+    while IFS= read -r term; do
+      [ -n "$term" ] || continue
+      grep -qF -i -- "$term" "$page" 2>/dev/null && score=$(( score + 1 ))
+    done < "$terms"
+    [ "$score" -gt 0 ] || continue
+    rel=${page#"$repo"/}
+    printf '%s\t%s\n' "$score" "$rel" >> "$list"
+  done <<EOF
+$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  LC_ALL=C sort -t "$(printf '\t')" -k1,1nr -k2,2 "$list" 2>/dev/null | head -n "$max" | cut -f2
+  rm -f "$list"
+  return 0
+}
+
+# wiki_triage_page_text <repo> <rel> <out>: one page's bounded text for a
+# contradiction or duplicate question. Never sends more than 2k characters.
+wiki_triage_page_text() {  # <repo> <rel> <out>
+  head -c 2000 "$1/$2" > "$3" 2>/dev/null || : > "$3"
+  return 0
+}
+
+# wiki_triage_lessons <repo> <limit>: pending raw lesson paths under the
+# checkout, oldest first, one per line. Pending means the bare raw id is not a
+# complete token in log.md, the same membership rule `due` owns.
+wiki_triage_lessons() {  # <repo> <limit>
+  local repo=$1 limit=$2 log_text raw base shown=0
+  log_text=$(cat "$repo/log.md" 2>/dev/null || printf '')
+  log_text=$(printf '%s\n' "$log_text" | awk -F '[[:space:];,]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }')
+  while IFS= read -r raw; do
+    [ -n "$raw" ] || continue
+    base=$(basename "$raw" .md)
+    if printf '%s\n' "$log_text" | grep -qxF -- "$base"; then
+      continue
+    fi
+    printf '%s\n' "$raw"
+    shown=$(( shown + 1 ))
+    [ "$shown" -lt "$limit" ] || break
+  done <<EOF
+$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  return 0
+}
+
+# wiki_triage_render <rows> <plan> <report> <repo> <jev-state> <calls> <unavailable>
+# Write the plan the gardener follows and the gardener report with its Jev
+# calibration table (report 4.7). The gardener's own decision is read from the
+# pages that cite a lesson's raw path, so the table labels Jev's answer
+# against what actually happened rather than against another opinion.
+wiki_triage_render() {  # <rows> <plan> <report> <repo> <jev-state> <calls> <unavailable>
+  python3 - "$@" <<'PYTRIAGE'
+import datetime
+import json
+import os
+import re
+import sys
+import tempfile
+
+rows_path, plan_path, report_path, repo, jev_state, calls, unavailable = sys.argv[1:8]
+rows = []
+with open(rows_path, encoding="utf-8", errors="replace") as handle:
+    for line in handle:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        fields = line.split("\t")
+        if len(fields) < 11:
+            continue
+        rows.append(dict(zip(
+            ("id", "path", "scope", "claim", "route", "route_p", "route_conf",
+             "dup_page", "dup_p", "keep_p", "candidates"), fields)))
+
+compiled = set()
+try:
+    with open(os.path.join(repo, "log.md"), encoding="utf-8", errors="replace") as handle:
+        for token in handle.read().replace(";", " ").replace(",", " ").split():
+            compiled.add(token[:-3] if token.endswith(".md") else token)
+except OSError:
+    pass
+
+cited = {}
+for root, _dirs, files in os.walk(os.path.join(repo, "pages")):
+    for name in sorted(files):
+        if not name.endswith(".md"):
+            continue
+        full = os.path.join(root, name)
+        rel = os.path.relpath(full, repo).replace(os.sep, "/")
+        try:
+            text = open(full, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        for match in re.findall(r"raw/\d{4}/\d{2}/([^)\s\"'<>]+\.md)", text):
+            cited.setdefault(os.path.basename(match)[:-3], set()).add(rel)
+
+now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+plan_rows = []
+table = []
+for row in rows:
+    gardener_pages = sorted(cited.get(row["id"], set()))
+    route = row["route"] or None
+    duplicate = None
+    if row["dup_page"] and row["dup_p"]:
+        duplicate = {"page": row["dup_page"], "probability": float(row["dup_p"])}
+    keeping = {"probability": float(row["keep_p"])} if row["keep_p"] else None
+    jev = None
+    if route or duplicate or keeping:
+        jev = {}
+        if route:
+            jev["route"] = {
+                "choice": route,
+                "probability": float(row["route_p"]) if row["route_p"] else None,
+                "confidence": float(row["route_conf"]) if row["route_conf"] else None,
+            }
+        if duplicate:
+            jev["duplicate"] = duplicate
+        if keeping:
+            jev["worth_keeping"] = keeping
+    plan_rows.append({
+        "id": row["id"],
+        "path": row["path"],
+        "scope": row["scope"],
+        "claim": row["claim"],
+        "candidates": [c for c in row["candidates"].split(",") if c],
+        "jev": jev,
+    })
+    if route:
+        if gardener_pages:
+            agrees = "yes" if route in gardener_pages else "no"
+        else:
+            agrees = "pending"
+    else:
+        agrees = "-"
+    table.append("| %s | %s | %s | %s | %s | %s | %s |" % (
+        "`%s`" % row["id"],
+        "`%s`" % route if route else "-",
+        " ".join("`%s`" % page for page in gardener_pages) if gardener_pages else "(none yet)",
+        agrees,
+        row["dup_p"] or "-",
+        row["keep_p"] or "-",
+        "yes" if gardener_pages else ("no" if row["id"] in compiled else "pending"),
+    ))
+
+plan = {
+    "wiki": "gardener-plan v1",
+    "generated": now,
+    "jev": {"flag": jev_state, "calls": int(calls), "unavailable": int(unavailable)},
+    "lessons": plan_rows,
+}
+def write_atomic(path, text):
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    os.makedirs(directory, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8")
+    handle.write(text)
+    handle.close()
+    os.replace(handle.name, path)
+write_atomic(plan_path, json.dumps(plan, indent=2, sort_keys=False) + "\n")
+
+if jev_state == "on":
+    summary = "on (%s call(s), %s unavailable)" % (calls, unavailable)
+else:
+    summary = "off"
+report = [
+    "# Gardener report: Jev calibration",
+    "",
+    "Generated %s by `bin/fm-wiki.sh triage` over %s pending raw lesson(s)." % (now, len(plan_rows)),
+    "Jev: %s." % summary,
+    "",
+    "Advisory only: nothing in this table held, dropped, or reordered a lesson.",
+    "Thresholds are set from these labels after two gardener runs (report 4.7).",
+    "",
+    "| Lesson | Jev route | Gardener page | Route agrees | Jev duplicate p | Jev keep p | Gardener kept |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
+]
+report.extend(table or ["| (no pending lesson) | - | - | - | - | - | - |"])
+write_atomic(report_path, "\n".join(report) + "\n")
+PYTRIAGE
+}
+
+# wiki_triage: build the gardener run plan and its calibration report. Reads
+# this home's own clone or --repo, never the network, and never changes a
+# lesson: Jev answers annotate, and only annotate (report 4.7).
+wiki_triage() {
+  local repo='' plan='' limit=$WIKI_JEV_BATCH
+  if ! wiki_feature_on 1 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$CFG_ROLE" != gardener ]; then
+    printf 'fm-wiki: triage is gardener-only (config/wiki role=%s)\n' "$CFG_ROLE" >&2
+    return 1
+  fi
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --repo) [ -n "${2:-}" ] || die_usage 'triage --repo needs a directory'; repo=$2; shift 2 ;;
+      --plan) [ -n "${2:-}" ] || die_usage 'triage --plan needs a path'; plan=$2; shift 2 ;;
+      --limit)
+        [ -n "${2:-}" ] || die_usage 'triage --limit needs a count'
+        case $2 in ''|*[!0-9]*|0) die_usage 'triage --limit needs a positive count' ;; esac
+        limit=$2; shift 2 ;;
+      *) die_usage "unknown triage flag '$1'" ;;
+    esac
+  done
+  wiki_paths >/dev/null 2>&1 || return 1
+  repo=${repo:-"$WIKI_REPO"}
+  [ -d "$repo/pages" ] || { printf 'fm-wiki: triage: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  plan=${plan:-"$WIKI_DATA/gardener/plan.json"}
+  local report work lessons rows jev_state=off calls=0 unavailable=0
+  report=$(dirname "$plan")/report.md
+  work=$(mktemp -d "${TMPDIR:-/tmp}/fm-wiki-triage.XXXXXX") || { printf 'fm-wiki: triage: cannot stage a plan\n' >&2; return 1; }
+  lessons=$work/lessons
+  rows=$work/rows
+  : > "$rows"
+  wiki_triage_lessons "$repo" "$limit" > "$lessons"
+  wiki_jev_enabled && jev_state=on
+  local lesson rel id scope claim terms candidates choice target state criteria req dup_page dup_p keep_p route_p route_conf
+  while IFS= read -r lesson; do
+    [ -n "$lesson" ] || continue
+    rel=${lesson#"$repo"/}
+    id=$(basename "$lesson" .md)
+    scope=$(wiki_triage_field "$lesson" scope | tr '\t' ' ')
+    claim=$(wiki_triage_field "$lesson" claim | tr '\t' ' ')
+    wiki_triage_terms "$lesson" "$work/terms"
+    candidates=$(wiki_triage_candidates "$repo" "$work/terms" | tr '\n' ',' | sed 's/,$//')
+    choice='' target='' dup_page='' dup_p='' keep_p='' route_p='' route_conf=''
+    if [ "$jev_state" = on ]; then
+      state=$work/state
+      criteria=$work/criteria
+      req=$work/request.json
+      head -c 4000 "$lesson" > "$state" 2>/dev/null || : > "$state"
+      {
+        printf '\n\nCandidate pages:\n'
+        : > "$criteria"
+        local page summary
+        if [ -n "$candidates" ]; then
+          while IFS= read -r page; do
+            [ -n "$page" ] || continue
+            summary=$(sed -n 's/^> summary: *//p' "$repo/$page" 2>/dev/null | head -n 1)
+            [ -n "$summary" ] || summary='(no summary)'
+            printf '%s - %s\n' "$page" "$summary" >> "$state"
+            printf '%s\t%s\n' "$page" "$summary" >> "$criteria"
+          done <<EOF
+$(printf '%s' "$candidates" | tr ',' '\n')
+EOF
+        fi
+        printf 'new page\tNo existing page covers this lesson; it needs a new page.\n' >> "$criteria"
+      } >> "$state"
+      wiki_jev_request "$req" "$state" route choice \
+        'Which page should this raw lesson extend, or does the lesson need a new page? Judge by whether the page already covers this claim.' \
+        "$criteria" || req=
+      if [ -n "$req" ]; then
+        wiki_jev_call route "$id" '' "$req"
+        calls=$(( calls + 1 ))
+        [ "$WIKI_JEV_OK" = 1 ] || unavailable=$(( unavailable + 1 ))
+        case $WIKI_JEV_CHOICE in
+          ''|*[!A-Za-z0-9._/-]*) choice= ;;
+          *)
+            case ",$candidates,new page," in
+              *",$WIKI_JEV_CHOICE,"*) choice=$WIKI_JEV_CHOICE ;;
+              *) choice= ;;
+            esac
+            ;;
+        esac
+        case $choice in
+          ''|'new page') target=$(printf '%s' "$candidates" | cut -d, -f1) ;;
+          *) target=$choice ;;
+        esac
+        route_p=$WIKI_JEV_P
+        route_conf=$WIKI_JEV_CONFIDENCE
+        if [ -n "$target" ]; then
+          wiki_triage_page_text "$repo" "$target" "$work/page"
+          printf '%s\t%s\n' 'true' 'The page already states the same claim.' > "$criteria"
+          printf '%s\t%s\n' 'false' 'The page does not state this claim, so the lesson adds something new.' >> "$criteria"
+          head -c 4000 "$lesson" > "$work/dupstate" 2>/dev/null || : > "$work/dupstate"
+          {
+            printf '\n\nPage %s:\n' "$target"
+            cat "$work/page"
+          } >> "$work/dupstate"
+          if wiki_jev_request "$req" "$work/dupstate" duplicate noul \
+            'Does the page already state the claim in this lesson?' "$criteria"; then
+            wiki_jev_call duplicate "$id" "$target" "$req"
+            calls=$(( calls + 1 ))
+            [ "$WIKI_JEV_OK" = 1 ] || unavailable=$(( unavailable + 1 ))
+            if [ "$WIKI_JEV_OK" = 1 ]; then
+              dup_page=$target
+              dup_p=$WIKI_JEV_P
+            fi
+          fi
+        fi
+        printf '%s\t%s\n' 'true' 'A worker on a different task would act on this lesson.' > "$criteria"
+        printf '%s\t%s\n' 'false' 'This is local detail no worker on another task would act on.' >> "$criteria"
+        head -c 2500 "$lesson" > "$work/keepstate" 2>/dev/null || : > "$work/keepstate"
+        if wiki_jev_request "$req" "$work/keepstate" worth_keeping noul \
+          'Would a worker on a different task act on this lesson?' "$criteria"; then
+          wiki_jev_call worth_keeping "$id" '' "$req"
+          calls=$(( calls + 1 ))
+          [ "$WIKI_JEV_OK" = 1 ] || unavailable=$(( unavailable + 1 ))
+          if [ "$WIKI_JEV_OK" = 1 ]; then keep_p=$WIKI_JEV_P; fi
+        fi
+      fi
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$id" "$rel" "$scope" "$claim" \
+      "$choice" "$route_p" "$route_conf" \
+      "$dup_page" "$dup_p" "$keep_p" "$candidates" >> "$rows"
+    WIKI_JEV_P='' WIKI_JEV_CONFIDENCE=''
+  done < "$lessons"
+  if ! wiki_triage_render "$rows" "$plan" "$report" "$repo" "$jev_state" "$calls" "$unavailable"; then
+    rm -rf "$work"
+    printf 'fm-wiki: triage: cannot write the plan to %s\n' "$plan" >&2
+    return 1
+  fi
+  rm -rf "$work"
+  if [ "$jev_state" = on ]; then
+    printf 'wiki: triage wrote %s and %s (jev %s call(s), %s unavailable)\n' "$plan" "$report" "$calls" "$unavailable"
+  else
+    printf 'wiki: triage wrote %s and %s (jev off)\n' "$plan" "$report"
+  fi
+  return 0
+}
+
 # wiki_lint_repo <repo>: the deterministic page checks (report 4.6). Blocking
 # problems print as `wiki lint:` lines; advisory ones print as
 # `wiki lint advisory:` lines and never block. The outcome lands in
 # WIKI_LINT_BLOCKED/PAGES/CITED; the caller renders the verdict. Jev
-# contradiction and duplicate candidates are a slice-04 seam: no call happens
-# here.
+# contradiction candidates are one of those advisories
+# (wiki_lint_jev_contradictions) and are capped and never blocking.
 wiki_lint_repo() {
   local repo=$1 page rel citations fails=0
   WIKI_LINT_PAGES=0
@@ -1331,6 +1944,77 @@ EOF
         printf 'wiki lint advisory: usage signal needs the gardener: %s\n' "$line"
       done
   wiki_lint_stale_pages "$repo"
+  wiki_lint_jev_contradictions "$repo"
+}
+
+# wiki_lint_jev_contradictions <repo>: Jev contradiction candidates over page
+# pairs that share a scope (report 4.6/4.7). Advisory and never blocking: an
+# answer only prints a line and records itself in state/wiki/jev.jsonl. At
+# most WIKI_JEV_PAIRS_CAP pairs are asked in one run, and a run that reaches
+# the cap says so once. Jev off, unavailable, or erroring prints nothing extra
+# and leaves the deterministic verdict untouched.
+wiki_lint_jev_contradictions() {  # <repo>
+  local repo=$1 pairs pair_scopes asked=0 capped=0 a b scope_a
+  wiki_jev_enabled || return 0
+  pair_scopes=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pairs.XXXXXX") || return 0
+  pairs=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pair-list.XXXXXX") || return 0
+  {
+    local page rel scope
+    while IFS= read -r page; do
+      [ -n "$page" ] || continue
+      rel=${page#"$repo"/}
+      scope=$(sed -n 's/^> scope: *//p' "$page" 2>/dev/null | head -n 1)
+      [ -n "$scope" ] || continue
+      printf '%s\t%s\n' "$scope" "$rel"
+    done <<EOF
+$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  } > "$pair_scopes"
+  awk -F '\t' '
+    { scope[NR] = $1; page[NR] = $2 }
+    END {
+      for (i = 1; i <= NR; i++)
+        for (j = i + 1; j <= NR; j++)
+          if (scope[i] == scope[j]) print scope[i] "\t" page[i] "\t" page[j]
+    }
+  ' "$pair_scopes" > "$pairs" 2>/dev/null
+  rm -f "$pair_scopes"
+  local work state criteria req
+  work=$(mktemp -d "${TMPDIR:-/tmp}/fm-wiki-contradict.XXXXXX") || { rm -f "$pairs"; return 0; }
+  state=$work/state
+  criteria=$work/criteria
+  req=$work/request.json
+  printf '%s\t%s\n' 'true' 'The two pages make contradicting claims about the same behaviour.' > "$criteria"
+  printf '%s\t%s\n' 'false' 'The two pages agree, or cover different behaviour.' >> "$criteria"
+  while IFS=$'\t' read -r scope_a a b; do
+    [ -n "$a" ] && [ -n "$b" ] || continue
+    if [ "$asked" -ge "$WIKI_JEV_PAIRS_CAP" ]; then
+      capped=1
+      break
+    fi
+    asked=$(( asked + 1 ))
+    wiki_triage_page_text "$repo" "$a" "$work/a"
+    wiki_triage_page_text "$repo" "$b" "$work/b"
+    {
+      printf 'Scope: %s\n\nPage %s:\n' "$scope_a" "$a"
+      cat "$work/a"
+      printf '\n\nPage %s:\n' "$b"
+      cat "$work/b"
+    } > "$state"
+    wiki_jev_request "$req" "$state" contradicts noul \
+      'Do these two pages contradict each other about the same behaviour?' "$criteria" || break
+    wiki_jev_call contradicts "$a" "$b" "$req"
+    if [ "$WIKI_JEV_OK" = 1 ] && [ -n "$WIKI_JEV_P" ] \
+      && awk -v p="$WIKI_JEV_P" 'BEGIN{exit !(p >= 0.5)}'; then
+      printf 'wiki lint advisory: jev contradiction candidate p=%s: %s vs %s\n' "$WIKI_JEV_P" "$a" "$b"
+    fi
+  done < "$pairs"
+  rm -f "$pairs"
+  rm -rf "$work"
+  if [ "$capped" = 1 ]; then
+    printf 'wiki lint advisory: jev contradiction candidates capped at %s pairs this run\n' "$WIKI_JEV_PAIRS_CAP"
+  fi
+  return 0
 }
 
 # wiki_lint_stale_pages <repo>: pages unconfirmed for 90 days. Advisory only:
@@ -1628,6 +2312,10 @@ case ${1:-} in
   due)
     shift
     wiki_due "$@"
+    ;;
+  triage)
+    shift
+    wiki_triage "$@"
     ;;
   lint)
     shift

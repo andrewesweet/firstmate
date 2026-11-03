@@ -10,6 +10,8 @@ set -u
 ROOT=${FM_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}
 # shellcheck source=tests/lib.sh
 . "$ROOT/tests/lib.sh"
+# shellcheck source=tests/jev-fake-helpers.sh
+. "$ROOT/tests/jev-fake-helpers.sh"
 WIKI="$ROOT/bin/fm-wiki.sh"
 
 [ "$(lychee --version 2>/dev/null)" = 'lychee 0.24.2' ] || fail 'lychee 0.24.2 is required; install the official release binary from https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2 and put it on PATH'
@@ -1222,6 +1224,321 @@ test_publish_and_drain_refuse_other_effective_push_urls() {
   pass "both publishers reject alternate, multiple, and rewritten push destinations before uploading"
 }
 
+# --- slice 04: Jev triage, calibration report, contradiction candidates -----
+
+# triage_fixture <name> [extra]: a plain wiki checkout for the triage verb with
+# one pending raw lesson (alpha, scope tool:firstmate), plus a second pending
+# lesson (beta, scope fleet:routing) when `extra` is non-empty. It needs no git
+# repository: triage reads files. Echoes the checkout directory.
+triage_fixture() {
+  local dir="$TMP_ROOT/$1-repo" extra=${2:-}
+  mkdir -p "$dir/pages/tools" "$dir/pages/fleet" "$dir/raw/2026/10"
+  printf '# Crew wiki index\n' > "$dir/index.md"
+  printf '## [2026-10-24] ingest | 1 lesson | 20261024T000000Z-testhost-testhome-seed-a1b2\n' > "$dir/log.md"
+  cat > "$dir/raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md" <<'EOF'
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: seed
+wiki-final: done
+date: 2026-10-24
+---
+
+## seed lesson
+scope: tool:seed
+claim: the seed lesson exists
+evidence: this fixture
+EOF
+  cat > "$dir/pages/tools/firstmate.md" <<'EOF'
+> summary: firstmate tooling craft
+> scope: tool:firstmate
+> last-confirmed: 2026-10-25
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# Firstmate tooling
+
+The seed lesson exists ([lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md)).
+EOF
+  cat > "$dir/pages/fleet/routing.md" <<'EOF'
+> summary: dispatch routing craft
+> scope: fleet:routing
+> last-confirmed: 2026-10-25
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# Routing
+
+The seed lesson exists ([lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md)).
+EOF
+  cat > "$dir/raw/2026/10/20261025T010000Z-testhost-testhome-alpha-b1c2.md" <<'EOF'
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: alpha
+wiki-final: done
+date: 2026-10-25
+---
+
+## firstmate test runner runs changed files
+scope: tool:firstmate
+claim: the firstmate test runner only runs changed test files locally
+evidence: ran bin/fm-test-run.sh --changed
+EOF
+  if [ -n "$extra" ]; then
+    cat > "$dir/raw/2026/10/20261025T020000Z-testhost-testhome-beta-d3e4.md" <<'EOF'
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: beta
+wiki-final: done
+date: 2026-10-25
+---
+
+## dispatch routes by scope
+scope: fleet:routing
+claim: dispatch routes work by secondmate scope registry
+evidence: saw the routing rule
+EOF
+  fi
+  printf '%s\n' "$dir"
+}
+
+# triage_home <name>: gardener home with no clone; --repo carries the checkout.
+triage_home() {
+  local home
+  home=$(wiki_home "$1")
+  wiki_cfg "$home" gardener "file://$TMP_ROOT/$1.git"
+  printf '%s\n' "$home"
+}
+
+# plan_query <plan> <python expression over plan>: one value from a written plan.
+plan_query() {
+  python3 - "$1" "$2" <<'PYPLAN'
+import json
+import sys
+
+plan = json.load(open(sys.argv[1]))
+print(eval(sys.argv[2], {"plan": plan}))
+PYPLAN
+}
+
+test_triage_writes_an_unannotated_plan_with_jev_off() {
+  local home repo plan fake out
+  repo=$(triage_fixture off extra)
+  home=$(triage_home triage-off)
+  plan="$home/data/gardener/plan.json"
+  fake=$(fm_fakebin "$TMP_ROOT/triage-off")
+  fm_fake_jev "$fake"
+  # The fake would answer, but the flag is this process's gate: unset means no
+  # call at all, so the plan is complete and unannotated.
+  out=$(FM_FAKE_JEV_LOG="$TMP_ROOT/triage-off/calls" run_wiki "$home" triage --repo "$repo" 2>&1) \
+    || fail "triage must exit 0 with the flag off: $out"
+  assert_contains "$out" 'jev off' "the triage line says Jev was off"
+  assert_absent "$TMP_ROOT/triage-off/calls" "a flag-off triage makes no Jev call"
+  assert_absent "$home/state/wiki/jev.jsonl" "a flag-off triage records no Jev answer"
+  assert_equals 'off' "$(plan_query "$plan" 'plan["jev"]["flag"]')" "the plan records that Jev was off"
+  assert_equals '2' "$(plan_query "$plan" 'len(plan["lessons"])')" "the unannotated plan still lists every pending lesson"
+  assert_equals 'None' "$(plan_query "$plan" 'plan["lessons"][0]["jev"]')" "an unannotated lesson carries no Jev answer"
+  assert_equals 'pages/tools/firstmate.md' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["candidates"][0]')" \
+    "the plan still lists the best grep candidate for the gardener"
+  assert_equals 'raw/2026/10/20261025T010000Z-testhost-testhome-alpha-b1c2.md' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["path"]')" "the plan names the pending raw path"
+  assert_not_contains "$(cat "$plan")" 'seed-a1b2' "a compiled lesson is not pending"
+  assert_present "$home/data/gardener/report.md" "triage writes the gardener report beside the plan"
+  assert_contains "$(cat "$home/data/gardener/report.md")" \
+    '| Lesson | Jev route | Gardener page | Route agrees | Jev duplicate p | Jev keep p | Gardener kept |' \
+    "the report carries the calibration table header"
+  pass "triage writes a complete unannotated plan with Jev off"
+}
+
+test_triage_annotates_route_duplicate_and_keep_hints() {
+  local home repo plan fake out
+  repo=$(triage_fixture on extra)
+  home=$(triage_home triage-on)
+  plan="$home/data/gardener/plan.json"
+  fake=$(fm_fakebin "$TMP_ROOT/triage-on")
+  fm_fake_jev "$fake"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$TMP_ROOT/triage-on/calls" \
+    FM_FAKE_JEV_P=0.44 run_wiki "$home" triage --repo "$repo" 2>&1) \
+    || fail "a flag-on triage must exit 0: $out"
+  assert_contains "$out" '6 call(s), 0 unavailable' "two lessons ask three advisory questions each"
+  assert_equals '6' "$(wc -l < "$TMP_ROOT/triage-on/calls" | tr -d ' ')" \
+    "every question reached the shim once"
+  assert_equals 'pages/tools/firstmate.md' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["route"]["choice"]')" \
+    "the plan carries the routes-to-page answer"
+  assert_equals '0.44' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["duplicate"]["probability"]')" \
+    "the plan carries the duplicate answer"
+  assert_equals '0.44' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["worth_keeping"]["probability"]')" \
+    "the plan carries the worth-keeping answer"
+  assert_equals 'on' "$(plan_query "$plan" 'plan["jev"]["flag"]')" "the plan records that Jev answered"
+  assert_equals 'route duplicate worth_keeping route duplicate worth_keeping' \
+    "$(python3 -c 'import json, sys; print(" ".join(json.loads(line)["verb"] for line in open(sys.argv[1]) if line.strip()))' "$home/state/wiki/jev.jsonl")" \
+    "each answer is recorded beside the gardener's decision"
+  assert_contains "$(head -n 1 "$home/state/wiki/jev.jsonl")" '"ok":true' "a recorded answer carries its verdict"
+  assert_contains "$(cat "$home/data/gardener/report.md")" '| 0.44 | 0.44 |' \
+    "the calibration table shows the recorded probabilities"
+  assert_not_contains "$(cat "$home/state/wiki/jev.jsonl")" 'the firstmate test runner' \
+    "the record holds identifiers and answers, never lesson text"
+  pass "triage annotates route, duplicate, and worth-keeping answers behind the flag"
+}
+
+test_triage_calibration_table_labels_the_gardener_decision() {
+  local home repo fake report
+  repo=$(triage_fixture calib)
+  home=$(triage_home triage-calib)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-calib")
+  fm_fake_jev "$fake"
+  cat > "$repo/pages/tools/runner.md" <<'EOF'
+> summary: the firstmate test runner
+> scope: tool:firstmate
+> last-confirmed: 2026-10-25
+> sources: raw/2026/10/20261025T010000Z-testhost-testhome-alpha-b1c2.md
+
+# Firstmate test runner
+
+Changed files only ([lesson](../../raw/2026/10/20261025T010000Z-testhost-testhome-alpha-b1c2.md)).
+EOF
+  # Jev routes the lesson to the page the gardener then actually cites: the
+  # calibration table must label that agreement, not another opinion.
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE=pages/tools/runner.md \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 \
+    || fail "triage must exit 0 with a canned route"
+  report=$(cat "$home/data/gardener/report.md")
+  local agreed disagreed
+  agreed="| \`pages/tools/runner.md\` | \`pages/tools/runner.md\` | yes |"
+  assert_contains "$report" "$agreed" "the table records a route the gardener agreed with"
+  # The same lesson routed elsewhere labels a disagreement, so the column is a
+  # real comparison rather than a constant.
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE=pages/tools/firstmate.md \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 \
+    || fail "triage must exit 0 with a second canned route"
+  report=$(cat "$home/data/gardener/report.md")
+  disagreed="| \`pages/tools/firstmate.md\` | \`pages/tools/runner.md\` | no |"
+  assert_contains "$report" "$disagreed" "a route the gardener did not take is labelled a disagreement"
+  assert_contains "$report" '| yes |' "the gardener's own decision to keep the lesson is recorded"
+  pass "the calibration table labels Jev's answer against the gardener's own decision"
+}
+
+test_triage_publishes_every_lesson_when_jev_is_unavailable() {
+  local home repo plan fake out offplan
+  repo=$(triage_fixture unavailable extra)
+  home=$(triage_home triage-unavailable)
+  plan="$home/data/gardener/plan.json"
+  offplan="$TMP_ROOT/triage-unavailable/off.json"
+  fake=$(fm_fakebin "$TMP_ROOT/triage-unavailable")
+  fm_fake_jev "$fake"
+  run_wiki "$home" triage --repo "$repo" --plan "$offplan" >/dev/null 2>&1 \
+    || fail "the flag-off baseline must run"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_MODE=unavailable \
+    run_wiki "$home" triage --repo "$repo" 2>&1) \
+    || fail "an unavailable Jev must not fail triage: $out"
+  assert_contains "$out" 'unavailable' "the triage line reports the unavailable answers"
+  assert_equals '2' "$(plan_query "$plan" 'len(plan["lessons"])')" \
+    "an unavailable Jev still plans every pending lesson"
+  assert_equals 'None' "$(plan_query "$plan" 'plan["lessons"][0]["jev"]')" \
+    "an unavailable answer never annotates a lesson"
+  assert_equals "$(plan_query "$offplan" '[l["id"] for l in plan["lessons"]]')" \
+    "$(plan_query "$plan" '[l["id"] for l in plan["lessons"]]')" \
+    "the unavailable plan lists exactly the flag-off lessons in the same order"
+  assert_equals '0' "$(plan_query "$plan" 'plan["jev"]["calls"] - plan["jev"]["unavailable"]')" \
+    "every attempted call is recorded as unavailable"
+  # An erroring shim is no different from an unavailable one.
+  : > "$home/state/wiki/jev.jsonl"
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_MODE=error \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 \
+    || fail "an erroring Jev must not fail triage"
+  assert_equals '2' "$(plan_query "$plan" 'len(plan["lessons"])')" "an erroring Jev still plans every lesson"
+  assert_contains "$(cat "$home/state/wiki/jev.jsonl")" '"ok":false' "an erroring shim is recorded as unavailable"
+  pass "an unavailable or erroring Jev changes nothing about the plan"
+}
+
+# contradiction_fixture <name>: a lint-clean checkout whose four pages share
+# one scope, so the pair count and the cap are visible in the call log.
+contradiction_fixture() {
+  local dir="$TMP_ROOT/$1-repo" i
+  mkdir -p "$dir/pages/tools" "$dir/raw/2026/10"
+  printf '# Crew wiki index\n' > "$dir/index.md"
+  printf '## [2026-10-24] ingest | 1 lesson | 20261024T000000Z-testhost-testhome-seed-a1b2\n' > "$dir/log.md"
+  cat > "$dir/raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md" <<'EOF'
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: seed
+wiki-final: done
+date: 2026-10-24
+---
+
+## seed lesson
+scope: tool:seed
+claim: the seed lesson exists
+evidence: this fixture
+EOF
+  for i in 1 2 3 4; do
+    cat > "$dir/pages/tools/page-$i.md" <<EOF
+> summary: page $i of the shared scope
+> scope: tool:shared
+> last-confirmed: 2026-10-24
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# Page $i
+
+The seed lesson exists ([lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md)).
+EOF
+    printf -- '- [Page %s](pages/tools/page-%s.md) - page %s\n' "$i" "$i" "$i" >> "$dir/index.md"
+  done
+  printf '%s\n' "$dir"
+}
+
+test_lint_reports_capped_contradiction_candidates() {
+  local home repo fake out
+  repo=$(contradiction_fixture cap)
+  home=$(triage_home triage-contradictions)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-contradictions")
+  fm_fake_jev "$fake"
+  # Four same-scope pages make six pairs; a cap of two asks exactly two.
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$TMP_ROOT/triage-contradictions/calls" \
+    FM_WIKI_JEV_PAIRS_CAP=2 FM_FAKE_JEV_P=0.62 \
+    run_wiki "$home" lint --repo "$repo" 2>&1) \
+    || fail "contradiction candidates never block lint: $out"
+  assert_equals '2' "$(wc -l < "$TMP_ROOT/triage-contradictions/calls" | tr -d ' ')" \
+    "the pair cap bounds the calls one run makes"
+  assert_contains "$out" 'jev contradiction candidates capped at 2 pairs this run' \
+    "a capped run says so once"
+  assert_contains "$out" 'wiki lint advisory: jev contradiction candidate p=0.62:' \
+    "a candidate above the display floor is reported as advisory"
+  assert_contains "$out" 'lint clean' "a contradiction candidate never blocks publication"
+  assert_equals '2' "$(grep -c '"verb":"contradicts"' "$home/state/wiki/jev.jsonl" 2>/dev/null)" \
+    "each asked pair is recorded for calibration"
+  # A cap above the pair count asks every pair and prints no cap line.
+  : > "$TMP_ROOT/triage-contradictions/calls"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$TMP_ROOT/triage-contradictions/calls" \
+    FM_WIKI_JEV_PAIRS_CAP=100 run_wiki "$home" lint --repo "$repo" 2>&1) \
+    || fail "lint must stay exit 0 above the cap"
+  assert_equals '6' "$(wc -l < "$TMP_ROOT/triage-contradictions/calls" | tr -d ' ')" \
+    "an uncapped run asks every same-scope pair"
+  assert_not_contains "$out" 'capped at' "an uncapped run prints no cap line"
+  pass "contradiction candidates are capped, recorded, and never blocking"
+}
+
+test_lint_makes_no_contradiction_call_with_jev_off() {
+  local home repo fake out baseline
+  repo=$(contradiction_fixture quiet)
+  home=$(triage_home triage-contradictions-off)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-contradictions-off")
+  fm_fake_jev "$fake"
+  baseline=$(run_wiki "$home" lint --repo "$repo" 2>&1) || fail "the flag-off baseline must run"
+  out=$(FM_FAKE_JEV_LOG="$TMP_ROOT/triage-contradictions-off/calls" \
+    run_wiki "$home" lint --repo "$repo" 2>&1) \
+    || fail "a flag-off lint must stay exit 0"
+  assert_absent "$TMP_ROOT/triage-contradictions-off/calls" "a flag-off lint makes no Jev call"
+  assert_equals "$baseline" "$out" "a flag-off lint prints exactly its deterministic verdict"
+  assert_not_contains "$out" 'jev' "a flag-off lint says nothing about Jev"
+  pass "a flag-off lint is byte-identical and makes no Jev call"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -1264,3 +1581,9 @@ test_idle_gardener_refresh_is_bounded_and_recovers
 test_lint_and_publish_require_pinned_lychee
 test_lint_includes_quoted_claims_and_checks_links_offline
 test_publish_and_drain_refuse_other_effective_push_urls
+test_triage_writes_an_unannotated_plan_with_jev_off
+test_triage_annotates_route_duplicate_and_keep_hints
+test_triage_calibration_table_labels_the_gardener_decision
+test_triage_publishes_every_lesson_when_jev_is_unavailable
+test_lint_reports_capped_contradiction_candidates
+test_lint_makes_no_contradiction_call_with_jev_off

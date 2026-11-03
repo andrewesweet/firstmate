@@ -36,7 +36,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-decision-hold.sh`    | One-release compatibility shim mapping the retired decision commands onto fm-captain-hold.sh |
 | `fm-brief.sh`            | Scaffold ship (explicit `--mode`, plus the project's registered `--forge`), scout, secondmate-charter, and Herdr-lab briefs, with Captain's intent, Published intent, and Firstmate spec subsections on ship and Captain's intent and Firstmate spec on scout |
 | [`fm-dod-lib.sh`](../bin/fm-dod-lib.sh) | Own ship/scout worker role scope, ship definitions of done, the named-head reachability gate on ship `done:` acceptance, and the no-mistakes `--intent` contract |
-| [`fm-wiki.sh`](../bin/fm-wiki.sh) | Capture and publish opt-in [crew-wiki lessons](configuration.md#crew-wiki-configwiki), refresh and consult the local mirror, check gardener readiness, lint pages, regenerate the index, and publish compiled pages |
+| [`fm-wiki.sh`](../bin/fm-wiki.sh) | Capture and publish opt-in [crew-wiki lessons](configuration.md#crew-wiki-configwiki), refresh and consult the local mirror, check gardener readiness, triage a gardener run plan, lint pages, regenerate the index, and publish compiled pages |
 | `fm-jev-lint.sh`         | Optional advisory diff self-check and outcome scoring; see the [Jev self-check contract](configuration.md#jev-self-check-record-datajev-lintjsonl) |
 | [`fm-de-shadow-relay.mjs`](../bin/fm-de-shadow-relay.mjs) | Opt-in local TypeSafe decision-model comparison; its header owns setup and the relay contract |
 | `fm-brief-heading-lib.sh` | Single owner of reading a brief's sections, shared by the `--intent` contract, spawn and promotion validation, and `fm-dispatch-resolve.sh` |

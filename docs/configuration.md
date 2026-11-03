@@ -1179,7 +1179,7 @@ The file's keys, one `key=value` per line:
 - `remote=` - the wiki repository's Git URL; required for publication and mirror refresh, but local capture works without it.
 - `role=` - `gardener` or `contributor` contribute worker and supervision lessons; `reader` consults only; `off`, an omitted role, or an unrecognized role disables the feature.
 - `host=` - optional name for the raw file's `wiki-host:` stamp; defaults to this machine's hostname, sanitized for filenames.
-- `jev=` - accepted but unused; it has no effect.
+- `jev=` - `off` disables the Jev advisories for this home even when `FM_WIKI_JEV` is set; `on`, an empty value, or an unrecognized one leaves the environment flag in charge.
 
 Briefs and cleanup follow the configured role:
 
@@ -1246,6 +1246,28 @@ Do not arm this condition in any real home until the crew-wiki project is provis
 
 The wiki repository's own schema lives in [`assets/crew-wiki-AGENTS.md`](../assets/crew-wiki-AGENTS.md) and is seeded into the repository as `AGENTS.md` (with `CLAUDE.md` symlinked to it) when the repository is created.
 It owns the page taxonomy, header fields, citation rule, index rules, budgets, the add-only `raw/` contract, and the gardener's run steps.
+
+## Crew-wiki Jev advisories (FM_WIKI_JEV)
+
+The crew wiki can ask the fleet's Jev model for optional second opinions; the model itself and the key discipline live in "Jev self-check record" and the shim's own header.
+The whole surface is opt-in per process: `FM_WIKI_JEV` names the executable TypeSafe shim (normally `bin/fm-branch-shadow-jev.sh`, the repository's single call shim, which owns the endpoint and the key), and a home's `config/wiki` `jev=off` switches it off even when the variable is set.
+An unset variable means no call, no record, and unchanged behaviour everywhere; this module never reads a key and never prints one.
+
+Three advisory uses share one record:
+
+- `bin/fm-wiki.sh triage [--repo <dir>] [--plan <path>] [--limit <n>]` builds the gardener run plan (oldest pending raw lesson first, 25 a run by default) and asks three questions per lesson: routes-to-page (a Choice over the eight best plain-grep page candidates plus "new page"), duplicate-of-page, and worth-keeping.
+  The plan lands at `data/gardener/plan.json`, or `--plan`, and the gardener report with its Jev calibration table lands at `report.md` beside it.
+- `close` and `file` ask one privacy question per clean lesson, after the deterministic secret scan.
+- `lint` and `publish` ask a contradiction question over page pairs that share a scope, capped at 200 pairs a run (`FM_WIKI_JEV_PAIRS_CAP`), and report those above p ≥ 0.5 as `wiki lint advisory:` lines.
+
+Every answer appends one line to the home's `state/wiki/jev.jsonl`: `ts`, `verb`, `key`, `detail`, `ok`, `choice`, `probability`, `confidence`, `input_tokens`, `latency_ms`, `model`.
+Only identifiers and answers are recorded, never lesson or page text, and the file stays local.
+
+Calibration comes before control: until thresholds are set from two gardener runs, nothing a Jev answer says may hold, drop, or reorder a lesson.
+The report's table puts each answer beside the gardener's own decision - the page that ended up citing the lesson - so those labels can set the thresholds later.
+A privacy answer at or above p ≥ 0.8 therefore only annotates: the lesson still publishes, and the cleanup line names the file to review.
+An unavailable or erroring shim records `ok: false`, changes nothing about what publishes, and never blocks capture, lint, or the plan.
+The per-call wall-clock bound is `FM_WIKI_JEV_TIMEOUT` (8 seconds).
 
 ## Gardener delivery (direct-push)
 
