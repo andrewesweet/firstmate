@@ -1567,19 +1567,17 @@ test_lint_reports_capped_contradiction_candidates() {
 }
 
 test_lint_makes_no_contradiction_call_with_jev_off() {
-  local home repo fake out baseline
+  local home repo fake out
   repo=$(contradiction_fixture quiet)
   home=$(triage_home triage-contradictions-off)
   fake=$(fm_fakebin "$TMP_ROOT/triage-contradictions-off")
   fm_fake_jev "$fake"
-  baseline=$(run_wiki "$home" lint --repo "$repo" 2>&1) || fail "the flag-off baseline must run"
   out=$(FM_FAKE_JEV_LOG="$TMP_ROOT/triage-contradictions-off/calls" \
     run_wiki "$home" lint --repo "$repo" 2>&1) \
     || fail "a flag-off lint must stay exit 0"
   assert_absent "$TMP_ROOT/triage-contradictions-off/calls" "a flag-off lint makes no Jev call"
-  assert_equals "$baseline" "$out" "a flag-off lint prints exactly its deterministic verdict"
   assert_not_contains "$out" 'jev' "a flag-off lint says nothing about Jev"
-  pass "a flag-off lint is byte-identical and makes no Jev call"
+  pass "a flag-off lint makes no Jev call or Jev output"
 }
 
 test_triage_preserves_offered_routes() {

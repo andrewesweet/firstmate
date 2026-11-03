@@ -3,6 +3,8 @@
 # point FM_WIKI_JEV at, so no crew-wiki Jev test reaches the network or a live
 # model. Sourced after tests/lib.sh.
 
+unset FM_WIKI_JEV
+
 # fm_fake_jev <fakebin> drops the canned-answer TypeSafe shim the crew-wiki
 # tests point FM_WIKI_JEV at. It reads one request on stdin and answers the
 # question it was asked, so no test reaches the network or a live model:
