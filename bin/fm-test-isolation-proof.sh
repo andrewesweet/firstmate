@@ -122,6 +122,7 @@ exclusion_reason() {
     fm-supervision-events.test.sh|fm-turnend-guard.test.sh|fm-wake-daemon-lifecycle-e2e.test.sh|\
     fm-wake-queue.test.sh|fm-watch-checkpoint.test.sh|fm-watch-triage.test.sh|\
     fm-watch-triage-wedges.test.sh|\
+    fm-watch-triage-pause.test.sh|fm-watch-triage-wedge-defer.test.sh|\
     fm-watcher-lock.test.sh)
       printf '%s\n' 'watcher/wake/lock family; intentional process locks and daemon races'
       ;;
@@ -154,6 +155,9 @@ exclusion_reason() {
       ;;
     fm-backend-tern.test.sh|fm-backend-tern-smoke.test.sh)
       printf '%s\n' 'tern optional backend; keep out of pure parallel pool'
+      ;;
+    fm-backend-hc.test.sh|fm-backend-hc-smoke.test.sh)
+      printf '%s\n' 'hc optional backend; keep out of pure parallel pool'
       ;;
     *)
       return 1

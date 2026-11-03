@@ -41,6 +41,7 @@ For unattended seeded-secondmate launches, `../../../bin/fm-spawn.sh --help` own
 The extension listens for Pi's `turn_end` event, not `agent_end`, so supervision is notified after each completed turn rather than only when the whole run exits.
 Native-harness progress uses the separate generation-bound marker owned by `../../../bin/fm-busy-event.sh`; it never fabricates Pi turn completion.
 The same extension caps the live session model's `contextWindow` at 144000 when that model is `zai/glm-5.3-flash`, so such a worker compacts near 128k tokens; the check runs on the runtime model, so partial ids, thinking suffixes, and mid-session `/model` switches are covered, no other model is touched, and the captain-owned `~/.pi/agent/models.json` is never used.
+Optional foreground model-stream observation is version-gated separately; `../../../docs/configuration.md` (Environment variables) owns activation and `../../../docs/verification/runtime-backends.md` (Pi worker model-stream observation) owns the real-Pi evidence.
 Pi sets `PI_CODING_AGENT=true` for its children as its harness-detection marker.
 
 ## Primary integration

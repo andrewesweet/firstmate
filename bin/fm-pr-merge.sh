@@ -12,6 +12,11 @@
 # change is refused outright: that adapter is read-only, and the refusal at the
 # parse below owns why.
 #
+# Usage:
+#   fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check>]
+#     [--allow-missing <check>] [--allow-no-pipeline] [-- <forge merge flags>]
+#   fm-pr-merge.sh -h | --help
+#
 # Merge method on GitHub defaults to --squash when the caller passes none of
 # --squash, --merge, --rebase, or --method after the optional -- separator.
 # On Forgejo the merge style defaults to the repository's own
@@ -226,6 +231,17 @@
 # nothing is proven landed and leaves the merge authority and the armed merge
 # poll to report the landing later.
 set -eu
+
+usage() {
+  sed -n '2,${/^#/!q;p;}' "$0" | sed 's/^# \{0,1\}//'
+}
+
+case "${1:-}" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"

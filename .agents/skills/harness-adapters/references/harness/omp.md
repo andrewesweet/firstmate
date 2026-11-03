@@ -55,4 +55,3 @@ The Pi supervision branch does not run on omp; without the supervision host ever
 For primary launch and recovery, follow the home-aware instructions emitted by `../../../bin/fm-session-start.sh` and rendered from [`the omp supervision protocol`](../../../../../docs/supervision-protocols/omp.md); `OMP_WATCH_EXTENSION: not loaded` means this session has not loaded both tracked extensions.
 When starting from a Claude pane, set `FM_OMP_HARNESS=omp` on the launch command.
 `FM_OMP_LIVE_E2E=1 ../../../tests/fm-omp-primary-live-e2e.test.sh` is the opt-in live guard; `../../../tests/fm-omp-harness.test.sh` is the portable regression.
-A secondmate registered with `remote=1` in `data/secondmates.md`, spawned through the ordinary `../../../bin/fm-spawn.sh <id> <home> --secondmate` path, is refused on omp until a remote host verifies it, as is `../../../bin/fm-remote-secondmate-control.sh launch`; there is no `--remote` flag.

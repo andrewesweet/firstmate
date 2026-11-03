@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# tests/watch-triage-helpers.sh - fixtures shared by the two watch-triage
-# suites (fm-watch-triage.test.sh for the classifier, absorb/stale core, and
-# heartbeat/afk surfaces; fm-watch-triage-wedges.test.sh for the escalation
-# ladder). These case drivers and watcher knobs encode how a real fm-watch.sh
-# round is staged, so both suites stage rounds the same way instead of letting
-# their copies drift. Generic reporters/assertions come from lib.sh, and the
-# wake/daemon fixtures come from wake-helpers.sh, both pulled in below.
+# tests/watch-triage-helpers.sh - shared fixtures for the watch-triage
+# behavior suites. These encode the watcher launch, poll-cycle waits, and
+# wedge-threshold helpers, so they live here rather than in the generic
+# tests/lib.sh. Generic reporters/assertions come from lib.sh via
+# wake-helpers.sh.
+#
+# Source this from a watch-triage test file:
+#   # shellcheck source=tests/watch-triage-helpers.sh
+#   . "$(dirname "${BASH_SOURCE[0]}")/watch-triage-helpers.sh"
+#
+set -u
+
+if [ -n "${FM_WATCH_TRIAGE_HELPERS_SOURCED:-}" ]; then
+  return 0
+fi
+FM_WATCH_TRIAGE_HELPERS_SOURCED=1
 
 # shellcheck source=tests/wake-helpers.sh
 . "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-classify-lib.sh"
+
+WATCH="$ROOT/bin/fm-watch.sh"
+DRAIN="$ROOT/bin/fm-wake-drain.sh"
 
 ack_stopped_cycle() {  # <state>
   local state=$1 err sequence generation
@@ -73,6 +85,32 @@ wait_poll_cycle() {  # <state> <pid> [limit-ticks]
   return 1
 }
 
+# Every wait_for_exit budget in this file is 100 ticks (10s), not because any
+# watcher takes that long to decide, but because fm-watch.sh does bounded
+# startup work before its first poll: a tighter budget reaps the process while
+# it is still starting and reports a spurious "did not surface" failure. A
+# generous budget can only remove that false negative - a watcher that never
+# exits still fails the assertion when the budget runs out.
+wait_numeric_file() {
+  local file=$1 limit=${2:-30} i=0 value
+  while [ "$i" -lt "$limit" ]; do
+    value=$(cat "$file" 2>/dev/null || true)
+    case "$value" in
+      ''|*[!0-9]*) ;;
+      *) return 0 ;;
+    esac
+    sleep 0.1
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# Portable mtime in epoch seconds. Platform-detected, never the `stat -f || stat -c`
+# fallback (which writes a partial filesystem dump on Linux; see fm-watch.sh).
+file_mtime() {
+  if [ "$(uname)" = Darwin ]; then stat -f %m "$1" 2>/dev/null; else stat -c %Y "$1" 2>/dev/null; fi
+}
+
 # Set <file>'s mtime to exactly <epoch> seconds, for aging a busy-turn marker by
 # a precise amount (touch -t takes a local-time stamp, not an epoch, on both
 # platforms, so convert via BSD `date -r` or GNU `date -d @`).
@@ -84,6 +122,23 @@ set_mtime() {  # <epoch> <file>
     stamp=$(date -d "@$epoch" +%Y%m%d%H%M.%S)
     touch -t "$stamp" "$f"
   fi
+}
+
+# Signature a primed .seen-* marker must hold so the per-poll signal scan does not
+# fire on a pre-existing status (mirrors fm-watch.sh's stat_sig exactly).
+seen_sig() {
+  local reported size ident
+  case "$1" in
+    *.status)
+      reported=$(status_observed_signature "$1")
+      size=$(size_of "$1")
+      ident=$(_fm_open_decisions_file_ident "$1")
+      printf 'v2\t%s\t%s@%s' "$reported" "$size" "$ident"
+      ;;
+    *)
+      if [ "$(uname)" = Darwin ]; then stat -f '%z:%Fm' "$1" 2>/dev/null; else stat -c '%s:%Y' "$1" 2>/dev/null; fi
+      ;;
+  esac
 }
 
 # Stop an owned watcher. TERM must end it through its EXIT cleanup, so one still
@@ -98,39 +153,24 @@ reap() {
   [ "$rc" -ne 124 ] || fail "watcher pid $1 did not exit within 10s of TERM"
 }
 
-# Run one watcher round against a parked-worker fixture, so a round differs only
-# in the pane contents the case just wrote. Armed the way fm-watch-arm.sh arms a
-# successor after firstmate handled a wake, because that is what a supervision
-# turn actually does and it is the only arm that stays in the poll loop instead of
-# re-announcing the previous round's downtime - without it a round exits on
-# `check: rearm-resurface` before it ever reaches the stale path, and every
-# absorb assertion below passes vacuously. A live agent (pane_current_command
-# matching the recorded harness) on an idle pane is the exact population
-# pause_state_class answers `none` for.
-# <mode> `exit` requires the watcher to surface and exit; `absorb` requires it to
-# survive whole poll cycles - enough to see the new hash, count it stable, and
-# reach the stale path. Returns 1 when the watcher does the other thing.
-parked_watch_round() {  # <state> <fakebin> <out> <capture> <window> <exit|absorb>
-  local state=$1 fakebin=$2 out=$3 capture=$4 window=$5 mode=$6 pid cycles=0
-  PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture" \
-    FM_FAKE_TMUX_CURRENT_COMMAND=grok \
-    FM_FAKE_CREW_STATE='state: paused · source: status-log · parked' \
-    FM_WATCH_HANDLING_SUCCESSOR=1 \
-    FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" \
-    FM_PAUSE_RESURFACE_SECS=999 FM_POLL=1 FM_SIGNAL_GRACE=1 \
-    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" >> "$out" &
-  pid=$!
-  if [ "$mode" = exit ]; then
-    wait_for_exit "$pid" 100 || { reap "$pid"; return 1; }
-    return 0
-  fi
-  while [ "$cycles" -lt 4 ]; do
-    wait_poll_cycle "$state" "$pid" 300 || { reap "$pid"; return 1; }
-    cycles=$((cycles + 1))
-  done
-  reap "$pid"
-  return 0
-}
+# --- pure classifier predicates (fm-classify-lib.sh) ------------------------
+
+size_of() { LC_ALL=C wc -c < "$1" | tr -d '[:space:]'; }
+
+# --- the wedge threshold consults the worker's own declared wait ------------
+# Upstream kunchenguid/firstmate#3909 and #2614: wedge_timer_check escalated on
+# elapsed idle time alone, without ever asking whether the worker had already
+# said why its pane was quiet. Nothing re-consulted that declaration once the
+# timer was running, so the ladder climbed for as long as the wait lasted and
+# each escalation cost a supervising turn. Past FM_WEDGE_DEMAND_INSPECT_COUNT
+# every repeat also carried demand-deep-inspection, which by its own wording
+# forbids re-absorbing on the run-step or pane state, so the supervisor could not
+# even use the evidence that was there.
+#
+# Both directions are pinned in each case below, because a bound that only
+# proves the quiet direction would be indistinguishable from simply deleting
+# wedge detection: the lane WITHOUT a declaration must keep the identical
+# schedule, escalation count, reason and demand-deep-inspection wording.
 
 # Run one watcher round against a lane whose pane is already stably stale at the
 # recorded hash - the population wedge_timer_check owns. FM_STALE_ESCALATE_SECS=1
@@ -208,24 +248,21 @@ wedge_stale_wakes() {  # <state> <window>
     "$1/.wake-queue" 2>/dev/null || echo 0
 }
 
-# The wait age the deferral PUBLISHES to the captain, read back off the wake it
-# emitted. The wake reason is the watcher's supervisor-facing output contract, so
-# the number in it is the thing under test: it must describe the wait that is
-# actually holding the lane, not whatever unrelated record happened to be handy.
-wedge_reported_wait_secs() {  # <watch-out>
-  sed -n 's/.*waiting \([0-9][0-9]*\)s.*/\1/p' "$1" | head -1
+# bin/fm-captain-hold.sh against a hold fixture's own home.
+run_hold() {  # <dir> <args...>
+  local dir=$1
+  shift
+  FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" FM_DATA_OVERRIDE="$dir/data" \
+    FM_CONFIG_OVERRIDE="$dir/config" "$ROOT/bin/fm-captain-hold.sh" "$@" >/dev/null 2>&1
 }
 
-# The two endpoint verdicts that are PROOF an agent is gone, as the lane fixture
-# above reaches them: `dead` is the recorded window still present in the session
-# inventory with a bare shell in front of it (the husk a crashed agent leaves),
-# and `missing` is an inventory that no longer carries that window at all.
-gone_endpoint_env() {  # <dead|missing> -> assignments for the round below
-  case "$1" in
-    dead)    FM_TEST_PANE_COMMAND=bash FM_TEST_TMUX_WINDOWS=fm-wedge ;;
-    missing) FM_TEST_PANE_COMMAND=bash FM_TEST_TMUX_WINDOWS=fm-someone-else ;;
-  esac
-}
+# --- the away-posture record: captain-held items are never rechecked ----------
+# While state/.afk-contract exists (bin/fm-afk-contract.sh) nobody is there to
+# answer a captain-held item and the return brief lists it, so every stale path
+# absorbs such a pane silently: the declared-wait cadence, the live-agent first
+# sight, the backlog-hold bound, and the daemon-owned one-shot handoff. Archiving
+# the record restores the ordinary bounded recheck, so the rule is the record's,
+# not a lost alarm.
 
 # A UTC ISO 8601 stamp for an epoch, on either date flavor.
 iso_utc_at() {  # <epoch>
@@ -238,64 +275,7 @@ write_away_record() {  # <state>
   fi
 }
 
-paused_until_fixture() {  # <name> <until-epoch> <status-age-secs> [<keyword>]
-  local name=$1 until=$2 age=$3 keyword=${4:-until} dir state statusf window key back
-  dir=$(make_case "$name"); state="$dir/state"
-  window="test:fm-until"
-  statusf="$state/until.status"
-  printf 'idle, waiting for the reset\n' > "$dir/pane.txt"
-  printf 'window=%s\nkind=secondmate\n' "$window" > "$state/until.meta"
-  printf 'paused: rate limit resets, %s %s, then resuming\n' "$keyword" "$(iso_utc_at "$until")" > "$statusf"
-  back=$(( $(date +%s) - age ))
-  if [ "$(uname)" = Darwin ]; then touch -mt "$(date -r "$back" '+%Y%m%d%H%M.%S')" "$statusf"
-  else touch -m -d "@$back" "$statusf"; fi
-  printf '%s' "$(seen_sig "$statusf")" > "$state/.seen-until_status"
-  key=$(printf '%s' "$window" | tr '.:/' '___')
-  printf '%s' "$(hash_text 'idle, waiting for the reset')" > "$state/.hash-$key"
-  printf '1\n' > "$state/.count-$key"
-  printf '%s\n' "$dir"
-}
-
-until_watch() {  # <dir> <cadence> -> pid in UNTIL_PID
-  local dir=$1
-  PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_WINDOW=test:fm-until FM_FAKE_TMUX_CAPTURE="$dir/pane.txt" \
-    FM_FAKE_CREW_STATE='state: unknown · source: none · no current-state source available' \
-    FM_STATE_OVERRIDE="$dir/state" FM_CREW_STATE_BIN="$dir/fakebin/fm-crew-state.sh" \
-    FM_PAUSE_RESURFACE_SECS="$2" FM_POLL=1 FM_SIGNAL_GRACE=1 \
-    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch.out" 2>&1 &
-  # shellcheck disable=SC2034 # Read by both watch-triage suites that source this helper.
-  UNTIL_PID=$!
-}
-
-# Modification time of <file> as epoch seconds, matching how the watcher reads it.
-file_mtime() {
-  if [ "$(uname)" = Darwin ]; then stat -f %m "$1" 2>/dev/null; else stat -c %Y "$1" 2>/dev/null; fi
-}
-
-# Byte size of <file>, the way the watch surfaces measure appends.
-size_of() { LC_ALL=C wc -c < "$1" | tr -d '[:space:]'; }
-
-# Signature a primed .seen-* marker must hold so the per-poll signal scan does not
-# fire on a pre-existing status (mirrors fm-watch.sh's stat_sig exactly).
-seen_sig() {
-  local reported size ident
-  case "$1" in
-    *.status)
-      reported=$(status_observed_signature "$1")
-      size=$(size_of "$1")
-      ident=$(_fm_open_decisions_file_ident "$1")
-      printf 'v2\t%s\t%s@%s' "$reported" "$size" "$ident"
-      ;;
-    *)
-      if [ "$(uname)" = Darwin ]; then stat -f '%z:%Fm' "$1" 2>/dev/null; else stat -c '%s:%Y' "$1" 2>/dev/null; fi
-      ;;
-  esac
-}
-
-# bin/fm-captain-hold.sh against a hold fixture's own home.
-run_hold() {  # <dir> <args...>
-  local dir=$1
-  shift
-  FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" FM_DATA_OVERRIDE="$dir/data" \
-    FM_CONFIG_OVERRIDE="$dir/config" "$ROOT/bin/fm-captain-hold.sh" "$@" >/dev/null 2>&1
+archive_away_record() {  # <state>
+  FM_HOME="$(dirname "$1")" FM_STATE_OVERRIDE="$1" "$ROOT/bin/fm-afk-contract.sh" archive >/dev/null 2>&1 \
+    || fail "could not archive the away-posture record in $1"
 }
