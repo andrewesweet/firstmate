@@ -663,7 +663,7 @@ test_direct_push_renders_a_publish_ending_dod() {
   assert_contains "$body" 'Delivery contract: mode=direct-push' "the direct-push contract line names the mode"
   assert_contains "$body" 'bin/fm-wiki.sh publish' "the direct-push DoD publishes instead of opening a PR"
   assert_contains "$body" 'bin/fm-wiki.sh coverage' "the direct-push DoD reports the run's coverage line"
-  assert_contains "$body" 'archive/pages/' "the direct-push DoD names the pruning archive move"
+  assert_contains "$body" 'under "Pruning"' "the direct-push DoD points to the wiki schema policy"
   assert_contains "$body" 'wiki pages published' "the direct-push DoD names its ready report"
   assert_not_contains "$body" 'gh pr create' "a direct-push DoD must not open a pull request"
   assert_not_contains "$body" 'open a pull request' "a direct-push DoD must not name a pull request to open"

@@ -122,9 +122,12 @@
 #   coverage [--repo <dir>]
 #                 Gardener only: print the gardener run's report line from a wiki
 #                 checkout, defaulting to this home's clone - one line counting
-#                 live pages, raw lessons, uncompiled lessons, archived pages,
-#                 stale or wrong usage signals, and pages unconfirmed for 90
-#                 days. Read-only: no network, no lock, no page written.
+#                 pages (live), raw (lessons), pending (uncompiled lessons),
+#                 archived (pages), usage-signals (all valid usage records),
+#                 usage-by-page (compact JSON mapping canonical keys to counts),
+#                 stale-signals (stale or wrong records), and unconfirmed90
+#                 (pages unconfirmed for 90 days). Read-only: no network,
+#                 no lock, no page written.
 #   index [--repo <dir>]
 #                 Gardener only: regenerate index.md from page headers within
 #                 the 150-line budget, atomically. Over budget still writes the
@@ -134,13 +137,8 @@
 #                 then refuse any change under raw/ and any page commit made by
 #                 someone else after the run's base, then commit the compiled
 #                 pages, rebase and push with the same fetch-rebase-push loop (never
-#                 force) and landing proof as drain. Pruning is part of this
-#                 guarded commit and never a separate page writer (report 4.6): a
-#                 `used: <page> ok` lesson refreshes that page's last-confirmed to
-#                 the lesson's date, and a page whose last-confirmed is 120 days old
-#                 or older that no lesson's `used:` line names moves from pages/ to
-#                 archive/pages/ in the same commit. Archived pages are history:
-#                 not linted, not indexed, never compiled again.
+#                 force) and landing proof as drain. The pruning policy is owned
+#                 by assets/crew-wiki-AGENTS.md, "Pruning".
 #                 Refusals and push failures
 #                 exit 1 with a retryable message; only a proven landing exits 0.
 #                 Never rebuilds or switches the checkout: a mismatched origin is
@@ -2054,10 +2052,7 @@ wiki_lint_advisories() {
   done <<EOF
 $(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 EOF
-  grep -rhE -- '^used: .+ (stale|wrong)$' "$repo/raw" 2>/dev/null | head -n 20 \
-    | while IFS= read -r line; do
-        printf 'wiki lint advisory: usage signal needs the gardener: %s\n' "$line"
-      done
+  python3 "$SCRIPT_DIR/fm_wiki_usage.py" "$repo" --advisories
   wiki_lint_stale_pages "$repo"
 }
 
@@ -2244,17 +2239,15 @@ wiki_index() {
   wiki_index_generate "$repo"
 }
 
-# wiki_coverage_line <repo>: the gardener run's report line (report 4.6). One
-# line of cheap, exact counts: live pages, raw lessons, uncompiled lessons,
-# archived pages, stale or wrong usage signals, and pages unconfirmed for 90
-# days. Read-only, no network, no lock, never blocks a publish.
+# wiki_coverage_line <repo>: render the report defined in this script's header.
 wiki_coverage_line() {
-  local repo=$1 pages raw pending=0 archived stale unconfirmed90=0
+  local repo=$1 pages raw pending=0 archived stale usage by_page counts unconfirmed90=0
   local compiled='' name age
   pages=$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   raw=$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   archived=$(find "$repo/archive" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  stale=$(grep -rhE -- '^used: .+ (stale|wrong)$' "$repo/raw" 2>/dev/null | wc -l | tr -d ' ')
+  counts=$(python3 "$SCRIPT_DIR/fm_wiki_usage.py" "$repo") || return 1
+  IFS=$'\t' read -r usage stale by_page <<< "$counts"
   if [ -f "$repo/log.md" ]; then
     compiled=$(wiki_log_ids < "$repo/log.md")
   fi
@@ -2283,8 +2276,8 @@ EOF
   done <<EOF
 $(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 EOF
-  printf 'wiki: coverage pages=%s raw=%s pending=%s archived=%s stale-signals=%s unconfirmed90=%s\n' \
-    "$pages" "$raw" "$pending" "$archived" "$stale" "$unconfirmed90"
+  printf 'wiki: coverage pages=%s raw=%s pending=%s archived=%s usage-signals=%s usage-by-page=%s stale-signals=%s unconfirmed90=%s\n' \
+    "$pages" "$raw" "$pending" "$archived" "$usage" "$by_page" "$stale" "$unconfirmed90"
 }
 
 wiki_coverage() {
@@ -2308,16 +2301,10 @@ wiki_coverage() {
   wiki_coverage_line "$repo"
 }
 
-# wiki_prune_repo <repo>: apply the pruning rules of report 4.6 to a gardener
-# checkout - a `used: <page> ok` lesson refreshes that page's last-confirmed to
-# the lesson's date, and a page confirmed 120 days ago or earlier that no
-# lesson's `used:` line names moves to archive/pages/. Only publish calls this,
-# so every move lands inside the gardener's guarded commit; raw/ is untouched
-# and archived pages are never linted, indexed, or compiled again. Prints one
-# line per change plus a summary when anything changed.
+# wiki_prune_repo <repo> <base>: apply assets/crew-wiki-AGENTS.md "Pruning".
 wiki_prune_repo() {
   local repo=$1 base=$2
-  python3 - "$repo" "$(wiki_now)" "$base" <<'PYPRUNE'
+  PYTHONDONTWRITEBYTECODE=1 python3 - "$repo" "$(wiki_now)" "$base" "$SCRIPT_DIR" <<'PYPRUNE'
 import datetime
 import os
 import pathlib
@@ -2327,53 +2314,27 @@ import sys
 import uuid
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
+sys.path.insert(0, sys.argv[4])
+from fm_wiki_usage import page_key, read_usage
+
 repo = pathlib.Path(sys.argv[1]).resolve()
 now_day = datetime.datetime.fromtimestamp(int(sys.argv[2]), datetime.timezone.utc).date()
 ARCHIVE_DAYS = 120
-USE = re.compile(r"^used:\s*(\S+)\s+(ok|stale|wrong)\s*$")
-DATE = re.compile(r"^date:\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
-CONFIRMED = re.compile(r"^> last-confirmed:\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
-STAMP = re.compile(r"^\d{8}T\d{6}Z$")
+CONFIRMED = re.compile(r"^> last-confirmed:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$", re.M)
+signals = read_usage(repo)
 
 
-def page_key(value):
-    key = value.strip()
-    if key.startswith("./"):
-        key = key[2:]
-    if key.startswith("pages/"):
-        key = key[len("pages/"):]
-    if key.endswith(".md"):
-        key = key[:-3]
-    return key
-
-
-def lesson_day(path, text):
-    match = DATE.search(text)
-    if match:
-        return match.group(1)
-    stamp = path.name.split("-")[0]
-    if STAMP.match(stamp):
-        return "%s-%s-%s" % (stamp[0:4], stamp[4:6], stamp[6:8])
-    return None
-
-
-signals = {}
-for path in sorted((repo / "raw").rglob("*.md")):
+def inactivity_days(text, entry):
+    match = CONFIRMED.search(text)
+    if not match:
+        return None
     try:
-        text = path.read_text(errors="replace")
-    except OSError:
-        continue
-    day = lesson_day(path, text)
-    for line in text.splitlines():
-        match = USE.match(line)
-        if not match:
-            continue
-        key = page_key(match.group(1))
-        if not key:
-            continue
-        entry = signals.setdefault(key, {"ok": None})
-        if match.group(2) == "ok" and day and (entry["ok"] is None or day > entry["ok"]):
-            entry["ok"] = day
+        confirmed = datetime.date.fromisoformat(match.group(1)).isoformat()
+    except ValueError:
+        return None
+    last_activity = max(confirmed, entry["last_used"] if entry else confirmed)
+    return (now_day - datetime.date.fromisoformat(last_activity)).days
+
 
 changes = []
 moves = {}
@@ -2386,7 +2347,11 @@ for rel in archived_paths:
         continue
     path = repo / rel
     live = repo / rel.removeprefix("archive/")
-    if not path.is_file() or page_key(live.relative_to(repo).as_posix()) not in signals:
+    if not path.is_file():
+        continue
+    entry = signals.get(page_key(live.relative_to(repo).as_posix()))
+    age = inactivity_days(path.read_text(), entry)
+    if not entry or age is None or age > ARCHIVE_DAYS:
         continue
     if live.exists():
         raise RuntimeError(f"cannot restore {rel}: live page already exists")
@@ -2402,19 +2367,12 @@ for path in sorted(set((repo / "pages").rglob("*.md")) | set(moves)):
     match = CONFIRMED.search(text)
     confirmed = match.group(1) if match else None
     entry = signals.get(page_key(rel))
-    if entry and entry["ok"] and confirmed and entry["ok"] > confirmed:
-        changes.append(("refresh", rel, entry["ok"]))
-        confirmed = entry["ok"]
+    if entry and entry["last_ok"] and confirmed and entry["last_ok"] > confirmed:
+        changes.append(("refresh", rel, entry["last_ok"]))
+        confirmed = entry["last_ok"]
         updated[path] = CONFIRMED.sub(f"> last-confirmed: {confirmed}", text)
-    if entry:
-        continue
-    if confirmed is None:
-        continue
-    try:
-        age = (now_day - datetime.date.fromisoformat(confirmed)).days
-    except ValueError:
-        continue
-    if age >= ARCHIVE_DAYS:
+    age = inactivity_days(updated.get(path, text), entry)
+    if age is not None and age > ARCHIVE_DAYS:
         target = repo / "archive" / rel
         if target.exists():
             print(f"wiki: prune: {rel} is already archived; left in place")
@@ -2424,8 +2382,8 @@ for path in sorted(set((repo / "pages").rglob("*.md")) | set(moves)):
 
 
 TOKENS = re.compile(
-    r"\]\(\s*|^[ \t>]*\[[^\]\n]+\]:\s*|(?P<html>\b(?:href|src)\s*=\s*)",
-    re.M | re.I)
+    r"\]\(\s*|\[(?:\\.|[^\[\]\\])+\]:\s*|(?P<html>\b(?:href|src)\s*=\s*)",
+    re.I)
 
 
 def rewrite_links(text, old, new):

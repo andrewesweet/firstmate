@@ -42,13 +42,17 @@ Header provenance, bare paths, and code examples do not satisfy the body citatio
 Supersession cites the newer raw lesson and strikes the old claim; the old text stays readable under the strike.
 Raw files are never edited to fix a page: a correction is a new raw lesson compiled by a later run.
 A `used: <page> ok|stale|wrong` line in a raw lesson is a usage signal from a worker that consulted the page.
-`used: ... ok` refreshes `last-confirmed` to the lesson's date.
+`used: ... ok` advances `last-confirmed` to the lesson's date when newer.
 `used: ... stale|wrong` flags the claim for the next gardener run.
-The signal names a page by its path under `pages/`, without that prefix or the `.md` suffix, such as `used: tools/no-mistakes-ci-timeouts ok`.
+The signal names a live or archived page by its exact path under `pages/`, without that prefix or the `.md` suffix, such as `used: tools/no-mistakes-ci-timeouts ok`.
+Signals use the raw lesson's generated `date: YYYY-MM-DD` field; a missing or invalid date skips the signal.
 
 ## Pruning
 
-`publish` applies the usage signals before it commits, so the archive move rides the same guarded commit as the compiled pages: a page confirmed 120 or more days ago that no lesson's `used:` line names moves from `pages/` to `archive/pages/`, and the page keeps its history there.
+`publish` applies usage signals within its guarded publication.
+A page's last activity is the later of its `last-confirmed` date and its latest dated usage across `ok`, `stale`, and `wrong`.
+A page whose last activity is more than 120 days old moves from `pages/` to `archive/pages/`, keeping its history there.
+After accepting incoming raw lessons, restore any tentative archive from the current run whose last activity no longer meets this age rule.
 Archived pages are not linted, listed in the index, or compiled again.
 The budgets then force merging instead of growth, so the wiki never becomes a second unpruned memory store.
 
