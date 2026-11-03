@@ -1,0 +1,38 @@
+
+Running test_publish_archives_pages_unconfirmed_for_120_days
+ok - publish archives a page unconfirmed for 120 days and keeps a 119-day one
+
+Running test_publish_refreshes_last_confirmed_from_usage_signals
+ok - publish refreshes last-confirmed from used: ok and keeps a flagged page
+
+Running test_coverage_reports_pages_lessons_and_the_archive
+ok - coverage reports one line and shares the freshness clock with lint
+
+Running test_publish_ages_all_usage_verdicts_and_confirmation_dates
+ok - all verdicts expire after inactivity while recent usage or confirmation protects pages
+
+Running test_usage_consumers_require_canonical_keys_and_generated_dates
+ok - coverage, advisories, refresh, and expiry share canonical dated usage records
+
+Running test_publish_rechecks_pruning_after_remote_usage
+ok - initial and retry fetches revalidate all three usage verdicts before publication
+
+Running test_publish_preserves_archive_link_destinations
+ok - archiving preserves citations, incoming links, peer links, images, HTML, and code examples
+
+Running test_publish_preserves_untracked_notes_with_and_without_moves
+ok - publication repairs tracked links while leaving untracked root and archive notes private
+
+Running test_publish_and_lint_allow_zero_live_pages
+ok - last-page archive retries, empty fresh clones, index updates, and new compilation all work
+
+Running test_gardener_coverage_done_remains_terminal
+ok - generated gardener completion includes coverage without changing terminal classification or scheduling
+
+Running test_publish_refuses_a_raw_edit
+ok - publish refuses a raw edit
+
+Running test_publish_refuses_a_foreign_page_commit
+ok - publish refuses a foreign page commit
+
+Targeted product checks complete.

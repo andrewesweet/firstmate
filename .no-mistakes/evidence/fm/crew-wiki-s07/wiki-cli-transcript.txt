@@ -1,0 +1,443 @@
+
+Scenario: test_publish_archives_pages_unconfirmed_for_120_days
+$ fm-wiki.sh publish --base 8076b4475f5956c4d6e8d528ae0e6644a1a0dd1f 
+wiki: prune: archived pages/tools/stale-121.md after 121 days without confirmation or usage
+wiki: prune: 1 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/fresh-119.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/fresh-119.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 3a1ddf5
+[exit 0]
+
+Scenario: test_publish_refreshes_last_confirmed_from_usage_signals
+$ fm-wiki.sh publish --base 3b2a4a23f92aa1e9c096dac6471e5b8dd89b2153 
+wiki: prune: refreshed pages/tools/used-page.md last-confirmed to 2026-10-30 from a usage signal
+wiki: prune: 0 page(s) archived, 1 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/flagged-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/flagged-page stale
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/flagged-page.md
+wiki: index.md regenerated (3 page(s), 9 line(s))
+wiki: published 5bf014a
+[exit 0]
+
+Scenario: test_coverage_reports_pages_lessons_and_the_archive
+$ fm-wiki.sh coverage 
+wiki: coverage pages=2 raw=3 pending=2 archived=1 usage-signals=12 usage-by-page={"tools/seed-page":11,"tools/unconfirmed-page":1} stale-signals=2 unconfirmed90=1
+[exit 0]
+
+Scenario: test_coverage_reports_pages_lessons_and_the_archive
+$ fm-wiki.sh lint 
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/unconfirmed-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/seed-page stale
+wiki lint advisory: usage signal needs the gardener: used: tools/unconfirmed-page wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/unconfirmed-page.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_ages_all_usage_verdicts_and_confirmation_dates
+$ fm-wiki.sh publish --base db3710ae450f5203ae7be464cc3711e43be1f71d 
+wiki: prune: refreshed pages/tools/old-ok.md last-confirmed to 2026-04-16 from a usage signal
+wiki: prune: archived pages/tools/old-ok.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/old-stale.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/old-wrong.md after 200 days without confirmation or usage
+wiki: prune: 3 page(s) archived, 1 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/boundary-confirmation.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/boundary-use.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/newer-confirmation.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/recent-stale.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/recent-wrong.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/boundary-confirmation stale
+wiki lint advisory: usage signal needs the gardener: used: tools/boundary-use wrong
+wiki lint advisory: usage signal needs the gardener: used: tools/newer-confirmation wrong
+wiki lint advisory: usage signal needs the gardener: used: tools/old-stale stale
+wiki lint advisory: usage signal needs the gardener: used: tools/old-wrong wrong
+wiki lint advisory: usage signal needs the gardener: used: tools/recent-stale stale
+wiki lint advisory: usage signal needs the gardener: used: tools/recent-wrong wrong
+wiki lint advisory: usage signal needs the gardener: used: tools/recent-stale wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/boundary-confirmation.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/boundary-use.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/newer-confirmation.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/recent-stale.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/recent-wrong.md
+wiki: index.md regenerated (6 page(s), 12 line(s))
+wiki: published d206251
+[exit 0]
+
+Scenario: test_usage_consumers_require_canonical_keys_and_generated_dates
+$ fm-wiki.sh coverage 
+wiki: coverage pages=7 raw=7 pending=6 archived=0 usage-signals=1 usage-by-page={"tools/canonical":1} stale-signals=0 unconfirmed90=6
+[exit 0]
+
+Scenario: test_usage_consumers_require_canonical_keys_and_generated_dates
+$ fm-wiki.sh lint 
+wiki lint advisory: orphan page not linked from index.md: pages/tools/canonical.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/dot-prefix.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/invalid-date.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/prefix.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/suffix.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/undated.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/canonical.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/dot-prefix.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/invalid-date.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/prefix.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/suffix.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/undated.md
+wiki: lint clean (7 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_usage_consumers_require_canonical_keys_and_generated_dates
+$ fm-wiki.sh publish --base c172144a791fa814af08f03d6ddaa4b24f917fc6 
+wiki: prune: refreshed pages/tools/canonical.md last-confirmed to 2026-11-02 from a usage signal
+wiki: prune: archived pages/tools/dot-prefix.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/invalid-date.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/prefix.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/suffix.md after 200 days without confirmation or usage
+wiki: prune: archived pages/tools/undated.md after 200 days without confirmation or usage
+wiki: prune: 5 page(s) archived, 1 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/canonical.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published a41dc9b
+[exit 0]
+
+Scenario: test_usage_consumers_require_canonical_keys_and_generated_dates
+$ fm-wiki.sh coverage 
+wiki: coverage pages=2 raw=7 pending=6 archived=5 usage-signals=1 usage-by-page={"tools/canonical":1} stale-signals=0 unconfirmed90=0
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 6636a78aabf200e8da4e9b0c96f4f97d1443466e 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: refreshed pages/tools/used.md last-confirmed to 2026-11-02 from a usage signal
+wiki: prune: 1 page(s) archived, 1 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published c199fbf
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 61f42536c318248cbb57b453980f636a91e4588c 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published eaaa20c
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 4d66411ab0e4c1e20bf3e41cd44394249e657ebd 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: 1 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 28eb934
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base f0f2a68c40f845aa9959aacbadaaa05eead76c53 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 1ccb6de
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 480977a1b66380814b337c24ac920cbc3d842e88 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: 1 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 910ef02
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 1a3e387d94ed8a2e07e931fc05d34d047d0ee177 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published f2235dd
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base d3c9d1f66577b01cbb326f9a3c8a3e28223ccb91 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: prune: restored pages/tools/used.md after incoming usage
+wiki: prune: refreshed pages/tools/used.md last-confirmed to 2026-11-02 from a usage signal
+wiki: prune: 0 page(s) archived, 1 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published aa21c19
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base b0f2ddc77aca8ba98a05a82ec0fd0b22c2cfa622 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published ade03cc
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base a74e6477af58141133f087a4ca4322a6f1daad72 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: prune: restored pages/tools/used.md after incoming usage
+wiki: prune: 0 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published ad593b4
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base cf6d385cd4c6dfacb348560690f4e5b5ee5739a9 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 3cb54d0
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used stale
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 725c396226aad23a9d2f8b0d9cf33c3bce8c813f 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: prune: restored pages/tools/used.md after incoming usage
+wiki: prune: 0 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/used.md
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 20a8f8d
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/used.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh publish --base 78448981bd94999d6d27ad4fb02dfbec51649e70 
+wiki: prune: archived pages/tools/unused.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/used.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 45488e3
+[exit 0]
+
+Scenario: test_publish_rechecks_pruning_after_remote_usage
+$ fm-wiki.sh lint 
+wiki lint advisory: usage signal needs the gardener: used: tools/used wrong
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_preserves_archive_link_destinations
+$ fm-wiki.sh publish --base d135f16088ce9735b5107217d4bdb2d3a96bbd80 
+wiki: prune: archived pages/projects/deep/peer.md after 121 days without confirmation or usage
+wiki: prune: archived pages/tools/old.md after 121 days without confirmation or usage
+wiki: prune: 2 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 3d8f69b
+[exit 0]
+
+Scenario: test_publish_preserves_archive_link_destinations
+$ fm-wiki.sh publish --base d135f16088ce9735b5107217d4bdb2d3a96bbd80 
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: nothing to publish
+[exit 0]
+
+Scenario: test_publish_preserves_untracked_notes_with_and_without_moves
+$ fm-wiki.sh publish --base 7491284cefa00733ce531e4995d0baf536b2e287 
+wiki: prune: archived pages/tools/old.md after 121 days without confirmation or usage
+wiki: prune: 1 page(s) archived, 0 refreshed from usage signals
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 248b7fd
+[exit 0]
+
+Scenario: test_publish_preserves_untracked_notes_with_and_without_moves
+$ fm-wiki.sh publish --base 7491284cefa00733ce531e4995d0baf536b2e287 
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: nothing to publish
+[exit 0]
+
+Scenario: test_publish_preserves_untracked_notes_with_and_without_moves
+$ fm-wiki.sh publish --base 054c2d2109dfdffb51145911af9ed8118b5e1a36 
+wiki lint advisory: orphan page not linked from index.md: pages/tools/old.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/old.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 0050db7
+[exit 0]
+
+Scenario: test_publish_preserves_untracked_notes_with_and_without_moves
+$ fm-wiki.sh publish --base 054c2d2109dfdffb51145911af9ed8118b5e1a36 
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/old.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: nothing to publish
+[exit 0]
+
+Scenario: test_publish_and_lint_allow_zero_live_pages
+$ fm-wiki.sh publish --base 8da56fc4020cde105700f9c27db2ed3eb66e56b7 
+wiki: prune: archived pages/tools/seed-page.md after 121 days without confirmation or usage
+wiki: prune: 1 page(s) archived, 0 refreshed from usage signals
+wiki: index.md regenerated (0 page(s), 3 line(s))
+wiki: index.md regenerated (0 page(s), 3 line(s))
+wiki: published 93bc3b7
+[exit 0]
+
+Scenario: test_publish_and_lint_allow_zero_live_pages
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.SmZqXw/empty-pages-fresh 
+wiki: lint clean (0 page(s), 0 raw lesson(s) cited)
+[exit 0]
+
+Scenario: test_publish_and_lint_allow_zero_live_pages
+$ fm-wiki.sh publish --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.SmZqXw/empty-pages-fresh --base 93bc3b7f7c7dfdb8ada00714722557c42f7672d8 
+wiki: index.md regenerated (0 page(s), 3 line(s))
+wiki: published 56dde0b
+[exit 0]
+
+Scenario: test_publish_and_lint_allow_zero_live_pages
+$ fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.SmZqXw/empty-pages-fresh 
+wiki lint: no index.md in ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.SmZqXw/empty-pages-fresh
+wiki: lint blocked (1 problem(s), 0 page(s))
+[exit 1]
+
+Scenario: test_publish_and_lint_allow_zero_live_pages
+$ fm-wiki.sh publish --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.SmZqXw/empty-pages-fresh --base 56dde0bc6aa0e9903711c0475f82c3b50158db87 
+wiki lint advisory: orphan page not linked from index.md: pages/tools/new.md
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published 762854f
+[exit 0]
+
+Scenario: test_gardener_coverage_done_remains_terminal
+$ fm-wiki.sh coverage 
+wiki: coverage pages=1 raw=2 pending=1 archived=0 usage-signals=0 usage-by-page={} stale-signals=0 unconfirmed90=0
+[exit 0]
+
+Scenario: test_gardener_coverage_done_remains_terminal
+$ fm-wiki.sh due 
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+[exit 0]
+
+Scenario: test_gardener_coverage_done_remains_terminal
+$ fm-wiki.sh close garden-done 
+wiki: no-lessons recorded for garden-done (final=done)
+[exit 0]
+
+Scenario: test_publish_refuses_a_raw_edit
+$ fm-wiki.sh publish --base 82519087e311f16f8e20add1e976bb5e353e0917 
+wiki: publish refused: the run changed files under raw/; raw lessons are add-only
+[exit 1]
+
+Scenario: test_publish_refuses_a_raw_edit
+$ fm-wiki.sh publish --base 82519087e311f16f8e20add1e976bb5e353e0917 
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+[exit 1]
+
+Scenario: test_publish_refuses_a_foreign_page_commit
+$ fm-wiki.sh publish --base 82519087e311f16f8e20add1e976bb5e353e0917 
+wiki: publish refused: a foreign page commit landed after the base (cda3bc61353b); re-run the gardener onto the new main and publish again
+[exit 1]

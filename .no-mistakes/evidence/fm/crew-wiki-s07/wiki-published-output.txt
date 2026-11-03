@@ -1,0 +1,173 @@
+
+--- Published pages/tools/used-page.md (pruneused) ---
+> summary: a page workers still use
+> scope: tool:seed
+> last-confirmed: 2026-10-30
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# a page workers still use
+
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+## Confirmation examples
+
+```markdown
+> last-confirmed: 2020-01-01
+```
+
+> last-confirmed: 2021-02-03
+
+--- Published archive/pages/tools/old-ok.md (usageage) ---
+> summary: archive
+> scope: tool:seed
+> last-confirmed: 2026-04-16
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# archive
+
+Body citing [lesson](../../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+--- Published archive/pages/tools/old.md (archivelinks) ---
+> summary: an old linked page
+> scope: tool:seed
+> last-confirmed: 2026-07-04
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# an old linked page
+
+Body citing [lesson](../../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+[seed](../../../pages/tools/seed-page.md#seed)
+[peer](../projects/deep/peer.md?view=full#peer)
+[ref][src]
+
+[src]: <../../../raw/2026/10/space (lesson).md> "a source title"
+
+- [list-source]: ../../../raw/2026/10/list-only.md
+- Claim [list-source].
+
+> 1. [quoted-source]: ../../../raw/2026/10/list-only.md
+> 2. Claim [quoted-source].
+
+> [continued-source]:
+> ../../../raw/2026/10/quote-only.md
+>
+> Claim [continued-source].
+
+> > [nested](
+> > ../../../raw/2026/10/quote-only.md
+> > )
+
+> ![continued image](
+> ../../../README.md
+> )
+
+> <a href=
+> ../../../README.md>continued href</a>
+
+> <img src=
+> ../../../README.md>
+
+![image](../../../README.md)
+<a href="../../../README.md">README</a>
+<a href=../../../pages/tools/seed-page.md>seed</a>
+<img src=../../../README.md>
+
+- links in a list
+    - [seed](../../../pages/tools/seed-page.md)
+
+`[example](seed-page.md)`
+
+    [example](seed-page.md)
+    <a href=seed-page.md>example</a>
+    [example-ref]: seed-page.md
+
+	[tab example](seed-page.md)
+
+Set href=seed-page.md as an example.
+
+~~~markdown
+[example](seed-page.md)
+> [example-ref]:
+> seed-page.md
+~~~
+
+--- Published README.md (archivelinks) ---
+# Crew wiki (fixture)
+
+<a href=archive/pages/tools/old.md>old</a>
+
+    <a href=pages/tools/old.md>example</a>
+
+> - [root-old]: archive/pages/tools/old.md
+> - See [root-old].
+
+> [continued-root]:
+> archive/pages/tools/old.md
+>
+> See [continued-root].
+
+--- Published README.md (private-notes-move) ---
+# Crew wiki (fixture)
+
+[old](archive/pages/tools/old.md)
+
+--- Published pages/tools/new.md (empty-pages) ---
+> summary: a newly compiled page
+> scope: tool:seed
+> last-confirmed: 2026-11-02
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# a newly compiled page
+
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+--- Generated gardener completion ---
+working [at=1]: gardening
+done [at=2]: wiki pages published 598e2c309dbd579989d58e115459d2fd8ad5d37b; wiki: coverage pages=1 raw=2 pending=1 archived=0 usage-signals=0 usage-by-page={} stale-signals=0 unconfirmed90=0
+
+--- Published wiki trees ---
+
+usageage
+AGENTS.md
+README.md
+archive/pages/tools/old-ok.md
+archive/pages/tools/old-stale.md
+archive/pages/tools/old-wrong.md
+index.md
+log.md
+pages/tools/boundary-confirmation.md
+pages/tools/boundary-use.md
+pages/tools/newer-confirmation.md
+pages/tools/recent-stale.md
+pages/tools/recent-wrong.md
+pages/tools/seed-page.md
+raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-boundary-confirmation-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-boundary-use-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-newer-confirmation-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-old-ok-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-old-stale-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-old-wrong-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-recent-stale-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-recent-wrong-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-zz-older-a1b2.md
+
+private-notes-move
+AGENTS.md
+README.md
+archive/pages/tools/old.md
+index.md
+log.md
+pages/tools/seed-page.md
+raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+empty-pages
+AGENTS.md
+README.md
+archive/pages/tools/seed-page.md
+index.md
+log.md
+pages/tools/new.md
+raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+raw/2026/11/20261102T000000Z-testhost-testhome-concurrent-a1b2.md

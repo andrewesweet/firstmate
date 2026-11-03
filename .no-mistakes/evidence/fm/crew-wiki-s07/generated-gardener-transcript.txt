@@ -1,0 +1,45 @@
+Commands emitted to the gardener:
+env FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report FM_CONFIG_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/config FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/state FM_DATA_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/bin/fm-wiki.sh lint --repo "$PWD"
+env FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report FM_CONFIG_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/config FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/state FM_DATA_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/bin/fm-wiki.sh index --repo "$PWD"
+env FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report FM_CONFIG_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/config FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/state FM_DATA_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/bin/fm-wiki.sh publish --repo "$PWD" --base "$BASE"
+env FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report FM_CONFIG_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/config FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/state FM_DATA_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.wiki-live-tmp/fm-wiki-gardener.y6tMHv/generated-report/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/bin/fm-wiki.sh coverage --repo "$PWD"
+
+Output from executing those commands in the linked task worktree:
+wiki lint advisory: orphan page not linked from index.md: pages/tools/retire.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/retire.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: prune: archived pages/tools/retire.md after 121 days without confirmation or usage
+wiki: prune: refreshed pages/tools/seed-page.md last-confirmed to 2026-11-02 from a usage signal
+wiki: prune: 1 page(s) archived, 1 refreshed from usage signals
+wiki: index.md regenerated (1 page(s), 7 line(s))
+wiki: published f82801b
+wiki: coverage pages=1 raw=2 pending=0 archived=1 usage-signals=1 usage-by-page={"tools/seed-page":1} stale-signals=0 unconfirmed90=0
+
+Completed gardener report:
+done [at=2]: wiki pages published f82801b31ebdb333ba367e77704600bdc91fc419; wiki: coverage pages=1 raw=2 pending=0 archived=1 usage-signals=1 usage-by-page={"tools/seed-page":1} stale-signals=0 unconfirmed90=0
+The real completion consumer accepted the report and its published commit.
+
+Published confirmed page:
+> summary: the seed page for gardener fixtures
+> scope: tool:seed
+> last-confirmed: 2026-11-02
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+> aliases: seed
+
+# Seed page
+
+A body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+Published archive:
+> summary: retire this inactive page
+> scope: tool:seed
+> last-confirmed: 2026-07-04
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# retire this inactive page
+
+Body citing [lesson](../../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+
+PASS: emitted gardener commands publish freshness changes, report exact coverage, and produce accepted completion.
