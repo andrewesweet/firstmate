@@ -1810,7 +1810,7 @@ test_publish_archives_pages_unconfirmed_for_120_days() {
 }
 
 test_publish_refreshes_last_confirmed_from_usage_signals() {
-  local home bare repo base out now used_day old_day
+  local home bare repo base out now used_day old_day example
   bare=$(wiki_bare pruneused)
   seed_checkout "$bare" "$TMP_ROOT/pruneused-seed" >/dev/null
   home=$(gardener_home_with_repo pruneused "$bare")
@@ -1820,6 +1820,17 @@ test_publish_refreshes_last_confirmed_from_usage_signals() {
   old_day=$(wiki_day_before "$now" 200)
   wiki_page "$repo/pages/tools/used-page.md" 'a page workers still use' "$old_day"
   wiki_page "$repo/pages/tools/flagged-page.md" 'a page flagged stale' "$old_day"
+  example=$(cat <<'EOF'
+## Confirmation examples
+
+```markdown
+> last-confirmed: 2020-01-01
+```
+
+> last-confirmed: 2021-02-03
+EOF
+)
+  printf '\n%s\n' "$example" >> "$repo/pages/tools/used-page.md"
   # Two published usage lessons: one confirms, one disputes.
   cat > "$repo/raw/2026/10/20261030T000000Z-testhost-testhome-usage-ok-a1b2.md" <<EOF
 ---
@@ -1858,6 +1869,8 @@ EOF
   assert_contains "$out" 'refreshed pages/tools/used-page.md' "publish reports the refreshed confirmation"
   assert_contains "$(wgit -C "$bare" show main:pages/tools/used-page.md)" "> last-confirmed: $used_day" \
     "a used: ok signal refreshes last-confirmed to the lesson's date"
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/used-page.md)" "$example" \
+    "confirmation refresh preserves literal dates in the published page body"
   assert_contains "$(wgit -C "$bare" show main:pages/tools/flagged-page.md)" "> last-confirmed: $old_day" \
     "a used: stale signal flags the page without confirming it"
   wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -qxF 'pages/tools/flagged-page.md' \
@@ -1875,6 +1888,7 @@ test_coverage_reports_pages_lessons_and_the_archive() {
   wiki_page "$repo/pages/tools/unconfirmed-page.md" 'a page unconfirmed for 95 days' "$(wiki_day_before "$now" 95)"
   mkdir -p "$repo/archive/pages/tools"
   printf '# A retired page\n\nArchived history, never indexed.\n' > "$repo/archive/pages/tools/retired.md"
+  printf '# Archive notes\n\nNot a retired page.\n' > "$repo/archive/notes.md"
   add_raw "$repo" 20261030T000000Z pending-lesson >/dev/null
   stale_lesson="$repo/raw/2026/10/20261030T000002Z-testhost-testhome-flagged-a1b2.md"
   cat > "$stale_lesson" <<EOF

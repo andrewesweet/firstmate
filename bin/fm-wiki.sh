@@ -2240,7 +2240,7 @@ wiki_coverage_line() {
   local compiled='' name age
   pages=$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   raw=$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  archived=$(find "$repo/archive" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+  archived=$(find "$repo/archive/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   counts=$(python3 "$SCRIPT_DIR/fm_wiki_usage.py" "$repo") || return 1
   IFS=$'\t' read -r usage stale by_page <<< "$counts"
   if [ -f "$repo/log.md" ]; then
@@ -2369,7 +2369,7 @@ for path in sorted({path for path in documents if path.is_relative_to(repo / "pa
     if entry and entry["last_ok"] and confirmed and entry["last_ok"] > confirmed:
         changes.append(("refresh", rel, entry["last_ok"]))
         confirmed = entry["last_ok"]
-        updated[path] = CONFIRMED.sub(f"> last-confirmed: {confirmed}", text)
+        updated[path] = text[:match.start(1)] + confirmed + text[match.end(1):]
     age = inactivity_days(updated.get(path, text), entry)
     if age is not None and age > ARCHIVE_DAYS:
         target = repo / "archive" / rel
