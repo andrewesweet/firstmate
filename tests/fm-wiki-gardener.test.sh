@@ -1820,16 +1820,13 @@ test_publish_refreshes_last_confirmed_from_usage_signals() {
   old_day=$(wiki_day_before "$now" 200)
   wiki_page "$repo/pages/tools/used-page.md" 'a page workers still use' "$old_day"
   wiki_page "$repo/pages/tools/flagged-page.md" 'a page flagged stale' "$old_day"
-  example=$(cat <<'EOF'
-## Confirmation examples
+  example='## Confirmation examples
 
 ```markdown
 > last-confirmed: 2020-01-01
 ```
 
-> last-confirmed: 2021-02-03
-EOF
-)
+> last-confirmed: 2021-02-03'
   printf '\n%s\n' "$example" >> "$repo/pages/tools/used-page.md"
   # Two published usage lessons: one confirms, one disputes.
   cat > "$repo/raw/2026/10/20261030T000000Z-testhost-testhome-usage-ok-a1b2.md" <<EOF
@@ -2139,7 +2136,8 @@ test_gardener_coverage_done_remains_terminal() {
   FM_HOME="$garden_home" bash -c '. "$1/bin/fm-dod-lib.sh"; fm_dod_block direct-push garden-done fm/garden-done none' _ "$ROOT" > "$brief" \
     || fail 'cannot render the gardener delivery instructions'
   coverage=$(run_wiki "$garden_home" coverage) || fail 'cannot measure gardener coverage'
-  line=$(python3 - "$brief" "$head" "$coverage" <<'PYDONE'
+  # shellcheck disable=SC2016 # Python owns literal backticks; -c avoids Bash 3.2's nested-heredoc parsing.
+  line=$(python3 -c '
 import pathlib
 import re
 import sys
@@ -2148,8 +2146,7 @@ prompt = pathlib.Path(sys.argv[1]).read_text()
 templates = re.findall(r"`(done \[at=<epoch>\]:[^`]+)`", prompt)
 assert len(templates) == 1, templates
 print(templates[0].replace("<epoch>", "2").replace("{commit}", sys.argv[2]).replace("{coverage line}", sys.argv[3]))
-PYDONE
-) || fail 'the generated completion template must name one status record'
+' "$brief" "$head" "$coverage") || fail 'the generated completion template must name one status record'
   assert_contains "$line" "$coverage" 'the emitted done template keeps coverage inside its note'
   assert_equals 1 "$(printf '%s\n' "$line" | wc -l | tr -d ' ')" 'completion uses one physical status line'
   printf 'kind=ship\nproject=%s/crew-wiki\n' "$TMP_ROOT" > "$garden_home/state/garden-done.meta"
