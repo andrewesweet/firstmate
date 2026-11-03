@@ -141,6 +141,9 @@
 #                 after each retry rebase, using the same fetch-rebase-push loop
 #                 (never force) and landing proof as drain. The pruning policy is owned
 #                 by assets/crew-wiki-AGENTS.md, "Pruning".
+#                 Archive and restore moves repair rendered relative links in
+#                 tracked live pages, archive Markdown, and root Markdown;
+#                 link repair never enrolls untracked files or rewrites code examples.
 #                 Refusals and push failures
 #                 exit 1 with a retryable message; only a proven landing exits 0.
 #                 Never rebuilds or switches the checkout: a mismatched origin is
