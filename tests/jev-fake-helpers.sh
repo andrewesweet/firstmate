@@ -22,11 +22,16 @@ fm_fake_jev() {
 import json
 import os
 import sys
+import time
 
 try:
     request = json.load(sys.stdin)
 except ValueError:
     request = {}
+request_log = os.environ.get("FM_FAKE_JEV_REQUEST_LOG")
+if request_log:
+    with open(request_log, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(request) + "\n")
 questions = request.get("questions") or {}
 name = next(iter(questions), "")
 log = os.environ.get("FM_FAKE_JEV_LOG")
@@ -34,6 +39,18 @@ if log:
     state = json.dumps(request.get("state") or {})
     with open(log, "a", encoding="utf-8") as handle:
         handle.write("%s\t%d\n" % (name, len(state)))
+lock = os.environ.get("FM_FAKE_JEV_LOCK")
+if lock:
+    import fcntl
+    with open(lock, "a") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            status = "free"
+        except BlockingIOError:
+            status = "held"
+    with open(lock + ".observed", "a") as handle:
+        handle.write(status + "\n")
+time.sleep(float(os.environ.get("FM_FAKE_JEV_DELAY", "0")))
 mode = os.environ.get("FM_FAKE_JEV_MODE", "answer")
 if mode == "unavailable":
     print(json.dumps({"ok": False, "unavailable": "no key", "model": "jev"}))

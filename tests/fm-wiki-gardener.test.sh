@@ -1539,6 +1539,135 @@ test_lint_makes_no_contradiction_call_with_jev_off() {
   pass "a flag-off lint is byte-identical and makes no Jev call"
 }
 
+test_triage_preserves_offered_routes() {
+  local home repo fake plan report
+  repo=$(triage_fixture route-choice)
+  home=$(triage_home triage-route-choice)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-route-choice")
+  fm_fake_jev "$fake"
+  plan="$home/data/gardener/plan.json"
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE='new page' \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 || fail "new page must remain a valid route"
+  assert_equals 'new page' "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["route"]["choice"]')" \
+    "the declared new-page option survives into the plan"
+  report=$(cat "$home/data/gardener/report.md")
+  assert_contains "$report" '| `new page` | (none yet) | - |' \
+    "a new-page hint has no filename agreement to measure"
+  mv "$repo/pages/tools/firstmate.md" "$repo/pages/tools/firstmate guide.md"
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE='pages/tools/firstmate guide.md' \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 || fail "an offered page with spaces must remain valid"
+  assert_equals 'pages/tools/firstmate guide.md' \
+    "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["route"]["choice"]')" \
+    "exact candidate membership accepts every offered filename"
+  rm -f "$repo/pages/tools/firstmate guide.md" "$repo/pages/fleet/routing.md"
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE='new page' \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 || fail "new page must work without candidates"
+  assert_equals 'new page' "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["route"]["choice"]')" \
+    "no matching page still produces the declared route hint"
+  assert_equals 'None' "$(plan_query "$plan" 'plan["lessons"][0]["jev"].get("duplicate")')" \
+    "no candidate means no duplicate target"
+  pass "triage retains new-page and spaced-filename choices"
+}
+
+test_triage_calibration_uses_body_citations() {
+  local home repo fake page raw report id
+  repo=$(triage_fixture citation-labels)
+  home=$(triage_home triage-citation-labels)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-citation-labels")
+  fm_fake_jev "$fake"
+  page="$repo/pages/tools/firstmate.md"
+  id=20261025T010000Z-testhost-testhome-alpha-b1c2
+  raw="raw/2026/10/$id.md"
+  printf '> summary: firstmate tooling craft\n> scope: tool:firstmate\n> sources: %s\n\n' "$raw" > "$page"
+  printf '\140\140\140md\n[example](../../%s)\n\140\140\140\n\n\140[inline example](../../%s)\140\n' "$raw" "$raw" >> "$page"
+  FM_WIKI_JEV="$fake/fm-jev-fake" run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 \
+    || fail "triage must label a lesson mentioned only in metadata and code"
+  report=$(cat "$home/data/gardener/report.md")
+  assert_contains "$report" '| (none yet) | pending |' "metadata and code do not prove a route was taken"
+  assert_contains "$report" '| pending | 0.4 | 0.4 | pending |' "metadata and code do not prove the lesson was kept"
+  printf '\n> A supported claim [from the lesson][source].\n\n[source]: ../../%s\n' "$raw" >> "$page"
+  FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE=pages/tools/firstmate.md \
+    run_wiki "$home" triage --repo "$repo" >/dev/null 2>&1 || fail "reference citations must count"
+  report=$(cat "$home/data/gardener/report.md")
+  assert_contains "$report" '| `pages/tools/firstmate.md` | `pages/tools/firstmate.md` | yes |' \
+    "quoted reference links resolve through the same citation parser as lint"
+  assert_contains "$report" '| 0.4 | 0.4 | yes |' "a resolved body citation proves the lesson was kept"
+  pass "calibration distinguishes metadata and code from resolved body citations"
+}
+
+test_jev_does_not_send_secret_inputs() {
+  local home repo fake location out calls token
+  token=ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD
+  for location in lesson summary page; do
+    repo=$(triage_fixture "secret-$location")
+    home=$(triage_home "triage-secret-$location")
+    fake=$(fm_fakebin "$TMP_ROOT/triage-secret-$location")
+    fm_fake_jev "$fake"
+    calls="$TMP_ROOT/triage-secret-$location/calls"
+    case $location in
+      lesson) printf '\n%s\n' "$token" >> "$repo/raw/2026/10/20261025T010000Z-testhost-testhome-alpha-b1c2.md" ;;
+      summary) printf '> summary: firstmate %s\n' "$token" > "$repo/pages/tools/firstmate.md" ;;
+      page) printf '\n%s\n' "$token" >> "$repo/pages/tools/firstmate.md" ;;
+    esac
+    out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$calls" FM_FAKE_JEV_REQUEST_LOG="$calls.requests" \
+      run_wiki "$home" triage --repo "$repo" 2>&1) || fail "unsafe advisory input must not block planning: $out"
+    assert_equals '1' "$(plan_query "$home/data/gardener/plan.json" 'len(plan["lessons"])')" \
+      "secret scanning advisories never drops a lesson from the plan"
+    if [ "$location" = page ]; then
+      assert_equals 'route worth_keeping' "$(cut -f1 "$calls" | paste -sd ' ' -)" \
+        "an unsafe duplicate page is skipped while safe route and keep calls remain"
+      assert_not_contains "$(cat "$calls.requests")" "$token" "no outgoing triage request contains the credential"
+    else
+      assert_absent "$calls" "unsafe lesson or summary content never reaches the shim"
+    fi
+  done
+  repo=$(contradiction_fixture secret-pairs)
+  home=$(triage_home triage-secret-pairs)
+  fake=$(fm_fakebin "$TMP_ROOT/triage-secret-pairs")
+  fm_fake_jev "$fake"
+  printf '\n%s\n' "$token" >> "$repo/pages/tools/page-1.md"
+  calls="$TMP_ROOT/triage-secret-pairs/calls"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$calls" FM_FAKE_JEV_REQUEST_LOG="$calls.requests" \
+    run_wiki "$home" lint --repo "$repo" 2>&1) || fail "unsafe advisories must not change deterministic lint: $out"
+  assert_equals '3' "$(wc -l < "$calls" | tr -d ' ')" "three safe pairs still run after three unsafe pairs"
+  assert_contains "$out" 'lint clean' "secret suppression does not alter the lint verdict"
+  printf '\n[broken](missing.md)\n' >> "$repo/pages/tools/page-2.md"
+  : > "$calls"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$calls" FM_FAKE_JEV_REQUEST_LOG="$calls.requests" \
+    run_wiki "$home" lint --repo "$repo" 2>&1)
+  [ "$?" -ne 0 ] || fail "deterministic link errors must still block lint"
+  assert_equals '3' "$(wc -l < "$calls" | tr -d ' ')" "blocked lint also skips every unsafe pair"
+  assert_not_contains "$(cat "$calls.requests")" "$token" "no outgoing contradiction request contains the credential"
+  pass "all gardener advisories scan inputs without changing deterministic decisions"
+}
+
+test_publish_keeps_jev_outside_its_budget_and_lock() {
+  local home bare repo fake base out i lock
+  bare=$(wiki_bare publish-jev-budget)
+  seed_checkout "$bare" "$TMP_ROOT/publish-jev-budget-seed" >/dev/null
+  home=$(gardener_home_with_repo publish-jev-budget "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  for i in 1 2 3; do
+    cp "$repo/pages/tools/seed-page.md" "$repo/pages/tools/other-$i.md"
+  done
+  fake=$(fm_fakebin "$TMP_ROOT/publish-jev-budget")
+  fm_fake_jev "$fake"
+  lock="$home/state/wiki/.drain.lock"
+  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$TMP_ROOT/publish-jev-budget/calls" \
+    FM_FAKE_JEV_DELAY=2 FM_FAKE_JEV_MODE=unavailable FM_FAKE_JEV_LOCK="$lock" \
+    FM_WIKI_JEV_TIMEOUT=1 FM_WIKI_PUBLISH_CAP=5 \
+    run_wiki "$home" publish --base "$base" 2>&1) || fail "slow unavailable Jev must not prevent publication: $out"
+  assert_equals '6' "$(wc -l < "$TMP_ROOT/publish-jev-budget/calls" | tr -d ' ')" \
+    "six slow advisory calls exceed the five-second Git budget"
+  assert_equals 'free free free free free free' "$(paste -sd ' ' "$lock.observed")" \
+    "every external advisory runs without the exclusive publication lock"
+  assert_contains "$out" 'wiki: published' "healthy remote still receives the compiled pages"
+  assert_equals "$(wgit -C "$repo" rev-parse HEAD)" "$(wgit -C "$bare" rev-parse main)" \
+    "publication proves the remote landing after unavailable advisories"
+  pass "slow Jev calls consume neither publication budget nor exclusive lock"
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -1587,3 +1716,7 @@ test_triage_calibration_table_labels_the_gardener_decision
 test_triage_publishes_every_lesson_when_jev_is_unavailable
 test_lint_reports_capped_contradiction_candidates
 test_lint_makes_no_contradiction_call_with_jev_off
+test_triage_preserves_offered_routes
+test_triage_calibration_uses_body_citations
+test_jev_does_not_send_secret_inputs
+test_publish_keeps_jev_outside_its_budget_and_lock

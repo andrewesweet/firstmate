@@ -610,9 +610,11 @@ EOF
 # wiki_jev_request <out> <state-file> <question-name> <type> <instructions>
 #                  <criteria-file>
 # Build one TypeSafe request body: the state text from a file (already
-# bounded and secret-scanned by the caller) and one question whose criteria
+# bounded by the caller) and one question whose criteria
 # are read as `<key><TAB><text>` lines. Never reads a key and never prints one.
 wiki_jev_request() {  # <out> <state-file> <name> <type> <instructions> <criteria-file>
+  wiki_scan_hit "$2" && return 1
+  wiki_scan_hit "$6" && return 1
   python3 - "$@" <<'PYREQ'
 import json
 import sys
@@ -1511,11 +1513,19 @@ EOF
 # pages that cite a lesson's raw path, so the table labels Jev's answer
 # against what actually happened rather than against another opinion.
 wiki_triage_render() {  # <rows> <plan> <report> <repo> <jev-state> <calls> <unavailable>
+  local page rel
+  : > "$1.citations"
+  while IFS= read -r page; do
+    [ -n "$page" ] || continue
+    rel=${page#"$4/"}
+    wiki_lint_references "$4" "$page" "$rel" "$1.citations" page >/dev/null 2>&1 || true
+  done <<EOF
+$(find "$4/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
   python3 - "$@" <<'PYTRIAGE'
 import datetime
 import json
 import os
-import re
 import sys
 import tempfile
 
@@ -1542,24 +1552,16 @@ except OSError:
     pass
 
 cited = {}
-for root, _dirs, files in os.walk(os.path.join(repo, "pages")):
-    for name in sorted(files):
-        if not name.endswith(".md"):
-            continue
-        full = os.path.join(root, name)
-        rel = os.path.relpath(full, repo).replace(os.sep, "/")
-        try:
-            text = open(full, encoding="utf-8", errors="replace").read()
-        except OSError:
-            continue
-        for match in re.findall(r"raw/\d{4}/\d{2}/([^)\s\"'<>]+\.md)", text):
-            cited.setdefault(os.path.basename(match)[:-3], set()).add(rel)
+with open(rows_path + ".citations", encoding="utf-8") as handle:
+    for line in handle:
+        raw, page = line.rstrip("\n").split("\t", 1)
+        cited.setdefault(raw, set()).add(page)
 
 now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 plan_rows = []
 table = []
 for row in rows:
-    gardener_pages = sorted(cited.get(row["id"], set()))
+    gardener_pages = sorted(cited.get(row["path"], set()))
     route = row["route"] or None
     duplicate = None
     if row["dup_page"] and row["dup_p"]:
@@ -1586,7 +1588,9 @@ for row in rows:
         "candidates": [c for c in row["candidates"].split(",") if c],
         "jev": jev,
     })
-    if route:
+    if route == "new page":
+        agrees = "-"
+    elif route:
         if gardener_pages:
             agrees = "yes" if route in gardener_pages else "no"
         else:
@@ -1665,6 +1669,7 @@ wiki_triage() {
   wiki_paths >/dev/null 2>&1 || return 1
   repo=${repo:-"$WIKI_REPO"}
   [ -d "$repo/pages" ] || { printf 'fm-wiki: triage: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  wiki_require_lychee || return 1
   plan=${plan:-"$WIKI_DATA/gardener/plan.json"}
   local report work lessons rows jev_state=off calls=0 unavailable=0
   report=$(dirname "$plan")/report.md
@@ -1713,14 +1718,8 @@ EOF
         wiki_jev_call route "$id" '' "$req"
         calls=$(( calls + 1 ))
         [ "$WIKI_JEV_OK" = 1 ] || unavailable=$(( unavailable + 1 ))
-        case $WIKI_JEV_CHOICE in
-          ''|*[!A-Za-z0-9._/-]*) choice= ;;
-          *)
-            case ",$candidates,new page," in
-              *",$WIKI_JEV_CHOICE,"*) choice=$WIKI_JEV_CHOICE ;;
-              *) choice= ;;
-            esac
-            ;;
+        case ",$candidates,new page," in
+          *",$WIKI_JEV_CHOICE,"*) choice=$WIKI_JEV_CHOICE ;;
         esac
         case $choice in
           ''|'new page') target=$(printf '%s' "$candidates" | cut -d, -f1) ;;
@@ -1783,9 +1782,7 @@ EOF
 # wiki_lint_repo <repo>: the deterministic page checks (report 4.6). Blocking
 # problems print as `wiki lint:` lines; advisory ones print as
 # `wiki lint advisory:` lines and never block. The outcome lands in
-# WIKI_LINT_BLOCKED/PAGES/CITED; the caller renders the verdict. Jev
-# contradiction candidates are one of those advisories
-# (wiki_lint_jev_contradictions) and are capped and never blocking.
+# WIKI_LINT_BLOCKED/PAGES/CITED; the caller renders the verdict.
 wiki_lint_repo() {
   local repo=$1 page rel citations fails=0
   WIKI_LINT_PAGES=0
@@ -1853,7 +1850,7 @@ wiki_lint_page() {
 # wiki_lint_references <repo> <page> <rel> <citations>: validate sources, body
 # citations, and relative links; append resolved raw paths to citations.
 wiki_lint_references() {
-  python3 - "$1" "$2" "$3" "$4" <<'PYTHON'
+  python3 - "$1" "$2" "$3" "$4" "${5:-}" <<'PYTHON'
 import pathlib
 import re
 import subprocess
@@ -1909,7 +1906,7 @@ if not citations:
     blocked = True
 with open(sys.argv[4], "a") as output:
     for target in sorted(citations):
-        output.write(target + "\n")
+        output.write(target + ("\t" + rel if sys.argv[5] == "page" else "") + "\n")
 sys.exit(int(blocked))
 PYTHON
 }
@@ -1944,7 +1941,6 @@ EOF
         printf 'wiki lint advisory: usage signal needs the gardener: %s\n' "$line"
       done
   wiki_lint_stale_pages "$repo"
-  wiki_lint_jev_contradictions "$repo"
 }
 
 # wiki_lint_jev_contradictions <repo>: Jev contradiction candidates over page
@@ -2002,7 +1998,7 @@ EOF
       cat "$work/b"
     } > "$state"
     wiki_jev_request "$req" "$state" contradicts noul \
-      'Do these two pages contradict each other about the same behaviour?' "$criteria" || break
+      'Do these two pages contradict each other about the same behaviour?' "$criteria" || continue
     wiki_jev_call contradicts "$a" "$b" "$req"
     if [ "$WIKI_JEV_OK" = 1 ] && [ -n "$WIKI_JEV_P" ] \
       && awk -v p="$WIKI_JEV_P" 'BEGIN{exit !(p >= 0.5)}'; then
@@ -2060,6 +2056,7 @@ wiki_lint() {
   wiki_require_lychee || return 1
   WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
   wiki_lint_repo "$repo"
+  wiki_lint_jev_contradictions "$repo"
   if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
     printf 'wiki: lint blocked (%s problem(s), %s page(s))\n' "$WIKI_LINT_BLOCKED" "$WIKI_LINT_PAGES"
     return 1
@@ -2188,6 +2185,7 @@ wiki_publish() {
   wiki_paths >/dev/null 2>&1 || return 1
   repo=${repo:-$WIKI_REPO}
   [ -n "$base" ] || die_usage 'publish requires --base <sha>'
+  wiki_lint_jev_contradictions "$repo"
   WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_PUBLISH_CAP:-20} ))
   [ "$(wiki_git "$repo" rev-parse --is-inside-work-tree 2>/dev/null)" = true ] || { printf 'fm-wiki: publish: no wiki checkout at %s; run drain once or clone the wiki remote there\n' "$repo" >&2; return 1; }
   if [ "$(wiki_git "$repo" remote get-url origin 2>/dev/null || printf '')" != "$CFG_REMOTE" ]; then
