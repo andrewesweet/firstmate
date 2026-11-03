@@ -1920,7 +1920,7 @@ test_publish_rechecks_pruning_after_remote_usage() {
         old_day=$(wiki_day_before "$FM_WIKI_NOW" 121)
         wiki_page "$seed/pages/tools/used.md" 'a concurrently used page' "$old_day"
         wiki_page "$seed/pages/tools/unused.md" 'an unused page' "$old_day"
-        printf '\n[used](used.md)\n<a href=used.md>used</a>\n\n- [list-used]: used.md\n- See [list-used].\n' >> "$seed/pages/tools/seed-page.md"
+        printf '\n[used](used.md)\n<a href=used.md>used</a>\n\n- [list-used]: used.md\n- See [list-used].\n\n> [continued-used]:\n> used.md\n>\n> See [continued-used].\n' >> "$seed/pages/tools/seed-page.md"
         mkdir -p "$seed/archive/pages/tools"
         cp "$seed/pages/tools/unused.md" "$seed/archive/pages/tools/history.md"
         wgit -C "$seed" add -A
@@ -1950,7 +1950,7 @@ test_publish_rechecks_pruning_after_remote_usage() {
           } > "$hook"
           chmod +x "$hook"
         fi
-        printf '\nAn authored addition.\n\n- [list-source]: ../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md\n- Claim [list-source].\n' >> "$repo/pages/tools/used.md"
+        printf '\nAn authored addition.\n\n- [list-source]: ../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md\n- Claim [list-source].\n\n> [continued-source]:\n> ../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md\n>\n> Claim [continued-source].\n' >> "$repo/pages/tools/used.md"
         out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "$timing $verdict publish failed: $out"
         if [ "$timing" = retry ]; then
           assert_present "$marker" 'usage arrives during the push'
@@ -2000,6 +2000,7 @@ test_publish_preserves_archive_link_destinations() {
   wiki_page "$seed/pages/projects/deep/peer.md" 'another old linked page' "$old_day"
   sed 's|(../../raw/|(../../../raw/|' "$seed/pages/projects/deep/peer.md" > "$seed/peer.tmp"
   mv "$seed/peer.tmp" "$seed/pages/projects/deep/peer.md"
+  printf 'a quoted-only raw lesson\n' > "$seed/raw/2026/10/quote-only.md"
   printf 'a list-only raw lesson\n' > "$seed/raw/2026/10/list-only.md"
   printf 'a raw lesson with spaces\n' > "$seed/raw/2026/10/space (lesson).md"
   cat >> "$seed/pages/tools/old.md" <<'EOF'
@@ -2015,6 +2016,25 @@ test_publish_preserves_archive_link_destinations() {
 
 > 1. [quoted-source]: ../../raw/2026/10/list-only.md
 > 2. Claim [quoted-source].
+
+> [continued-source]:
+> ../../raw/2026/10/quote-only.md
+>
+> Claim [continued-source].
+
+> > [nested](
+> > ../../raw/2026/10/quote-only.md
+> > )
+
+> ![continued image](
+> ../../README.md
+> )
+
+> <a href=
+> ../../README.md>continued href</a>
+
+> <img src=
+> ../../README.md>
 
 ![image](../../README.md)
 <a href="../../README.md">README</a>
@@ -2036,12 +2056,14 @@ Set href=seed-page.md as an example.
 
 ~~~markdown
 [example](seed-page.md)
+> [example-ref]:
+> seed-page.md
 ~~~
 EOF
   printf '\n[seed](../../tools/seed-page.md)\n[old](../../tools/old.md)\n' >> "$seed/pages/projects/deep/peer.md"
-  printf '\n<a href=old.md>old</a>\n<img src=old.md>\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n\n1. [list-old]: old.md\n2. See [list-old].\n' >> "$seed/pages/tools/seed-page.md"
-  printf '\n<a href=pages/tools/old.md>old</a>\n\n    <a href=pages/tools/old.md>example</a>\n\n> - [root-old]: pages/tools/old.md\n> - See [root-old].\n' >> "$seed/README.md"
-  printf '[old](../../../pages/tools/old.md)\n<a href=../../../pages/tools/old.md>old</a>\n\n- [history-old]: ../../../pages/tools/old.md\n- See [history-old].\n' > "$seed/archive/pages/tools/history.md"
+  printf '\n<a href=old.md>old</a>\n<img src=old.md>\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n\n1. [list-old]: old.md\n2. See [list-old].\n\n> [continued-old]:\n> old.md\n>\n> See [continued-old].\n' >> "$seed/pages/tools/seed-page.md"
+  printf '\n<a href=pages/tools/old.md>old</a>\n\n    <a href=pages/tools/old.md>example</a>\n\n> - [root-old]: pages/tools/old.md\n> - See [root-old].\n\n> [continued-root]:\n> pages/tools/old.md\n>\n> See [continued-root].\n' >> "$seed/README.md"
+  printf '[old](../../../pages/tools/old.md)\n<a href=../../../pages/tools/old.md>old</a>\n\n- [history-old]: ../../../pages/tools/old.md\n- See [history-old].\n\n> [continued-history]:\n> ../../../pages/tools/old.md\n>\n> See [continued-history].\n' > "$seed/archive/pages/tools/history.md"
   wgit -C "$seed" add -A
   wgit -C "$seed" commit -q -m 'wiki: linked pages ready to archive'
   wgit -C "$seed" push -q origin main || fail 'link fixture push failed'
@@ -2058,7 +2080,7 @@ from urllib.parse import unquote, urlsplit
 repo = pathlib.Path(sys.argv[1])
 raw = "raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md"
 expected = {
-    "archive/pages/tools/old.md": {raw, "raw/2026/10/space (lesson).md", "raw/2026/10/list-only.md", "pages/tools/seed-page.md", "archive/pages/projects/deep/peer.md", "README.md"},
+    "archive/pages/tools/old.md": {raw, "raw/2026/10/space (lesson).md", "raw/2026/10/list-only.md", "raw/2026/10/quote-only.md", "pages/tools/seed-page.md", "archive/pages/projects/deep/peer.md", "README.md"},
     "archive/pages/projects/deep/peer.md": {raw, "pages/tools/seed-page.md", "archive/pages/tools/old.md"},
     "pages/tools/seed-page.md": {raw, "archive/pages/tools/old.md"},
     "archive/pages/tools/history.md": {"archive/pages/tools/old.md"},
@@ -2078,7 +2100,7 @@ assert '    [example](seed-page.md)\n    <a href=seed-page.md>example</a>\n    [
 assert '\t[tab example](seed-page.md)' in text
 assert 'Set href=seed-page.md as an example.' in text
 assert '    <a href=pages/tools/old.md>example</a>' in (repo / "README.md").read_text()
-assert '~~~markdown\n[example](seed-page.md)\n~~~' in text
+assert '~~~markdown\n[example](seed-page.md)\n> [example-ref]:\n> seed-page.md\n~~~' in text
 assert '?view=full#peer' in text
 assert '"a source title"' in text
 PYLINKS
@@ -2205,6 +2227,99 @@ test_usage_consumers_require_canonical_keys_and_generated_dates() {
   pass 'coverage, advisories, refresh, and expiry share canonical dated usage records'
 }
 
+
+test_publish_preserves_untracked_notes_with_and_without_moves() {
+  local mode bare seed garden_home repo base out age root_note archive_note expected
+  for mode in move keep; do
+    bare=$(wiki_bare "private-notes-$mode")
+    seed="$TMP_ROOT/private-notes-$mode-seed"
+    seed_checkout "$bare" "$seed" >/dev/null
+    age=119
+    [ "$mode" = keep ] || age=121
+    wiki_page "$seed/pages/tools/old.md" 'a possibly archived page' "$(wiki_day_before "$FM_WIKI_NOW" "$age")"
+    printf '\n[old](pages/tools/old.md)\n' >> "$seed/README.md"
+    wgit -C "$seed" add -A
+    wgit -C "$seed" commit -q -m 'wiki: tracked root link'
+    wgit -C "$seed" push -q origin main || fail 'private notes fixture push failed'
+    garden_home=$(gardener_home_with_repo "private-notes-$mode" "$bare")
+    repo="$garden_home/state/wiki/repo"
+    base=$(wgit -C "$repo" rev-parse HEAD)
+    mkdir -p "$repo/archive"
+    root_note='Private [old](pages/tools/old.md)'
+    archive_note='Private [old](../pages/tools/old.md)'
+    printf '%s\n' "$root_note" > "$repo/notes.md"
+    printf '%s\n' "$archive_note" > "$repo/archive/notes.md"
+    out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "private notes publish failed: $out"
+    assert_equals "$root_note" "$(cat "$repo/notes.md")" 'untracked root note bytes remain unchanged'
+    assert_equals "$archive_note" "$(cat "$repo/archive/notes.md")" 'untracked archive note bytes remain unchanged'
+    assert_equals '' "$(wgit -C "$repo" ls-files -- notes.md archive/notes.md)" 'private notes stay outside the Git index'
+    wgit -C "$bare" cat-file -e main:notes.md 2>/dev/null && fail 'private root note was published'
+    wgit -C "$bare" cat-file -e main:archive/notes.md 2>/dev/null && fail 'private archive note was published'
+    expected=pages/tools/old.md
+    [ "$mode" = keep ] || expected=archive/pages/tools/old.md
+    assert_contains "$(wgit -C "$bare" show main:README.md)" "[old]($expected)" 'tracked root link repair still lands'
+    out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "private notes repeat publish failed: $out"
+    assert_contains "$out" 'nothing to publish' 'private notes never create work on a no-op run'
+    assert_equals '' "$(wgit -C "$repo" ls-files -- notes.md archive/notes.md)" 'no-op preparation never enrolls private notes'
+  done
+  pass 'publication repairs tracked links while leaving untracked root and archive notes private'
+}
+
+test_publish_and_lint_allow_zero_live_pages() {
+  local bare seed garden_home repo other base marker hook out fresh head status
+  bare=$(wiki_bare empty-pages)
+  seed="$TMP_ROOT/empty-pages-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  wiki_page "$seed/pages/tools/seed-page.md" 'the last live page' "$(wiki_day_before "$FM_WIKI_NOW" 121)"
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m 'wiki: last page is inactive'
+  wgit -C "$seed" push -q origin main || fail 'empty page fixture push failed'
+  garden_home=$(gardener_home_with_repo empty-pages "$bare")
+  repo="$garden_home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  other="$TMP_ROOT/empty-pages-other"
+  git clone -q "file://$bare" "$other" 2>/dev/null || fail 'empty page competitor clone failed'
+  add_raw "$other" 20261102T000000Z concurrent >/dev/null
+  wgit -C "$other" add -A
+  wgit -C "$other" commit -q -m 'wiki: raw lesson during final archive'
+  marker="$TMP_ROOT/empty-pages-race-fired"
+  hook="$repo/.git/hooks/pre-push"
+  {
+    printf '#!/usr/bin/env bash\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR\n'
+    printf '[ -f %q ] && exit 0\n' "$marker"
+    printf 'touch %q\n' "$marker"
+    printf 'git -C %q push -q origin main\n' "$other"
+  } > "$hook"
+  chmod +x "$hook"
+  out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "last-page archive retry failed: $out"
+  assert_present "$marker" 'the final archive is rebased over a concurrent raw lesson'
+  assert_equals '' "$(wgit -C "$bare" ls-tree -r --name-only main -- pages)" 'publication can archive the last live page'
+  wgit -C "$bare" cat-file -e main:archive/pages/tools/seed-page.md || fail 'the final page was lost instead of archived'
+  wgit -C "$bare" cat-file -e main:raw/2026/11/20261102T000000Z-testhost-testhome-concurrent-a1b2.md || fail 'the concurrent lesson was lost'
+  fresh="$TMP_ROOT/empty-pages-fresh"
+  git clone -q "file://$bare" "$fresh" 2>/dev/null || fail 'empty page fresh clone failed'
+  [ ! -d "$fresh/pages" ] || fail 'the fixture must reproduce Git omitting the empty pages directory'
+  out=$(run_wiki "$garden_home" lint --repo "$fresh" 2>&1) || fail "a fully archived fresh clone must lint: $out"
+  assert_contains "$out" 'lint clean (0 page(s)' 'standalone lint accepts zero live pages'
+  head=$(wgit -C "$fresh" rev-parse HEAD)
+  printf '# Outdated empty index\n' > "$fresh/index.md"
+  out=$(run_wiki "$garden_home" publish --repo "$fresh" --base "$head" 2>&1) || fail "empty checkout preparation failed: $out"
+  assert_equals '' "$(wgit -C "$fresh" status --porcelain)" 'index regeneration is committed even without pages/'
+  assert_contains "$(wgit -C "$bare" show main:index.md)" '# Crew wiki index' 'the regenerated empty index lands remotely'
+  mv "$fresh/index.md" "$TMP_ROOT/saved-empty-index.md"
+  out=$(run_wiki "$garden_home" lint --repo "$fresh" 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail 'an empty wiki still requires its index'
+  assert_contains "$out" 'no index.md' 'zero-page support preserves index validation'
+  mv "$TMP_ROOT/saved-empty-index.md" "$fresh/index.md"
+  mkdir -p "$fresh/pages/tools"
+  wiki_page "$fresh/pages/tools/new.md" 'a newly compiled page' "$(wiki_day_before "$FM_WIKI_NOW" 0)"
+  head=$(wgit -C "$fresh" rev-parse HEAD)
+  out=$(run_wiki "$garden_home" publish --repo "$fresh" --base "$head" 2>&1) || fail "compiling into an empty wiki failed: $out"
+  wgit -C "$bare" cat-file -e main:pages/tools/new.md || fail 'ordinary new-page compilation stopped working'
+  assert_equals '' "$(wgit -C "$fresh" status --porcelain)" 'new-page compilation leaves a committed checkout'
+  pass 'last-page archive retries, empty fresh clones, index updates, and new compilation all work'
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -2270,3 +2385,6 @@ test_gardener_coverage_done_remains_terminal
 
 test_publish_ages_all_usage_verdicts_and_confirmation_dates
 test_usage_consumers_require_canonical_keys_and_generated_dates
+
+test_publish_preserves_untracked_notes_with_and_without_moves
+test_publish_and_lint_allow_zero_live_pages

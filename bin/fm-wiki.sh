@@ -1901,11 +1901,6 @@ wiki_lint_repo() {
   local repo=$1 page rel citations fails=0
   WIKI_LINT_PAGES=0
   WIKI_LINT_CITED=0
-  if [ ! -d "$repo/pages" ]; then
-    printf 'wiki lint: no pages/ directory in %s\n' "$repo"
-    WIKI_LINT_BLOCKED=1
-    return 0
-  fi
   if [ ! -f "$repo/index.md" ]; then
     printf 'wiki lint: no index.md in %s\n' "$repo"
     fails=$(( fails + 1 ))
@@ -2336,6 +2331,10 @@ def inactivity_days(text, entry):
     return (now_day - datetime.date.fromisoformat(last_activity)).days
 
 
+tracked_paths = subprocess.run(
+    ["git", "-C", str(repo), "ls-files", "-z", "--", "pages", "archive", ":(top,glob)*.md"],
+    check=True, text=True, stdout=subprocess.PIPE).stdout.split("\0")
+documents = {repo / rel for rel in tracked_paths if rel and pathlib.Path(rel).suffix == ".md" and (repo / rel).is_file()}
 changes = []
 moves = {}
 updated = {}
@@ -2358,7 +2357,7 @@ for rel in archived_paths:
     moves[path] = live
     changes.append(("restore", live.relative_to(repo).as_posix(), "new usage"))
 
-for path in sorted(set((repo / "pages").rglob("*.md")) | set(moves)):
+for path in sorted({path for path in documents if path.is_relative_to(repo / "pages")} | set(moves)):
     rel = moves.get(path, path).relative_to(repo).as_posix()
     try:
         text = path.read_text(errors="replace")
@@ -2381,8 +2380,9 @@ for path in sorted(set((repo / "pages").rglob("*.md")) | set(moves)):
         changes.append(("archive", rel, str(age)))
 
 
+GAP = r"[ \t]*(?:\n[ \t]*(?:>[ \t]*)*)*"
 TOKENS = re.compile(
-    r"\]\(\s*|\[(?:\\.|[^\[\]\\])+\]:\s*|(?P<html>\b(?:href|src)\s*=\s*)",
+    r"\]\(|\[(?:\\.|[^\[\]\\])+\]:|(?P<html>\b(?:href|src)" + GAP + r"=)",
     re.I)
 
 
@@ -2394,7 +2394,9 @@ def rewrite_links(text, old, new):
     for match in TOKENS.finditer(text):
         if match.start() < cursor:
             continue
-        start = end = match.end()
+        start = match.end()
+        start += re.match(GAP, text[start:]).end()
+        end = start
         html = match.group("html") is not None
         html_quote = text[start:start + 1] if html and text[start:start + 1] in ("\"", "'") else None
         angle = not html and text[start:start + 1] == "<"
@@ -2453,8 +2455,7 @@ def rewrite_links(text, old, new):
     return "".join(pieces) + text[cursor:]
 
 
-documents = set((repo / "pages").rglob("*.md")) | set((repo / "archive").rglob("*.md"))
-documents |= set(repo.glob("*.md"))
+root_updates = []
 for path in sorted(documents):
     original = path.read_text()
     text = updated.get(path, original)
@@ -2463,9 +2464,13 @@ for path in sorted(documents):
         text = rewrite_links(text, path, target)
     if text != original:
         path.write_text(text)
+        if moves and path.parent == repo:
+            root_updates.append(path.relative_to(repo).as_posix())
 for path, target in moves.items():
     target.parent.mkdir(parents=True, exist_ok=True)
-    path.rename(target)
+    subprocess.run(["git", "-C", str(repo), "mv", "--", str(path.relative_to(repo)), str(target.relative_to(repo))], check=True)
+if root_updates:
+    subprocess.run(["git", "-C", str(repo), "add", "--", *root_updates], check=True)
 for verb, rel, extra in changes:
     if verb == "refresh":
         print(f"wiki: prune: refreshed {rel} last-confirmed to {extra} from a usage signal")
@@ -2513,15 +2518,14 @@ wiki_publish_commit() {
     printf 'wiki: publish refused: the run changed files under raw/; raw lessons are add-only\n' >&2
     return 1
   fi
-  wiki_git "$repo" add -A -- pages index.md >/dev/null 2>&1 || true
-  if [ -d "$repo/archive" ]; then
-    wiki_git "$repo" add -A -- archive >/dev/null 2>&1 || true
+  wiki_git "$repo" add -A -- pages >/dev/null 2>&1 || true
+  wiki_git "$repo" add -u -- archive >/dev/null 2>&1 || true
+  if [ -f "$repo/index.md" ]; then
+    wiki_git "$repo" add -- index.md >/dev/null 2>&1 || return 1
   fi
-  local file
-  for file in "$repo"/*.md; do
-    [ -f "$file" ] || continue
-    wiki_git "$repo" add -- "${file#"$repo/"}" >/dev/null 2>&1 || return 1
-  done
+  if [ -f "$repo/log.md" ]; then
+    wiki_git "$repo" add -- log.md >/dev/null 2>&1 || return 1
+  fi
   if ! wiki_git "$repo" diff --cached --quiet >/dev/null 2>&1; then
     local msg staged_pages
     msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pub.XXXXXX") || { printf 'fm-wiki: publish: cannot stage the commit message\n' >&2; return 1; }
