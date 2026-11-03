@@ -2155,7 +2155,7 @@ PYDONE
   printf 'kind=ship\nproject=%s/crew-wiki\n' "$TMP_ROOT" > "$garden_home/state/garden-done.meta"
   printf 'working [at=1]: gardening\n%s\n' "$line" > "$garden_home/state/garden-done.status"
   current=$(bash -c '. "$1/bin/fm-classify-lib.sh"; status_line_verb "$(status_current_line "$2" ship)"' _ "$ROOT" "$garden_home/state/garden-done.status")
-  assert_equals done "$current" 'the real status classifier retains the terminal event'
+  assert_equals 'done' "$current" 'the real status classifier retains the terminal event'
   out=$(run_wiki "$garden_home" due 2>&1) || fail "a completed gardener must release pending work: $out"
   assert_contains "$out" 'gardener due' 'coverage does not leave the completed gardener open'
   out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$garden_home" close garden-done 2>&1) || fail "completion capture failed: $out"
