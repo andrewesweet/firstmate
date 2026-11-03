@@ -1227,7 +1227,7 @@ The wiki repository is captain-configured and captain-owned; firstmate pushes on
 ## The gardener compiles pages
 
 One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
-Gardener lint and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
+Gardener triage, lint, and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
 Checks use lychee offline for local Markdown links only; external links never trigger network requests.
 The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
 After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
@@ -1250,17 +1250,19 @@ It owns the page taxonomy, header fields, citation rule, index rules, budgets, t
 ## Crew-wiki Jev advisories (FM_WIKI_JEV)
 
 The crew wiki can ask the fleet's Jev model for optional second opinions; the model itself and the key discipline live in "Jev self-check record" and the shim's own header.
-The whole surface is opt-in per process: `FM_WIKI_JEV` names the executable TypeSafe shim (normally `bin/fm-branch-shadow-jev.sh`, the repository's single call shim, which owns the endpoint and the key), and a home's `config/wiki` `jev=off` switches it off even when the variable is set.
+The whole surface is opt-in per process: `FM_WIKI_JEV` names the executable TypeSafe shim (normally `bin/fm-branch-shadow-jev.sh`, the repository's single call shim, which owns the endpoint and the key).
+The [`config/wiki` schema](#crew-wiki-configwiki) owns the home's override.
 An unset variable means no call, no record, and unchanged behaviour everywhere; this module never reads a key and never prints one.
 
-The gardener can request route, duplicate, and worth-keeping hints for raw lessons, privacy advice during capture, and contradiction candidates across pages.
-The [`fm-wiki.sh` header](../bin/fm-wiki.sh) owns command syntax, output locations, record fields, thresholds, and call bounds.
-Only identifiers and answers are recorded, never lesson or page text, and the record stays local.
+The gardener can request route, duplicate, and worth-keeping hints for raw lessons and contradiction candidates across pages.
+Contributing homes can also request privacy advice during capture.
+When enabled, bounded lesson and page excerpts, plus candidate summaries, are sent to the configured shim.
+Assembled state and criteria pass the capture secret scan first; a scan hit skips that advisory without changing the deterministic capture or publication decision.
+The [`fm-wiki.sh` header](../bin/fm-wiki.sh) owns command syntax, output locations, advisory record fields, diagnostic cutoffs, call bounds, and calibration completion.
 
-Calibration comes before control: until thresholds are set from two gardener runs, nothing a Jev answer says may hold, drop, or reorder a lesson.
-After publication is proven, the report's existing rows record the gardener's route, kept or dropped outcome, and whether the proposed duplicate page received the lesson.
-Later triage batches retain earlier calibration rows, so those labels can set the thresholds later.
-A privacy warning therefore only annotates: the lesson still publishes, and the cleanup line names the file to review.
+Jev answers never hold, drop, or reorder a lesson.
+The gardener's [run steps](../assets/crew-wiki-AGENTS.md#gardener-run-steps) explain how advisory plans fit the compilation workflow.
+A privacy warning only annotates: a clean lesson still queues unchanged for the normal drain, and the cleanup line names the file to review.
 An unavailable or erroring shim changes nothing about what publishes and never blocks capture, lint, or the plan.
 
 ## Gardener delivery (direct-push)

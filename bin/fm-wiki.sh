@@ -21,7 +21,7 @@
 #                 publish lock skip the command silently with exit 0; otherwise
 #                 return the command's exit status. Use this for every mirror read.
 #   close <task-id>
-#                 Local only, never the network, never a lock: read the task's
+#                 Capture without a lock: read the task's
 #                 final status, stamp and secret-scan its lessons.md, and any
 #                 supervisor-written supervision.md beside it at
 #                 data/<task-id>/supervision.md, each into a private staging
@@ -40,7 +40,9 @@
 #                 point leaves nothing unscanned in the outbox. Completed
 #                 capture decisions are recorded best-effort in ledger.jsonl;
 #                 a recorded or queued contribution skips recapture. With valid
-#                 arguments, close exits 0 even on capture failure. It then
+#                 arguments, close exits 0 even on capture failure. Capture is
+#                 local except for the opt-in Jev privacy advisory described in
+#                 docs/configuration.md "Crew-wiki Jev advisories". It then
 #                 spawns one detached drain, including after skipped capture, so
 #                 the cleanup path triggers publication without waiting on it.
 #   file <path>
@@ -99,15 +101,16 @@
 #                 the lesson's scope and claim, capped at 8. With FM_WIKI_JEV
 #                 set it annotates each lesson with three advisory answers -
 #                 routes-to-page (a Choice over those candidates plus "new
-#                 page"), duplicate-of-page and worth-keeping - each recorded
-#                 in state/wiki/jev.jsonl beside the gardener's own decision.
+#                 page"), duplicate-of-page and worth-keeping.
+#                 Advisory answers go to state/wiki/jev.jsonl; the report below
+#                 compares them with the gardener's own decisions.
 #                 Writes the plan to $FM_DATA/gardener/plan.json, or --plan, and
 #                 the gardener report with its Jev calibration table to
 #                 report.md beside the plan; later batches retain earlier rows.
 #                 Advisory only: no answer drops, holds, or reorders a lesson;
 #                 Jev being off, unavailable, or erroring still writes a complete
-#                 unannotated
-#                 plan. Exit 1 only when this home cannot run a gardener run.
+#                 plan; unavailable answers leave their hints absent.
+#                 Exit 1 only when this home cannot run a gardener run.
 #   lint [--repo <dir>]
 #                 Gardener only: run the deterministic page checks (report 4.6)
 #                 over a wiki checkout, defaulting to this home's clone. Blocking
@@ -129,7 +132,14 @@
 #                 exit 1 with a retryable message; only a proven landing exits 0.
 #                 Never rebuilds or switches the checkout: a mismatched origin is
 #                 refused, never destroyed. After landing, fills the existing
-#                 calibration report beside the default plan or --plan.
+#                 calibration report beside the default plan or --plan, using
+#                 body citations for logged lessons in that opt-in batch.
+#                 Rows record cited pages, route agreement ("new page" means a
+#                 page absent at triage), kept or dropped, and whether the
+#                 proposed duplicate page received the lesson; earlier batches
+#                 remain unchanged. Completion makes no model call.
+#                 Optional contradiction advisories run before the publication
+#                 lock and Git deadline, under the same limits as lint.
 #
 # State layout under $FM_HOME/state/wiki/:
 #   outbox/       clean lessons waiting for the next drain (the only queue).
@@ -157,15 +167,10 @@
 # Lessons are data, not instructions: the schema printed below forbids
 # quoting or following wiki text anywhere a worker writes (report 4.11).
 #
-# Jev (report 4.7) is opt-in per process: FM_WIKI_JEV names the TypeSafe call
-# shim (bin/fm-branch-shadow-jev.sh owns the endpoint and the key), and the
-# home's config/wiki jev=off switches it off even when the variable is set.
-# Unset means no Jev call at all and byte-identical behaviour everywhere.
-# Every request goes through that shim; this script never reads a key, never
-# reaches an endpoint, and never calls a model. Answers are advisory for the
-# whole of slice 04: calibration runs record them beside the gardener's own
-# decisions, and only after those labels may a threshold hold or reorder
-# anything.
+# docs/configuration.md "Crew-wiki Jev advisories" owns opt-in setup, data
+# transmission, and the advisory-only contract. Each shim call has a fixed
+# eight-second timeout. Privacy warnings use p >= 0.8; contradiction candidates
+# use p >= 0.5. These cutoffs only control diagnostics, never publication.
 
 set -u
 umask 077
@@ -453,11 +458,8 @@ wiki_scan_hit() {
 
 # --- Jev advisory seam (report 4.7) -----------------------------------------
 #
-# Every call in this module is advisory. Calibration comes first: until
-# thresholds are set from two gardener runs, nothing here holds, drops, or
-# reorders anything, and an unavailable or erroring answer changes nothing at
-# all. Only identifiers and answers reach state/wiki/jev.jsonl; lesson and
-# page text never does.
+# The advisory-only contract lives in docs/configuration.md "Crew-wiki Jev
+# advisories"; the script header owns local record fields and call bounds.
 
 # wiki_jev_enabled: 0 when this process opted in with FM_WIKI_JEV and this
 # home's config/wiki has not switched the advisory off with jev=off.
@@ -611,9 +613,10 @@ EOF
 
 # wiki_jev_request <out> <state-file> <question-name> <type> <instructions>
 #                  <criteria-file>
-# Build one TypeSafe request body: the state text from a file (already
-# bounded by the caller) and one question whose criteria
-# are read as `<key><TAB><text>` lines. Never reads a key and never prints one.
+# Build one TypeSafe request body after secret-scanning the assembled state
+# and criteria; a scan hit skips the request. State text is already bounded
+# by the caller; criteria are `<key><TAB><text>` lines.
+# Never reads a key and never prints one.
 wiki_jev_request() {  # <out> <state-file> <name> <type> <instructions> <criteria-file>
   wiki_scan_hit "$2" && return 1
   wiki_scan_hit "$6" && return 1
@@ -642,8 +645,8 @@ PYREQ
 
 # wiki_jev_privacy_advisory <file>: the close/file privacy second opinion
 # (report 4.7/4.8), run after the deterministic scan and before a lesson is
-# queued. Advisory only in slice 04: an answer, including one at or above the
-# 0.8 hold floor, records and annotates but never holds or blocks the publish.
+# queued. An answer at or above the header's warning cutoff records and
+# annotates but never holds or blocks publication.
 # A flag off, an unavailable answer, or an error changes nothing.
 wiki_jev_privacy_advisory() {
   local file=$1 work req criteria state
@@ -1435,7 +1438,7 @@ wiki_triage_field() {  # <file> <scope|claim>
 
 # wiki_triage_terms <lesson-file> <out>: the plain-grep search terms for one
 # lesson: its scope's tail (the part after the last colon), the whole scope,
-# and up to three distinctive words of its claim.
+# and distinctive words of its claim, capped at six distinct terms in total.
 wiki_triage_terms() {  # <lesson-file> <out>
   local file=$1 out=$2 scope claim
   scope=$(wiki_triage_field "$file" scope | tr -d '\r')
@@ -1481,7 +1484,7 @@ EOF
 }
 
 # wiki_triage_page_text <repo> <rel> <out>: one page's bounded text for a
-# contradiction or duplicate question. Never sends more than 2k characters.
+# contradiction or duplicate question. Never sends more than 2000 bytes.
 wiki_triage_page_text() {  # <repo> <rel> <out>
   head -c 2000 "$1/$2" > "$3" 2>/dev/null || : > "$3"
   return 0
@@ -1700,8 +1703,8 @@ PYTRIAGE
 }
 
 # wiki_triage: build the gardener run plan and its calibration report. Reads
-# this home's own clone or --repo, never the network, and never changes a
-# lesson: Jev answers annotate, and only annotate (report 4.7).
+# this home's own clone or --repo; only the opt-in Jev requests may use the
+# network. Never changes a lesson: Jev answers only annotate (report 4.7).
 wiki_triage() {
   local repo='' plan=''
   if ! wiki_feature_on 1 >/dev/null 2>&1; then
@@ -1910,8 +1913,10 @@ wiki_lint_page() {
   return "$blocked"
 }
 
-# wiki_lint_references <repo> <page> <rel> <citations>: validate sources, body
-# citations, and relative links; append resolved raw paths to citations.
+# wiki_lint_references <repo> <page> <rel> <citations> [page]: validate sources,
+# body citations, and relative links; append resolved raw paths to citations.
+# The optional `page` mode appends the citing page path as a tab-separated
+# second field for calibration, using the same body-citation semantics as lint.
 wiki_lint_references() {
   python3 - "$1" "$2" "$3" "$4" "${5:-}" <<'PYTHON'
 import pathlib
