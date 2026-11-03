@@ -1232,6 +1232,9 @@ Checks use lychee offline for local Markdown links only; external links never tr
 The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
 After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
 
+The [wiki schema's pruning policy](../assets/crew-wiki-AGENTS.md#pruning) governs page freshness during publication.
+Every run includes the coverage report defined in the [script header](../bin/fm-wiki.sh), as prescribed by the generated [Definition of done](../bin/fm-dod-lib.sh).
+
 Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.
 The registration command, run once in the gardener home, is:
 

@@ -119,16 +119,32 @@
 #                 FM_WIKI_JEV set it also reports Jev contradiction candidates
 #                 for page pairs that share a scope, capped at 200 pairs a run,
 #                 advisory and never blocking.
+#   coverage [--repo <dir>]
+#                 Gardener only: print the gardener run's report line from a wiki
+#                 checkout, defaulting to this home's clone - one line counting
+#                 pages (live), raw (lessons), pending (uncompiled lessons),
+#                 archived (pages), usage-signals (all valid usage records),
+#                 usage-by-page (compact JSON mapping canonical keys to counts),
+#                 stale-signals (stale or wrong records), and unconfirmed90
+#                 (pages unconfirmed for 90 days). Read-only: no network,
+#                 no lock, no page written.
 #   index [--repo <dir>]
 #                 Gardener only: regenerate index.md from page headers within
 #                 the 150-line budget, atomically. Over budget still writes the
 #                 file but exits 1 so publish refuses to land it.
 #   publish [--repo <dir>] [--plan <path>] --base <sha>
-#                 Gardener only, the direct-push Definition of done: lint, then
-#                 refuse any change under raw/ and any page commit made by someone
-#                 else after the run's base, then commit the compiled pages,
-#                 rebase and push with the same fetch-rebase-push loop (never
-#                 force) and landing proof as drain. Refusals and push failures
+#                 Gardener only, the direct-push Definition of done: refuse raw
+#                 edits and foreign commits touching pages/, archive/, or root
+#                 Markdown after the run's base. Commit compiled edits locally,
+#                 fetch, guard, and rebase; then prune, lint, regenerate the index,
+#                 and commit the prepared tree before pushing. Repeat preparation
+#                 after each retry rebase, using the same fetch-rebase-push loop
+#                 (never force) and landing proof as drain. The pruning policy is owned
+#                 by assets/crew-wiki-AGENTS.md, "Pruning".
+#                 Archive and restore moves repair rendered relative links in
+#                 tracked live pages, archive Markdown, and root Markdown;
+#                 link repair never enrolls untracked files or rewrites code examples.
+#                 Refusals and push failures
 #                 exit 1 with a retryable message; only a proven landing exits 0.
 #                 Never rebuilds or switches the checkout: a mismatched origin is
 #                 refused, never destroyed. After landing, fills the existing
@@ -171,6 +187,10 @@
 # transmission, and the advisory-only contract. Each shim call has a fixed
 # eight-second timeout. Privacy warnings use p >= 0.8; contradiction candidates
 # use p >= 0.5. These cutoffs only control diagnostics, never publication.
+#
+# FM_WIKI_NOW overrides the clock the freshness arithmetic reads (pruning, the
+# 90-day advisory, the coverage line) with an integer epoch. Production never
+# sets it; tests inject it so fixture dates keep their verdicts.
 
 set -u
 umask 077
@@ -281,6 +301,39 @@ wiki_feature_on() {
     esac
   fi
   return 0
+}
+
+# wiki_now: the epoch the freshness arithmetic reads. FM_WIKI_NOW overrides it
+# for tests; production always reads the clock. One owner, so pruning, the
+# 90-day advisory, and the coverage line can never disagree about "today".
+wiki_now() {
+  printf '%s' "${FM_WIKI_NOW:-$(date +%s)}"
+}
+
+# wiki_page_age_days <page>: whole days since the page's last-confirmed date,
+# empty when the header is missing or malformed. Lint advisories and coverage
+# share it.
+wiki_page_age_days() {
+  local confirmed
+  confirmed=$(sed -n 's/^> last-confirmed: *//p' "$1" 2>/dev/null | head -n 1)
+  case $confirmed in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+    *) return 0 ;;
+  esac
+  python3 -c '
+import datetime
+import sys
+today = datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc).date()
+print((today - datetime.date.fromisoformat(sys.argv[2])).days)
+' "$(wiki_now)" "$confirmed" 2>/dev/null || printf ''
+}
+
+# wiki_log_ids: read an ingest log on stdin and print one compiled raw id per
+# line. A lesson counts as compiled when its bare id, with or without one
+# trailing .md, is a complete token; tokens split on whitespace, semicolons, and
+# commas (the `due` and `coverage` membership rule).
+wiki_log_ids() {
+  awk -F '[[:space:];,]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }'
 }
 
 wiki_paths() {
@@ -1371,7 +1424,7 @@ wiki_due() {
   raw_list=$(wiki_git "$WIKI_REPO" ls-tree -r --name-only HEAD -- raw 2>/dev/null) || return 1
   log_text=$(wiki_git "$WIKI_REPO" show HEAD:log.md 2>/dev/null || printf '')
   # Compilation membership follows the `due` contract in this script's header.
-  log_text=$(printf '%s\n' "$log_text" | awk -F '[[:space:];,]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }')
+  log_text=$(printf '%s\n' "$log_text" | wiki_log_ids)
   local pending=0 stamps name stamp
   stamps=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-due.XXXXXX") || return 1
   : > "$stamps"
@@ -1853,11 +1906,6 @@ wiki_lint_repo() {
   local repo=$1 page rel citations fails=0
   WIKI_LINT_PAGES=0
   WIKI_LINT_CITED=0
-  if [ ! -d "$repo/pages" ]; then
-    printf 'wiki lint: no pages/ directory in %s\n' "$repo"
-    WIKI_LINT_BLOCKED=1
-    return 0
-  fi
   if [ ! -f "$repo/index.md" ]; then
     printf 'wiki lint: no index.md in %s\n' "$repo"
     fails=$(( fails + 1 ))
@@ -1983,7 +2031,7 @@ PYTHON
 # Bounded output: the two unbounded scans cap at 20 lines each.
 wiki_lint_advisories() {
   local repo=$1 citations=$2 raw base stamp epoch cutoff shown=0
-  cutoff=$(( $(date +%s) - 30 * 86400 ))
+  cutoff=$(( $(wiki_now) - 30 * 86400 ))
   while IFS= read -r raw; do
     [ -n "$raw" ] || continue
     base=$(basename "$raw")
@@ -2004,10 +2052,7 @@ wiki_lint_advisories() {
   done <<EOF
 $(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 EOF
-  grep -rhE -- '^used: .+ (stale|wrong)$' "$repo/raw" 2>/dev/null | head -n 20 \
-    | while IFS= read -r line; do
-        printf 'wiki lint advisory: usage signal needs the gardener: %s\n' "$line"
-      done
+  python3 "$SCRIPT_DIR/fm_wiki_usage.py" "$repo" --advisories
   wiki_lint_stale_pages "$repo"
 }
 
@@ -2084,19 +2129,15 @@ EOF
 # wiki_lint_stale_pages <repo>: pages unconfirmed for 90 days. Advisory only:
 # freshness is date arithmetic, the wrong tool for a blocking verdict.
 wiki_lint_stale_pages() {
-  local repo=$1 page rel confirmed epoch
+  local repo=$1 page age
   while IFS= read -r page; do
     [ -n "$page" ] || continue
-    rel=${page#"$repo/"}
-    confirmed=$(sed -n 's/^> last-confirmed: *//p' "$page" 2>/dev/null | head -n 1)
-    case $confirmed in
-      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
-      *) continue ;;
+    age=$(wiki_page_age_days "$page")
+    case $age in
+      ''|*[!0-9]*) continue ;;
     esac
-    epoch=$(python3 -c 'import sys, datetime; print(int(datetime.datetime.strptime(sys.argv[1], "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp()))' "$confirmed" 2>/dev/null || printf '')
-    [ -n "$epoch" ] || continue
-    if [ "$(( ($(date +%s) - epoch) / 86400 ))" -ge 90 ]; then
-      printf 'wiki lint advisory: page unconfirmed for 90 days: %s\n' "$rel"
+    if [ "$age" -ge 90 ]; then
+      printf 'wiki lint advisory: page unconfirmed for 90 days: %s\n' "${page#"$repo/"}"
     fi
   done <<EOF
 $(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
@@ -2198,9 +2239,267 @@ wiki_index() {
   wiki_index_generate "$repo"
 }
 
+# wiki_coverage_line <repo>: render the report defined in this script's header.
+wiki_coverage_line() {
+  local repo=$1 pages raw pending=0 archived stale usage by_page counts unconfirmed90=0
+  local compiled='' name age
+  pages=$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+  raw=$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+  archived=$(find "$repo/archive/pages" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+  counts=$(python3 "$SCRIPT_DIR/fm_wiki_usage.py" "$repo") || return 1
+  IFS=$'\t' read -r usage stale by_page <<< "$counts"
+  if [ -f "$repo/log.md" ]; then
+    compiled=$(wiki_log_ids < "$repo/log.md")
+  fi
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    case $name in
+      *.md) ;;
+      *) continue ;;
+    esac
+    if printf '%s\n' "$compiled" | grep -qxF -- "$(basename "$name" .md)"; then
+      continue
+    fi
+    pending=$(( pending + 1 ))
+  done <<EOF
+$(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    age=$(wiki_page_age_days "$name")
+    case $age in
+      ''|*[!0-9]*) continue ;;
+    esac
+    if [ "$age" -ge 90 ]; then
+      unconfirmed90=$(( unconfirmed90 + 1 ))
+    fi
+  done <<EOF
+$(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
+EOF
+  printf 'wiki: coverage pages=%s raw=%s pending=%s archived=%s usage-signals=%s usage-by-page=%s stale-signals=%s unconfirmed90=%s\n' \
+    "$pages" "$raw" "$pending" "$archived" "$usage" "$by_page" "$stale" "$unconfirmed90"
+}
+
+wiki_coverage() {
+  local repo=
+  if ! wiki_feature_on 1 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$CFG_ROLE" != gardener ]; then
+    printf 'fm-wiki: coverage is gardener-only (config/wiki role=%s)\n' "$CFG_ROLE" >&2
+    return 1
+  fi
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --repo) [ -n "${2:-}" ] || die_usage 'coverage --repo needs a directory'; repo=$2; shift 2 ;;
+      *) die_usage "unknown coverage flag '$1'" ;;
+    esac
+  done
+  wiki_paths >/dev/null 2>&1 || return 1
+  repo=${repo:-$WIKI_REPO}
+  [ -d "$repo" ] || { printf 'fm-wiki: coverage: no wiki checkout at %s\n' "$repo" >&2; return 1; }
+  wiki_coverage_line "$repo"
+}
+
+# wiki_prune_repo <repo> <base>: apply assets/crew-wiki-AGENTS.md "Pruning".
+wiki_prune_repo() {
+  local repo=$1 base=$2
+  PYTHONDONTWRITEBYTECODE=1 python3 - "$repo" "$(wiki_now)" "$base" "$SCRIPT_DIR" <<'PYPRUNE'
+import datetime
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import uuid
+from html import escape, unescape
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
+
+sys.path.insert(0, sys.argv[4])
+from fm_wiki_usage import page_key, read_usage
+
+repo = pathlib.Path(sys.argv[1]).resolve()
+now_day = datetime.datetime.fromtimestamp(int(sys.argv[2]), datetime.timezone.utc).date()
+ARCHIVE_DAYS = 120
+CONFIRMED = re.compile(r"^> last-confirmed:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$", re.M)
+signals = read_usage(repo)
+
+
+def inactivity_days(text, entry):
+    match = CONFIRMED.search(text)
+    if not match:
+        return None
+    try:
+        confirmed = datetime.date.fromisoformat(match.group(1)).isoformat()
+    except ValueError:
+        return None
+    last_activity = max(confirmed, entry["last_used"] if entry else confirmed)
+    return (now_day - datetime.date.fromisoformat(last_activity)).days
+
+
+tracked_paths = subprocess.run(
+    ["git", "-C", str(repo), "ls-files", "-z", "--", "pages", "archive", ":(top,glob)*.md"],
+    check=True, text=True, stdout=subprocess.PIPE).stdout.split("\0")
+documents = {repo / rel for rel in tracked_paths if rel and pathlib.Path(rel).suffix == ".md" and (repo / rel).is_file()}
+changes = []
+moves = {}
+updated = {}
+archived_paths = subprocess.run(
+    ["git", "-C", str(repo), "diff", "--no-renames", "--name-only", "-z", "--diff-filter=A", sys.argv[3], "--", "archive/pages"],
+    check=True, text=True, stdout=subprocess.PIPE).stdout.split("\0")
+for rel in archived_paths:
+    if not rel:
+        continue
+    path = repo / rel
+    live = repo / rel.removeprefix("archive/")
+    if not path.is_file():
+        continue
+    entry = signals.get(page_key(live.relative_to(repo).as_posix()))
+    age = inactivity_days(path.read_text(), entry)
+    if not entry or age is None or age > ARCHIVE_DAYS:
+        continue
+    if live.exists():
+        raise RuntimeError(f"cannot restore {rel}: live page already exists")
+    moves[path] = live
+    changes.append(("restore", live.relative_to(repo).as_posix(), "new usage"))
+
+for path in sorted({path for path in documents if path.is_relative_to(repo / "pages")} | set(moves)):
+    rel = moves.get(path, path).relative_to(repo).as_posix()
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        continue
+    match = CONFIRMED.search(text)
+    confirmed = match.group(1) if match else None
+    entry = signals.get(page_key(rel))
+    if entry and entry["last_ok"] and confirmed and entry["last_ok"] > confirmed:
+        changes.append(("refresh", rel, entry["last_ok"]))
+        confirmed = entry["last_ok"]
+        updated[path] = text[:match.start(1)] + confirmed + text[match.end(1):]
+    age = inactivity_days(updated.get(path, text), entry)
+    if age is not None and age > ARCHIVE_DAYS:
+        target = repo / "archive" / rel
+        if target.exists():
+            print(f"wiki: prune: {rel} is already archived; left in place")
+            continue
+        moves[path] = target
+        changes.append(("archive", rel, str(age)))
+
+
+GAP = r"[ \t]*(?:\n[ \t]*(?:>[ \t]*)*)*"
+TOKENS = re.compile(
+    r"\]\(|\[(?:\\.|[^\[\]\\])+\]:|(?P<html>\b(?:href|src)" + GAP + r"=)",
+    re.I)
+MARKDOWN_ESCAPES = re.compile(
+    r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])|"
+    r"&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
+
+
+def rewrite_links(text, old, new):
+    candidates = []
+    pieces = []
+    cursor = 0
+    prefix = "fm-wiki-" + uuid.uuid4().hex + "-"
+    for match in TOKENS.finditer(text):
+        if match.start() < cursor:
+            continue
+        start = match.end()
+        start += re.match(GAP, text[start:]).end()
+        end = start
+        html = match.group("html") is not None
+        html_quote = text[start:start + 1] if html and text[start:start + 1] in ("\"", "'") else None
+        angle = not html and text[start:start + 1] == "<"
+        if html_quote or angle:
+            start += 1
+            end = text.find(html_quote or ">", start)
+            if end < 0:
+                continue
+        else:
+            depth = 0
+            while end < len(text):
+                char = text[end]
+                if not html and char == "\\" and end + 1 < len(text):
+                    end += 2
+                    continue
+                if char.isspace() or char == "<" or (html and char in "\"'`=>") or (not html and char == ")" and depth == 0):
+                    break
+                if char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                end += 1
+        if start == end:
+            continue
+        marker = f"{prefix}{len(candidates)}.md"
+        candidates.append((start, end, html, old.with_name(marker).as_uri()))
+        pieces.extend((text[cursor:start], marker))
+        cursor = end
+    if not candidates:
+        return text
+    probe = "".join(pieces) + text[cursor:]
+    dumped = subprocess.run(
+        ["lychee", "--config", "/dev/null", "--dump", "--offline", "--scheme", "file",
+         "--no-progress", "--cache=false", "--include-verbatim=false", "--threads", "1",
+         "--default-extension", "md", "--base-url", old.as_uri(), "--", "-"],
+        input=probe, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    rendered = set(dumped.stdout.splitlines())
+    pieces = []
+    cursor = 0
+    for start, end, html, marker in candidates:
+        if marker not in rendered:
+            continue
+        value = text[start:end]
+        value = unescape(value) if html else MARKDOWN_ESCAPES.sub(
+            lambda match: match.group(1) if match.group(1) is not None else unescape(match.group()), value)
+        url = urlsplit(value)
+        if url.scheme or url.netloc or not url.path or url.path.startswith("/"):
+            continue
+        target = (old.parent / unquote(url.path)).resolve()
+        destination = moves.get(target, target)
+        if old == new and destination == target:
+            continue
+        relative = os.path.relpath(destination, new.parent)
+        encoded = quote(relative, safe="/.-_~")
+        query = quote(url.query, safe="!$&*+,-./:;=?@_%~")
+        fragment = quote(url.fragment, safe="!$&*+,-./:;=?@_%~")
+        replacement = escape(urlunsplit(("", "", encoded, query, fragment)), quote=True)
+        pieces.extend((text[cursor:start], replacement))
+        cursor = end
+    return "".join(pieces) + text[cursor:]
+
+
+root_updates = []
+for path in sorted(documents):
+    original = path.read_text()
+    text = updated.get(path, original)
+    target = moves.get(path, path)
+    if moves:
+        text = rewrite_links(text, path, target)
+    if text != original:
+        path.write_text(text)
+        if moves and path.parent == repo:
+            root_updates.append(path.relative_to(repo).as_posix())
+for path, target in moves.items():
+    target.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "-C", str(repo), "mv", "--", str(path.relative_to(repo)), str(target.relative_to(repo))], check=True)
+if root_updates:
+    subprocess.run(["git", "-C", str(repo), "add", "--", *root_updates], check=True)
+for verb, rel, extra in changes:
+    if verb == "refresh":
+        print(f"wiki: prune: refreshed {rel} last-confirmed to {extra} from a usage signal")
+    elif verb == "archive":
+        print(f"wiki: prune: archived {rel} after {extra} days without confirmation or usage")
+    else:
+        print(f"wiki: prune: restored {rel} after incoming usage")
+if changes:
+    print(f"wiki: prune: {sum(c[0] == 'archive' for c in changes)} page(s) archived, "
+          f"{sum(c[0] == 'refresh' for c in changes)} refreshed from usage signals")
+PYPRUNE
+}
+
 wiki_publish_guard() {
   local repo=$1 base=$2 foreign changed_raw
-  foreign=$(wiki_git "$repo" log --format=%H "$base..origin/$WIKI_BRANCH" --not HEAD -- pages index.md log.md) || return 1
+  foreign=$(wiki_git "$repo" log --format=%H "$base..origin/$WIKI_BRANCH" --not HEAD -- pages archive ':(top,glob)*.md') || return 1
   if [ -n "$foreign" ]; then
     printf 'wiki: publish refused: a foreign page commit landed after the base (%s); re-run the gardener onto the new main and publish again\n' "$(printf '%s' "$foreign" | head -n 1 | cut -c1-12)" >&2
     return 1
@@ -2226,12 +2525,53 @@ wiki_publish_refresh() {
   fi
 }
 
-# wiki_publish: the gardener run's Definition of done. Lint, regenerate the
-# index, refuse any change under raw/ and any page commit made by someone else
-# after the run's base, then commit the compiled pages and push with the same
-# fetch-rebase-push loop (never force) and landing proof as drain. Refusals
-# and push failures exit 1 with a retryable message; only a proven landing
-# exits 0. Takes the drain's single-flight lock so a concurrent drain cannot
+wiki_publish_commit() {
+  local repo=$1 base=$2
+  if [ -n "$(wiki_git "$repo" status --porcelain -- raw 2>/dev/null)" ]; then
+    printf 'wiki: publish refused: the run changed files under raw/; raw lessons are add-only\n' >&2
+    return 1
+  fi
+  wiki_git "$repo" add -A -- pages >/dev/null 2>&1 || true
+  wiki_git "$repo" add -u -- archive >/dev/null 2>&1 || true
+  if [ -f "$repo/index.md" ]; then
+    wiki_git "$repo" add -- index.md >/dev/null 2>&1 || return 1
+  fi
+  if [ -f "$repo/log.md" ]; then
+    wiki_git "$repo" add -- log.md >/dev/null 2>&1 || return 1
+  fi
+  if ! wiki_git "$repo" diff --cached --quiet >/dev/null 2>&1; then
+    local msg staged_pages
+    msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pub.XXXXXX") || { printf 'fm-wiki: publish: cannot stage the commit message\n' >&2; return 1; }
+    staged_pages=$(wiki_git "$repo" diff --cached --name-only -- pages 2>/dev/null | wc -l | tr -d ' ')
+    {
+      printf 'wiki: gardener compile from %s (%s page file(s))\n\n' "$(wiki_git "$repo" rev-parse --short "$base" 2>/dev/null || printf '%s' "$base")" "$staged_pages"
+      printf 'Wiki-Home: %s\n' "$WIKI_HOME_NAME"
+      printf 'Wiki-Host: %s\n' "$CFG_HOST"
+    } > "$msg"
+    local status=0
+    wiki_git "$repo" commit -q -F "$msg" >/dev/null 2>&1 || status=$?
+    rm -f "$msg"
+    [ "$status" = 0 ] || return 1
+  fi
+}
+
+wiki_publish_prepare() {
+  local repo=$1 base=$2
+  wiki_prune_repo "$repo" "$base" \
+    || { printf 'wiki: publish refused: pruning failed\n' >&2; return 1; }
+  WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
+  wiki_lint_repo "$repo" || true
+  if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
+    printf 'wiki: publish refused: lint blocked (%s problem(s))\n' "$WIKI_LINT_BLOCKED" >&2
+    return 1
+  fi
+  wiki_index_generate "$repo" \
+    || { printf 'wiki: publish refused: index over budget\n' >&2; return 1; }
+  wiki_publish_commit "$repo" "$base"
+}
+
+# wiki_publish: the guarded gardener publication protocol in this script's
+# header. Takes the drain's single-flight lock so a concurrent drain cannot
 # interleave git operations on the shared clone. Never rebuilds the checkout:
 # a missing clone or a mismatched origin is refused, never destroyed.
 wiki_publish() {
@@ -2272,36 +2612,7 @@ wiki_publish() {
   fi
   wiki_git "$repo" config user.name firstmate-wiki >/dev/null 2>&1 || true
   wiki_git "$repo" config user.email "wiki@$CFG_HOST" >/dev/null 2>&1 || true
-  WIKI_LINT_BLOCKED=0 WIKI_LINT_PAGES=0 WIKI_LINT_CITED=0
-  wiki_lint_repo "$repo" || true
-  if [ "$WIKI_LINT_BLOCKED" -gt 0 ]; then
-    printf 'wiki: publish refused: lint blocked (%s problem(s))\n' "$WIKI_LINT_BLOCKED" >&2
-    return 1
-  fi
-  wiki_index_generate "$repo" \
-    || { printf 'wiki: publish refused: index over budget\n' >&2; return 1; }
-  if [ -n "$(wiki_git "$repo" status --porcelain -- raw 2>/dev/null)" ]; then
-    printf 'wiki: publish refused: the run changed files under raw/; raw lessons are add-only\n' >&2
-    return 1
-  fi
-  wiki_git "$repo" add -- pages index.md >/dev/null 2>&1 || true
-  if [ -f "$repo/log.md" ]; then
-    wiki_git "$repo" add -- log.md >/dev/null 2>&1 || true
-  fi
-  local committed=0
-  if ! wiki_git "$repo" diff --cached --quiet >/dev/null 2>&1; then
-    local msg staged_pages
-    msg=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-pub.XXXXXX") || { printf 'fm-wiki: publish: cannot stage the commit message\n' >&2; return 1; }
-    staged_pages=$(wiki_git "$repo" diff --cached --name-only -- pages 2>/dev/null | wc -l | tr -d ' ')
-    {
-      printf 'wiki: gardener compile from %s (%s page file(s))\n\n' "$(wiki_git "$repo" rev-parse --short "$base" 2>/dev/null || printf '%s' "$base")" "$staged_pages"
-      printf 'Wiki-Home: %s\n' "$WIKI_HOME_NAME"
-      printf 'Wiki-Host: %s\n' "$CFG_HOST"
-    } > "$msg"
-    wiki_git "$repo" commit -q -F "$msg" >/dev/null 2>&1 || true
-    rm -f "$msg"
-    committed=1
-  fi
+  wiki_publish_commit "$repo" "$base" || return 1
   if ! wiki_git "$repo" fetch -q origin >/dev/null 2>&1; then
     printf 'wiki: publish: remote unreachable; retry\n' >&2
     return 1
@@ -2312,7 +2623,8 @@ wiki_publish() {
     printf 'wiki: publish refused: rebase onto the remote failed; re-run the gardener\n' >&2
     return 1
   fi
-  if [ "$committed" = 0 ] && [ "$(wiki_git "$repo" rev-parse HEAD 2>/dev/null)" = "$(wiki_git "$repo" rev-parse "origin/$WIKI_BRANCH" 2>/dev/null)" ]; then
+  wiki_publish_prepare "$repo" "$base" || return 1
+  if [ "$(wiki_git "$repo" rev-parse HEAD 2>/dev/null)" = "$(wiki_git "$repo" rev-parse "origin/$WIKI_BRANCH" 2>/dev/null)" ]; then
     wiki_publish_refresh "$repo" || return 1
     exec 9>&-
     wiki_triage_complete "$repo" "$plan"
@@ -2333,6 +2645,7 @@ wiki_publish() {
       wiki_git "$repo" rebase --abort >/dev/null 2>&1 || true
       break
     fi
+    wiki_publish_prepare "$repo" "$base" || return 1
     wiki_jitter_sleep
   done
   if [ "$pushed" = 1 ]; then
@@ -2392,6 +2705,10 @@ case ${1:-} in
   lint)
     shift
     wiki_lint "$@"
+    ;;
+  coverage)
+    shift
+    wiki_coverage "$@"
     ;;
   index)
     shift

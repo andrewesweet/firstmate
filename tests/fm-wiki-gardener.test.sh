@@ -18,6 +18,15 @@ WIKI="$ROOT/bin/fm-wiki.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-wiki-gardener)
 
+# The freshness arithmetic (pruning, the 90-day advisory, and the coverage
+# line) reads an injected clock, so fixture dates keep their verdicts as the
+# real calendar moves. Individual tests may inject another instant for one
+# call.
+# shellcheck disable=SC2034
+WIKI_TEST_NOW=$(python3 -c 'import datetime
+print(int(datetime.datetime(2026, 11, 2, tzinfo=datetime.timezone.utc).timestamp()))')
+export FM_WIKI_NOW=$WIKI_TEST_NOW
+
 # wiki_home <name>: one fake FM_HOME with config/, state/, data/, and a
 # pinned HOME so nothing leaks into the developer's own home.
 wiki_home() {
@@ -34,12 +43,38 @@ wiki_cfg() {
 }
 
 # run_wiki <home> <args...>: run one wiki verb pinned to the fake home.
+# FM_WIKI_NOW passes through so a caller can inject the freshness clock.
 run_wiki() {
   local home=$1
   shift
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
     FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" HOME="$home/home" \
+    FM_WIKI_NOW="${FM_WIKI_NOW:-}" \
     "$WIKI" "$@"
+}
+
+# wiki_day_before <epoch> <days>: the UTC date that many days before <epoch>.
+# Exported as this suite's clock below so fixture dates never drift past the
+# freshness thresholds as the real calendar moves.
+wiki_day_before() {
+  python3 -c 'import datetime, sys
+print((datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc).date()
+       - datetime.timedelta(days=int(sys.argv[2]))).isoformat())' "$1" "$2"
+}
+
+# wiki_page <path> <summary> <last-confirmed>: one valid page whose body cites
+# the seed raw lesson.
+wiki_page() {
+  cat > "$1" <<EOF
+> summary: $2
+> scope: tool:seed
+> last-confirmed: $3
+> sources: raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md
+
+# $2
+
+Body citing [lesson](../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md).
+EOF
 }
 
 # wgit <args...>: git with a throwaway identity for fixture commits.
@@ -121,6 +156,20 @@ EOF
   printf '%s\n' "$file"
 }
 
+wiki_usage_lesson() {
+  local repo=$1 task=$2 day=$3 lesson
+  shift 3
+  mkdir -p "$repo/raw/2026/11"
+  lesson="$repo/raw/2026/11/20261102T000000Z-testhost-testhome-$task-a1b2.md"
+  {
+    printf -- '---\nwiki: raw-lesson v1\nwiki-home: testhome\nwiki-task: %s\nwiki-final: done\n' "$task"
+    [ "$day" = missing ] || printf 'date: %s\n' "$day"
+    printf -- '---\n\n'
+    printf '%s\n' "$@"
+  } > "$lesson"
+}
+
+
 gardener_home_with_repo() {  # <name> <bare>: gardener home cloned to the remote.
   local home bare
   home=$(wiki_home "$1")
@@ -164,7 +213,7 @@ test_non_gardener_roles_cannot_run_the_gardener_verbs() {
   out=$(run_wiki "$home" due 2>&1); status=$?
   [ "$status" -ne 0 ] || fail "due in a contributor home must exit non-zero"
   assert_equals '' "$out" "due in a contributor home prints nothing"
-  for verb in lint index publish; do
+  for verb in lint index publish coverage; do
     out=$(run_wiki "$home" $verb --base HEAD 2>&1); status=$?
     [ "$status" -ne 0 ] || fail "$verb in a contributor home must exit non-zero"
     assert_contains "$out" 'gardener' "$verb in a contributor home names the gardener-only restriction"
@@ -689,7 +738,8 @@ test_generated_gardener_commands_target_a_linked_worktree() {
   assert_not_contains "$(cat "$brief")" 'no-mistakes doctor' "generated direct-push setup must not prescribe pipeline initialization"
   assert_not_contains "$(cat "$brief")" 'no-mistakes init' "generated direct-push setup must not initialize a pipeline"
   commands=$(wiki_brief_commands "$brief")
-  [ "$(printf '%s\n' "$commands" | wc -l | tr -d ' ')" = 3 ] || fail "generated contract must deliver lint, index, publish commands"
+  [ "$(printf '%s\n' "$commands" | wc -l | tr -d ' ')" = 4 ] || fail "generated contract must deliver lint, index, publish, and coverage commands"
+  assert_contains "$commands" 'fm-wiki.sh coverage' "the generated contract reports coverage"
   out=$(cd "$task_copy" && unset FM_HOME FM_ROOT_OVERRIDE FM_CONFIG_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE && BASE="$base" bash -e -c "$commands" 2>&1) || fail "generated commands failed without inherited home settings: $out"
   assert_contains "$out" published "generated publish command lands the task copy"
   wgit -C "$bare" show main:pages/tools/seed-page.md | grep -q 'A compiled addition' || fail "task page change did not land"
@@ -964,7 +1014,7 @@ test_gardener_verbs_reject_equals_form_options() {
   home=$(gardener_home_with_repo spacedoptions "$bare")
   repo="$home/state/wiki/repo"
   base=$(wgit -C "$repo" rev-parse HEAD)
-  for verb in lint index publish; do
+  for verb in lint index publish coverage; do
     out=$(run_wiki "$home" "$verb" "--repo=$repo" 2>&1); status=$?
     [ "$status" -eq 2 ] || fail "$verb must reject equals-form --repo"
     assert_contains "$out" "unknown $verb flag" "equals-form options report usage errors"
@@ -1731,6 +1781,582 @@ test_triage_uses_fixed_bounds() {
   pass "triage fixes batches at 25 lessons and candidates at eight"
 }
 
+test_publish_archives_pages_unconfirmed_for_120_days() {
+  local home bare repo base out now
+  bare=$(wiki_bare pruneage)
+  seed_checkout "$bare" "$TMP_ROOT/pruneage-seed" >/dev/null
+  home=$(gardener_home_with_repo pruneage "$bare")
+  repo="$home/state/wiki/repo"
+  now=$FM_WIKI_NOW
+  wiki_page "$repo/pages/tools/stale-121.md" 'a page 121 days old' "$(wiki_day_before "$now" 121)"
+  wiki_page "$repo/pages/tools/fresh-119.md" 'a page 119 days old' "$(wiki_day_before "$now" 119)"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "publish must exit 0: $out"
+  assert_contains "$out" 'archived pages/tools/stale-121.md' "publish reports the archive move"
+  wgit -C "$bare" ls-tree -r --name-only main -- archive | grep -qxF 'archive/pages/tools/stale-121.md' \
+    || fail "a page unconfirmed for 121 days lands under archive/"
+  wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -qxF 'pages/tools/stale-121.md' \
+    && fail "an archived page must leave pages/"
+  wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -qxF 'pages/tools/fresh-119.md' \
+    || fail "a 119-day-old page stays live"
+  wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -qxF 'pages/tools/seed-page.md' \
+    || fail "a recently confirmed page stays live"
+  wgit -C "$bare" show main:index.md | grep -qF 'a page 119 days old' \
+    || fail "a kept page stays in the regenerated index"
+  wgit -C "$bare" show main:index.md | grep -qF 'a page 121 days old' \
+    && fail "an archived page leaves the index"
+  assert_equals '' "$(wgit -C "$repo" status --porcelain)" "the archive move is committed, not left in the worktree"
+  pass "publish archives a page unconfirmed for 120 days and keeps a 119-day one"
+}
+
+test_publish_refreshes_last_confirmed_from_usage_signals() {
+  local home bare repo base out now used_day old_day example
+  bare=$(wiki_bare pruneused)
+  seed_checkout "$bare" "$TMP_ROOT/pruneused-seed" >/dev/null
+  home=$(gardener_home_with_repo pruneused "$bare")
+  repo="$home/state/wiki/repo"
+  now=$FM_WIKI_NOW
+  used_day=$(wiki_day_before "$now" 3)
+  old_day=$(wiki_day_before "$now" 200)
+  wiki_page "$repo/pages/tools/used-page.md" 'a page workers still use' "$old_day"
+  wiki_page "$repo/pages/tools/flagged-page.md" 'a page flagged stale' "$old_day"
+  example='## Confirmation examples
+
+```markdown
+> last-confirmed: 2020-01-01
+```
+
+> last-confirmed: 2021-02-03'
+  printf '\n%s\n' "$example" >> "$repo/pages/tools/used-page.md"
+  # Two published usage lessons: one confirms, one disputes.
+  cat > "$repo/raw/2026/10/20261030T000000Z-testhost-testhome-usage-ok-a1b2.md" <<EOF
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: usage-ok
+wiki-final: done
+date: $used_day
+---
+
+## the used page still holds
+scope: tool:seed
+claim: the fixture page held up
+evidence: this fixture
+used: tools/used-page ok
+EOF
+  cat > "$repo/raw/2026/10/20261030T000001Z-testhost-testhome-usage-stale-a1b2.md" <<EOF
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: usage-stale
+wiki-final: done
+date: $used_day
+---
+
+## the flagged page needs work
+scope: tool:seed
+claim: the fixture page no longer holds
+evidence: this fixture
+used: tools/flagged-page stale
+EOF
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m "wiki: usage signals for two pages"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "publish must exit 0: $out"
+  assert_contains "$out" 'refreshed pages/tools/used-page.md' "publish reports the refreshed confirmation"
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/used-page.md)" "> last-confirmed: $used_day" \
+    "a used: ok signal refreshes last-confirmed to the lesson's date"
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/used-page.md)" "$example" \
+    "confirmation refresh preserves literal dates in the published page body"
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/flagged-page.md)" "> last-confirmed: $old_day" \
+    "a used: stale signal flags the page without confirming it"
+  wgit -C "$bare" ls-tree -r --name-only main -- pages/ | grep -qxF 'pages/tools/flagged-page.md' \
+    || fail "a flagged page stays live for the gardener to resolve"
+  pass "publish refreshes last-confirmed from used: ok and keeps a flagged page"
+}
+
+test_coverage_reports_pages_lessons_and_the_archive() {
+  local home bare repo out now stale_lesson before i
+  bare=$(wiki_bare coverage)
+  seed_checkout "$bare" "$TMP_ROOT/coverage-seed" >/dev/null
+  home=$(gardener_home_with_repo coverage "$bare")
+  repo="$home/state/wiki/repo"
+  now=$FM_WIKI_NOW
+  wiki_page "$repo/pages/tools/unconfirmed-page.md" 'a page unconfirmed for 95 days' "$(wiki_day_before "$now" 95)"
+  mkdir -p "$repo/archive/pages/tools"
+  printf '# A retired page\n\nArchived history, never indexed.\n' > "$repo/archive/pages/tools/retired.md"
+  printf '# Archive notes\n\nNot a retired page.\n' > "$repo/archive/notes.md"
+  add_raw "$repo" 20261030T000000Z pending-lesson >/dev/null
+  stale_lesson="$repo/raw/2026/10/20261030T000002Z-testhost-testhome-flagged-a1b2.md"
+  cat > "$stale_lesson" <<EOF
+---
+wiki: raw-lesson v1
+wiki-home: testhome
+wiki-task: flagged
+wiki-final: done
+date: $(wiki_day_before "$now" 2)
+---
+
+## the seed page is stale
+scope: tool:seed
+claim: the seed page no longer holds
+evidence: this fixture
+used: tools/seed-page stale
+EOF
+  for i in $(seq 1 10); do
+    printf 'used: tools/seed-page ok\n' >> "$stale_lesson"
+  done
+  printf 'used: tools/unconfirmed-page wrong\n' >> "$stale_lesson"
+  before=$(wgit -C "$repo" status --porcelain)
+  out=$(run_wiki "$home" coverage 2>&1) || fail "coverage must exit 0: $out"
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] || fail "coverage prints exactly one line: $out"
+  assert_equals 'wiki: coverage pages=2 raw=3 pending=2 archived=1 usage-signals=12 usage-by-page={"tools/seed-page":11,"tools/unconfirmed-page":1} stale-signals=2 unconfirmed90=1' "$out" \
+    "the coverage line counts pages, lessons, pending work, the archive, and freshness"
+  assert_equals "$before" "$(wgit -C "$repo" status --porcelain)" "coverage leaves the checkout as it found it"
+  out=$(run_wiki "$home" lint 2>&1) || fail "lint must stay advisory-only: $out"
+  assert_contains "$out" 'page unconfirmed for 90 days: pages/tools/unconfirmed-page.md' \
+    "the same injected clock drives the 90-day advisory"
+  pass "coverage reports one line and shares the freshness clock with lint"
+}
+
+
+test_publish_rechecks_pruning_after_remote_usage() {
+  local timing verdict signal_age bare seed home repo other base out old_day signal hook marker
+  for timing in initial retry; do
+    for verdict in ok stale wrong; do
+      for signal_age in 0 200; do
+        bare=$(wiki_bare "prune-race-$timing-$verdict-$signal_age")
+        seed="$TMP_ROOT/prune-race-$timing-$verdict-$signal_age-seed"
+        seed_checkout "$bare" "$seed" >/dev/null
+        old_day=$(wiki_day_before "$FM_WIKI_NOW" 121)
+        wiki_page "$seed/pages/tools/used.md" 'a concurrently used page' "$old_day"
+        wiki_page "$seed/pages/tools/unused.md" 'an unused page' "$old_day"
+        printf 'a source with an entity-shaped filename\n' > "$seed/raw/2026/10/amp&copy;.md"
+        printf '\n[encoded source](../../raw/2026/10/amp&amp;copy;.md)\n' >> "$seed/pages/tools/used.md"
+        printf '\n[used](used.md)\n<a href=used.md>used</a>\n\n- [list-used]: used.md\n- See [list-used].\n\n> [continued-used]:\n> used.md\n>\n> See [continued-used].\n' >> "$seed/pages/tools/seed-page.md"
+        mkdir -p "$seed/archive/pages/tools"
+        cp "$seed/pages/tools/unused.md" "$seed/archive/pages/tools/history.md"
+        wgit -C "$seed" add -A
+        wgit -C "$seed" commit -q -m 'wiki: old pages and incoming links'
+        wgit -C "$seed" push -q origin main || fail 'race pages push failed'
+        home=$(gardener_home_with_repo "prune-race-$timing-$verdict-$signal_age" "$bare")
+        repo="$home/state/wiki/repo"
+        base=$(wgit -C "$repo" rev-parse HEAD)
+        other="$TMP_ROOT/prune-race-$timing-$verdict-$signal_age-other"
+        git clone -q "file://$bare" "$other" 2>/dev/null || fail 'usage clone failed'
+        signal=$(add_raw "$other" 20261102T000000Z usage)
+        sed "s/^date: .*/date: $(wiki_day_before "$FM_WIKI_NOW" "$signal_age")/" "$signal" > "$signal.tmp"
+        mv "$signal.tmp" "$signal"
+        printf '\nused: tools/used %s\nused: tools/history ok\n' "$verdict" >> "$signal"
+        wgit -C "$other" add -A
+        wgit -C "$other" commit -q -m 'wiki: concurrent usage'
+        if [ "$timing" = initial ]; then
+          wgit -C "$other" push -q origin main || fail 'usage push failed'
+        else
+          hook="$repo/.git/hooks/pre-push"
+          marker="$TMP_ROOT/prune-race-$timing-$verdict-$signal_age-fired"
+          {
+            printf '#!/usr/bin/env bash\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR\n'
+            printf '[ -f %q ] && exit 0\n' "$marker"
+            printf 'touch %q\n' "$marker"
+            printf 'git -C %q push -q origin main\n' "$other"
+          } > "$hook"
+          chmod +x "$hook"
+        fi
+        printf '\nAn authored addition.\n\n- [list-source]: ../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md\n- Claim [list-source].\n\n> [continued-source]:\n> ../../raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md\n>\n> Claim [continued-source].\n' >> "$repo/pages/tools/used.md"
+        out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "$timing $verdict publish failed: $out"
+        if [ "$timing" = retry ]; then
+          assert_present "$marker" 'usage arrives during the push'
+        fi
+        if [ "$signal_age" = 0 ]; then
+          if [ "$timing" = retry ]; then
+            assert_contains "$out" 'restored pages/tools/used.md' 'recent incoming usage undoes tentative pruning'
+          fi
+          assert_contains "$(wgit -C "$bare" show main:pages/tools/used.md)" 'An authored addition.' \
+            'incoming recent usage preserves the live page and authored changes'
+          if [ "$verdict" = ok ]; then
+            assert_contains "$(wgit -C "$bare" show main:pages/tools/used.md)" '> last-confirmed: 2026-11-02' \
+              'a concurrent confirmation refreshes the live page'
+          else
+            assert_contains "$(wgit -C "$bare" show main:pages/tools/used.md)" "> last-confirmed: $old_day" \
+              'disputed usage retains the page without confirming it'
+          fi
+          wgit -C "$bare" cat-file -e main:archive/pages/tools/used.md 2>/dev/null \
+            && fail 'a concurrently used page remained archived'
+        else
+          assert_not_contains "$out" 'restored pages/tools/used.md' 'expired incoming usage cannot undo pruning'
+          assert_contains "$(wgit -C "$bare" show main:archive/pages/tools/used.md)" 'An authored addition.' \
+            'expired incoming usage preserves authored content in the archive'
+          wgit -C "$bare" cat-file -e main:pages/tools/used.md 2>/dev/null \
+            && fail 'historical incoming usage kept an expired page live'
+        fi
+        wgit -C "$bare" cat-file -e main:archive/pages/tools/unused.md || fail 'unprotected pages still archive'
+        wgit -C "$bare" cat-file -e main:archive/pages/tools/history.md || fail 'older archives remain history'
+        assert_equals '' "$(wgit -C "$repo" diff "$(wgit -C "$other" rev-parse HEAD)" HEAD -- raw)" \
+          'publication preserves every incoming raw byte'
+        out=$(run_wiki "$home" lint 2>&1) || fail "revalidated pages have working links: $out"
+        assert_equals '' "$(wgit -C "$repo" status --porcelain)" 'revalidation leaves every correction committed'
+      done
+    done
+  done
+  pass 'initial and retry fetches revalidate all three usage verdicts before publication'
+}
+
+test_publish_preserves_archive_link_destinations() {
+  local bare seed home repo base out old_day
+  bare=$(wiki_bare archivelinks)
+  seed="$TMP_ROOT/archivelinks-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  old_day=$(wiki_day_before "$FM_WIKI_NOW" 121)
+  mkdir -p "$seed/pages/projects/deep" "$seed/archive/pages/tools"
+  wiki_page "$seed/pages/tools/old.md" 'an old linked page' "$old_day"
+  wiki_page "$seed/pages/projects/deep/peer.md" 'another old linked page' "$old_day"
+  sed 's|(../../raw/|(../../../raw/|' "$seed/pages/projects/deep/peer.md" > "$seed/peer.tmp"
+  mv "$seed/peer.tmp" "$seed/pages/projects/deep/peer.md"
+  printf 'a quoted-only raw lesson\n' > "$seed/raw/2026/10/quote-only.md"
+  printf 'a list-only raw lesson\n' > "$seed/raw/2026/10/list-only.md"
+  printf 'a raw lesson with spaces\n' > "$seed/raw/2026/10/space (lesson).md"
+  printf 'an entity-only lesson\n' > "$seed/raw/2026/10/entity.md"
+  printf 'a percent-only lesson\n' > "$seed/raw/2026/10/percent.md"
+  printf 'a lesson with a fragment-shaped filename\n' > "$seed/raw/2026/10/hash#lesson.md"
+  printf 'a lesson with an entity-shaped filename\n' > "$seed/raw/2026/10/amp&copy;.md"
+  printf 'a lesson with a percent-shaped filename\n' > "$seed/raw/2026/10/literal%2E.md"
+  cat >> "$seed/pages/tools/old.md" <<'EOF'
+
+[seed](seed-page.md#seed)
+[peer](../projects/deep/peer.md?view=full#peer)
+[ref][src]
+
+[src]: <../../raw/2026/10/space (lesson).md> "a source title"
+
+[entity](../../raw/2026/10/entity&#46;md)
+![encoded image](../../raw/2026/10/percent%2Emd)
+[hash](../../raw/2026/10/hash%23lesson.md)
+[amp](../../raw/2026/10/amp&amp;copy;.md)
+[escaped amp](../../raw/2026/10/amp\&copy;.md)
+[literal percent](../../raw/2026/10/literal%252E.md)
+[entity reference][entity-source]
+
+[entity-source]: ../../raw/2026/10/entity&#x2e;md
+
+<a href="../../raw/2026/10/entity&#46;md?x=1&amp;y=2#part">entity href</a>
+<img src=../../raw/2026/10/percent&#46;md>
+
+- [list-source]: ../../raw/2026/10/list-only.md
+- Claim [list-source].
+
+> 1. [quoted-source]: ../../raw/2026/10/list-only.md
+> 2. Claim [quoted-source].
+
+> [continued-source]:
+> ../../raw/2026/10/quote-only.md
+>
+> Claim [continued-source].
+
+> > [nested](
+> > ../../raw/2026/10/quote-only.md
+> > )
+
+> ![continued image](
+> ../../README.md
+> )
+
+> <a href=
+> ../../README.md>continued href</a>
+
+> <img src=
+> ../../README.md>
+
+![image](../../README.md)
+<a href="../../README.md">README</a>
+<a href=seed-page.md>seed</a>
+<img src=../../README.md>
+
+- links in a list
+    - [seed](seed-page.md)
+
+`[example](seed-page.md)`
+
+    [example](seed-page.md)
+    <a href=seed-page.md>example</a>
+    [example-ref]: seed-page.md
+
+	[tab example](seed-page.md)
+
+Set href=seed-page.md as an example.
+
+~~~markdown
+[example](seed-page.md)
+> [example-ref]:
+> seed-page.md
+~~~
+EOF
+  printf '\n[seed](../../tools/seed-page.md)\n[old](../../tools/old.md)\n' >> "$seed/pages/projects/deep/peer.md"
+  printf '\n[entity incoming](old&#46;md)\n' >> "$seed/pages/tools/seed-page.md"
+  printf '\n<a href=pages/tools/old&#46;md>entity incoming</a>\n' >> "$seed/README.md"
+  printf '\n<a href=old.md>old</a>\n<img src=old.md>\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n\n1. [list-old]: old.md\n2. See [list-old].\n\n> [continued-old]:\n> old.md\n>\n> See [continued-old].\n' >> "$seed/pages/tools/seed-page.md"
+  printf '\n<a href=pages/tools/old.md>old</a>\n\n    <a href=pages/tools/old.md>example</a>\n\n> - [root-old]: pages/tools/old.md\n> - See [root-old].\n\n> [continued-root]:\n> pages/tools/old.md\n>\n> See [continued-root].\n' >> "$seed/README.md"
+  printf '[old](../../../pages/tools/old.md)\n<a href=../../../pages/tools/old.md>old</a>\n\n- [history-old]: ../../../pages/tools/old.md\n- See [history-old].\n\n> [continued-history]:\n> ../../../pages/tools/old.md\n>\n> See [continued-history].\n' > "$seed/archive/pages/tools/history.md"
+  printf '\n![entity incoming](../../../pages/tools/old&#46;md)\n' >> "$seed/archive/pages/tools/history.md"
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m 'wiki: linked pages ready to archive'
+  wgit -C "$seed" push -q origin main || fail 'link fixture push failed'
+  home=$(gardener_home_with_repo archivelinks "$bare")
+  repo="$home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "linked archive publish failed: $out"
+  python3 - "$repo" <<'PYLINKS' || fail 'archiving changed a rendered local link destination'
+import pathlib
+import subprocess
+import sys
+from urllib.parse import unquote, urlsplit
+
+repo = pathlib.Path(sys.argv[1])
+raw = "raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md"
+expected = {
+    "archive/pages/tools/old.md": {raw, "raw/2026/10/space (lesson).md", "raw/2026/10/list-only.md", "raw/2026/10/quote-only.md", "raw/2026/10/entity.md", "raw/2026/10/percent.md", "raw/2026/10/hash#lesson.md", "raw/2026/10/amp&copy;.md", "raw/2026/10/literal%2E.md", "pages/tools/seed-page.md", "archive/pages/projects/deep/peer.md", "README.md"},
+    "archive/pages/projects/deep/peer.md": {raw, "pages/tools/seed-page.md", "archive/pages/tools/old.md"},
+    "pages/tools/seed-page.md": {raw, "archive/pages/tools/old.md"},
+    "archive/pages/tools/history.md": {"archive/pages/tools/old.md"},
+    "README.md": {"archive/pages/tools/old.md"},
+}
+for rel, targets in expected.items():
+    result = subprocess.run(["lychee", "--config", "/dev/null", "--dump", "--offline", "--scheme", "file",
+                             "--include-verbatim=false", "--cache=false", "--", str(repo / rel)],
+                            check=True, text=True, stdout=subprocess.PIPE)
+    actual = {pathlib.Path(unquote(urlsplit(link).path)).relative_to(repo).as_posix()
+              for link in result.stdout.splitlines()}
+    assert actual == targets, (rel, actual, targets)
+    assert all((repo / target).is_file() for target in actual), (rel, actual)
+    if rel == "archive/pages/tools/old.md":
+        assert any(urlsplit(link).query == "x=1&y=2" and urlsplit(link).fragment == "part"
+                   for link in result.stdout.splitlines()), result.stdout
+text = (repo / "archive/pages/tools/old.md").read_text()
+assert '`[example](seed-page.md)`' in text
+assert '    [example](seed-page.md)\n    <a href=seed-page.md>example</a>\n    [example-ref]: seed-page.md' in text
+assert '\t[tab example](seed-page.md)' in text
+assert 'Set href=seed-page.md as an example.' in text
+assert '    <a href=pages/tools/old.md>example</a>' in (repo / "README.md").read_text()
+assert '~~~markdown\n[example](seed-page.md)\n> [example-ref]:\n> seed-page.md\n~~~' in text
+assert '?view=full#peer' in text
+assert '"a source title"' in text
+PYLINKS
+  out=$(run_wiki "$home" publish --base "$base" 2>&1) || fail "repeat pruning must converge: $out"
+  assert_contains "$out" 'nothing to publish' 'repeating pruning preserves rewritten links'
+  assert_equals '' "$(wgit -C "$repo" status --porcelain)" 'link corrections land in the publication'
+  pass 'archiving preserves citations, incoming links, peer links, images, HTML, and code examples'
+}
+
+
+test_gardener_coverage_done_remains_terminal() {
+  local bare garden_home repo brief coverage line current out head
+  bare=$(wiki_bare coverage-done)
+  seed_checkout "$bare" "$TMP_ROOT/coverage-done-seed" >/dev/null
+  garden_home=$(gardener_home_with_repo coverage-done "$bare")
+  repo="$garden_home/state/wiki/repo"
+  add_raw "$repo" 20200101T000000Z pending >/dev/null
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m 'wiki: pending lesson'
+  head=$(wgit -C "$repo" rev-parse HEAD)
+  brief="$garden_home/data/garden-done-brief.md"
+  FM_HOME="$garden_home" bash -c '. "$1/bin/fm-dod-lib.sh"; fm_dod_block direct-push garden-done fm/garden-done none' _ "$ROOT" > "$brief" \
+    || fail 'cannot render the gardener delivery instructions'
+  coverage=$(run_wiki "$garden_home" coverage) || fail 'cannot measure gardener coverage'
+  # shellcheck disable=SC2016 # Python owns literal backticks; -c avoids Bash 3.2's nested-heredoc parsing.
+  line=$(python3 -c '
+import pathlib
+import re
+import sys
+
+prompt = pathlib.Path(sys.argv[1]).read_text()
+templates = re.findall(r"`(done \[at=<epoch>\]:[^`]+)`", prompt)
+assert len(templates) == 1, templates
+print(templates[0].replace("<epoch>", "2").replace("{commit}", sys.argv[2]).replace("{coverage line}", sys.argv[3]))
+' "$brief" "$head" "$coverage") || fail 'the generated completion template must name one status record'
+  assert_contains "$line" "$coverage" 'the emitted done template keeps coverage inside its note'
+  assert_equals 1 "$(printf '%s\n' "$line" | wc -l | tr -d ' ')" 'completion uses one physical status line'
+  printf 'kind=ship\nproject=%s/crew-wiki\n' "$TMP_ROOT" > "$garden_home/state/garden-done.meta"
+  printf 'working [at=1]: gardening\n%s\n' "$line" > "$garden_home/state/garden-done.status"
+  current=$(bash -c '. "$1/bin/fm-classify-lib.sh"; status_line_verb "$(status_current_line "$2" ship)"' _ "$ROOT" "$garden_home/state/garden-done.status")
+  assert_equals 'done' "$current" 'the real status classifier retains the terminal event'
+  out=$(run_wiki "$garden_home" due 2>&1) || fail "a completed gardener must release pending work: $out"
+  assert_contains "$out" 'gardener due' 'coverage does not leave the completed gardener open'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$garden_home" close garden-done 2>&1) || fail "completion capture failed: $out"
+  assert_contains "$out" 'final=done' 'lesson capture records completion rather than wiki'
+  pass 'generated gardener completion includes coverage without changing terminal classification or scheduling'
+}
+
+
+
+test_publish_ages_all_usage_verdicts_and_confirmation_dates() {
+  local bare garden_home repo base out key confirmed used verdict disposition
+  bare=$(wiki_bare usageage)
+  seed_checkout "$bare" "$TMP_ROOT/usageage-seed" >/dev/null
+  garden_home=$(gardener_home_with_repo usageage "$bare")
+  repo="$garden_home/state/wiki/repo"
+  while IFS='|' read -r key confirmed used verdict disposition; do
+    wiki_page "$repo/pages/tools/$key.md" "$disposition" "$(wiki_day_before "$FM_WIKI_NOW" "$confirmed")"
+    wiki_usage_lesson "$repo" "$key" "$(wiki_day_before "$FM_WIKI_NOW" "$used")" "used: tools/$key $verdict"
+  done <<'CASES'
+old-ok|300|200|ok|archive
+old-stale|300|200|stale|archive
+old-wrong|300|200|wrong|archive
+recent-stale|300|119|stale|live
+recent-wrong|300|119|wrong|live
+boundary-use|300|120|wrong|live
+newer-confirmation|119|200|wrong|live
+boundary-confirmation|120|200|stale|live
+CASES
+  wiki_usage_lesson "$repo" zz-older "$(wiki_day_before "$FM_WIKI_NOW" 200)" 'used: tools/recent-stale wrong'
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m 'wiki: worked examples of inactivity'
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "usage expiry publish failed: $out"
+  for key in old-ok old-stale old-wrong; do
+    wgit -C "$bare" cat-file -e "main:archive/pages/tools/$key.md" || fail "$key must expire after 200 days without activity"
+    wgit -C "$bare" cat-file -e "main:pages/tools/$key.md" 2>/dev/null && fail "$key stayed live on historical usage"
+  done
+  for key in recent-stale recent-wrong boundary-use newer-confirmation boundary-confirmation; do
+    wgit -C "$bare" cat-file -e "main:pages/tools/$key.md" || fail "$key must stay live under the approved inactivity rule"
+  done
+  assert_contains "$(wgit -C "$bare" show main:archive/pages/tools/old-ok.md)" "> last-confirmed: $(wiki_day_before "$FM_WIKI_NOW" 200)" \
+    'even an expired confirmation advances the date before archival'
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/recent-stale.md)" "> last-confirmed: $(wiki_day_before "$FM_WIKI_NOW" 300)" \
+    'recent disputed usage protects the page without confirming it'
+  pass 'all verdicts expire after inactivity while recent usage or confirmation protects pages'
+}
+
+test_usage_consumers_require_canonical_keys_and_generated_dates() {
+  local bare garden_home repo base out key confirmed
+  bare=$(wiki_bare usageschema)
+  seed_checkout "$bare" "$TMP_ROOT/usageschema-seed" >/dev/null
+  garden_home=$(gardener_home_with_repo usageschema "$bare")
+  repo="$garden_home/state/wiki/repo"
+  confirmed=$(wiki_day_before "$FM_WIKI_NOW" 200)
+  for key in prefix dot-prefix suffix undated invalid-date canonical; do
+    wiki_page "$repo/pages/tools/$key.md" "$key" "$confirmed"
+  done
+  wiki_usage_lesson "$repo" prefix 2026-11-02 'used: pages/tools/prefix stale'
+  wiki_usage_lesson "$repo" dot-prefix 2026-11-02 'used: ./tools/dot-prefix wrong'
+  wiki_usage_lesson "$repo" suffix 2026-11-02 'used: tools/suffix.md stale'
+  wiki_usage_lesson "$repo" undated missing 'date: 2026-11-02' 'used: tools/undated stale'
+  wiki_usage_lesson "$repo" invalid-date 2026-02-30 'used: tools/invalid-date wrong'
+  wiki_usage_lesson "$repo" canonical 2026-11-02 'used: tools/canonical ok'
+  out=$(run_wiki "$garden_home" coverage) || fail 'schema coverage failed'
+  assert_contains "$out" 'usage-signals=1 usage-by-page={"tools/canonical":1} stale-signals=0' \
+    'only the canonical dated record is counted'
+  out=$(run_wiki "$garden_home" lint 2>&1) || fail "schema fixture lint failed: $out"
+  assert_not_contains "$out" 'usage signal needs the gardener' 'unsupported keys and dates never become usage advisories'
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m 'wiki: canonical and unsupported usage records'
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "schema publish failed: $out"
+  for key in prefix dot-prefix suffix undated invalid-date; do
+    wgit -C "$bare" cat-file -e "main:archive/pages/tools/$key.md" || fail "$key incorrectly protected an expired page"
+    assert_contains "$(wgit -C "$bare" show "main:archive/pages/tools/$key.md")" "> last-confirmed: $confirmed" \
+      'an unsupported record cannot refresh a page'
+  done
+  assert_contains "$(wgit -C "$bare" show main:pages/tools/canonical.md)" '> last-confirmed: 2026-11-02' \
+    'the supported canonical record still confirms the page'
+  out=$(run_wiki "$garden_home" coverage) || fail 'post-publication schema coverage failed'
+  assert_contains "$out" 'usage-signals=1 usage-by-page={"tools/canonical":1} stale-signals=0' \
+    'moving unsupported pages to the archive never makes aliases valid'
+  pass 'coverage, advisories, refresh, and expiry share canonical dated usage records'
+}
+
+
+test_publish_preserves_untracked_notes_with_and_without_moves() {
+  local mode bare seed garden_home repo base out age root_note archive_note expected
+  for mode in move keep; do
+    bare=$(wiki_bare "private-notes-$mode")
+    seed="$TMP_ROOT/private-notes-$mode-seed"
+    seed_checkout "$bare" "$seed" >/dev/null
+    age=119
+    [ "$mode" = keep ] || age=121
+    wiki_page "$seed/pages/tools/old.md" 'a possibly archived page' "$(wiki_day_before "$FM_WIKI_NOW" "$age")"
+    printf '\n[old](pages/tools/old.md)\n' >> "$seed/README.md"
+    wgit -C "$seed" add -A
+    wgit -C "$seed" commit -q -m 'wiki: tracked root link'
+    wgit -C "$seed" push -q origin main || fail 'private notes fixture push failed'
+    garden_home=$(gardener_home_with_repo "private-notes-$mode" "$bare")
+    repo="$garden_home/state/wiki/repo"
+    base=$(wgit -C "$repo" rev-parse HEAD)
+    mkdir -p "$repo/archive"
+    root_note='Private [old](pages/tools/old.md)'
+    archive_note='Private [old](../pages/tools/old.md)'
+    printf '%s\n' "$root_note" > "$repo/notes.md"
+    printf '%s\n' "$archive_note" > "$repo/archive/notes.md"
+    out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "private notes publish failed: $out"
+    assert_equals "$root_note" "$(cat "$repo/notes.md")" 'untracked root note bytes remain unchanged'
+    assert_equals "$archive_note" "$(cat "$repo/archive/notes.md")" 'untracked archive note bytes remain unchanged'
+    assert_equals '' "$(wgit -C "$repo" ls-files -- notes.md archive/notes.md)" 'private notes stay outside the Git index'
+    wgit -C "$bare" cat-file -e main:notes.md 2>/dev/null && fail 'private root note was published'
+    wgit -C "$bare" cat-file -e main:archive/notes.md 2>/dev/null && fail 'private archive note was published'
+    expected=pages/tools/old.md
+    [ "$mode" = keep ] || expected=archive/pages/tools/old.md
+    assert_contains "$(wgit -C "$bare" show main:README.md)" "[old]($expected)" 'tracked root link repair still lands'
+    out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "private notes repeat publish failed: $out"
+    assert_contains "$out" 'nothing to publish' 'private notes never create work on a no-op run'
+    assert_equals '' "$(wgit -C "$repo" ls-files -- notes.md archive/notes.md)" 'no-op preparation never enrolls private notes'
+  done
+  pass 'publication repairs tracked links while leaving untracked root and archive notes private'
+}
+
+test_publish_and_lint_allow_zero_live_pages() {
+  local bare seed garden_home repo other base marker hook out fresh head status
+  bare=$(wiki_bare empty-pages)
+  seed="$TMP_ROOT/empty-pages-seed"
+  seed_checkout "$bare" "$seed" >/dev/null
+  wiki_page "$seed/pages/tools/seed-page.md" 'the last live page' "$(wiki_day_before "$FM_WIKI_NOW" 121)"
+  wgit -C "$seed" add -A
+  wgit -C "$seed" commit -q -m 'wiki: last page is inactive'
+  wgit -C "$seed" push -q origin main || fail 'empty page fixture push failed'
+  garden_home=$(gardener_home_with_repo empty-pages "$bare")
+  repo="$garden_home/state/wiki/repo"
+  base=$(wgit -C "$repo" rev-parse HEAD)
+  other="$TMP_ROOT/empty-pages-other"
+  git clone -q "file://$bare" "$other" 2>/dev/null || fail 'empty page competitor clone failed'
+  add_raw "$other" 20261102T000000Z concurrent >/dev/null
+  wgit -C "$other" add -A
+  wgit -C "$other" commit -q -m 'wiki: raw lesson during final archive'
+  marker="$TMP_ROOT/empty-pages-race-fired"
+  hook="$repo/.git/hooks/pre-push"
+  {
+    printf '#!/usr/bin/env bash\nunset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR\n'
+    printf '[ -f %q ] && exit 0\n' "$marker"
+    printf 'touch %q\n' "$marker"
+    printf 'git -C %q push -q origin main\n' "$other"
+  } > "$hook"
+  chmod +x "$hook"
+  out=$(run_wiki "$garden_home" publish --base "$base" 2>&1) || fail "last-page archive retry failed: $out"
+  assert_present "$marker" 'the final archive is rebased over a concurrent raw lesson'
+  assert_equals '' "$(wgit -C "$bare" ls-tree -r --name-only main -- pages)" 'publication can archive the last live page'
+  wgit -C "$bare" cat-file -e main:archive/pages/tools/seed-page.md || fail 'the final page was lost instead of archived'
+  wgit -C "$bare" cat-file -e main:raw/2026/11/20261102T000000Z-testhost-testhome-concurrent-a1b2.md || fail 'the concurrent lesson was lost'
+  fresh="$TMP_ROOT/empty-pages-fresh"
+  git clone -q "file://$bare" "$fresh" 2>/dev/null || fail 'empty page fresh clone failed'
+  [ ! -d "$fresh/pages" ] || fail 'the fixture must reproduce Git omitting the empty pages directory'
+  out=$(run_wiki "$garden_home" lint --repo "$fresh" 2>&1) || fail "a fully archived fresh clone must lint: $out"
+  assert_contains "$out" 'lint clean (0 page(s)' 'standalone lint accepts zero live pages'
+  head=$(wgit -C "$fresh" rev-parse HEAD)
+  printf '# Outdated empty index\n' > "$fresh/index.md"
+  out=$(run_wiki "$garden_home" publish --repo "$fresh" --base "$head" 2>&1) || fail "empty checkout preparation failed: $out"
+  assert_equals '' "$(wgit -C "$fresh" status --porcelain)" 'index regeneration is committed even without pages/'
+  assert_contains "$(wgit -C "$bare" show main:index.md)" '# Crew wiki index' 'the regenerated empty index lands remotely'
+  mv "$fresh/index.md" "$TMP_ROOT/saved-empty-index.md"
+  out=$(run_wiki "$garden_home" lint --repo "$fresh" 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail 'an empty wiki still requires its index'
+  assert_contains "$out" 'no index.md' 'zero-page support preserves index validation'
+  mv "$TMP_ROOT/saved-empty-index.md" "$fresh/index.md"
+  mkdir -p "$fresh/pages/tools"
+  wiki_page "$fresh/pages/tools/new.md" 'a newly compiled page' "$(wiki_day_before "$FM_WIKI_NOW" 0)"
+  head=$(wgit -C "$fresh" rev-parse HEAD)
+  out=$(run_wiki "$garden_home" publish --repo "$fresh" --base "$head" 2>&1) || fail "compiling into an empty wiki failed: $out"
+  wgit -C "$bare" cat-file -e main:pages/tools/new.md || fail 'ordinary new-page compilation stopped working'
+  assert_equals '' "$(wgit -C "$fresh" status --porcelain)" 'new-page compilation leaves a committed checkout'
+  pass 'last-page archive retries, empty fresh clones, index updates, and new compilation all work'
+}
+
 test_absent_config_keeps_gardener_verbs_silent
 test_non_gardener_roles_cannot_run_the_gardener_verbs
 test_due_fires_at_25_uncompiled_lessons
@@ -1784,3 +2410,18 @@ test_triage_calibration_uses_body_citations
 test_jev_does_not_send_secret_inputs
 test_publish_keeps_jev_outside_its_budget_and_lock
 test_triage_uses_fixed_bounds
+
+test_publish_archives_pages_unconfirmed_for_120_days
+test_publish_refreshes_last_confirmed_from_usage_signals
+test_coverage_reports_pages_lessons_and_the_archive
+
+test_publish_rechecks_pruning_after_remote_usage
+test_publish_preserves_archive_link_destinations
+
+test_gardener_coverage_done_remains_terminal
+
+test_publish_ages_all_usage_verdicts_and_confirmation_dates
+test_usage_consumers_require_canonical_keys_and_generated_dates
+
+test_publish_preserves_untracked_notes_with_and_without_moves
+test_publish_and_lint_allow_zero_live_pages
