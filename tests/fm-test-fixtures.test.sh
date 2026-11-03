@@ -19,6 +19,26 @@ set -u
 
 TMP_ROOT=$(fm_test_tmproot fm-test-fixtures)
 
+test_curated_path_skips_nonexecutable_shadow_files() (
+  local dir="$TMP_ROOT/path-shadow" curated out
+  mkdir -p "$dir/bin"
+  printf 'not an executable\n' > "$dir/bin/env"
+  chmod 644 "$dir/bin/env"
+  printf '#!/bin/sh\nprintf "kept"\n' > "$dir/bin/path-probe"
+  printf '#!/bin/sh\nexit 0\n' > "$dir/bin/herdr"
+  chmod +x "$dir/bin/path-probe" "$dir/bin/herdr"
+  curated=$(fm_test_base_path_sans "$dir/bin:$PATH" herdr) || fail "could not curate the fixture path"
+  out=$(PATH="$curated" env FM_PATH_PROBE=preserved /bin/sh -c 'printf "%s" "$FM_PATH_PROBE"') \
+    || fail "a nonexecutable shadow file hid the real env command"
+  [ "$out" = preserved ] || fail "the curated path did not preserve env behavior: $out"
+  [ "$(PATH="$curated" path-probe)" = kept ] || fail "curation lost an executable from the first directory"
+  if PATH="$curated" command -v herdr >/dev/null 2>&1; then
+    fail "curation retained the explicitly excluded command"
+  fi
+  pass "curated paths skip nonexecutable shadows while retaining tools and exclusions"
+)
+test_curated_path_skips_nonexecutable_shadow_files || fail "curated path executable lookup"
+
 test_git_config_isolation() (
   local dir="$TMP_ROOT/git-config" helper jobs timeout fakebin rc
   mkdir -p "$dir/runner/bin" "$dir/runner/tests"
