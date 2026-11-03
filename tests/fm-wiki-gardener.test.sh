@@ -1931,6 +1931,8 @@ test_publish_rechecks_pruning_after_remote_usage() {
         old_day=$(wiki_day_before "$FM_WIKI_NOW" 121)
         wiki_page "$seed/pages/tools/used.md" 'a concurrently used page' "$old_day"
         wiki_page "$seed/pages/tools/unused.md" 'an unused page' "$old_day"
+        printf 'a source with an entity-shaped filename\n' > "$seed/raw/2026/10/amp&copy;.md"
+        printf '\n[encoded source](../../raw/2026/10/amp&amp;copy;.md)\n' >> "$seed/pages/tools/used.md"
         printf '\n[used](used.md)\n<a href=used.md>used</a>\n\n- [list-used]: used.md\n- See [list-used].\n\n> [continued-used]:\n> used.md\n>\n> See [continued-used].\n' >> "$seed/pages/tools/seed-page.md"
         mkdir -p "$seed/archive/pages/tools"
         cp "$seed/pages/tools/unused.md" "$seed/archive/pages/tools/history.md"
@@ -2014,6 +2016,11 @@ test_publish_preserves_archive_link_destinations() {
   printf 'a quoted-only raw lesson\n' > "$seed/raw/2026/10/quote-only.md"
   printf 'a list-only raw lesson\n' > "$seed/raw/2026/10/list-only.md"
   printf 'a raw lesson with spaces\n' > "$seed/raw/2026/10/space (lesson).md"
+  printf 'an entity-only lesson\n' > "$seed/raw/2026/10/entity.md"
+  printf 'a percent-only lesson\n' > "$seed/raw/2026/10/percent.md"
+  printf 'a lesson with a fragment-shaped filename\n' > "$seed/raw/2026/10/hash#lesson.md"
+  printf 'a lesson with an entity-shaped filename\n' > "$seed/raw/2026/10/amp&copy;.md"
+  printf 'a lesson with a percent-shaped filename\n' > "$seed/raw/2026/10/literal%2E.md"
   cat >> "$seed/pages/tools/old.md" <<'EOF'
 
 [seed](seed-page.md#seed)
@@ -2021,6 +2028,19 @@ test_publish_preserves_archive_link_destinations() {
 [ref][src]
 
 [src]: <../../raw/2026/10/space (lesson).md> "a source title"
+
+[entity](../../raw/2026/10/entity&#46;md)
+![encoded image](../../raw/2026/10/percent%2Emd)
+[hash](../../raw/2026/10/hash%23lesson.md)
+[amp](../../raw/2026/10/amp&amp;copy;.md)
+[escaped amp](../../raw/2026/10/amp\&copy;.md)
+[literal percent](../../raw/2026/10/literal%252E.md)
+[entity reference][entity-source]
+
+[entity-source]: ../../raw/2026/10/entity&#x2e;md
+
+<a href="../../raw/2026/10/entity&#46;md?x=1&amp;y=2#part">entity href</a>
+<img src=../../raw/2026/10/percent&#46;md>
 
 - [list-source]: ../../raw/2026/10/list-only.md
 - Claim [list-source].
@@ -2072,9 +2092,12 @@ Set href=seed-page.md as an example.
 ~~~
 EOF
   printf '\n[seed](../../tools/seed-page.md)\n[old](../../tools/old.md)\n' >> "$seed/pages/projects/deep/peer.md"
+  printf '\n[entity incoming](old&#46;md)\n' >> "$seed/pages/tools/seed-page.md"
+  printf '\n<a href=pages/tools/old&#46;md>entity incoming</a>\n' >> "$seed/README.md"
   printf '\n<a href=old.md>old</a>\n<img src=old.md>\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n\n1. [list-old]: old.md\n2. See [list-old].\n\n> [continued-old]:\n> old.md\n>\n> See [continued-old].\n' >> "$seed/pages/tools/seed-page.md"
   printf '\n<a href=pages/tools/old.md>old</a>\n\n    <a href=pages/tools/old.md>example</a>\n\n> - [root-old]: pages/tools/old.md\n> - See [root-old].\n\n> [continued-root]:\n> pages/tools/old.md\n>\n> See [continued-root].\n' >> "$seed/README.md"
   printf '[old](../../../pages/tools/old.md)\n<a href=../../../pages/tools/old.md>old</a>\n\n- [history-old]: ../../../pages/tools/old.md\n- See [history-old].\n\n> [continued-history]:\n> ../../../pages/tools/old.md\n>\n> See [continued-history].\n' > "$seed/archive/pages/tools/history.md"
+  printf '\n![entity incoming](../../../pages/tools/old&#46;md)\n' >> "$seed/archive/pages/tools/history.md"
   wgit -C "$seed" add -A
   wgit -C "$seed" commit -q -m 'wiki: linked pages ready to archive'
   wgit -C "$seed" push -q origin main || fail 'link fixture push failed'
@@ -2091,7 +2114,7 @@ from urllib.parse import unquote, urlsplit
 repo = pathlib.Path(sys.argv[1])
 raw = "raw/2026/10/20261024T000000Z-testhost-testhome-seed-a1b2.md"
 expected = {
-    "archive/pages/tools/old.md": {raw, "raw/2026/10/space (lesson).md", "raw/2026/10/list-only.md", "raw/2026/10/quote-only.md", "pages/tools/seed-page.md", "archive/pages/projects/deep/peer.md", "README.md"},
+    "archive/pages/tools/old.md": {raw, "raw/2026/10/space (lesson).md", "raw/2026/10/list-only.md", "raw/2026/10/quote-only.md", "raw/2026/10/entity.md", "raw/2026/10/percent.md", "raw/2026/10/hash#lesson.md", "raw/2026/10/amp&copy;.md", "raw/2026/10/literal%2E.md", "pages/tools/seed-page.md", "archive/pages/projects/deep/peer.md", "README.md"},
     "archive/pages/projects/deep/peer.md": {raw, "pages/tools/seed-page.md", "archive/pages/tools/old.md"},
     "pages/tools/seed-page.md": {raw, "archive/pages/tools/old.md"},
     "archive/pages/tools/history.md": {"archive/pages/tools/old.md"},
@@ -2105,6 +2128,9 @@ for rel, targets in expected.items():
               for link in result.stdout.splitlines()}
     assert actual == targets, (rel, actual, targets)
     assert all((repo / target).is_file() for target in actual), (rel, actual)
+    if rel == "archive/pages/tools/old.md":
+        assert any(urlsplit(link).query == "x=1&y=2" and urlsplit(link).fragment == "part"
+                   for link in result.stdout.splitlines()), result.stdout
 text = (repo / "archive/pages/tools/old.md").read_text()
 assert '`[example](seed-page.md)`' in text
 assert '    [example](seed-page.md)\n    <a href=seed-page.md>example</a>\n    [example-ref]: seed-page.md' in text

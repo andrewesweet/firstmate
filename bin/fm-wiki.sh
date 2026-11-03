@@ -2309,6 +2309,7 @@ import re
 import subprocess
 import sys
 import uuid
+from html import escape, unescape
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 sys.path.insert(0, sys.argv[4])
@@ -2386,6 +2387,9 @@ GAP = r"[ \t]*(?:\n[ \t]*(?:>[ \t]*)*)*"
 TOKENS = re.compile(
     r"\]\(|\[(?:\\.|[^\[\]\\])+\]:|(?P<html>\b(?:href|src)" + GAP + r"=)",
     re.I)
+MARKDOWN_ESCAPES = re.compile(
+    r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])|"
+    r"&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
 
 def rewrite_links(text, old, new):
@@ -2424,7 +2428,7 @@ def rewrite_links(text, old, new):
         if start == end:
             continue
         marker = f"{prefix}{len(candidates)}.md"
-        candidates.append((start, end, angle, old.with_name(marker).as_uri()))
+        candidates.append((start, end, html, old.with_name(marker).as_uri()))
         pieces.extend((text[cursor:start], marker))
         cursor = end
     if not candidates:
@@ -2438,20 +2442,24 @@ def rewrite_links(text, old, new):
     rendered = set(dumped.stdout.splitlines())
     pieces = []
     cursor = 0
-    for start, end, angle, marker in candidates:
+    for start, end, html, marker in candidates:
         if marker not in rendered:
             continue
         value = text[start:end]
+        value = unescape(value) if html else MARKDOWN_ESCAPES.sub(
+            lambda match: match.group(1) if match.group(1) is not None else unescape(match.group()), value)
         url = urlsplit(value)
         if url.scheme or url.netloc or not url.path or url.path.startswith("/"):
             continue
-        target = (old.parent / unquote(re.sub(r"\\(.)", r"\1", url.path))).resolve()
+        target = (old.parent / unquote(url.path)).resolve()
         destination = moves.get(target, target)
         if old == new and destination == target:
             continue
         relative = os.path.relpath(destination, new.parent)
-        encoded = quote(relative, safe="/.-_~" + (" ()" if angle else ""))
-        replacement = urlunsplit(("", "", encoded, url.query, url.fragment))
+        encoded = quote(relative, safe="/.-_~")
+        query = quote(url.query, safe="!$&*+,-./:;=?@_%~")
+        fragment = quote(url.fragment, safe="!$&*+,-./:;=?@_%~")
+        replacement = escape(urlunsplit(("", "", encoded, query, fragment)), quote=True)
         pieces.extend((text[cursor:start], replacement))
         cursor = end
     return "".join(pieces) + text[cursor:]
