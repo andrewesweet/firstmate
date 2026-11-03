@@ -1421,8 +1421,9 @@ test_triage_calibration_table_labels_the_gardener_decision() {
     printf '\n## [2026-10-25] ingest | 2 lessons | %s; %s\n' "$alpha" "$beta" >> "$repo/log.md"
     if [ "$mode" = default ]; then
       printf '\ninvalid raw edit\n' >> "$repo/raw/2026/10/$alpha.md"
-      out=$(run_wiki "$home" publish --repo "$repo" --base "$base" 2>&1)
-      [ "$?" -ne 0 ] || fail "a raw edit must refuse publication"
+      if out=$(run_wiki "$home" publish --repo "$repo" --base "$base" 2>&1); then
+        fail "a raw edit must refuse publication"
+      fi
       assert_equals "$report" "$(cat "$(dirname "$plan")/report.md")" "refused publication leaves outcomes pending"
       wgit -C "$repo" restore -- "raw/2026/10/$alpha.md"
     fi
@@ -1592,7 +1593,7 @@ test_triage_preserves_offered_routes() {
   assert_equals 'new page' "$(plan_query "$plan" 'plan["lessons"][0]["jev"]["route"]["choice"]')" \
     "the declared new-page option survives into the plan"
   report=$(cat "$home/data/gardener/report.md")
-  assert_contains "$report" '| `new page` | (none yet) | - |' \
+  assert_contains "$report" "| \`new page\` | (none yet) | - |" \
     "a new-page hint has no filename agreement to measure"
   mv "$repo/pages/tools/firstmate.md" "$repo/pages/tools/firstmate guide.md"
   FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE='pages/tools/firstmate guide.md' \
@@ -1630,7 +1631,7 @@ test_triage_calibration_uses_body_citations() {
   FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_CHOICE=pages/tools/firstmate.md \
     run_wiki "$home" triage --repo "$repo" --plan "$home/data/body-citations/plan.json" >/dev/null 2>&1 || fail "reference citations must count"
   report=$(cat "$home/data/body-citations/report.md")
-  assert_contains "$report" '| `pages/tools/firstmate.md` | `pages/tools/firstmate.md` | yes |' \
+  assert_contains "$report" "| \`pages/tools/firstmate.md\` | \`pages/tools/firstmate.md\` | yes |" \
     "quoted reference links resolve through the same citation parser as lint"
   assert_contains "$report" '| 0.4 | 0.4 | yes |' "a resolved body citation proves the lesson was kept"
   pass "calibration distinguishes metadata and code from resolved body citations"
@@ -1674,9 +1675,10 @@ test_jev_does_not_send_secret_inputs() {
   assert_contains "$out" 'lint clean' "secret suppression does not alter the lint verdict"
   printf '\n[broken](missing.md)\n' >> "$repo/pages/tools/page-2.md"
   : > "$calls"
-  out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$calls" FM_FAKE_JEV_REQUEST_LOG="$calls.requests" \
-    run_wiki "$home" lint --repo "$repo" 2>&1)
-  [ "$?" -ne 0 ] || fail "deterministic link errors must still block lint"
+  if out=$(FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_LOG="$calls" FM_FAKE_JEV_REQUEST_LOG="$calls.requests" \
+    run_wiki "$home" lint --repo "$repo" 2>&1); then
+    fail "deterministic link errors must still block lint"
+  fi
   assert_equals '3' "$(wc -l < "$calls" | tr -d ' ')" "blocked lint also skips every unsafe pair"
   assert_not_contains "$(cat "$calls.requests")" "$token" "no outgoing contradiction request contains the credential"
   pass "all gardener advisories scan inputs without changing deterministic decisions"
