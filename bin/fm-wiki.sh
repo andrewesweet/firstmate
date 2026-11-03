@@ -133,11 +133,13 @@
 #                 the 150-line budget, atomically. Over budget still writes the
 #                 file but exits 1 so publish refuses to land it.
 #   publish [--repo <dir>] [--plan <path>] --base <sha>
-#                 Gardener only, the direct-push Definition of done: prune, lint,
-#                 then refuse any change under raw/ and any page commit made by
-#                 someone else after the run's base, then commit the compiled
-#                 pages, rebase and push with the same fetch-rebase-push loop (never
-#                 force) and landing proof as drain. The pruning policy is owned
+#                 Gardener only, the direct-push Definition of done: refuse raw
+#                 edits and foreign commits touching pages/, archive/, or root
+#                 Markdown after the run's base. Commit compiled edits locally,
+#                 fetch, guard, and rebase; then prune, lint, regenerate the index,
+#                 and commit the prepared tree before pushing. Repeat preparation
+#                 after each retry rebase, using the same fetch-rebase-push loop
+#                 (never force) and landing proof as drain. The pruning policy is owned
 #                 by assets/crew-wiki-AGENTS.md, "Pruning".
 #                 Refusals and push failures
 #                 exit 1 with a retryable message; only a proven landing exits 0.
@@ -306,7 +308,7 @@ wiki_now() {
 }
 
 # wiki_page_age_days <page>: whole days since the page's last-confirmed date,
-# empty when the header is missing or malformed. Lint advisories and pruning
+# empty when the header is missing or malformed. Lint advisories and coverage
 # share it.
 wiki_page_age_days() {
   local confirmed
@@ -2557,12 +2559,8 @@ wiki_publish_prepare() {
   wiki_publish_commit "$repo" "$base"
 }
 
-# wiki_publish: the gardener run's Definition of done. Lint, regenerate the
-# index, refuse any change under raw/ and any page commit made by someone else
-# after the run's base, then commit the compiled pages and push with the same
-# fetch-rebase-push loop (never force) and landing proof as drain. Refusals
-# and push failures exit 1 with a retryable message; only a proven landing
-# exits 0. Takes the drain's single-flight lock so a concurrent drain cannot
+# wiki_publish: the guarded gardener publication protocol in this script's
+# header. Takes the drain's single-flight lock so a concurrent drain cannot
 # interleave git operations on the shared clone. Never rebuilds the checkout:
 # a missing clone or a mismatched origin is refused, never destroyed.
 wiki_publish() {

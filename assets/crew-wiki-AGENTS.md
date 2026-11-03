@@ -42,7 +42,7 @@ Header provenance, bare paths, and code examples do not satisfy the body citatio
 Supersession cites the newer raw lesson and strikes the old claim; the old text stays readable under the strike.
 Raw files are never edited to fix a page: a correction is a new raw lesson compiled by a later run.
 A `used: <page> ok|stale|wrong` line in a raw lesson is a usage signal from a worker that consulted the page.
-`used: ... ok` advances `last-confirmed` to the lesson's date when newer.
+During publication, `used: ... ok` advances a live page's `last-confirmed` to the lesson's date when newer.
 `used: ... stale|wrong` flags the claim for the next gardener run.
 The signal names a live or archived page by its exact path under `pages/`, without that prefix or the `.md` suffix, such as `used: tools/no-mistakes-ci-timeouts ok`.
 Signals use the raw lesson's generated `date: YYYY-MM-DD` field; a missing or invalid date skips the signal.
