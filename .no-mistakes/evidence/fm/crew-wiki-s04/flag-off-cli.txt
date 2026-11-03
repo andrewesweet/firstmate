@@ -1,0 +1,45 @@
+$ BASE fm-wiki.sh close task-example
+wiki: lesson queued for task-example (final=done)
+[exit 0]
+
+$ TARGET fm-wiki.sh close task-example
+wiki: lesson queued for task-example (final=done)
+[exit 0]
+
+Flag-off capture: complete stamped raw bytes and CLI output match base exactly. SHA256=65e5f9de360323785ad6ece6856dc04655abbfdfa8330ede78942e70d57e489f
+---
+wiki: raw-lesson v1
+wiki-home: home-296d4f499b35
+wiki-host: validation
+wiki-task: task-example
+wiki-kind: ship
+wiki-harness: codex
+wiki-model: example
+wiki-project: project
+wiki-project-visibility: 
+wiki-final: done
+date: 2026-11-03
+---
+## Reuse bounded retries
+scope: tool:retry
+claim: Cap retries after transient failure.
+evidence: synthetic example
+
+
+$ BASE fm-wiki.sh index --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/baseline/repo
+wiki: index.md regenerated (1 page(s), 7 line(s))
+[exit 0]
+
+$ TARGET fm-wiki.sh index --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/baseline/repo
+wiki: index.md regenerated (1 page(s), 7 line(s))
+[exit 0]
+
+$ BASE fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/baseline/repo
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+$ TARGET fm-wiki.sh lint --repo ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/baseline/repo
+wiki: lint clean (1 page(s), 1 raw lesson(s) cited)
+[exit 0]
+
+Flag-off generated index bytes, index output and lint output match base exactly; no model record exists.

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -u
+export FM_ROOT_OVERRIDE="$PWD"
+export TMPDIR="$PWD/.live-validation/tmp"
+source <(sed '/^test_absent_config_keeps_gardener_verbs_silent$/,$d' tests/fm-wiki-gardener.test.sh)
+test_triage_writes_an_unannotated_plan_with_jev_off
+test_triage_annotates_route_duplicate_and_keep_hints
+test_triage_calibration_table_labels_the_gardener_decision
+test_triage_publishes_every_lesson_when_jev_is_unavailable
+test_lint_reports_capped_contradiction_candidates
+test_lint_makes_no_contradiction_call_with_jev_off
+test_triage_preserves_offered_routes
+test_triage_calibration_uses_body_citations
+test_jev_does_not_send_secret_inputs
+test_publish_keeps_jev_outside_its_budget_and_lock
+test_triage_uses_fixed_bounds
+source <(sed '/^test_absent_config_leaves_every_verb_a_silent_noop$/,$d' tests/fm-wiki.test.sh)
+test_close_records_the_privacy_advisory_without_holding
+test_close_publishes_unchanged_when_jev_is_unavailable
+test_close_makes_no_jev_call_when_the_home_switches_it_off

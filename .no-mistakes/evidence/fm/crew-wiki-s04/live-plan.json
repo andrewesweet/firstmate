@@ -1,0 +1,63 @@
+{
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T03:59:34Z",
+  "jev": {
+    "flag": "on",
+    "calls": 6,
+    "unavailable": 0
+  },
+  "lessons": [
+    {
+      "id": "20261102T000000Z-validation-alpha",
+      "path": "raw/2026/11/20261102T000000Z-validation-alpha.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after a transient connection failure.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": {
+        "route": {
+          "choice": "pages/tools/retry.md",
+          "probability": 1.0,
+          "confidence": 1.0
+        },
+        "duplicate": {
+          "page": "pages/tools/retry.md",
+          "probability": 0.97
+        },
+        "worth_keeping": {
+          "probability": 0.52
+        }
+      }
+    },
+    {
+      "id": "20261102T010000Z-validation-beta",
+      "path": "raw/2026/11/20261102T010000Z-validation-beta.md",
+      "scope": "tool:retry",
+      "claim": "Use a capped exponential retry delay for connection failures.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": {
+        "route": {
+          "choice": "pages/tools/retry.md",
+          "probability": 0.94,
+          "confidence": 0.91
+        },
+        "duplicate": {
+          "page": "pages/tools/retry.md",
+          "probability": 0.08
+        },
+        "worth_keeping": {
+          "probability": 0.64
+        }
+      }
+    }
+  ],
+  "pages": [
+    "pages/tools/opposite.md",
+    "pages/tools/retry.md"
+  ]
+}

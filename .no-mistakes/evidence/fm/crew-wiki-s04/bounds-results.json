@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Thirty pending lessons keep oldest-first order, stop at 25, cap candidates at eight and reject --limit",
+    "result": "pass",
+    "live": true,
+    "evidence": "bounds-cli.txt; bounded-off-plan.json",
+    "reason": ""
+  },
+  {
+    "name": "Twenty-one same-scope pages stop at 200 advisory pairs despite a larger obsolete override",
+    "result": "pass",
+    "live": true,
+    "evidence": "bounds-cli.txt; capped-jev.jsonl",
+    "reason": ""
+  }
+]

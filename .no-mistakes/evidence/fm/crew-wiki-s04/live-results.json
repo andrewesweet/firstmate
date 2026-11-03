@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Opted-in gardener receives real route, duplicate and worth-keeping answers without changing pending order",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Publishing fills kept/dropped and duplicate outcomes from body citations, records new-page agreement and retains the prior batch",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Unset flag and home jev=off disable advisories while ordinary triage and lint continue",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Real Jev identifies opposing same-scope pages as an advisory while deterministic lint succeeds",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Closing a synthetic private lesson records real privacy advice and still publishes identical lesson content",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Missing key and a refused connection leave a complete unannotated plan and do not block lint",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  },
+  {
+    "name": "Secret-bearing assembled inputs never reach Jev and remain in the deterministic pending batch",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli.txt",
+    "reason": ""
+  }
+]

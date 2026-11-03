@@ -1,0 +1,25 @@
+$ bin/fm-wiki.sh triage --repo $LAB/wiki
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/bounds/home/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/bounds/home/data/gardener/report.md (jev off)
+[exit 0]
+$ bin/fm-wiki.sh triage --repo $LAB/wiki --limit 100
+fm-wiki: unknown triage flag '--limit'
+
+usage:
+Crew wiki: capture secret-scanned lessons as immutable raw files in a private
+repository, then let the gardener compile, check, and publish cited pages.[exit 2]
+$ bin/fm-wiki.sh triage --repo $LAB/wiki --limit 100
+fm-wiki: unknown triage flag '--limit'
+
+usage:
+Crew wiki: capture secret-scanned lessons as immutable raw files in a private
+repository, then let the gardener compile, check, and publish cited pages.[exit 2]
+30 pending lessons produced the oldest 25 in order, each with 8 candidates; --limit 100 was rejected.
+$ bin/fm-wiki.sh triage --repo $LAB/wiki
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/bounds/home/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/bounds/home/data/gardener/report.md (jev off)
+[exit 0]
+Home opt-out ignored the configured real shim for all 25 pending lessons; no Jev records.
+$ bin/fm-wiki.sh lint --repo $LAB/wiki
+wiki lint advisory: jev contradiction candidates capped at 200 pairs this run
+wiki: lint clean (21 page(s), 1 raw lesson(s) cited)
+[exit 0]
+21 pages, 210 possible same-scope pairs; genuine shim recorded exactly 200 unavailable answers; lint stayed clean despite FM_WIKI_JEV_PAIRS_CAP=1000.

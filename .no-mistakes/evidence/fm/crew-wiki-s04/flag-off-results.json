@@ -1,0 +1,7 @@
+{
+  "name": "With Jev unset, captured raw bytes, generated index bytes and close/index/lint output match the base commit exactly",
+  "result": "pass",
+  "live": true,
+  "evidence": "flag-off-cli.txt",
+  "reason": ""
+}

@@ -1,0 +1,27 @@
+{
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T03:59:54Z",
+  "jev": {
+    "flag": "on",
+    "calls": 3,
+    "unavailable": 3
+  },
+  "lessons": [
+    {
+      "id": "20261103T020000Z-validation-pending",
+      "path": "raw/2026/11/20261103T020000Z-validation-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after a transient connection failure.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": null
+    }
+  ],
+  "pages": [
+    "pages/tools/lamport.md",
+    "pages/tools/opposite.md",
+    "pages/tools/retry.md"
+  ]
+}

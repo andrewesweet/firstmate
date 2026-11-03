@@ -1,0 +1,436 @@
+{
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T04:00:19Z",
+  "jev": {
+    "flag": "off",
+    "calls": 0,
+    "unavailable": 0
+  },
+  "lessons": [
+    {
+      "id": "20261102T000000Z-bound-pending",
+      "path": "raw/2026/11/20261102T000000Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000100Z-bound-pending",
+      "path": "raw/2026/11/20261102T000100Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000200Z-bound-pending",
+      "path": "raw/2026/11/20261102T000200Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000300Z-bound-pending",
+      "path": "raw/2026/11/20261102T000300Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000400Z-bound-pending",
+      "path": "raw/2026/11/20261102T000400Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000500Z-bound-pending",
+      "path": "raw/2026/11/20261102T000500Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000600Z-bound-pending",
+      "path": "raw/2026/11/20261102T000600Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000700Z-bound-pending",
+      "path": "raw/2026/11/20261102T000700Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000800Z-bound-pending",
+      "path": "raw/2026/11/20261102T000800Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T000900Z-bound-pending",
+      "path": "raw/2026/11/20261102T000900Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001000Z-bound-pending",
+      "path": "raw/2026/11/20261102T001000Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001100Z-bound-pending",
+      "path": "raw/2026/11/20261102T001100Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001200Z-bound-pending",
+      "path": "raw/2026/11/20261102T001200Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001300Z-bound-pending",
+      "path": "raw/2026/11/20261102T001300Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001400Z-bound-pending",
+      "path": "raw/2026/11/20261102T001400Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001500Z-bound-pending",
+      "path": "raw/2026/11/20261102T001500Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001600Z-bound-pending",
+      "path": "raw/2026/11/20261102T001600Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001700Z-bound-pending",
+      "path": "raw/2026/11/20261102T001700Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001800Z-bound-pending",
+      "path": "raw/2026/11/20261102T001800Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T001900Z-bound-pending",
+      "path": "raw/2026/11/20261102T001900Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T002000Z-bound-pending",
+      "path": "raw/2026/11/20261102T002000Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T002100Z-bound-pending",
+      "path": "raw/2026/11/20261102T002100Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T002200Z-bound-pending",
+      "path": "raw/2026/11/20261102T002200Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T002300Z-bound-pending",
+      "path": "raw/2026/11/20261102T002300Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    },
+    {
+      "id": "20261102T002400Z-bound-pending",
+      "path": "raw/2026/11/20261102T002400Z-bound-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after transient failure.",
+      "candidates": [
+        "pages/tools/retry-00.md",
+        "pages/tools/retry-01.md",
+        "pages/tools/retry-02.md",
+        "pages/tools/retry-03.md",
+        "pages/tools/retry-04.md",
+        "pages/tools/retry-05.md",
+        "pages/tools/retry-06.md",
+        "pages/tools/retry-07.md"
+      ],
+      "jev": null
+    }
+  ]
+}

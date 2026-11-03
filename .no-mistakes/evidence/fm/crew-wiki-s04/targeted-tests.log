@@ -1,0 +1,14 @@
+ok - triage writes a complete unannotated plan with Jev off
+ok - triage annotates route, duplicate, and worth-keeping answers behind the flag
+ok - published batches fill calibration outcomes and retain history for default and custom plans
+ok - an unavailable or erroring Jev changes nothing about the plan
+ok - contradiction candidates use a fixed 200-pair cap
+ok - a flag-off lint makes no Jev call or Jev output
+ok - triage retains new-page and spaced-filename choices
+ok - calibration distinguishes metadata and code from resolved body citations
+ok - all gardener advisories scan inputs without changing deterministic decisions
+ok - slow Jev calls consume neither publication budget nor exclusive lock
+ok - triage fixes batches at 25 lessons and candidates at eight
+ok - the close privacy advisory records and annotates without holding
+ok - an unavailable or erroring advisory changes nothing about publication
+ok - config/wiki jev=off is this home's Jev kill-switch

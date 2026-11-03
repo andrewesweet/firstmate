@@ -1,0 +1,340 @@
+
+SCENARIO: Opted-in gardener receives real route, duplicate and worth-keeping answers without changing pending order
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/repo
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/gardener/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/gardener/data/gardener/report.md (jev 6 call(s), 0 unavailable)
+[exit 0]
+Plan: {
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T03:59:34Z",
+  "jev": {
+    "flag": "on",
+    "calls": 6,
+    "unavailable": 0
+  },
+  "lessons": [
+    {
+      "id": "20261102T000000Z-validation-alpha",
+      "path": "raw/2026/11/20261102T000000Z-validation-alpha.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after a transient connection failure.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": {
+        "route": {
+          "choice": "pages/tools/retry.md",
+          "probability": 1.0,
+          "confidence": 1.0
+        },
+        "duplicate": {
+          "page": "pages/tools/retry.md",
+          "probability": 0.97
+        },
+        "worth_keeping": {
+          "probability": 0.52
+        }
+      }
+    },
+    {
+      "id": "20261102T010000Z-validation-beta",
+      "path": "raw/2026/11/20261102T010000Z-validation-beta.md",
+      "scope": "tool:retry",
+      "claim": "Use a capped exponential retry delay for connection failures.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": {
+        "route": {
+          "choice": "pages/tools/retry.md",
+          "probability": 0.94,
+          "confidence": 0.91
+        },
+        "duplicate": {
+          "page": "pages/tools/retry.md",
+          "probability": 0.08
+        },
+        "worth_keeping": {
+          "probability": 0.64
+        }
+      }
+    }
+  ],
+  "pages": [
+    "pages/tools/opposite.md",
+    "pages/tools/retry.md"
+  ]
+}
+Recorded model answers: [
+  {
+    "choice": "pages/tools/retry.md",
+    "confidence": 1.0,
+    "detail": "",
+    "input_tokens": 505,
+    "key": "20261102T000000Z-validation-alpha",
+    "latency_ms": 393,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 1.0,
+    "ts": "2026-11-03T03:59:23Z",
+    "verb": "route"
+  },
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "pages/tools/retry.md",
+    "input_tokens": 537,
+    "key": "20261102T000000Z-validation-alpha",
+    "latency_ms": 469,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.97,
+    "ts": "2026-11-03T03:59:25Z",
+    "verb": "duplicate"
+  },
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "",
+    "input_tokens": 415,
+    "key": "20261102T000000Z-validation-alpha",
+    "latency_ms": 548,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.52,
+    "ts": "2026-11-03T03:59:26Z",
+    "verb": "worth_keeping"
+  },
+  {
+    "choice": "pages/tools/retry.md",
+    "confidence": 0.91,
+    "detail": "",
+    "input_tokens": 507,
+    "key": "20261102T010000Z-validation-beta",
+    "latency_ms": 491,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.94,
+    "ts": "2026-11-03T03:59:30Z",
+    "verb": "route"
+  },
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "pages/tools/retry.md",
+    "input_tokens": 539,
+    "key": "20261102T010000Z-validation-beta",
+    "latency_ms": 460,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.08,
+    "ts": "2026-11-03T03:59:32Z",
+    "verb": "duplicate"
+  },
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "",
+    "input_tokens": 417,
+    "key": "20261102T010000Z-validation-beta",
+    "latency_ms": 432,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.64,
+    "ts": "2026-11-03T03:59:33Z",
+    "verb": "worth_keeping"
+  }
+]
+RESULT: pass
+
+SCENARIO: Publishing fills kept/dropped and duplicate outcomes from body citations, records new-page agreement and retains the prior batch
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh publish --repo $LAB/repo --base 5a6063872bf98fe30946fef87794830aad78f50c
+wiki lint advisory: orphan page not linked from index.md: pages/tools/opposite.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/retry.md
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: publish refused: the run changed files under raw/; raw lessons are add-only
+[exit 1]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh publish --repo $LAB/repo --base 5a6063872bf98fe30946fef87794830aad78f50c
+wiki: index.md regenerated (2 page(s), 8 line(s))
+wiki: published 68df786
+[exit 0]
+# Gardener report: Jev calibration
+
+Generated 2026-11-03T03:59:34Z by `bin/fm-wiki.sh triage` over 2 pending raw lesson(s).
+Jev: on (6 call(s), 0 unavailable).
+
+Advisory only: nothing in this table held, dropped, or reordered a lesson.
+Thresholds are set from these labels after two gardener runs (report 4.7).
+
+| Lesson | Jev route | Gardener page | Route agrees | Jev duplicate p | Jev keep p | Gardener kept | Jev duplicate page | Gardener duplicate merged |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `20261102T000000Z-validation-alpha` | `pages/tools/retry.md` | `pages/tools/retry.md` | yes | 0.97 | 0.52 | yes | `pages/tools/retry.md` | yes |
+| `20261102T010000Z-validation-beta` | `pages/tools/retry.md` | (none) | no | 0.08 | 0.64 | no | `pages/tools/retry.md` | no |
+
+file:// remote landing proved at 68df78621dc2c9dcf817780617b6cf7fcb5f7b1b
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/repo
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/gardener/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/gardener/data/gardener/report.md (jev 2 call(s), 0 unavailable)
+[exit 0]
+Next batch: {
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T03:59:40Z",
+  "jev": {
+    "flag": "on",
+    "calls": 2,
+    "unavailable": 0
+  },
+  "lessons": [
+    {
+      "id": "20261103T000000Z-validation-gamma",
+      "path": "raw/2026/11/20261103T000000Z-validation-gamma.md",
+      "scope": "algorithm:lamport",
+      "claim": "Lamport clocks advance monotonically across causal events.",
+      "candidates": [],
+      "jev": {
+        "route": {
+          "choice": "new page",
+          "probability": 1.0,
+          "confidence": 1.0
+        },
+        "worth_keeping": {
+          "probability": 0.36
+        }
+      }
+    }
+  ],
+  "pages": [
+    "pages/tools/opposite.md",
+    "pages/tools/retry.md"
+  ]
+}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh publish --repo $LAB/repo --base e39ee721ab66bde43f8e574806348b9ffb3a4f72
+wiki lint advisory: orphan page not linked from index.md: pages/tools/lamport.md
+wiki: index.md regenerated (3 page(s), 9 line(s))
+wiki: published 0782934
+[exit 0]
+# Gardener report: Jev calibration
+
+Generated 2026-11-03T03:59:40Z by `bin/fm-wiki.sh triage` over 1 pending raw lesson(s).
+Jev: on (2 call(s), 0 unavailable).
+
+Advisory only: nothing in this table held, dropped, or reordered a lesson.
+Thresholds are set from these labels after two gardener runs (report 4.7).
+
+| Lesson | Jev route | Gardener page | Route agrees | Jev duplicate p | Jev keep p | Gardener kept | Jev duplicate page | Gardener duplicate merged |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `20261102T000000Z-validation-alpha` | `pages/tools/retry.md` | `pages/tools/retry.md` | yes | 0.97 | 0.52 | yes | `pages/tools/retry.md` | yes |
+| `20261102T010000Z-validation-beta` | `pages/tools/retry.md` | (none) | no | 0.08 | 0.64 | no | `pages/tools/retry.md` | no |
+| `20261103T000000Z-validation-gamma` | `new page` | `pages/tools/lamport.md` | yes | - | 0.36 | yes | - | - |
+
+RESULT: pass
+
+SCENARIO: Unset flag and home jev=off disable advisories while ordinary triage and lint continue
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/repo
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/off/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/off/data/gardener/report.md (jev off)
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/repo
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/off/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/off/data/gardener/report.md (jev off)
+[exit 0]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh lint --repo $LAB/repo
+wiki: lint clean (3 page(s), 3 raw lesson(s) cited)
+[exit 0]
+Unset flag and jev=off produced no advisory records; ordinary lint remained clean.
+RESULT: pass
+
+SCENARIO: Real Jev identifies opposing same-scope pages as an advisory while deterministic lint succeeds
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh lint --repo $LAB/repo
+wiki lint advisory: jev contradiction candidate p=0.96: pages/tools/opposite.md vs pages/tools/retry.md
+wiki: lint clean (3 page(s), 3 raw lesson(s) cited)
+[exit 0]
+Contradiction record: [
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "pages/tools/retry.md",
+    "input_tokens": 696,
+    "key": "pages/tools/opposite.md",
+    "latency_ms": 410,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.96,
+    "ts": "2026-11-03T03:59:47Z",
+    "verb": "contradicts"
+  }
+]
+RESULT: pass
+
+SCENARIO: Closing a synthetic private lesson records real privacy advice and still publishes identical lesson content
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh close privacy-example
+wiki: jev privacy advisory p=0.96 for 20261103T035947Z-validation-capture-c4733f22c110-privacy-example-d5a4.md - advisory only, published unchanged; nothing is held until the thresholds are set
+wiki: lesson queued for privacy-example (final=done)
+[exit 0]
+Privacy answer: [
+  {
+    "choice": null,
+    "confidence": null,
+    "detail": "",
+    "input_tokens": 499,
+    "key": "20261103T035947Z-validation-capture-c4733f22c110-privacy-example-d5a4",
+    "latency_ms": 416,
+    "model": "jev-1.14.0",
+    "ok": true,
+    "probability": 0.96,
+    "ts": "2026-11-03T03:59:49Z",
+    "verb": "privacy"
+  }
+]
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh drain
+wiki: pushed 1 lesson(s)
+wiki: mirror refreshed
+[exit 0]
+Privacy advisory p=0.96; captured lesson published unchanged to isolated file:// remote at raw/2026/11/20261103T035947Z-validation-capture-c4733f22c110-privacy-example-d5a4.md
+RESULT: pass
+
+SCENARIO: Missing key and a refused connection leave a complete unannotated plan and do not block lint
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/unavailable-repo
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/unavailable/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/unavailable/data/gardener/report.md (jev 3 call(s), 3 unavailable)
+[exit 0]
+Unavailable plan: {
+  "wiki": "gardener-plan v1",
+  "generated": "2026-11-03T03:59:54Z",
+  "jev": {
+    "flag": "on",
+    "calls": 3,
+    "unavailable": 3
+  },
+  "lessons": [
+    {
+      "id": "20261103T020000Z-validation-pending",
+      "path": "raw/2026/11/20261103T020000Z-validation-pending.md",
+      "scope": "tool:retry",
+      "claim": "Retry reads after a transient connection failure.",
+      "candidates": [
+        "pages/tools/opposite.md",
+        "pages/tools/retry.md"
+      ],
+      "jev": null
+    }
+  ],
+  "pages": [
+    "pages/tools/lamport.md",
+    "pages/tools/opposite.md",
+    "pages/tools/retry.md"
+  ]
+}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh lint --repo $LAB/unavailable-repo
+wiki: lint clean (3 page(s), 3 raw lesson(s) cited)
+[exit 0]
+Real shim key absence and connection refusal left planning and deterministic lint operational.
+RESULT: pass
+
+SCENARIO: Secret-bearing assembled inputs never reach Jev and remain in the deterministic pending batch
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh triage --repo $LAB/unsafe
+wiki: triage wrote ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/secret-guard/data/gardener/plan.json and ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/.live-validation/manual/secret-guard/data/gardener/report.md (jev 0 call(s), 0 unavailable)
+[exit 0]
+Unsafe batch: {"calls": 0, "lesson_count": 1, "annotated": false}
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6FN5J98JQ4133ZM3GFVC7WX/bin/fm-wiki.sh lint --repo $LAB/unsafe
+wiki: lint clean (3 page(s), 3 raw lesson(s) cited)
+[exit 0]
+Assembled secret-bearing lessons, summaries and contradiction pages skipped every advisory request; pending lesson retained.
+RESULT: pass
