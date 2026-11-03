@@ -1901,7 +1901,7 @@ test_publish_rechecks_pruning_after_remote_usage() {
       old_day=$(wiki_day_before "$FM_WIKI_NOW" 121)
       wiki_page "$seed/pages/tools/used.md" 'a concurrently used page' "$old_day"
       wiki_page "$seed/pages/tools/unused.md" 'an unused page' "$old_day"
-      printf '\n[used](used.md)\n' >> "$seed/pages/tools/seed-page.md"
+      printf '\n[used](used.md)\n<a href=used.md>used</a>\n' >> "$seed/pages/tools/seed-page.md"
       mkdir -p "$seed/archive/pages/tools"
       cp "$seed/pages/tools/unused.md" "$seed/archive/pages/tools/history.md"
       wgit -C "$seed" add -A
@@ -1981,17 +1981,30 @@ test_publish_preserves_archive_link_destinations() {
 
 ![image](../../README.md)
 <a href="../../README.md">README</a>
+<a href=seed-page.md>seed</a>
+<img src=../../README.md>
+
+- links in a list
+    - [seed](seed-page.md)
 
 `[example](seed-page.md)`
+
+    [example](seed-page.md)
+    <a href=seed-page.md>example</a>
+    [example-ref]: seed-page.md
+
+	[tab example](seed-page.md)
+
+Set href=seed-page.md as an example.
 
 ~~~markdown
 [example](seed-page.md)
 ~~~
 EOF
   printf '\n[seed](../../tools/seed-page.md)\n[old](../../tools/old.md)\n' >> "$seed/pages/projects/deep/peer.md"
-  printf '\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n' >> "$seed/pages/tools/seed-page.md"
-  printf '\n<a href="pages/tools/old.md">old</a>\n' >> "$seed/README.md"
-  printf '[old](../../../pages/tools/old.md)\n' > "$seed/archive/pages/tools/history.md"
+  printf '\n<a href=old.md>old</a>\n<img src=old.md>\n[old][old-ref]\n\n[old-ref]: <old.md#old> "old page"\n' >> "$seed/pages/tools/seed-page.md"
+  printf '\n<a href=pages/tools/old.md>old</a>\n\n    <a href=pages/tools/old.md>example</a>\n' >> "$seed/README.md"
+  printf '[old](../../../pages/tools/old.md)\n<a href=../../../pages/tools/old.md>old</a>\n' > "$seed/archive/pages/tools/history.md"
   wgit -C "$seed" add -A
   wgit -C "$seed" commit -q -m 'wiki: linked pages ready to archive'
   wgit -C "$seed" push -q origin main || fail 'link fixture push failed'
@@ -2024,6 +2037,10 @@ for rel, targets in expected.items():
     assert all((repo / target).is_file() for target in actual), (rel, actual)
 text = (repo / "archive/pages/tools/old.md").read_text()
 assert '`[example](seed-page.md)`' in text
+assert '    [example](seed-page.md)\n    <a href=seed-page.md>example</a>\n    [example-ref]: seed-page.md' in text
+assert '\t[tab example](seed-page.md)' in text
+assert 'Set href=seed-page.md as an example.' in text
+assert '    <a href=pages/tools/old.md>example</a>' in (repo / "README.md").read_text()
 assert '~~~markdown\n[example](seed-page.md)\n~~~' in text
 assert '?view=full#peer' in text
 assert '"a source title"' in text
@@ -2032,6 +2049,45 @@ PYLINKS
   assert_contains "$out" 'nothing to publish' 'repeating pruning preserves rewritten links'
   assert_equals '' "$(wgit -C "$repo" status --porcelain)" 'link corrections land in the publication'
   pass 'archiving preserves citations, incoming links, peer links, images, HTML, and code examples'
+}
+
+
+test_gardener_coverage_done_remains_terminal() {
+  local bare garden_home repo brief coverage line current out head
+  bare=$(wiki_bare coverage-done)
+  seed_checkout "$bare" "$TMP_ROOT/coverage-done-seed" >/dev/null
+  garden_home=$(gardener_home_with_repo coverage-done "$bare")
+  repo="$garden_home/state/wiki/repo"
+  add_raw "$repo" 20200101T000000Z pending >/dev/null
+  wgit -C "$repo" add -A
+  wgit -C "$repo" commit -q -m 'wiki: pending lesson'
+  head=$(wgit -C "$repo" rev-parse HEAD)
+  brief="$garden_home/data/garden-done-brief.md"
+  FM_HOME="$garden_home" bash -c '. "$1/bin/fm-dod-lib.sh"; fm_dod_block direct-push garden-done fm/garden-done none' _ "$ROOT" > "$brief" \
+    || fail 'cannot render the gardener delivery instructions'
+  coverage=$(run_wiki "$garden_home" coverage) || fail 'cannot measure gardener coverage'
+  line=$(python3 - "$brief" "$head" "$coverage" <<'PYDONE'
+import pathlib
+import re
+import sys
+
+prompt = pathlib.Path(sys.argv[1]).read_text()
+templates = re.findall(r"`(done \[at=<epoch>\]:[^`]+)`", prompt)
+assert len(templates) == 1, templates
+print(templates[0].replace("<epoch>", "2").replace("{commit}", sys.argv[2]).replace("{coverage line}", sys.argv[3]))
+PYDONE
+) || fail 'the generated completion template must name one status record'
+  assert_contains "$line" "$coverage" 'the emitted done template keeps coverage inside its note'
+  assert_equals 1 "$(printf '%s\n' "$line" | wc -l | tr -d ' ')" 'completion uses one physical status line'
+  printf 'kind=ship\nproject=%s/crew-wiki\n' "$TMP_ROOT" > "$garden_home/state/garden-done.meta"
+  printf 'working [at=1]: gardening\n%s\n' "$line" > "$garden_home/state/garden-done.status"
+  current=$(bash -c '. "$1/bin/fm-classify-lib.sh"; status_line_verb "$(status_current_line "$2" ship)"' _ "$ROOT" "$garden_home/state/garden-done.status")
+  assert_equals done "$current" 'the real status classifier retains the terminal event'
+  out=$(run_wiki "$garden_home" due 2>&1) || fail "a completed gardener must release pending work: $out"
+  assert_contains "$out" 'gardener due' 'coverage does not leave the completed gardener open'
+  out=$(FM_WIKI_CLOSE_DRAIN=0 run_wiki "$garden_home" close garden-done 2>&1) || fail "completion capture failed: $out"
+  assert_contains "$out" 'final=done' 'lesson capture records completion rather than wiki'
+  pass 'generated gardener completion includes coverage without changing terminal classification or scheduling'
 }
 
 test_absent_config_keeps_gardener_verbs_silent
@@ -2094,3 +2150,5 @@ test_coverage_reports_pages_lessons_and_the_archive
 
 test_publish_rechecks_pruning_after_remote_usage
 test_publish_preserves_archive_link_destinations
+
+test_gardener_coverage_done_remains_terminal

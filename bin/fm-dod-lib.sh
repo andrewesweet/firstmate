@@ -1048,7 +1048,7 @@ Run \`$wiki_command lint --repo "\$PWD"\` until it reports clean and \`$wiki_com
 Then run \`$wiki_command publish --repo "\$PWD" --base "\$BASE"\`: on a foreign-commit refusal, re-read the new \`origin/main\`, recompile what is still uncompiled, and publish again.
 Publish also prunes: a \`used: <page> ok\` lesson refreshes that page's \`last-confirmed\` to the lesson's date, and a page confirmed 120 or more days ago that no lesson's \`used:\` line names moves to \`archive/pages/\` in the same commit.
 Then run \`$wiki_command coverage --repo "\$PWD"\` for the run's coverage line.
-When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}\` followed by the coverage line and stop, with the commit publish printed.
+When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}; {coverage line}\` on one line and stop, with the commit publish printed.
 Commit nothing after publishing.
 Do NOT run /no-mistakes. The configured merge authority decided this standing posture; firstmate relays the outcome.
 EOF

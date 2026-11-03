@@ -2324,6 +2324,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import uuid
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 repo = pathlib.Path(sys.argv[1]).resolve()
@@ -2423,44 +2424,61 @@ for path in sorted(set((repo / "pages").rglob("*.md")) | set(moves)):
 
 
 TOKENS = re.compile(
-    r"(?P<fence>^[ \t>]*(?P<mark>`{3,}|~{3,})[^\n]*\n.*?^[ \t>]*(?P=mark)[`~]*[ \t]*$)"
-    r"|(?P<code>(?P<tick>`+).*?(?P=tick))"
-    r"|(?P<link>\]\(\s*|^[ \t>]*\[[^\]\n]+\]:\s*|\b(?:href|src)\s*=\s*[\"'])",
-    re.M | re.S | re.I)
+    r"\]\(\s*|^[ \t>]*\[[^\]\n]+\]:\s*|(?P<html>\b(?:href|src)\s*=\s*)",
+    re.M | re.I)
 
 
 def rewrite_links(text, old, new):
+    candidates = []
     pieces = []
     cursor = 0
+    prefix = "fm-wiki-" + uuid.uuid4().hex + "-"
     for match in TOKENS.finditer(text):
-        if match.start() < cursor or not match.group("link"):
+        if match.start() < cursor:
             continue
         start = end = match.end()
-        angle = text[start:start + 1] == "<"
-        html_quote = match.group("link")[-1] if match.group("link")[-1] in "\"'" else None
-        if html_quote:
-            end = text.find(html_quote, start)
-            if end < 0:
-                continue
-        elif angle:
+        html = match.group("html") is not None
+        html_quote = text[start:start + 1] if html and text[start:start + 1] in ("\"", "'") else None
+        angle = not html and text[start:start + 1] == "<"
+        if html_quote or angle:
             start += 1
-            end = text.find(">", start)
+            end = text.find(html_quote or ">", start)
             if end < 0:
                 continue
         else:
             depth = 0
             while end < len(text):
                 char = text[end]
-                if char == "\\" and end + 1 < len(text):
+                if not html and char == "\\" and end + 1 < len(text):
                     end += 2
                     continue
-                if char.isspace() or char == "<" or (char == ")" and depth == 0):
+                if char.isspace() or char == "<" or (html and char in "\"'`=>") or (not html and char == ")" and depth == 0):
                     break
                 if char == "(":
                     depth += 1
                 elif char == ")":
                     depth -= 1
                 end += 1
+        if start == end:
+            continue
+        marker = f"{prefix}{len(candidates)}.md"
+        candidates.append((start, end, angle, old.with_name(marker).as_uri()))
+        pieces.extend((text[cursor:start], marker))
+        cursor = end
+    if not candidates:
+        return text
+    probe = "".join(pieces) + text[cursor:]
+    dumped = subprocess.run(
+        ["lychee", "--config", "/dev/null", "--dump", "--offline", "--scheme", "file",
+         "--no-progress", "--cache=false", "--include-verbatim=false", "--threads", "1",
+         "--default-extension", "md", "--base-url", old.as_uri(), "--", "-"],
+        input=probe, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    rendered = set(dumped.stdout.splitlines())
+    pieces = []
+    cursor = 0
+    for start, end, angle, marker in candidates:
+        if marker not in rendered:
+            continue
         value = text[start:end]
         url = urlsplit(value)
         if url.scheme or url.netloc or not url.path or url.path.startswith("/"):
