@@ -1,0 +1,18 @@
+Targeted real-product scenario: test_coverage_reports_pages_lessons_and_the_archive
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.y6nZlS/coverage bin/fm-wiki.sh coverage
+wiki: coverage pages=2 raw=3 pending=2 archived=1 usage-signals=12 usage-by-page={"tools/seed-page":11,"tools/unconfirmed-page":1} stale-signals=2 unconfirmed90=1
+[exit=0]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.y6nZlS/coverage bin/fm-wiki.sh lint
+wiki lint advisory: orphan page not linked from index.md: pages/tools/seed-page.md
+wiki lint advisory: orphan page not linked from index.md: pages/tools/unconfirmed-page.md
+wiki lint advisory: usage signal needs the gardener: used: tools/seed-page stale
+wiki lint advisory: usage signal needs the gardener: used: tools/unconfirmed-page wrong
+wiki lint advisory: page unconfirmed for 90 days: pages/tools/unconfirmed-page.md
+wiki: lint clean (2 page(s), 1 raw lesson(s) cited)
+[exit=0]
+ok - coverage reports one line and shares the freshness clock with lint

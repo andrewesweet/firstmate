@@ -1,0 +1,17 @@
+Targeted real-product scenario: test_gardener_coverage_done_remains_terminal
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.2FcIDR/coverage-done bin/fm-wiki.sh coverage
+wiki: coverage pages=1 raw=2 pending=1 archived=0 usage-signals=0 usage-by-page={} stale-signals=0 unconfirmed90=0
+[exit=0]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.2FcIDR/coverage-done bin/fm-wiki.sh due
+wiki: gardener due (1 uncompiled raw lesson(s), oldest 2020-01-01)
+[exit=0]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.2FcIDR/coverage-done bin/fm-wiki.sh close garden-done
+wiki: no-lessons recorded for garden-done (final=done)
+[exit=0]
+ok - generated gardener completion includes coverage without changing terminal classification or scheduling

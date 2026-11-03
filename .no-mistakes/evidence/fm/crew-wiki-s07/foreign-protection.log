@@ -1,0 +1,9 @@
+Targeted real-product scenario: test_publish_refuses_a_foreign_page_commit
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.BVPtqe/publishforeign bin/fm-wiki.sh publish --base e534c2ff2017402eda2aa8962a3be0fcc92b79eb
+wiki: publish refused: a foreign page commit landed after the base (37b8e263889d); re-run the gardener onto the new main and publish again
+[exit=1]
+ok - publish refuses a foreign page commit

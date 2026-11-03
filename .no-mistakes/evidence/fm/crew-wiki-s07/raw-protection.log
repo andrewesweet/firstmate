@@ -1,0 +1,13 @@
+Targeted real-product scenario: test_publish_refuses_a_raw_edit
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.HGmizO/publishraw bin/fm-wiki.sh publish --base dc5ffda9c7eff80a917c1c981acb0628ba8613f9
+wiki: publish refused: the run changed files under raw/; raw lessons are add-only
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.HGmizO/publishraw bin/fm-wiki.sh publish --base dc5ffda9c7eff80a917c1c981acb0628ba8613f9
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+[exit=1]
+ok - publish refuses a raw edit

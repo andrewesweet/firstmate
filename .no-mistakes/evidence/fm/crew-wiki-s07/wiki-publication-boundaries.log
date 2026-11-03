@@ -1,0 +1,60 @@
+===== raw-protection =====
+Targeted real-product scenario: test_publish_refuses_a_raw_edit
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.HGmizO/publishraw bin/fm-wiki.sh publish --base dc5ffda9c7eff80a917c1c981acb0628ba8613f9
+wiki: publish refused: the run changed files under raw/; raw lessons are add-only
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.HGmizO/publishraw bin/fm-wiki.sh publish --base dc5ffda9c7eff80a917c1c981acb0628ba8613f9
+wiki: publish refused: run-owned commits changed files under raw/; raw lessons are add-only
+[exit=1]
+ok - publish refuses a raw edit
+
+===== foreign-protection =====
+Targeted real-product scenario: test_publish_refuses_a_foreign_page_commit
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.BVPtqe/publishforeign bin/fm-wiki.sh publish --base e534c2ff2017402eda2aa8962a3be0fcc92b79eb
+wiki: publish refused: a foreign page commit landed after the base (37b8e263889d); re-run the gardener onto the new main and publish again
+[exit=1]
+ok - publish refuses a foreign page commit
+
+===== role-boundary =====
+Targeted real-product scenario: test_non_gardener_roles_cannot_run_the_gardener_verbs
+Clock: 2026-11-02 UTC (supported FM_WIKI_NOW)
+Real executables: bin/fm-wiki.sh, git, lychee 0.24.2
+Isolated local file:// remotes and FM_HOME directories.
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/contrib bin/fm-wiki.sh due
+
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/contrib bin/fm-wiki.sh lint --base HEAD
+fm-wiki: lint is gardener-only (config/wiki role=contributor)
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/contrib bin/fm-wiki.sh index --base HEAD
+fm-wiki: index is gardener-only (config/wiki role=contributor)
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/contrib bin/fm-wiki.sh publish --base HEAD
+fm-wiki: publish is gardener-only (config/wiki role=contributor)
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/contrib bin/fm-wiki.sh coverage --base HEAD
+fm-wiki: coverage is gardener-only (config/wiki role=contributor)
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/reader bin/fm-wiki.sh due
+
+[exit=1]
+
+$ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6FN2HH7F97G8FQDP2RM91A0/.live-wiki-test/tmp/fm-wiki-gardener.l7U3nr/reader bin/fm-wiki.sh publish --base HEAD
+
+[exit=0]
+ok - only the gardener role runs the gardener verbs

@@ -1,0 +1,85 @@
+{
+  "target": "5a2092d3169327b5ecab78abb70294d6608abc6d",
+  "suite": "tests/fm-wiki-gardener.test.sh",
+  "method": "Loaded suite definitions into disposable driver; invoked only listed selectors. Wrapper recorded real fm-wiki.sh output and published Git state without replacing product operations. Local file:// remotes, isolated FM_HOME and HOME under worktree, fixed supported clock 2026-11-02 UTC.",
+  "results": [
+    {
+      "label": "confirmation",
+      "selector": "test_publish_refreshes_last_confirmed_from_usage_signals",
+      "exit": 0
+    },
+    {
+      "label": "archiving",
+      "selector": "test_publish_archives_pages_unconfirmed_for_120_days",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "inactivity-boundary",
+      "selector": "test_publish_ages_all_usage_verdicts_and_confirmation_dates",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "coverage",
+      "selector": "test_coverage_reports_pages_lessons_and_the_archive",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "usage-schema",
+      "selector": "test_usage_consumers_require_canonical_keys_and_generated_dates",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "archive-links",
+      "selector": "test_publish_preserves_archive_link_destinations",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "concurrent-usage",
+      "selector": "test_publish_rechecks_pruning_after_remote_usage",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "private-notes",
+      "selector": "test_publish_preserves_untracked_notes_with_and_without_moves",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "empty-wiki",
+      "selector": "test_publish_and_lint_allow_zero_live_pages",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "gardener-report",
+      "selector": "test_gardener_coverage_done_remains_terminal",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "raw-protection",
+      "selector": "test_publish_refuses_a_raw_edit",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "foreign-protection",
+      "selector": "test_publish_refuses_a_foreign_page_commit",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "label": "role-boundary",
+      "selector": "test_non_gardener_roles_cannot_run_the_gardener_verbs",
+      "exit": 0,
+      "output": ""
+    }
+  ],
+  "additional_evidence": "Archive-link selector repeated to capture lychee-rendered destinations and published Markdown. Role-boundary selector repeated after removing irrelevant snapshot attempts against missing fixture repos."
+}
