@@ -1179,7 +1179,7 @@ The file's keys, one `key=value` per line:
 - `remote=` - the wiki repository's Git URL; required for publication and mirror refresh, but local capture works without it.
 - `role=` - `gardener` or `contributor` contribute worker and supervision lessons; `reader` consults only; `off`, an omitted role, or an unrecognized role disables the feature.
 - `host=` - optional name for the raw file's `wiki-host:` stamp; defaults to this machine's hostname, sanitized for filenames.
-- `jev=` - accepted but unused; it has no effect.
+- `jev=` - `off` disables the Jev advisories for this home even when `FM_WIKI_JEV` is set; `on`, an empty value, or an unrecognized one leaves the environment flag in charge.
 
 Briefs and cleanup follow the configured role:
 
@@ -1227,7 +1227,7 @@ The wiki repository is captain-configured and captain-owned; firstmate pushes on
 ## The gardener compiles pages
 
 One gardener task at a time compiles raw lessons into pages, in the home whose `config/wiki` names `role=gardener`.
-Gardener lint and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
+Gardener triage, lint, and publication require [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2) on `PATH`; install the official release binary for the host and verify its accompanying SHA-256 checksum.
 Checks use lychee offline for local Markdown links only; external links never trigger network requests.
 The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
 After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
@@ -1246,6 +1246,24 @@ Do not arm this condition in any real home until the crew-wiki project is provis
 
 The wiki repository's own schema lives in [`assets/crew-wiki-AGENTS.md`](../assets/crew-wiki-AGENTS.md) and is seeded into the repository as `AGENTS.md` (with `CLAUDE.md` symlinked to it) when the repository is created.
 It owns the page taxonomy, header fields, citation rule, index rules, budgets, the add-only `raw/` contract, and the gardener's run steps.
+
+## Crew-wiki Jev advisories (FM_WIKI_JEV)
+
+The crew wiki can ask the fleet's Jev model for optional second opinions; the model itself and the key discipline live in "Jev self-check record" and the shim's own header.
+The whole surface is opt-in per process: `FM_WIKI_JEV` names the executable TypeSafe shim (normally `bin/fm-branch-shadow-jev.sh`, the repository's single call shim, which owns the endpoint and the key).
+The [`config/wiki` schema](#crew-wiki-configwiki) owns the home's override.
+An unset variable means no call, no record, and unchanged behaviour everywhere; this module never reads a key and never prints one.
+
+The gardener can request route, duplicate, and worth-keeping hints for raw lessons and contradiction candidates across pages.
+Contributing homes can also request privacy advice during capture.
+When enabled, bounded lesson and page excerpts, plus candidate summaries, are sent to the configured shim.
+Assembled state and criteria pass the capture secret scan first; a scan hit skips that advisory without changing the deterministic capture or publication decision.
+The [`fm-wiki.sh` header](../bin/fm-wiki.sh) owns command syntax, output locations, advisory record fields, diagnostic cutoffs, call bounds, and calibration completion.
+
+Jev answers never hold, drop, or reorder a lesson.
+The gardener's [run steps](../assets/crew-wiki-AGENTS.md#gardener-run-steps) explain how advisory plans fit the compilation workflow.
+A privacy warning only annotates: a clean lesson still queues unchanged for the normal drain, and the cleanup line names the file to review.
+An unavailable or erroring shim changes nothing about what publishes and never blocks capture, lint, or the plan.
 
 ## Gardener delivery (direct-push)
 

@@ -7,6 +7,8 @@ set -u
 ROOT=${FM_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}
 # shellcheck source=tests/lib.sh
 . "$ROOT/tests/lib.sh"
+# shellcheck source=tests/jev-fake-helpers.sh
+. "$ROOT/tests/jev-fake-helpers.sh"
 WIKI="$ROOT/bin/fm-wiki.sh"
 BRIEF="$ROOT/bin/fm-brief.sh"
 
@@ -1153,6 +1155,91 @@ test_dod_insertion_follows_the_opt_in() {
   pass "brief insertion follows the config/wiki opt-in for ships and scouts"
 }
 
+# --- slice 04: the close privacy advisory -------------------------------------
+
+# raw_body <raw file>: the lesson body below the generated stamp block.
+raw_body() {
+  awk 'BEGIN { block = 0 } /^---$/ { block++; next } block >= 2 { print }' "$1"
+}
+
+test_close_records_the_privacy_advisory_without_holding() {
+  local home fake offbody body held
+  home=$(wiki_home privacy)
+  wiki_cfg "$home" contributor "file://$TMP_ROOT/privacy.git"
+  fake=$(fm_fakebin "$TMP_ROOT/privacy")
+  fm_fake_jev "$fake"
+  # Flag off: no call, no record, and the bytes queued are the reference.
+  wiki_task "$home" task-priv-off
+  FM_WIKI_CLOSE_DRAIN=0 run_wiki "$home" close task-priv-off >/dev/null \
+    || fail "the flag-off close must exit 0"
+  assert_absent "$home/state/wiki/jev.jsonl" "a flag-off close records no Jev answer"
+  offbody=$(raw_body "$(find "$home/state/wiki/outbox" -name '*.md' | head -n 1)")
+  # Flag on with an answer above the hold floor: the advisory records itself and
+  # the lesson still publishes unchanged, because slice 04 has no thresholds.
+  wiki_task "$home" task-priv-on
+  FM_WIKI_CLOSE_DRAIN=0 FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_P=0.93 \
+    run_wiki "$home" close task-priv-on 2>"$TMP_ROOT/privacy-stderr" >/dev/null \
+    || fail "a flag-on close must exit 0"
+  assert_contains "$(cat "$TMP_ROOT/privacy-stderr")" \
+    'advisory only, published unchanged' "a high-probability advisory says the lesson was not held"
+  assert_equals '2' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+    "the advisory never holds the lesson: both tasks' lessons wait in the outbox"
+  held=0
+  [ -d "$home/state/wiki/held" ] && held=$(find "$home/state/wiki/held" -name '*.md' | wc -l | tr -d ' ')
+  assert_equals '0' "$held" "the advisory never files a held lesson"
+  assert_equals '0.93' \
+    "$(python3 -c 'import json, sys; print(json.loads(open(sys.argv[1]).read().strip().splitlines()[-1])["probability"])' "$home/state/wiki/jev.jsonl")" \
+    "the advisory records its probability beside the gardener's decision"
+  assert_equals 'privacy' \
+    "$(python3 -c 'import json, sys; print(json.loads(open(sys.argv[1]).read().strip().splitlines()[-1])["verb"])' "$home/state/wiki/jev.jsonl")" \
+    "the record names the privacy question"
+  body=$(raw_body "$(find "$home/state/wiki/outbox" -name '*task-priv-on*.md' | head -n 1)")
+  assert_equals "$offbody" "$body" "the queued lesson bytes are identical with the advisory on"
+  pass "the close privacy advisory records and annotates without holding"
+}
+
+test_close_publishes_unchanged_when_jev_is_unavailable() {
+  local home bare out fake
+  home=$(wiki_home privacy-down)
+  bare=$(wiki_bare privacy-down)
+  wiki_cfg "$home" contributor "file://$bare"
+  fake=$(fm_fakebin "$TMP_ROOT/privacy-down")
+  fm_fake_jev "$fake"
+  wiki_task "$home" task-priv-down
+  out=$(FM_WIKI_CLOSE_DRAIN=0 FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_MODE=unavailable \
+    run_wiki "$home" close task-priv-down 2>&1) \
+    || fail "an unavailable advisory must not fail the close: $out"
+  assert_contains "$out" 'queued' "the lesson is still queued"
+  assert_contains "$(cat "$home/state/wiki/jev.jsonl")" '"ok":false' \
+    "the unavailable answer is recorded as unavailable"
+  run_wiki "$home" drain >/dev/null || fail "the drain must still publish"
+  assert_contains "$(git -C "$bare" log --format=%B main)" 'Wiki-Task: task-priv-down' \
+    "the lesson publishes unchanged with no advisory answer"
+  FM_WIKI_CLOSE_DRAIN=0 FM_WIKI_JEV="$fake/fm-jev-fake" FM_FAKE_JEV_MODE=error \
+    run_wiki "$home" close task-priv-down >/dev/null 2>&1 \
+    || fail "an erroring advisory must not fail a repeated close"
+  pass "an unavailable or erroring advisory changes nothing about publication"
+}
+
+test_close_makes_no_jev_call_when_the_home_switches_it_off() {
+  local home fake
+  home=$(wiki_home privacy-kill)
+  wiki_cfg "$home" contributor "file://$TMP_ROOT/privacy-kill.git"
+  printf 'jev=off\n' >> "$home/config/wiki"
+  fake=$(fm_fakebin "$TMP_ROOT/privacy-kill")
+  fm_fake_jev "$fake"
+  wiki_task "$home" task-priv-kill
+  FM_WIKI_CLOSE_DRAIN=0 FM_WIKI_JEV="$fake/fm-jev-fake" \
+    FM_FAKE_JEV_LOG="$TMP_ROOT/privacy-kill/calls" \
+    run_wiki "$home" close task-priv-kill >/dev/null 2>&1 \
+    || fail "a jev=off close must exit 0"
+  assert_absent "$TMP_ROOT/privacy-kill/calls" "jev=off stops the call even with the flag set"
+  assert_absent "$home/state/wiki/jev.jsonl" "jev=off records no Jev answer"
+  assert_equals '1' "$(find "$home/state/wiki/outbox" -name '*.md' | wc -l | tr -d ' ')" \
+    "jev=off still queues the lesson"
+  pass "config/wiki jev=off is this home's Jev kill-switch"
+}
+
 test_absent_config_leaves_every_verb_a_silent_noop
 test_role_off_keeps_the_feature_fully_off
 test_brief_snippet_owns_the_lesson_schema_for_contributing_homes
@@ -1521,3 +1608,6 @@ test_consult_commands_resolve_relative_state_and_quoted_paths
 test_checkout_failure_never_publishes_an_incomplete_mirror
 test_mirror_swap_keeps_the_published_tree_until_atomic_replacement
 test_active_consultations_keep_their_snapshot_until_all_readers_finish
+test_close_records_the_privacy_advisory_without_holding
+test_close_publishes_unchanged_when_jev_is_unavailable
+test_close_makes_no_jev_call_when_the_home_switches_it_off
