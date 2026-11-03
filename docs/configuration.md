@@ -1258,7 +1258,8 @@ The [`fm-wiki.sh` header](../bin/fm-wiki.sh) owns command syntax, output locatio
 Only identifiers and answers are recorded, never lesson or page text, and the record stays local.
 
 Calibration comes before control: until thresholds are set from two gardener runs, nothing a Jev answer says may hold, drop, or reorder a lesson.
-The report's table puts each answer beside the gardener's own decision - the page that ended up citing the lesson - so those labels can set the thresholds later.
+After publication is proven, the report's existing rows record the gardener's route, kept or dropped outcome, and whether the proposed duplicate page received the lesson.
+Later triage batches retain earlier calibration rows, so those labels can set the thresholds later.
 A privacy warning therefore only annotates: the lesson still publishes, and the cleanup line names the file to review.
 An unavailable or erroring shim changes nothing about what publishes and never blocks capture, lint, or the plan.
 

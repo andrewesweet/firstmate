@@ -92,9 +92,9 @@
 #                 Register it with bin/fm-procevent-when.sh (docs/configuration.md
 #                 "Crew wiki") so firstmate is woken once to file a gardener
 #                 task; the watch fires at most once and firstmate re-arms it.
-#   triage [--repo <dir>] [--plan <path>] [--limit <n>]
+#   triage [--repo <dir>] [--plan <path>]
 #                 Gardener only: build the run plan for the next gardener task,
-#                 oldest pending raw lesson first, at most 25 a run (--limit).
+#                 oldest pending raw lesson first, at most 25 a run.
 #                 Candidates are the best plain-grep matches among pages/ for
 #                 the lesson's scope and claim, capped at 8. With FM_WIKI_JEV
 #                 set it annotates each lesson with three advisory answers -
@@ -103,9 +103,10 @@
 #                 in state/wiki/jev.jsonl beside the gardener's own decision.
 #                 Writes the plan to $FM_DATA/gardener/plan.json, or --plan, and
 #                 the gardener report with its Jev calibration table to
-#                 report.md beside the plan. Advisory only: no answer here
-#                 drops, holds, or reorders a lesson, and Jev being off,
-#                 unavailable, or erroring still writes a complete unannotated
+#                 report.md beside the plan; later batches retain earlier rows.
+#                 Advisory only: no answer drops, holds, or reorders a lesson;
+#                 Jev being off, unavailable, or erroring still writes a complete
+#                 unannotated
 #                 plan. Exit 1 only when this home cannot run a gardener run.
 #   lint [--repo <dir>]
 #                 Gardener only: run the deterministic page checks (report 4.6)
@@ -113,13 +114,13 @@
 #                 problems exit 1; advisory ones (orphans, stale signals,
 #                 unconfirmed pages) are reported and never block. With
 #                 FM_WIKI_JEV set it also reports Jev contradiction candidates
-#                 for page pairs that share a scope, capped at 200 pairs a run
-#                 (FM_WIKI_JEV_PAIRS_CAP), advisory and never blocking.
+#                 for page pairs that share a scope, capped at 200 pairs a run,
+#                 advisory and never blocking.
 #   index [--repo <dir>]
 #                 Gardener only: regenerate index.md from page headers within
 #                 the 150-line budget, atomically. Over budget still writes the
 #                 file but exits 1 so publish refuses to land it.
-#   publish [--repo <dir>] --base <sha>
+#   publish [--repo <dir>] [--plan <path>] --base <sha>
 #                 Gardener only, the direct-push Definition of done: lint, then
 #                 refuse any change under raw/ and any page commit made by someone
 #                 else after the run's base, then commit the compiled pages,
@@ -127,7 +128,8 @@
 #                 force) and landing proof as drain. Refusals and push failures
 #                 exit 1 with a retryable message; only a proven landing exits 0.
 #                 Never rebuilds or switches the checkout: a mismatched origin is
-#                 refused, never destroyed.
+#                 refused, never destroyed. After landing, fills the existing
+#                 calibration report beside the default plan or --plan.
 #
 # State layout under $FM_HOME/state/wiki/:
 #   outbox/       clean lessons waiting for the next drain (the only queue).
@@ -189,9 +191,9 @@ WIKI_PUSH_TRIES=${WIKI_PUSH_TRIES:-5}
 WIKI_DRAIN_INTERVAL=${FM_WIKI_DRAIN_INTERVAL:-600}
 # Jev advisories: one wall-clock bound per call, at most 8 page candidates per
 # route Choice, and at most 200 contradiction pairs a lint run (report 4.7).
-WIKI_JEV_TIMEOUT=${FM_WIKI_JEV_TIMEOUT:-8}
-WIKI_JEV_CANDIDATES=${FM_WIKI_JEV_CANDIDATES:-8}
-WIKI_JEV_PAIRS_CAP=${FM_WIKI_JEV_PAIRS_CAP:-200}
+WIKI_JEV_TIMEOUT=8
+WIKI_JEV_CANDIDATES=8
+WIKI_JEV_PAIRS_CAP=200
 WIKI_JEV_BATCH=25
 WIKI_JEV_FLOOR=0.8
 
@@ -1456,8 +1458,8 @@ wiki_triage_terms() {  # <lesson-file> <out>
 # among pages/, one path relative to the checkout per line, best first. A page
 # scores one point per distinct term it matches; ties break on path so the
 # menu is reproducible.
-wiki_triage_candidates() {  # <repo> <terms-file> [max]
-  local repo=$1 terms=$2 max=${3:-$WIKI_JEV_CANDIDATES} page rel score term list
+wiki_triage_candidates() {  # <repo> <terms-file>
+  local repo=$1 terms=$2 page rel score term list
   list=$(mktemp "${TMPDIR:-/tmp}/fm-wiki-candidates.XXXXXX") || return 0
   : > "$list"
   while IFS= read -r page; do
@@ -1473,7 +1475,7 @@ wiki_triage_candidates() {  # <repo> <terms-file> [max]
   done <<EOF
 $(find "$repo/pages" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 EOF
-  LC_ALL=C sort -t "$(printf '\t')" -k1,1nr -k2,2 "$list" 2>/dev/null | head -n "$max" | cut -f2
+  LC_ALL=C sort -t "$(printf '\t')" -k1,1nr -k2,2 "$list" 2>/dev/null | head -n "$WIKI_JEV_CANDIDATES" | cut -f2
   rm -f "$list"
   return 0
 }
@@ -1485,11 +1487,11 @@ wiki_triage_page_text() {  # <repo> <rel> <out>
   return 0
 }
 
-# wiki_triage_lessons <repo> <limit>: pending raw lesson paths under the
+# wiki_triage_lessons <repo>: pending raw lesson paths under the
 # checkout, oldest first, one per line. Pending means the bare raw id is not a
 # complete token in log.md, the same membership rule `due` owns.
-wiki_triage_lessons() {  # <repo> <limit>
-  local repo=$1 limit=$2 log_text raw base shown=0
+wiki_triage_lessons() {  # <repo>
+  local repo=$1 log_text raw base shown=0
   log_text=$(cat "$repo/log.md" 2>/dev/null || printf '')
   log_text=$(printf '%s\n' "$log_text" | awk -F '[[:space:];,]+' '{ for (i = 1; i <= NF; i++) { sub(/\.md$/, "", $i); print $i } }')
   while IFS= read -r raw; do
@@ -1500,7 +1502,7 @@ wiki_triage_lessons() {  # <repo> <limit>
     fi
     printf '%s\n' "$raw"
     shown=$(( shown + 1 ))
-    [ "$shown" -lt "$limit" ] || break
+    [ "$shown" -lt "$WIKI_JEV_BATCH" ] || break
   done <<EOF
 $(find "$repo/raw" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 EOF
@@ -1530,6 +1532,7 @@ import sys
 import tempfile
 
 rows_path, plan_path, report_path, repo, jev_state, calls, unavailable = sys.argv[1:8]
+complete = sys.argv[8:] == ["complete"]
 rows = []
 with open(rows_path, encoding="utf-8", errors="replace") as handle:
     for line in handle:
@@ -1556,6 +1559,44 @@ with open(rows_path + ".citations", encoding="utf-8") as handle:
     for line in handle:
         raw, page = line.rstrip("\n").split("\t", 1)
         cited.setdefault(raw, set()).add(page)
+
+def write_atomic(path, text):
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    os.makedirs(directory, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8")
+    handle.write(text)
+    handle.close()
+    os.replace(handle.name, path)
+
+if complete:
+    with open(plan_path, encoding="utf-8") as handle:
+        plan = json.load(handle)
+    if plan.get("jev", {}).get("flag") != "on":
+        sys.exit(0)
+    with open(report_path, encoding="utf-8") as handle:
+        report = handle.read().splitlines()
+    lessons = {lesson["id"]: lesson for lesson in plan["lessons"]}
+    for index, line in enumerate(report):
+        if not line.startswith("| `"):
+            continue
+        cells = [cell.strip() for cell in line.split("|")[1:-1]]
+        lesson_id = cells[0].strip("`")
+        if len(cells) != 9 or cells[8] != "pending" or lesson_id not in compiled or lesson_id not in lessons:
+            continue
+        pages = sorted(cited.get(lessons[lesson_id]["path"], set()))
+        route = cells[1].strip("`")
+        duplicate = cells[7].strip("`")
+        cells[2] = " ".join("`%s`" % page for page in pages) if pages else "(none)"
+        if route == "new page":
+            agrees = any(page not in plan["pages"] for page in pages)
+        else:
+            agrees = route in pages
+        cells[3] = ("yes" if agrees else "no") if route != "-" else "-"
+        cells[6] = "yes" if pages else "no"
+        cells[8] = ("yes" if duplicate in pages else "no") if duplicate != "-" else "-"
+        report[index] = "| " + " | ".join(cells) + " |"
+    write_atomic(report_path, "\n".join(report) + "\n")
+    sys.exit(0)
 
 now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 plan_rows = []
@@ -1597,7 +1638,7 @@ for row in rows:
             agrees = "pending"
     else:
         agrees = "-"
-    table.append("| %s | %s | %s | %s | %s | %s | %s |" % (
+    entry = "| %s | %s | %s | %s | %s | %s | %s |" % (
         "`%s`" % row["id"],
         "`%s`" % route if route else "-",
         " ".join("`%s`" % page for page in gardener_pages) if gardener_pages else "(none yet)",
@@ -1605,7 +1646,10 @@ for row in rows:
         row["dup_p"] or "-",
         row["keep_p"] or "-",
         "yes" if gardener_pages else ("no" if row["id"] in compiled else "pending"),
-    ))
+    )
+    if jev_state == "on":
+        entry += " %s | pending |" % ("`%s`" % row["dup_page"] if row["dup_page"] else "-")
+    table.append(entry)
 
 plan = {
     "wiki": "gardener-plan v1",
@@ -1613,13 +1657,10 @@ plan = {
     "jev": {"flag": jev_state, "calls": int(calls), "unavailable": int(unavailable)},
     "lessons": plan_rows,
 }
-def write_atomic(path, text):
-    directory = os.path.dirname(os.path.abspath(path)) or "."
-    os.makedirs(directory, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8")
-    handle.write(text)
-    handle.close()
-    os.replace(handle.name, path)
+if jev_state == "on":
+    plan["pages"] = sorted(os.path.relpath(os.path.join(root, name), repo).replace(os.sep, "/")
+                           for root, _dirs, files in os.walk(os.path.join(repo, "pages"))
+                           for name in files if name.endswith(".md"))
 write_atomic(plan_path, json.dumps(plan, indent=2, sort_keys=False) + "\n")
 
 if jev_state == "on":
@@ -1638,7 +1679,22 @@ report = [
     "| Lesson | Jev route | Gardener page | Route agrees | Jev duplicate p | Jev keep p | Gardener kept |",
     "| --- | --- | --- | --- | --- | --- | --- |",
 ]
-report.extend(table or ["| (no pending lesson) | - | - | - | - | - | - |"])
+try:
+    with open(report_path, encoding="utf-8") as handle:
+        previous = [line.rstrip("\n") for line in handle if line.startswith("| `")]
+except FileNotFoundError:
+    previous = []
+if jev_state != "on" and not any(len(line.split("|")) == 11 for line in previous):
+    previous = []
+if jev_state == "on" or any(len(line.split("|")) == 11 for line in previous):
+    report[-2] += " Jev duplicate page | Gardener duplicate merged |"
+    report[-1] += " --- | --- |"
+    previous = [line + " - | pending |" if len(line.split("|")) == 9 else line for line in previous]
+    table = [line + " - | pending |" if len(line.split("|")) == 9 else line for line in table]
+report.extend(previous)
+report.extend(table)
+if not previous and not table:
+    report.append("| " + " | ".join(["(no pending lesson)"] + ["-"] * (len(report[-2].split("|")) - 3)) + " |")
 write_atomic(report_path, "\n".join(report) + "\n")
 PYTRIAGE
 }
@@ -1647,7 +1703,7 @@ PYTRIAGE
 # this home's own clone or --repo, never the network, and never changes a
 # lesson: Jev answers annotate, and only annotate (report 4.7).
 wiki_triage() {
-  local repo='' plan='' limit=$WIKI_JEV_BATCH
+  local repo='' plan=''
   if ! wiki_feature_on 1 >/dev/null 2>&1; then
     return 0
   fi
@@ -1659,10 +1715,6 @@ wiki_triage() {
     case $1 in
       --repo) [ -n "${2:-}" ] || die_usage 'triage --repo needs a directory'; repo=$2; shift 2 ;;
       --plan) [ -n "${2:-}" ] || die_usage 'triage --plan needs a path'; plan=$2; shift 2 ;;
-      --limit)
-        [ -n "${2:-}" ] || die_usage 'triage --limit needs a count'
-        case $2 in ''|*[!0-9]*|0) die_usage 'triage --limit needs a positive count' ;; esac
-        limit=$2; shift 2 ;;
       *) die_usage "unknown triage flag '$1'" ;;
     esac
   done
@@ -1677,7 +1729,7 @@ wiki_triage() {
   lessons=$work/lessons
   rows=$work/rows
   : > "$rows"
-  wiki_triage_lessons "$repo" "$limit" > "$lessons"
+  wiki_triage_lessons "$repo" > "$lessons"
   wiki_jev_enabled && jev_state=on
   local lesson rel id scope claim terms candidates choice target state criteria req dup_page dup_p keep_p route_p route_conf
   while IFS= read -r lesson; do
@@ -1718,9 +1770,9 @@ EOF
         wiki_jev_call route "$id" '' "$req"
         calls=$(( calls + 1 ))
         [ "$WIKI_JEV_OK" = 1 ] || unavailable=$(( unavailable + 1 ))
-        case ",$candidates,new page," in
-          *",$WIKI_JEV_CHOICE,"*) choice=$WIKI_JEV_CHOICE ;;
-        esac
+        if cut -f1 "$criteria" | grep -qxF -- "$WIKI_JEV_CHOICE"; then
+          choice=$WIKI_JEV_CHOICE
+        fi
         case $choice in
           ''|'new page') target=$(printf '%s' "$candidates" | cut -d, -f1) ;;
           *) target=$choice ;;
@@ -1777,6 +1829,17 @@ EOF
     printf 'wiki: triage wrote %s and %s (jev off)\n' "$plan" "$report"
   fi
   return 0
+}
+
+wiki_triage_complete() {
+  local repo=$1 plan=$2 report work
+  report=$(dirname "$plan")/report.md
+  [ -f "$plan" ] && [ -f "$report" ] || return 0
+  work=$(mktemp -d "${TMPDIR:-/tmp}/fm-wiki-calibration.XXXXXX") || return 0
+  : > "$work/rows"
+  wiki_triage_render "$work/rows" "$plan" "$report" "$repo" on 0 0 complete \
+    || printf 'wiki: calibration report could not be updated: %s\n' "$report" >&2
+  rm -rf "$work"
 }
 
 # wiki_lint_repo <repo>: the deterministic page checks (report 4.6). Blocking
@@ -2167,7 +2230,7 @@ wiki_publish_refresh() {
 # interleave git operations on the shared clone. Never rebuilds the checkout:
 # a missing clone or a mismatched origin is refused, never destroyed.
 wiki_publish() {
-  local repo base
+  local repo base plan=''
   if ! wiki_feature_on 1 >/dev/null 2>&1; then
     return 0
   fi
@@ -2178,12 +2241,14 @@ wiki_publish() {
   while [ "$#" -gt 0 ]; do
     case $1 in
       --repo) [ -n "${2:-}" ] || die_usage 'publish --repo needs a directory'; repo=$2; shift 2 ;;
+      --plan) [ -n "${2:-}" ] || die_usage 'publish --plan needs a path'; plan=$2; shift 2 ;;
       --base) [ -n "${2:-}" ] || die_usage 'publish --base needs a commit'; base=$2; shift 2 ;;
       *) die_usage "unknown publish flag '$1'" ;;
     esac
   done
   wiki_paths >/dev/null 2>&1 || return 1
   repo=${repo:-$WIKI_REPO}
+  plan=${plan:-"$WIKI_DATA/gardener/plan.json"}
   [ -n "$base" ] || die_usage 'publish requires --base <sha>'
   wiki_lint_jev_contradictions "$repo"
   WIKI_DEADLINE=$(( $(date +%s) + ${FM_WIKI_PUBLISH_CAP:-20} ))
@@ -2244,6 +2309,8 @@ wiki_publish() {
   fi
   if [ "$committed" = 0 ] && [ "$(wiki_git "$repo" rev-parse HEAD 2>/dev/null)" = "$(wiki_git "$repo" rev-parse "origin/$WIKI_BRANCH" 2>/dev/null)" ]; then
     wiki_publish_refresh "$repo" || return 1
+    exec 9>&-
+    wiki_triage_complete "$repo" "$plan"
     printf 'wiki: nothing to publish\n'
     return 0
   fi
@@ -2269,6 +2336,8 @@ wiki_publish() {
     if wiki_git "$repo" merge-base --is-ancestor HEAD "refs/remotes/origin/$WIKI_BRANCH" >/dev/null 2>&1; then
       wiki_publish_refresh "$repo" || return 1
       printf 'wiki: published %s\n' "$(wiki_git "$repo" rev-parse --short HEAD 2>/dev/null)"
+      exec 9>&-
+      wiki_triage_complete "$repo" "$plan"
       return 0
     fi
     printf 'wiki: publish: push reported success but the landing is unproved; retry\n' >&2
