@@ -651,9 +651,9 @@ test_upstream_shaped_calls_render_upstream_contracts
 test_feedback_snapshot_dir_resolves_from_the_home
 test_promotion_keeps_the_recorded_base_branch
 
-# direct-push is the gardener-only delivery value: its Definition of done ends
-# with bin/fm-wiki.sh publish instead of a pull request, and its done report
-# is gated on the named head like every other ship mode.
+# direct-push is the gardener-only delivery value: its Definition of done ships
+# with bin/fm-wiki.sh publish instead of a pull request, reports the run's
+# coverage line, and is gated on the named head like every other ship mode.
 test_direct_push_renders_a_publish_ending_dod() {
   local body rule home
   home="$TMP_ROOT/direct-push-home"
@@ -661,7 +661,9 @@ test_direct_push_renders_a_publish_ending_dod() {
   body=$(FM_HOME="$home" fm_dod_block direct-push dp-x1 fm/dp-x1 none) \
     || fail "could not render the direct-push delivery contract"
   assert_contains "$body" 'Delivery contract: mode=direct-push' "the direct-push contract line names the mode"
-  assert_contains "$body" 'bin/fm-wiki.sh publish' "the direct-push DoD ends with publish instead of a PR"
+  assert_contains "$body" 'bin/fm-wiki.sh publish' "the direct-push DoD publishes instead of opening a PR"
+  assert_contains "$body" 'bin/fm-wiki.sh coverage' "the direct-push DoD reports the run's coverage line"
+  assert_contains "$body" 'archive/pages/' "the direct-push DoD names the pruning archive move"
   assert_contains "$body" 'wiki pages published' "the direct-push DoD names its ready report"
   assert_not_contains "$body" 'gh pr create' "a direct-push DoD must not open a pull request"
   assert_not_contains "$body" 'open a pull request' "a direct-push DoD must not name a pull request to open"

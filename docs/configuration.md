@@ -1232,6 +1232,11 @@ Checks use lychee offline for local Markdown links only; external links never tr
 The [script header](../bin/fm-wiki.sh) owns readiness thresholds, verb syntax, exit codes, and the guarded publication protocol.
 After proving the landing, `publish` fast-forwards the home's scheduling clone to the published commit so `due` reads the completed ingest log.
 
+`publish` is also where the wiki is pruned, so no second writer ever touches `pages/`: a raw lesson's `used: <page> ok` line refreshes that page's `last-confirmed` to the lesson's date, and a page confirmed 120 or more days ago that no lesson's `used:` line names moves to `archive/pages/` in the same guarded commit.
+Archived pages are history: lint, the index, and compilation ignore them.
+The [wiki schema](../assets/crew-wiki-AGENTS.md) states the rule the gardener follows; the [script header](../bin/fm-wiki.sh) owns the mechanics.
+Every run also reports coverage: `coverage` prints one line counting live pages, raw lessons, uncompiled lessons, archived pages, stale or wrong usage signals, and pages unconfirmed for 90 days, and the generated [Definition of done](../bin/fm-dod-lib.sh) carries that line into the gardener's completion report.
+
 Firstmate files the gardener task when a registered process-event condition fires, and re-arms the condition after filing, because the watch fires at most once.
 The registration command, run once in the gardener home, is:
 

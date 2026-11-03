@@ -1046,7 +1046,9 @@ Compile at most 25 of the oldest uncompiled raw lessons into pages under \`pages
 Never create, modify, or delete anything under \`raw/\`: raw lessons are add-only and arrive only through each home's cleanup.
 Run \`$wiki_command lint --repo "\$PWD"\` until it reports clean and \`$wiki_command index --repo "\$PWD"\` until the index is within its 150-line budget.
 Then run \`$wiki_command publish --repo "\$PWD" --base "\$BASE"\`: on a foreign-commit refusal, re-read the new \`origin/main\`, recompile what is still uncompiled, and publish again.
-When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}\` to the status file and stop, with the commit publish printed.
+Publish also prunes: a \`used: <page> ok\` lesson refreshes that page's \`last-confirmed\` to the lesson's date, and a page confirmed 120 or more days ago that no lesson's \`used:\` line names moves to \`archive/pages/\` in the same commit.
+Then run \`$wiki_command coverage --repo "\$PWD"\` for the run's coverage line.
+When publish reports its landing, append \`done [at=<epoch>]: wiki pages published {commit}\` followed by the coverage line and stop, with the commit publish printed.
 Commit nothing after publishing.
 Do NOT run /no-mistakes. The configured merge authority decided this standing posture; firstmate relays the outcome.
 EOF
