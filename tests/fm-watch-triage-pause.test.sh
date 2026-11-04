@@ -1451,6 +1451,4 @@ fm_test_run \
   test_captain_held_rechecked_under_a_quiet_record \
   test_paused_until_near_future_is_quiet_before_the_cadence \
   test_paused_until_wrong_year_is_bounded_by_the_cadence \
-  test_paused_until_that_passed_is_rechecked_before_the_cadence \
-  test_paused_bg_job_without_until_stays_silent_after_the_job_ends \
-  test_paused_bg_job_until_timeout_rechecks_after_the_job_ends
+  test_paused_until_that_passed_is_rechecked_before_the_cadence

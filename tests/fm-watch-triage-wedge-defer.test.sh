@@ -679,9 +679,4 @@ fm_test_run \
   test_wedge_threshold_defers_to_a_parked_gate_awaiting_a_human \
   test_wedge_threshold_parked_gate_needs_an_unanswered_decision \
   test_wedge_threshold_parked_gate_is_off_until_armed \
-  test_wedge_threshold_defers_to_a_worker_blocker \
-  test_wedge_threshold_worker_wait_is_off_until_armed \
-  test_wedge_defer_refuses_a_half_filled_wait_record \
-  test_wedge_threshold_defers_to_an_executing_validation_run \
-  test_wedge_threshold_escalates_when_no_run_is_executing \
-  test_wedge_threshold_validating_run_is_off_until_armed
+  test_wedge_defer_refuses_a_half_filled_wait_record

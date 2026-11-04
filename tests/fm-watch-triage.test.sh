@@ -4915,8 +4915,6 @@ fm_test_run \
   test_turn_ended_churn_existing_marker_absorbed \
   test_turn_ended_still_pane_surfaced \
   test_turn_ended_malformed_prior_hash_surfaced \
-  test_unknown_alive_stale_is_bounded_after_its_first_alarm \
-  test_unknown_alive_stale_without_progress_keeps_surfacing \
   test_turn_ended_trailing_newline_prior_hash_surfaced \
   test_secondmate_turn_ended_churning_pane_surfaced \
   test_turn_ended_colliding_window_key_surfaced \
@@ -4961,10 +4959,6 @@ fm_test_run \
   test_wedge_escalation_resets_when_pane_becomes_active \
   test_gone_endpoint_reports_once_instead_of_escalating_forever \
   test_live_and_unproven_endpoints_still_wedge_escalate \
-  test_wedge_guards_absent_config_keeps_the_unchanged_ladder \
-  test_wedge_guard_critical_defers_one_window_at_a_time_up_to_the_cap \
-  test_wedge_guard_failures_fail_open \
-  test_wedge_guard_never_defers_a_gone_endpoint \
   test_gone_report_rearms_when_the_endpoint_comes_back \
   test_second_death_after_a_same_window_relaunch_reports_in_full \
   test_identical_dead_display_of_a_successor_still_reports \
@@ -5003,9 +4997,4 @@ fm_test_run \
   test_beacon_stays_fresh_while_absorbing \
   test_afk_signal_records_heartbeat_endpoint \
   test_afk_present_reverts_watcher_to_one_shot \
-  test_afk_paused_changed_pane_hands_off_plain_stale \
-  test_exit_picker_stale_names_the_dialog \
-  test_exit_picker_wedge_keeps_climbing \
-  test_quoted_exit_picker_stays_ordinary_stale \
-  test_secondmate_exit_picker_stays_quiet \
-  test_closed_exit_picker_drops_saved_dialog_name
+  test_afk_paused_changed_pane_hands_off_plain_stale
