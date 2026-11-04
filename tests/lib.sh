@@ -1149,7 +1149,7 @@ fm_test_base_path_sans() {
   for src in "${dirs[@]}"; do
     [ -d "$src" ] || continue
     for entry in "$src"/*; do
-      [ -e "$entry" ] || [ -L "$entry" ] || continue
+      [ -f "$entry" ] && [ -x "$entry" ] || continue
       name=${entry##*/}
       [ -e "$dir/$name" ] && continue
       skip=0
