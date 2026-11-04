@@ -285,14 +285,14 @@ parked_watch_round() {  # <state> <fakebin> <out> <capture> <window> <exit|absor
   return 0
 }
 
-paused_until_fixture() {  # <name> <until-epoch> <status-age-secs>
-  local name=$1 until=$2 age=$3 dir state statusf window key back
+paused_until_fixture() {  # <name> <until-epoch> <status-age-secs> [<keyword>]
+  local name=$1 until=$2 age=$3 keyword=${4:-until} dir state statusf window key back
   dir=$(make_case "$name"); state="$dir/state"
   window="test:fm-until"
   statusf="$state/until.status"
   printf 'idle, waiting for the reset\n' > "$dir/pane.txt"
   printf 'window=%s\nkind=secondmate\n' "$window" > "$state/until.meta"
-  printf 'paused: rate limit resets, until %s, then resuming\n' "$(iso_utc_at "$until")" > "$statusf"
+  printf 'paused: rate limit resets, %s %s, then resuming\n' "$keyword" "$(iso_utc_at "$until")" > "$statusf"
   back=$(( $(date +%s) - age ))
   if [ "$(uname)" = Darwin ]; then touch -mt "$(date -r "$back" '+%Y%m%d%H%M.%S')" "$statusf"
   else touch -m -d "@$back" "$statusf"; fi
