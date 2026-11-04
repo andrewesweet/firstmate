@@ -854,7 +854,8 @@ test_promotion_persists_the_selected_ship_branch() {
   FM_HOME="$home" "$BRIEF" "$id" fixture-project --scout >/dev/null 2>&1 \
     || fail "branch-prefix promotion scout brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
-    "Promote the branch-prefix fixture." "Use the configured branch exactly."
+    "Promote the branch-prefix fixture." "Use the configured branch exactly." \
+    "Preserve the configured ship-branch prefix."
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" \
     --mode local-only --yolo off --branch-prefix fix/) \
     || fail "branch-prefix promotion should succeed"
@@ -884,7 +885,8 @@ test_promotion_branch_command_is_shell_safe() {
   FM_HOME="$home" "$BRIEF" "$id" fixture-project --scout >/dev/null 2>&1 \
     || fail "shell-safe promotion scout brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
-    "Promote the shell-safe fixture." "Use the configured branch exactly."
+    "Promote the shell-safe fixture." "Use the configured branch exactly." \
+    "Preserve shell-safe ship-branch handling."
   FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" \
     --mode local-only --yolo off --branch-prefix "$prefix" >/dev/null 2>&1 \
     || fail "a ref-format-valid metacharacter prefix should promote safely"
@@ -1083,7 +1085,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" pr-manual-a2 proj --mode no-mistakes --pr manual >/dev/null \
     || fail "a pr=manual brief should scaffold"
-  fill_brief_subsections "$home/data/pr-manual-a2/brief.md" "Open the PR by hand." "Ship it."
+  fill_brief_subsections "$home/data/pr-manual-a2/brief.md" "Open the PR by hand." "Ship it." \
+    "Open a pull request for the accepted change."
   out=$(run_spawn "$home" "$fakebin" pr-manual-a2 "$proj" claude --mode no-mistakes --yolo off 2>&1)
   assert_not_contains "$out" "PR-text mismatch" "an agreeing brief and registry were reported as drift"
 
@@ -1095,7 +1098,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" pr-manual-a3 proj --mode no-mistakes --pr manual >/dev/null \
     || fail "a pr=manual brief should scaffold"
-  fill_brief_subsections "$home/data/pr-manual-a3/brief.md" "Open the PR by hand." "Ship it."
+  fill_brief_subsections "$home/data/pr-manual-a3/brief.md" "Open the PR by hand." "Ship it." \
+    "Open a pull request for the accepted change."
   out=$(run_spawn "$home" "$fakebin" pr-manual-a3 "$proj" claude --mode no-mistakes --yolo off 2>&1)
   status=$?
   [ "$status" -ne 0 ] || fail "a pr=manual brief launched on a project with no registered pr token"
@@ -1110,7 +1114,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" pr-manual-a4 proj --mode direct-PR >/dev/null \
     || fail "a direct-PR brief should scaffold"
-  fill_brief_subsections "$home/data/pr-manual-a4/brief.md" "Open the PR." "Ship it."
+  fill_brief_subsections "$home/data/pr-manual-a4/brief.md" "Open the PR." "Ship it." \
+    "Open a pull request for the accepted change."
   out=$(run_spawn "$home" "$fakebin" pr-manual-a4 "$proj" claude --mode direct-PR --yolo off 2>&1)
   assert_not_contains "$out" "PR-text mismatch" "a direct-PR task on a prod-only pr=manual project was reported as drift"
 
@@ -1146,7 +1151,8 @@ STUB
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
     || fail "scout brief generation should succeed"
-  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix."
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix." \
+    "Fix the investigated defect."
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode no-mistakes --yolo off 2>&1) \
     || fail "promotion should take the registered pr binding with no flag to remember: $out"
@@ -1177,7 +1183,8 @@ STUB
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
     || fail "scout brief generation should succeed"
-  fill_brief_subsections "$home/data/$id/brief.md" "Fix it." "Carry over only the fix."
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix it." "Carry over only the fix." \
+    "Fix the investigated defect."
   FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode direct-PR --yolo off >/dev/null 2>&1 \
     || fail "a prod-only pr=manual project should promote to direct-PR"
   pass "fm-promote: a promoted no-mistakes worker receives the registered pr=manual contract "
@@ -1196,7 +1203,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" dp-ok-a1 proj --mode direct-push >/dev/null \
     || fail "a direct-push brief should scaffold on an opted-in project"
-  fill_brief_subsections "$home/data/dp-ok-a1/brief.md" "Compile the wiki." "Compile it."
+  fill_brief_subsections "$home/data/dp-ok-a1/brief.md" "Compile the wiki." "Compile it." \
+    "Compile the wiki."
   assert_grep 'Delivery contract: mode=direct-push' "$home/data/dp-ok-a1/brief.md" \
     "the scaffolded brief did not record the direct-push contract"
   assert_grep 'bin/fm-wiki.sh publish' "$home/data/dp-ok-a1/brief.md" \
@@ -1211,7 +1219,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" dp-no-a1 proj --mode direct-push >/dev/null \
     || fail "a direct-push brief scaffolds before the spawn checks the registry"
-  fill_brief_subsections "$home/data/dp-no-a1/brief.md" "Compile the wiki." "Compile it."
+  fill_brief_subsections "$home/data/dp-no-a1/brief.md" "Compile the wiki." "Compile it." \
+    "Compile the wiki."
   out=$(run_spawn "$home" "$fakebin" dp-no-a1 "$proj" claude --mode direct-push --yolo off)
   status=$?
   [ "$status" -ne 0 ] || fail "direct-push on a project without the opt-in was accepted"
@@ -1292,7 +1301,8 @@ EOF
     || fail "herdr-lab ship brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
     "Reproduce the session restart in an isolated lab." \
-    "Drive every lifecycle step through the lab helper."
+    "Drive every lifecycle step through the lab helper." \
+    "Reproduce session restart behavior in an isolated lab."
   out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
   assert_not_contains "$out" "Herdr isolation contract" \
     "a brief scaffolded with --herdr-lab was refused by the Herdr lifecycle guard"
@@ -1425,7 +1435,8 @@ EOF
   id=delivery-empty-ship
   FM_HOME="$home" "$BRIEF" "$id" proj --mode direct-PR >/dev/null 2>&1 \
     || fail "empty-ship brief should scaffold"
-  fill_brief_subsections "$home/data/$id/brief.md" "" ""
+  fill_brief_subsections "$home/data/$id/brief.md" "" "" \
+    "Exercise task-content validation."
   out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
   status=$?
   [ "$status" -ne 0 ] || fail "spawn of empty Task subsections should exit non-zero"
@@ -2080,14 +2091,16 @@ EOF
 
   FM_HOME="$home" "$BRIEF" forge-agree-a2 proj --mode direct-PR --forge gerrit >/dev/null \
     || fail "a gerrit direct-PR brief should scaffold"
-  fill_brief_subsections "$home/data/forge-agree-a2/brief.md" "Publish the change." "Ship it."
+  fill_brief_subsections "$home/data/forge-agree-a2/brief.md" "Publish the change." "Ship it." \
+    "Publish the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a2 "$proj" claude --mode direct-PR --yolo off 2>&1)
   assert_not_contains "$out" "forge mismatch" "a gerrit direct-PR brief was reported as drift"
   assert_not_contains "$out" "cannot ship" "direct-PR was refused on the forge it publishes to"
 
   FM_HOME="$home" "$BRIEF" forge-agree-a3 proj --mode no-mistakes --forge gerrit >/dev/null \
     || fail "a gerrit ship brief should scaffold"
-  fill_brief_subsections "$home/data/forge-agree-a3/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/forge-agree-a3/brief.md" "Run the review loop." "Ship it." \
+    "Run the Gerrit review loop for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a3 "$proj" claude --mode no-mistakes --yolo off 2>&1)
   assert_not_contains "$out" "forge mismatch" "an agreeing brief and registry were reported as drift"
 
@@ -2096,7 +2109,8 @@ EOF
   # fast-forward local main with content the review server never saw.
   FM_HOME="$home" "$BRIEF" forge-agree-a4 proj --mode local-only >/dev/null \
     || fail "a local-only ship brief should scaffold without a forge"
-  fill_brief_subsections "$home/data/forge-agree-a4/brief.md" "Land it locally." "Stop at a ready branch."
+  fill_brief_subsections "$home/data/forge-agree-a4/brief.md" "Land it locally." "Stop at a ready branch." \
+    "Prepare the accepted change on a local branch."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a4 "$proj" claude --mode local-only --yolo off 2>&1)
   status=$?
   [ "$status" -ne 0 ] || fail "a local-only launch on a gerrit-bound project was accepted"
@@ -2140,7 +2154,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" branch-agree-a1 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/branch-agree-a1/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/branch-agree-a1/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the selected ship branch."
   out=$(run_spawn "$home" "$fakebin" branch-agree-a1 "$proj" claude --mode no-mistakes --yolo off --branch-prefix contrib/)
   status=$?
   [ "$status" -ne 0 ] || fail "a spawn selecting a different prefix than its brief records was accepted"
@@ -2165,7 +2180,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" branch-agree-a4 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a second fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/branch-agree-a4/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/branch-agree-a4/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the selected ship branch."
   out=$(run_spawn "$home" "$fakebin" branch-agree-a4 "$proj" claude --mode no-mistakes --yolo off --branch-prefix fix/)
   assert_not_contains "$out" "branch mismatch" "an agreeing brief and selection were reported as drift"
   assert_not_contains "$out" "records no ship branch" "an agreeing spawn reported the brief as legacy"
@@ -2214,7 +2230,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" prefix-dev-a2 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/prefix-dev-a2/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/prefix-dev-a2/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the configured ship-branch prefix."
   out=$(run_spawn "$home" "$fakebin" prefix-dev-a2 "$proj" claude --mode no-mistakes --yolo off --branch-prefix fix/)
   assert_not_contains "$out" "registers the ship-branch prefix" \
     "a spawn matching the registered prefix was announced as a deviation"
@@ -2323,7 +2340,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" forge-forgejo-s2 proj --mode direct-PR --forge forgejo >/dev/null \
     || fail "a forgejo direct-PR brief should scaffold"
-  fill_brief_subsections "$home/data/forge-forgejo-s2/brief.md" "Open the pull request." "Ship it."
+  fill_brief_subsections "$home/data/forge-forgejo-s2/brief.md" "Open the pull request." "Ship it." \
+    "Open a pull request for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-forgejo-s2 "$proj" claude --mode direct-PR --yolo on 2>&1)
   assert_not_contains "$out" "forge mismatch" "an agreeing forgejo brief and registry were reported as drift"
   assert_not_contains "$out" "--yolo on is refused" "yolo was refused on forgejo, where only gerrit deactivates it"
@@ -2340,7 +2358,8 @@ STUB
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$proj" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
     || fail "scout brief generation should succeed"
-  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix."
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix." \
+    "Fix the investigated defect."
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode direct-PR --yolo on 2>&1) \
     || fail "promotion should take the forgejo binding and keep yolo: $out"
   payload="$TMP_ROOT/forge-forgejo/payload"
