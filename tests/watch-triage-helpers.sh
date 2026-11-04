@@ -243,6 +243,17 @@ wedge_threshold_fixture() {  # <name> <status-log> <status-age-secs> [<wedge-tim
   printf '%s\n' "$dir"
 }
 
+# The two endpoint verdicts that are PROOF an agent is gone, as the lane fixture
+# above reaches them: `dead` is the recorded window still present in the session
+# inventory with a bare shell in front of it (the husk a crashed agent leaves),
+# and `missing` is an inventory that no longer carries that window at all.
+gone_endpoint_env() {  # <dead|missing> -> assignments for the round below
+  case "$1" in
+    dead)    FM_TEST_PANE_COMMAND=bash FM_TEST_TMUX_WINDOWS=fm-wedge ;;
+    missing) FM_TEST_PANE_COMMAND=bash FM_TEST_TMUX_WINDOWS=fm-someone-else ;;
+  esac
+}
+
 wedge_stale_wakes() {  # <state> <window>
   awk -F '\t' -v w="$2" '$3 == "stale" && $4 == w { n++ } END { print n + 0 }' \
     "$1/.wake-queue" 2>/dev/null || echo 0
