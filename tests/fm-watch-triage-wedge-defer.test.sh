@@ -14,14 +14,6 @@ arm_parked_gate() {  # <case-dir>
   : > "$1/config/wedge-defer-parked-gate"
 }
 
-# The wait age the deferral PUBLISHES to the captain, read back off the wake it
-# emitted. The wake reason is the watcher's supervisor-facing output contract, so
-# the number in it is the thing under test: it must describe the wait that is
-# actually holding the lane, not whatever unrelated record happened to be handy.
-wedge_reported_wait_secs() {  # <watch-out>
-  sed -n 's/.*waiting \([0-9][0-9]*\)s.*/\1/p' "$1" | head -1
-}
-
 test_wedge_threshold_defers_to_a_declared_wait_under_a_working_verdict() {
   local dir state fakebin out capture window key n past reported
   local working='state: working · source: run-step · ci running'

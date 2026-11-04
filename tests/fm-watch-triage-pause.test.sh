@@ -391,40 +391,6 @@ test_absorbed_replacement_wait_does_not_inherit_the_old_throttle() {
   pass "absorbed paused and captain-held replacements each start their own re-surface cadence"
 }
 
-# Run one watcher round against a parked-worker fixture, so a round differs only
-# in the pane contents the case just wrote. Armed the way fm-watch-arm.sh arms a
-# successor after firstmate handled a wake, because that is what a supervision
-# turn actually does and it is the only arm that stays in the poll loop instead of
-# re-announcing the previous round's downtime - without it a round exits on
-# `check: rearm-resurface` before it ever reaches the stale path, and every
-# absorb assertion below passes vacuously. A live agent (pane_current_command
-# matching the recorded harness) on an idle pane is the exact population
-# pause_state_class answers `none` for.
-# <mode> `exit` requires the watcher to surface and exit; `absorb` requires it to
-# survive whole poll cycles - enough to see the new hash, count it stable, and
-# reach the stale path. Returns 1 when the watcher does the other thing.
-parked_watch_round() {  # <state> <fakebin> <out> <capture> <window> <exit|absorb>
-  local state=$1 fakebin=$2 out=$3 capture=$4 window=$5 mode=$6 pid cycles=0
-  PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture" \
-    FM_FAKE_TMUX_CURRENT_COMMAND=grok \
-    FM_FAKE_CREW_STATE='state: paused · source: status-log · parked' \
-    FM_WATCH_HANDLING_SUCCESSOR=1 \
-    FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" \
-    FM_PAUSE_RESURFACE_SECS=999 FM_POLL=1 FM_SIGNAL_GRACE=1 \
-    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" >> "$out" &
-  pid=$!
-  if [ "$mode" = exit ]; then
-    wait_for_exit "$pid" 100 || { reap "$pid"; return 1; }
-    return 0
-  fi
-  while [ "$cycles" -lt 4 ]; do
-    wait_poll_cycle "$state" "$pid" 300 || { reap "$pid"; return 1; }
-    cycles=$((cycles + 1))
-  done
-  reap "$pid"
-  return 0
-}
-
 # --- a live worker parked on a declared wait: pane churn must not re-alarm ----
 # The 2026-08/09 alarm loop, in both observed forms - a worker parked on the
 # CAPTAIN (captain-held, five consecutive alarms) and one parked on the PIPELINE
@@ -1281,34 +1247,6 @@ test_afk_one_shot_never_hands_off_captain_held_under_away_record() {
 # A paused: line naming when the wait clears is rechecked at that time when it
 # falls within the flat cadence, but a distant or mistyped time cannot extend
 # the cadence, and a time that has passed is rechecked at once.
-paused_until_fixture() {  # <name> <until-epoch> <status-age-secs>
-  local name=$1 until=$2 age=$3 dir state statusf window key back
-  dir=$(make_case "$name"); state="$dir/state"
-  window="test:fm-until"
-  statusf="$state/until.status"
-  printf 'idle, waiting for the reset\n' > "$dir/pane.txt"
-  printf 'window=%s\nkind=secondmate\n' "$window" > "$state/until.meta"
-  printf 'paused: rate limit resets, until %s, then resuming\n' "$(iso_utc_at "$until")" > "$statusf"
-  back=$(( $(date +%s) - age ))
-  if [ "$(uname)" = Darwin ]; then touch -mt "$(date -r "$back" '+%Y%m%d%H%M.%S')" "$statusf"
-  else touch -m -d "@$back" "$statusf"; fi
-  printf '%s' "$(seen_sig "$statusf")" > "$state/.seen-until_status"
-  key=$(printf '%s' "$window" | tr '.:/' '___')
-  printf '%s' "$(hash_text 'idle, waiting for the reset')" > "$state/.hash-$key"
-  printf '1\n' > "$state/.count-$key"
-  printf '%s\n' "$dir"
-}
-
-until_watch() {  # <dir> <cadence> -> pid in UNTIL_PID
-  local dir=$1
-  PATH="$dir/fakebin:$PATH" FM_FAKE_TMUX_WINDOW=test:fm-until FM_FAKE_TMUX_CAPTURE="$dir/pane.txt" \
-    FM_FAKE_CREW_STATE='state: unknown · source: none · no current-state source available' \
-    FM_STATE_OVERRIDE="$dir/state" FM_CREW_STATE_BIN="$dir/fakebin/fm-crew-state.sh" \
-    FM_PAUSE_RESURFACE_SECS="$2" FM_POLL=1 FM_SIGNAL_GRACE=1 \
-    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch.out" 2>&1 &
-  UNTIL_PID=$!
-}
-
 test_paused_until_near_future_is_quiet_before_the_cadence() {
   local dir state
   dir=$(paused_until_fixture until-near-future "$(( $(date +%s) + 120 ))" 60); state="$dir/state"
