@@ -28,6 +28,7 @@ test_curated_path_skips_nonexecutable_shadow_files() (
   printf '#!/bin/sh\nexit 0\n' > "$dir/bin/herdr"
   chmod +x "$dir/bin/path-probe" "$dir/bin/herdr"
   curated=$(fm_test_base_path_sans "$dir/bin:$PATH" herdr) || fail "could not curate the fixture path"
+  # shellcheck disable=SC2016 # The child shell expands the value supplied by env.
   out=$(PATH="$curated" env FM_PATH_PROBE=preserved /bin/sh -c 'printf "%s" "$FM_PATH_PROBE"') \
     || fail "a nonexecutable shadow file hid the real env command"
   [ "$out" = preserved ] || fail "the curated path did not preserve env behavior: $out"
