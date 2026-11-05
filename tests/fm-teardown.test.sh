@@ -1962,6 +1962,10 @@ add_treehouse_clean_fd() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+if [ "${1:-}" = status ]; then
+  jq '[.worktrees[] | {path, lease_id:"", lease_holder:""}]' ../pool/treehouse-state.json
+  exit
+fi
 if [ "${1:-}" = return ]; then
   shift
   wt=
@@ -1986,6 +1990,10 @@ add_treehouse_that_leaves_residue() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+if [ "${1:-}" = status ]; then
+  jq '[.worktrees[] | {path, lease_id:"", lease_holder:""}]' ../pool/treehouse-state.json
+  exit
+fi
 if [ "${1:-}" = return ]; then
   shift
   wt=
@@ -2187,6 +2195,10 @@ add_treehouse_that_removes_copy() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+if [ "${1:-}" = status ]; then
+  jq '[.worktrees[] | {path, lease_id:"", lease_holder:""}]' ../pool/treehouse-state.json
+  exit
+fi
 if [ "${1:-}" = return ]; then
   for a in "$@"; do wt=$a; done
   rm -f "$wt/.git"
@@ -4887,14 +4899,17 @@ test_teardown_records_the_task_pipeline_spend() {
     fi
     cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+if [ "${1:-}" = status ]; then
+  holder=task-x1
+  [ "${FM_TEST_POOL_VARIANT:?}" != refused ] || holder=other-task
+  jq -n --arg path "$(cd "${FM_TEST_WORKTREE:?}" && pwd -P)" --arg holder "$holder" \
+    '[{path:$path, lease_id:"lease-1", lease_holder:$holder}]'
+  exit
+fi
 printf '%s\n' "$*" >> "${FM_TEST_TREEHOUSE_LOG:?}"
 [ "$#" -eq 5 ] && [ "$1" = return ] && [ "$2" = --force ] \
   && [ "$3" = --if-lease-holder ] && [ "$4" = task-x1 ] \
   && [ "$5" = "${FM_TEST_WORKTREE:?}" ] || exit 1
-if [ "${FM_TEST_POOL_VARIANT:?}" = refused ]; then
-  printf 'slot leased by other-task\n' >&2
-  exit 1
-fi
 if [ -e "${FM_TEST_PIPELINE_LEDGER:?}" ]; then
   printf 'recorded\n' > "${FM_TEST_RETURN_PHASE:?}"
 else
@@ -4952,8 +4967,7 @@ PY
     if [ "$variant" = refused ]; then
       [ "$rc" -ne 0 ] || fail 'pipeline-spend-refused: teardown ignored a lease refusal'
       assert_present "$case_dir/state/task-x1.meta" 'pipeline-spend-refused: teardown removed the task record'
-      assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
-        'pipeline-spend-refused: teardown bypassed the lease check'
+      assert_absent "$case_dir/treehouse.log" 'pipeline-spend-refused: teardown returned an unowned slot'
     else
       expect_code 0 "$rc" 'pipeline-spend-reassigned: teardown should clean only its own record'
       assert_absent "$case_dir/state/task-x1.meta" 'pipeline-spend-reassigned: teardown kept its task record'
@@ -4979,14 +4993,17 @@ PY
   if [ "$variant" != linked ]; then
     assert_equals "return --force --if-lease-holder task-x1 $case_dir/wt" "$(cat "$case_dir/treehouse.log")" \
       "pipeline-spend-$variant: teardown did not verify the lease exactly once"
-    if [ "$variant" = legacy ]; then
-      assert_equals pending "$(cat "$case_dir/return-phase")" 'legacy pipeline spend waits for ownership verification'
-    else
-      assert_equals recorded "$(cat "$case_dir/return-phase")" 'claimed pipeline spend is recorded before return'
-      assert_absent "$case_dir/pool/1/.fm-slot-owner" 'claimed cleanup kept the spent slot claim'
-    fi
+    assert_equals recorded "$(cat "$case_dir/return-phase")" 'pipeline spend is recorded after ownership proof and before return'
+    assert_absent "$case_dir/pool/1/.fm-slot-owner" 'cleanup kept the spent slot claim'
   fi
   pass "teardown records $variant task spend before removing its branch and record"
+}
+
+test_pool_pipeline_spend_follows_ownership_proof() {
+  local variant
+  for variant in legacy claimed refused reassigned; do
+    test_teardown_records_the_task_pipeline_spend "$variant"
+  done
 }
 
 test_teardown_skips_pipeline_spend_when_disabled() {
@@ -6306,6 +6323,89 @@ SH
   pass "Herdr closes before reaping or returning copies, while refusals preserve live processes"
 }
 
+test_legacy_pool_return_preserves_late_work() {
+  local holder change case_dir wt rc before
+  for holder in task-x1 unleased other-task unreadable; do
+    for change in tracked untracked commit clean reap-refusal; do
+      case "$holder/$change" in other-task/clean|unreadable/clean) ;; other-task/*|unreadable/*) continue ;; esac
+      case_dir=$(make_case "legacy-pool-$holder-$change")
+      wt_commit_file "$case_dir" worker.txt baseline
+      add_fork_with_pushed_branch "$case_dir"
+      wt=$(move_case_to_pool_slot "$case_dir" 1)
+      write_meta "$case_dir" no-mistakes ship "$wt"
+      before=$(git -C "$wt" rev-parse HEAD)
+      cat > "$case_dir/fakebin/lsof" <<'SH'
+#!/usr/bin/env bash
+if [ ! -e "$FM_POOL_CASE/reap-boundary" ]; then
+  : > "$FM_POOL_CASE/reap-boundary"
+  case "$FM_POOL_CHANGE" in
+    tracked) printf 'late edit\n' > "$FM_POOL_WT/worker.txt" ;;
+    untracked) printf 'late file\n' > "$FM_POOL_WT/late.txt" ;;
+    commit)
+      printf 'late commit\n' > "$FM_POOL_WT/worker.txt"
+      git -C "$FM_POOL_WT" add worker.txt
+      git -C "$FM_POOL_WT" commit -qm 'late worker commit' || exit 2
+      ;;
+  esac
+fi
+[ "$FM_POOL_CHANGE" != reap-refusal ]
+SH
+      cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+case "$1" in
+  status)
+    [ "$FM_POOL_HOLDER" != unreadable ] || exit 1
+    holder=$FM_POOL_HOLDER
+    [ "$holder" != unleased ] || holder=
+    jq -n --arg path "$FM_POOL_WT" --arg holder "$holder" \
+      '[{path:$path, lease_id:(if $holder == "" then "" else "lease-1" end), lease_holder:$holder}]'
+    ;;
+  return)
+    printf '%s\n' "$*" >> "$FM_POOL_CASE/return.log"
+    [ -e "$FM_POOL_CASE/reap-boundary" ] || : > "$FM_POOL_CASE/early-return"
+    if [ "$FM_POOL_HOLDER" = unleased ] && [ "$#" -eq 5 ]; then
+      echo 'lease precondition failed: worktree 1 is not leased' >&2
+      exit 1
+    fi
+    git -C "$FM_POOL_WT" reset --hard -q
+    git -C "$FM_POOL_WT" clean -fdq
+    ;;
+esac
+SH
+      chmod +x "$case_dir/fakebin/lsof" "$case_dir/fakebin/treehouse"
+      rc=0
+      FM_HOME="$case_dir" FM_POOL_CASE="$case_dir" FM_POOL_WT="$wt" \
+        FM_POOL_HOLDER="$holder" FM_POOL_CHANGE="$change" \
+        run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+      assert_absent "$case_dir/early-return" "$holder/$change: returned the pool copy before reaping"
+      if [ "$holder" = other-task ] || [ "$holder" = unreadable ]; then
+        expect_code 1 "$rc" "$holder: unproven slot ownership must refuse teardown"
+        assert_absent "$case_dir/reap-boundary" "$holder: reaped a slot without proving ownership"
+      elif [ "$change" = clean ]; then
+        expect_code 0 "$rc" "$holder: clean legacy slot should return: $(cat "$case_dir/stderr")"
+        assert_present "$case_dir/return.log" "$holder: clean slot was not returned"
+        assert_absent "$case_dir/state/task-x1.meta" "$holder: clean task was not retired"
+        continue
+      else
+        expect_code 1 "$rc" "$holder/$change: late work or failed reaping must refuse teardown"
+        assert_present "$case_dir/reap-boundary" "$holder/$change: reaping did not run"
+        if [ "$change" = untracked ]; then
+          assert_grep 'late file' "$wt/late.txt" "$holder: untracked work was lost"
+        elif [ "$change" = tracked ]; then
+          assert_grep 'late edit' "$wt/worker.txt" "$holder: tracked work was lost"
+        elif [ "$change" = commit ]; then
+          [ "$(git -C "$wt" rev-parse HEAD)" != "$before" ] || fail "$holder: late commit was lost"
+          assert_grep 'late commit' "$wt/worker.txt" "$holder: committed work was lost"
+        fi
+      fi
+      assert_absent "$case_dir/return.log" "$holder/$change: unsafe copy reached a destructive return"
+      assert_present "$case_dir/state/task-x1.meta" "$holder/$change: refusal lost the retry record"
+      assert_equals fm/task-x1 "$(git -C "$wt" symbolic-ref --short HEAD)" "$holder/$change: refusal detached the task branch"
+    done
+  done
+  pass "legacy leased and unleased slots preserve late work and reject unproved ownership before mutation"
+}
+
 # Run a focused set of the cases defined above without walking the suite.
 if [ "$#" -gt 0 ]; then
   for test_case in "$@"; do
@@ -6314,6 +6414,7 @@ if [ "$#" -gt 0 ]; then
   exit
 fi
 
+test_legacy_pool_return_preserves_late_work
 test_herdr_close_precedes_process_reap_and_pool_return
 
 test_teardown_preserves_opencode_busy_plugin_on_pool_return
@@ -7035,10 +7136,7 @@ test_persistent_index_lock_exhausts_retries_and_refuses_loudly
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error
 test_teardown_records_the_task_pipeline_spend
-test_teardown_records_the_task_pipeline_spend legacy
-test_teardown_records_the_task_pipeline_spend claimed
-test_teardown_records_the_task_pipeline_spend refused
-test_teardown_records_the_task_pipeline_spend reassigned
+test_pool_pipeline_spend_follows_ownership_proof
 test_teardown_skips_pipeline_spend_when_disabled
 test_teardown_records_unavailable_spend_for_a_gone_worktree
 test_parked_own_run_is_aborted_before_teardown

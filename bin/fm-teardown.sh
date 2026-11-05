@@ -3932,21 +3932,17 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] &&
   ORCA_PATH_MATCH_VERIFIED=1
 fi
 
-# Herdr's pane shell lives in its leased copy. Prove a pre-claim slot's
-# ownership before clearing pane metadata, closing the pane, or reaping the
-# copy. The project lock prevents allocation between this read and the return;
-# a conditional return cannot serve as this proof because it kills pane shells.
-if [ "$BACKEND" = herdr ] && [ "$KIND" != secondmate ] && teardown_owns_worktree; then
+if [ "$BACKEND" != orca ] && [ "$KIND" != secondmate ] && teardown_owns_worktree; then
   if [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
     fm_treehouse_slot_owner_state "$WT" "$ID"
     if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
-      herdr_slot=$(canonical_existing_dir "$WT") || exit 1
-      if ! herdr_pool_status=$(cd "$PROJ" && treehouse status --json) ||
-         ! jq -e --arg path "$herdr_slot" --arg id "$ID" '
+      pool_slot=$(canonical_existing_dir "$WT") || exit 1
+      if ! pool_status=$(cd "$PROJ" && treehouse status --json) ||
+         ! jq -e --arg path "$pool_slot" --arg id "$ID" '
            [.[] | select(.path == $path)] | length == 1 and
            (.[0] | .lease_holder == $id or (.lease_id == "" and .lease_holder == ""))
-         ' <<<"$herdr_pool_status" >/dev/null 2>&1; then
-        echo "REFUSED: cannot prove task $ID owns the Treehouse lease for $WT; retaining the pane, copy, lease and every durable task record" >&2
+         ' <<<"$pool_status" >/dev/null 2>&1; then
+        echo "REFUSED: cannot prove task $ID owns the Treehouse lease for $WT; retaining the endpoint, copy, lease and every durable task record" >&2
         exit 1
       fi
     fi
@@ -4102,38 +4098,6 @@ if [ "$BACKEND" = herdr ]; then
   if ! fm_backend_herdr_endpoint_confirmed_gone "$T"; then
     echo "error: herdr pane $T for $ID is not confirmed gone after its close was refused, skipped, or failed; retaining every durable task record - rerun teardown once the close can run under the session lock" >&2
     exit 1
-  fi
-fi
-
-# Non-Herdr pre-claim slots prove ownership through a guarded lease return
-# before any reap, branch drop or hook sweep could touch a reissued copy.
-# Herdr already proved its lease above: capture its branch here, but defer its
-# return until after the reap and stopped-copy safety proof below. The project
-# lock remains held across either path, preventing concurrent allocation.
-TEARDOWN_ABSENT_CLAIM_RETURNED=0
-TEARDOWN_ABSENT_CLAIM_BRANCH=
-if [ "$KIND" != secondmate ] && teardown_owns_worktree \
-   && [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
-  fm_treehouse_slot_owner_state "$WT" "$ID"
-  if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
-    TEARDOWN_ABSENT_CLAIM_BRANCH=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-    post_lock_cleanup_check=
-    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ]; then
-      post_lock_cleanup_check=validate_worktree_teardown_safety
-    fi
-    if [ "$BACKEND" != herdr ]; then
-      if teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check"; then
-        TEARDOWN_ABSENT_CLAIM_RETURNED=1
-        # No scrub runs before ownership is proven on this path, so only
-        # residue a real return cannot clean evidences a lost slot.
-        if teardown_worktree_has_uncleanable_residue "$WT"; then
-          teardown_note_dirty_return "$WT"
-        fi
-      else
-        echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
-        exit 1
-      fi
-    fi
   fi
 fi
 
@@ -4302,7 +4266,7 @@ fi
 
 if [ "$KIND" = ship ] && teardown_owns_worktree && [ -e "$CONFIG/pipeline-spend" ]; then
   FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" FM_CONFIG_OVERRIDE="$CONFIG" \
-    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null \
+    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" >/dev/null \
     || echo "warning: could not record $ID's no-mistakes pipeline spend; cleanup continues" >&2
 fi
 
@@ -4352,63 +4316,45 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
 elif [ "$KIND" != secondmate ] && ! teardown_owns_worktree; then
   :
 elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
-  if [ "$TEARDOWN_ABSENT_CLAIM_RETURNED" = 1 ]; then
-    # The pre-claim ownership return above already put this slot back in the
-    # pool and its reset cleaned the copy, so nothing here may return or reset
-    # it again: drop this task's captured branch ref best-effort, sweep any
-    # hook files the reset left, and drop the spent claim.
-    if [ "$TEARDOWN_ABSENT_CLAIM_BRANCH" != "HEAD" ]; then
-      git -C "$PROJ" branch -D "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null 2>&1 || true
+  branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
+  if [ "$branch" != "HEAD" ]; then
+    if git -C "$WT" checkout --detach -q 2>/dev/null; then
+      git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
     fi
-    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
-      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
-    remove_harness_worktree_wiring "$WT"
-    if [ "$BACKEND" = t3code ]; then
-      "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
-      git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
-    fi
-    fm_treehouse_slot_owner_release "$WT" "$ID"
-  else
-    branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-    if [ "$branch" != "HEAD" ]; then
-      if git -C "$WT" checkout --detach -q 2>/dev/null; then
-        git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
-      fi
-    fi
-    # Remove our hook and environment files so a reused pool worktree cannot fire
-    # signals for a dead task or hand a t3code env block or channel statement to
-    # its next holder.
-    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
-      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
-    remove_harness_worktree_wiring "$WT"
-    if [ "$BACKEND" = t3code ]; then
-      "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
-      git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
-    fi
-    # Kills remaining processes in the worktree (including the agent), resets, returns
-    # to pool. treehouse resolves the pool from the working directory, so run it from
-    # the project. teardown_treehouse_return tolerates transient and stale git locks
-    # left by a killed crew process; see the script header for retry and stale-lock proof.
-    post_lock_cleanup_check=
-    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
-      post_lock_cleanup_check=validate_worktree_teardown_safety
-    fi
-    if [ "$KIND" = scout ] || [ "$FORCE" = "--force" ]; then
-      teardown_scrub_scratch_copy "$WT" || exit 1
-    fi
-    wt_pool_slot=0
-    fm_treehouse_pool_slot "$PROJ" "$WT" && wt_pool_slot=1
-    teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
-      echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
-      exit 1
-    }
-    [ "$wt_pool_slot" = 0 ] || teardown_note_dirty_return "$WT"
-    # The slot is back in the pool, so this task's claim on it is spent. Dropping
-    # it here - and only after a return that succeeded - keeps a returned slot
-    # unclaimed until its next holder claims it, and leaves the claim in place
-    # whenever the return did not actually happen.
-    fm_treehouse_slot_owner_release "$WT" "$ID"
   fi
+  # Remove our hook and environment files so a reused pool worktree cannot fire
+  # signals for a dead task or hand a t3code env block or channel statement to
+  # its next holder.
+  rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
+    "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
+  remove_harness_worktree_wiring "$WT"
+  if [ "$BACKEND" = t3code ]; then
+    "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
+    git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
+  fi
+  # Kills remaining processes in the worktree (including the agent), resets, returns
+  # to pool. treehouse resolves the pool from the working directory, so run it from
+  # the project. teardown_treehouse_return tolerates transient and stale git locks
+  # left by a killed crew process; see the script header for retry and stale-lock proof.
+  post_lock_cleanup_check=
+  if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
+    post_lock_cleanup_check=validate_worktree_teardown_safety
+  fi
+  if [ "$KIND" = scout ] || [ "$FORCE" = "--force" ]; then
+    teardown_scrub_scratch_copy "$WT" || exit 1
+  fi
+  wt_pool_slot=0
+  fm_treehouse_pool_slot "$PROJ" "$WT" && wt_pool_slot=1
+  teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
+    echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
+    exit 1
+  }
+  [ "$wt_pool_slot" = 0 ] || teardown_note_dirty_return "$WT"
+  # The slot is back in the pool, so this task's claim on it is spent. Dropping
+  # it here - and only after a return that succeeded - keeps a returned slot
+  # unclaimed until its next holder claims it, and leaves the claim in place
+  # whenever the return did not actually happen.
+  fm_treehouse_slot_owner_release "$WT" "$ID"
 elif [ "$KIND" != secondmate ] && [ -n "$WT" ]; then
   # The recorded copy is gone from disk - removed or pruned outside Firstmate -
   # so none of the steps above run and nothing else would ever release this
