@@ -6100,6 +6100,7 @@ SH
 run_copied_teardown() {  # <case-dir> [args...]
   local case_dir=$1
   shift
+  # shellcheck disable=SC2031 # Other tests' FM_HOME overrides are intentionally subshell-local.
   FM_HOME="${FM_HOME:-$case_dir/home}" \
   FM_ROOT_OVERRIDE="$case_dir/code" \
   FM_STATE_OVERRIDE="$case_dir/state" \

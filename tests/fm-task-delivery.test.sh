@@ -881,6 +881,7 @@ test_promotion_branch_command_is_shell_safe() {
   id=promote-branch-safe-e3
   # A relative sentinel keeps the branch valid when TMPDIR has hidden path
   # components, which Git forbids in ref names. The command runs in repo.
+  # shellcheck disable=SC2016 # The injection probe requires literal command substitution and ${IFS}.
   prefix='$(touch${IFS}promote-branch-shell-safe-marker)/'
   meta="$home/state/$id.meta"
   mkdir -p "$home/state"
