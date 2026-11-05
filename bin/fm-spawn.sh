@@ -2112,7 +2112,8 @@ spawn_abort_cleanup() {
   # The return mutates the pool's state file, which the Treehouse project lock
   # serialises against every other allocation and return, so it runs only while
   # that lock is still held; an abort after its release says so instead of
-  # racing a concurrent spawn's own allocation.
+  # racing a concurrent spawn's own allocation. A Herdr pane born in the slot
+  # must also be confirmed gone before its durable lease can be returned.
   if [ "$SPAWN_LEASE_HELD" = 1 ] &&
     { [ "$SPAWN_LEASE_THIS_RUN" = 1 ] ||
       { [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; }; }; then
@@ -2120,10 +2121,14 @@ spawn_abort_cleanup() {
     spawn_leased_slot=${WT:-${WT_LEASED:-}}
     if [ -z "$spawn_leased_slot" ]; then
       echo "warning: task $ID leased a Treehouse pool slot for $PROJ_ABS but no path for it survived the aborted spawn, so it could not be returned; the lease may still be held" >&2
+    elif [ "$BACKEND" = herdr ] && [ -n "${T:-}${HERDR_CONTAINER_RAW:-}${HERDR_PROJECTION_ID:-}" ] &&
+      { [ "$SPAWN_ENDPOINT_CLOSED" != 1 ] ||
+        ! fm_backend_herdr_endpoint_confirmed_gone "${T:-$HERDR_PROJECTION_ABORT_SESSION:$HERDR_PROJECTION_ABORT_TASK_PANE}"; }; then
+      echo "warning: the worktree $spawn_leased_slot stays leased to $ID after the failed spawn because its Herdr pane is not confirmed gone; once inspected, run 'treehouse return --force $spawn_leased_slot' from $PROJ_ABS" >&2
     elif [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ]; then
-      echo "warning: task $ID's leased slot $spawn_leased_slot was not returned after an aborted spawn; the Treehouse project lock is no longer held, so returning it here could corrupt a concurrent allocation - return it by hand once the slot is known to be idle" >&2
+      echo "warning: the worktree $spawn_leased_slot stays leased to $ID after the failed spawn; the Treehouse project lock is no longer held, so returning it here could corrupt a concurrent allocation - once the slot is known to be idle, run 'treehouse return --force $spawn_leased_slot' from $PROJ_ABS" >&2
     elif [ -n "$(git -C "$spawn_leased_slot" status --porcelain 2>/dev/null)" ]; then
-      echo "warning: task $ID's leased slot $spawn_leased_slot holds uncommitted work, so it was left exactly as the refusal above found it and its lease was not returned; inspect that work, then release the slot with: (cd $PROJ_ABS && treehouse return --force $spawn_leased_slot)" >&2
+      echo "warning: the worktree $spawn_leased_slot stays leased to $ID because it holds uncommitted work, so it was left exactly as the refusal above found it; inspect that work, then release the slot with: (cd $PROJ_ABS && treehouse return --force $spawn_leased_slot)" >&2
     elif ! ( cd "$PROJ_ABS" && treehouse return --force "$spawn_leased_slot" ) >/dev/null 2>&1; then
       echo "warning: task $ID's leased slot $spawn_leased_slot could not be returned after an aborted spawn; the lease may still be held" >&2
     fi

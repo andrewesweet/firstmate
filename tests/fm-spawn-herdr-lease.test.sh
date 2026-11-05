@@ -34,6 +34,11 @@ make_lease_case() {
   d="$dir/fake"
   fb="$dir/fakebin"
   mkdir -p "$d" "$fb" "$dir/user-home"
+  if [ "$harness" = polytoken ]; then
+    mkdir -p "$dir/user-home/.config/polytoken"
+    printf 'version: 4\nproviders:\n  zai:\n    auth:\n      type: static_key\n      key: fixture-key\n' \
+      > "$dir/user-home/.config/polytoken/config.yaml"
+  fi
   fm_test_spawn_home "$home" "$harness"
   fm_git_worktree "$proj" "$wt" "slot-$name"
   fm_test_spawn_brief "$home" "$name" "Exercise the Herdr task-copy lease for $name."
@@ -83,6 +88,7 @@ case "${1:-} ${2:-}" in
       'cd -- '*) path=${payload#cd -- }; path=${path#\'}; path=${path%\'}
         printf '%s' "$path" > "$D/cwd"; printf '%s' "$path" > "$D/fg" ;;
       *'encode launch-brief'* | *'Firstmate operational input waiting: read'*)
+        : > "$D/launch-attempted"
         [ ! -f "$D/launch-send-fails" ] || exit 1
         printf '%s\n' "$payload" > "$D/launched-command"
         : > "$D/herdr-agent-live" ;;
@@ -101,6 +107,8 @@ case "${1:-} ${2:-}" in
     exit 0 ;;
   'tab list') printf '{"result":{"tabs":[]}}\n'; exit 0 ;;
   'tab create')
+    : > "$D/pane-created"
+    [ ! -f "$D/create-fails" ] || exit 1
     printf '{"result":{"tab":{"tab_id":"tabnew"},"root_pane":{"pane_id":"%%9"}}}\n'
     exit 0 ;;
 esac
@@ -124,7 +132,7 @@ run_lease_spawn() {  # <case-dir> <id> [extra spawn args...]
   env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
     -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
     PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
-    FM_FAKE_SLOT="$dir/slot" HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
+    FM_FAKE_SLOT="$dir/slot" HOME="$dir/user-home" XDG_CONFIG_HOME="$dir/user-home/.config" CLAUDE_CONFIG_DIR='' \
     FM_SPAWN_NO_GUARD=1 \
     "$SPAWN" "$id" "$dir/project" --backend herdr --mode no-mistakes --yolo off "$@" 2>&1
 }
@@ -152,7 +160,7 @@ test_failed_lease_refuses_without_a_record() {
   out=$(run_lease_spawn "$dir" "$id")
   status=$?
   [ "$status" -ne 0 ] || fail "spawn went on without a leased copy"$'\n'"$out"
-  assert_contains "$out" "treehouse get --lease failed" "the refusal did not name the failed lease"
+  assert_contains "$out" "could not lease a Treehouse pool slot" "the refusal did not name the failed lease"
   [ ! -e "$dir/home/state/$id.meta" ] || fail "refused spawn published task metadata"
   ! grep -qx 'get' "$dir/fake/treehouse-log" || fail "a refused lease fell back to the interactive form"
   pass "a failed lease refuses the spawn and falls back to nothing"
@@ -182,33 +190,39 @@ test_rolled_back_spawn_after_launch_names_the_lease_it_keeps() {
   [ ! -e "$dir/home/state/$id.meta" ] || fail "the failed spawn kept its task record"
   assert_contains "$out" "stays leased to $id" "a rolled-back spawn after its launch left the lease unnamed"
   assert_contains "$out" "treehouse return --force $dir/slot" "a rolled-back spawn after its launch did not name the command that releases it"
+  [ -e "$dir/fake/launch-attempted" ] || fail "the failed spawn never attempted its launch"
   [ ! -e "$dir/fake/returned" ] || fail "an abort with the endpoint still open returned a slot the operator may want to inspect"
   pass "a spawn rolled back after its launch keeps the lease and names the command that releases it"
 }
 
-# abort_polytoken_spawn <id> <dirty|launch-fails> [session-lockable]: a
-# polytoken spawn aborts, either before its launch into a dirty copy or after a
-# launch that was not delivered into a clean copy, and asks Herdr to close its
-# own pane. Herdr closes it only when the session's presentation lock can be
-# taken, which needs the session's socket; without it the kill refuses and the
-# pane stays.
+# abort_polytoken_spawn <id> <dirty|launch-fails|config-missing|create-fails> [session-lockable]: a
+# polytoken spawn aborts before launch on a dirty copy or missing config, or
+# when launch delivery fails. Before launch it asks Herdr to close its own
+# pane, which requires the session's presentation lock and socket. Unconfirmed
+# launch delivery keeps the pane for inspection.
 abort_polytoken_spawn() {
   local id=$1 dir
   dir=$(make_lease_case "$id" polytoken)
   case "$2" in
     dirty) echo dirty >> "$dir/slot/README.md" ;;
     launch-fails) : > "$dir/fake/launch-send-fails" ;;
+    config-missing) rm "$dir/user-home/.config/polytoken/config.yaml" ;;
+    create-fails) : > "$dir/fake/create-fails" ;;
   esac
   [ -z "${3:-}" ] || : > "$dir/fake/session-lockable"
   LEASE_OUT=$(run_lease_spawn "$dir" "$id" --model zai/glm-5.3-flash --effort low)
   LEASE_STATUS=$?
   LEASE_DIR=$dir
+  if [ "$2" = launch-fails ]; then
+    [ -e "$dir/fake/launch-attempted" ] || fail "the failed spawn never attempted its launch"$'\n'"$LEASE_OUT"
+  fi
 }
 
 test_abort_returns_a_clean_lease_once_the_pane_is_gone() {
   local id=lease-pane-gone
-  abort_polytoken_spawn "$id" launch-fails session-lockable
-  [ "$LEASE_STATUS" -ne 0 ] || fail "spawn succeeded although its launch was not delivered"$'\n'"$LEASE_OUT"
+  abort_polytoken_spawn "$id" config-missing session-lockable
+  [ "$LEASE_STATUS" -ne 0 ] || fail "spawn succeeded without its provider config"$'\n'"$LEASE_OUT"
+  assert_contains "$LEASE_OUT" "polytoken global config" "the fixture did not reach the pre-launch config refusal"
   [ ! -e "$LEASE_DIR/home/state/$id.meta" ] || fail "the failed spawn kept its task record"
   assert_grep 'pane close' "$LEASE_DIR/fake/herdr-log" "the abort did not close its pane"$'\n'"$LEASE_OUT"
   [ -e "$LEASE_DIR/fake/returned" ] || fail "the abort kept a clean lease although its pane is gone"$'\n'"$LEASE_OUT"
@@ -227,12 +241,16 @@ test_abort_keeps_a_dirty_lease_once_the_pane_is_gone() {
 }
 
 test_abort_keeps_the_lease_while_the_pane_is_present() {
-  local id=lease-close-refused
-  abort_polytoken_spawn "$id" dirty
-  [ "$LEASE_STATUS" -ne 0 ] || fail "spawn launched into a dirty leased copy"$'\n'"$LEASE_OUT"
-  ! grep -q 'pane close' "$LEASE_DIR/fake/herdr-log" || fail "the kill closed the pane without its presentation lock"
-  [ ! -e "$LEASE_DIR/fake/returned" ] || fail "the abort returned the lease while its pane is still present"
-  assert_contains "$LEASE_OUT" "stays leased to $id" "an abort with its pane still present did not name the lease it keeps"
+  local variant id
+  for variant in dirty config-missing launch-fails create-fails; do
+    id=lease-close-refused-$variant
+    abort_polytoken_spawn "$id" "$variant"
+    [ "$LEASE_STATUS" -ne 0 ] || fail "spawn unexpectedly succeeded ($variant)"$'\n'"$LEASE_OUT"
+    [ -e "$LEASE_DIR/fake/pane-created" ] || fail "the fixture never created its pane ($variant)"
+    ! grep -q 'pane close' "$LEASE_DIR/fake/herdr-log" || fail "the kill closed the pane without its presentation lock"
+    [ ! -e "$LEASE_DIR/fake/returned" ] || fail "the abort returned the lease while its pane is still present ($variant)"
+    assert_contains "$LEASE_OUT" "stays leased to $id" "an abort with its pane still present did not name the lease it keeps"
+  done
   pass "an abort whose pane is still present keeps the lease and names it"
 }
 

@@ -100,7 +100,7 @@ make_case() {
   case_dir="$TMP_ROOT/$name"
   fakebin="$case_dir/fakebin"
   mkdir -p "$case_dir/state" "$case_dir/config" "$case_dir/data" "$fakebin" \
-    "$case_dir/code" "$case_dir/home"
+    "$case_dir/code" "$case_dir/home/state"
   # Source and home roots must be disjoint from disposable task copies and
   # archives, including when TMPDIR is inside the repository under test.
   ln -snf "$ROOT/bin" "$case_dir/code/bin"
