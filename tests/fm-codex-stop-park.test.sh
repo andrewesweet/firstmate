@@ -380,6 +380,43 @@ settle_idle_case() {  # <name> <queued|empty> [VAR=VAL ...]
   printf '%s\n' "$home"
 }
 
+test_final_result_at_stop_entry() {
+  local home out mode
+  for mode in delivered failed missing away empty; do
+    home=$(make_home "entry-$mode" opted-in)
+    rm -f "$home/state/fixture-task.meta"
+    [ "$mode" = empty ] || printf 'check: final quota alert\n' > "$home/state/.wake-queue"
+    [ "$mode" != away ] || : > "$home/state/.afk"
+    out=$(under_codex "$home" "$REGISTER"'
+      if [ "$ENTRY_MODE" != missing ]; then
+        printf "%s" "$PAYLOAD" | "$PARK"; echo "stop=$?"
+      fi
+      printf "%s" "$PAYLOAD" | "$PARK" --guard; echo "guard=$?"
+    ' ENTRY_MODE="$mode" FM_FAKE_CODEX_QUEUE_RC="$([ "$mode" = failed ] && echo 1 || echo 0)" 2>&1)
+    assert_equals 0 "$(arm_count "$home")" "a final result without sources must not arm a watcher ($mode)"
+    case "$mode" in
+      delivered)
+        assert_equals delivered "$(outcome "$home")" "a result queued before Stop must be delivered"
+        assert_equals 1 "$(queue_count "$home")" "the final result must reach the native session exactly once"
+        assert_contains "$out" guard=0 "a recent delivery must satisfy the synchronous guard"
+        assert_absent "$home/turnend-guard-ran" "the synchronous guard must recognize the native delivery"
+        ;;
+      failed|missing)
+        assert_equals "$SESSION_ID" "$(cat "$home/state/.codex-park-fallback" 2>/dev/null)" \
+          "a pending result without successful delivery must select foreground fallback"
+        assert_contains "$out" guard=2 "an undelivered final result must require a foreground handling turn"
+        ;;
+      away|empty)
+        assert_equals 0 "$(queue_count "$home")" "away ownership and empty idle sessions must remain quiet"
+        assert_absent "$home/state/.codex-park.json" "an inert Stop must not establish a park"
+        assert_contains "$out" guard=0 "an inert Stop must allow the turn to end"
+        ;;
+    esac
+    assert_absent "$home/state/.codex-park.lock" "Stop must release its park claim ($mode)"
+  done
+  pass "final queued results at Stop entry are delivered or handed to foreground fallback without a watcher"
+}
+
 test_settle_idle_delivers_a_queued_result_once() {
   local home out
   home=$(settle_idle_case settle-queued queued)
@@ -536,6 +573,7 @@ test_stop_rearms_after_a_delivering_park_releases_its_claim delivered 1
 test_stop_rearms_after_a_delivering_park_releases_its_claim delivering 4
 test_failed_queue_delivery_latches_fallback
 test_latched_fallback_stays_quiet_without_supervision_need
+test_final_result_at_stop_entry
 test_settle_idle_delivers_a_queued_result_once
 test_settle_idle_failed_delivery_latches_fallback
 test_settle_idle_with_an_empty_queue_records_idle

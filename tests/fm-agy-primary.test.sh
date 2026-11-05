@@ -322,6 +322,52 @@ test_turnend_guard_agy_actionable_wake_followup() {
   pass "fm-turnend-guard-agy: actionable arm close returns continue decision and resets turnend-blocks"
 }
 
+test_turnend_guard_agy_final_source_wake() {
+  local dir mode timing payload out target
+  payload='{"sessionId":"s-1","executionNum":1,"terminationReason":"NO_TOOL_CALL"}'
+  for mode in arm host; do
+    for timing in before during captured; do
+      dir=$(make_primary_dir "$TMP_ROOT/final-$mode-$timing")
+      printf '2\n' > "$dir/state/.turnend-blocks"
+      target="$dir/bin/fm-watch-arm.sh"
+      if [ "$mode" = host ]; then
+        : > "$dir/config/supervision-host"
+        target="$dir/bin/fm-supervision-host.sh"
+      fi
+      cat > "$target" <<'SH'
+#!/usr/bin/env bash
+printf 'ran\n' > "$FM_HOME/state/final-arm-ran"
+if [ -e "$FM_HOME/state/capture-only" ]; then
+  rm -f "$FM_HOME/state/procevent/final.source"
+  printf 'check: final quota alert\n'
+else
+  printf 'check: final quota alert\n' > "$FM_HOME/state/.wake-queue"
+  rm -f "$FM_HOME/state/procevent/final.source"
+fi
+SH
+      chmod +x "$target"
+      if [ "$timing" = before ]; then
+        printf 'check: final quota alert\n' > "$dir/state/.wake-queue"
+      else
+        mkdir -p "$dir/state/procevent"
+        : > "$dir/state/procevent/final.source"
+        [ "$timing" != captured ] || : > "$dir/state/capture-only"
+      fi
+      out=$(run_agy_stop "$dir" "$payload")
+      assert_equals continue "$(printf '%s' "$out" | jq -r '.decision // empty')" \
+        "the last source's final wake must receive a handling turn ($mode/$timing)"
+      assert_contains "$out" bin/fm-wake-drain.sh "the final wake must request durable wake handling"
+      assert_absent "$dir/state/.turnend-blocks" "a final wake must reset the repair budget"
+      if [ "$timing" = before ]; then
+        assert_absent "$dir/state/final-arm-ran" "an already queued result needs no new watcher"
+      else
+        assert_absent "$dir/state/procevent/final.source" "the source must have retired before delivery"
+      fi
+    done
+  done
+  pass "fm-turnend-guard-agy: final source wakes survive retirement before and during both park modes"
+}
+
 test_turnend_guard_agy_supervision_host_park() {
   local dir payload out reason
   payload='{"sessionId":"s-1","conversationId":"c-1","executionNum":1,"terminationReason":"NO_TOOL_CALL"}'
@@ -430,6 +476,12 @@ test_turnend_guard_agy_loop_ceiling() {
   payload='{"sessionId":"s-1","conversationId":"c-1","executionNum":4,"terminationReason":"NO_TOOL_CALL"}'
   out=$(FM_AGY_TURNEND_LOOP_CEILING=4 run_agy_stop "$dir" "$payload")
   assert_equals "{}" "$out" "reaching the ceiling with nothing to supervise must return {}"
+  printf 'check: final quota alert\n' > "$dir/state/.wake-queue"
+  out=$(FM_AGY_TURNEND_LOOP_CEILING=4 run_agy_stop "$dir" "$payload")
+  assert_contains "$out" "CEILING REACHED" "a pending final wake must receive the ceiling notice"
+  payload='{"sessionId":"s-1","executionNum":5,"terminationReason":"NO_TOOL_CALL"}'
+  out=$(FM_AGY_TURNEND_LOOP_CEILING=4 run_agy_stop "$dir" "$payload")
+  assert_equals "{}" "$out" "a pending final wake must not bypass the loop ceiling"
   pass "fm-turnend-guard-agy: the loop ceiling notifies once while supervision is needed, then passes through"
 }
 
@@ -618,6 +670,7 @@ fm_test_run \
   test_agents_hooks_json_registration_and_cwd_contract \
   test_sessionstart_agy_primary_secondmate_and_worktree_scope \
   test_turnend_guard_agy_actionable_wake_followup \
+  test_turnend_guard_agy_final_source_wake \
   test_turnend_guard_agy_supervision_host_park \
   test_turnend_guard_agy_park_timeout_rearms \
   test_turnend_guard_agy_fleet_empty_and_healthy_close \

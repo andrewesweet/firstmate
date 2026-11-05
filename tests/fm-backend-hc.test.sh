@@ -206,12 +206,13 @@ test_agent_state_classifies_foreground_and_absence() {
 }
 
 test_agent_state_reads_a_shell_wrappers_group() {
-  local tag out wrapper
+  local tag out wrapper standin
   setup_case wrapper
   tag=$(hometag_of)
+  standin=$(fm_agent_standin "$D/standin") || fail "no agent stand-in survives a foreign name here"
   # A shell wrapper in its own process group, waiting on a harness child.
   set -m
-  bash -c '(exec -a claude sleep 30); :' &
+  bash -c '(exec -a claude "$1" 30); :' _ "$standin" &
   wrapper=$!
   set +m
   write_terminal "$D" t9 live fm-a1 "$tag" bash bash

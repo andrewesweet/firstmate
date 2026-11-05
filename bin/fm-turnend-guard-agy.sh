@@ -62,6 +62,12 @@ continue_turn() {  # <reason>
   exit 0
 }
 
+resume_pending_wake() {
+  [ -s "$STATE/.wake-queue" ] || return 0
+  rm -f "$STATE/.turnend-blocks" 2>/dev/null || true
+  continue_turn "firstmate watcher wake - a queued supervision event needs a handling turn now. Run bin/fm-wake-drain.sh first, handle every presented wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. This Stop hook owns watcher continuity."
+}
+
 # shellcheck source=bin/fm-primary-scope-lib.sh
 . "$SCRIPT_DIR/fm-primary-scope-lib.sh"
 # shellcheck source=bin/fm-supervision-lib.sh
@@ -101,10 +107,11 @@ fi
 # needed is told once, loudly, instead of supervision going quiet unannounced.
 if [ -n "$EXEC_NUM" ] && [ "$EXEC_NUM" -ge "$LOOP_CEILING" ]; then
   [ "$EXEC_NUM" -eq "$LOOP_CEILING" ] || allow_stop
-  fm_supervision_needed "$STATE" "$GRACE" || allow_stop
+  [ -s "$STATE/.wake-queue" ] || fm_supervision_needed "$STATE" "$GRACE" || allow_stop
   continue_turn "FIRSTMATE SUPERVISION FOLLOW-UP CEILING REACHED - this session has taken $EXEC_NUM consecutive hook-driven turns, so automatic wake delivery stops here to bound the loop. Queued wakes stay durable: run bin/fm-wake-drain.sh, handle them, and run its exact WAKE_ACK_REQUIRED command. Supervision resumes automatically at the next turn end after the captain's next message."
 fi
 
+resume_pending_wake
 if ! fm_supervision_needed "$STATE" "$GRACE"; then
   rm -f "$STATE/.turnend-blocks" 2>/dev/null || true
   allow_stop
@@ -165,6 +172,7 @@ while [ "$attempt" -lt "$ARM_ATTEMPTS" ]; do
 
   park_still_ours || allow_stop
   [ -e "$STATE/.afk" ] && allow_stop
+  resume_pending_wake
 
   if grep -Eq "$ACTIONABLE_RE" "$ARM_OUT" 2>/dev/null; then
     ACTIONABLE=1
@@ -194,12 +202,6 @@ while [ "$attempt" -lt "$ARM_ATTEMPTS" ]; do
   ARM_OUT=
 done
 
-# The need may have vanished while parked: nothing left to supervise.
-if ! fm_supervision_needed "$STATE" "$GRACE"; then
-  rm -f "$STATE/.turnend-blocks" 2>/dev/null || true
-  allow_stop
-fi
-
 if [ "$ACTIONABLE" -eq 1 ]; then
   if [ "$HOST_MODE" -eq 1 ]; then
     WAKE=$(awk '/^supervision-host:/ { print; next } /^(signal:|stale:|check:|heartbeat)/ && shown++ < 8' "$ARM_OUT" 2>/dev/null)
@@ -211,6 +213,13 @@ if [ "$ACTIONABLE" -eq 1 ]; then
 $WAKE
 
 Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle parks automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake."
+fi
+
+# The need may have vanished while parked: nothing left to supervise.
+resume_pending_wake
+if ! fm_supervision_needed "$STATE" "$GRACE"; then
+  rm -f "$STATE/.turnend-blocks" 2>/dev/null || true
+  allow_stop
 fi
 
 if [ "$HEALTHY" -eq 1 ]; then
