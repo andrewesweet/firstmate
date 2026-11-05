@@ -1,0 +1,22 @@
+provider confidence = 0.95 exit = 0
+dispatch-resolve:
+  status: clear
+  model: local-contract-provider   latency_ms: 9   tokens: 1/1
+  rule: rule_1 (A simple bug fix with a stated root cause.)   confidence: 0.95
+  probabilities: rule_1=0.95 default=0.05
+  note: rule matched
+  candidate: codex:default  provider=codex  -> eligible (quota ranking off: home declares a single shared quota)
+  candidate: claude:default  provider=claude  -> eligible (quota ranking off: home declares a single shared quota)
+  profile: --harness 'codex' --model 'default' --effort 'low'
+ 
+provider confidence = 0.49 exit = 0
+dispatch-resolve:
+  status: ambiguous
+  model: local-contract-provider   latency_ms: 8   tokens: 1/1
+  rule: rule_1 (A simple bug fix with a stated root cause.)   confidence: 0.49
+  probabilities: rule_1=0.95 default=0.05
+  reason: confidence 0.49 below floor 0.5
+  candidate: codex:default  provider=codex  -> eligible (quota ranking off: home declares a single shared quota)
+  candidate: claude:default  provider=claude  -> eligible (quota ranking off: home declares a single shared quota)
+ 
+Real HTTP requests reached local provider; high confidence selected codex; confidence below 0.5 did not authorize dispatch; both outcome records preserve the exact brief fingerprint without its text.

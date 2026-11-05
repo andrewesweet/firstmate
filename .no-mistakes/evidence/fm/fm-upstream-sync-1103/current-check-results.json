@@ -1,0 +1,67 @@
+{
+  "tests/fm-project-mode.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "targeted-tests.log"
+  },
+  "tests/fm-task-delivery.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "delivery-final.log"
+  },
+  "tests/fm-teardown.test.sh": {
+    "exit": null,
+    "scope": "targeted cases",
+    "evidence": [
+      "teardown-final-stable.log",
+      "teardown-source-boundaries.log"
+    ],
+    "note": "Whole-script attempts exposed repository-local fixture root overlaps. Final source-boundary cases passed after repair. The whole script was not rerun to completion after the last fixture-helper repair; preceding late-write, ownership, export, retry, archive and nested-home cases passed."
+  },
+  "tests/fm-teardown-endpoint-safety.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "endpoint-complete.log"
+  },
+  "tests/fm-codex-stop-park.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "targeted-tests.log"
+  },
+  "tests/fm-dispatch-resolve.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "dispatch-final.log"
+  },
+  "tests/fm-hermes-harness.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "targeted-tests.log"
+  },
+  "tests/fm-kiro-harness.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "targeted-tests.log"
+  },
+  "tests/fm-dod-lib.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "targeted-tests.log"
+  },
+  "tests/fm-watch-triage-wedge-defer.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "dispatch-watcher-rerun.log",
+    "note": "Passed under 900-second bound; initial 240-second bound was too short."
+  },
+  "tests/fm-test-run.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "runner-fixtures.log"
+  },
+  "tests/fm-test-fixtures.test.sh": {
+    "exit": 0,
+    "scope": "whole script",
+    "evidence": "runner-fixtures.log"
+  }
+}

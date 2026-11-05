@@ -1,0 +1,19 @@
+Standard project: no-mistakes off
+Manual project: no-mistakes off
+Manual text: manual
+Manual branch: feature/
+Wiki direct push: direct-push off
+refused: invalid is registered direct-push with pr=manual in ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/product-cli/data/projects.md; only a no-mistakes ship takes it, because direct-PR already leaves the PR text to the worker and local-only opens no PR; register no-mistakes, or drop the pr token
+Invalid manual/direct-push combination refused: exit=3
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/product-cli/data/manual-proof/brief.md (ship, mode=no-mistakes pr=manual; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/product-cli/data/fork-proof/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/product-cli/data/wiki-proof/brief.md (ship, mode=direct-push; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Queue final notification with no task records:
+1793914068	1	check	lab-final-result	Final result remains deliverable after last worker cleanup.
+
+Drain queued result:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 3381955.1793914068.vqY17z
+1793914068	1	check	lab-final-result	Final result remains deliverable after last worker cleanup.
+
+Result remains durable until acknowledgement.

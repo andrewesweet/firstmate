@@ -1,0 +1,13 @@
+The target contains the true two-parent merge a893469b, with both a8bdedb and upstream ed1eb1d7 retained in its ancestry.
+
+Live checks exercised real CLI brief generation and invalid-posture refusal, durable wake draining after the final worker record disappears, private tmux transport and exact endpoint cleanup, Treehouse 3.1.8 leases and legacy unleased copies, HTTP dispatch to a local external provider, and an actual Hermes 0.20.0 TUI with empty and unsent-draft composers. The rendered Hermes captures show the real terminal output.
+
+The independent dispatch oracle is the fork's retained 0.5 confidence floor: 0.49 must withhold authorization, while 0.50 may authorize. The OpenAI portable test inherited an incompatible upstream expectation; it now checks both boundaries. Other repairs isolate test Git repositories, source roots and homes, and use a relative command-injection sentinel that remains a valid Git branch name under hidden temporary-directory paths.
+
+Initial targeted execution, diagnostic reruns and their failures remain in the evidence directory. See current-check-results.json for final per-script scope. The broad teardown script was not completed after its final fixture-helper repair; its six source-boundary regressions passed, following successful ownership, late-write, archive, retry and nested-home cases. One earlier rerun was invalidated by editing the test file while Bash read it; it was stopped and superseded by a stable-file run. No product implementation was changed.
+
+Herdr lifecycle remains untested: an isolated HOME/XDG setup reached the sanctioned helper's prepare action, which required a running default-session tripwire. Normal Herdr session state lies outside the permitted workspace. No default session was created, changed or stopped. Supply an existing isolated Herdr environment with that tripwire, or authorize the helper's named-session state outside the workspace.
+
+Native Codex queue delivery remains untested: the installed CLI is 0.162.1; 0.163.0 was installed locally and its embedded TUI launched in a 140-by-44 private tmux pane with disposable CODEX_HOME and trusted local configuration. No native park registration appeared. The native SessionStart wrapper intentionally stands down in a gate worktree, preventing the required primary lock/registration. A non-gated disposable primary lab must be authorized to validate that path. No model prompt was submitted and no normal credential store was altered.
+
+Full repository CI belongs to the outer executor and was not run in this Test phase. No linters, formatters, pipeline controls, pushes or PR operations were invoked.

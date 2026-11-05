@@ -1,0 +1,18 @@
+fm-herdr-lab: refusing session name 'default'
+Default-session refusal exit=1
+fm-herdr-lab: run forbids caller-supplied --session; the helper supplies the lab session
+Injected session override refusal exit=1
+  --help, -h          Show this help
+
+Config: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/herdr/config.toml
+Logs:   ~/.config/herdr/herdr.log (plus herdr-client.log, herdr-server.log)
+Env:    HERDR_CONFIG_PATH overrides config file path
+Home:   https://herdr.dev
+
+Are you an AI? Use these resources ONLY IF your task specifically asks you to:
+  Help a human understand or set up Herdr for the first time:
+    https://herdr.dev/agent-guide.md
+  Debug or investigate a problem with Herdr:
+    https://herdr.dev/llms.txt
+  Control Herdr panes, agents, or workspaces:
+    SKIP if a Herdr skill is already in your context. Otherwise run: herdr --skill

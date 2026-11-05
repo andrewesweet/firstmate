@@ -1,0 +1,1580 @@
++ set -u
+++ dirname tests/fm-teardown-endpoint-safety.test.sh
++ . tests/lib.sh
+++ '[' -n '' ']'
+++ FM_TEST_LIB_SOURCED=1
+++ umask 022
++++ dirname tests/lib.sh
+++ . tests/git-config-helpers.sh
++++ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
++++ GIT_CONFIG_GLOBAL=/dev/null
++++ GIT_CONFIG_NOSYSTEM=1
++++ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
+++ export FM_GATE_REFUSE_BYPASS=1
+++ FM_GATE_REFUSE_BYPASS=1
+++ export FM_TEST_SEAM=1
+++ FM_TEST_SEAM=1
+++ unset FM_TASK_ID
+++ unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH HERDR_SESSION HERDR_BIN_PATH TERM_PROGRAM FM_BACKEND FM_HOME FM_ROOT FM_ROOT_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE FM_CONFIG_OVERRIDE FM_PROJECTS_OVERRIDE
+++ unset TASKS_AXI_FILE TASKS_AXI_BACKEND
+++ unset REX_SESSION REX_BLOCK
+++++ dirname tests/lib.sh
++++ cd tests/..
++++ pwd
+++ ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++++ fm_test_tmpdir
++++ local base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp physical
++++ base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++++ pwd -P
++++ physical=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.git ']'
++++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++ FM_TEST_TMPDIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++ FM_TEST_CLEANUP_DIRS=()
++++ mktemp ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-cleanup.3464165.XXXXXX
+++ FM_TEST_CLEANUP_REGISTRY=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-cleanup.3464165.TQexxR
++++ fm_test_pid_identity 3464165
++++ local pid=3464165
++++ FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ bash -c '. "$1"; fm_pid_identity "$2"' _ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh 3464165
+++ FM_TEST_OWNER_IDENTITY='linux-starttime=94450752 cmdline-hex=62617368002d780074657374732f666d2d74656172646f776e2d656e64706f696e742d7361666574792e746573742e736800'
++++ mktemp ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-procevent.3464165.XXXXXX
+++ FM_TEST_PROCEVENT_REGISTRY=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-procevent.3464165.IvoUrF
++++ mktemp ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-watcher.3464165.XXXXXX
+++ FM_TEST_WATCHER_REGISTRY=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-watcher.3464165.fatMUq
+++ FM_TEST_STUB_MAX_BLOCK_SECONDS=120
+++ export FM_TEST_STUB_MAX_BLOCK_SECONDS
+++ FM_TEST_SUITE_PID=3464165
+++ export FM_TEST_SUITE_PID
+++ trap fm_test_cleanup EXIT
+++ trap 'fm_test_cleanup; exit 130' INT
+++ trap 'fm_test_cleanup; exit 143' TERM
+++ trap 'fm_test_cleanup; exit 129' HUP
+++ trap 'fm_test_cleanup; exit 131' QUIT
+++ FM_TEST_ORPHAN_MAX_AGE_SECONDS=3600
+++ '[' 0 '!=' 1 ']'
+++ fm_test_reap_orphans
+++ local marker dir mtime now owner_pid owner_identity current_identity
++++ date +%s
+++ now=1793914140
+++ for marker in "$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture
+++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-codex-stop-park.l08PQm/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-codex-stop-park.l08PQm/.fm-test-fixture
+++ owner_pid=3439294
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-codex-stop-park.l08PQm/.fm-test-fixture
+++ owner_identity='linux-starttime=94447878 cmdline-hex=626173680074657374732f666d2d636f6465782d73746f702d7061726b2e746573742e736800'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 3439294
+++ current_identity='linux-starttime=94447878 cmdline-hex=626173680074657374732f666d2d636f6465782d73746f702d7061726b2e746573742e736800'
+++ '[' -n 'linux-starttime=94447878 cmdline-hex=626173680074657374732f666d2d636f6465782d73746f702d7061726b2e746573742e736800' ']'
+++ '[' 'linux-starttime=94447878 cmdline-hex=626173680074657374732f666d2d636f6465782d73746f702d7061726b2e746573742e736800' = 'linux-starttime=94447878 cmdline-hex=626173680074657374732f666d2d636f6465782d73746f702d7061726b2e746573742e736800' ']'
+++ continue
+++ dirname tests/fm-teardown-endpoint-safety.test.sh
++ . tests/t3-fake-lib.sh
+++++ dirname tests/t3-fake-lib.sh
++++ cd tests
++++ pwd
+++ T3_FAKE_SERVER=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/tests/t3-fake-server.mjs
+++ T3_FAKE_PID=
++ TEARDOWN=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh
+++ fm_test_tmproot fm-teardown-endpoint-safety
+++ local prefix=fm-teardown-endpoint-safety root tmp_base
++++ fm_test_tmpdir
++++ local base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp physical
++++ base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++++ pwd -P
++++ physical=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.git ']'
++++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++ tmp_base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+++ tmp_base=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
++++ mktemp -d ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.XXXXXX
+++ root=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++++ cd -P -- ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++++ pwd -P
+++ root=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
+++ printf '%s\n%s\n' 3464165 'linux-starttime=94450752 cmdline-hex=62617368002d780074657374732f666d2d74656172646f776e2d656e64706f696e742d7361666574792e746573742e736800'
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++ TMP_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
+++ command -v tmux
++ REAL_TMUX=/usr/bin/tmux
++ test_invalid_endpoint_records_refuse_before_mutation
++ local dir id=endpoint-a
+++ make_case missing
+++ local dir=missing
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/state/endpoint-a.meta worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing endpoint-a 'missing endpoint'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing id=endpoint-a 'description=missing endpoint' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/state/endpoint-a.meta 'missing endpoint: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/worktree/sentinel 'missing endpoint: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/missing/runtime.log ']'
+++ make_case empty
+++ local dir=empty
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/state/endpoint-a.meta window= worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty endpoint-a 'empty endpoint'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty id=endpoint-a 'description=empty endpoint' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/state/endpoint-a.meta 'empty endpoint: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/worktree/sentinel 'empty endpoint: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty/runtime.log ']'
+++ make_case malformed
+++ local dir=malformed
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/state/endpoint-a.meta window=ambient-current-window worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=ambient-current-window
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed endpoint-a 'malformed endpoint'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed id=endpoint-a 'description=malformed endpoint' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/state/endpoint-a.meta 'malformed endpoint: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/worktree/sentinel 'malformed endpoint: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/malformed/runtime.log ']'
+++ make_case mismatched
+++ local dir=mismatched
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/state/endpoint-a.meta window=isolated:fm-other-task endpoint_task_id=other-task worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-other-task
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=other-task
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched endpoint-a 'task-mismatched endpoint'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched id=endpoint-a 'description=task-mismatched endpoint' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/state/endpoint-a.meta 'task-mismatched endpoint: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/worktree/sentinel 'task-mismatched endpoint: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/mismatched/runtime.log ']'
+++ make_case empty-binding
+++ local dir=empty-binding
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/state/endpoint-a.meta window=isolated:fm-endpoint-a endpoint_task_id= worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-endpoint-a
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding endpoint-a 'empty task binding'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding id=endpoint-a 'description=empty task binding' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/state/endpoint-a.meta 'empty task binding: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/worktree/sentinel 'empty task binding: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/empty-binding/runtime.log ']'
+++ make_case duplicate-binding
+++ local dir=duplicate-binding
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/state/endpoint-a.meta window=isolated:fm-endpoint-a endpoint_task_id=endpoint-a endpoint_task_id=endpoint-a worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/state/endpoint-a.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-endpoint-a
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=endpoint-a
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=endpoint-a
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding endpoint-a 'duplicate task binding'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding id=endpoint-a 'description=duplicate task binding' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding endpoint-a
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/state/endpoint-a.meta 'duplicate task binding: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/home/state/endpoint-a.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/worktree/sentinel 'duplicate task binding: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/duplicate-binding/runtime.log ']'
++ pass 'fm-teardown: missing, empty, malformed, ambiguous, and task-mismatched endpoints refuse before every mutation or runtime call'
++ printf 'ok - %s\n' 'fm-teardown: missing, empty, malformed, ambiguous, and task-mismatched endpoints refuse before every mutation or runtime call'
+ok - fm-teardown: missing, empty, malformed, ambiguous, and task-mismatched endpoints refuse before every mutation or runtime call
++ test_worktree_identity_refusal_names_the_repair_path
++ local dir id=repair-hint err printed shape
+++ make_case repair-hint
+++ local dir=repair-hint
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.meta window=isolated:fm-repair-hint endpoint_task_id=repair-hint project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project branch=fm/repair-hint kind=ship
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-repair-hint
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=repair-hint
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project
++ for kv in "$@"
++ printf '%s\n' branch=fm/repair-hint
++ for kv in "$@"
++ printf '%s\n' kind=ship
++ printf 'worktree=%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/worktree
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint repair-hint 'worktree identity without a repair path'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint 'description=worktree identity without a repair path' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint repair-hint
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.meta 'worktree identity without a repair path: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/worktree/sentinel 'worktree identity without a repair path: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log ']'
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/stderr
++ err='+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.'
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.' 'the refusal must still name what is wrong and that the record is kept'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'exactly one worktree= line' 'the repair must name the end state all three refused shapes share'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'add it, fill it in, or keep only the right one of several' 'the repair must cover a line that is missing, empty, or duplicated, not only a missing one'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list' 'the repair path must name the listing that maps the recorded branch back to its copy'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'recorded branch fm/repair-hint' 'the repair path must name the branch to look for'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior 'the repair path must name the preserved pre-relaunch record when one exists'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/project worktree list
+The record as it stood before the last relaunch still carries that line at ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint/home/state/repair-hint.control-relaunch.meta-prior.
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' .fm-slot-owner 'the repair path must say how a reassigned pool slot is proved and why restoring stays safe'
++ case "$1" in
++ :
++ for shape in empty duplicate
+++ make_case repair-hint-empty
+++ local dir=repair-hint-empty
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty
++ '[' empty = empty ']'
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta window=isolated:fm-repair-hint endpoint_task_id=repair-hint worktree= project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project branch=fm/repair-hint kind=ship
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-repair-hint
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=repair-hint
++ for kv in "$@"
++ printf '%s\n' worktree=
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project
++ for kv in "$@"
++ printf '%s\n' branch=fm/repair-hint
++ for kv in "$@"
++ printf '%s\n' kind=ship
++ cp ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/meta.before
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty repair-hint 'empty worktree identity'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint 'description=empty worktree identity' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty repair-hint
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta 'empty worktree identity: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/worktree/sentinel 'empty worktree identity: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log ']'
++ cmp -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/meta.before ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home/state/repair-hint.meta
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/stderr
++ err='+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.'
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.' 'empty worktree refusal must stay unchanged'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'exactly one worktree= line' 'empty worktree repair must name the required end state'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'add it, fill it in, or keep only the right one of several' 'empty worktree repair must explain how to fix this shape'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list' 'empty worktree repair must identify the listing to inspect'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'recorded branch fm/repair-hint' 'empty worktree repair must identify the recorded branch'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-empty/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' .fm-slot-owner 'empty worktree repair must explain reassigned-slot safety'
++ case "$1" in
++ :
++ for shape in empty duplicate
+++ make_case repair-hint-duplicate
+++ local dir=repair-hint-duplicate
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate
++ '[' duplicate = empty ']'
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta window=isolated:fm-repair-hint endpoint_task_id=repair-hint worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/worktree worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/other-worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project branch=fm/repair-hint kind=ship
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-repair-hint
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=repair-hint
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/worktree
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/other-worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project
++ for kv in "$@"
++ printf '%s\n' branch=fm/repair-hint
++ for kv in "$@"
++ printf '%s\n' kind=ship
++ cp ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/meta.before
++ assert_refused_without_mutation ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate repair-hint 'duplicate worktree identity'
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint 'description=duplicate worktree identity' rc
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate repair-hint
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta 'duplicate worktree identity: metadata changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/worktree/sentinel 'duplicate worktree identity: worktree changed before refusal'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log ']'
++ cmp -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/meta.before ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home/state/repair-hint.meta
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/stderr
++ err='+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.'
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.' 'duplicate worktree refusal must stay unchanged'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'exactly one worktree= line' 'duplicate worktree repair must name the required end state'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'add it, fill it in, or keep only the right one of several' 'duplicate worktree repair must explain how to fix this shape'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list' 'duplicate worktree repair must identify the listing to inspect'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' 'recorded branch fm/repair-hint' 'duplicate worktree repair must identify the recorded branch'
++ case "$1" in
++ :
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate id=repair-hint
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh repair-hint --force
+REFUSED: task repair-hint has a missing, empty, or ambiguous worktree identity; preserving task state.
+The record needs exactly one worktree= line naming the copy this task holds: add it, fill it in, or keep only the right one of several, then re-run.
+Find the copy checked out on this task'\''s recorded branch fm/repair-hint with:
+git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-duplicate/project worktree list
+A pool slot handed on to another task since is still safe to name: cleanup reads that slot'\''s own .fm-slot-owner claim and then leaves the slot untouched, while a slot with no claim is proved only by that worktree listing.' .fm-slot-owner 'duplicate worktree repair must explain reassigned-slot safety'
++ case "$1" in
++ :
+++ make_case repair-hint-spaced
+++ local dir=repair-hint-spaced
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced
++ mv ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project dir'
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/home/state/repair-hint.meta window=isolated:fm-repair-hint endpoint_task_id=repair-hint 'project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project dir' branch=fm/repair-hint kind=ship
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/home/state/repair-hint.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-repair-hint
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=repair-hint
++ for kv in "$@"
++ printf '%s\n' 'project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project dir'
++ for kv in "$@"
++ printf '%s\n' branch=fm/repair-hint
++ for kv in "$@"
++ printf '%s\n' kind=ship
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced repair-hint
++ set -e
+++ sed -n '/^git -C .* worktree list$/p' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/stderr
++ printed='git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project\ dir worktree list'
+++ printf '%s\n' 'git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project\ dir worktree list'
+++ wc -l
+++ tr -d ' '
++ '[' 1 = 1 ']'
++ eval 'git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project\ dir worktree list'
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/listing
++ assert_contains '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project dir  0000000 [master]' '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/repair-hint-spaced/project dir' 'the printed listing must inspect the project the record names'
++ case "$1" in
++ :
++ pass 'fm-teardown: an unusable worktree identity refuses as before and names a repair path that runs as printed'
++ printf 'ok - %s\n' 'fm-teardown: an unusable worktree identity refuses as before and names a repair path that runs as printed'
+ok - fm-teardown: an unusable worktree identity refuses as before and names a repair path that runs as printed
++ test_control_lock_contention_refuses_before_mutation
++ local dir id=locked-task lock holder i=0 rc
+++ make_case control-lock
+++ local dir=control-lock
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta window=isolated:fm-locked-task endpoint_task_id=locked-task worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-locked-task
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=locked-task
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ lock=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ holder=3469758
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ '[' 0 -lt 100 ']'
++ sleep 0.1
++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh
++++ d=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh ']'
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ pwd
+++ FM_WAKE_LIB_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/..
++++ pwd
+++ FM_WAKE_DEFAULT_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ STATE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ FM_WAKE_QUEUE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue
+++ FM_WAKE_QUEUE_LOCK=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue.lock
+++ FM_LOCK_STALE_AFTER=2
+++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-path-lib.sh
++++ uname
+++ _FM_UNAME=Linux
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ '[' 5 -gt 4 ']'
+++ FM_WATCHER_MATCHED_IDENTITY=
+++ FM_WATCHER_HEALTHY_PID=
+++ FM_WATCHER_HEALTHY_IDENTITY=
+++ FM_WATCHER_VERDICT_OK=false
+++ FM_WATCHER_VERDICT_REASON=stale-beacon
+++ _FM_LOCK_SELF_START_PID=
+++ _FM_LOCK_SELF_START=
+++ FM_RECOVERY_MARKER_TOKEN=
+++ FM_RECOVERY_MARKER_ACTION=none
+++ FM_RECOVERY_MARKER_WRITTEN_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PREVIOUS_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
+++ FM_RECOVERY_HELD_LOCK=
+++ FM_RECOVERY_HELD_PID=
+++ FM_RECOVERY_HANDOVER_TOKEN=
+++ FM_RECOVERY_HANDOVER_SEQ=
+++ FM_WAKE_STATUS_KEY=
+++ FM_WAKE_STATUS_HISTORICAL=false
+++ FM_WAKE_EVENT_LINE=
+++ FM_WAKE_UNREAD_LINES=
+++ FM_RETRO_TRIGGER_ACTIVE=
++ fm_lock_try_acquire ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock marker_publish_bound= pid steal cur rc steal_owner primary_owner current parent
++ FM_LOCK_HELD_PID=
++ FM_LOCK_HELD_PATH=
++ FM_LOCK_OWNER_DIR=
++ FM_LOCK_RECOVERED_PID=
++ fm_lock_try_create ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock allowed_steal_owner= ownerdir
++ local FM_LOCK_PENDING_PREVIOUS_PID FM_LOCK_PENDING_PID=
++ FM_LOCK_OWNER_DIR=
++ '[' 5 -lt 4 ']'
++ FM_LOCK_PENDING_PREVIOUS_PID=
++ IFS=
++ read -r ownerdir
+++ fm_lock_owner_dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock lock_abs
++++ fm_lock_abs_path ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ local path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock dir base
++++ fm_dirname_to dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state
++++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state ']'
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state ']'
++++ printf -v dir %s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state
++++ fm_basename_to base ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++++ fm_path=.control-locked-task.lock
++++ '[' .control-locked-task.lock '!=' .control-locked-task.lock ']'
++++ printf -v base %s .control-locked-task.lock
+++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state
+++++ pwd -P
++++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state
++++ printf '%s/%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state .control-locked-task.lock
+++ lock_abs=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
+++ mktemp -d ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.XXXXXX
++ FM_LOCK_PENDING_PID=3469765
++ wait 3469765
++ FM_LOCK_PENDING_PREVIOUS_PID=3469765
++ FM_LOCK_PENDING_PID=
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ fm_lock_prepare_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ local ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3469758
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3469758
++ printf '%s\n' 3469758
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b/pid
++ back=3469758
++ '[' 3469758 = 3469758 ']'
++ '[' '' '!=' 3469758 ']'
+++ fm_pid_start_time 3469758
++ _FM_LOCK_SELF_START=proc-starttime=94451280
++ _FM_LOCK_SELF_START_PID=3469758
++ '[' -z proc-starttime=94451280 ']'
++ printf '%s\n' proc-starttime=94451280
++ FM_LOCK_PENDING_PID=3469776
++ wait 3469776
++ ln -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b ']'
++ fm_lock_claim ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b allowed_steal_owner= mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3469758
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3469758
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b/pid
++ back=3469758
++ '[' 3469758 '!=' 3469758 ']'
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b ']'
++ fm_lock_claim_blocked_by_steal ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock allowed_steal_owner= steal
++ steal=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.steal
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.steal ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.steal ']'
++ return 1
++ return 0
++ FM_LOCK_OWNER_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock.owner.VAlN3b
++ return 0
++ return 0
++ sleep 30
++ i=1
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta window=isolated:fm-locked-task endpoint_task_id=other-task worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-locked-task
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=other-task
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ set +e
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock locked-task
++ rc=1
++ set -e
++ '[' 1 -ne 0 ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta 'contended teardown removed task metadata'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/locked-task.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree/sentinel 'contended teardown changed the worktree'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/worktree/sentinel ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock 'contended teardown removed another action'\''s lock'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home/state/.control-locked-task.lock ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/runtime.log ']'
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/stderr
++ assert_contains '+ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock id=locked-task
++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/home
++ FM_ROOT_OVERRIDE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
++ FM_RUNTIME_LOG=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/runtime.log
++ PATH=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/control-lock/fakebin:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.codex/tmp/arg0/codex-arg0viX7wy:~/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:~/.opencode/bin:~/go/bin:/snap/bin:~/.local/share/fnm/aliases/default/bin:~/.local/share/fnm:~/.config/carapace/bin:~/.local/share/mise/installs/python/3.15.0/bin:~/.local/share/mise/installs/go/1.27.2/bin:~/.local/share/mise/installs/uv/0.13.1/.mise-bins:~/.local/share/mise/installs/ruff/0.17.1/.mise-bins:~/.local/bin:~/.bun/bin:~/.local/bin:~/go/bin:~/.cargo/bin:~/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:/usr/local/go/bin:~/tools/codeql:/usr/local/go/bin
++ ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-teardown.sh locked-task --force
+error: another lifecycle action is already running for task locked-task; nothing was changed' 'another lifecycle action is already running' 'contended teardown should serialize before reading mutable task metadata'
++ case "$1" in
++ :
++ kill 3469758
++ wait 3469758
++ true
++ pass 'fm-teardown: a concurrent lifecycle action refuses before mutation'
++ printf 'ok - %s\n' 'fm-teardown: a concurrent lifecycle action refuses before mutation'
+ok - fm-teardown: a concurrent lifecycle action refuses before mutation
++ test_non_pool_teardown_ignores_task_set_lock
++ local dir id=non-pool-task lock ready holder i=0
+++ make_case non-pool-task-set-lock
+++ local dir=non-pool-task-set-lock
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/non-pool-task.meta window=isolated:fm-non-pool-task endpoint_task_id=non-pool-task worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/missing-worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/non-pool-task.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-non-pool-task
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=non-pool-task
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/missing-worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ lock=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ ready=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/task-set-lock-ready
++ holder=3470153
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/task-set-lock-ready ']'
++ '[' 0 -lt 100 ']'
++ sleep 0.1
++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh
++++ d=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh ']'
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ pwd
+++ FM_WAKE_LIB_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/..
++++ pwd
+++ FM_WAKE_DEFAULT_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ STATE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ FM_WAKE_QUEUE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue
+++ FM_WAKE_QUEUE_LOCK=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue.lock
+++ FM_LOCK_STALE_AFTER=2
+++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-path-lib.sh
++++ uname
+++ _FM_UNAME=Linux
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ '[' 5 -gt 4 ']'
+++ FM_WATCHER_MATCHED_IDENTITY=
+++ FM_WATCHER_HEALTHY_PID=
+++ FM_WATCHER_HEALTHY_IDENTITY=
+++ FM_WATCHER_VERDICT_OK=false
+++ FM_WATCHER_VERDICT_REASON=stale-beacon
+++ _FM_LOCK_SELF_START_PID=
+++ _FM_LOCK_SELF_START=
+++ FM_RECOVERY_MARKER_TOKEN=
+++ FM_RECOVERY_MARKER_ACTION=none
+++ FM_RECOVERY_MARKER_WRITTEN_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PREVIOUS_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
+++ FM_RECOVERY_HELD_LOCK=
+++ FM_RECOVERY_HELD_PID=
+++ FM_RECOVERY_HANDOVER_TOKEN=
+++ FM_RECOVERY_HANDOVER_SEQ=
+++ FM_WAKE_STATUS_KEY=
+++ FM_WAKE_STATUS_HISTORICAL=false
+++ FM_WAKE_EVENT_LINE=
+++ FM_WAKE_UNREAD_LINES=
+++ FM_RETRO_TRIGGER_ACTIVE=
++ fm_lock_try_acquire ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock marker_publish_bound= pid steal cur rc steal_owner primary_owner current parent
++ FM_LOCK_HELD_PID=
++ FM_LOCK_HELD_PATH=
++ FM_LOCK_OWNER_DIR=
++ FM_LOCK_RECOVERED_PID=
++ fm_lock_try_create ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock allowed_steal_owner= ownerdir
++ local FM_LOCK_PENDING_PREVIOUS_PID FM_LOCK_PENDING_PID=
++ FM_LOCK_OWNER_DIR=
++ '[' 5 -lt 4 ']'
++ FM_LOCK_PENDING_PREVIOUS_PID=3469758
++ IFS=
++ read -r ownerdir
+++ fm_lock_owner_dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock lock_abs
++++ fm_lock_abs_path ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ local path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock dir base
++++ fm_dirname_to dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state
++++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state ']'
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state ']'
++++ printf -v dir %s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state
++++ fm_basename_to base ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++++ fm_path=.task-set.lock
++++ '[' .task-set.lock '!=' .task-set.lock ']'
++++ printf -v base %s .task-set.lock
+++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state
+++++ pwd -P
++++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state
++++ printf '%s/%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state .task-set.lock
+++ lock_abs=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ mktemp -d ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.XXXXXX
++ FM_LOCK_PENDING_PID=3470165
++ wait 3470165
++ FM_LOCK_PENDING_PREVIOUS_PID=3470165
++ FM_LOCK_PENDING_PID=
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ']'
++ fm_lock_prepare_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ local ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3470153
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3470153
++ printf '%s\n' 3470153
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid
++ back=3470153
++ '[' 3470153 = 3470153 ']'
++ '[' '' '!=' 3470153 ']'
+++ fm_pid_start_time 3470153
++ _FM_LOCK_SELF_START=proc-starttime=94451326
++ _FM_LOCK_SELF_START_PID=3470153
++ '[' -z proc-starttime=94451326 ']'
++ printf '%s\n' proc-starttime=94451326
++ FM_LOCK_PENDING_PID=3470176
++ wait 3470176
++ ln -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ']'
++ fm_lock_claim ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl allowed_steal_owner= mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3470153
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3470153
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid
++ back=3470153
++ '[' 3470153 '!=' 3470153 ']'
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ']'
++ fm_lock_claim_blocked_by_steal ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock allowed_steal_owner= steal
++ steal=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.steal
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.steal ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.steal ']'
++ return 1
++ return 0
++ FM_LOCK_OWNER_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
++ return 0
++ return 0
++ trap 'fm_lock_release "$lock"' EXIT
++ :
++ sleep 30
++ i=1
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/task-set-lock-ready ']'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/task-set-lock-ready ']'
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock non-pool-task
++ assert_absent ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/non-pool-task.meta 'non-pool teardown left task metadata'
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/non-pool-task.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock 'non-pool teardown removed the publisher'\''s lock'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ']'
++ kill 3470153
++ wait 3470153
+++ fm_lock_release ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock pid current ownerdir
+++ fm_current_pid current
+++ local fm_pid
+++ fm_pid=3470153
+++ case "$fm_pid" in
+++ '[' 1 -gt 0 ']'
+++ printf -v current %s 3470153
+++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ']'
++++ fm_lock_link_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ']'
++++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid
+++ pid=3470153
+++ '[' 3470153 = 3470153 ']'
+++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl actual
++++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ']'
+++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock
+++ fm_lock_discard_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ local ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl ']'
+++ fm_lock_clean_known_files ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid.tmp.*' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/fm-home ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid-identity ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/pid-start ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/role ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl/watcher-path
+++ rmdir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/non-pool-task-set-lock/home/state/.task-set.lock.owner.JAH1jl
+++ return 0
++ true
++ pass 'fm-teardown: non-pool cleanup ignores unrelated task publication locks'
++ printf 'ok - %s\n' 'fm-teardown: non-pool cleanup ignores unrelated task publication locks'
+ok - fm-teardown: non-pool cleanup ignores unrelated task publication locks
++ test_metadata_lock_serializes_destructive_cleanup
++ local dir id=metadata-locked-task lock ready release holder teardown_pid i=0 rc
+++ make_case metadata-lock
+++ local dir=metadata-lock
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/data ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/config ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/fakebin ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/worktree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/project
+++ git init -q ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/project
+++ :
+++ :
+++ cat
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/fakebin/tmux ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/fakebin/treehouse
+++ printf '%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock
++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock
++ fm_write_meta ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/metadata-locked-task.meta window=isolated:fm-metadata-locked-task endpoint_task_id=metadata-locked-task worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/worktree project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/project kind=scout
++ local file=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/metadata-locked-task.meta kv
++ shift
++ :
++ for kv in "$@"
++ printf '%s\n' window=isolated:fm-metadata-locked-task
++ for kv in "$@"
++ printf '%s\n' endpoint_task_id=metadata-locked-task
++ for kv in "$@"
++ printf '%s\n' worktree=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/worktree
++ for kv in "$@"
++ printf '%s\n' project=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/project
++ for kv in "$@"
++ printf '%s\n' kind=scout
++ lock=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ ready=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-ready
++ release=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release
++ holder=3472115
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-ready ']'
++ '[' 0 -lt 100 ']'
++ sleep 0.1
++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh
++++ d=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-wake-lib.sh ']'
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ pwd
+++ FM_WAKE_LIB_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin
++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/..
++++ pwd
+++ FM_WAKE_DEFAULT_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ FM_HOME=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH
+++ STATE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ FM_WAKE_QUEUE=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue
+++ FM_WAKE_QUEUE_LOCK=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state/.wake-queue.lock
+++ FM_LOCK_STALE_AFTER=2
+++ . ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/bin/fm-path-lib.sh
++++ uname
+++ _FM_UNAME=Linux
+++ mkdir -p ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/state
+++ '[' 5 -gt 4 ']'
+++ FM_WATCHER_MATCHED_IDENTITY=
+++ FM_WATCHER_HEALTHY_PID=
+++ FM_WATCHER_HEALTHY_IDENTITY=
+++ FM_WATCHER_VERDICT_OK=false
+++ FM_WATCHER_VERDICT_REASON=stale-beacon
+++ _FM_LOCK_SELF_START_PID=
+++ _FM_LOCK_SELF_START=
+++ FM_RECOVERY_MARKER_TOKEN=
+++ FM_RECOVERY_MARKER_ACTION=none
+++ FM_RECOVERY_MARKER_WRITTEN_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PREVIOUS_TOKEN=
+++ FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
+++ FM_RECOVERY_HELD_LOCK=
+++ FM_RECOVERY_HELD_PID=
+++ FM_RECOVERY_HANDOVER_TOKEN=
+++ FM_RECOVERY_HANDOVER_SEQ=
+++ FM_WAKE_STATUS_KEY=
+++ FM_WAKE_STATUS_HISTORICAL=false
+++ FM_WAKE_EVENT_LINE=
+++ FM_WAKE_UNREAD_LINES=
+++ FM_RETRO_TRIGGER_ACTIVE=
++ fm_lock_try_acquire ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock marker_publish_bound= pid steal cur rc steal_owner primary_owner current parent
++ FM_LOCK_HELD_PID=
++ FM_LOCK_HELD_PATH=
++ FM_LOCK_OWNER_DIR=
++ FM_LOCK_RECOVERED_PID=
++ fm_lock_try_create ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock allowed_steal_owner= ownerdir
++ local FM_LOCK_PENDING_PREVIOUS_PID FM_LOCK_PENDING_PID=
++ FM_LOCK_OWNER_DIR=
++ '[' 5 -lt 4 ']'
++ FM_LOCK_PENDING_PREVIOUS_PID=3470153
++ IFS=
++ read -r ownerdir
+++ fm_lock_owner_dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock lock_abs
++++ fm_lock_abs_path ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ local path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock dir base
++++ fm_dirname_to dir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state
++++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state ']'
++++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state '!=' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state ']'
++++ printf -v dir %s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state
++++ fm_basename_to base ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ local fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ case "$fm_path" in
++++ fm_path=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++++ fm_path=.meta-metadata-locked-task.lock
++++ '[' .meta-metadata-locked-task.lock '!=' .meta-metadata-locked-task.lock ']'
++++ printf -v base %s .meta-metadata-locked-task.lock
+++++ cd ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state
+++++ pwd -P
++++ dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state
++++ printf '%s/%s\n' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state .meta-metadata-locked-task.lock
+++ lock_abs=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ mktemp -d ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.XXXXXX
++ FM_LOCK_PENDING_PID=3472130
++ wait 3472130
++ FM_LOCK_PENDING_PREVIOUS_PID=3472130
++ FM_LOCK_PENDING_PID=
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ']'
++ fm_lock_prepare_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ local ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3472115
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3472115
++ printf '%s\n' 3472115
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid
++ back=3472115
++ '[' 3472115 = 3472115 ']'
++ '[' '' '!=' 3472115 ']'
+++ fm_pid_start_time 3472115
++ _FM_LOCK_SELF_START=proc-starttime=94451526
++ _FM_LOCK_SELF_START_PID=3472115
++ '[' -z proc-starttime=94451526 ']'
++ printf '%s\n' proc-starttime=94451526
++ FM_LOCK_PENDING_PID=3472148
++ wait 3472148
++ ln -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ']'
++ fm_lock_claim ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N allowed_steal_owner= mypid back
++ fm_current_pid mypid
++ local fm_pid
++ fm_pid=3472115
++ case "$fm_pid" in
++ '[' 1 -gt 0 ']'
++ printf -v mypid %s 3472115
+++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid
++ back=3472115
++ '[' 3472115 '!=' 3472115 ']'
++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N actual
+++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ']'
++ fm_lock_claim_blocked_by_steal ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ''
++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock allowed_steal_owner= steal
++ steal=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.steal
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.steal ']'
++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.steal ']'
++ return 1
++ return 0
++ FM_LOCK_OWNER_DIR=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
++ return 0
++ return 0
++ trap 'fm_lock_release "$lock"' EXIT
++ :
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ i=1
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-ready ']'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-ready ']'
++ teardown_pid=3472186
++ sleep 0.2
++ run_case ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock metadata-locked-task
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
++ sleep 0.01
++ kill -0 3472186
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/metadata-locked-task.meta 'metadata-lock contention removed task metadata'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/metadata-locked-task.meta ']'
++ assert_present ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/worktree/sentinel 'metadata-lock contention changed the worktree'
++ '[' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/worktree/sentinel ']'
++ '[' '!' -s ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/runtime.log ']'
++ :
++ wait 3472115
++ '[' '!' -e ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/meta-lock-release ']'
+++ fm_lock_release ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock pid current ownerdir
+++ fm_current_pid current
+++ local fm_pid
+++ fm_pid=3472115
+++ case "$fm_pid" in
+++ '[' 1 -gt 0 ']'
+++ printf -v current %s 3472115
+++ '[' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ']'
++++ fm_lock_link_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ']'
++++ cat ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid
+++ pid=3472115
+++ '[' 3472115 = 3472115 ']'
+++ fm_lock_points_to_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N actual
++++ readlink ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ actual=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N = ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ']'
+++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock
+++ fm_lock_discard_owner ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ local ownerdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N ']'
+++ fm_lock_clean_known_files ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ local lockdir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid.tmp.*' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/fm-home ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid-identity ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/pid-start ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/role ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N/watcher-path
+++ rmdir ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/metadata-lock/home/state/.meta-metadata-locked-task.lock.owner.gaMX9N
+++ return 0
++ wait 3472186
++ fm_test_cleanup
++ local d
++ fm_test_reap_watchers
++ local state lock_home 'seen=
+'
++ '[' -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-watcher.3464165.fatMUq ']'
++ IFS=
++ read -r state
++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-watcher.3464165.fatMUq
++ fm_test_reap_procevent_homes
++ local home claim_root 'seen=
+'
++ '[' -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-procevent.3464165.IvoUrF ']'
++ IFS='	'
++ read -r home claim_root
++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-procevent.3464165.IvoUrF
++ for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"
++ '[' -n '' ']'
++ '[' -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-cleanup.3464165.TQexxR ']'
++ IFS=
++ read -r d
++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz ']'
++ fm_test_reap_root_processes ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++ local root=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz chain pid pids signal i
++ '[' -n ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz ']'
++ '[' ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz '!=' / ']'
++ chain=' '
++ pid=3464165
++ '[' -n 3464165 ']'
++ '[' 3464165 -gt 1 ']'
++ chain=' 3464165 '
+++ ps -o ppid= -p 3464165
+++ tr -d '[:space:]'
++ pid=3464159
++ '[' -n 3464159 ']'
++ '[' 3464159 -gt 1 ']'
++ chain=' 3464165 3464159 '
+++ ps -o ppid= -p 3464159
+++ tr -d '[:space:]'
++ pid=3140011
++ '[' -n 3140011 ']'
++ '[' 3140011 -gt 1 ']'
++ chain=' 3464165 3464159 3140011 '
+++ ps -o ppid= -p 3140011
+++ tr -d '[:space:]'
++ pid=509
++ '[' -n 509 ']'
++ '[' 509 -gt 1 ']'
++ chain=' 3464165 3464159 3140011 509 '
+++ ps -o ppid= -p 509
+++ tr -d '[:space:]'
++ pid=423
++ '[' -n 423 ']'
++ '[' 423 -gt 1 ']'
++ chain=' 3464165 3464159 3140011 509 423 '
+++ ps -o ppid= -p 423
+++ tr -d '[:space:]'
++ pid=1
++ '[' -n 1 ']'
++ '[' 1 -gt 1 ']'
++ for signal in TERM KILL
++ i=0
++ '[' 0 -lt 20 ']'
+++ ps -ww -eo pid=,args=
+++ FM_TEST_REAP_ROOT=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz/
+++ awk -v 'chain= 3464165 3464159 3140011 509 423 ' 'index($0, ENVIRON["FM_TEST_REAP_ROOT"]) && index(chain, " " $1 " ") == 0 { print $1 }'
++ pids=
++ '[' -n '' ']'
++ return 0
++ fm_test_remove_tree ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++ local dir=~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++ '[' -d ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz ']'
++ '[' '!' -L ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz ']'
++ find ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz -type d -exec chmod u+rwx '{}' +
++ rm -rf ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-endpoint-safety.X8hqrz
++ IFS=
++ read -r d
++ rm -f ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/.fm-test-cleanup.3464165.TQexxR

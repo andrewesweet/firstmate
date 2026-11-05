@@ -1,0 +1,333 @@
+FM_TEST_BEGIN 2026-11-05T21:24:24Z tests/fm-project-mode.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-project-mode: an entry with no forge token reports forge none and keeps its two-word default output
+ok - fm-project-mode: forge=forgejo placed after the mode token binds forgejo without a warning
+ok - fm-project-mode: forge=forgejo binds in any token order and keeps +yolo
+ok - fm-project-mode: forge=forgejo on local-only is refused like every forge
+ok - fm-project-mode: the colon spelling forge:forgejo is not a forge binding
+ok - fm-project-mode: a value outside none|gerrit|forgejo|external is refused and the refusal names the accepted values
+ok - fm-project-mode: forge=external binds direct-PR, reports yolo=off with a refusal, and is refused on local-only
+ok - fm-project-mode: a missing project or absent registry defaults --forge to none
+ok - fm-project-mode: direct-push binds and refuses any forge
+ok - fm-project-mode: an entry with no pr token, a missing project, or an absent registry reports pr auto
+ok - fm-project-mode: pr=manual binds in any token order and leaves mode, yolo, forge, and branch alone
+ok - fm-project-mode: pr=manual is kept on a no-mistakes-prod-only project
+ok - fm-project-mode: pr=manual refuses another mode, a bound forge, an empty value, and an unknown value, but leaves --forge answerable
+# fm-project-mode.test.sh: all assertions passed
+FM_TEST_END 2026-11-05T21:24:25Z tests/fm-project-mode.test.sh exit=0 duration_ms=940 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:24:25Z tests/fm-task-delivery.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-spawn/fm-promote: authorized intent preserves exact words and refuses operator-address lines
+ok - fm-spawn: every legacy worker receives scoped role instructions without changing project or primary instructions
+ok - fm-spawn: a ship spawn requires a valid explicit mode and yolo before anything is created
+ok - fm-spawn: a fork-staged ship needs its brief to carry the same fork and the retargeting rider, and refusals leave no task behind
+ok - fm-spawn: fork delivery requires the slot skip outside quoted intent and a manual fork PR command
+ok - fm-spawn: fork delivery remains valid after either driving preference change in both modes
+ok - fork PR instructions: creation, checks, feedback, and draft operations address the fork despite an upstream publication pin
+ok - fm-promote: --fork-staged rides into the promoted ship instructions and task record, and is refused where no gh PR exists
+ok - fm-spawn: scout and secondmate spawns refuse ship delivery flags
+ok - fm-spawn: the brief's recorded mode and the spawn's explicit mode must agree
+ok - fm-spawn: a rigor downgrade against the registered posture is announced, never blocked
+ok - fm-spawn: a scout spawn resolves no delivery posture from the registry
+ok - fm-promote: promotion requires the delivery contract, records it exactly once, and preserves trace identity verbatim
+ok - fm-promote: an opted-in home sends a publishing promotion on a project with origin back to origin's default branch
+ok - fm-promote: a symlinked task record is refused and its target is left untouched
+ok - fm-promote: a promoted worker receives the same mode-specific delivery contract a briefed one does
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ok - fm-promote: a selected branch prefix reaches both worker instructions and durable task state
+not ok - a ref-format-valid metacharacter prefix should promote safely
+FM_TEST_END 2026-11-05T21:25:33Z tests/fm-task-delivery.test.sh exit=1 duration_ms=68230 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:25:33Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+ok - legacy leased and unleased slots preserve late work and reject unproved ownership before mutation
+ok - Herdr closes before reaping or returning copies, while refusals preserve live processes
+ok - teardown leaves opencode's busy plugin in the returned pool worktree as on main
+ok - hidden untracked work is refused before return while a clean control returns
+ok - content fallback distinguishes unavailable Git proof, containment, conflicts, and unlanded content
+orca/reap-refusal: teardown_exit=1 replay_exit=0 metadata_after_replay=retained backlog_after_replay=in_flight
+tmux/reap-refusal: teardown_exit=1 replay_exit=0 metadata_after_replay=retained backlog_after_replay=in_flight
+ok - post-reap proof retains late work and retry records on ordinary and Orca paths, preserving clean/force/scout behavior
+ok - status archival is opt-in and preserves the complete log
+ok - config-absent teardown does not read or invoke record export
+ok - unopted teardown ignores symlinked config when record export is absent
+not ok - record export teardown: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: record export root overlaps the effective home root: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-tests.E6vGfe/record-export-success/export
+error: record export archive failed for task-x1; retaining task records for retry: expected exit 0, got 1
+FM_TEST_END 2026-11-05T21:27:53Z tests/fm-teardown.test.sh exit=1 duration_ms=140639 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:27:53Z tests/fm-teardown-endpoint-safety.test.sh family=backend-dispatch expected_gate_skip=none
+ok - fm-teardown: missing, empty, malformed, ambiguous, and task-mismatched endpoints refuse before every mutation or runtime call
+ok - fm-teardown: an unusable worktree identity refuses as before and names a repair path that runs as printed
+ok - fm-teardown: a concurrent lifecycle action refuses before mutation
+ok - fm-teardown: non-pool cleanup ignores unrelated task publication locks
+FM_TEST_END 2026-11-05T21:28:31Z tests/fm-teardown-endpoint-safety.test.sh exit=1 duration_ms=37710 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:28:31Z tests/fm-codex-stop-park.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - an unconfigured home keeps the foreground checkpoint and every park hook is inert
+ok - the park is selected only for the verified codex-cli version
+ok - the single-flight claim admits one park, which delivers its wake through the native queue
+ok - a Stop that meets a delivered park's claim held 1s waits for its release and rearms
+ok - a Stop that meets a delivering park's claim held 4s waits for its release and rearms
+ok - a failed native queue delivery latches the session to foreground fallback
+ok - a latched fallback does not force a Stop turn when nothing needs supervision
+ok - final queued results at Stop entry are delivered or handed to foreground fallback without a watcher
+ok - a queued result left when supervision ends is delivered once and recorded as delivered
+ok - a failed final delivery of a queued result latches the session to foreground fallback
+ok - an empty queue when supervision ends records idle with no delivery
+ok - a repeated arm failure latches the session to foreground fallback
+ok - the watcher exits when the park owner bound to it is gone
+ok - the model-free Codex host keeps one watcher across quiet boundaries with no model output and warm-compacts on the restarted clock
+FM_TEST_END 2026-11-05T21:29:20Z tests/fm-codex-stop-park.test.sh exit=0 duration_ms=49257 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:29:20Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - invalid preferred_provider: null
+ok - invalid preferred_provider: false
+ok - invalid preferred_provider: 42
+ok - invalid preferred_provider: []
+ok - invalid preferred_provider: {}
+ok - invalid preferred_provider: ""
+ok - invalid preferred_provider: "Codex"
+ok - invalid preferred_provider: "codex\\n"
+ok - invalid preferred_provider: " codex"
+ok - preferred provider: astra-82-claude-26
+ok - preferred provider: work-account
+ok - preferred provider: exhausted
+ok - preferred provider: unknown
+ok - preferred provider: unknown-one-known-one
+ok - preferred provider: claude-only
+ok - preferred provider: config-override
+ok - preferred provider: prose-why
+ok - preferred provider: absent
+ok - preferred provider: approval
+ok - preferred provider: tie
+ok - preferred provider: floor
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - an explicit TS_BASE replaces the default base while keeping the fd header and secret hygiene
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - every resolved call appends one JSON outcome line, and a failed write never blocks the intake
+ok - OpenRouter clear uses the same output contract and keeps its key out of argv and child environments
+ok - OpenRouter ambiguous, malformed, HTTP, and missing-model paths are handled
+ok - mapping: a declared macos-keychain service and optional account become the lookup, and the key rides the fd header
+ok - precedence: environment, then .env, then the declared source, which is read only when needed
+ok - provider isolation: each provider reads only its own declared service, and a declaration never selects a provider
+ok - effective-home isolation: only the effective config directory's declaration is consulted
+ok - failure distinctions: off, a configuration error, and an unavailable source each read differently and send nothing
+ok - secret containment: the declared key is on no argv, in no output, environment, or file, and only on the fd header
+ok - capability probe: supported or unsupported, with no declaration read and no credential tool run
+ok - with no provider set, other providers' settings leave the original off line unchanged
+ok - systemone posts the unchanged request to its base URL with an optional fd-3 key
+ok - systemone configuration errors, never-send base URL, partial response, and transport failure are handled
+ok - openai maps the Choice request to the Decisions API and its answer back, key on fd 3 only
+ok - the never-send check runs on the final openai request body
+not ok - openai low confidence is ambiguous (missing: '  status: ambiguous')
+--- output ---
+dispatch-resolve:
+  status: clear
+  model: gpt-6-luna   latency_ms: 8   tokens: 700/5
+  rule: rule_4 (A simple bug fix with a stated root cause.)   confidence: 0.5
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.01 rule_4=0.96 default=0.01
+  note: rule matched
+  note: 1 eligible candidate(s) unranked (kimi)
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=projected_exhaustion  -> eligible
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=91%  spendPriority=0.7597  runway=through_reset  -> eligible
+  candidate: kimi:kimi-code/k3  provider=kimi  -> eligible, unranked: provider kimi unmeasured (unknown): disclosed uncertainty
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+FM_TEST_END 2026-11-05T21:29:38Z tests/fm-dispatch-resolve.test.sh exit=1 duration_ms=17999 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:29:38Z tests/fm-hermes-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - worker-only capability and anchored process identity
+ok - profile validation and read-only idle-gateway coexistence check
+ok - startup consent only confirms a complete native offer with No thanks already selected
+error: stale busy-state gen for worker (event rejected)
+ok - native hook overlay preserves hooks and enforces session/generation binding
+ok - profile-prefixed composer requires native ready status and preserves drafts
+ok - scout spawn carries native profile, interactive brief, hook overlay and metadata
+ok - stalled Hermes launch stops its pane before the task record is removed
+ok - stalled Hermes launch whose pane cannot be closed keeps its task record
+FM_TEST_END 2026-11-05T21:29:47Z tests/fm-hermes-harness.test.sh exit=0 duration_ms=8967 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:29:47Z tests/fm-kiro-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-harness.sh: ancestry detects the kiro-cli command
+ok - fm-harness.sh: ancestry rejects unrelated kiro mentions
+ok - fm-harness.sh: kiro's ancestry outranks an inherited CLAUDECODE (markerless harness)
+ok - fm-agent-process-lib: kiro-cli is an agent, unrelated names are not
+ok - fm-control-lib: kiro control mechanics are Escape / single / /quit, crewmate-scout only
+ok - fm-control-lib: kiro wiring paths are the out-of-tree hook config and its two hook scripts
+ok - fm-busy-lib: kiro-hook is kiro's trusted source and is scoped to kiro
+ok - fm-busy-lib: the kiro-hook record is kiro's only state source; no record is unknown
+ok - fm-composer-lib: kiro's › composer and its real idle row read empty in every colour, typed text pending
+ok - fm-composer-lib: the kiro delivery footer matches busy, its idle row does not, and the union sees it
+ok - fm-spawn: kiro launch carries brief, V2 engine, agent, model, effort with cleared markers
+ok - fm-spawn: kiro writes an out-of-tree per-task hook config and trust setting, never the worktree's .kiro/
+ok - fm-spawn: kiro passes the full effort vocabulary including xhigh
+ok - fm-spawn: an unlisted kiro model refuses before any pane is created
+ok - fm-spawn: a kiro hook path with whitespace or a shell-special character refuses before any pane is created
+ok - fm-spawn: a pretty-printed kiro listing validates listed models and refuses unlisted ones
+ok - fm-spawn: a kiro listing with no readable model_id establishes nothing and launches
+ok - fm-spawn: an unreachable kiro listing establishes nothing and launches
+ok - fm-spawn: a hung kiro listing is cut off and launches unvalidated
+ok - fm-spawn: a kiro secondmate launch is refused
+ok - fm-teardown: kiro's per-task home is removed on teardown
+ok - fm-kiro-signals-live-e2e: an opted-out run never starts kiro-cli
+FM_TEST_END 2026-11-05T21:30:14Z tests/fm-kiro-harness.test.sh exit=0 duration_ms=26071 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:30:14Z tests/fm-dod-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - no definition of done carries the advisory self-check
+ok - the no-mistakes DoD carries the sibling-site sweep and the faster modes do not
+ok - fork rider: generated contracts pass; missing skip options, quoted-intent bypasses, missing or prefix fork PR destinations, case variants, and split commands fail as they must
+ok - scout done: is not gated
+ok - unpushed ship done: is refused
+ok - bare no-mistakes and empty-mode done: is gated while CI-ready is accepted
+ok - named head on a remote-tracking ref is accepted
+ok - a moved remote branch that lacks the named head is refused
+ok - a 40-hex token in the note is not the named head
+ok - a recorded merged PR satisfies the gate after prune
+ok - the merged-PR short-circuit applies only to the recorded PR the done line names
+ok - a forge-recorded head for the named PR is accepted without a local object
+ok - a direct-PR recorded head does not cover a later unpushed commit
+ok - CI-ready notes require checks green and an actual PR reference
+ok - no-mistakes CI-ready done: with extra text is gated
+ok - keyed and spaced ship done: lines are gated
+ok - local-only linked named branch is reachable from the project clone
+ok - local-only detached HEAD only in the disposable copy is refused
+ok - standalone local-only done: requires the named head in the project clone
+ok - non-done lines are not gated
+ok - fenced and indented Captain lines are not authorized intent
+ok - PR-based DoD draft check uses gh-axi
+ok - upstream-shaped two-, three-, and four-argument calls render upstream contracts
+ok - the snapshot directory resolves from the home, refusing when none is selected
+ok - promotion keeps a scout's recorded base branch and refuses local-only for it
+ok - direct-push renders a publish-ending DoD and refuses unknown modes
+ok - direct-push done: is gated on the named head
+ok - forge=external composes with direct-PR only and refuses a base branch
+ok - external rule one forbids origin and task-prefixed pushes and names only the backup copy
+ok - external DoD renders the contract, the review grammar, and the adapter, and refuses without one
+ok - external review done: accepted on a canonical URL alone without a backup; PR, non-https, query, fragment, forge, and pattern mismatches refused
+ok - external review done with a backup: refused until HEAD is under refs/remotes/backup/backup/, then accepted
+ok - worker role names the skill and its fallback skill file
+all fm-dod-lib tests passed
+FM_TEST_END 2026-11-05T21:30:20Z tests/fm-dod-lib.test.sh exit=0 duration_ms=6295 gate_skip=false
+FM_TEST_BEGIN 2026-11-05T21:30:20Z tests/fm-watch-triage-wedge-defer.test.sh family=watcher-wake-lock expected_gate_skip=none
+1..7
+ok - a declared wait is not wedge-escalated by a working verdict, while an elapsed declaration and an undeclared lane both keep the unchanged ladder
+ok - a default-key answer leaves a keyless wait standing, while the worker's own keyless resolved line retracts it
+ok - a captain-held lane is rechecked as a hold on the captain, never as an external wait, and never at all while the captain is away
+ok - a gate awaiting firstmate's decision for its own run is rechecked on the long cadence in either posture, while a crewmate-owed gate, an unrelated open decision and a runless verdict keep the unchanged ladder
+not ok - tests/fm-watch-triage-wedge-defer.test.sh exceeded the per-script bound of 240s and was terminated
+FM_TEST_END 2026-11-05T21:34:20Z tests/fm-watch-triage-wedge-defer.test.sh exit=124 duration_ms=240025 gate_skip=false
+FM_TEST_SUMMARY total=10 failed=5 skipped_gate=0 duration_ms=596419
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=37710 failed=1
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=140639 failed=1
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=5 duration_ms=110503 failed=1
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=17999 failed=1
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=2 duration_ms=289282 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage-wedge-defer.test.sh duration_ms=240025
+FM_TEST_SLOWEST rank=2 script=tests/fm-teardown.test.sh duration_ms=140639
+FM_TEST_SLOWEST rank=3 script=tests/fm-task-delivery.test.sh duration_ms=68230
+FM_TEST_SLOWEST rank=4 script=tests/fm-codex-stop-park.test.sh duration_ms=49257
+FM_TEST_SLOWEST rank=5 script=tests/fm-teardown-endpoint-safety.test.sh duration_ms=37710
+FM_TEST_SLOWEST rank=6 script=tests/fm-kiro-harness.test.sh duration_ms=26071
+FM_TEST_SLOWEST rank=7 script=tests/fm-dispatch-resolve.test.sh duration_ms=17999
+FM_TEST_SLOWEST rank=8 script=tests/fm-hermes-harness.test.sh duration_ms=8967
+FM_TEST_SLOWEST rank=9 script=tests/fm-dod-lib.test.sh duration_ms=6295
+FM_TEST_SLOWEST rank=10 script=tests/fm-project-mode.test.sh duration_ms=940
+FM_TEST_FAILED script=tests/fm-task-delivery.test.sh exit=1
+ok - fm-spawn/fm-promote: authorized intent preserves exact words and refuses operator-address lines
+ok - fm-spawn: every legacy worker receives scoped role instructions without changing project or primary instructions
+ok - fm-spawn: a ship spawn requires a valid explicit mode and yolo before anything is created
+ok - fm-spawn: a fork-staged ship needs its brief to carry the same fork and the retargeting rider, and refusals leave no task behind
+ok - fm-spawn: fork delivery requires the slot skip outside quoted intent and a manual fork PR command
+ok - fm-spawn: fork delivery remains valid after either driving preference change in both modes
+ok - fork PR instructions: creation, checks, feedback, and draft operations address the fork despite an upstream publication pin
+ok - fm-promote: --fork-staged rides into the promoted ship instructions and task record, and is refused where no gh PR exists
+ok - fm-spawn: scout and secondmate spawns refuse ship delivery flags
+ok - fm-spawn: the brief's recorded mode and the spawn's explicit mode must agree
+ok - fm-spawn: a rigor downgrade against the registered posture is announced, never blocked
+ok - fm-spawn: a scout spawn resolves no delivery posture from the registry
+ok - fm-promote: promotion requires the delivery contract, records it exactly once, and preserves trace identity verbatim
+ok - fm-promote: an opted-in home sends a publishing promotion on a project with origin back to origin's default branch
+ok - fm-promote: a symlinked task record is refused and its target is left untouched
+ok - fm-promote: a promoted worker receives the same mode-specific delivery contract a briefed one does
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ok - fm-promote: a selected branch prefix reaches both worker instructions and durable task state
+not ok - a ref-format-valid metacharacter prefix should promote safely
+FM_TEST_FAILURE_END script=tests/fm-task-delivery.test.sh
+FM_TEST_FAILED script=tests/fm-teardown.test.sh exit=1
+ok - legacy leased and unleased slots preserve late work and reject unproved ownership before mutation
+ok - Herdr closes before reaping or returning copies, while refusals preserve live processes
+ok - teardown leaves opencode's busy plugin in the returned pool worktree as on main
+ok - hidden untracked work is refused before return while a clean control returns
+ok - content fallback distinguishes unavailable Git proof, containment, conflicts, and unlanded content
+orca/reap-refusal: teardown_exit=1 replay_exit=0 metadata_after_replay=retained backlog_after_replay=in_flight
+tmux/reap-refusal: teardown_exit=1 replay_exit=0 metadata_after_replay=retained backlog_after_replay=in_flight
+ok - post-reap proof retains late work and retry records on ordinary and Orca paths, preserving clean/force/scout behavior
+ok - status archival is opt-in and preserves the complete log
+ok - config-absent teardown does not read or invoke record export
+ok - unopted teardown ignores symlinked config when record export is absent
+not ok - record export teardown: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: record export root overlaps the effective home root: ~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp/fm-teardown-tests.E6vGfe/record-export-success/export
+error: record export archive failed for task-x1; retaining task records for retry: expected exit 0, got 1
+FM_TEST_FAILURE_END script=tests/fm-teardown.test.sh
+FM_TEST_FAILED script=tests/fm-teardown-endpoint-safety.test.sh exit=1
+ok - fm-teardown: missing, empty, malformed, ambiguous, and task-mismatched endpoints refuse before every mutation or runtime call
+ok - fm-teardown: an unusable worktree identity refuses as before and names a repair path that runs as printed
+ok - fm-teardown: a concurrent lifecycle action refuses before mutation
+ok - fm-teardown: non-pool cleanup ignores unrelated task publication locks
+FM_TEST_FAILURE_END script=tests/fm-teardown-endpoint-safety.test.sh
+FM_TEST_FAILED script=tests/fm-dispatch-resolve.test.sh exit=1
+ok - an explicit TS_BASE replaces the default base while keeping the fd header and secret hygiene
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - every resolved call appends one JSON outcome line, and a failed write never blocks the intake
+ok - OpenRouter clear uses the same output contract and keeps its key out of argv and child environments
+ok - OpenRouter ambiguous, malformed, HTTP, and missing-model paths are handled
+ok - mapping: a declared macos-keychain service and optional account become the lookup, and the key rides the fd header
+ok - precedence: environment, then .env, then the declared source, which is read only when needed
+ok - provider isolation: each provider reads only its own declared service, and a declaration never selects a provider
+ok - effective-home isolation: only the effective config directory's declaration is consulted
+ok - failure distinctions: off, a configuration error, and an unavailable source each read differently and send nothing
+ok - secret containment: the declared key is on no argv, in no output, environment, or file, and only on the fd header
+ok - capability probe: supported or unsupported, with no declaration read and no credential tool run
+ok - with no provider set, other providers' settings leave the original off line unchanged
+ok - systemone posts the unchanged request to its base URL with an optional fd-3 key
+ok - systemone configuration errors, never-send base URL, partial response, and transport failure are handled
+ok - openai maps the Choice request to the Decisions API and its answer back, key on fd 3 only
+ok - the never-send check runs on the final openai request body
+not ok - openai low confidence is ambiguous (missing: '  status: ambiguous')
+--- output ---
+dispatch-resolve:
+  status: clear
+  model: gpt-6-luna   latency_ms: 8   tokens: 700/5
+  rule: rule_4 (A simple bug fix with a stated root cause.)   confidence: 0.5
+  probabilities: rule_1=0.01 rule_2=0.01 rule_3=0.01 rule_4=0.96 default=0.01
+  note: rule matched
+  note: 1 eligible candidate(s) unranked (kimi)
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=projected_exhaustion  -> eligible
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=91%  spendPriority=0.7597  runway=through_reset  -> eligible
+  candidate: kimi:kimi-code/k3  provider=kimi  -> eligible, unranked: provider kimi unmeasured (unknown): disclosed uncertainty
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+FM_TEST_FAILURE_END script=tests/fm-dispatch-resolve.test.sh
+FM_TEST_FAILED script=tests/fm-watch-triage-wedge-defer.test.sh exit=124
+1..7
+ok - a declared wait is not wedge-escalated by a working verdict, while an elapsed declaration and an undeclared lane both keep the unchanged ladder
+ok - a default-key answer leaves a keyless wait standing, while the worker's own keyless resolved line retracts it
+ok - a captain-held lane is rechecked as a hold on the captain, never as an external wait, and never at all while the captain is away
+ok - a gate awaiting firstmate's decision for its own run is rechecked on the long cadence in either posture, while a crewmate-owed gate, an unrelated open decision and a runless verdict keep the unchanged ladder
+not ok - tests/fm-watch-triage-wedge-defer.test.sh exceeded the per-script bound of 240s and was terminated
+FM_TEST_FAILURE_END script=tests/fm-watch-triage-wedge-defer.test.sh
+fm-test-run: wrote timing artifact: ~/.no-mistakes/evidence/01M6PPNG6H1R7WRHVY6CWGFJXH/targeted-results.json

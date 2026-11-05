@@ -1,0 +1,13 @@
+Hermes Agent v0.20.0 (2026.8.3)
+Install directory: ~/.hermes/hermes-agent
+Python: 3.11.15
+OpenAI SDK: 2.24.0
+Run 'hermes version' for update status.
+
+startup=ready
+composer=empty
+
+startup=ready
+composer=pending
+
+Live native Hermes ready/empty and unsent-draft/pending confirmed. No model prompt submitted.

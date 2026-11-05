@@ -1,0 +1,44 @@
+usage: hermes [-h] [--version] [-z PROMPT] [--usage-file PATH] [-m MODEL] [--provider PROVIDER] [--reasoning LEVEL] [-t TOOLSETS]
+              [--resume SESSION] [--no-restore-cwd] [--continue [SESSION_NAME]] [--worktree] [--accept-hooks] [--skills SKILLS] [--yolo]
+              [--pass-session-id] [--ignore-user-config] [--ignore-rules] [--safe-mode] [--tui] [--cli] [--dev]
+              {chat,model,moa,fallback,secrets,egress,migrate,gateway,proxy,lsp,setup,whatsapp,whatsapp-cloud,slack,send,login,logout,auth,s
+tatus,cron,sync,webhook,portal,kanban,project,hooks,doctor,security,approvals,dump,debug,backup,checkpoints,import,import-agent,config,skin,
+console,pairing,skills,bundles,plugins,curator,pets,journey,learning,memory-graph,memory,tools,computer-use,mcp,sessions,insights,monitoring
+,claw,version,update,uninstall,acp,profile,completion,dashboard,serve,desktop,gui,logs,prompt-size}
+              ...
+hermes: error: argument command: invalid choice: '~/.no-mistakes/worktrees/feb37d45d9da/01M6PPNG6H1R7WRHVY6CWGFJXH/.test-phase-tmp
+/native-hermes/work' (choose from 'chat', 'model', 'moa', 'fallback', 'secrets', 'egress', 'migrate', 'gateway', 'proxy', 'lsp', 'setup', 'w
+hatsapp', 'whatsapp-cloud', 'slack', 'send', 'login', 'logout', 'auth', 'status', 'cron', 'sync', 'webhook', 'portal', 'kanban', 'project',
+'hooks', 'doctor', 'security', 'approvals', 'dump', 'debug', 'backup', 'checkpoints', 'import', 'import-agent', 'config', 'skin', 'console',
+ 'pairing', 'skills', 'bundles', 'plugins', 'curator', 'pets', 'journey', 'learning', 'memory-graph', 'memory', 'tools', 'computer-use', 'mc
+p', 'sessions', 'insights', 'monitoring', 'claw', 'version', 'update', 'uninstall', 'acp', 'profile', 'completion', 'dashboard', 'serve', 'd
+esktop', 'gui', 'logs', 'prompt-size')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

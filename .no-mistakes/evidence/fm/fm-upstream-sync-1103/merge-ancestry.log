@@ -1,0 +1,19 @@
+a893469bd6b94d164a18e9c7f1705d126feba0dd
+a8bdedbff2fad1fa63f40afe9bd6feb94757b255 ed1eb1d74079f42702ab706096079616bd214a3f
+Merge upstream/main into the fork
+
+Merge upstream ed1eb1d7 with a true merge; preserve the fork's carried features.
+
+Conflict resolutions:
+- Keep the fork's all-backend durable slot allocation and ownership-safe return; adapt upstream's Herdr close-before-reap ordering without adding a second allocator.
+- Keep the fork's GLM compaction cap and event sequence precondition alongside upstream's optional Pi model-stream observation.
+- Keep the three-part brief and published-intent validation, fork-staged delivery, and wiki direct-push support alongside upstream's manual PR-text posture.
+- Combine upstream's replacement of completion-attestation keys with the fork's atomic publication and PR-identity resealing.
+- Keep dispatch outcome telemetry, spawn fingerprints, the 0.5 confidence floor, and TS_BASE while importing upstream's additional providers and credential sources.
+- Keep the fork's pull-request-only CI trigger and fork jobs while importing upstream's runner pins, full-ci label handling, additional jobs, and eleven serial shards.
+- Retain fork wedge regressions once across upstream's further suite splits, carry branch-mod host tests into the split suites, and preserve per-case fake-session cleanup.
+- Keep fork tracing/resource attributes, first-spawn spend bounds, and compact-adviser auto behavior while preserving upstream's new harness and backend support.
+- Refresh the remote-doctor trust digest and generated supervision-branch agent definition from the merged owners.
+
+
+Both parent histories are ancestors of target HEAD.
