@@ -17,6 +17,9 @@ make_case() {  # <name>
     "$TMP_ROOT/$dir/home/config" "$TMP_ROOT/$dir/fakebin" \
     "$TMP_ROOT/$dir/worktree" "$TMP_ROOT/$dir/project"
   git init -q "$TMP_ROOT/$dir/project"
+  # Cleanup invokes Git in the scratch copy. Do not let Git discover the
+  # source checkout when these fixtures live under a repository-local TMPDIR.
+  git init -q "$TMP_ROOT/$dir/worktree"
   : > "$TMP_ROOT/$dir/worktree/sentinel"
   : > "$TMP_ROOT/$dir/runtime.log"
   cat > "$TMP_ROOT/$dir/fakebin/tmux" <<'SH'
@@ -331,8 +334,9 @@ test_metadata_lock_serializes_destructive_cleanup() {
 
   : > "$release"
   wait "$holder" || fail "metadata lock holder failed"
-  wait "$teardown_pid"; rc=$?
-  expect_code 0 "$rc" "teardown should complete after the metadata writer releases"
+  rc=0
+  wait "$teardown_pid" || rc=$?
+  expect_code 0 "$rc" "teardown should complete after the metadata writer releases: $(cat "$dir/stderr")"
   assert_absent "$dir/home/state/$id.meta" \
     "serialized teardown left a task record that a completed writer could resurrect"
   pass "fm-teardown: destructive cleanup serializes with metadata writers"
@@ -1500,15 +1504,17 @@ test_forced_secondmate_child_close_failure_still_refuses() {
   # the refusal rather than override it, and discard a child home whose
   # endpoint is still live.
   set +e
+  # The disposable source root must be disjoint from the mate home: a
+  # repository-local TMPDIR otherwise trips the protected-repo removal guard.
   env -u TMUX -u TMUX_PANE FM_TEST_BLOCK_KILL=1 \
-    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" FM_RUNTIME_LOG="$dir/runtime.log" \
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$dir/project" FM_RUNTIME_LOG="$dir/runtime.log" \
     PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$parent" --force \
     > "$dir/child.out" 2> "$dir/child.err"
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || fail "forced secondmate cleanup continued past a child close that failed: $(cat "$dir/child.err")"
   assert_grep "child $child" "$dir/child.err" \
-    "the refusal did not name the child whose endpoint could not be closed"
+    "the refusal did not name the child whose endpoint could not be closed: $(cat "$dir/child.err")"
   assert_grep "could not be closed" "$dir/child.err" \
     "forced secondmate cleanup swallowed the child close failure"
   assert_no_grep "teardown $parent complete" "$dir/child.out" \

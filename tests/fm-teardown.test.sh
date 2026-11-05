@@ -99,7 +99,11 @@ make_case() {
   local name=$1 case_dir fakebin
   case_dir="$TMP_ROOT/$name"
   fakebin="$case_dir/fakebin"
-  mkdir -p "$case_dir/state" "$case_dir/config" "$case_dir/data" "$fakebin"
+  mkdir -p "$case_dir/state" "$case_dir/config" "$case_dir/data" "$fakebin" \
+    "$case_dir/code" "$case_dir/home"
+  # Source and home roots must be disjoint from disposable task copies and
+  # archives, including when TMPDIR is inside the repository under test.
+  ln -snf "$ROOT/bin" "$case_dir/code/bin"
 
   # Mocks for the post-check teardown steps. Refuse logic exits before these
   # run; the ALLOW cases need them so the script can complete cleanly.
@@ -714,7 +718,8 @@ run_teardown() {
   # read from a fixture inventory, never the developer's real one. A case
   # measuring a populated inventory selects it through FM_TEARDOWN_TEST_NM_HOME;
   # an explicit empty value leaves home selection to the configured resolver.
-  FM_ROOT_OVERRIDE="$ROOT" \
+  FM_HOME="${FM_HOME:-$case_dir/home}" \
+  FM_ROOT_OVERRIDE="$case_dir/code" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
@@ -6095,7 +6100,8 @@ SH
 run_copied_teardown() {  # <case-dir> [args...]
   local case_dir=$1
   shift
-  FM_ROOT_OVERRIDE="$ROOT" \
+  FM_HOME="${FM_HOME:-$case_dir/home}" \
+  FM_ROOT_OVERRIDE="$case_dir/code" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
@@ -6106,7 +6112,7 @@ run_copied_teardown() {  # <case-dir> [args...]
 assert_source_refusal_preserved_state() {  # <case-dir> <label> <stderr-needle>
   local case_dir=$1 label=$2 needle=$3
   [ "$rc" -ne 0 ] || fail "$label: teardown reported success after a required source disappeared"
-  assert_grep "$needle" "$case_dir/stderr" "$label: the refusal did not name the missing source"
+  assert_grep "$needle" "$case_dir/stderr" "$label: the refusal did not name the missing source: $(cat "$case_dir/stderr")"
   [ -e "$case_dir/state/task-x1.meta" ] || fail "$label: the refusal erased task metadata"
   [ -e "$case_dir/state/task-x1.status" ] || fail "$label: the refusal erased the task status record"
   [ ! -s "$case_dir/treehouse.log" ] || fail "$label: the refusal returned the local copy: $(cat "$case_dir/treehouse.log")"
@@ -6592,7 +6598,7 @@ SH
   chmod +x "$case_dir/fakebin/tmux"
   rc=0
   run_teardown "$case_dir" > "$case_dir/retry.stdout" 2> "$case_dir/retry.stderr" || rc=$?
-  expect_code 0 "$rc" "record-export-close-retry: retry should complete"
+  expect_code 0 "$rc" "record-export-close-retry: retry should complete: $(cat "$case_dir/retry.stderr")"
   archive="$export_root/archive/task-x1/teardown-test-task-x1"
   assert_grep "done: after refusal" "$archive/status" \
     "record-export-close-retry: retry archive contains status from before endpoint quiescence"

@@ -876,9 +876,12 @@ test_promotion_persists_the_selected_ship_branch() {
 test_promotion_branch_command_is_shell_safe() {
   local home id prefix marker meta instructions command repo branch
   home="$TMP_ROOT/promote-branch-shell-safe/home"
-  marker="$TMP_ROOT/promote-branch-shell-safe-marker"
+  repo="$TMP_ROOT/promote-branch-shell-safe-repo"
+  marker="$repo/promote-branch-shell-safe-marker"
   id=promote-branch-safe-e3
-  prefix="\$(touch\${IFS}$marker)/"
+  # A relative sentinel keeps the branch valid when TMPDIR has hidden path
+  # components, which Git forbids in ref names. The command runs in repo.
+  prefix='$(touch${IFS}promote-branch-shell-safe-marker)/'
   meta="$home/state/$id.meta"
   mkdir -p "$home/state"
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\n' "$id" > "$meta"
@@ -894,7 +897,6 @@ test_promotion_branch_command_is_shell_safe() {
   # shellcheck disable=SC2016  # Single quotes are required: the sed expression holds literal backticks.
   command=$(sed -n 's/.*create your branch: `\(.*\)`\.$/\1/p' "$instructions")
   [ -n "$command" ] || fail "promotion instructions exposed no branch-creation command"
-  repo="$TMP_ROOT/promote-branch-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && eval "$command" ) || fail "promotion branch-creation command did not run"
   assert_absent "$marker" "promotion branch command executed the prefix's command substitution"
@@ -1139,6 +1141,7 @@ test_promotion_carries_the_pr_text_binding() {
   home="$TMP_ROOT/pr-manual-promote/home"
   sendroot="$TMP_ROOT/pr-manual-promote/sendroot"
   mkdir -p "$home/state" "$home/data" "$home/projects/proj" "$sendroot/bin"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
   printf '%s\n' '- proj [no-mistakes pr=manual] - fixture (added 2026-01-01)' > "$home/data/projects.md"
   cat > "$sendroot/bin/fm-send.sh" <<'STUB'
 #!/usr/bin/env bash
@@ -2273,6 +2276,7 @@ test_promotion_carries_the_forge_binding() {
   home="$TMP_ROOT/forge-promote/home"
   sendroot="$TMP_ROOT/forge-promote/sendroot"
   mkdir -p "$home/state" "$home/data" "$home/projects/proj" "$sendroot/bin"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
   printf '%s\n' '- proj [no-mistakes forge=gerrit] - fixture (added 2026-01-01)' > "$home/data/projects.md"
   cat > "$sendroot/bin/fm-send.sh" <<'STUB'
 #!/usr/bin/env bash
@@ -2290,7 +2294,7 @@ STUB
     "Fix the investigated Gerrit project defect and carry over only that fix."
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode no-mistakes --yolo off 2>&1) \
-    || fail "promotion should take the registered forge with no flag to remember"
+    || fail "promotion should take the registered forge with no flag to remember: $out"
   payload="$TMP_ROOT/forge-promote/payload"
   ( cd "$sendroot" \
     && FM_TEST_CAPTURE="$payload" \

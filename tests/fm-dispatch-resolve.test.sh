@@ -1113,6 +1113,11 @@ reset_log
 write_openai_response rule_4 0.5
 FM_DISPATCH_PROVIDER=openai FM_DISPATCH_MODEL=gpt-6-luna OPENAI_API_KEY=$OA_KEY \
   FAKE_CURL_RESPONSE=$OA_RESPONSE run code out err "$BRIEF"
+assert_contains "$out" '  status: clear' "openai confidence at the retained 0.5 floor is clear"
+reset_log
+write_openai_response rule_4 0.49
+FM_DISPATCH_PROVIDER=openai FM_DISPATCH_MODEL=gpt-6-luna OPENAI_API_KEY=$OA_KEY \
+  FAKE_CURL_RESPONSE=$OA_RESPONSE run code out err "$BRIEF"
 assert_contains "$out" '  status: ambiguous' "openai low confidence is ambiguous"
 reset_log
 FM_DISPATCH_PROVIDER=openai FM_DISPATCH_MODEL=gpt-6-luna OPENAI_API_KEY=$OA_KEY \

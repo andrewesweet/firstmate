@@ -95,8 +95,8 @@
 # A scratch copy (kind=scout) and a --force run discard untracked content.
 # Treehouse's return resets with `git clean -fd`, which never deletes a nested
 # git repository, so the pool slot stays dirty and later checkouts skip it.
-# The main scratch/--force path runs `git clean -ffdq` before return, except
-# for an unclaimed pool slot, which must reach the holder-checked return first.
+# The main scratch/--force path runs `git clean -ffdq` before return, after
+# the slot-ownership preflight described below.
 # Forced secondmate cleanup scrubs only non-pool child copies: a pool child
 # reaches the holder-checked return without that scrub, even with a local owner
 # claim, because Treehouse's lease may now belong to another live task.
@@ -105,8 +105,8 @@
 # entries, except those under the .claude/ allowance, so a nested repository
 # there can still survive the return.
 # After a pool-slot return succeeds, teardown reads
-# `git status --porcelain --untracked-files=all`; an unclaimed-slot return first
-# checks for nested-repository residue or an unreadable worktree, since plain
+# `git status --porcelain --untracked-files=all`; an unclaimed child-slot return
+# first checks for nested-repository residue or an unreadable worktree, since plain
 # untracked files are Treehouse's own cleaning responsibility on that path.
 # Any remaining output, a status read that fails, or a copy that is missing or
 # no longer a readable worktree is reported at once with the lost pool slot and
@@ -164,11 +164,14 @@
 # bin/fm-backend.sh's endpoint validation refuses an empty or missing worktree=
 # unconditionally, so there is no line an operator could clear to get past it.
 # A claim that cannot be read proves nothing either way and refuses; inspect or
-# repair the claim file at the printed path and re-run - never remove it, since
-# an absent claim proceeds and would return a slot that may be another task's. An
-# absent claim - a slot taken before claims existed, or already returned - keeps
-# exactly the record-scan protection it had before, because refusing it would
-# strand every task in flight across that change on no evidence at all.
+# repair the claim file at the printed path and re-run - never remove it to
+# bypass the refusal, since a missing claim cannot establish task identity. An
+# absent claim - a slot taken before claims existed, or already returned - also
+# requires a unique Treehouse status row proving that this task holds the lease
+# or that the slot has no lease, before closing the endpoint or touching the copy.
+# Forced secondmate cleanup instead reaches the holder-checked return before
+# touching an unclaimed child copy. These paths preserve legacy tasks without
+# treating the missing claim as proof that a slot is safe to destroy.
 # Why a Treehouse lease alone cannot prove task identity for crewmate slots,
 # and why the claim file sits on top of it, is owned by bin/fm-wake-lib.sh's
 # slot-owner claim comment.
@@ -224,12 +227,11 @@
 # unconditionally, exactly as it was before slots were leased. A slot whose
 # owner claim names another task is screened out before the first step that
 # would read or change the copy, so nothing in that copy is killed, reset,
-# cleaned or deleted. A record predating claims carries none to screen with,
-# so ownership must be proved before processes or the copy are touched. Herdr
-# reads the lease holder under the project lock before its guarded pane close;
-# other paths use the durable lease return as their first ownership test,
-# before the reap, the branch drop or the hook sweep can touch that copy. If
-# that return is refused or fails for any reason teardown cannot name - a
+# cleaned or deleted. The slot-owner section above owns the pre-claim ownership
+# proof for ordinary tasks. Forced secondmate cleanup uses the durable lease
+# return as its first ownership test for an unclaimed pooled child, before the
+# reap, the branch drop or the hook sweep can touch that copy. If that return
+# is refused or fails for any reason teardown cannot name - a
 # lease that is another task's included - teardown refuses: no pooled copy is
 # deleted, reset or swept on that path, the lease stays with whoever holds it,
 # and the record is kept so a rerun works once the slot is known to be idle.
@@ -2814,10 +2816,8 @@ require_exclusive_task_worktree_slot() {
 # state so each caller gates its slot steps on one determination; the claimant
 # stays in FM_TREEHOUSE_SLOT_OWNER_ID and FM_TREEHOUSE_SLOT_OWNER_HOME.
 #
-# An absent claim proceeds as the slot's owner: a slot taken before claims
-# existed, or already returned to the pool, carries none, and refusing those
-# would strand every task in flight across the change for no evidence at all.
-# Those keep exactly the record-scan protection they had before.
+# An absent claim passes this check; the script header owns the additional
+# lease-ownership proof required before destructive cleanup.
 TEARDOWN_SLOT_REASSIGNED_RC=3
 
 require_owned_worktree_slot_record() {  # <task-id> <worktree>
