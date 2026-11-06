@@ -376,7 +376,7 @@ $(cat "$HOME_DIR/state/flat-task.meta" 2>/dev/null)"
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "flat layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "flat layout"
 assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "flat layout"
-assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful flat spawn keeps its published lease"
+assert_not_contains "$OUT" 'stays leased to' "successful flat spawn does not report an aborted lease"
 
 # The per-home workspace container stays keyed on the project: the flat
 # layout's workspace create runs in the project directory, never the worktree.
@@ -455,7 +455,7 @@ $PROJ_WS_LINE"
 assert_tab_create_cwd "$CASE_DIR" "$WT_DIR" "projection layout"
 assert_no_tab_create_at "$CASE_DIR" "$PROJECT_DIR" "projection layout"
 assert_shell_stays_in_worktree "$CASE_DIR" "$PROJECT_DIR" "$WT_DIR" "projection layout"
-assert_not_contains "$OUT" 'was not returned after an aborted spawn' "successful projection spawn keeps its published lease"
+assert_not_contains "$OUT" 'stays leased to' "successful projection spawn does not report an aborted lease"
 
 pass "projection layout: projected workspace and task tab both created in the task worktree"
 
@@ -550,7 +550,13 @@ OUT=$(run_spawn_herdr "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" \
 SPAWN_STATUS=$?
 [ "$SPAWN_STATUS" -ne 0 ] || fail "typed-send failure $FAIL_SEND unexpectedly succeeded"
 assert_contains "$OUT" 'refusing to launch outside the copy holding its work' "typed-send failure refuses the worker launch"
-[ ! -e "$FM_FAKE_LEASE_FILE" ] || fail "typed-send failure $FAIL_SEND stranded its lease"
+TASK_PANE=$(jq -er --arg wt "$WT_DIR" '.workspaces[].tabs[] | select(.cwd == $wt) | .pane_id' "$FM_HERDR_FAKE_STATE") ||
+  fail "typed-send failure $FAIL_SEND did not leave its pane for inspection"
+"$FAKEBIN_DIR/herdr" pane get "$TASK_PANE" | jq -e --arg pane "$TASK_PANE" '.result.pane.pane_id == $pane' >/dev/null ||
+  fail "typed-send failure $FAIL_SEND lost its surviving pane"
+[ "$(cat "$FM_FAKE_LEASE_FILE")" = "$WT_DIR" ] || fail "typed-send failure $FAIL_SEND returned its live pane's lease"
+assert_contains "$OUT" 'Herdr pane is not confirmed gone' "typed-send failure explains why its lease stays reserved"
+assert_contains "$OUT" "treehouse return --force $WT_DIR" "typed-send failure names the manual lease return"
 [ ! -e "$HOME_DIR/state/failed-send-task.meta" ] || fail "typed-send failure published a task record"
-pass "typed-send failure $FAIL_SEND: spawn refuses and returns its lease"
+pass "typed-send failure $FAIL_SEND: spawn refuses and keeps its live pane's lease for inspection"
 unset FM_FAKE_FAIL_SEND FM_FAKE_LEASE_FILE
