@@ -42,9 +42,9 @@ remote_put() {  # <home> <payload-file> <generation>
     put data/captain-shared.md "$bytes" "$hash" "$generation" < "$payload" 2>&1
 }
 
-# Run the receiver with a counting mv shim whose <fail-on>-th call fails, so
+# Run the receiver with a counting mv shim whose <fail-on>-th publication fails, so
 # the run dies at that exact publication step and leaves the on-disk state a
-# crash at that point would leave.
+# crash at that point would leave. Lock-owner metadata is not a publication.
 interrupted_put() {  # <home> <payload-file> <generation> <fail-on-call>
   local home=$1 payload=$2 generation=$3 fail_on=$4 fakebin counter real_mv out bytes hash rc=0
   fakebin="$TMP_ROOT/failing-mv-bin"
@@ -54,6 +54,10 @@ interrupted_put() {  # <home> <payload-file> <generation> <fail-on-call>
   rm -f -- "$counter"
   cat > "$fakebin/mv" <<EOF
 #!/usr/bin/env bash
+case "\${!#}" in
+  '$home/data/$RECEIPT_NAME'|'$home/data/captain-shared.md') ;;
+  *) exec '$real_mv' "\$@" ;;
+esac
 calls=\$(cat '$counter' 2>/dev/null || printf '0')
 calls=\$((calls + 1))
 printf '%s\n' "\$calls" > '$counter'

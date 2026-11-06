@@ -267,6 +267,23 @@ test_changed_pi_install_inputs_select_package_consumers() {
   pass "each Pi install input selects installed-package consumers and live guards"
 }
 
+test_changed_worker_stream_harness_selects_its_consumer() {
+  local tmp repo listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-pi-stream.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  printf '#!/usr/bin/env bash\n' > "$repo/tests/fm-pi-worker-stream-live-e2e.test.sh"
+  git -C "$repo" add tests
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm stream-consumer
+  printf '\n' > "$repo/tests/fm-pi-worker-stream-live.mjs"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD) \
+    || { rm -rf "$tmp"; fail "the worker stream harness has no changed-test mapping"; }
+  [ "$listed" = tests/fm-pi-worker-stream-live-e2e.test.sh ] \
+    || { rm -rf "$tmp"; fail "the worker stream harness must select exactly its executable consumer: $listed"; }
+  rm -rf "$tmp"
+  pass "the worker stream harness selects its real SDK consumer"
+}
+
 # Build a repository with a primary checkout and one linked worktree, each
 # holding a runnable copy of the runner and a probe suite that records the fact
 # that it ran. Untracked copies are enough: the runner resolves its root from
@@ -1712,9 +1729,10 @@ SH
 # green but whose wall clock outgrew its caller's invocation budget. The caller
 # gets killed mid-run and retries invisibly, so an over-budget run has to be a
 # failure, not a note in the log.
-# tests/fm-watch-triage.test.sh finishes in about 434s alone and about 698s
-# under CI load, so the automatic --changed bound must leave a slow but healthy
-# watcher-wake-lock script room while still bounding a genuinely hung one
+# The original upstream regression measured tests/fm-watch-triage.test.sh at
+# about 593s under CI load (pause and wedge-defer siblings at 467s and 527s), so the
+# automatic --changed bound must leave a slow but healthy watcher-wake-lock
+# script room while still bounding a genuinely hung one
 # (upstream issue #3869). The stub records the bound the runner hands it.
 test_changed_bound_gives_slow_watcher_suites_headroom() {
   local tmp repo script bound rc
@@ -2028,6 +2046,7 @@ test_family_selection
 test_single_script_selection
 test_changed_file_selection_is_conservative
 test_changed_pi_install_inputs_select_package_consumers
+test_changed_worker_stream_harness_selects_its_consumer
 test_task_marker_refuses_the_primary_checkout
 test_changed_runner_surfaces_select_their_family
 test_shell_line_ending_policy_selects_runner_contract

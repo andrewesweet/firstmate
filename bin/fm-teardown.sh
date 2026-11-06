@@ -51,8 +51,9 @@
 # that closes the call.
 # REFUSES if the worktree holds work that has not LANDED, because cleanup
 # hard-resets/removes the worktree and kills its processes. Work has landed when it is
-# reachable from any remote-tracking branch (a fork counts as a remote, so
-# upstream-contribution PRs pushed to a fork satisfy this in any mode), OR - for a
+# reachable from any remote-tracking branch other than the local no-mistakes
+# mirror (a fork counts as a remote, so upstream-contribution PRs pushed to a
+# fork satisfy this in any mode; the mirror is not a forge), OR - for a
 # normal ship task whose commits are not so reachable - when its PR is merged and
 # GitHub reports a PR head that contains the current local work, or its content is
 # already present in the up-to-date default branch. This recognizes the common
@@ -65,7 +66,7 @@
 # the PR head. A diverged copy is not treated as landed: path-set coverage, git
 # cherry, and merge-tree containment each fail to prove content landed without also
 # accepting unlanded edits to the same paths. Teardown still accepts a merged PR
-# whose head contains the current local work (ancestor or equivalent patch ids),
+# whose head contains the current local work (ancestor or whitespace-exact patch ids),
 # or a clean content-in-default tree match. Anything else refuses.
 # The PR itself is resolved from the task's recorded pr= when present, or - when
 # no pr= was ever recorded (e.g. a yolo-authorized merge on a repo with no PR CI,
@@ -75,11 +76,18 @@
 # by itself causes a false refusal of landed work.
 # A gh lookup error falls back to the content check; if that is also inconclusive,
 # teardown refuses rather than risk discarding unlanded work.
-# Uncommitted changes are never landed; dirty refusals distinguish untracked-only
-# leftovers from tracked edits and list at most ten non-exempt untracked paths.
+# A merge-tree option or execution error reports the content-landed proof as
+# unavailable. The merge-tree --write-tree proof requires Git 2.38 or newer.
+# Uncommitted changes are never landed. Before return, the dirty check explicitly
+# requests all untracked files, even when status.showUntrackedFiles hides them.
+# Dirty refusals distinguish untracked-only leftovers from tracked edits and list
+# at most ten non-exempt untracked paths. tests/fm-teardown.test.sh covers hidden
+# untracked work and the clean return control.
 # local-only projects additionally accept work merged into the local default
 # branch (firstmate performs that merge after configured approval) as a fallback
 # for the common case where there is no remote at all.
+# Safety is proved again after task processes are reaped, before backlog-close
+# publication, branch deletion, or worktree return.
 # Scout tasks (kind=scout in meta) carve out of that check: their worktree is
 # declared scratch and the report at data/<task-id>/report.md is the work
 # product. Teardown proceeds only once the report exists and the shared
@@ -87,8 +95,8 @@
 # A scratch copy (kind=scout) and a --force run discard untracked content.
 # Treehouse's return resets with `git clean -fd`, which never deletes a nested
 # git repository, so the pool slot stays dirty and later checkouts skip it.
-# The main scratch/--force path runs `git clean -ffdq` before return, except
-# for an unclaimed pool slot, which must reach the holder-checked return first.
+# The main scratch/--force path runs `git clean -ffdq` before return, after
+# the slot-ownership preflight described below.
 # Forced secondmate cleanup scrubs only non-pool child copies: a pool child
 # reaches the holder-checked return without that scrub, even with a local owner
 # claim, because Treehouse's lease may now belong to another live task.
@@ -97,8 +105,8 @@
 # entries, except those under the .claude/ allowance, so a nested repository
 # there can still survive the return.
 # After a pool-slot return succeeds, teardown reads
-# `git status --porcelain --untracked-files=all`; an unclaimed-slot return first
-# checks for nested-repository residue or an unreadable worktree, since plain
+# `git status --porcelain --untracked-files=all`; an unclaimed child-slot return
+# first checks for nested-repository residue or an unreadable worktree, since plain
 # untracked files are Treehouse's own cleaning responsibility on that path.
 # Any remaining output, a status read that fails, or a copy that is missing or
 # no longer a readable worktree is reported at once with the lost pool slot and
@@ -156,11 +164,14 @@
 # bin/fm-backend.sh's endpoint validation refuses an empty or missing worktree=
 # unconditionally, so there is no line an operator could clear to get past it.
 # A claim that cannot be read proves nothing either way and refuses; inspect or
-# repair the claim file at the printed path and re-run - never remove it, since
-# an absent claim proceeds and would return a slot that may be another task's. An
-# absent claim - a slot taken before claims existed, or already returned - keeps
-# exactly the record-scan protection it had before, because refusing it would
-# strand every task in flight across that change on no evidence at all.
+# repair the claim file at the printed path and re-run - never remove it to
+# bypass the refusal, since a missing claim cannot establish task identity. An
+# absent claim - a slot taken before claims existed, or already returned - also
+# requires a unique Treehouse status row proving that this task holds the lease
+# or that the slot has no lease, before closing the endpoint or touching the copy.
+# Forced secondmate cleanup instead reaches the holder-checked return before
+# touching an unclaimed child copy. These paths preserve legacy tasks without
+# treating the missing claim as proof that a slot is safe to destroy.
 # Why a Treehouse lease alone cannot prove task identity for crewmate slots,
 # and why the claim file sits on top of it, is owned by bin/fm-wake-lib.sh's
 # slot-owner claim comment.
@@ -216,12 +227,11 @@
 # unconditionally, exactly as it was before slots were leased. A slot whose
 # owner claim names another task is screened out before the first step that
 # would read or change the copy, so nothing in that copy is killed, reset,
-# cleaned or deleted. A record predating claims carries none to screen with,
-# so ownership must be proved before processes or the copy are touched. Herdr
-# reads the lease holder under the project lock before its guarded pane close;
-# other paths use the durable lease return as their first ownership test,
-# before the reap, the branch drop or the hook sweep can touch that copy. If
-# that return is refused or fails for any reason teardown cannot name - a
+# cleaned or deleted. The slot-owner section above owns the pre-claim ownership
+# proof for ordinary tasks. Forced secondmate cleanup uses the durable lease
+# return as its first ownership test for an unclaimed pooled child, before the
+# reap, the branch drop or the hook sweep can touch that copy. If that return
+# is refused or fails for any reason teardown cannot name - a
 # lease that is another task's included - teardown refuses: no pooled copy is
 # deleted, reset or swept on that path, the lease stays with whoever holds it,
 # and the record is kept so a rerun works once the slot is known to be idle.
@@ -300,9 +310,9 @@
 # checks before any destructive return. Teardown output notes every wait, retry, and
 # removal so the operator can see what happened.
 #
-# Pre-teardown cleanup sequence (runs once every landed/discard-work safety
-# refusal above has already passed, and BEFORE any worktree return, branch
-# delete, or backend kill below - a still-active run or a leaked process may
+# Pre-teardown cleanup sequence (starts after the initial landed/discard-work
+# safety checks pass, and BEFORE any worktree return or branch
+# deletion below - a still-active run or a leaked process may
 # own live work in that worktree):
 #   Fix 1 - conclude the task's own no-mistakes run. A ship task's worktree can
 #     be torn down while its no-mistakes pipeline run is still PARKED at a gate
@@ -1624,6 +1634,9 @@ remove_kimi_turnend_auth() {
 
 retire_busy_state() {
   local state_dir=$1 id=$2 gen=${3:-}
+  # A remote secondmate's host-local route record lives inside the home that
+  # teardown has already removed, taking its busy records with it.
+  [ -d "$state_dir" ] || return 0
   if [ -n "$gen" ]; then
     "$SCRIPT_DIR/fm-busy-event.sh" retire "$state_dir" "$id" --gen "$gen"
   elif [ -f "$state_dir/$id.busy-gen" ]; then
@@ -1707,8 +1720,10 @@ ensure_commit_object() {
 
 patch_id_for_commit() {
   local commit=$1
+  # Indentation can change semantics. Unsupported --verbatim yields no id,
+  # so callers fall back to the content check or refuse, never ignore whitespace.
   git -C "$WT" show --pretty=medium --no-ext-diff "$commit" 2>/dev/null \
-    | git patch-id --stable 2>/dev/null \
+    | git patch-id --verbatim 2>/dev/null \
     | awk 'NR == 1 { print $1 }'
 }
 
@@ -1725,7 +1740,7 @@ unpushed_patches_are_in_pr_head() {
       | sort -u
   ) || return 1
   [ -n "$pr_patch_ids" ] || return 1
-  unpushed=$(git -C "$WT" log --format=%H HEAD --not --remotes -- 2>/dev/null) || return 1
+  unpushed=$(git -C "$WT" log --format=%H HEAD --not --exclude='no-mistakes/*' --remotes -- 2>/dev/null) || return 1
   [ -n "$unpushed" ] || return 1
   while IFS= read -r commit; do
     [ -n "$commit" ] || continue
@@ -1792,10 +1807,13 @@ pr_is_merged() {
 # the default branch does not already contain (e.g. its change landed via squash) the
 # merged tree equals the default branch's tree. This isolates branch-only changes, so
 # unrelated commits the default branch gained past the merge-base do not count as
-# "added". Returns non-zero when inconclusive (no default ref, or a merge conflict),
-# so the caller refuses rather than guesses.
+# "added". Returns non-zero when inconclusive (no default ref, a merge conflict,
+# or a Git error), so the caller refuses rather than guesses.
+# CONTENT_LANDED_PROOF_ERROR names a merge-tree option or execution failure
+# separately from a conflict or differing tree.
 content_in_default() {
-  local name=${BASE_BRANCH:-} ref default_tree merged_tree
+  local name=${BASE_BRANCH:-} ref default_tree merged_tree merge_status
+  CONTENT_LANDED_PROOF_ERROR=
   [ -n "$name" ] || name=$(default_branch) || return 1
   if git -C "$WT" remote get-url origin >/dev/null 2>&1; then
     git -C "$WT" fetch --quiet origin "+refs/heads/$name:refs/remotes/origin/$name" >/dev/null 2>&1 || return 1
@@ -1807,7 +1825,15 @@ content_in_default() {
   fi
   default_tree=$(git -C "$WT" rev-parse --quiet --verify "$ref^{tree}" 2>/dev/null) || return 1
   [ -n "$default_tree" ] || return 1
-  merged_tree=$(git -C "$WT" merge-tree --write-tree "$ref" HEAD 2>/dev/null) || return 1
+  merged_tree=$(git -C "$WT" merge-tree --write-tree "$ref" HEAD 2>/dev/null) || {
+    merge_status=$?
+    case "$merge_status" in
+      1) ;; # Git completed the merge and found conflicts.
+      129) CONTENT_LANDED_PROOF_ERROR='git merge-tree --write-tree was rejected (Git 2.38 or newer required)' ;;
+      *) CONTENT_LANDED_PROOF_ERROR="git merge-tree --write-tree failed (Git exit $merge_status)" ;;
+    esac
+    return 1
+  }
   merged_tree=$(printf '%s\n' "$merged_tree" | head -1)
   [ "$merged_tree" = "$default_tree" ]
 }
@@ -1816,7 +1842,7 @@ content_in_default() {
 # reachable from any remote-tracking branch? True when a merged PR proves the
 # current local work is contained in the PR head, OR the content is already in the
 # default branch (fallback, which also covers the no-PR and gh-error paths). False
-# only for genuinely unlanded work.
+# when neither proof establishes that the work landed.
 work_is_landed() {
   local branch=$1
   pr_is_merged "$branch" && return 0
@@ -2277,7 +2303,7 @@ validate_worktree_teardown_safety() {
     secondmate|scout) return 0 ;;
   esac
 
-  if ! dirty_raw=$(git -C "$WT" status --porcelain 2>/dev/null); then
+  if ! dirty_raw=$(git -C "$WT" status --porcelain --untracked-files=all 2>/dev/null); then
     if worktree_safety_blocked_by_lock "uncommitted changes"; then
       return "$TEARDOWN_WORKTREE_SAFETY_LOCK_BLOCKED"
     fi
@@ -2287,7 +2313,7 @@ validate_worktree_teardown_safety() {
   fi
   dirty=$(printf '%s\n' "$dirty_raw" | grep -vE '^\?\? (\.claude/|\.fm-(grok|kimi)-turnend$)' || true)
 
-  if ! unpushed_raw=$(git -C "$WT" log --oneline HEAD --not --remotes -- 2>/dev/null); then
+  if ! unpushed_raw=$(git -C "$WT" log --oneline HEAD --not --exclude='no-mistakes/*' --remotes -- 2>/dev/null); then
     if worktree_safety_blocked_by_lock "commits not on a remote"; then
       return "$TEARDOWN_WORKTREE_SAFETY_LOCK_BLOCKED"
     fi
@@ -2327,7 +2353,12 @@ validate_worktree_teardown_safety() {
       TEARDOWN_WORKTREE_BRANCH_FOR_SAFETY=$branch
     fi
     if ! work_is_landed "$branch"; then
-      echo "REFUSED: worktree $WT has work not on any remote and not landed." >&2
+      if [ -n "${CONTENT_LANDED_PROOF_ERROR:-}" ]; then
+        echo "REFUSED: content-landed proof unavailable for worktree $WT: $CONTENT_LANDED_PROOF_ERROR." >&2
+        echo "Restore or upgrade Git and retry the content check." >&2
+      else
+        echo "REFUSED: worktree $WT has work not on any remote and not landed." >&2
+      fi
       printf 'unpushed commits:\n%s\n' "$unpushed" >&2
       echo "Push the branch, land its PR, or get the captain's explicit OK to discard, then --force." >&2
       return 1
@@ -2785,10 +2816,8 @@ require_exclusive_task_worktree_slot() {
 # state so each caller gates its slot steps on one determination; the claimant
 # stays in FM_TREEHOUSE_SLOT_OWNER_ID and FM_TREEHOUSE_SLOT_OWNER_HOME.
 #
-# An absent claim proceeds as the slot's owner: a slot taken before claims
-# existed, or already returned to the pool, carries none, and refusing those
-# would strand every task in flight across the change for no evidence at all.
-# Those keep exactly the record-scan protection they had before.
+# An absent claim passes this check; the script header owns the additional
+# lease-ownership proof required before destructive cleanup.
 TEARDOWN_SLOT_REASSIGNED_RC=3
 
 require_owned_worktree_slot_record() {  # <task-id> <worktree>
@@ -3767,9 +3796,10 @@ cleanup_firstmate_home_children() {
       "$sub_state/$child_id.claude-settings.json" "$sub_state/$child_id.devin-config.json" \
       "$sub_state/$child_id.polytoken-busy.sh" \
       "$sub_state/.$child_id.branch-outcome-index" "$sub_state/.$child_id.classifier-offset"
+    rm -rf "$sub_state/$child_id.kiro-home"
     chmod u+w "$sub_state/$child_id.git-hooks" 2>/dev/null || true
     rm -rf "$sub_state/$child_id.git-hooks" "$sub_state/$child_id.push-guard" \
-      "$sub_state/$child_id.cortex-plugin" \
+      "$sub_state/$child_id.cortex-plugin" "$sub_state/$child_id.hermes-hooks" \
       "$sub_state/$child_id.polytoken-config" \
       "$sub_state/$child_id.polytoken-sessions" \
       "$sub_state/$child_id.polytoken-sessions-v1"
@@ -3902,6 +3932,23 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] &&
   ORCA_PATH_MATCH_VERIFIED=1
 fi
 
+if [ "$BACKEND" != orca ] && [ "$KIND" != secondmate ] && teardown_owns_worktree; then
+  if [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
+    fm_treehouse_slot_owner_state "$WT" "$ID"
+    if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
+      pool_slot=$(canonical_existing_dir "$WT") || exit 1
+      if ! pool_status=$(cd "$PROJ" && treehouse status --json) ||
+         ! jq -e --arg path "$pool_slot" --arg id "$ID" '
+           [.[] | select(.path == $path)] | length == 1 and
+           (.[0] | .lease_holder == $id or (.lease_id == "" and .lease_holder == ""))
+         ' <<<"$pool_status" >/dev/null 2>&1; then
+        echo "REFUSED: cannot prove task $ID owns the Treehouse lease for $WT; retaining the endpoint, copy, lease and every durable task record" >&2
+        exit 1
+      fi
+    fi
+  fi
+fi
+
 if teardown_owns_worktree && [ -d "$WT" ] && [ "$FORCE" != "--force" ]; then
   if validate_worktree_teardown_safety; then
     :
@@ -3950,6 +3997,124 @@ if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
     echo "error: the pending backlog $BACKLOG_TRANSITION for $ID is not replayable; refusing destructive teardown" >&2
     exit 1
   }
+fi
+
+# The initial landed/discard-work checks above have passed (or --force skipped
+# them). Fix 1 and Fix 2 (see script header) run here, unconditionally on
+# --force, and before branch deletion or worktree return - a still-parked run or a
+# leaked process can own live work in this exact worktree. Not for
+# kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
+# dedicated process-event and firstmate-home removal machinery further below,
+# not by task-worktree cleanup.
+if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
+  conclude_task_no_mistakes_run "$WT"
+fi
+
+# A Herdr pane's top-level shell lives in its leased copy, so the reap and the
+# Treehouse return below would end it and Herdr would remove the pane outside
+# the locked, focus-preserving close. Herdr therefore closes its exact pane here,
+# before anything ends processes in the copy.
+HERDR_PRESENTATION_JOURNAL="$STATE/$ID.herdr-presentation"
+# teardown_herdr_journal_orphaned: true when the task's own journal names
+# nothing the session-start sweep could still close - a version 1 attempt whose
+# token-bearing projected workspace is confirmed gone, or a version 2 binding of
+# exactly the recorded pane this teardown proves gone. Unreadable, malformed, or
+# otherwise-bound journals, and a version 1 workspace still present or
+# unreadable, are not orphans.
+teardown_herdr_journal_orphaned() {
+  fm_backend_source herdr || return 1
+  fm_backend_herdr_projection_journal_snapshot "$HERDR_PRESENTATION_JOURNAL" "$ID" || return 1
+  if [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = 1 ]; then
+    fm_backend_herdr_projection_token_workspace_gone \
+      "$TEARDOWN_HERDR_SESSION" "$HERDR_PRESENTATION_JOURNAL" "$ID"
+  else
+    [ "$FM_BACKEND_HERDR_JOURNAL_SESSION:$FM_BACKEND_HERDR_JOURNAL_PANE_ID" = "$T" ]
+  fi
+}
+HERDR_PRESENTATION_RETIRE_CANDIDATE=0
+HERDR_PRESENTATION_SESSION=
+HERDR_PRESENTATION_PANE=
+if [ "$BACKEND" = herdr ] \
+   && { [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; }; then
+  fm_backend_source herdr || true
+  HERDR_PRESENTATION_SESSION=$(meta_value "$META" herdr_session)
+  HERDR_PRESENTATION_WORKSPACE=$(meta_value "$META" herdr_workspace_id)
+  HERDR_PRESENTATION_PANE=$(meta_value "$META" herdr_pane_id)
+  if [ -n "$HERDR_PRESENTATION_SESSION" ] \
+     && [ -n "$HERDR_PRESENTATION_WORKSPACE" ] \
+     && [ -n "$HERDR_PRESENTATION_PANE" ] \
+     && [ "$T" = "$HERDR_PRESENTATION_SESSION:$HERDR_PRESENTATION_PANE" ] \
+     && fm_backend_herdr_projection_endpoint_matches_journal \
+       "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_WORKSPACE" \
+       "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
+    HERDR_PRESENTATION_RETIRE_CANDIDATE=1
+  fi
+fi
+
+if [ "$HERDR_PRESENTATION_RETIRE_CANDIDATE" = 1 ]; then
+  # The presentation lock was acquired above, before any destructive step; a
+  # contended lock already refused this teardown while everything was intact.
+  if teardown_herdr_session_lock_held "$HERDR_PRESENTATION_SESSION"; then
+    # stderr is deliberately NOT discarded here. This is the highest-frequency
+    # projected-close call site, and the helper's only stderr output is a real
+    # warning - unverifiable workspace.move support, a refused focus-unsafe
+    # close, an unconfirmed repositioned-workspace removal, or a failed exact
+    # restore.
+    # Swallowing them left a wrong active workspace with no operator-visible
+    # signal at all. The close stays non-fatal exactly as before: the presence
+    # gate below is what decides whether any durable record may be removed.
+    fm_backend_herdr_projection_close_pane_focus_preserving \
+      "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_PANE" || true
+  else
+    echo "warning: herdr presentation focus lock unavailable; refusing a concurrent focus-unsafe pane close" >&2
+  fi
+elif [ "$BACKEND" = herdr ]; then
+  if teardown_herdr_session_lock_held "$TEARDOWN_HERDR_SESSION"; then
+    fm_backend_herdr_kill_serialized "$TEARDOWN_HERDR_SESSION" "$TEARDOWN_HERDR_PANE" 2>/dev/null || true
+  else
+    echo "warning: herdr session presentation lock path is unavailable; skipping the pane close rather than closing unlocked" >&2
+  fi
+fi
+
+if [ "$HERDR_PRESENTATION_RETIRE_CANDIDATE" = 1 ]; then
+  if [ "$(fm_backend_herdr_pane_agent_state "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_PANE")" = dead ]; then
+    rm -f "$HERDR_PRESENTATION_JOURNAL"
+  else
+    echo "warning: exact herdr task-pane close could not be confirmed for $ID; retaining the presentation journal and attempting no workspace cleanup" >&2
+  fi
+elif [ "$BACKEND" = herdr ] \
+     && { [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; }; then
+  echo "warning: herdr presentation journal for $ID was not retired by its close; no workspace cleanup was attempted" >&2
+fi
+# A refused or skipped Herdr close must stop before the reaper or Treehouse
+# return can end the pane shell in the task copy. Confirm the exact pane is gone
+# while the copy and every durable record are still intact.
+if [ "$BACKEND" = herdr ]; then
+  fm_backend_source herdr || true
+  if ! declare -F fm_backend_herdr_endpoint_confirmed_gone >/dev/null 2>&1; then
+    echo "error: herdr endpoint confirmation is unavailable for $ID; retaining every durable task record" >&2
+    exit 1
+  fi
+  if ! fm_backend_herdr_endpoint_confirmed_gone "$T"; then
+    echo "error: herdr pane $T for $ID is not confirmed gone after its close was refused, skipped, or failed; retaining every durable task record - rerun teardown once the close can run under the session lock" >&2
+    exit 1
+  fi
+fi
+
+if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
+  reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
+elif [ "$KIND" != secondmate ]; then
+  reap_task_worktree_processes tasktmp "$TASK_TMP"
+fi
+
+# A worker can write after the first proof, including while its run is concluded
+# or its processes exit. Inspect the stopped copy before dropping its branch or
+# returning it on either backend path.
+if teardown_owns_worktree && [ -d "$WT" ] && [ "$FORCE" != "--force" ]; then
+  validate_worktree_teardown_safety || exit 1
+fi
+
+if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
 # Roll the accepted legacy incarnation's stamp back to the record's exact
 # pre-stamp bytes, restored from the copy taken before the stamp: the stamp is
 # re-sealed (bin/fm-pr-lib.sh), so it can reorder the record rather than only
@@ -4099,173 +4264,9 @@ else
   fi
 fi
 
-# Herdr persists the pane's live cwd, so its top shell stays in the task copy.
-# Conclude a parked run and prove a legacy slot's lease before closing the pane;
-# the guarded close and its confirmation must precede every reap and return.
-# Other backends retain their existing abort/reap/return/close order.
-if [ "$BACKEND" = herdr ] && [ "$KIND" != secondmate ] && teardown_owns_worktree; then
-  conclude_task_no_mistakes_run "$WT"
-  if [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
-    fm_treehouse_slot_owner_state "$WT" "$ID"
-    if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
-      # The project lock prevents allocation between this read and the return.
-      # A conditional return cannot serve as this proof: it kills pane shells.
-      herdr_slot=$(canonical_existing_dir "$WT") || exit 1
-      if ! herdr_pool_status=$(cd "$PROJ" && treehouse status --json) ||
-         ! jq -e --arg path "$herdr_slot" --arg id "$ID" '
-           [.[] | select(.path == $path)] | length == 1 and
-           (.[0] | .lease_holder == $id or (.lease_id == "" and .lease_holder == ""))
-         ' <<<"$herdr_pool_status" >/dev/null 2>&1; then
-        echo "REFUSED: cannot prove task $ID owns the Treehouse lease for $WT; retaining the pane, copy, lease and every durable task record" >&2
-        exit 1
-      fi
-    fi
-  fi
-fi
-
-HERDR_PRESENTATION_JOURNAL="$STATE/$ID.herdr-presentation"
-# teardown_herdr_journal_orphaned: true when the task's own journal names
-# nothing the session-start sweep could still close - a version 1 attempt whose
-# token-bearing projected workspace is confirmed gone, or a version 2 binding of
-# exactly the recorded pane this teardown proves gone. Unreadable, malformed, or
-# otherwise-bound journals, and a version 1 workspace still present or
-# unreadable, are not orphans.
-teardown_herdr_journal_orphaned() {
-  fm_backend_source herdr || return 1
-  fm_backend_herdr_projection_journal_snapshot "$HERDR_PRESENTATION_JOURNAL" "$ID" || return 1
-  if [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = 1 ]; then
-    fm_backend_herdr_projection_token_workspace_gone \
-      "$TEARDOWN_HERDR_SESSION" "$HERDR_PRESENTATION_JOURNAL" "$ID"
-  else
-    [ "$FM_BACKEND_HERDR_JOURNAL_SESSION:$FM_BACKEND_HERDR_JOURNAL_PANE_ID" = "$T" ]
-  fi
-}
-HERDR_PRESENTATION_RETIRE_CANDIDATE=0
-HERDR_PRESENTATION_SESSION=
-HERDR_PRESENTATION_PANE=
-if [ "$BACKEND" = herdr ] \
-   && { [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; }; then
-  fm_backend_source herdr || true
-  HERDR_PRESENTATION_SESSION=$(meta_value "$META" herdr_session)
-  HERDR_PRESENTATION_WORKSPACE=$(meta_value "$META" herdr_workspace_id)
-  HERDR_PRESENTATION_PANE=$(meta_value "$META" herdr_pane_id)
-  if [ -n "$HERDR_PRESENTATION_SESSION" ] \
-     && [ -n "$HERDR_PRESENTATION_WORKSPACE" ] \
-     && [ -n "$HERDR_PRESENTATION_PANE" ] \
-     && [ "$T" = "$HERDR_PRESENTATION_SESSION:$HERDR_PRESENTATION_PANE" ] \
-     && fm_backend_herdr_projection_endpoint_matches_journal \
-       "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_WORKSPACE" \
-       "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
-    HERDR_PRESENTATION_RETIRE_CANDIDATE=1
-  fi
-fi
-
-if [ "$HERDR_PRESENTATION_RETIRE_CANDIDATE" = 1 ]; then
-  # The presentation lock was acquired before any destructive step; a
-  # contended lock already refused this teardown while everything was intact.
-  if teardown_herdr_session_lock_held "$HERDR_PRESENTATION_SESSION"; then
-    # stderr is deliberately NOT discarded here. This is the highest-frequency
-    # projected-close call site, and the helper's only stderr output is a real
-    # warning - unverifiable workspace.move support, a refused focus-unsafe
-    # close, an unconfirmed repositioned-workspace removal, or a failed exact
-    # restore.
-    # Swallowing them left a wrong active workspace with no operator-visible
-    # signal at all. The close stays non-fatal exactly as before: the presence
-    # gate below is what decides whether any durable record may be removed.
-    fm_backend_herdr_projection_close_pane_focus_preserving \
-      "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_PANE" || true
-  else
-    echo "warning: herdr presentation focus lock unavailable; refusing a concurrent focus-unsafe pane close" >&2
-  fi
-elif [ "$BACKEND" = herdr ]; then
-  if teardown_herdr_session_lock_held "$TEARDOWN_HERDR_SESSION"; then
-    fm_backend_herdr_kill_serialized "$TEARDOWN_HERDR_SESSION" "$TEARDOWN_HERDR_PANE" 2>/dev/null || true
-  else
-    echo "warning: herdr session presentation lock path is unavailable; skipping the pane close rather than closing unlocked" >&2
-  fi
-fi
-if [ "$HERDR_PRESENTATION_RETIRE_CANDIDATE" = 1 ]; then
-  if [ "$(fm_backend_herdr_pane_agent_state "$HERDR_PRESENTATION_SESSION" "$HERDR_PRESENTATION_PANE")" = dead ]; then
-    rm -f "$HERDR_PRESENTATION_JOURNAL"
-  else
-    echo "warning: exact herdr task-pane close could not be confirmed for $ID; retaining the presentation journal and attempting no workspace cleanup" >&2
-  fi
-elif [ "$BACKEND" = herdr ] \
-     && { [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; }; then
-  echo "warning: herdr presentation journal for $ID was not retired by its close; no workspace cleanup was attempted" >&2
-fi
-# A refused, skipped, or failed Herdr close must never erase a live task's
-# durable endpoint identity: unless the exact pane is confirmed gone, retain
-# every record and stop before any removal below so a later rerun can retry
-# the locked close. Only a structured not-found proves the pane gone; unknown
-# presence, missing or malformed endpoint identity, and missing confirmation
-# machinery all refuse.
-if [ "$BACKEND" = herdr ]; then
-  fm_backend_source herdr || true
-  if ! declare -F fm_backend_herdr_endpoint_confirmed_gone >/dev/null 2>&1; then
-    echo "error: herdr endpoint confirmation is unavailable for $ID; retaining every durable task record" >&2
-    exit 1
-  fi
-  if ! fm_backend_herdr_endpoint_confirmed_gone "$T"; then
-    echo "error: herdr pane $T for $ID is not confirmed gone after its close was refused, skipped, or failed; retaining every durable task record - rerun teardown once the close can run under the session lock" >&2
-    exit 1
-  fi
-fi
-
-# Every landed/discard-work refusal above has now passed (or --force skipped
-# them). One check runs before the reaps and copy mutations below: a record
-# whose slot carries no claim (pre-claim legacy) and whose
-# pooled copy treehouse still reports must prove ownership through the durable
-# lease return BEFORE the reap, the branch drop or the hook sweep can touch
-# that copy - all three would hit another live task's work if the slot had
-# been silently reissued. The guarded return refuses instead whenever the
-# lease is not this task's, leaving the slot, its copy and its lease exactly
-# as they are and the record in place for a rerun. The project lock is
-# already held here (the lock gate above required it for a live pool slot),
-# so no concurrent allocation can hand the slot out mid-return.
-TEARDOWN_ABSENT_CLAIM_RETURNED=0
-TEARDOWN_ABSENT_CLAIM_BRANCH=
-if [ "$KIND" != secondmate ] && teardown_owns_worktree \
-   && [ -d "$WT" ] && fm_treehouse_pool_slot "$PROJ" "$WT"; then
-  fm_treehouse_slot_owner_state "$WT" "$ID"
-  if [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ]; then
-    [ "$BACKEND" = herdr ] || conclude_task_no_mistakes_run "$WT"
-    TEARDOWN_ABSENT_CLAIM_BRANCH=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-    post_lock_cleanup_check=
-    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ]; then
-      post_lock_cleanup_check=validate_worktree_teardown_safety
-    fi
-    if teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check"; then
-      TEARDOWN_ABSENT_CLAIM_RETURNED=1
-      # No scrub runs before ownership is proven on this path, so only
-      # residue a real return cannot clean evidences a lost slot.
-      if teardown_worktree_has_uncleanable_residue "$WT"; then
-        teardown_note_dirty_return "$WT"
-      fi
-    else
-      echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
-      exit 1
-    fi
-  fi
-fi
-
-# Fix 2 (see script header) runs here, unconditionally on --force. Herdr has
-# already concluded Fix 1 and confirmed its guarded pane close; other backends
-# conclude Fix 1 here before reaping processes in this copy. When the ownership return
-# above succeeded it already terminated the copy's lingering processes, so
-# this reap scans a returned pooled copy and reaps nothing of ours. Not for
-# kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
-# dedicated process-event and firstmate-home removal machinery further below,
-# not by task-worktree cleanup.
-if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
-  [ "$BACKEND" = herdr ] || [ "$TEARDOWN_ABSENT_CLAIM_RETURNED" = 1 ] || conclude_task_no_mistakes_run "$WT"
-  reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
-elif [ "$KIND" != secondmate ]; then
-  reap_task_worktree_processes tasktmp "$TASK_TMP"
-fi
 if [ "$KIND" = ship ] && teardown_owns_worktree && [ -e "$CONFIG/pipeline-spend" ]; then
   FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" FM_CONFIG_OVERRIDE="$CONFIG" \
-    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null \
+    "$SCRIPT_DIR/fm-pipeline-spend.sh" record "$ID" >/dev/null \
     || echo "warning: could not record $ID's no-mistakes pipeline spend; cleanup continues" >&2
 fi
 
@@ -4315,63 +4316,45 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
 elif [ "$KIND" != secondmate ] && ! teardown_owns_worktree; then
   :
 elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
-  if [ "$TEARDOWN_ABSENT_CLAIM_RETURNED" = 1 ]; then
-    # The pre-claim ownership return above already put this slot back in the
-    # pool and its reset cleaned the copy, so nothing here may return or reset
-    # it again: drop this task's captured branch ref best-effort, sweep any
-    # hook files the reset left, and drop the spent claim.
-    if [ "$TEARDOWN_ABSENT_CLAIM_BRANCH" != "HEAD" ]; then
-      git -C "$PROJ" branch -D "$TEARDOWN_ABSENT_CLAIM_BRANCH" >/dev/null 2>&1 || true
+  branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
+  if [ "$branch" != "HEAD" ]; then
+    if git -C "$WT" checkout --detach -q 2>/dev/null; then
+      git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
     fi
-    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
-      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
-    remove_harness_worktree_wiring "$WT"
-    if [ "$BACKEND" = t3code ]; then
-      "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
-      git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
-    fi
-    fm_treehouse_slot_owner_release "$WT" "$ID"
-  else
-    branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-    if [ "$branch" != "HEAD" ]; then
-      if git -C "$WT" checkout --detach -q 2>/dev/null; then
-        git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
-      fi
-    fi
-    # Remove our hook and environment files so a reused pool worktree cannot fire
-    # signals for a dead task or hand a t3code env block or channel statement to
-    # its next holder.
-    rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
-      "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
-    remove_harness_worktree_wiring "$WT"
-    if [ "$BACKEND" = t3code ]; then
-      "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
-      git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
-    fi
-    # Kills remaining processes in the worktree (including the agent), resets, returns
-    # to pool. treehouse resolves the pool from the working directory, so run it from
-    # the project. teardown_treehouse_return tolerates transient and stale git locks
-    # left by a killed crew process; see the script header for retry and stale-lock proof.
-    post_lock_cleanup_check=
-    if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
-      post_lock_cleanup_check=validate_worktree_teardown_safety
-    fi
-    if [ "$KIND" = scout ] || [ "$FORCE" = "--force" ]; then
-      teardown_scrub_scratch_copy "$WT" || exit 1
-    fi
-    wt_pool_slot=0
-    fm_treehouse_pool_slot "$PROJ" "$WT" && wt_pool_slot=1
-    teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
-      echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
-      exit 1
-    }
-    [ "$wt_pool_slot" = 0 ] || teardown_note_dirty_return "$WT"
-    # The slot is back in the pool, so this task's claim on it is spent. Dropping
-    # it here - and only after a return that succeeded - keeps a returned slot
-    # unclaimed until its next holder claims it, and leaves the claim in place
-    # whenever the return did not actually happen.
-    fm_treehouse_slot_owner_release "$WT" "$ID"
   fi
+  # Remove our hook and environment files so a reused pool worktree cannot fire
+  # signals for a dead task or hand a t3code env block or channel statement to
+  # its next holder.
+  rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
+    "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend"
+  remove_harness_worktree_wiring "$WT"
+  if [ "$BACKEND" = t3code ]; then
+    "$SCRIPT_DIR/fm-t3code-codex-env.sh" cleanup "$WT" || exit 1
+    git -C "$WT" ls-files --error-unmatch CLAUDE.local.md >/dev/null 2>&1 || rm -f "$WT/CLAUDE.local.md"
+  fi
+  # Kills remaining processes in the worktree (including the agent), resets, returns
+  # to pool. treehouse resolves the pool from the working directory, so run it from
+  # the project. teardown_treehouse_return tolerates transient and stale git locks
+  # left by a killed crew process; see the script header for retry and stale-lock proof.
+  post_lock_cleanup_check=
+  if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
+    post_lock_cleanup_check=validate_worktree_teardown_safety
+  fi
+  if [ "$KIND" = scout ] || [ "$FORCE" = "--force" ]; then
+    teardown_scrub_scratch_copy "$WT" || exit 1
+  fi
+  wt_pool_slot=0
+  fm_treehouse_pool_slot "$PROJ" "$WT" && wt_pool_slot=1
+  teardown_treehouse_return "$WT" "$PROJ" "worktree" "$ID" "$post_lock_cleanup_check" || {
+    echo "error: treehouse return failed for task $ID's worktree $WT; teardown aborted, so that slot, its copy and its lease are left exactly as they are and task $ID's record is kept for a rerun" >&2
+    exit 1
+  }
+  [ "$wt_pool_slot" = 0 ] || teardown_note_dirty_return "$WT"
+  # The slot is back in the pool, so this task's claim on it is spent. Dropping
+  # it here - and only after a return that succeeded - keeps a returned slot
+  # unclaimed until its next holder claims it, and leaves the claim in place
+  # whenever the return did not actually happen.
+  fm_treehouse_slot_owner_release "$WT" "$ID"
 elif [ "$KIND" != secondmate ] && [ -n "$WT" ]; then
   # The recorded copy is gone from disk - removed or pruned outside Firstmate -
   # so none of the steps above run and nothing else would ever release this
@@ -4497,9 +4480,13 @@ rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
   "$STATE/$ID.control-relaunch.brief-prior" "$STATE/$ID.control-relaunch.note" \
   "$STATE/$ID.reconcile-nudged" "$STATE/$ID.gemini-settings.json" \
   "$STATE/$ID.claude-settings.json" "$STATE/$ID.devin-config.json" \
-  "$STATE/$ID.polytoken-busy.sh" \
+  "$STATE/$ID.polytoken-busy.sh" "$STATE/$ID.pr-register-refused" \
   "$STATE/.$ID.branch-outcome-index" "$STATE/.$ID.classifier-offset" "$STATE/.$ID.meta-proj" \
   "$STATE/.secondmate-relaunch-$ID" "$STATE/.secondmate-relaunch-bound-$ID"
+# kiro's per-task home is a directory (its relocated KIRO_HOME holds the hook
+# agent config, the trust setting, and this task's sessions), so it needs a
+# recursive removal rather than the file rm above.
+rm -rf "$STATE/$ID.kiro-home"
 # The steering inbox (bin/fm-task-inbox-lib.sh) is runtime state for the
 # retired endpoint; teardown only runs after landing is confirmed, so any
 # leftover unhandled steer here is moot rather than unlanded work.
@@ -4514,7 +4501,7 @@ chmod u+w "$STATE/$ID.git-hooks" 2>/dev/null || true
 # state/<id>.cortex-plugin is the per-task Cortex Code plugin directory
 # (bin/fm-cortex-plugin.sh) carrying the busy-state hooks.
 rm -rf "$STATE/$ID.inbox" "$STATE/$ID.git-hooks" "$STATE/$ID.push-guard" \
-  "$STATE/$ID.cortex-plugin" \
+  "$STATE/$ID.cortex-plugin" "$STATE/$ID.hermes-hooks" \
   "$STATE/$ID.polytoken-config" \
   "$STATE/$ID.polytoken-sessions" "$STATE/$ID.polytoken-sessions-v1"
 rm -rf "$STATE/$ID.inbox" "$STATE/$ID.git-hooks"

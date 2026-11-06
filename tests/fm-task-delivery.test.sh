@@ -607,8 +607,8 @@ test_promote_requires_and_records_the_delivery_contract() {
   status=$?
   [ "$status" -ne 0 ] || fail "promotion without writable instruction storage should exit non-zero"
   assert_grep 'kind=scout' "$meta" "failed instruction publication still promoted the task"
-  assert_no_grep '^mode=' "$meta" "failed instruction publication recorded a delivery mode"
-  assert_no_grep '^yolo=' "$meta" "failed instruction publication recorded a merge posture"
+  assert_no_regex '^mode=' "$meta" "failed instruction publication recorded a delivery mode"
+  assert_no_regex '^yolo=' "$meta" "failed instruction publication recorded a merge posture"
 
   instructions_path="$home/data/promote-d1/ship-instructions.md"
   mkdir -p "$instructions_path"
@@ -619,8 +619,8 @@ test_promote_requires_and_records_the_delivery_contract() {
   assert_contains "$out" "ship instructions path is a directory" \
     "promotion did not explain the invalid instruction destination"
   assert_grep 'kind=scout' "$meta" "invalid instruction destination still promoted the task"
-  assert_no_grep '^mode=' "$meta" "invalid instruction destination recorded a delivery mode"
-  assert_no_grep '^yolo=' "$meta" "invalid instruction destination recorded a merge posture"
+  assert_no_regex '^mode=' "$meta" "invalid instruction destination recorded a delivery mode"
+  assert_no_regex '^yolo=' "$meta" "invalid instruction destination recorded a merge posture"
   rmdir "$instructions_path"
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" promote-d1 --mode direct-PR --yolo on 2>&1)
@@ -642,6 +642,56 @@ test_promote_requires_and_records_the_delivery_contract() {
   assert_contains "$out" "ship instructions for mode=direct-PR" "promotion hint did not carry the decided mode"
   [ "$(grep -c '^mode=' "$meta")" = 1 ] || fail "promotion left more than one mode= line in the task record"
   pass "fm-promote: promotion requires the delivery contract, records it exactly once, and preserves trace identity verbatim"
+}
+
+# A home with config/spawn-base-primary-checkout can start a scout from the
+# primary checkout's default branch, which may carry commits origin has never
+# received, so a promotion to a publishing mode names origin's default branch as
+# the base to return to. Local-only, a home without the flag, a project without
+# an origin remote (which spawn never moves off its slot's HEAD), and a named
+# base keep their wording.
+test_promote_names_origin_for_a_publishing_mode_in_an_opted_in_home() {
+  local flag remote mode rec home proj fakebin id instructions out status
+  for flag in on off; do
+    for remote in origin none; do
+      for mode in direct-PR no-mistakes local-only; do
+        rec=$(make_home "promote-base-$flag-$remote-$mode" "- proj [$mode] - fixture (added 2026-01-01)")
+        IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+        [ "$remote" = none ] || git -C "$proj" remote add origin "file://$TMP_ROOT/promote-base-$flag-$remote-$mode/origin.git"
+        id="promote-base-$flag-$remote-${mode%%-*}-c1"
+        [ "$flag" = off ] || : > "$home/config/spawn-base-primary-checkout"
+        write_brief "$home" "$id"
+        printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$proj" > "$home/state/$id.meta"
+
+        out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode "$mode" --yolo off 2>&1)
+        status=$?
+        expect_code 0 "$status" "flag $flag, remote $remote, $mode: the promotion should succeed"$'\n'"$out"
+        instructions="$home/data/$id/ship-instructions.md"
+        if [ "$flag" = on ] && [ "$remote" = origin ] && [ "$mode" != local-only ]; then
+          assert_grep "3. Return to a clean copy of origin's default branch rather than the primary checkout's, which can carry commits origin has never received, then create your branch" \
+            "$instructions" "flag $flag, remote $remote, $mode: a publishing promotion did not name origin's default branch as its base"
+        else
+          assert_grep '3. Return to a clean default-branch base, then create your branch' \
+            "$instructions" "flag $flag, remote $remote, $mode: the promotion changed the default-branch wording"
+        fi
+      done
+    done
+  done
+
+  home="$TMP_ROOT/promote-base-named/home"
+  id='promote-base-named-c1'
+  mkdir -p "$home/state" "$home/config"
+  : > "$home/config/spawn-base-primary-checkout"
+  write_brief "$home" "$id"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nbase_branch=feature/hub\n' "$id" > "$home/state/$id.meta"
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode direct-PR --yolo off 2>&1)
+  status=$?
+  expect_code 0 "$status" "a named-base promotion in an opted-in home should succeed"$'\n'"$out"
+  assert_grep "3. Return to a clean copy of the base branch \`feature/hub\`, then create your branch" \
+    "$home/data/$id/ship-instructions.md" "the opt-in changed a named base branch's promotion wording"
+  pass "fm-promote: an opted-in home sends a publishing promotion on a project with origin back to origin's default branch"
 }
 
 # A symlink at state/<id>.meta is the containment hazard the shared publisher
@@ -804,7 +854,8 @@ test_promotion_persists_the_selected_ship_branch() {
   FM_HOME="$home" "$BRIEF" "$id" fixture-project --scout >/dev/null 2>&1 \
     || fail "branch-prefix promotion scout brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
-    "Promote the branch-prefix fixture." "Use the configured branch exactly."
+    "Promote the branch-prefix fixture." "Use the configured branch exactly." \
+    "Preserve the configured ship-branch prefix."
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" \
     --mode local-only --yolo off --branch-prefix fix/) \
     || fail "branch-prefix promotion should succeed"
@@ -825,16 +876,21 @@ test_promotion_persists_the_selected_ship_branch() {
 test_promotion_branch_command_is_shell_safe() {
   local home id prefix marker meta instructions command repo branch
   home="$TMP_ROOT/promote-branch-shell-safe/home"
-  marker="$TMP_ROOT/promote-branch-shell-safe-marker"
+  repo="$TMP_ROOT/promote-branch-shell-safe-repo"
+  marker="$repo/promote-branch-shell-safe-marker"
   id=promote-branch-safe-e3
-  prefix="\$(touch\${IFS}$marker)/"
+  # A relative sentinel keeps the branch valid when TMPDIR has hidden path
+  # components, which Git forbids in ref names. The command runs in repo.
+  # shellcheck disable=SC2016 # The injection probe requires literal command substitution and ${IFS}.
+  prefix='$(touch${IFS}promote-branch-shell-safe-marker)/'
   meta="$home/state/$id.meta"
   mkdir -p "$home/state"
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\n' "$id" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" fixture-project --scout >/dev/null 2>&1 \
     || fail "shell-safe promotion scout brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
-    "Promote the shell-safe fixture." "Use the configured branch exactly."
+    "Promote the shell-safe fixture." "Use the configured branch exactly." \
+    "Preserve shell-safe ship-branch handling."
   FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" \
     --mode local-only --yolo off --branch-prefix "$prefix" >/dev/null 2>&1 \
     || fail "a ref-format-valid metacharacter prefix should promote safely"
@@ -842,7 +898,6 @@ test_promotion_branch_command_is_shell_safe() {
   # shellcheck disable=SC2016  # Single quotes are required: the sed expression holds literal backticks.
   command=$(sed -n 's/.*create your branch: `\(.*\)`\.$/\1/p' "$instructions")
   [ -n "$command" ] || fail "promotion instructions exposed no branch-creation command"
-  repo="$TMP_ROOT/promote-branch-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && eval "$command" ) || fail "promotion branch-creation command did not run"
   assert_absent "$marker" "promotion branch command executed the prefix's command substitution"
@@ -875,6 +930,7 @@ test_local_merge_uses_the_recorded_ship_branch() {
 - $(basename "$proj") [local-only branch=contrib/] - changed after task intake (added 2026-01-01)
 EOF
   printf 'project=%s\nmode=local-only\nbranch=fix/%s\n' "$proj" "$id" > "$home/state/$id.meta"
+  printf 'local_done_head=%s\n' "$fix" >> "$home/state/$id.meta"
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$MERGE_LOCAL" "$id") \
     || fail "local merge did not use the branch recorded at task intake: $out"
   [ "$(git -C "$proj" rev-parse HEAD)" = "$fix" ] \
@@ -950,6 +1006,194 @@ EOF
   pass "fm-project-mode: the conditional policy is accepted, mapped for mechanical callers, and readable raw"
 }
 
+# pr=manual hands a no-mistakes project's PR title and body to the worker: the
+# registry token is carried into the brief's contract line, the pipeline's pr and
+# ci steps are skipped, and the worker writes and publishes the text itself.
+test_pr_manual_brief_hands_the_pr_text_to_the_worker() {
+  local home brief plain based
+  home="$TMP_ROOT/pr-manual-brief/home"
+  mkdir -p "$home/data" "$home/state"
+  FM_HOME="$home" "$BRIEF" pr-manual-b1 proj --mode no-mistakes --pr manual >/dev/null \
+    || fail "a pr=manual no-mistakes brief should scaffold"
+  brief="$home/data/pr-manual-b1/brief.md"
+  grep -qx "Delivery contract: mode=no-mistakes pr=manual" "$brief" \
+    || fail "the brief did not record pr=manual on its delivery contract line"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'Pass `--skip pr,ci` on every `no-mistakes axi run` for this task' "$brief" \
+    "the worker was not told to skip the pr and ci steps"
+  assert_grep 'skip nothing else' "$brief" "nothing stopped the worker skipping validation or the push"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'gh-axi pr edit <number> --title' "$brief" "the worker was not told to update an existing PR's text itself"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'gh-axi pr create' "$brief" "the worker was not told to open the PR itself"
+  assert_grep 'Never post a comment or review' "$brief" "the worker was not kept from posting comments"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'gh-axi pr checks <number> --watch' "$brief" "the worker was not told how to wait for the PR's checks"
+  assert_grep 'done [at=<epoch>]: PR {url} checks green' "$brief" "the CI-green ready report was lost"
+  assert_grep 'is one the /no-mistakes run pushed' "$brief" "the named-head rule was lost"
+  assert_grep 'ask-user findings are never yours to answer' "$brief" "the ask-user escalation rule was lost"
+  assert_no_grep 'checks-passed' "$brief" "the worker was told to wait for a return its skipped ci step never gives"
+  assert_no_grep 'Pass `--skip push' "$brief" "the worker was told to skip the push the named-head rule depends on"
+
+  FM_HOME="$home" "$BRIEF" pr-manual-b3 proj --mode no-mistakes --pr manual --base-branch release/2 >/dev/null \
+    || fail "a pr=manual brief with a base branch should scaffold"
+  based="$home/data/pr-manual-b3/brief.md"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'pass `--base-branch release/2` on every `no-mistakes axi run`' "$based" "the worker was not told to rebase onto the base branch"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'open the PR against it with `--base release/2`' "$based" "the worker was not told to open the PR against the base"
+  assert_no_grep 'watches CI for that branch' "$based" "the pr=manual brief still claims the pipeline opens the PR and watches CI"
+
+  FM_HOME="$home" "$BRIEF" pr-manual-b2 proj --mode no-mistakes >/dev/null \
+    || fail "a default no-mistakes brief should scaffold"
+  plain="$home/data/pr-manual-b2/brief.md"
+  grep -qx "Delivery contract: mode=no-mistakes" "$plain" \
+    || fail "an absent pr token changed the default delivery contract line"
+  assert_no_grep 'skip pr' "$plain" "an absent pr token changed the default brief"
+  pass "fm-brief: pr=manual records its contract suffix, skips pr and ci, and hands the PR text to the worker"
+}
+
+test_pr_manual_is_refused_where_it_cannot_apply() {
+  local home out status
+  home="$TMP_ROOT/pr-manual-refuse/home"
+  mkdir -p "$home/data" "$home/state"
+  for args in "--mode direct-PR --pr manual" "--mode local-only --pr manual" \
+    "--mode no-mistakes --forge gerrit --pr manual" "--mode no-mistakes --forge forgejo --pr manual" \
+    "--mode no-mistakes --pr bogus" "--scout --pr manual"; do
+    # shellcheck disable=SC2086 # The flags are a word list.
+    out=$(FM_HOME="$home" "$BRIEF" pr-manual-r1 proj $args 2>&1)
+    status=$?
+    [ "$status" -ne 0 ] || fail "fm-brief accepted $args"
+    assert_absent "$home/data/pr-manual-r1/brief.md" "a refused scaffold ($args) still wrote a brief"
+  done
+  out=$(FM_HOME="$home" "$BRIEF" pr-manual-r2 proj --mode direct-PR --pr manual 2>&1)
+  assert_contains "$out" "pr=manual ships mode=no-mistakes only" "the direct-PR refusal did not say why"
+  pass "fm-brief: pr=manual is refused on direct-PR, local-only, a bound forge, an unknown value, and a scout"
+}
+
+test_spawn_requires_the_brief_to_carry_the_registered_pr_text() {
+  local rec home proj fakebin out status
+  rec=$(make_home pr-manual-agree "- proj [no-mistakes pr=manual] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  write_brief "$home" pr-manual-a1 no-mistakes
+  out=$(run_spawn "$home" "$fakebin" pr-manual-a1 "$proj" claude --mode no-mistakes --yolo off 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a pr=manual project launched on a brief that records no pr token"
+  assert_contains "$out" "PR-text mismatch for pr-manual-a1" "the refusal did not name the drift it caught"
+  assert_contains "$out" "fm-brief.sh pr-manual-a1 proj --mode no-mistakes --pr manual" \
+    "the refusal did not print a re-scaffold command that can actually run"
+  assert_absent "$home/state/pr-manual-a1.meta" "the refused spawn still recorded a task"
+
+  FM_HOME="$home" "$BRIEF" pr-manual-a2 proj --mode no-mistakes --pr manual >/dev/null \
+    || fail "a pr=manual brief should scaffold"
+  fill_brief_subsections "$home/data/pr-manual-a2/brief.md" "Open the PR by hand." "Ship it." \
+    "Open a pull request for the accepted change."
+  out=$(run_spawn "$home" "$fakebin" pr-manual-a2 "$proj" claude --mode no-mistakes --yolo off 2>&1)
+  assert_not_contains "$out" "PR-text mismatch" "an agreeing brief and registry were reported as drift"
+
+  # The other direction: a brief that hands the PR text to the worker on a
+  # project that never registered it would leave the pipeline's pr step skipped.
+  rec=$(make_home pr-manual-unbound "- proj [no-mistakes] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  FM_HOME="$home" "$BRIEF" pr-manual-a3 proj --mode no-mistakes --pr manual >/dev/null \
+    || fail "a pr=manual brief should scaffold"
+  fill_brief_subsections "$home/data/pr-manual-a3/brief.md" "Open the PR by hand." "Ship it." \
+    "Open a pull request for the accepted change."
+  out=$(run_spawn "$home" "$fakebin" pr-manual-a3 "$proj" claude --mode no-mistakes --yolo off 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a pr=manual brief launched on a project with no registered pr token"
+  assert_contains "$out" "PR-text mismatch for pr-manual-a3" "the unbound-project refusal did not name the drift"
+  assert_absent "$home/state/pr-manual-a3.meta" "the refused spawn still recorded a task"
+
+  # A conditional-policy project's direct-PR task already leaves the text to the
+  # worker, so its registered pr=manual expects no pr token on that brief.
+  rec=$(make_home pr-manual-prod "- proj [no-mistakes-prod-only pr=manual] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  FM_HOME="$home" "$BRIEF" pr-manual-a4 proj --mode direct-PR >/dev/null \
+    || fail "a direct-PR brief should scaffold"
+  fill_brief_subsections "$home/data/pr-manual-a4/brief.md" "Open the PR." "Ship it." \
+    "Open a pull request for the accepted change."
+  out=$(run_spawn "$home" "$fakebin" pr-manual-a4 "$proj" claude --mode direct-PR --yolo off 2>&1)
+  assert_not_contains "$out" "PR-text mismatch" "a direct-PR task on a prod-only pr=manual project was reported as drift"
+
+  # A registry entry the parser refuses stops the spawn rather than launching on
+  # a guessed posture.
+  rec=$(make_home pr-manual-bad "- proj [direct-PR pr=manual] - fixture (added 2026-01-01)")
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+  write_brief "$home" pr-manual-a5 direct-PR
+  out=$(run_spawn "$home" "$fakebin" pr-manual-a5 "$proj" claude --mode direct-PR --yolo off 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a project registered direct-PR with pr=manual launched"
+  assert_contains "$out" "only a no-mistakes ship takes it" "the refused entry's reason did not reach the operator"
+  assert_absent "$home/state/pr-manual-a5.meta" "the refused spawn still recorded a task"
+  pass "fm-spawn: the registered pr=manual binding must agree with the brief's contract line"
+}
+
+test_promotion_carries_the_pr_text_binding() {
+  local home sendroot meta out payload id
+  home="$TMP_ROOT/pr-manual-promote/home"
+  sendroot="$TMP_ROOT/pr-manual-promote/sendroot"
+  mkdir -p "$home/state" "$home/data" "$home/projects/proj" "$sendroot/bin"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
+  printf '%s\n' '- proj [no-mistakes pr=manual] - fixture (added 2026-01-01)' > "$home/data/projects.md"
+  cat > "$sendroot/bin/fm-send.sh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s' "$2" > "$FM_TEST_CAPTURE"
+STUB
+  chmod +x "$sendroot/bin/fm-send.sh"
+
+  id="pr-manual-p1"
+  meta="$home/state/$id.meta"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
+  FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
+    || fail "scout brief generation should succeed"
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix." \
+    "Fix the investigated defect."
+
+  out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode no-mistakes --yolo off 2>&1) \
+    || fail "promotion should take the registered pr binding with no flag to remember: $out"
+  payload="$TMP_ROOT/pr-manual-promote/payload"
+  ( cd "$sendroot" \
+    && FM_TEST_CAPTURE="$payload" \
+       eval "$(printf '%s\n' "$out" | sed -n 's/^next: //p' | grep 'fm-send\.sh')" ) \
+    || fail "promotion's delivery command did not run"
+  grep -qx "Delivery contract: mode=no-mistakes pr=manual" "$payload" \
+    || fail "the promoted worker did not receive pr=manual in its delivery contract"
+  # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
+  assert_grep 'Pass `--skip pr,ci` on every `no-mistakes axi run` for this task' "$payload" \
+    "the promoted worker was not told to skip the pr and ci steps"
+
+  rm "$home/data/$id/brief.md"
+  FM_HOME="$home" "$BRIEF" "$id" proj --mode no-mistakes --pr manual >/dev/null 2>&1 \
+    || fail "ordinary pr=manual ship brief generation should succeed"
+  awk '/^# Definition of done$/ { emit=1 } emit' "$home/data/$id/brief.md" > "$TMP_ROOT/pr-manual-promote/brief-dod"
+  awk '/^# Definition of done$/ { emit=1 } emit' "$payload" > "$TMP_ROOT/pr-manual-promote/delivered-dod"
+  cmp -s "$TMP_ROOT/pr-manual-promote/brief-dod" "$TMP_ROOT/pr-manual-promote/delivered-dod" \
+    || fail "promotion and ordinary brief generation delivered different pr=manual contracts"
+
+  # direct-PR already leaves the text to the worker, so a conditional-policy
+  # project promoted to it takes no pr token.
+  printf '%s\n' '- proj [no-mistakes-prod-only pr=manual] - fixture (added 2026-01-01)' > "$home/data/projects.md"
+  id="pr-manual-p2"
+  meta="$home/state/$id.meta"
+  printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$home/projects/proj" > "$meta"
+  FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
+    || fail "scout brief generation should succeed"
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix it." "Carry over only the fix." \
+    "Fix the investigated defect."
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode direct-PR --yolo off >/dev/null 2>&1 \
+    || fail "a prod-only pr=manual project should promote to direct-PR"
+  pass "fm-promote: a promoted no-mistakes worker receives the registered pr=manual contract "
+}
+
 # Spawn and promotion refuse leftover Task-subsection placeholders through the
 # public brief/spawn/promote path. Filling both subsections lets the spawn
 # direct-push publishes past every review, so the mode is refused unless the
@@ -963,7 +1207,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" dp-ok-a1 proj --mode direct-push >/dev/null \
     || fail "a direct-push brief should scaffold on an opted-in project"
-  fill_brief_subsections "$home/data/dp-ok-a1/brief.md" "Compile the wiki." "Compile it."
+  fill_brief_subsections "$home/data/dp-ok-a1/brief.md" "Compile the wiki." "Compile it." \
+    "Compile the wiki."
   assert_grep 'Delivery contract: mode=direct-push' "$home/data/dp-ok-a1/brief.md" \
     "the scaffolded brief did not record the direct-push contract"
   assert_grep 'bin/fm-wiki.sh publish' "$home/data/dp-ok-a1/brief.md" \
@@ -978,7 +1223,8 @@ $rec
 EOF
   FM_HOME="$home" "$BRIEF" dp-no-a1 proj --mode direct-push >/dev/null \
     || fail "a direct-push brief scaffolds before the spawn checks the registry"
-  fill_brief_subsections "$home/data/dp-no-a1/brief.md" "Compile the wiki." "Compile it."
+  fill_brief_subsections "$home/data/dp-no-a1/brief.md" "Compile the wiki." "Compile it." \
+    "Compile the wiki."
   out=$(run_spawn "$home" "$fakebin" dp-no-a1 "$proj" claude --mode direct-push --yolo off)
   status=$?
   [ "$status" -ne 0 ] || fail "direct-push on a project without the opt-in was accepted"
@@ -1059,7 +1305,8 @@ EOF
     || fail "herdr-lab ship brief should scaffold"
   fill_brief_subsections "$home/data/$id/brief.md" \
     "Reproduce the session restart in an isolated lab." \
-    "Drive every lifecycle step through the lab helper."
+    "Drive every lifecycle step through the lab helper." \
+    "Reproduce session restart behavior in an isolated lab."
   out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
   assert_not_contains "$out" "Herdr isolation contract" \
     "a brief scaffolded with --herdr-lab was refused by the Herdr lifecycle guard"
@@ -1192,7 +1439,8 @@ EOF
   id=delivery-empty-ship
   FM_HOME="$home" "$BRIEF" "$id" proj --mode direct-PR >/dev/null 2>&1 \
     || fail "empty-ship brief should scaffold"
-  fill_brief_subsections "$home/data/$id/brief.md" "" ""
+  fill_brief_subsections "$home/data/$id/brief.md" "" "" \
+    "Exercise task-content validation."
   out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
   status=$?
   [ "$status" -ne 0 ] || fail "spawn of empty Task subsections should exit non-zero"
@@ -1847,14 +2095,16 @@ EOF
 
   FM_HOME="$home" "$BRIEF" forge-agree-a2 proj --mode direct-PR --forge gerrit >/dev/null \
     || fail "a gerrit direct-PR brief should scaffold"
-  fill_brief_subsections "$home/data/forge-agree-a2/brief.md" "Publish the change." "Ship it."
+  fill_brief_subsections "$home/data/forge-agree-a2/brief.md" "Publish the change." "Ship it." \
+    "Publish the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a2 "$proj" claude --mode direct-PR --yolo off 2>&1)
   assert_not_contains "$out" "forge mismatch" "a gerrit direct-PR brief was reported as drift"
   assert_not_contains "$out" "cannot ship" "direct-PR was refused on the forge it publishes to"
 
   FM_HOME="$home" "$BRIEF" forge-agree-a3 proj --mode no-mistakes --forge gerrit >/dev/null \
     || fail "a gerrit ship brief should scaffold"
-  fill_brief_subsections "$home/data/forge-agree-a3/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/forge-agree-a3/brief.md" "Run the review loop." "Ship it." \
+    "Run the Gerrit review loop for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a3 "$proj" claude --mode no-mistakes --yolo off 2>&1)
   assert_not_contains "$out" "forge mismatch" "an agreeing brief and registry were reported as drift"
 
@@ -1863,7 +2113,8 @@ EOF
   # fast-forward local main with content the review server never saw.
   FM_HOME="$home" "$BRIEF" forge-agree-a4 proj --mode local-only >/dev/null \
     || fail "a local-only ship brief should scaffold without a forge"
-  fill_brief_subsections "$home/data/forge-agree-a4/brief.md" "Land it locally." "Stop at a ready branch."
+  fill_brief_subsections "$home/data/forge-agree-a4/brief.md" "Land it locally." "Stop at a ready branch." \
+    "Prepare the accepted change on a local branch."
   out=$(run_spawn "$home" "$fakebin" forge-agree-a4 "$proj" claude --mode local-only --yolo off 2>&1)
   status=$?
   [ "$status" -ne 0 ] || fail "a local-only launch on a gerrit-bound project was accepted"
@@ -1907,7 +2158,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" branch-agree-a1 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/branch-agree-a1/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/branch-agree-a1/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the selected ship branch."
   out=$(run_spawn "$home" "$fakebin" branch-agree-a1 "$proj" claude --mode no-mistakes --yolo off --branch-prefix contrib/)
   status=$?
   [ "$status" -ne 0 ] || fail "a spawn selecting a different prefix than its brief records was accepted"
@@ -1932,7 +2184,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" branch-agree-a4 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a second fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/branch-agree-a4/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/branch-agree-a4/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the selected ship branch."
   out=$(run_spawn "$home" "$fakebin" branch-agree-a4 "$proj" claude --mode no-mistakes --yolo off --branch-prefix fix/)
   assert_not_contains "$out" "branch mismatch" "an agreeing brief and selection were reported as drift"
   assert_not_contains "$out" "records no ship branch" "an agreeing spawn reported the brief as legacy"
@@ -1981,7 +2234,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" prefix-dev-a2 proj --mode no-mistakes --branch-prefix fix/ >/dev/null \
     || fail "a fix/-prefixed brief should scaffold"
-  fill_brief_subsections "$home/data/prefix-dev-a2/brief.md" "Run the review loop." "Ship it."
+  fill_brief_subsections "$home/data/prefix-dev-a2/brief.md" "Run the review loop." "Ship it." \
+    "Preserve the configured ship-branch prefix."
   out=$(run_spawn "$home" "$fakebin" prefix-dev-a2 "$proj" claude --mode no-mistakes --yolo off --branch-prefix fix/)
   assert_not_contains "$out" "registers the ship-branch prefix" \
     "a spawn matching the registered prefix was announced as a deviation"
@@ -2023,6 +2277,7 @@ test_promotion_carries_the_forge_binding() {
   home="$TMP_ROOT/forge-promote/home"
   sendroot="$TMP_ROOT/forge-promote/sendroot"
   mkdir -p "$home/state" "$home/data" "$home/projects/proj" "$sendroot/bin"
+  git -C "$home/projects/proj" init -q || fail "could not initialize promotion project fixture"
   printf '%s\n' '- proj [no-mistakes forge=gerrit] - fixture (added 2026-01-01)' > "$home/data/projects.md"
   cat > "$sendroot/bin/fm-send.sh" <<'STUB'
 #!/usr/bin/env bash
@@ -2040,7 +2295,7 @@ STUB
     "Fix the investigated Gerrit project defect and carry over only that fix."
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode no-mistakes --yolo off 2>&1) \
-    || fail "promotion should take the registered forge with no flag to remember"
+    || fail "promotion should take the registered forge with no flag to remember: $out"
   payload="$TMP_ROOT/forge-promote/payload"
   ( cd "$sendroot" \
     && FM_TEST_CAPTURE="$payload" \
@@ -2090,7 +2345,8 @@ EOF
 
   FM_HOME="$home" "$BRIEF" forge-forgejo-s2 proj --mode direct-PR --forge forgejo >/dev/null \
     || fail "a forgejo direct-PR brief should scaffold"
-  fill_brief_subsections "$home/data/forge-forgejo-s2/brief.md" "Open the pull request." "Ship it."
+  fill_brief_subsections "$home/data/forge-forgejo-s2/brief.md" "Open the pull request." "Ship it." \
+    "Open a pull request for the accepted change."
   out=$(run_spawn "$home" "$fakebin" forge-forgejo-s2 "$proj" claude --mode direct-PR --yolo on 2>&1)
   assert_not_contains "$out" "forge mismatch" "an agreeing forgejo brief and registry were reported as drift"
   assert_not_contains "$out" "--yolo on is refused" "yolo was refused on forgejo, where only gerrit deactivates it"
@@ -2107,7 +2363,8 @@ STUB
   printf 'window=fm-%s\nkind=scout\nworktree=/tmp/wt\nproject=%s\n' "$id" "$proj" > "$meta"
   FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
     || fail "scout brief generation should succeed"
-  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix."
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix what the investigation found." "Carry over only the fix." \
+    "Fix the investigated defect."
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" --mode direct-PR --yolo on 2>&1) \
     || fail "promotion should take the forgejo binding and keep yolo: $out"
   payload="$TMP_ROOT/forge-forgejo/payload"
@@ -2237,6 +2494,7 @@ test_spawn_refuses_a_brief_mode_mismatch
 test_spawn_notices_a_rigor_downgrade_against_the_registry
 test_scout_records_no_delivery_posture
 test_promote_requires_and_records_the_delivery_contract
+test_promote_names_origin_for_a_publishing_mode_in_an_opted_in_home
 test_promote_refuses_a_symlinked_task_record
 test_promotion_delivers_the_real_definition_of_done
 test_promotion_persists_the_selected_ship_branch
@@ -2256,6 +2514,10 @@ test_spawn_notices_a_ship_branch_against_the_registry_prefix
 test_spawn_refuses_a_registry_forge_it_cannot_read
 test_promotion_carries_the_forge_binding
 test_forge_forgejo_rides_the_same_binding
+test_pr_manual_brief_hands_the_pr_text_to_the_worker
+test_pr_manual_is_refused_where_it_cannot_apply
+test_spawn_requires_the_brief_to_carry_the_registered_pr_text
+test_promotion_carries_the_pr_text_binding
 test_spawn_and_promote_require_filled_task_subsections
 test_direct_push_requires_an_opted_in_registry
 test_project_mode_resolves_branch_prefix

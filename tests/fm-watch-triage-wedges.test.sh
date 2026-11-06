@@ -718,6 +718,8 @@ test_wedge_threshold_validating_run_is_off_until_armed() {
 test_paused_by_deadline_is_rechecked_like_until() {
   local dir state
   dir=$(paused_until_fixture by-passed "$(( $(date +%s) - 30 ))" 60 by); state="$dir/state"
+  grep -F ', by ' "$state/until.status" >/dev/null \
+    || fail "the by-deadline fixture lost its requested keyword: $(cat "$state/until.status")"
   until_watch "$dir" 999
   wait_for_exit "$UNTIL_PID" 100 \
     || { reap "$UNTIL_PID"; fail "a declared wait whose by time passed was not rechecked ahead of the cadence"; }
