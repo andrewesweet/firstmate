@@ -798,8 +798,10 @@ SH
   printf '%s\n' '{"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"main","confidence":0.91}}}' > "$dir/response.json"
   export FAKE_JEV_RESPONSE="$dir/response.json"
 
-  # Absent key: one unavailable JSON line, exit 0, no curl call.
-  out=$(FM_HOME="$home" "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+  # Absent key: one unavailable JSON line, exit 0, no curl call. The child
+  # environment loses any ambient TYPESAFE_API_KEY and rides the fake curl,
+  # so a host with the key set cannot route this case to the network.
+  out=$(env -u TYPESAFE_API_KEY PATH="$fakebin:$PATH" FM_HOME="$home" "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
   code=$?
   [ "$code" = 0 ] || fail "absent key must exit 0, got $code"
   printf '%s' "$out" | jq -e '.ok == false and .unavailable == "key absent"' >/dev/null     || fail "absent key must print an unavailable record: $out"
@@ -809,9 +811,11 @@ SH
 
   # Key from the home's .env: forwarded on the fd-3 header only, never on
   # argv, never in the child environment; the request body is forwarded whole.
+  # The child environment loses any ambient TYPESAFE_API_KEY, because the
+  # helper lets the environment win over the home's .env.
   printf '%s\n' 'TYPESAFE_API_KEY=sk-jev-trial-key' > "$home/.env"
   body='{"model":"jev-latest","state":{"wake":"signal: x"},"questions":{"route":{}}}'
-  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$JEV" <<< "$body")
+  out=$(env -u TYPESAFE_API_KEY PATH="$fakebin:$PATH" FM_HOME="$home" "$JEV" <<< "$body")
   code=$?
   [ "$code" = 0 ] || fail "happy path must exit 0, got $code"
   printf '%s' "$out" | jq -e '.ok == true and .model == "jev-1.13.0" and .answers.route.choice == "main"' >/dev/null     || fail "happy path must print one ok record with model and answers: $out"
@@ -824,8 +828,9 @@ SH
   assert_equals "$body" "$(cat "$FAKE_JEV_LOG/body")" "the request body is forwarded whole on stdin"
   pass "the jev helper forwards the request and the key reaches curl only on the fd-3 header"
 
-  # Non-200: one unavailable line naming the status, exit 0.
-  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" FAKE_JEV_HTTP=503 "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
+  # Non-200: one unavailable line naming the status, exit 0. Child env loses
+  # any ambient key so the fake curl never records the host's credential.
+  out=$(env -u TYPESAFE_API_KEY PATH="$fakebin:$PATH" FM_HOME="$home" FAKE_JEV_HTTP=503 "$JEV" <<< '{"model":"jev-latest","state":{},"questions":{}}')
   code=$?
   [ "$code" = 0 ] || fail "http failure must exit 0, got $code"
   printf '%s' "$out" | jq -e '.ok == false and .unavailable == "http 503"' >/dev/null     || fail "http failure must record the status: $out"
