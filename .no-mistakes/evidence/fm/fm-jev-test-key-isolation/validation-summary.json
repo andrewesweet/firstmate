@@ -1,0 +1,26 @@
+[
+  {
+    "run": "target-no-ambient-key",
+    "exit": 0,
+    "calls": 3,
+    "internet_socket_operations": 0,
+    "stdout": "ok - the jev helper is off without a key: one unavailable line, exit 0, no network\nok - the jev helper forwards the request and the key reaches curl only on the fd-3 header\nok - an http failure becomes one unavailable record and never a nonzero exit\n",
+    "stderr": ""
+  },
+  {
+    "run": "target-ambient-key",
+    "exit": 0,
+    "calls": 3,
+    "internet_socket_operations": 0,
+    "stdout": "ok - the jev helper is off without a key: one unavailable line, exit 0, no network\nok - the jev helper forwards the request and the key reaches curl only on the fd-3 header\nok - an http failure becomes one unavailable record and never a nonzero exit\n",
+    "stderr": ""
+  },
+  {
+    "run": "baseline-ambient-key",
+    "exit": 1,
+    "calls": 1,
+    "internet_socket_operations": 0,
+    "stdout": "",
+    "stderr": "not ok - absent key must print an unavailable record: {\"ok\":false,\"unavailable\":\"http 000\",\"model\":\"jev\"}\n"
+  }
+]

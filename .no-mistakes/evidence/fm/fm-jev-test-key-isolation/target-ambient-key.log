@@ -1,0 +1,3 @@
+ok - the jev helper is off without a key: one unavailable line, exit 0, no network
+ok - the jev helper forwards the request and the key reaches curl only on the fd-3 header
+ok - an http failure becomes one unavailable record and never a nonzero exit

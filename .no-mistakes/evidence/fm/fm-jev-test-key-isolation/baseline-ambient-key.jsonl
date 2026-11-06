@@ -1,0 +1,1 @@
+{"child_key_present": true, "curl": "~/.no-mistakes/worktrees/feb37d45d9da/01M6QND0EEA9C4J0K36DFJAYX4/.jev-validation-988kgtpx/safety-bin/curl", "home_has_env": false, "request": {"model": "jev-latest", "state": {}, "questions": {}}, "exit": 0, "stdout": "{\"ok\":false,\"unavailable\":\"http 000\",\"model\":\"jev\"}\n", "stderr": "", "curl_records": {}}
