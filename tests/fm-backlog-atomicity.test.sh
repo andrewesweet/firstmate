@@ -1011,8 +1011,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a held backlog row"
-  assert_contains "$out" "state queued yes" \
-    "held-row refusal did not name the actual ineligible state"
+  assert_contains "$out" "held for the captain" \
+    "held-row refusal did not say the row is held for the captain"
+  assert_contains "$out" "fm-captain-hold.sh answer $id" \
+    "held-row refusal did not name the captain-hold answer remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "held-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1025,7 +1027,7 @@ SH
 }
 
 test_dispatch_refuses_a_blocked_row_before_creating_resources() {
-  local case_dir id blocker out rc=0
+  local case_dir other_case id blocker out remedy command verb task flag placeholder rc=0
   id=atomic-dispatch-blocked-b16
   blocker=atomic-dispatch-blocker-b16
   case_dir=$(make_home dispatch-blocked "$id" "$blocker")
@@ -1045,8 +1047,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a dependency-blocked backlog row"
-  assert_contains "$out" "state queued no yes" \
-    "blocked-row refusal did not name the actual ineligible state"
+  assert_contains "$out" "blocked by its blocked_by dependency" \
+    "blocked-row refusal did not name the blocked_by dependency in words"
+  assert_contains "$out" "bin/fm-tasks-axi.sh unblock $id --by <blocker>" \
+    "blocked-row refusal did not name the home-aware unblock remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "blocked-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1055,7 +1059,70 @@ SH
     "blocked-row refusal requested an unowned local copy"
   [ "$(row_state "$case_dir" "$id")" = queued ] \
     || fail "blocked-row refusal changed the backlog state"
+  other_case=$(make_home dispatch-blocked-other-home "$id" "$blocker")
+  add_item "$other_case" "$blocker"
+  tasks-axi add "$id" "other home's item" --kind ship --blocked-by "$blocker" \
+    --file "$(backlog_of "$other_case")" >/dev/null
+  remedy=${out#*for example }
+  remedy=${remedy%%)*}
+  read -r command verb task flag placeholder <<< "$remedy"
+  [ "$placeholder" = '<blocker>' ] || fail "unblock remedy omitted its blocker placeholder"
+  (
+    cd "$(home_of "$other_case")" || exit 1
+    FM_HOME="$(home_of "$case_dir")" bash "$ROOT/$command" "$verb" "$task" "$flag" "$blocker"
+  ) >/dev/null || fail "the suggested unblock command failed from another home"
+  out=$(tasks-axi show "$id" --file "$(backlog_of "$case_dir")")
+  assert_contains "$out" "blocked: no" "the remedy did not unblock the selected home's row"
+  out=$(tasks-axi show "$id" --file "$(backlog_of "$other_case")")
+  assert_contains "$out" "blocked: yes" "the remedy changed another home's same-id row"
   pass "dispatch refuses dependency-blocked rows before creating resources"
+}
+
+test_dispatch_describes_non_captain_holds_in_each_state() {
+  local case_dir id blocker hold_kind state out remedy command verb task rc
+  for hold_kind in external load parked future; do
+    for state in queued in_flight; do
+      id="atomic-$hold_kind-$state-b16"
+      blocker="atomic-$hold_kind-blocker-$state-b16"
+      case_dir=$(make_home "dispatch-$hold_kind-$state" "$id" "$blocker")
+      if [ "$state" = queued ]; then
+        add_item "$case_dir" "$blocker"
+        tasks-axi add "$id" "item for $id" --kind ship --blocked-by "$blocker" \
+          --file "$(backlog_of "$case_dir")" >/dev/null
+      else
+        add_item "$case_dir" "$id"
+        start_item "$case_dir" "$id"
+      fi
+      tasks-axi hold "$id" --reason "waiting on vendor" --kind "$hold_kind" \
+        --file "$(backlog_of "$case_dir")" >/dev/null
+      rc=0
+      out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
+      [ "$rc" -ne 0 ] || fail "spawn accepted a $hold_kind-held $state row"
+      assert_contains "$out" "hold of kind $hold_kind" "refusal did not identify the $hold_kind hold"
+      assert_contains "$out" "bin/fm-tasks-axi.sh unhold $id" "refusal did not name the home-aware unhold remedy"
+      assert_not_contains "$out" "fm-captain-hold.sh answer" "$hold_kind hold was given a captain-only remedy"
+      if [ "$state" = queued ]; then
+        assert_contains "$out" "bin/fm-tasks-axi.sh unblock $id --by <blocker>" \
+          "held and blocked row did not retain its dependency remedy"
+      fi
+      assert_absent "$(home_of "$case_dir")/state/$id.meta" "held-row refusal published a task record"
+      assert_absent "$case_dir/fakebin/.spawn-window" "held-row refusal created an endpoint"
+      assert_no_lease_call "$case_dir" "held-row refusal leased a local copy"
+      [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "held-row refusal changed the $state row"
+      remedy=${out#*release it with }
+      remedy=${remedy%%)*}
+      read -r command verb task <<< "$remedy"
+      FM_HOME="$(home_of "$case_dir")" bash "$ROOT/$command" "$verb" "$task" >/dev/null \
+        || fail "the suggested $hold_kind-hold remedy failed"
+      out=$(tasks-axi show "$id" --file "$(backlog_of "$case_dir")")
+      assert_contains "$out" "held: no" "the remedy did not release the $hold_kind hold"
+      [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "releasing the hold changed the $state row"
+      if [ "$state" = queued ]; then
+        assert_contains "$out" "blocked: yes" "releasing the hold also cleared its dependency"
+      fi
+    done
+  done
+  pass "dispatch identifies every non-captain hold kind and usable remedies for queued and In-flight rows"
 }
 
 test_dispatch_refuses_a_held_in_flight_row_before_relaunch() {
@@ -1079,8 +1146,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a held In-flight backlog row"
-  assert_contains "$out" "state in_flight yes no" \
-    "held In-flight refusal did not name the actual ineligible state"
+  assert_contains "$out" "held for the captain" \
+    "held In-flight refusal did not say the row is held for the captain"
+  assert_contains "$out" "fm-captain-hold.sh answer $id" \
+    "held In-flight refusal did not name the captain-hold answer remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "held In-flight refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1090,6 +1159,40 @@ SH
   [ "$(row_state "$case_dir" "$id")" = in_flight ] \
     || fail "held In-flight refusal changed the backlog state"
   pass "dispatch refuses held In-flight rows before relaunch"
+}
+
+test_dispatch_refuses_a_done_row_before_creating_resources() {
+  local case_dir id out rc=0
+  id=atomic-dispatch-done-b16
+  case_dir=$(make_home dispatch-done "$id")
+  add_item "$case_dir" "$id"
+  tasks-axi 'done' "$id" --file "$(backlog_of "$case_dir")" >/dev/null
+  cat > "$case_dir/fakebin/tmux" <<SH
+#!/usr/bin/env bash
+case "\$*" in
+  *new-window*) : > "$case_dir/task-endpoint-created" ;;
+  *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
+esac
+case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/tmux"
+
+  out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "spawn accepted a done backlog row"
+  assert_contains "$out" "it is done" \
+    "done-row refusal did not say the row is done"
+  assert_contains "$out" "nothing left to dispatch" \
+    "done-row refusal did not say there is nothing to dispatch"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
+    "done-row refusal published a task record"
+  assert_absent "$case_dir/task-endpoint-created" \
+    "done-row refusal created an unowned endpoint"
+  assert_no_lease_call "$case_dir" \
+    "done-row refusal requested an unowned local copy"
+  [ "$(row_state "$case_dir" "$id")" = 'done' ] \
+    || fail "done-row refusal changed the backlog state"
+  pass "dispatch refuses done rows before creating resources"
 }
 
 test_dispatch_reads_the_row_from_the_backlog_root() {
@@ -3104,7 +3207,9 @@ test_completion_omits_the_file_for_a_beads_done
 test_dispatch_refuses_a_pending_authoritative_close
 test_dispatch_refuses_a_held_row_before_creating_resources
 test_dispatch_refuses_a_blocked_row_before_creating_resources
+test_dispatch_describes_non_captain_holds_in_each_state
 test_dispatch_refuses_a_held_in_flight_row_before_relaunch
+test_dispatch_refuses_a_done_row_before_creating_resources
 test_dispatch_reads_the_row_from_the_backlog_root
 test_recovery_uses_the_parent_of_a_trailing_slash_data_record
 test_completion_targets_a_nested_relative_data_directory

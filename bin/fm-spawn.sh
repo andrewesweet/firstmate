@@ -5074,6 +5074,36 @@ herdr_projection_existing_meta_allows_flat() { # <meta>
   esac
 }
 
+# Decode a probed backlog row ("<state> <held> <blocked>", the format
+# fm_backlog_row_probe sets FM_BACKLOG_ROW_STATE to) into words: each
+# ineligible field in plain language with the remedy for its case, replacing
+# the raw probe fields an operator would otherwise have to decode by hand.
+spawn_backlog_row_refusal_reason() {  # <id> <row-state> <hold-kind>
+  local id=$1 row=$2 hold_kind=$3 state held blocked reasons=()
+  state=${row%% *}
+  row=${row#* }
+  held=${row%% *}
+  blocked=${row#* }
+  if [ "$held" = yes ]; then
+    case "$hold_kind" in
+      captain) reasons+=("it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer $id --decision-file <path> --release to release it)") ;;
+      *) reasons+=("it has a hold of kind ${hold_kind:-unspecified} (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold $id)") ;;
+    esac
+  fi
+  case "$blocked" in
+    yes) reasons+=("it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock $id --by <blocker>)") ;;
+  esac
+  if [ "${#reasons[@]}" -eq 0 ]; then
+    case "$state" in
+      done) reasons+=("it is done (there is nothing left to dispatch)") ;;
+      *) reasons+=("its state is $state (only queued or in flight items dispatch)") ;;
+    esac
+  fi
+  local joined=${reasons[0]} i
+  for ((i = 1; i < ${#reasons[@]}; i++)); do joined+='; and '"${reasons[$i]}"; done
+  printf '%s' "$joined"
+}
+
 # Backlog preflight (bin/fm-backlog-transition-lib.sh). This spawn is about to
 # become the sole owner of the row's In-flight transition, so prove the row is
 # transitionable BEFORE any endpoint, worktree, or record exists: a refusal here
@@ -5099,7 +5129,7 @@ if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
       exit 1
     fi
   elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
-    echo "error: this home's backlog item $ID is not dispatchable in state $BACKLOG_ROW_STATE; refusing before creating its endpoint or local copy" >&2
+    echo "error: this home's backlog item $ID is not dispatchable: $(spawn_backlog_row_refusal_reason "$ID" "$BACKLOG_ROW_STATE" "$FM_BACKLOG_ROW_HOLD_KIND"); refusing before creating its endpoint or local copy" >&2
     exit 1
   fi
 else

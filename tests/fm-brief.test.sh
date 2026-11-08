@@ -1299,6 +1299,14 @@ test_ship_and_scout_teach_validation_round_pause() {
       "$kind brief did not require declaring a background-work wait"
     assert_grep 'before waiting on your own pipeline run or a long foreground command' "$brief" \
       "$kind brief did not require declaring a pipeline or foreground wait"
+    # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+    assert_grep 'Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done' "$brief" \
+      "$kind brief did not teach PID-based background-job checks"
+    # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+    assert_grep 'never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains' "$brief" \
+      "$kind brief did not forbid a self-matching pgrep pattern"
+    assert_grep "including inside \`ssh host '...'\`, because the polling shell matches itself and the loop never ends" "$brief" \
+      "$kind brief did not warn that an ssh-wrapped poll matches itself"
     assert_grep 'Firstmate may still raise one first-sight alert' "$brief" \
       "$kind brief incorrectly promised to suppress the first alert"
     assert_grep 'Do not declare active implementation or reasoning as a wait' "$brief" \
@@ -1549,6 +1557,9 @@ test_wait_no_turns_absent_keeps_the_previous_brief() {
   brief="$home/data/brief-wait-off/brief.md"
   assert_no_grep "end your turn at once" "$brief" "an absent flag still added the waiting section"
   assert_grep "natural checkpoint" "$brief" "an absent flag dropped the unprompted inbox check"
+  # shellcheck disable=SC2016 # Backticks are literal generated brief text.
+  assert_grep 'Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done' "$brief" \
+    "an absent flag dropped the PID-based background-job check"
   assert_no_grep "Do not poll or list the inbox while waiting" "$brief" "an absent flag still added the no-poll inbox line"
   assert_grep "background the drive call" "$brief" "an absent flag replaced the backgrounded drive text"
   assert_no_grep "issue the same foreground call again" "$brief" \
