@@ -1011,8 +1011,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a held backlog row"
-  assert_contains "$out" "state queued yes" \
-    "held-row refusal did not name the actual ineligible state"
+  assert_contains "$out" "held for the captain" \
+    "held-row refusal did not say the row is held for the captain"
+  assert_contains "$out" "fm-captain-hold.sh answer $id" \
+    "held-row refusal did not name the captain-hold answer remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "held-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1045,8 +1047,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a dependency-blocked backlog row"
-  assert_contains "$out" "state queued no yes" \
-    "blocked-row refusal did not name the actual ineligible state"
+  assert_contains "$out" "blocked by its blocked_by dependency" \
+    "blocked-row refusal did not name the blocked_by dependency in words"
+  assert_contains "$out" "tasks-axi unblock $id" \
+    "blocked-row refusal did not name the unblock remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "blocked-row refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1079,8 +1083,10 @@ SH
 
   out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "spawn accepted a held In-flight backlog row"
-  assert_contains "$out" "state in_flight yes no" \
-    "held In-flight refusal did not name the actual ineligible state"
+  assert_contains "$out" "held for the captain" \
+    "held In-flight refusal did not say the row is held for the captain"
+  assert_contains "$out" "fm-captain-hold.sh answer $id" \
+    "held In-flight refusal did not name the captain-hold answer remedy"
   assert_absent "$(home_of "$case_dir")/state/$id.meta" \
     "held In-flight refusal published a task record"
   assert_absent "$case_dir/task-endpoint-created" \
@@ -1090,6 +1096,40 @@ SH
   [ "$(row_state "$case_dir" "$id")" = in_flight ] \
     || fail "held In-flight refusal changed the backlog state"
   pass "dispatch refuses held In-flight rows before relaunch"
+}
+
+test_dispatch_refuses_a_done_row_before_creating_resources() {
+  local case_dir id out rc=0
+  id=atomic-dispatch-done-b16
+  case_dir=$(make_home dispatch-done "$id")
+  add_item "$case_dir" "$id"
+  tasks-axi 'done' "$id" --file "$(backlog_of "$case_dir")" >/dev/null
+  cat > "$case_dir/fakebin/tmux" <<SH
+#!/usr/bin/env bash
+case "\$*" in
+  *new-window*) : > "$case_dir/task-endpoint-created" ;;
+  *"#{pane_current_path}"*) printf '%s\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
+esac
+case "\${1:-}" in display-message) printf 'firstmate\n'; exit 0 ;; esac
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/tmux"
+
+  out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "spawn accepted a done backlog row"
+  assert_contains "$out" "it is done" \
+    "done-row refusal did not say the row is done"
+  assert_contains "$out" "nothing left to dispatch" \
+    "done-row refusal did not say there is nothing to dispatch"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
+    "done-row refusal published a task record"
+  assert_absent "$case_dir/task-endpoint-created" \
+    "done-row refusal created an unowned endpoint"
+  assert_no_lease_call "$case_dir" \
+    "done-row refusal requested an unowned local copy"
+  [ "$(row_state "$case_dir" "$id")" = 'done' ] \
+    || fail "done-row refusal changed the backlog state"
+  pass "dispatch refuses done rows before creating resources"
 }
 
 test_dispatch_reads_the_row_from_the_backlog_root() {
@@ -3105,6 +3145,7 @@ test_dispatch_refuses_a_pending_authoritative_close
 test_dispatch_refuses_a_held_row_before_creating_resources
 test_dispatch_refuses_a_blocked_row_before_creating_resources
 test_dispatch_refuses_a_held_in_flight_row_before_relaunch
+test_dispatch_refuses_a_done_row_before_creating_resources
 test_dispatch_reads_the_row_from_the_backlog_root
 test_recovery_uses_the_parent_of_a_trailing_slash_data_record
 test_completion_targets_a_nested_relative_data_directory
