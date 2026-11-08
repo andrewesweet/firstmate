@@ -1078,49 +1078,51 @@ SH
   pass "dispatch refuses dependency-blocked rows before creating resources"
 }
 
-test_dispatch_describes_external_holds_in_each_state() {
-  local case_dir id blocker state out remedy command verb task rc
-  for state in queued in_flight; do
-    id="atomic-external-$state-b16"
-    blocker="atomic-external-blocker-$state-b16"
-    case_dir=$(make_home "dispatch-external-$state" "$id" "$blocker")
-    if [ "$state" = queued ]; then
-      add_item "$case_dir" "$blocker"
-      tasks-axi add "$id" "item for $id" --kind ship --blocked-by "$blocker" \
+test_dispatch_describes_non_captain_holds_in_each_state() {
+  local case_dir id blocker hold_kind state out remedy command verb task rc
+  for hold_kind in external load parked future; do
+    for state in queued in_flight; do
+      id="atomic-$hold_kind-$state-b16"
+      blocker="atomic-$hold_kind-blocker-$state-b16"
+      case_dir=$(make_home "dispatch-$hold_kind-$state" "$id" "$blocker")
+      if [ "$state" = queued ]; then
+        add_item "$case_dir" "$blocker"
+        tasks-axi add "$id" "item for $id" --kind ship --blocked-by "$blocker" \
+          --file "$(backlog_of "$case_dir")" >/dev/null
+      else
+        add_item "$case_dir" "$id"
+        start_item "$case_dir" "$id"
+      fi
+      tasks-axi hold "$id" --reason "waiting on vendor" --kind "$hold_kind" \
         --file "$(backlog_of "$case_dir")" >/dev/null
-    else
-      add_item "$case_dir" "$id"
-      start_item "$case_dir" "$id"
-    fi
-    tasks-axi hold "$id" --reason "waiting on vendor" --kind external \
-      --file "$(backlog_of "$case_dir")" >/dev/null
-    rc=0
-    out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
-    [ "$rc" -ne 0 ] || fail "spawn accepted an external-held $state row"
-    assert_contains "$out" "external hold" "refusal did not identify the external hold"
-    assert_contains "$out" "bin/fm-tasks-axi.sh unhold $id" "refusal did not name the home-aware unhold remedy"
-    assert_not_contains "$out" "fm-captain-hold.sh answer" "external hold was given a captain-only remedy"
-    if [ "$state" = queued ]; then
-      assert_contains "$out" "bin/fm-tasks-axi.sh unblock $id --by <blocker>" \
-        "held and blocked row did not retain its dependency remedy"
-    fi
-    assert_absent "$(home_of "$case_dir")/state/$id.meta" "held-row refusal published a task record"
-    assert_absent "$case_dir/fakebin/.spawn-window" "held-row refusal created an endpoint"
-    assert_no_lease_call "$case_dir" "held-row refusal leased a local copy"
-    [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "held-row refusal changed the $state row"
-    remedy=${out#*release it with }
-    remedy=${remedy%%)*}
-    read -r command verb task <<< "$remedy"
-    FM_HOME="$(home_of "$case_dir")" bash "$ROOT/$command" "$verb" "$task" >/dev/null \
-      || fail "the suggested external-hold remedy failed"
-    out=$(tasks-axi show "$id" --file "$(backlog_of "$case_dir")")
-    assert_contains "$out" "held: no" "the remedy did not release the external hold"
-    [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "releasing the hold changed the $state row"
-    if [ "$state" = queued ]; then
-      assert_contains "$out" "blocked: yes" "releasing the hold also cleared its dependency"
-    fi
+      rc=0
+      out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
+      [ "$rc" -ne 0 ] || fail "spawn accepted a $hold_kind-held $state row"
+      assert_contains "$out" "hold of kind $hold_kind" "refusal did not identify the $hold_kind hold"
+      assert_contains "$out" "bin/fm-tasks-axi.sh unhold $id" "refusal did not name the home-aware unhold remedy"
+      assert_not_contains "$out" "fm-captain-hold.sh answer" "$hold_kind hold was given a captain-only remedy"
+      if [ "$state" = queued ]; then
+        assert_contains "$out" "bin/fm-tasks-axi.sh unblock $id --by <blocker>" \
+          "held and blocked row did not retain its dependency remedy"
+      fi
+      assert_absent "$(home_of "$case_dir")/state/$id.meta" "held-row refusal published a task record"
+      assert_absent "$case_dir/fakebin/.spawn-window" "held-row refusal created an endpoint"
+      assert_no_lease_call "$case_dir" "held-row refusal leased a local copy"
+      [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "held-row refusal changed the $state row"
+      remedy=${out#*release it with }
+      remedy=${remedy%%)*}
+      read -r command verb task <<< "$remedy"
+      FM_HOME="$(home_of "$case_dir")" bash "$ROOT/$command" "$verb" "$task" >/dev/null \
+        || fail "the suggested $hold_kind-hold remedy failed"
+      out=$(tasks-axi show "$id" --file "$(backlog_of "$case_dir")")
+      assert_contains "$out" "held: no" "the remedy did not release the $hold_kind hold"
+      [ "$(row_state "$case_dir" "$id")" = "$state" ] || fail "releasing the hold changed the $state row"
+      if [ "$state" = queued ]; then
+        assert_contains "$out" "blocked: yes" "releasing the hold also cleared its dependency"
+      fi
+    done
   done
-  pass "dispatch identifies external holds and usable remedies for queued and In-flight rows"
+  pass "dispatch identifies every non-captain hold kind and usable remedies for queued and In-flight rows"
 }
 
 test_dispatch_refuses_a_held_in_flight_row_before_relaunch() {
@@ -3205,7 +3207,7 @@ test_completion_omits_the_file_for_a_beads_done
 test_dispatch_refuses_a_pending_authoritative_close
 test_dispatch_refuses_a_held_row_before_creating_resources
 test_dispatch_refuses_a_blocked_row_before_creating_resources
-test_dispatch_describes_external_holds_in_each_state
+test_dispatch_describes_non_captain_holds_in_each_state
 test_dispatch_refuses_a_held_in_flight_row_before_relaunch
 test_dispatch_refuses_a_done_row_before_creating_resources
 test_dispatch_reads_the_row_from_the_backlog_root

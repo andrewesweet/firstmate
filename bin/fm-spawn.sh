@@ -5087,7 +5087,7 @@ spawn_backlog_row_refusal_reason() {  # <id> <row-state> <hold-kind>
   if [ "$held" = yes ]; then
     case "$hold_kind" in
       captain) reasons+=("it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer $id --decision-file <path> --release to release it)") ;;
-      *) reasons+=("it has an ${hold_kind:-unspecified} hold (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold $id)") ;;
+      *) reasons+=("it has a hold of kind ${hold_kind:-unspecified} (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold $id)") ;;
     esac
   fi
   case "$blocked" in
