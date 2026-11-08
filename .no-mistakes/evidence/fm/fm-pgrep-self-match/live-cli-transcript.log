@@ -1,0 +1,3166 @@
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: None
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+exit: 0
+~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: None
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+exit: 0
+~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: None
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project init -q -b main
+exit: 0
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: None
+$ git -C ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project -c user.name=Validation -c user.email=validation@example.invalid commit -q --allow-empty -m 'Disposable validation fixture'
+exit: 0
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/.live-base-brief.sh base-brief sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/base-brief/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Base regression reproduced: emitted ship brief lacks the background-job ownership instruction.
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-no-mistakes-wait-0 sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-no-mistakes-wait-0/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (no-mistakes, wait-no-turns=False):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-direct-pr-wait-0 sample --mode direct-PR
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-direct-pr-wait-0/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (direct-PR, wait-no-turns=False):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-local-only-wait-0 sample --mode local-only
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-local-only-wait-0/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (local-only, wait-no-turns=False):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-direct-push-wait-0 sample --mode direct-push
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-direct-push-wait-0/brief.md (ship, mode=direct-push; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (direct-push, wait-no-turns=False):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-scout-wait-0 sample --scout
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-scout-wait-0/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+Emitted public instruction (scout, wait-no-turns=False):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-no-mistakes-wait-1 sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-no-mistakes-wait-1/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (no-mistakes, wait-no-turns=True):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-direct-pr-wait-1 sample --mode direct-PR
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-direct-pr-wait-1/brief.md (ship, mode=direct-PR; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (direct-PR, wait-no-turns=True):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-local-only-wait-1 sample --mode local-only
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-local-only-wait-1/brief.md (ship, mode=local-only; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (local-only, wait-no-turns=True):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-direct-push-wait-1 sample --mode direct-push
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-direct-push-wait-1/brief.md (ship, mode=direct-push; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+Emitted public instruction (direct-push, wait-no-turns=True):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh brief-scout-wait-1 sample --scout
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/brief-scout-wait-1/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+Emitted public instruction (scout, wait-no-turns=True):
+   Check your own background job by its PID (`kill -0 <pid>`), its exit status, or a file it writes when done; never by `pgrep -f` or `pkill -f` on a pattern your polling command also contains, including inside `ssh host '...'`, because the polling shell matches itself and the loop never ends.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ bash -c 'set -eu
+sleep 0.2 & job_pid=$!
+while kill -0 "$job_pid" 2>/dev/null; do sleep 0.05; done
+wait "$job_pid"
+printf '"'"'PID check: owned job %s exited; polling ended\n'"'"' "$job_pid"
+(set +e; exit 7) & job_pid=$!
+set +e
+wait "$job_pid"; job_status=$?
+set -e
+[ "$job_status" -eq 7 ]
+printf '"'"'Exit status check: owned job returned %s\n'"'"' "$job_status"
+(sleep 0.2; printf '"'"'completed\n'"'"' > "$1") & job_pid=$!
+while [ ! -f "$1" ]; do sleep 0.05; done
+wait "$job_pid"
+printf '"'"'Completion file check: '"'"'; cat "$1"
+' owned-jobs ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/job-completion
+exit: 0
+PID check: owned job 180349 exited; polling ended
+Exit status check: owned job returned 7
+Completion file check: completed
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add captain-queued 'Disposable validation work' --kind ship
+exit: 0
+ok: added captain-queued (ship) -> Queued
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start captain-queued` to move it to in flight
+  - Run `tasks-axi block captain-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold captain-queued --kind captain --reason 'Disposable validation condition'
+exit: 0
+ok: hold captain-queued -> held (captain)
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold captain-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh captain-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/captain-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-queued
+exit: 0
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/.live-base-spawn.sh captain-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item captain-queued is not dispatchable in state queued yes no; refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-queued
+exit: 0
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: captain-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+Base regression reproduced: captain-held row emits a raw tuple and no remedy.
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-queued
+exit: 0
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh captain-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item captain-queued is not dispatchable: it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer captain-queued --decision-file <path> --release to release it); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-queued
+exit: 0
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: captain-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-captain-hold.sh answer captain-queued --decision-file ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/captain-queued-decision.txt --release
+exit: 0
+released: captain-queued
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-queued
+exit: 0
+task:
+  id: captain-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 2cdb0b024d62da1f55d7ced2dd9d74a5ebeeaa66dfd52acc7dd8bd410d64cdd9\nResolution mode: released\n\nCaptain decision:\nRelease this disposable validation item."
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add captain-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added captain-in_flight (ship) -> Queued
+task:
+  id: captain-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start captain-in_flight` to move it to in flight
+  - Run `tasks-axi block captain-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start captain-in_flight
+exit: 0
+ok: start captain-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done captain-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold captain-in_flight --kind captain --reason 'Disposable validation condition'
+exit: 0
+ok: hold captain-in_flight -> held (captain)
+task:
+  id: captain-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold captain-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh captain-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/captain-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-in_flight
+exit: 0
+task:
+  id: captain-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh captain-in_flight ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item captain-in_flight is not dispatchable: it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer captain-in_flight --decision-file <path> --release to release it); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-in_flight
+exit: 0
+task:
+  id: captain-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: captain
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: captain-in_flight task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-captain-hold.sh answer captain-in_flight --decision-file ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/captain-in_flight-decision.txt --release
+exit: 0
+released: captain-in_flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show captain-in_flight
+exit: 0
+task:
+  id: captain-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 2cdb0b024d62da1f55d7ced2dd9d74a5ebeeaa66dfd52acc7dd8bd410d64cdd9\nResolution mode: released\n\nCaptain decision:\nRelease this disposable validation item."
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add external-queued-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added external-queued-blocker (ship) -> Queued
+task:
+  id: external-queued-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start external-queued-blocker` to move it to in flight
+  - Run `tasks-axi block external-queued-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh external-queued-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/external-queued-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add external-queued 'Disposable validation work' --kind ship --blocked-by external-queued-blocker
+exit: 0
+ok: added external-queued (ship) -> Queued
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start external-queued` to move it to in flight
+  - Run `tasks-axi block external-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold external-queued --kind external --reason 'Disposable validation condition'
+exit: 0
+ok: hold external-queued -> held (external)
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold external-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh external-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/external-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-queued
+exit: 0
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock external-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start external-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh external-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item external-queued is not dispatchable: it has a hold of kind external (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold external-queued); and it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock external-queued --by <blocker>); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-queued
+exit: 0
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock external-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start external-queued` to move it to in flight
+
+Observed: external-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add external-queued 'Disposable validation work' --kind ship
+exit: 0
+ok: added external-queued (ship) -> Queued
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start external-queued` to move it to in flight
+  - Run `tasks-axi block external-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold external-queued --kind external --reason 'Disposable validation condition'
+exit: 0
+ok: hold external-queued -> held (external)
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold external-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh external-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/external-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold external-queued
+exit: 0
+ok: unhold external-queued -> cleared
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-queued
+exit: 0
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: external-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:external-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock external-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start external-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-queued
+exit: 0
+task:
+  id: external-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only external/queued in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add external-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added external-in_flight (ship) -> Queued
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start external-in_flight` to move it to in flight
+  - Run `tasks-axi block external-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start external-in_flight
+exit: 0
+ok: start external-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done external-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold external-in_flight --kind external --reason 'Disposable validation condition'
+exit: 0
+ok: hold external-in_flight -> held (external)
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold external-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh external-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/external-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-in_flight
+exit: 0
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh external-in_flight ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item external-in_flight is not dispatchable: it has a hold of kind external (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold external-in_flight); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-in_flight
+exit: 0
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: external-in_flight task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add external-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added external-in_flight (ship) -> Queued
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start external-in_flight` to move it to in flight
+  - Run `tasks-axi block external-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start external-in_flight
+exit: 0
+ok: start external-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done external-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold external-in_flight --kind external --reason 'Disposable validation condition'
+exit: 0
+ok: hold external-in_flight -> held (external)
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold external-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh external-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/external-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold external-in_flight
+exit: 0
+ok: unhold external-in_flight -> cleared
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-in_flight
+exit: 0
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show external-in_flight
+exit: 0
+task:
+  id: external-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: external
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only external/in_flight in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add load-queued-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added load-queued-blocker (ship) -> Queued
+task:
+  id: load-queued-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start load-queued-blocker` to move it to in flight
+  - Run `tasks-axi block load-queued-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh load-queued-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/load-queued-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add load-queued 'Disposable validation work' --kind ship --blocked-by load-queued-blocker
+exit: 0
+ok: added load-queued (ship) -> Queued
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start load-queued` to move it to in flight
+  - Run `tasks-axi block load-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold load-queued --kind load --reason 'Disposable validation condition'
+exit: 0
+ok: hold load-queued -> held (load)
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold load-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh load-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/load-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-queued
+exit: 0
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock load-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start load-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh load-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item load-queued is not dispatchable: it has a hold of kind load (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold load-queued); and it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock load-queued --by <blocker>); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-queued
+exit: 0
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock load-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start load-queued` to move it to in flight
+
+Observed: load-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add load-queued 'Disposable validation work' --kind ship
+exit: 0
+ok: added load-queued (ship) -> Queued
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start load-queued` to move it to in flight
+  - Run `tasks-axi block load-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold load-queued --kind load --reason 'Disposable validation condition'
+exit: 0
+ok: hold load-queued -> held (load)
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold load-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh load-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/load-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold load-queued
+exit: 0
+ok: unhold load-queued -> cleared
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-queued
+exit: 0
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: load-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:load-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock load-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start load-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-queued
+exit: 0
+task:
+  id: load-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only load/queued in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add load-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added load-in_flight (ship) -> Queued
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start load-in_flight` to move it to in flight
+  - Run `tasks-axi block load-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start load-in_flight
+exit: 0
+ok: start load-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done load-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold load-in_flight --kind load --reason 'Disposable validation condition'
+exit: 0
+ok: hold load-in_flight -> held (load)
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold load-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh load-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/load-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-in_flight
+exit: 0
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh load-in_flight ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item load-in_flight is not dispatchable: it has a hold of kind load (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold load-in_flight); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-in_flight
+exit: 0
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: load-in_flight task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add load-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added load-in_flight (ship) -> Queued
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start load-in_flight` to move it to in flight
+  - Run `tasks-axi block load-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start load-in_flight
+exit: 0
+ok: start load-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done load-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold load-in_flight --kind load --reason 'Disposable validation condition'
+exit: 0
+ok: hold load-in_flight -> held (load)
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold load-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh load-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/load-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold load-in_flight
+exit: 0
+ok: unhold load-in_flight -> cleared
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-in_flight
+exit: 0
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show load-in_flight
+exit: 0
+task:
+  id: load-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: load
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only load/in_flight in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add parked-queued-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added parked-queued-blocker (ship) -> Queued
+task:
+  id: parked-queued-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start parked-queued-blocker` to move it to in flight
+  - Run `tasks-axi block parked-queued-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh parked-queued-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/parked-queued-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add parked-queued 'Disposable validation work' --kind ship --blocked-by parked-queued-blocker
+exit: 0
+ok: added parked-queued (ship) -> Queued
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start parked-queued` to move it to in flight
+  - Run `tasks-axi block parked-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold parked-queued --kind parked --reason 'Disposable validation condition'
+exit: 0
+ok: hold parked-queued -> held (parked)
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold parked-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh parked-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/parked-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-queued
+exit: 0
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock parked-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start parked-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh parked-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item parked-queued is not dispatchable: it has a hold of kind parked (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold parked-queued); and it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock parked-queued --by <blocker>); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-queued
+exit: 0
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock parked-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start parked-queued` to move it to in flight
+
+Observed: parked-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add parked-queued 'Disposable validation work' --kind ship
+exit: 0
+ok: added parked-queued (ship) -> Queued
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start parked-queued` to move it to in flight
+  - Run `tasks-axi block parked-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold parked-queued --kind parked --reason 'Disposable validation condition'
+exit: 0
+ok: hold parked-queued -> held (parked)
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold parked-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh parked-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/parked-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold parked-queued
+exit: 0
+ok: unhold parked-queued -> cleared
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-queued
+exit: 0
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: parked-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:parked-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock parked-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start parked-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-queued
+exit: 0
+task:
+  id: parked-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only parked/queued in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add parked-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added parked-in_flight (ship) -> Queued
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start parked-in_flight` to move it to in flight
+  - Run `tasks-axi block parked-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start parked-in_flight
+exit: 0
+ok: start parked-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done parked-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold parked-in_flight --kind parked --reason 'Disposable validation condition'
+exit: 0
+ok: hold parked-in_flight -> held (parked)
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold parked-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh parked-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/parked-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-in_flight
+exit: 0
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh parked-in_flight ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item parked-in_flight is not dispatchable: it has a hold of kind parked (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold parked-in_flight); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-in_flight
+exit: 0
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: parked-in_flight task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add parked-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added parked-in_flight (ship) -> Queued
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start parked-in_flight` to move it to in flight
+  - Run `tasks-axi block parked-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start parked-in_flight
+exit: 0
+ok: start parked-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done parked-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold parked-in_flight --kind parked --reason 'Disposable validation condition'
+exit: 0
+ok: hold parked-in_flight -> held (parked)
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold parked-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh parked-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/parked-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold parked-in_flight
+exit: 0
+ok: unhold parked-in_flight -> cleared
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-in_flight
+exit: 0
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show parked-in_flight
+exit: 0
+task:
+  id: parked-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: parked
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only parked/in_flight in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add future-queued-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added future-queued-blocker (ship) -> Queued
+task:
+  id: future-queued-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start future-queued-blocker` to move it to in flight
+  - Run `tasks-axi block future-queued-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh future-queued-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/future-queued-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add future-queued 'Disposable validation work' --kind ship --blocked-by future-queued-blocker
+exit: 0
+ok: added future-queued (ship) -> Queued
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start future-queued` to move it to in flight
+  - Run `tasks-axi block future-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold future-queued --kind future --reason 'Disposable validation condition'
+exit: 0
+ok: hold future-queued -> held (future)
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold future-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh future-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/future-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-queued
+exit: 0
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock future-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start future-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh future-queued ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item future-queued is not dispatchable: it has a hold of kind future (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold future-queued); and it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock future-queued --by <blocker>); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-queued
+exit: 0
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock future-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start future-queued` to move it to in flight
+
+Observed: future-queued task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add future-queued 'Disposable validation work' --kind ship
+exit: 0
+ok: added future-queued (ship) -> Queued
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start future-queued` to move it to in flight
+  - Run `tasks-axi block future-queued --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold future-queued --kind future --reason 'Disposable validation condition'
+exit: 0
+ok: hold future-queued -> held (future)
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold future-queued` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh future-queued sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/future-queued/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold future-queued
+exit: 0
+ok: unhold future-queued -> cleared
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-queued
+exit: 0
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: future-queued-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:future-queued-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock future-queued --by <other>` to clear a blocker
+  - Run `tasks-axi start future-queued` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-queued
+exit: 0
+task:
+  id: future-queued
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only future/queued in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add future-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added future-in_flight (ship) -> Queued
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start future-in_flight` to move it to in flight
+  - Run `tasks-axi block future-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start future-in_flight
+exit: 0
+ok: start future-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done future-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold future-in_flight --kind future --reason 'Disposable validation condition'
+exit: 0
+ok: hold future-in_flight -> held (future)
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold future-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh future-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/future-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-in_flight
+exit: 0
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh future-in_flight ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item future-in_flight is not dispatchable: it has a hold of kind future (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold future-in_flight); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-in_flight
+exit: 0
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: future-in_flight task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add future-in_flight 'Disposable validation work' --kind ship
+exit: 0
+ok: added future-in_flight (ship) -> Queued
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start future-in_flight` to move it to in flight
+  - Run `tasks-axi block future-in_flight --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh start future-in_flight
+exit: 0
+ok: start future-in_flight -> In flight
+help[1]:
+  - Run `tasks-axi done future-in_flight --pr <url>` when it ships
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh hold future-in_flight --kind future --reason 'Disposable validation condition'
+exit: 0
+ok: hold future-in_flight -> held (future)
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unhold future-in_flight` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh future-in_flight sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/future-in_flight/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unhold future-in_flight
+exit: 0
+ok: unhold future-in_flight -> cleared
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[1]:
+  - Run `tasks-axi ready` to see dispatchable work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-in_flight
+exit: 0
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show future-in_flight
+exit: 0
+task:
+  id: future-in_flight
+  title: Disposable validation work
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Disposable validation condition
+  hold_kind: future
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+Observed: suggested unhold releases only future/in_flight in FM_HOME; same-ID task in caller home remains held; dependency preserved.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add dependency-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added dependency-blocker (ship) -> Queued
+task:
+  id: dependency-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start dependency-blocker` to move it to in flight
+  - Run `tasks-axi block dependency-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh dependency-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/dependency-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add dependency-work 'Disposable validation work' --kind ship --blocked-by dependency-blocker
+exit: 0
+ok: added dependency-work (ship) -> Queued
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: dependency-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:dependency-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start dependency-work` to move it to in flight
+  - Run `tasks-axi block dependency-work --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh dependency-work sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/dependency-work/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add dependency-blocker 'Disposable validation work' --kind ship
+exit: 0
+ok: added dependency-blocker (ship) -> Queued
+task:
+  id: dependency-blocker
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start dependency-blocker` to move it to in flight
+  - Run `tasks-axi block dependency-blocker --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh dependency-blocker sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/dependency-blocker/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add dependency-work 'Disposable validation work' --kind ship --blocked-by dependency-blocker
+exit: 0
+ok: added dependency-work (ship) -> Queued
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: dependency-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:dependency-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start dependency-work` to move it to in flight
+  - Run `tasks-axi block dependency-work --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh dependency-work sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home/data/dependency-work/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show dependency-work
+exit: 0
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: dependency-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:dependency-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock dependency-work --by <other>` to clear a blocker
+  - Run `tasks-axi start dependency-work` to move it to in flight
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh dependency-work ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item dependency-work is not dispatchable: it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock dependency-work --by <blocker>); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show dependency-work
+exit: 0
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: dependency-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:dependency-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock dependency-work --by <other>` to clear a blocker
+  - Run `tasks-axi start dependency-work` to move it to in flight
+
+Observed: dependency-work task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh unblock dependency-work --by dependency-blocker
+exit: 0
+ok: unblock dependency-work -> cleared dependency-blocker
+help[1]:
+  - Run `tasks-axi ready` to see newly unblocked work
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show dependency-work
+exit: 0
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/other-home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show dependency-work
+exit: 0
+task:
+  id: dependency-work
+  title: Disposable validation work
+  state: queued
+  blocked: yes
+  blocked_by: dependency-blocker
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: "blocked-by:dependency-blocker"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi unblock dependency-work --by <other>` to clear a blocker
+  - Run `tasks-axi start dependency-work` to move it to in flight
+
+Observed: suggested unblock clears only FM_HOME dependency; same-ID task in caller home remains blocked.
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh add finished-work 'Disposable validation work' --kind ship
+exit: 0
+ok: added finished-work (ship) -> Queued
+task:
+  id: finished-work
+  title: Disposable validation work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: 2026-11-08
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start finished-work` to move it to in flight
+  - Run `tasks-axi block finished-work --by <other>` to record a dependency
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh done finished-work
+exit: 0
+ok: done finished-work -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-brief.sh finished-work sample --mode no-mistakes
+exit: 0
+scaffolded: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home/data/finished-work/brief.md (ship, mode=no-mistakes; replace {TASK}, {PUBLISHED_INTENT}, and {FIRSTMATE_SPEC})
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show finished-work
+exit: 0
+task:
+  id: finished-work
+  title: Disposable validation work
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: "-"
+  closed: 2026-11-08
+  deps: none
+  links: none
+  body: ""
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-spawn.sh finished-work ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/project --mode no-mistakes --yolo off --backend tmux --harness claude
+exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+error: this home's backlog item finished-work is not dispatchable: it is done (there is nothing left to dispatch); refusing before creating its endpoint or local copy
+
+cwd: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517
+FM_HOME: ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/.live-validation/matrix/home
+$ ~/.no-mistakes/worktrees/feb37d45d9da/01M6WQ9Y0RTHQGB86GCH0D2517/bin/fm-tasks-axi.sh show finished-work
+exit: 0
+task:
+  id: finished-work
+  title: Disposable validation work
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  labels: []
+  created: "-"
+  closed: 2026-11-08
+  deps: none
+  links: none
+  body: ""
+
+Observed: finished-work task data unchanged; no worker metadata, endpoint socket, or additional git worktree.
+
+Cleanup: historical entrypoints removed; isolated matrix fixtures removed.

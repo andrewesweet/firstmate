@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Generated ship/scout instructions cover PID, exit status, and completion files across delivery modes and wait settings",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Captain-held queued and in-flight work refuses safely and the emitted answer/release remedy works",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "External/load/parked/future holds identify their kind in both states and unhold only the selected home, preserving blockers",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Dependency-blocked dispatch explains the blocker and its suggested remedy targets FM_HOME from another home",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Dispatching completed work says nothing remains to dispatch and creates no worker resources",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-cli-transcript.log",
+    "reason": ""
+  }
+]
