@@ -5078,17 +5078,20 @@ herdr_projection_existing_meta_allows_flat() { # <meta>
 # fm_backlog_row_probe sets FM_BACKLOG_ROW_STATE to) into words: each
 # ineligible field in plain language with the remedy for its case, replacing
 # the raw probe fields an operator would otherwise have to decode by hand.
-spawn_backlog_row_refusal_reason() {  # <id> <row-state>
-  local id=$1 row=$2 state held blocked reasons=()
+spawn_backlog_row_refusal_reason() {  # <id> <row-state> <hold-kind>
+  local id=$1 row=$2 hold_kind=$3 state held blocked reasons=()
   state=${row%% *}
   row=${row#* }
   held=${row%% *}
   blocked=${row#* }
-  case "$held" in
-    yes) reasons+=("it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer $id --decision-file <path> --release to release it)") ;;
-  esac
+  if [ "$held" = yes ]; then
+    case "$hold_kind" in
+      captain) reasons+=("it is held for the captain (record the captain's word with bin/fm-captain-hold.sh answer $id --decision-file <path> --release to release it)") ;;
+      *) reasons+=("it has an ${hold_kind:-unspecified} hold (resolve the hold reason first, then release it with bin/fm-tasks-axi.sh unhold $id)") ;;
+    esac
+  fi
   case "$blocked" in
-    yes) reasons+=("it is blocked by its blocked_by dependency (clear the blocker first, for example tasks-axi unblock $id --by <blocker>)") ;;
+    yes) reasons+=("it is blocked by its blocked_by dependency (clear the blocker first, for example bin/fm-tasks-axi.sh unblock $id --by <blocker>)") ;;
   esac
   if [ "${#reasons[@]}" -eq 0 ]; then
     case "$state" in
@@ -5126,7 +5129,7 @@ if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
       exit 1
     fi
   elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
-    echo "error: this home's backlog item $ID is not dispatchable: $(spawn_backlog_row_refusal_reason "$ID" "$BACKLOG_ROW_STATE"); refusing before creating its endpoint or local copy" >&2
+    echo "error: this home's backlog item $ID is not dispatchable: $(spawn_backlog_row_refusal_reason "$ID" "$BACKLOG_ROW_STATE" "$FM_BACKLOG_ROW_HOLD_KIND"); refusing before creating its endpoint or local copy" >&2
     exit 1
   fi
 else
